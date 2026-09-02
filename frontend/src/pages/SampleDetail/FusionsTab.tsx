@@ -34,7 +34,7 @@ import {
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { AnalysisTableCard } from "./AnalysisTableCard"
 
-export function FusionsTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
+export function FusionsTab({ sampleId, header, filterPanel }: { sampleId: string; header?: ReactNode; filterPanel?: ReactNode }) {
   const controlsQuery = useApplicationModules()
   const fusionBulkActions = findingBulkActionOptions("fusion", {
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "fusion"),
@@ -236,7 +236,7 @@ export function FusionsTab({ sampleId, header }: { sampleId: string; header?: Re
   ]
 
   return (
-    <AnalysisTableCard header={header} className="p-2">
+    <AnalysisTableCard header={header} filterPanel={filterPanel} className="p-2">
       <DataTable
         columns={columns}
         data={fusions}

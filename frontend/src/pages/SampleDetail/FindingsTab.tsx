@@ -1,11 +1,11 @@
-import { SlidersHorizontal } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { ChevronLeft, Filter } from "lucide-react"
+import { useState } from "react"
 import { CNVTab } from "./CNVTab"
 import { FusionsTab } from "./FusionsTab"
 import { RnaAnalysisTab } from "./RnaAnalysisTabs"
 import { TranslocationsTab } from "./TranslocationsTab"
 import { VariantsTab } from "./VariantsTab"
+import { CollapsedFiltersRail, FiltersSidebar } from "./FiltersSidebar"
 
 export type FindingSectionId =
   | "snvs"
@@ -15,47 +15,37 @@ export type FindingSectionId =
   | "rna-analysis"
   | "translocations"
 
-type FindingSection = {
+export type FindingSection = {
   id: FindingSectionId
   label: string
 }
 
-const FILTERABLE_SECTIONS = new Set<FindingSectionId>([
+export type AnalysisFilterSection = {
+  id: string
+  label: string
+}
+
+export const FILTERABLE_ANALYSIS_SECTIONS = new Set([
   "snvs",
   "germline-snvs",
   "cnvs",
   "fusions",
   "translocations",
+  "coverage",
 ])
 
 function FindingPanel({
   section,
   sampleId,
-  activeFilterSection,
-  onSelectFilterSection,
 }: {
   section: FindingSection
   sampleId: string
-  activeFilterSection: FindingSectionId | null
-  onSelectFilterSection: (section: FindingSectionId) => void
 }) {
   const tableHeader = (
     <>
       <h2 id={`finding-section-${section.id}`} className="text-base font-semibold text-foreground">
         {section.label}
       </h2>
-      {FILTERABLE_SECTIONS.has(section.id) && (
-        <Button
-          type="button"
-          size="sm"
-          variant={activeFilterSection === section.id ? "default" : "outline"}
-          onClick={() => onSelectFilterSection(section.id)}
-          aria-pressed={activeFilterSection === section.id}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          Filters
-        </Button>
-      )}
     </>
   )
 
@@ -71,16 +61,75 @@ function FindingPanel({
   )
 }
 
+export function ClassicAnalysisFiltersSidebar({
+  sampleId,
+  sample,
+  context,
+  sections,
+}: {
+  sampleId: string
+  sample: any
+  context?: any
+  sections: AnalysisFilterSection[]
+}) {
+  const [isCollapsed, setIsCollapsed] = useState(true)
+  const filterableSections = sections.filter((section) => FILTERABLE_ANALYSIS_SECTIONS.has(section.id))
+  if (filterableSections.length === 0) return null
+
+  if (isCollapsed) {
+    return (
+      <div className="sticky top-3 max-h-[calc(100dvh-2rem)]" aria-label="All finding filters">
+        <CollapsedFiltersRail
+          label="Finding filters"
+          onExpand={() => setIsCollapsed(false)}
+          ariaLabel="Expand finding filters"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <aside aria-label="All finding filters" className="sticky top-3 flex max-h-[calc(100dvh-2rem)] w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+        <Filter className="h-4 w-4 text-primary" />
+        <div>
+          <h2 className="type-card-title">Finding filters</h2>
+          <p className="type-meta text-muted-foreground">All enabled analysis filters</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(true)}
+          className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          title="Collapse finding filters"
+          aria-label="Collapse finding filters"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="min-h-0 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border">
+        {filterableSections.map((section) => (
+          <FiltersSidebar
+            key={section.id}
+            inline
+            embedded
+            sampleId={sampleId}
+            sample={sample}
+            context={context}
+            activeTab={section.id}
+            intent={section.id === "germline-snvs" ? "germline" : "somatic"}
+          />
+        ))}
+      </div>
+    </aside>
+  )
+}
+
 export function FindingsTab({
   sampleId,
   sections,
-  activeFilterSection,
-  onSelectFilterSection,
 }: {
   sampleId: string
   sections: FindingSection[]
-  activeFilterSection: FindingSectionId | null
-  onSelectFilterSection: (section: FindingSectionId) => void
 }) {
   return (
     <div className="space-y-6">
@@ -89,8 +138,6 @@ export function FindingsTab({
           key={section.id}
           section={section}
           sampleId={sampleId}
-          activeFilterSection={activeFilterSection}
-          onSelectFilterSection={onSelectFilterSection}
         />
       ))}
     </div>

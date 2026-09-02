@@ -253,9 +253,17 @@ describe("sample analysis table tabs", () => {
     const plotViewport = screen.getByRole("region", { name: "TP53 coverage plot viewport" })
     const plot = screen.getByRole("img", { name: "TP53 coverage plot" })
     expect(plotViewport).toHaveClass("overflow-x-auto", "max-w-full")
-    expect(plot).toHaveAttribute("width", "980")
+    expect(plot).toHaveAttribute("width", "1100")
+    expect(screen.getByText("Exon design")).toBeVisible()
+    expect(screen.getByText("CDS coverage")).toBeVisible()
+    expect(screen.getByText("Position")).toBeVisible()
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "CDS 4, 17:105-145, 120.00X" }))
+    expect(screen.getByText("CDS 4")).toBeVisible()
+    expect(screen.getAllByText("17:105-145").some((element) => element.tagName === "P")).toBe(true)
+    expect(screen.getByText("40 bp")).toBeVisible()
+    expect(screen.getAllByText("120.00X").some((element) => element.tagName === "P")).toBe(true)
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }))
-    expect(plot).toHaveAttribute("width", "1225")
+    expect(plot).toHaveAttribute("width", "1375")
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_COV/coverage?cov_cutoff=500")
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       data: expect.arrayContaining([expect.objectContaining({ gene: "TP53", region: "exon_4", cov: 120 })]),
@@ -288,7 +296,7 @@ describe("sample analysis table tabs", () => {
 
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered DNA report")
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false")
-    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    fireEvent.click(screen.getByRole("button", { name: "Save report" }))
     expect(screen.getByRole("heading", { name: "Confirm report save" })).toBeVisible()
     expect(mocks.post).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }))
@@ -388,7 +396,7 @@ describe("sample analysis table tabs", () => {
     mount(<ReportsTab sampleId="DNA_REPORT" />, "/samples/DNA_REPORT?tab=reports")
 
     expect(await screen.findByText("No reporting rules")).toBeVisible()
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Save report" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "PDF" })).toBeDisabled()
   })
 
@@ -448,7 +456,10 @@ describe("sample analysis table tabs", () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Apply action" }))
 
-    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledWith({ action, resourceIds: [row._id] }))
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      action,
+      resourceIds: [row._id],
+    })))
     expect(screen.queryByText(actionLabel)).not.toBeNull()
   })
 

@@ -4,10 +4,12 @@ import { cn } from "@/lib/utils"
 
 export function AnalysisTableCard({
   header,
+  filterPanel,
   children,
   className,
 }: {
   header?: ReactNode
+  filterPanel?: ReactNode
   children: ReactNode
   className?: string
 }) {
@@ -21,6 +23,7 @@ export function AnalysisTableCard({
           {header}
         </div>
       ) : null}
+      {filterPanel ? <div className="mb-3 shrink-0">{filterPanel}</div> : null}
       {children}
     </div>
   )

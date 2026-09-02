@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
-import { ChevronLeft, ChevronRight, Filter, RefreshCw, RotateCcw, Save } from "lucide-react"
+import { ChevronRight, Filter, RefreshCw, RotateCcw, Save } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -13,15 +13,38 @@ interface FiltersSidebarProps {
   context?: any
   activeTab?: string
   intent?: "somatic" | "germline"
-  availableSections?: Array<{
-    id: string
-    label: string
-  }>
-  onSelectSection?: (section: string) => void
-  toggleRequest?: {
-    sequence: number
-    section: string
-  } | null
+  inline?: boolean
+  embedded?: boolean
+  collapsedLabel?: string
+}
+
+export function CollapsedFiltersRail({
+  label,
+  onExpand,
+  ariaLabel = "Expand filters",
+}: {
+  label: string
+  onExpand: () => void
+  ariaLabel?: string
+}) {
+  return (
+    <aside
+      className="flex h-full w-7 shrink-0 overflow-hidden rounded-md border border-primary/10 bg-gradient-to-b from-dna/10 via-card/80 to-rna/10 text-muted-foreground shadow-sm"
+      aria-label={label}
+    >
+      <button
+        type="button"
+        onClick={onExpand}
+        className="flex min-h-24 w-full flex-1 items-center justify-center px-0.5 py-2 transition-colors hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        title={ariaLabel}
+        aria-label={ariaLabel}
+      >
+        <span className="type-label whitespace-nowrap font-medium uppercase tracking-wide [writing-mode:vertical-rl]">
+          {label}
+        </span>
+      </button>
+    </aside>
+  )
 }
 
 const consequences = [
@@ -252,13 +275,11 @@ export function FiltersSidebar({
   context,
   activeTab = "overview",
   intent = "somatic",
-  availableSections = [],
-  onSelectSection,
-  toggleRequest = null,
+  inline = false,
+  embedded = false,
+  collapsedLabel,
 }: FiltersSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true)
-  const previousToggleSequence = useRef(toggleRequest?.sequence ?? 0)
-  const previousToggleSection = useRef<string | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(!inline)
   const activeSection = activeFilterSectionForTab(activeTab)
   const sampleName = String(sample?.name || sample?.case_id || sampleId)
   const [filters, setFilters] = useState(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
@@ -267,14 +288,6 @@ export function FiltersSidebar({
   useEffect(() => {
     setFilters(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
   }, [activeSection, sample, intent])
-
-  useEffect(() => {
-    if (!toggleRequest || toggleRequest.sequence === previousToggleSequence.current) return
-    previousToggleSequence.current = toggleRequest.sequence
-    const repeatedSection = previousToggleSection.current === toggleRequest.section
-    previousToggleSection.current = toggleRequest.section
-    setIsCollapsed((collapsed) => repeatedSection ? !collapsed : false)
-  }, [toggleRequest])
 
   const listOptions = useMemo(() => {
     const all = [
@@ -358,51 +371,17 @@ export function FiltersSidebar({
   const setValue = (key: string, value: any) => setFilters((current: any) => ({ ...current, [key]: value }))
   const values = (key: string) => Array.isArray(filters[key]) ? filters[key].map(String) : []
   const consequenceValues = Array.isArray(filters.vep_consequences) ? filters.vep_consequences.map(String) : []
-  const collapsedSections = availableSections.length > 0
-    ? availableSections
-    : [{ id: activeTab, label: `${intent} ${activeTab}` }]
-
-  if (isCollapsed) {
+  if (!inline && isCollapsed) {
     return (
-      <aside className="flex h-full w-8 shrink-0 flex-col items-center rounded-lg border border-primary/10 bg-card/95 py-2 shadow-sm transition-[width] duration-150 ease-out">
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(false)}
-          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          title="Expand filters"
-          aria-label="Expand filters"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <nav aria-label="Finding filters" className="mt-2 flex min-h-0 w-full flex-1 flex-col gap-0 overflow-y-auto px-1">
-          {collapsedSections.map((section) => {
-            const isActive = section.id === activeTab
-            return (
-              <button
-                key={section.id}
-                type="button"
-                aria-label={`Show ${section.label} filters`}
-                aria-pressed={isActive}
-                onClick={() => onSelectSection ? onSelectSection(section.id) : setIsCollapsed(false)}
-                className={`flex min-h-16 w-full items-center justify-center rounded-md border px-1 py-2 type-label font-semibold uppercase tracking-[0.12em] transition-colors ${
-                  isActive
-                    ? "border-primary/35 bg-primary/10 text-primary"
-                    : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-                  {section.label}
-                </span>
-              </button>
-            )
-          })}
-        </nav>
-      </aside>
+      <CollapsedFiltersRail
+        label={collapsedLabel || `${intent} ${activeTab} filters`}
+        onExpand={() => setIsCollapsed(false)}
+      />
     )
   }
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col overflow-hidden rounded-lg border border-primary/10 bg-card/95 shadow-sm transition-[width] duration-150 ease-out">
+    <aside className={`flex ${inline ? "w-full" : "h-full w-60 shrink-0"} flex-col overflow-hidden rounded-lg border border-primary/10 bg-card/95 shadow-sm`}>
       <div className="flex items-center justify-between border-b border-primary/10 bg-gradient-to-r from-dna/10 via-card/80 to-rna/10 px-3 py-2">
         <div>
           <h3 className="text-sm font-semibold">Filters</h3>
@@ -414,12 +393,14 @@ export function FiltersSidebar({
             </p>
           )}
         </div>
-        <button onClick={() => setIsCollapsed(true)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Collapse filters">
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        {!inline && (
+          <button onClick={() => setIsCollapsed(true)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Collapse filters">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border">
+      <div className={`${inline && !embedded ? "max-h-[34rem]" : "flex-1"} space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border`}>
         {context?.aspc_update?.available && (
           <section className="rounded-lg border border-primary/25 bg-primary/5 p-2.5">
             <p className="text-xs font-semibold text-foreground">A newer assay configuration is available.</p>

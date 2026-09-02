@@ -36,7 +36,7 @@ import {
 } from "@/hooks/useClinicalTableState"
 import { AnalysisTableCard } from "./AnalysisTableCard"
 
-export function TranslocationsTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
+export function TranslocationsTab({ sampleId, header, filterPanel }: { sampleId: string; header?: ReactNode; filterPanel?: ReactNode }) {
   const controlsQuery = useApplicationModules()
   const translocationBulkActions = findingBulkActionOptions("translocation", {
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "translocation"),
@@ -202,7 +202,7 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
   ]
 
   return (
-    <AnalysisTableCard header={header}>
+    <AnalysisTableCard header={header} filterPanel={filterPanel}>
       <DataTable
         columns={columns}
         data={translocations}

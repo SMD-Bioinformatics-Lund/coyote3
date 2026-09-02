@@ -311,15 +311,6 @@ export function ReportsTab({
             {downloadPreviewPdf.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             PDF
           </Button>
-          <Button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            disabled={!hasRenderedHtml || saveReport.isPending}
-            title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
-          >
-            {saveReport.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save
-          </Button>
           <Link
             to={`/reports?sample_id=${encodeURIComponent(sampleId)}&report_type=${reportType}`}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted"
@@ -391,6 +382,17 @@ export function ReportsTab({
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
                 Temporary until saved
               </span>
+              <Button
+                type="button"
+                size="lg"
+                className="ml-auto"
+                onClick={() => setConfirmOpen(true)}
+                disabled={!hasRenderedHtml || saveReport.isPending}
+                title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
+              >
+                {saveReport.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save report
+              </Button>
             </div>
             <ReportHtmlFrame
               title="Report preview"

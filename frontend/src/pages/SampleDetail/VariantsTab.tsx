@@ -47,10 +47,12 @@ export function VariantsTab({
   sampleId,
   intent,
   header,
+  filterPanel,
 }: {
   sampleId: string
   intent: "somatic" | "germline"
   header?: ReactNode
+  filterPanel?: ReactNode
 }) {
   const controlsQuery = useApplicationModules()
   const variantBulkActions = findingBulkActionOptions("small_variant", {
@@ -430,7 +432,7 @@ export function VariantsTab({
   ]
 
   return (
-    <AnalysisTableCard header={header}>
+    <AnalysisTableCard header={header} filterPanel={filterPanel}>
       <DataTable
         columns={columns}
         data={variants || []}
@@ -450,8 +452,10 @@ export function VariantsTab({
               selectedCount={Object.keys(table.getState().rowSelection).length}
               actions={variantBulkActions}
               isPending={bulkAction.isPending}
-              onAction={(action) => bulkAction.mutateAsync({
+              automaticTextAvailable
+              onAction={(action, options) => bulkAction.mutateAsync({
                 action,
+                includeAutomaticText: options?.includeAutomaticText,
                 resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
               })}
             />

@@ -68,7 +68,7 @@ function artefactExportValue(cnv: any): string {
     .join(" | ")
 }
 
-export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
+export function CNVTab({ sampleId, header, filterPanel }: { sampleId: string; header?: ReactNode; filterPanel?: ReactNode }) {
   const controlsQuery = useApplicationModules()
   const cnvBulkActions = findingBulkActionOptions("cnv", {
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "cnv"),
@@ -256,7 +256,7 @@ export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactN
   ]
 
   const tablePane = (
-    <AnalysisTableCard header={header}>
+    <AnalysisTableCard header={header} filterPanel={filterPanel}>
           <DataTable
             columns={columns}
             data={cnvs}

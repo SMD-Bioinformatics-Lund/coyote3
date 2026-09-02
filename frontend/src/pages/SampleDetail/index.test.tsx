@@ -51,16 +51,13 @@ vi.mock("./RnaAnalysisTabs", () => ({
   RnaAnalysisTab: () => <div>Expression and classification content</div>,
 }))
 vi.mock("./FindingsTab", () => ({
-  FindingsTab: ({
-    sections,
-    onSelectFilterSection,
-  }: {
-    sections: Array<{ label: string }>
-    onSelectFilterSection: (section: "cnvs") => void
-  }) => (
+  ClassicAnalysisFiltersSidebar: ({ sections }: { sections: Array<{ label: string }> }) => (
+    <div>Classic filters: {sections.map((section) => section.label).join(", ")}</div>
+  ),
+  FILTERABLE_ANALYSIS_SECTIONS: new Set(["snvs", "germline-snvs", "cnvs", "fusions", "translocations", "coverage"]),
+  FindingsTab: ({ sections }: { sections: Array<{ label: string }> }) => (
     <div>
       Findings: {sections.map((section) => section.label).join(", ")}
-      <button type="button" onClick={() => onSelectFilterSection("cnvs")}>Open CNV filters</button>
     </div>
   ),
 }))
@@ -68,15 +65,11 @@ vi.mock("./FiltersSidebar", () => ({
   FiltersSidebar: ({
     intent,
     activeTab,
-    toggleRequest,
   }: {
     intent: string
     activeTab: string
-    toggleRequest: { sequence: number; section: string } | null
   }) => (
-    <div>
-      Filters {intent} {activeTab} request {toggleRequest?.sequence ?? 0} section {toggleRequest?.section ?? "none"}
-    </div>
+    <div>Filters {intent} {activeTab}</div>
   ),
 }))
 vi.mock("@/components/comments/CommentsPanel", () => ({ CommentsPanel: () => <div>Comments</div> }))
@@ -127,6 +120,7 @@ describe("SampleDetail", () => {
     expect(screen.getByRole("tab", { name: "Findings" })).toHaveAttribute("aria-selected", "true")
     expect(screen.queryByRole("tab", { name: "Somatic SNVs" })).not.toBeInTheDocument()
     expect(screen.getByText("Findings: Somatic SNVs, Germline SNVs, CNVs")).toBeVisible()
+    expect(screen.getByText("Classic filters: Somatic SNVs, Germline SNVs, CNVs, Coverage")).toBeVisible()
   })
 
   it("offers modern until the modern analysis layout has been tried", () => {
@@ -150,24 +144,29 @@ describe("SampleDetail", () => {
     expect(screen.queryByText("Prefer a focused view?")).not.toBeInTheDocument()
   })
 
-  it("selects and opens the requested section filters from the findings view", () => {
+  it("opens Findings by default in the classic layout", () => {
     mocks.analysisLayout = "classic"
-    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=findings")
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
 
-    expect(screen.getByText("Filters somatic snvs request 0 section none")).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "Open CNV filters" }))
-
-    expect(screen.getByText("Filters somatic cnvs request 1 section cnvs")).toBeVisible()
+    expect(screen.getByRole("tab", { name: "Findings" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByText("Findings: Somatic SNVs, Germline SNVs, CNVs")).toBeVisible()
   })
 
   it("switches between somatic and germline views without mixing intent", () => {
     renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=snvs")
     expect(screen.getByText("somatic variants")).toBeVisible()
-    expect(screen.getByText("Filters somatic snvs request 0 section none")).toBeVisible()
+    expect(screen.getByText("Filters somatic snvs")).toBeVisible()
 
     fireEvent.click(screen.getByRole("tab", { name: "Germline SNVs" }))
     expect(screen.getByText("germline variants")).toBeVisible()
-    expect(screen.getByText("Filters germline germline-snvs request 0 section none")).toBeVisible()
+    expect(screen.getByText("Filters germline germline-snvs")).toBeVisible()
+  })
+
+  it("opens Somatic SNVs by default in the modern DNA layout", () => {
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
+
+    expect(screen.getByRole("tab", { name: "Somatic SNVs" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByText("somatic variants")).toBeVisible()
   })
 
   it("does not expose germline or coverage tabs when intent and resources are absent", () => {
@@ -183,8 +182,22 @@ describe("SampleDetail", () => {
     renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=coverage")
 
     expect(screen.getByText("Coverage content")).toBeVisible()
-    expect(screen.getByText("Filters somatic coverage request 0 section none")).toBeVisible()
+    expect(screen.getByText("Filters somatic coverage")).toBeVisible()
     expect(screen.queryByText("Panel summary")).not.toBeInTheDocument()
+  })
+
+  it("recognizes the canonical coverage data-count key", () => {
+    mocks.context = sampleContext({ data_counts: { snvs: 12, coverage: true } })
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
+
+    expect(screen.getByRole("tab", { name: "Coverage" })).toBeVisible()
+  })
+
+  it("recognizes historical mixed-case coverage data-count keys", () => {
+    mocks.context = sampleContext({ data_counts: { snvs: 12, Cov: true } })
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
+
+    expect(screen.getByRole("tab", { name: "Coverage" })).toBeVisible()
   })
 
   it("shows RNA fusion analysis without DNA-only analysis tabs", () => {
@@ -203,6 +216,22 @@ describe("SampleDetail", () => {
     expect(screen.getByText("Fusion content")).toBeVisible()
     expect(screen.queryByRole("tab", { name: "Somatic SNVs" })).not.toBeInTheDocument()
     expect(screen.queryByRole("tab", { name: "CNVs" })).not.toBeInTheDocument()
+  })
+
+  it("opens Fusions by default in the modern RNA layout", () => {
+    mocks.context = {
+      sample: {
+        name: "RNA_001",
+        omics_layer: "rna",
+        analysis_intents: ["somatic"],
+        data_counts: { fusions: 4 },
+      },
+      analysis_sections: ["FUSION"],
+    }
+    renderWithRouter(<SampleDetail />, "/samples/RNA_001")
+
+    expect(screen.getByRole("tab", { name: "Fusions" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByText("Fusion content")).toBeVisible()
   })
 
   it("combines configured WTS expression and classification in one analysis tab", () => {

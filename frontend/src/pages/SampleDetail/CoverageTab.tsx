@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { AlertTriangle, Search } from "lucide-react"
+import { AlertTriangle, RotateCcw, Search, ZoomIn, ZoomOut } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { AppTooltip } from "@/components/ui/app-tooltip"
 import { Input } from "@/components/ui/input"
 import { shortCount } from "@/lib/detail-formatters"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -41,6 +42,16 @@ function regionLength(row: any) {
   return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : 0
 }
 
+type CoverageFeatureKind = "Probe" | "Exon" | "CDS"
+
+type InspectedCoverageFeature = {
+  kind: CoverageFeatureKind
+  label: string
+  coordinates: string
+  coverage: number
+  length: number
+}
+
 function CoverageGeneView({
   gene,
   geneData,
@@ -55,6 +66,7 @@ function CoverageGeneView({
   const [zoom, setZoom] = useState(1)
   const [activeTab, setActiveTab] = useState<"exons" | "probes">("exons")
   const [infoTab, setInfoTab] = useState<"transcript" | "exons" | "cds" | "probes">("transcript")
+  const [inspectedFeature, setInspectedFeature] = useState<InspectedCoverageFeature | null>(null)
   const transcript = geneData?.transcript || {}
   const exons = Array.isArray(geneData?.exons) ? geneData.exons : []
   const cds = Array.isArray(geneData?.CDS) ? geneData.CDS : []
@@ -65,15 +77,26 @@ function CoverageGeneView({
   const end = Number(transcript.end || Math.max(...[...exons, ...cds, ...probes].map((row: any) => Number(row.end)).filter(Number.isFinite)))
   const safeStart = Number.isFinite(start) ? start : 0
   const safeEnd = Number.isFinite(end) && end > safeStart ? end : safeStart + 1
-  const width = Math.max(760, Math.round(980 * zoom))
-  const height = 245
-  const margin = { left: 48, right: 28 }
+  const width = Math.max(920, Math.round(1100 * zoom))
+  const height = 250
+  const margin = { left: 112, right: 32 }
+  const trackY = { probes: 48, exons: 98, cds: 146, ruler: 205 }
   const transcriptChr = transcript.chr || transcript.chrom || exons[0]?.chr || cds[0]?.chr || probes[0]?.chr || "-"
   const transcriptLength = safeEnd - safeStart
   const x = (value: unknown) => {
     const numeric = Number(value)
     if (!Number.isFinite(numeric)) return margin.left
     return margin.left + ((numeric - safeStart) / (safeEnd - safeStart)) * (width - margin.left - margin.right)
+  }
+  const ticks = Array.from({ length: 6 }, (_, index) => safeStart + ((safeEnd - safeStart) * index) / 5)
+  const inspectFeature = (kind: CoverageFeatureKind, row: any, index: number) => {
+    setInspectedFeature({
+      kind,
+      label: String(row.nbr || row.exon || row.name || row.id || `${kind} ${index + 1}`),
+      coordinates: coord(row),
+      coverage: coverageNumber(row),
+      length: regionLength(row),
+    })
   }
 
   const blacklist = useMutation({
@@ -209,17 +232,23 @@ function CoverageGeneView({
   return (
     <section className="glass-card min-w-0 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide">Gene: {gene} @ {cutoff}X</h3>
-          <p className="text-xs text-muted-foreground">
-            Transcript {metric(safeStart)}-{metric(safeEnd)} • {cds.length} CDS • {probes.length} probes
+        <div className="min-w-0">
+          <h3 className="type-section-title">{gene} coverage</h3>
+          <p className="type-meta text-muted-foreground">
+            {transcriptChr}:{metric(safeStart)}-{metric(safeEnd)} · {metric(transcriptLength)} bp · cutoff {cutoff}X
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button className="rounded-md border border-border bg-background px-2 py-1 text-xs font-bold hover:bg-muted" onClick={() => setZoom((value) => Math.max(0.5, value / 1.25))}>Zoom out</button>
-          <button className="rounded-md border border-border bg-background px-2 py-1 text-xs font-bold hover:bg-muted" onClick={() => setZoom((value) => Math.min(8, value * 1.25))}>Zoom in</button>
-          <button className="rounded-md border border-border bg-background px-2 py-1 text-xs font-bold hover:bg-muted" onClick={() => setZoom(1)}>Reset</button>
-          <span className="rounded-md border border-border bg-background px-2 py-1 text-xs font-bold">{Math.round(zoom * 100)}%</span>
+          <AppTooltip content="Reduce the genomic track scale.">
+            <button aria-label="Zoom out" className="soft-icon-button" onClick={() => setZoom((value) => Math.max(0.5, value / 1.25))}><ZoomOut className="h-4 w-4" /></button>
+          </AppTooltip>
+          <AppTooltip content="Increase the genomic track scale and use the horizontal scrollbar to inspect the complete interval.">
+            <button aria-label="Zoom in" className="soft-icon-button" onClick={() => setZoom((value) => Math.min(8, value * 1.25))}><ZoomIn className="h-4 w-4" /></button>
+          </AppTooltip>
+          <AppTooltip content="Return the genomic track to its original scale.">
+            <button aria-label="Reset zoom" className="soft-icon-button" onClick={() => setZoom(1)}><RotateCcw className="h-4 w-4" /></button>
+          </AppTooltip>
+          <span className="type-badge rounded-md border border-border bg-background px-2 py-1">{Math.round(zoom * 100)}%</span>
           <button
             onClick={() => blacklist.mutate({ region: "" })}
             disabled={blacklist.isPending}
@@ -228,6 +257,16 @@ function CoverageGeneView({
             Blacklist gene
           </button>
         </div>
+      </div>
+
+      <div className="mb-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard title="Exons" value={metric(exons.length)} />
+        <MetricCard title="CDS regions" value={metric(cds.length)} />
+        <MetricCard title="Probes" value={metric(probes.length)} />
+        <MetricCard
+          title="Minimum / mean"
+          value={`${Number.isFinite(minCoverage) ? minCoverage.toFixed(1) : "-"} / ${Number.isFinite(avgCoverage) ? avgCoverage.toFixed(1) : "-"}X`}
+        />
       </div>
 
       <div
@@ -243,28 +282,25 @@ function CoverageGeneView({
           role="img"
           aria-label={`${gene} coverage plot`}
         >
-          <text x={margin.left} y={20} className="fill-foreground type-body font-bold">
-            {gene}
-          </text>
-          <text x={margin.left} y={38} className="fill-muted-foreground type-meta">
-            {transcriptChr}:{metric(safeStart)}-{metric(safeEnd)} • {metric(transcriptLength)} bp • cutoff {cutoff}X
-          </text>
-          <text x={Math.max(margin.left + 300, width - 260)} y={20} className="fill-muted-foreground type-meta">
-            Exons {exons.length} • CDS {cds.length} • Probes {probes.length}
-          </text>
-          <text x={Math.max(margin.left + 300, width - 260)} y={38} className="fill-muted-foreground type-meta">
-            Min {Number.isFinite(minCoverage) ? minCoverage.toFixed(1) : "-"}X • Avg {Number.isFinite(avgCoverage) ? avgCoverage.toFixed(1) : "-"}X
-          </text>
-
-          <line x1={x(safeStart)} y1={144} x2={x(safeEnd)} y2={144} stroke="currentColor" strokeWidth="1" />
-          <line x1={x(safeStart)} y1={136} x2={x(safeStart)} y2={152} stroke="currentColor" strokeWidth="1" />
-          <line x1={x(safeEnd)} y1={136} x2={x(safeEnd)} y2={152} stroke="currentColor" strokeWidth="1" />
-          <text x={x(safeStart)} y={171} className="fill-muted-foreground type-label" textAnchor="start">
-            {metric(safeStart)}
-          </text>
-          <text x={x(safeEnd)} y={171} className="fill-muted-foreground type-label" textAnchor="end">
-            {metric(safeEnd)}
-          </text>
+          {ticks.map((tick, index) => (
+            <g key={`tick-${index}`}>
+              <line x1={x(tick)} y1={26} x2={x(tick)} y2={trackY.ruler} className="stroke-border" strokeDasharray="3 5" />
+              <line x1={x(tick)} y1={trackY.ruler} x2={x(tick)} y2={trackY.ruler + 7} className="stroke-muted-foreground" />
+              <text
+                x={x(tick)}
+                y={trackY.ruler + 23}
+                textAnchor={index === 0 ? "start" : index === ticks.length - 1 ? "end" : "middle"}
+                className="fill-muted-foreground type-label"
+              >
+                {metric(Math.round(tick))}
+              </text>
+            </g>
+          ))}
+          <line x1={x(safeStart)} y1={trackY.ruler} x2={x(safeEnd)} y2={trackY.ruler} className="stroke-muted-foreground" />
+          <text x={margin.left - 14} y={trackY.probes + 14} textAnchor="end" className="fill-foreground type-meta">Probes</text>
+          <text x={margin.left - 14} y={trackY.exons + 15} textAnchor="end" className="fill-foreground type-meta">Exon design</text>
+          <text x={margin.left - 14} y={trackY.cds + 15} textAnchor="end" className="fill-foreground type-meta">CDS coverage</text>
+          <text x={margin.left - 14} y={trackY.ruler + 4} textAnchor="end" className="fill-muted-foreground type-label">Position</text>
 
           {exons.map((row: any, index: number) => {
             const rectX = x(row.start)
@@ -272,11 +308,15 @@ function CoverageGeneView({
             const label = row.nbr || row.exon || index + 1
             return (
               <g key={`exon-${index}`}>
-                <rect x={rectX} y={134} width={rectWidth} height={20} fill="var(--coverage-exon)">
-                  <title>{coord(row)} exon {label}, cov {Number(row.cov).toFixed(2)}X</title>
-                </rect>
+                <rect
+                  x={rectX} y={trackY.exons} width={rectWidth} height={24} rx={2}
+                  fill="var(--coverage-exon)" tabIndex={0} role="button"
+                  aria-label={`Exon ${label}, ${coord(row)}`}
+                  onMouseEnter={() => inspectFeature("Exon", row, index)}
+                  onFocus={() => inspectFeature("Exon", row, index)}
+                />
                 {rectWidth > 18 && (
-                  <text x={rectX + rectWidth / 2} y={148} textAnchor="middle" className="fill-foreground type-label font-bold">
+                  <text x={rectX + rectWidth / 2} y={trackY.exons + 16} textAnchor="middle" className="pointer-events-none fill-foreground type-label font-semibold">
                     {label}
                   </text>
                 )}
@@ -291,11 +331,15 @@ function CoverageGeneView({
             const label = row.nbr || row.exon || index + 1
             return (
               <g key={`cds-${index}`}>
-                <rect x={rectX} y={134} width={rectWidth} height={20} fill={fill}>
-                  <title>{coord(row)} exon {label}, cov {Number.isNaN(cov) ? "N/A" : cov.toFixed(2)}X</title>
-                </rect>
+                <rect
+                  x={rectX} y={trackY.cds} width={rectWidth} height={24} rx={2}
+                  fill={fill} tabIndex={0} role="button"
+                  aria-label={`CDS ${label}, ${coord(row)}, ${Number.isNaN(cov) ? "no coverage" : `${cov.toFixed(2)}X`}`}
+                  onMouseEnter={() => inspectFeature("CDS", row, index)}
+                  onFocus={() => inspectFeature("CDS", row, index)}
+                />
                 {rectWidth > 42 && (
-                  <text x={rectX + rectWidth / 2} y={130} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-pass"} type-label font-bold`}>
+                  <text x={rectX + rectWidth / 2} y={trackY.cds - 5} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-pass"} pointer-events-none type-label font-semibold`}>
                     {Number.isNaN(cov) ? "N/A" : `${cov.toFixed(0)}X`}
                   </text>
                 )}
@@ -308,21 +352,41 @@ function CoverageGeneView({
             const rectWidth = Math.max(1, x(row.end) - x(row.start))
             return (
               <g key={`probe-${index}`}>
-                <rect x={rectX} y={95} width={rectWidth} height={18} fill={cov < cutoff ? "var(--coverage-low)" : "var(--coverage-probe)"}>
-                  <title>{coord(row)}, cov {Number.isNaN(cov) ? "N/A" : cov.toFixed(2)}X</title>
-                </rect>
+                <rect
+                  x={rectX} y={trackY.probes} width={rectWidth} height={22} rx={2}
+                  fill={Number.isNaN(cov) ? "var(--coverage-unavailable)" : cov < cutoff ? "var(--coverage-low)" : "var(--coverage-probe)"}
+                  tabIndex={0} role="button"
+                  aria-label={`Probe ${index + 1}, ${coord(row)}, ${Number.isNaN(cov) ? "no coverage" : `${cov.toFixed(2)}X`}`}
+                  onMouseEnter={() => inspectFeature("Probe", row, index)}
+                  onFocus={() => inspectFeature("Probe", row, index)}
+                />
                 {rectWidth > 44 && (
-                  <text x={rectX + rectWidth / 2} y={90} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-tier3"} type-label font-bold`}>
+                  <text x={rectX + rectWidth / 2} y={trackY.probes - 5} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-tier3"} pointer-events-none type-label font-semibold`}>
                     {Number.isNaN(cov) ? "N/A" : `${cov.toFixed(0)}X`}
                   </text>
                 )}
               </g>
             )
           })}
-          <text x={10} y={108} className="fill-muted-foreground type-meta">Probes</text>
-          <text x={10} y={148} className="fill-muted-foreground type-meta">CDS/exons</text>
-          <text x={10} y={190} className="fill-muted-foreground type-label">Hover regions for exact coordinates and coverage.</text>
         </svg>
+      </div>
+
+      <div className="mt-2 min-h-14 rounded-lg border border-border bg-muted/40 px-3 py-2" aria-live="polite">
+        {inspectedFeature ? (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <div><p className="type-label text-muted-foreground">Feature</p><p className="type-body-sm font-semibold">{inspectedFeature.kind} {inspectedFeature.label}</p></div>
+            <div><p className="type-label text-muted-foreground">Coordinates</p><p className="type-body-sm">{inspectedFeature.coordinates}</p></div>
+            <div><p className="type-label text-muted-foreground">Length</p><p className="type-body-sm">{metric(inspectedFeature.length)} bp</p></div>
+            <div>
+              <p className="type-label text-muted-foreground">Coverage</p>
+              <p className={`type-body-sm font-semibold ${Number.isFinite(inspectedFeature.coverage) && inspectedFeature.coverage < cutoff ? "text-fail" : "text-pass"}`}>
+                {Number.isFinite(inspectedFeature.coverage) ? `${inspectedFeature.coverage.toFixed(2)}X` : "Not measured"}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="type-body-sm text-muted-foreground">Hover over or focus a probe, exon, or CDS region to inspect its coordinates and coverage.</p>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap gap-3 rounded-lg border border-border bg-background/70 px-3 py-2 text-xs">
@@ -535,7 +599,7 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
     <div className="space-y-3">
       <SurfacePanel
         title="Coverage"
-        description="Low-covered genes, exon/CDS/probe coverage, and blacklist controls for the active sample gene lists."
+        description="Low-covered genes, exon/CDS/probe coverage, and blacklist controls for the active assay design."
       >
         <div className="grid gap-2 sm:grid-cols-3">
           <MetricCard title="Low regions" value={shortCount(rows.length)} />

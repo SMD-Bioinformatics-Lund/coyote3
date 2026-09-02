@@ -118,75 +118,10 @@ describe("FiltersSidebar", () => {
   })
 
   it("starts collapsed and exposes the active intent and table", () => {
-    renderSidebar()
-    expect(screen.getByRole("button", { name: "Show somatic snvs filters" })).toBeVisible()
+    renderSidebar({ collapsedLabel: "Somatic SNVs filters" })
+    expect(screen.getByRole("button", { name: "Expand filters" })).toBeVisible()
+    expect(screen.getByLabelText("Somatic SNVs filters")).toBeVisible()
     expect(screen.queryByText("Small Variant Thresholds")).not.toBeInTheDocument()
-  })
-
-  it("keeps every available finding filter visible in the collapsed rail", async () => {
-    const user = userEvent.setup()
-    const onSelectSection = vi.fn()
-    renderSidebar({
-      availableSections: [
-        { id: "snvs", label: "Somatic SNVs" },
-        { id: "cnvs", label: "CNVs" },
-        { id: "translocations", label: "Translocations" },
-      ],
-      onSelectSection,
-    })
-
-    expect(screen.getByRole("button", { name: "Show Somatic SNVs filters" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "Show CNVs filters" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "Show Translocations filters" })).toBeVisible()
-
-    await user.click(screen.getByRole("button", { name: "Show CNVs filters" }))
-    expect(onSelectSection).toHaveBeenCalledWith("cnvs")
-  })
-
-  it("toggles repeated section requests and opens a newly selected section", () => {
-    const { rerender, queryClient } = renderSidebar()
-
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <FiltersSidebar
-          sampleId="CASE_001"
-          sample={sample}
-          context={context}
-          activeTab="snvs"
-          toggleRequest={{ sequence: 1, section: "snvs" }}
-        />
-      </QueryClientProvider>,
-    )
-
-    expect(screen.getByText("Small Variant Thresholds")).toBeVisible()
-
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <FiltersSidebar
-          sampleId="CASE_001"
-          sample={sample}
-          context={context}
-          activeTab="snvs"
-          toggleRequest={{ sequence: 2, section: "snvs" }}
-        />
-      </QueryClientProvider>,
-    )
-
-    expect(screen.queryByText("Small Variant Thresholds")).not.toBeInTheDocument()
-
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <FiltersSidebar
-          sampleId="CASE_001"
-          sample={sample}
-          context={context}
-          activeTab="cnvs"
-          toggleRequest={{ sequence: 3, section: "cnvs" }}
-        />
-      </QueryClientProvider>,
-    )
-
-    expect(screen.getByText("CNV Thresholds")).toBeVisible()
   })
 
   it("shows somatic SNV controls, configured gene lists, and selected consequences", async () => {

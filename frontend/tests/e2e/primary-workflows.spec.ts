@@ -9,7 +9,7 @@ test("dashboard presents distinct workload and panel capability information", as
         total_samples: 8,
         analysed_samples: 5,
         pending_samples: 3,
-        variant_stats: { small_variants: 1200, unique_variants: 900, cnvs: 14 },
+        variant_stats: { small_variants: 1200, cnvs: 14 },
         user_samples_stats: { hema_gmsv1: { total: 4, analysed: 2, pending: 2 } },
         sample_stats: {
           profiles: { production: 6, validation: 2 },
