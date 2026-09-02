@@ -34,8 +34,9 @@ import {
   clinpgxEvidenceColumns,
   clinpgxEvidenceRows,
   clinpgxGeneMetrics,
-  compactObjectSummary,
   externalVariantLinks,
+  hpaExpressionRows,
+  objectMetrics,
   oncokbActionRows,
   oncokbApiSummary,
   oncokbPublicGeneMetrics,
@@ -66,6 +67,24 @@ function ponRows(value: any) {
         value: metricValue,
       }))
     })
+}
+
+function brcaExchangeMetrics(record: any) {
+  if (!record) {
+    return [{ label: "Status", value: "No local BRCA Exchange evidence is available." }]
+  }
+
+  const grch38 = record.chr38 && record.pos38
+    ? `${record.chr38}:${record.pos38} ${record.ref38 || ""}>${record.alt38 || ""}`.trim()
+    : "-"
+  return [
+    ...objectMetrics(record, [
+      { label: "Clinical significance", keys: ["enigma_clinsig"] },
+      { label: "References", keys: ["enigma_clinsig_refs"] },
+      { label: "Comment", keys: ["enigma_clinsig_comment"] },
+    ]),
+    { label: "GRCh38", value: grch38, monospace: grch38 !== "-" },
+  ]
 }
 
 export function VariantDetail() {
@@ -308,32 +327,88 @@ export function VariantDetail() {
               />
             </DetailCard>
 
-            <DetailCard title="Transcript Consequences">
-              <TranscriptConsequencesTable
-                rows={transcripts}
-                selectedFeature={selectedFeature}
-                consequenceTranslations={data.vep_conseq_translations}
-                selecting={transcriptSelection.isPending}
-                onSelectTranscript={(featureId) => transcriptSelection.mutate(featureId)}
-              />
-            </DetailCard>
-
             <DetailCard title="Knowledge Bases" tone="success">
               <div className="space-y-2">
-                <VariantKnowledgeBlock title="Clinical knowledgebase summary" defaultOpen>
-                  <DetailMetricTable
-                    metrics={[
-                      { label: "CIViC variant", value: compactObjectSummary(data.civic) },
-                      { label: "CIViC gene", value: compactObjectSummary(data.civic_gene) },
-                      { label: "BRCA Exchange", value: compactObjectSummary(data.brca_exchange) },
-                      { label: "IARC TP53", value: compactObjectSummary(data.iarc_tp53) },
+                <VariantKnowledgeBlock
+                  title="CIViC"
+                  defaultOpen
+                  badges={data.civic?.length ? <EvidenceBadge tone="success">{data.civic.length} match{data.civic.length === 1 ? "" : "es"}</EvidenceBadge> : null}
+                >
+                  <DetailDataTable
+                    rows={Array.isArray(data.civic) ? data.civic : []}
+                    empty="No local CIViC variant evidence is available."
+                    columns={[
+                      { key: "variant", header: "Variant", render: (row: any) => row.variant || "-" },
+                      { key: "types", header: "Types", render: (row: any) => row.variant_types || "-" },
+                      { key: "score", header: "Actionability", render: (row: any) => displayValue(row.civic_actionability_score) },
+                      {
+                        key: "link",
+                        header: "Record",
+                        render: (row: any) => row.variant_civic_url ? <a className="link-text" href={row.variant_civic_url} target="_blank" rel="noreferrer">Open CIViC</a> : "-",
+                      },
                     ]}
+                  />
+                  {data.civic_gene ? (
+                    <div className="mt-3">
+                      <DetailMetricTable
+                        metrics={objectMetrics(data.civic_gene, [
+                          { label: "Gene", keys: ["name"] },
+                          { label: "Entrez", keys: ["entrez_id"] },
+                          { label: "Last reviewed", keys: ["last_review_date"] },
+                          { label: "Record", keys: ["gene_civic_url"] },
+                        ]).map((metric) => ({
+                          ...metric,
+                          href: metric.label === "Record" && typeof metric.value === "string" && metric.value.startsWith("http") ? metric.value : undefined,
+                        }))}
+                        dense
+                      />
+                    </div>
+                  ) : null}
+                </VariantKnowledgeBlock>
+
+                <VariantKnowledgeBlock title="BRCA Exchange" defaultOpen>
+                  <DetailMetricTable
+                    metrics={brcaExchangeMetrics(data.brca_exchange)}
                     dense
+                  />
+                </VariantKnowledgeBlock>
+
+                <VariantKnowledgeBlock title="IARC TP53" defaultOpen>
+                  <DetailMetricTable
+                    metrics={data.iarc_tp53
+                      ? objectMetrics(data.iarc_tp53, [
+                        { label: "cDNA", keys: ["var"] },
+                        { label: "Somatic observations", keys: ["n_somatic"] },
+                        { label: "Germline observations", keys: ["n_germline"] },
+                        { label: "Transactivation class", keys: ["transactivation_class"] },
+                        { label: "Domain function", keys: ["domain_func"] },
+                      ])
+                      : [{
+                        label: "Status",
+                        value: String(csq.SYMBOL || "").toUpperCase() === "TP53"
+                          ? "No local IARC TP53 record is available for this variant."
+                          : "IARC TP53 applies only to TP53 variants.",
+                      }]}
+                    dense
+                  />
+                </VariantKnowledgeBlock>
+
+                <VariantKnowledgeBlock title="HPA expression" defaultOpen>
+                  <DetailDataTable
+                    rows={hpaExpressionRows(data.expression)}
+                    empty="No local HPA transcript expression is available."
+                    columns={[
+                      { key: "transcript", header: "Transcript", render: (row) => row.transcript },
+                      { key: "tissues", header: "Tissues", render: (row) => row.tissues },
+                      { key: "top_tissue", header: "Highest tissue", render: (row) => row.top_tissue },
+                      { key: "top_expression", header: "Expression", render: (row) => displayValue(row.top_expression) },
+                    ]}
                   />
                 </VariantKnowledgeBlock>
 
                 <VariantKnowledgeBlock
                   title="OncoKB public cache"
+                  defaultOpen
                   badges={
                     <>
                       {data.oncokb_gene?.public_cancer_gene || data.oncokb_gene?.oncokb_annotated != null ? (
@@ -362,6 +437,7 @@ export function VariantDetail() {
 
                 <VariantKnowledgeBlock
                   title="Local actionable evidence"
+                  defaultOpen
                   badges={oncokbActionRows(data.oncokb_action).length ? <EvidenceBadge tone="warning">Historical local</EvidenceBadge> : null}
                 >
                   <DetailDataTable
@@ -376,7 +452,7 @@ export function VariantDetail() {
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock title="OncoKB API">
+                <VariantKnowledgeBlock title="OncoKB API" defaultOpen>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="type-meta text-muted-foreground">
                       Public API lookup. Therapeutic data is excluded by public OncoKB access.
@@ -392,17 +468,47 @@ export function VariantDetail() {
                     </Button>
                   </div>
                   {oncokbPublic.data ? (
-                    <div className="mt-3">
-                      <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data)} dense />
-                      <p className="mt-2 type-meta text-muted-foreground">
-                        Query: {oncokbPublic.data.query?.hgvsg || `${oncokbPublic.data.query?.gene?.hugoSymbol || ""} ${oncokbPublic.data.query?.alteration || ""}`.trim() || "-"} ({oncokbPublic.data.query?.referenceGenome || "-"})
+                    <div className="mt-3 space-y-3">
+                      {oncokbPublic.data.message ? (
+                        <p className="type-meta text-muted-foreground">{oncokbPublic.data.message}</p>
+                      ) : null}
+                      {Object.entries(oncokbPublic.data.responses || {}).map(([intent, response]) => (
+                        <div key={intent} className="rounded-lg border border-border/70 bg-card/60 p-3">
+                          <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">
+                            {intent} annotation
+                          </p>
+                          <div className="mt-2">
+                            <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data, response)} dense />
+                          </div>
+                        </div>
+                      ))}
+                      {Object.entries(oncokbPublic.data.failures || {}).map(([intent, message]) => (
+                        <p key={intent} className="type-meta text-destructive" role="alert">
+                          {intent} annotation could not be retrieved: {String(message)}
+                        </p>
+                      ))}
+                      <p className="type-meta text-muted-foreground">
+                        Query: {oncokbPublic.data.query?.genomicLocation || "-"} ({oncokbPublic.data.query?.referenceGenome || "-"})
+                      </p>
+                      <p className="type-meta text-muted-foreground">
+                        Coyote3 context: {oncokbPublic.data.analysis_context?.analysis_intents?.length
+                          ? oncokbPublic.data.analysis_context.analysis_intents.join(", ")
+                          : "not recorded"}
                       </p>
                     </div>
+                  ) : null}
+                  {oncokbPublic.isError ? (
+                    <p className="mt-3 type-meta text-destructive" role="alert">
+                      {oncokbPublic.error instanceof Error
+                        ? oncokbPublic.error.message
+                        : "The public OncoKB lookup could not be completed."}
+                    </p>
                   ) : null}
                 </VariantKnowledgeBlock>
 
                 <VariantKnowledgeBlock
                   title="ClinPGx"
+                  defaultOpen
                   badges={
                     <>
                       {data.clinpgx_gene?.is_vip ? <EvidenceBadge tone="warning">VIP</EvidenceBadge> : null}
@@ -488,8 +594,25 @@ export function VariantDetail() {
                       </p>
                     </div>
                   ) : null}
+                  {clinpgxPublic.isError ? (
+                    <p className="mt-3 type-meta text-destructive" role="alert">
+                      {clinpgxPublic.error instanceof Error
+                        ? clinpgxPublic.error.message
+                        : "The public ClinPGx lookup could not be completed."}
+                    </p>
+                  ) : null}
                 </VariantKnowledgeBlock>
               </div>
+            </DetailCard>
+
+            <DetailCard title="Transcript Consequences">
+              <TranscriptConsequencesTable
+                rows={transcripts}
+                selectedFeature={selectedFeature}
+                consequenceTranslations={data.vep_conseq_translations}
+                selecting={transcriptSelection.isPending}
+                onSelectTranscript={(featureId) => transcriptSelection.mutate(featureId)}
+              />
             </DetailCard>
           </>
         }

@@ -159,18 +159,21 @@ async function setTierBulk({
   resourceIds,
   tier,
   apply,
+  includeAutomaticText = false,
 }: {
   sampleId: string
   resourceType: FindingResourceType
   resourceIds: string[]
   tier: number
   apply: boolean
+  includeAutomaticText?: boolean
 }) {
   return api.patch(`/samples/${sampleId}/classifications/tier`, {
     resource_type: resourceType,
     resource_ids: resourceIds,
     tier,
     apply,
+    ...(includeAutomaticText ? { include_automatic_text: true } : {}),
   })
 }
 
@@ -231,11 +234,13 @@ export async function applyFindingAction({
   resourceType,
   action,
   resourceIds,
+  includeAutomaticText = false,
 }: {
   sampleId: string
   resourceType: FindingResourceType
   action: FindingAction
   resourceIds: string[]
+  includeAutomaticText?: boolean
 }) {
   const ids = resourceIds.filter(Boolean)
   if (ids.length === 0) return
@@ -248,6 +253,7 @@ export async function applyFindingAction({
       resourceIds: ids,
       tier: Number(tierMatch[2]),
       apply: !tierMatch[1],
+      includeAutomaticText,
     })
   }
 

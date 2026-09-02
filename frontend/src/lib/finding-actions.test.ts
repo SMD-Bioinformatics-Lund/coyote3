@@ -92,6 +92,23 @@ describe("finding actions", () => {
     )
   })
 
+  it("requests the established automatic text only when selected", async () => {
+    await applyFindingAction({
+      sampleId: "sample-1",
+      resourceType: "small_variant",
+      action: "tier_3",
+      resourceIds: ["variant-1"],
+      includeAutomaticText: true,
+    })
+    expect(apiMock.patch).toHaveBeenCalledWith("/samples/sample-1/classifications/tier", {
+      resource_type: "small_variant",
+      resource_ids: ["variant-1"],
+      tier: 3,
+      apply: true,
+      include_automatic_text: true,
+    })
+  })
+
   it("encodes fusion identifiers into its bulk flag query", async () => {
     await applyFindingAction({
       sampleId: "sample-1",

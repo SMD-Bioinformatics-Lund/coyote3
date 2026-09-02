@@ -68,6 +68,23 @@ describe("CommentsPanel", () => {
     expect(screen.getByRole("textbox")).toHaveValue("")
   })
 
+  it("escapes selected markdown syntax without changing the comment format", async () => {
+    const user = userEvent.setup()
+    renderPanel(<CommentsPanel sampleId="CASE_1" />)
+
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox")
+    await user.type(textarea, "**Literal text**")
+    textarea.focus()
+    textarea.setSelectionRange(0, textarea.value.length)
+    await user.click(screen.getByTitle("Escape Markdown"))
+    expect(textarea).toHaveValue("\\*\\*Literal text\\*\\*")
+    await user.click(screen.getByRole("button", { name: "Save comment" }))
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/samples/CASE_1/comments", {
+      form_data: { sample_comment: "\\*\\*Literal text\\*\\*" },
+    }))
+  })
+
   it("serializes variant identity and global scope for finding annotations", async () => {
     const user = userEvent.setup()
     const resource = {

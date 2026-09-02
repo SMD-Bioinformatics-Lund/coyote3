@@ -12,8 +12,15 @@ export function useBulkFindingAction(sampleId: string, resourceType: FindingReso
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ action, resourceIds }: { action: FindingAction; resourceIds: string[] }) =>
-      applyFindingAction({ sampleId, resourceType, action, resourceIds }),
+    mutationFn: ({
+      action,
+      resourceIds,
+      includeAutomaticText,
+    }: {
+      action: FindingAction
+      resourceIds: string[]
+      includeAutomaticText?: boolean
+    }) => applyFindingAction({ sampleId, resourceType, action, resourceIds, includeAutomaticText }),
     onSuccess: (_result, variables) => {
       findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey })

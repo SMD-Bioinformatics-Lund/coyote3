@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import { ExpandableText } from "@/components/detail/ExpandableText"
-import { displayValue, isPresent } from "@/lib/detail-formatters"
+import { isPresent } from "@/lib/detail-formatters"
 import {
   cbioportalOncoprintUrl,
   clinvarSearchUrl,
@@ -14,29 +14,42 @@ import {
   pubmedArticleUrl,
 } from "@/lib/external-links"
 
-export function compactObjectSummary(value: any) {
-  if (!value) return "-"
-  if (typeof value === "string") return value
-  if (Array.isArray(value)) return `${value.length} record(s)`
-  if (typeof value === "object") {
-    const preferred = ["highest_level", "oncogenic", "mutationEffect", "clinicalSignificance", "drug", "disease", "summary", "description", "name"]
-    for (const key of preferred) {
-      if (isPresent(value[key])) return displayValue(value[key])
-    }
-    return `${Object.keys(value).length} field(s)`
-  }
-  return displayValue(value)
+export function objectMetrics(
+  value: any,
+  fields: Array<{ label: string; keys: string[] }>,
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return []
+  return fields.map(({ label, keys }) => ({
+    label,
+    value: keys.map((key) => value[key]).find(isPresent) ?? "-",
+  }))
 }
 
-export function oncokbApiSummary(payload: any) {
-  const response = payload?.response || {}
-  const query = payload?.query || response?.query || {}
+export function hpaExpressionRows(expression: any) {
+  if (!expression || typeof expression !== "object" || Array.isArray(expression)) return []
+
+  return Object.entries(expression)
+    .filter(([, values]) => values && typeof values === "object" && !Array.isArray(values))
+    .map(([transcript, values]) => {
+      const tissues = Object.entries(values as Record<string, unknown>)
+        .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+        .sort(([, left], [, right]) => Number(right) - Number(left))
+      const [topTissue, topValue] = tissues[0] || []
+      return {
+        transcript,
+        tissues: tissues.length,
+        top_tissue: topTissue || "-",
+        top_expression: typeof topValue === "number" ? topValue : "-",
+      }
+    })
+}
+
+export function oncokbApiSummary(payload: any, response: any) {
+  const query = payload?.query || {}
   const mutationEffect = response?.mutationEffect || {}
   return [
-    { label: "Status", value: payload?.status || "-" },
-    { label: "HGVSg", value: query?.hgvsg || query?.hgvs || "-", monospace: true },
-    { label: "Gene", value: response?.query?.hugoSymbol || query?.gene?.hugoSymbol || query?.hugoSymbol || "-" },
-    { label: "Alteration", value: response?.query?.alteration || query?.alteration || "-" },
+    { label: "Reference genome", value: query?.referenceGenome || "-" },
+    { label: "Genomic location", value: query?.genomicLocation || "-", monospace: true },
     { label: "Data version", value: response?.dataVersion || "-" },
     { label: "Gene exists", value: response?.geneExist == null ? "-" : String(Boolean(response.geneExist)) },
     { label: "Variant exists", value: response?.variantExist == null ? (response?.alleleExist == null ? "-" : String(Boolean(response.alleleExist))) : String(Boolean(response.variantExist)) },

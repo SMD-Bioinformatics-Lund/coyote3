@@ -7,8 +7,55 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;")
 }
 
+const ESCAPABLE_MARKDOWN_CHARACTERS = new Set([
+  "\\",
+  "`",
+  "*",
+  "_",
+  "[",
+  "]",
+  "{",
+  "}",
+  "(",
+  ")",
+  "#",
+  "+",
+  "-",
+  ".",
+  "!",
+  ">",
+  "|",
+  "~",
+])
+
+function protectEscapedMarkdown(value: string) {
+  const escaped: string[] = []
+  let protectedValue = ""
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]
+    const next = value[index + 1]
+    if (character === "\\" && next && ESCAPABLE_MARKDOWN_CHARACTERS.has(next)) {
+      protectedValue += `@@COYOTE_ESC_${escaped.push(next) - 1}@@`
+      index += 1
+      continue
+    }
+    protectedValue += character
+  }
+  return {
+    escaped,
+    value: protectedValue,
+  }
+}
+
+function restoreEscapedMarkdown(value: string, escaped: string[]) {
+  return value.replace(/@@COYOTE_ESC_(\d+)@@/g, (_match, index: string) => (
+    escapeHtml(escaped[Number(index)] || "")
+  ))
+}
+
 export function markdownToHtml(markdown: string) {
-  let html = escapeHtml(markdown || "")
+  const protectedMarkdown = protectEscapedMarkdown(markdown || "")
+  let html = escapeHtml(protectedMarkdown.value)
   html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
   html = html.replace(/^######\s+(.+)$/gm, "<h6>$1</h6>")
@@ -50,5 +97,5 @@ export function markdownToHtml(markdown: string) {
       return `<p>${block.replace(/\n/g, "<br>")}</p>`
     })
     .join("")
-  return html
+  return restoreEscapedMarkdown(html, protectedMarkdown.escaped)
 }

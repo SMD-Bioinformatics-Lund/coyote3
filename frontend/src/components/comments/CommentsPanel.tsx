@@ -16,6 +16,7 @@ import {
   Quote,
   Redo2,
   Save,
+  Slash,
   Sparkles,
   Strikethrough,
   Table2,
@@ -266,6 +267,21 @@ export function CommentsPanel({
     }, 0)
   }
 
+  const escapeMarkdownSelection = () => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    if (start === end) return
+    const escaped = text.slice(start, end).replace(/([\\`*_[\]{}()#+\-.!>|~])/g, "\\$1")
+    const next = `${text.slice(0, start)}${escaped}${text.slice(end)}`
+    setText(next)
+    window.setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start, start + escaped.length)
+    }, 0)
+  }
+
   const toolbar = [
     { label: "Bold", icon: Bold, action: () => insertMarkdown("**", "**", "bold text") },
     { label: "Italic", icon: Italic, action: () => insertMarkdown("*", "*", "italic text") },
@@ -278,6 +294,7 @@ export function CommentsPanel({
     { label: "Link", icon: Link, action: () => insertMarkdown("[", "](https://)", "link text") },
     { label: "Table", icon: Table2, action: () => insertMarkdown("| Column | Value |\n| --- | --- |\n| ", " | value |", "item", true) },
     { label: "Horizontal rule", icon: Minus, action: () => insertMarkdown("---\n", "", "", true) },
+    { label: "Escape Markdown", icon: Slash, action: escapeMarkdownSelection },
   ]
 
   return (
@@ -348,22 +365,24 @@ export function CommentsPanel({
             </button>
           ))}
           <span className="mx-1 h-6 w-px bg-border" />
-          <button
-            type="button"
-            onClick={() => document.execCommand("undo")}
-            title="Undo"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <Undo2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => document.execCommand("redo")}
-            title="Redo"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <Redo2 className="h-4 w-4" />
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => document.execCommand("undo")}
+              title="Undo"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Undo2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => document.execCommand("redo")}
+              title="Redo"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Redo2 className="h-4 w-4" />
+            </button>
+          </>
           {showSuggestion && (
             <>
               <span className="mx-1 h-6 w-px bg-border" />

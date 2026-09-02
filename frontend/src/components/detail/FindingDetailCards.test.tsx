@@ -54,7 +54,7 @@ describe("finding detail cards", () => {
     expect(screen.getByText("Evidence body")).toBeInTheDocument()
   })
 
-  it("confirms Tier III classification, invalidates finding data, and reports automatic text", async () => {
+  it("confirms Tier III classification and invalidates finding data", async () => {
     patch.mockResolvedValueOnce({ ok: true })
     const onUpdate = vi.fn()
     const { client } = renderWithQuery(
@@ -69,7 +69,7 @@ describe("finding detail cards", () => {
     )
     const user = userEvent.setup()
     await user.click(screen.getByRole("button", { name: "Tier 3" }))
-    expect(screen.getByText("The approved Tier III annotation text will also be generated.", { exact: false })).toBeInTheDocument()
+    expect(screen.getByText("This will persist a Tier 3 classification for the finding.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Set classification" }))
 
     await waitFor(() => expect(patch).toHaveBeenCalledWith("/samples/S1/classifications/tier", {

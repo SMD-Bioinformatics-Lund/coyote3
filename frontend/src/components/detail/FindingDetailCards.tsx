@@ -106,12 +106,6 @@ export function ClassificationsCard({
       && resourceId
       && tieringIsEnabled(controlsQuery.data, resourceType),
   )
-  const automaticTextWillBeGenerated = Boolean(
-    pendingTierAction?.apply
-      && pendingTierAction.tier === 3
-      && resourceType === "small_variant",
-  )
-
   return (
     <DetailCard title="Classifications" icon={Tags} tone="border-t-tier1">
       <div className="space-y-3">
@@ -172,7 +166,7 @@ export function ClassificationsCard({
         open={Boolean(pendingTierAction)}
         title={pendingTierAction?.apply ? `Classify finding as Tier ${pendingTierAction.tier}?` : `Remove Tier ${pendingTierAction?.tier} classification?`}
         description={pendingTierAction?.apply
-          ? `This will persist a Tier ${pendingTierAction.tier} classification for the finding.${automaticTextWillBeGenerated ? " The approved Tier III annotation text will also be generated." : " No automatic annotation text is defined for this action."}`
+          ? `This will persist a Tier ${pendingTierAction.tier} classification for the finding.`
           : "This removes the selected classification from the current assay and subpanel context."}
         confirmLabel={pendingTierAction?.apply ? "Set classification" : "Remove classification"}
         isPending={tierMutation.isPending}

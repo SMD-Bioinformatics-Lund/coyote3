@@ -93,6 +93,31 @@ const detailPayload = {
     },
   ],
   pon: [],
+  civic: [{
+    variant: "SRSF2 M89V",
+    variant_types: ["Missense Mutation"],
+    civic_actionability_score: 7,
+    variant_civic_url: "https://civicdb.org/links/variants/1",
+  }],
+  civic_gene: {
+    name: "SRSF2",
+    entrez_id: 6427,
+    last_review_date: "2026-01-01",
+    gene_civic_url: "https://civicdb.org/links/genes/1",
+  },
+  brca_exchange: {
+    enigma_clinsig: "Pathogenic",
+    enigma_clinsig_refs: "ENIGMA",
+    enigma_clinsig_comment: "Reviewed evidence",
+    chr38: "17",
+    pos38: 76736896,
+    ref38: "T",
+    alt38: "C",
+  },
+  iarc_tp53: null,
+  expression: {
+    NM_003016: { bone_marrow: 10.4, blood: 4.2 },
+  },
   oncokb_gene: { oncokb_annotated: true, gene_type: "ONCOGENE" },
   clinpgx_gene: { pharmgkb_accession_id: "PA35699", is_vip: true },
   vep_conseq_translations: {
@@ -150,7 +175,7 @@ describe("VariantDetail", () => {
     expect((await screen.findAllByRole("link", { name: "SRSF2" }))[0]).toBeVisible()
     expect(screen.getAllByText("p.Met89Val").length).toBeGreaterThan(0)
     expect(screen.getAllByText("SRSF2").length).toBeGreaterThan(0)
-    expect(screen.getByText("17:76736896 T>C")).toBeVisible()
+    expect(screen.getAllByText("17:76736896 T>C").length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText("Latest tier 2")).toBeVisible()
     expect(screen.getByText("Actions for CASE_001")).toBeVisible()
     expect(screen.getByLabelText("Known hotspot")).toBeVisible()
@@ -164,6 +189,12 @@ describe("VariantDetail", () => {
     expect(within(otherSampleRow).getByText("2")).toBeVisible()
     expect(within(screen.getByText("ENST00000359995").closest("tr")!).getByText("3")).toBeVisible()
     expect(screen.queryByText("hema_gmsv1")).not.toBeInTheDocument()
+    expect(screen.getByText("CIViC")).toBeVisible()
+    expect(screen.getByText("BRCA Exchange")).toBeVisible()
+    expect(screen.getByText("IARC TP53")).toBeVisible()
+    expect(screen.getByText("HPA expression")).toBeVisible()
+    expect(screen.getByText("SRSF2 M89V")).toBeVisible()
+    expect(screen.getByText("bone_marrow")).toBeVisible()
   })
 
   it("persists a selected alternate transcript and refreshes the detail", async () => {
@@ -191,8 +222,13 @@ describe("VariantDetail", () => {
         return {
           data: {
             status: "ok",
-            query: { hgvsg: "17:g.76736896T>C", referenceGenome: "GRCh38" },
-            response: { dataVersion: "v7.3", geneExist: true, variantExist: false, geneSummary: "SRSF2 summary" },
+            query: { genomicLocation: "17,76736896,76736896,T,C", referenceGenome: "GRCh38" },
+            analysis_context: { analysis_intents: ["somatic"] },
+            query_method: "genomic_change",
+            responses: {
+              somatic: { dataVersion: "v7.3", geneExist: true, variantExist: false, geneSummary: "SRSF2 summary" },
+            },
+            failures: {},
           },
         } as never
       }
@@ -209,12 +245,10 @@ describe("VariantDetail", () => {
     })
     renderDetail("/samples/CASE_001/variant/variant-1")
 
-    fireEvent.click(await screen.findByText("OncoKB API"))
-    fireEvent.click(screen.getByRole("button", { name: "Fetch public OncoKB" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Fetch public OncoKB" }))
     expect(await screen.findByText("SRSF2 summary")).toBeVisible()
 
-    fireEvent.click(screen.getByText("ClinPGx"))
-    fireEvent.click(screen.getByRole("button", { name: "Fetch ClinPGx" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Fetch ClinPGx" }))
     expect(await screen.findAllByText("PA35699")).not.toHaveLength(0)
   })
 })

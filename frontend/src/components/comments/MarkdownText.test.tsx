@@ -15,4 +15,11 @@ describe("MarkdownText", () => {
     const { container } = render(<MarkdownText />)
     expect(container.firstElementChild).toContainHTML("<p></p>")
   })
+
+  it("renders explicitly escaped markdown syntax as literal text", () => {
+    render(<MarkdownText text={"\\*\\*Literal\\*\\*\n\\[not a link\\](https://example.test)"} />)
+
+    expect(screen.getByText(/\*\*Literal\*\*/)).toBeVisible()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
 })
