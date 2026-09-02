@@ -9,6 +9,8 @@ import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button-variants"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { TableBadge } from "@/components/ui/table-badge"
+import { nomenclatureLabel } from "@/lib/application-constants"
 import { shortCount } from "@/lib/detail-formatters"
 import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib/dashboard-data"
 import { sampleDetailPath } from "@/lib/sample-routing"
@@ -16,6 +18,7 @@ import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notificat
 import { cn } from "@/lib/utils"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
+const tierTextClasses = ["text-tier1", "text-tier2", "text-tier3", "text-tier4"]
 const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
 const GeneCoverageChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.GeneCoverageChart })))
 const PanelAnalysisCapabilityChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.PanelAnalysisCapabilityChart })))
@@ -130,6 +133,9 @@ export function Dashboard() {
   const scopeStats = userScope.sample_stats || {}
   const recentSamples = (userScope.recent_samples || []).slice(0, 5)
   const pipelineData = Array.isArray(scopeStats.pipelines) ? scopeStats.pipelines : []
+  const topTieredGenes = Array.isArray(data?.top_tiered_genes)
+    ? data.top_tiered_genes.slice(0, 15)
+    : []
 
   const geneChartData = buildPanelGeneChartData(geneGroups)
   const hasGeneChartData = geneChartData.some((item) => item.Covered > 0 || item.Germline > 0)
@@ -213,7 +219,7 @@ export function Dashboard() {
           <div className="dashboard-snapshot-card p-3">
             <p className="type-label text-muted-foreground">Finding inventory</p>
             <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(findingTotal)}</p>
-            <p className="type-meta mt-2 text-muted-foreground">{fmt(vStats.unique_variants)} unique small variants across visible samples.</p>
+            <p className="type-meta mt-2 text-muted-foreground">Small variant, CNV, fusion, and translocation records.</p>
           </div>
         </div>
       </SurfacePanel>
@@ -313,7 +319,7 @@ export function Dashboard() {
                 <Metric title="CNV" value={vStats.cnv || vStats.cnvs} />
                 <Metric title="Fusions" value={vStats.fusion || vStats.fusions} />
                 <Metric title="Translocations" value={vStats.translocation || vStats.translocations} />
-                <Metric title="Blacklisted" value={vStats.blacklisted} sub={`${quality.blacklist_rate_percent ?? 0}%`} />
+                <Metric title="Blacklisted" value={vStats.blacklisted} />
                 <Metric title="False positives" value={vStats.fps ?? vStats.false_positives} sub={`${quality.fp_rate_percent ?? quality.false_positive_rate_percent ?? 0}%`} />
                 <Metric title="Tier 1/2" value={vStats.tier1_or_2 ?? vStats.pathogenic} sub="Report-priority findings" />
                 <Metric title="VUS (Tier 3)" value={vStats.vus} />
@@ -358,6 +364,64 @@ export function Dashboard() {
           </SurfacePanel>
         </div>
       </div>
+
+      <SurfacePanel
+        className="dashboard-panel dashboard-panel--teal"
+        title="Top Tiered Genes"
+        description="Current classified annotation identities ranked across all supported nomenclatures."
+      >
+        {topTieredGenes.length ? (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="type-table-cell w-full min-w-[46rem] border-collapse text-left">
+              <thead className="bg-[var(--table-header-surface)]">
+                <tr className="type-table-header">
+                  <th className="w-14 px-3 py-2 text-center">Rank</th>
+                  <th className="px-3 py-2">Gene</th>
+                  {[1, 2, 3, 4].map((tier) => (
+                    <th key={tier} className={cn("w-24 px-3 py-2 text-right", tierTextClasses[tier - 1])}>Tier {tier}</th>
+                  ))}
+                  <th className="w-24 px-3 py-2 text-right">Total</th>
+                  <th className="px-3 py-2">Nomenclature</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 bg-card">
+                {topTieredGenes.map((row: any, index: number) => (
+                  <tr key={row.gene} className="hover:bg-muted/30">
+                    <td className="px-3 py-2 text-center text-muted-foreground">{index + 1}</td>
+                    <td className="px-3 py-2">
+                      <Link
+                        to={`/variants/gene-cohort?gene=${encodeURIComponent(row.gene)}`}
+                        className="font-semibold text-link hover:underline"
+                      >
+                        {row.gene}
+                      </Link>
+                    </td>
+                    {[1, 2, 3, 4].map((tier) => (
+                      <td key={tier} className="px-3 py-2 text-right tabular-nums">
+                        {Number(row[`tier${tier}`] || 0) || "-"}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums">{fmt(row.total)}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {(row.nomenclatures || []).filter(Boolean).sort().map((value: string) => (
+                          <TableBadge key={value} className="border-border bg-muted/60 text-foreground shadow-none">
+                            {nomenclatureLabel(value)}
+                          </TableBadge>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center type-body-sm text-muted-foreground">
+            No tiered gene data available.
+          </div>
+        )}
+      </SurfacePanel>
 
       <div className="grid items-stretch gap-3 xl:grid-cols-[1.35fr_0.65fr]">
         <SurfacePanel className="dashboard-panel dashboard-panel--teal h-full" title="Panel Gene Coverage" description="Covered and germline gene scope across active targeted panels.">

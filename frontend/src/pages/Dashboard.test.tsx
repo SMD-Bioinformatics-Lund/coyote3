@@ -33,7 +33,6 @@ const dashboardData = {
     cnv: 14,
     fusion: 2,
     translocation: 3,
-    unique_variants: 800,
     by_variant_class: { SNV: 900, deletion: 300 },
   },
   user_samples_stats: {
@@ -48,6 +47,10 @@ const dashboardData = {
     pair_count: { paired: 6, unpaired: 4 },
   },
   tier_stats: { total: { tier1: 4, tier2: 3 } },
+  top_tiered_genes: [
+    { gene: "TP53", total: 7, tier1: 2, tier2: 3, tier3: 2, tier4: 0, nomenclatures: ["p", "c"] },
+    { gene: "BCR", total: 3, tier1: 3, tier2: 0, tier3: 0, tier4: 0, nomenclatures: ["f"] },
+  ],
   quality_stats: { analysed_rate_percent: 40 },
   capacity_counts: { users: 4, roles: 3 },
   panel_gene_stats_grouped: {
@@ -95,7 +98,9 @@ describe("Dashboard page", () => {
     expect(screen.getByRole("link", { name: "Variant search" })).toHaveAttribute("href", "/variants/search")
     expect(screen.getByRole("link", { name: "Catalog" })).toHaveAttribute("href", "/public/catalog")
     expect(screen.getByText((_, element) => element?.textContent === "4 of 10 analysed")).toBeInTheDocument()
-    expect(screen.getByText("800 unique small variants across visible samples.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Small variant, CNV, fusion, and translocation records."),
+    ).toBeInTheDocument()
     expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()
     expect(screen.getByText("hema_gmsv1")).toBeInTheDocument()
     expect(await screen.findByText("Tier distribution", {}, { timeout: 5000 })).toBeInTheDocument()
@@ -106,6 +111,10 @@ describe("Dashboard page", () => {
     expect(screen.getByText("My profile scope")).toBeInTheDocument()
     expect(screen.getByText("Pairing")).toBeInTheDocument()
     expect(screen.getByText("Pipeline throughput")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Top Tiered Genes" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/variants/gene-cohort?gene=TP53")
+    expect(screen.getByText("Protein (p)")).toBeInTheDocument()
+    expect(screen.getByText("cDNA (c)")).toBeInTheDocument()
     expect(screen.queryByText("No active panel gene counts available")).not.toBeInTheDocument()
   })
 
@@ -155,6 +164,7 @@ describe("Dashboard page", () => {
     expect(screen.getByText("No recent visible samples.")).toBeInTheDocument()
     expect(await screen.findAllByText("No data", {}, { timeout: 5000 })).toHaveLength(5)
     expect(screen.getByText("No pipeline data available.")).toBeInTheDocument()
+    expect(screen.getByText("No tiered gene data available.")).toBeInTheDocument()
   })
 
   it("shows loading and API error states", () => {

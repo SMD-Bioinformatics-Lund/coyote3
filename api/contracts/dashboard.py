@@ -23,6 +23,7 @@ class DashboardSummaryPayload(BaseModel):
     sample_stats: dict[str, Any]
     user_scope_summary: dict[str, Any] = Field(default_factory=dict)
     tier_stats: dict[str, Any] = Field(default_factory=dict)
+    top_tiered_genes: list[dict[str, Any]] = Field(default_factory=list)
     reported_tier_stats: dict[str, Any] = Field(default_factory=dict)
     quality_stats: dict[str, Any] = Field(default_factory=dict)
     dashboard_meta: dict[str, Any] = Field(default_factory=dict)

@@ -57,22 +57,30 @@ def refresh_dashboard_metrics(self, username: str | None = None) -> dict[str, An
         with lock.acquire(timeout=0):
             service = get_dashboard_service()
             user_docs = service.user_repository.get_all_users()
+            eligible_user_docs = [
+                user_doc
+                for user_doc in user_docs
+                if user_doc.get("is_active") is not False
+                and (
+                    not username
+                    or str(user_doc.get("username") or user_doc.get("_id") or "") == username
+                )
+            ]
+            shared_payload = service.build_shared_summary_payload() if eligible_user_docs else {}
             refreshed = 0
             skipped = 0
             failures: list[dict[str, str]] = []
             refreshed_scopes: set[str] = set()
-            for user_doc in user_docs:
+            skipped += len(user_docs) - len(eligible_user_docs)
+            for user_doc in eligible_user_docs:
                 stored_username = str(user_doc.get("username") or user_doc.get("_id") or "")
-                if user_doc.get("is_active") is False or (username and stored_username != username):
-                    skipped += 1
-                    continue
                 try:
                     api_user = api_user_from_user_doc(user_doc)
                     scope_key = service.summary_scope_key(user=api_user)
                     if scope_key in refreshed_scopes:
                         skipped += 1
                         continue
-                    service.refresh_summary_payload(user=api_user)
+                    service.refresh_summary_payload(user=api_user, shared_payload=shared_payload)
                     refreshed_scopes.add(scope_key)
                     refreshed += 1
                 except Exception as exc:  # pragma: no cover - task integration guard

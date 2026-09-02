@@ -101,11 +101,6 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
             "by_variant_class": {"SNV": 60, "INDEL": 40},
         },
     )
-    monkeypatch.setattr(
-        service.variant_repository,
-        "get_unique_variant_quality_counts",
-        lambda: {"unique_total_variants": 50, "unique_fp_variants": 5},
-    )
     monkeypatch.setattr(service.copy_number_variant_repository, "get_total_cnv_count", lambda: 5)
     monkeypatch.setattr(service.translocation_repository, "get_total_transloc_count", lambda: 2)
     monkeypatch.setattr(service.fusion_repository, "get_total_fusion_count", lambda: 3)
@@ -119,6 +114,21 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         service.annotation_repository,
         "get_dashboard_classification_stats",
         lambda: {"total": {"tier1": 4, "tier2": 5, "tier3": 6, "tier4": 7}, "by_assay": {}},
+    )
+    monkeypatch.setattr(
+        service.annotation_repository,
+        "get_dashboard_top_tiered_genes",
+        lambda limit=15: [
+            {
+                "gene": "TP53",
+                "total": 9,
+                "tier1": 2,
+                "tier2": 3,
+                "tier3": 4,
+                "tier4": 0,
+                "nomenclatures": ["p"],
+            }
+        ],
     )
     monkeypatch.setattr(
         service.assay_panel_repository, "get_all_asps_unique_gene_count", lambda: 250
@@ -184,6 +194,7 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         }
     ]
     assert payload["tier_stats"]["total"]["tier3"] == 6
+    assert payload["top_tiered_genes"][0]["gene"] == "TP53"
     assert payload["reported_tier_stats"]["total"]["tier3"] == 3
     assert payload["quality_stats"]["analysed_rate_percent"] == 80.0
     assert payload["admin_insights"]["counts"]["users_total"] == 11
@@ -227,11 +238,6 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
         service.variant_repository,
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 0, "total_snps": 0, "fps": 0},
-    )
-    monkeypatch.setattr(
-        service.variant_repository,
-        "get_unique_variant_quality_counts",
-        lambda: {"unique_total_variants": 0, "unique_fp_variants": 0},
     )
     monkeypatch.setattr(service.copy_number_variant_repository, "get_total_cnv_count", lambda: 0)
     monkeypatch.setattr(service.translocation_repository, "get_total_transloc_count", lambda: 0)
@@ -331,11 +337,6 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         service.variant_repository,
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 0, "total_snps": 0, "fps": 0},
-    )
-    monkeypatch.setattr(
-        service.variant_repository,
-        "get_unique_variant_quality_counts",
-        lambda: {"unique_total_variants": 0, "unique_fp_variants": 0},
     )
     monkeypatch.setattr(service.copy_number_variant_repository, "get_total_cnv_count", lambda: 0)
     monkeypatch.setattr(service.translocation_repository, "get_total_transloc_count", lambda: 0)

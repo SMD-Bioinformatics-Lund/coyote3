@@ -62,14 +62,13 @@ class InternalIngestService:
         cls,
         store: Any,
         *,
-        dashboard_summary_cache_invalidator,
+        dashboard_summary_invalidator,
     ) -> "InternalIngestService":
         """Build the service from the runtime store."""
         return cls(
             collection_gateway=IngestCollectionGateway.from_store(store),
             anno_vep_repository=store.anno_vep_repository,
-            invalidate_variant_cache=store.variant_repository.invalidate_dashboard_metrics_cache,
-            invalidate_summary_cache=lambda: dashboard_summary_cache_invalidator(store),
+            invalidate_dashboard_summary=lambda: dashboard_summary_invalidator(store),
         )
 
     def __init__(
@@ -77,14 +76,12 @@ class InternalIngestService:
         *,
         collection_gateway: IngestCollectionGateway,
         anno_vep_repository: Any,
-        invalidate_variant_cache,
-        invalidate_summary_cache,
+        invalidate_dashboard_summary,
     ) -> None:
         """Create the service with an explicit collection gateway."""
         self.collection_gateway = collection_gateway
         self.anno_vep_repository = anno_vep_repository
-        self.invalidate_variant_cache = invalidate_variant_cache
-        self.invalidate_summary_cache = invalidate_summary_cache
+        self.invalidate_dashboard_summary = invalidate_dashboard_summary
 
     def _sample_collection(self):
         """Return the sample collection used by internal ingest workflows."""
@@ -111,16 +108,12 @@ class InternalIngestService:
         """Return the collection backing an ingest-dependent document type."""
         return self.collection_gateway.collection(name)
 
-    def _invalidate_dashboard_cache_after_ingest(self) -> None:
-        """Refresh dashboard caches after ingest writes into sample/variant collections."""
+    def _invalidate_dashboard_summary_after_ingest(self) -> None:
+        """Mark dashboard summaries stale after ingest writes source data."""
         try:
-            self.invalidate_variant_cache()
+            self.invalidate_dashboard_summary()
         except Exception as exc:
-            logger.warning("ingest_dashboard_variant_cache_invalidate_failed error=%s", exc)
-        try:
-            self.invalidate_summary_cache()
-        except Exception as exc:
-            logger.warning("ingest_dashboard_summary_cache_invalidate_failed error=%s", exc)
+            logger.warning("ingest_dashboard_summary_invalidate_failed error=%s", exc)
 
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
@@ -531,7 +524,7 @@ class InternalIngestService:
             {"$set": {"ingest_status": "ready", "data_counts": counts}},
             upsert=False,
         )
-        self._invalidate_dashboard_cache_after_ingest()
+        self._invalidate_dashboard_summary_after_ingest()
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -636,7 +629,7 @@ class InternalIngestService:
                         upsert=False,
                         **sample_kwargs,
                     )
-            self._invalidate_dashboard_cache_after_ingest()
+            self._invalidate_dashboard_summary_after_ingest()
         except Exception:
             self._cleanup(sample_id)
             raise

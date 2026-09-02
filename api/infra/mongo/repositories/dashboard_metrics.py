@@ -14,8 +14,6 @@ from api.infra.mongo.repositories.base import BaseRepository
 class DashboardMetricsRepository(BaseRepository):
     """Manage persisted dashboard metric snapshots."""
 
-    SUMMARY_SNAPSHOT_VERSION = "v6"
-
     def __init__(self, adapter):
         super().__init__(adapter)
         self.set_collection(self.adapter.coyote_db["dashboard_metrics"])
@@ -52,14 +50,14 @@ class DashboardMetricsRepository(BaseRepository):
     def get_summary_snapshot(self, *, scope_key: str) -> dict | None:
         """Return a persisted dashboard summary snapshot document."""
         return self.get_collection().find_one(
-            {"_id": f"dashboard_summary_{self.SUMMARY_SNAPSHOT_VERSION}:{scope_key}"},
+            {"_id": f"dashboard_summary:{scope_key}"},
             {"payload": 1, "updated_at": 1, "dirty_since": 1},
         )
 
     def upsert_summary_snapshot(self, *, scope_key: str, payload: dict[str, Any]) -> None:
         """Persist a dashboard summary snapshot."""
         self.get_collection().update_one(
-            {"_id": f"dashboard_summary_{self.SUMMARY_SNAPSHOT_VERSION}:{scope_key}"},
+            {"_id": f"dashboard_summary:{scope_key}"},
             {
                 "$set": {
                     "payload": dict(payload),

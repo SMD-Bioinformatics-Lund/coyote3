@@ -17,7 +17,7 @@ import pymongo
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
+from api.infra.dashboard_snapshots import mark_dashboard_summaries_dirty
 
 
 # -------------------------------------------------------------------------
@@ -48,10 +48,10 @@ class BaseRepository:
         raise NotImplementedError("get_collection or set_collection must be implemented")
 
     def invalidate_dashboard_summary(self) -> None:
-        """Invalidate dashboard metrics when this repository has a runtime adapter."""
+        """Mark dashboard summaries stale when source data changes."""
         adapter = getattr(self, "adapter", None)
         if adapter is not None:
-            invalidate_dashboard_summary_cache(adapter)
+            mark_dashboard_summaries_dirty(adapter)
 
     def mark_false_positive(self, var_id: str, fp: bool) -> Any:
         """

@@ -1016,3 +1016,107 @@ class AnnotationsRepository(BaseRepository):
             for row in self.get_collection().aggregate(by_assay_pipeline, allowDiskUse=True)
         }
         return {"total": total, "by_assay": by_assay}
+
+    def get_dashboard_top_tiered_genes(self, *, limit: int = 15) -> list[dict[str, Any]]:
+        """Rank genes by unique biological findings and their latest classifications."""
+        bounded_limit = max(1, min(int(limit), 20))
+        tier_fields = {
+            f"tier{tier}": {"$sum": {"$cond": [{"$eq": ["$class", tier]}, 1, 0]}}
+            for tier in range(1, 5)
+        }
+
+        def gene_facet(field: str, *, exclude_matching_gene1: bool = False) -> list[dict[str, Any]]:
+            match: dict[str, Any] = {field: {"$nin": [None, ""]}}
+            if exclude_matching_gene1:
+                match["$expr"] = {"$ne": [f"${field}", "$gene1"]}
+            return [
+                {"$match": match},
+                {
+                    "$group": {
+                        "_id": f"${field}",
+                        "total": {"$sum": 1},
+                        **tier_fields,
+                        "nomenclature_sets": {"$push": "$nomenclatures"},
+                    }
+                },
+            ]
+
+        pipeline = [
+            {"$match": {"class": {"$in": [1, 2, 3, 4]}}},
+            {
+                "$set": {
+                    "biological_type": {
+                        "$cond": [
+                            {"$in": ["$nomenclature", ["p", "c", "g"]]},
+                            "small_variant",
+                            "$nomenclature",
+                        ]
+                    },
+                    "biological_identity": {
+                        "$cond": [
+                            {"$in": ["$nomenclature", ["p", "c", "g"]]},
+                            {
+                                "$ifNull": [
+                                    "$genomic_hash",
+                                    {"$ifNull": ["$genomic", "$variant"]},
+                                ]
+                            },
+                            "$variant",
+                        ]
+                    },
+                }
+            },
+            {"$sort": {"time_created": -1, "_id": -1}},
+            {
+                "$group": {
+                    "_id": {
+                        "type": "$biological_type",
+                        "identity": "$biological_identity",
+                        "gene": "$gene",
+                        "gene1": "$gene1",
+                        "gene2": "$gene2",
+                    },
+                    "class": {"$first": "$class"},
+                    "gene": {"$first": "$gene"},
+                    "gene1": {"$first": "$gene1"},
+                    "gene2": {"$first": "$gene2"},
+                    "nomenclatures": {"$addToSet": "$nomenclature"},
+                }
+            },
+            {
+                "$facet": {
+                    "gene": gene_facet("gene"),
+                    "gene1": gene_facet("gene1"),
+                    "gene2": gene_facet("gene2", exclude_matching_gene1=True),
+                }
+            },
+        ]
+        aggregate_rows = list(self.get_collection().aggregate(pipeline, allowDiskUse=True))
+        grouped: dict[str, dict[str, Any]] = {}
+        for facet_rows in aggregate_rows[0].values() if aggregate_rows else []:
+            for row in facet_rows:
+                gene = str(row.get("_id") or "").strip().upper()
+                if not gene:
+                    continue
+                target = grouped.setdefault(
+                    gene,
+                    {
+                        "gene": gene,
+                        "total": 0,
+                        "tier1": 0,
+                        "tier2": 0,
+                        "tier3": 0,
+                        "tier4": 0,
+                        "nomenclatures": set(),
+                    },
+                )
+                target["total"] += int(row.get("total") or 0)
+                for tier in range(1, 5):
+                    target[f"tier{tier}"] += int(row.get(f"tier{tier}") or 0)
+                for values in row.get("nomenclature_sets", []):
+                    target["nomenclatures"].update(value for value in values if value)
+
+        rows = sorted(grouped.values(), key=lambda row: (-row["total"], row["gene"]))
+        for row in rows:
+            row["nomenclatures"] = sorted(row["nomenclatures"])
+        return rows[:bounded_limit]

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import mongomock
 from bson import ObjectId
 
+from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
 from api.infra.mongo.repositories.samples import SampleRepository
 from api.infra.mongo.repositories.variants import VariantsRepository
 
@@ -31,12 +32,15 @@ def _adapter():
         logger=logging.getLogger("repository-test"),
         home_logger=logging.getLogger("repository-test"),
     )
-    return SimpleNamespace(
+    adapter = SimpleNamespace(
         app=app,
         coyote_db=db,
         samples_collection=db["samples"],
         variants_collection=db["variants"],
+        finding_comments_collection=db["finding_comments"],
     )
+    adapter.finding_comment_repository = FindingCommentsRepository(adapter)
+    return adapter
 
 
 def test_sample_repository_indexes_pagination_sorting_and_literal_search() -> None:
@@ -162,7 +166,7 @@ def test_sample_repository_update_and_missing_document_semantics(monkeypatch) ->
         "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty", lambda *_: None
     )
 
     result = repository.update_sample(sample_id, {"name": "CASE_A", "reported": True})

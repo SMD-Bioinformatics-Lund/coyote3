@@ -55,8 +55,6 @@ class VariantsRepositoryProtocol(Protocol):
 
     def get_dashboard_variant_counts(self) -> dict[str, Any]: ...
 
-    def get_unique_variant_quality_counts(self) -> dict[str, Any]: ...
-
     def update_selected_transcript(
         self,
         *,

@@ -97,9 +97,6 @@ class _DashboardBackendStub:
             "by_variant_class": {"SNV": 1700, "INDEL": 300},
         }
 
-    def get_unique_variant_quality_counts(self):
-        return {"unique_total_variants": 500, "unique_fp_variants": 25}
-
     def get_total_cnv_count(self):
         return 40
 
@@ -117,6 +114,20 @@ class _DashboardBackendStub:
 
     def get_dashboard_classification_stats(self):
         return {"total": {"tier1": 20, "tier2": 7, "tier3": 6, "tier4": 4}}
+
+    def get_dashboard_top_tiered_genes(self, *, limit=15):
+        assert limit == 15
+        return [
+            {
+                "gene": "TP53",
+                "total": 12,
+                "tier1": 3,
+                "tier2": 4,
+                "tier3": 4,
+                "tier4": 1,
+                "nomenclatures": ["p", "c"],
+            }
+        ]
 
     def get_all_asps_unique_gene_count(self):
         return 1234
@@ -160,13 +171,13 @@ def _noop_handler(**methods):
         "resolve_active_asp_ids_for_scope": lambda asp_ids=None, groups=None: [],
         "get_dashboard_sample_rollup": lambda asp_ids=None: {},
         "get_dashboard_variant_counts": lambda: {},
-        "get_unique_variant_quality_counts": lambda: {},
         "get_total_cnv_count": lambda: 0,
         "get_total_transloc_count": lambda: 0,
         "get_total_fusion_count": lambda: 0,
         "get_unique_blacklist_count": lambda: 0,
         "get_dashboard_tier_stats": lambda: {},
         "get_dashboard_classification_stats": lambda: {},
+        "get_dashboard_top_tiered_genes": lambda limit=15: [],
         "get_all_asps_unique_gene_count": lambda: 0,
         "get_all_asp_gene_counts": lambda: {},
         "get_dashboard_assay_association_rollup": lambda: {},
@@ -220,7 +231,6 @@ def _dashboard_service(backend=None, dashboard_metrics_repository=None) -> Dashb
         ),
         variant_repository=_noop_handler(
             get_dashboard_variant_counts=backend.get_dashboard_variant_counts,
-            get_unique_variant_quality_counts=backend.get_unique_variant_quality_counts,
         ),
         copy_number_variant_repository=_noop_handler(
             get_total_cnv_count=backend.get_total_cnv_count
@@ -233,7 +243,8 @@ def _dashboard_service(backend=None, dashboard_metrics_repository=None) -> Dashb
             get_unique_blacklist_count=backend.get_unique_blacklist_count
         ),
         annotation_repository=_noop_handler(
-            get_dashboard_classification_stats=backend.get_dashboard_classification_stats
+            get_dashboard_classification_stats=backend.get_dashboard_classification_stats,
+            get_dashboard_top_tiered_genes=backend.get_dashboard_top_tiered_genes,
         ),
         reported_variant_repository=_noop_handler(
             get_dashboard_tier_stats=backend.get_dashboard_tier_stats
@@ -325,9 +336,17 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
         {"analysis_type": "SNV", "enabled": 2, "reportable": 2},
         {"analysis_type": "CNV", "enabled": 2, "reportable": 1},
     ]
+    assert payload["top_tiered_genes"][0] == {
+        "gene": "TP53",
+        "total": 12,
+        "tier1": 3,
+        "tier2": 4,
+        "tier3": 4,
+        "tier4": 1,
+        "nomenclatures": ["p", "c"],
+    }
     assert payload["quality_stats"]["analysed_rate_percent"] == 75.0
     assert payload["quality_stats"]["fp_rate_percent"] == 5.0
-    assert payload["quality_stats"]["blacklist_rate_percent"] == 10.0
     assert payload["admin_insights"]["counts"]["users_total"] == 12
     assert payload["dashboard_meta"]["scope_assays"] == ["A1", "A2"]
 
@@ -352,7 +371,6 @@ def test_summary_payload_reads_snapshot_without_running_aggregations(monkeypatch
 
     assert payload["total_samples"] == 7
     assert payload["dashboard_meta"]["snapshot_stale"] is False
-    assert payload["dashboard_meta"]["cache_source"] == "mongo_snapshot"
 
 
 def test_summary_payload_returns_stale_snapshot_and_rejects_missing_snapshot():

@@ -75,7 +75,7 @@ class RepositoryMetadataSettings:
 
 
 class CacheSettings:
-    """Redis-backed cache and dashboard snapshot settings."""
+    """Redis runtime settings."""
 
     CACHE_DEFAULT_TIMEOUT = 300  # 300 secs, 5 minutes
     CACHE_KEY_PREFIX = "coyote3_cache"
@@ -84,9 +84,11 @@ class CacheSettings:
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "")
     CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
     CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
-    DASHBOARD_SUMMARY_CACHE_TTL_SECONDS = int(
-        os.getenv("DASHBOARD_SUMMARY_CACHE_TTL_SECONDS", "60")
-    )
+
+
+class DashboardSummarySettings:
+    """Materialized dashboard-summary freshness and retention settings."""
+
     DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS = int(
         os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", "300")
     )
@@ -249,6 +251,7 @@ class SearchLimitSettings:
 class DefaultConfig(
     RepositoryMetadataSettings,
     CacheSettings,
+    DashboardSummarySettings,
     HttpSecuritySettings,
     OperationsSettings,
     KnowledgebaseSettings,

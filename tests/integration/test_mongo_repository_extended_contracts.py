@@ -334,7 +334,7 @@ def test_roles_repository_search_colors_permissions_and_lifecycle(monkeypatch) -
     adapter = _adapter()
     repository = RolesRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty", lambda *_: None
     )
     repository.ensure_indexes()
     repository.create_role(
@@ -510,7 +510,7 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     adapter = _adapter()
     repository = ASPRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache",
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty",
         lambda *_: None,
     )
     repository.create_panel(
@@ -589,7 +589,7 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
     adapter = _adapter()
     repository = ASPConfigRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache",
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty",
         lambda *_: None,
     )
     assert repository.build_aspc_id("HEMA_GMSV1", "Production", "Hem-Snabb") == (
@@ -665,7 +665,7 @@ def test_isgl_repository_scope_gene_selection_and_lifecycle(monkeypatch) -> None
     adapter = _adapter()
     repository = ISGLRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache",
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty",
         lambda *_: None,
     )
     repository.create_genelist(
@@ -757,7 +757,7 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
     adapter = _adapter()
     repository = UsersRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty", lambda *_: None
     )
     repository.ensure_indexes()
     repository.create_user(
@@ -881,7 +881,7 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
         "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.mark_dashboard_summaries_dirty", lambda *_: None
     )
     repository.ensure_indexes()
     now = datetime.now(timezone.utc)
@@ -1050,7 +1050,7 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     adapter = _adapter()
     repository = VariantsRepository(adapter)
     repository.ensure_indexes()
-    monkeypatch.setattr(repository, "invalidate_dashboard_metrics_cache", lambda: None)
+    monkeypatch.setattr(repository, "invalidate_dashboard_summary", lambda: None)
     sample_a = adapter.samples_collection.insert_one(
         {"name": "A", "asp_id": "hema", "subpanel_id": "base"}
     ).inserted_id
@@ -1157,7 +1157,7 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     assert repository.delete_sample_variants(str(sample_a)).deleted_count == 2
 
 
-def test_variant_dashboard_metric_cache_persistence_and_expiry(monkeypatch) -> None:
+def test_variant_dashboard_rollup_is_calculated_from_source_documents() -> None:
     adapter = _adapter()
     repository = VariantsRepository(adapter)
     simple_id = "1_10_A_T"
@@ -1174,22 +1174,19 @@ def test_variant_dashboard_metric_cache_persistence_and_expiry(monkeypatch) -> N
             },
         ]
     )
-    quality = repository.get_unique_variant_quality_counts()
-    assert quality["unique_total_variants"] == 1 and quality["unique_fp_variants"] == 1
-    assert repository.get_unique_variant_quality_counts()["unique_total_variants"] == 1
     rollup = repository.get_dashboard_variant_counts()
     assert rollup["total_variants"] == 2 and rollup["by_variant_class"] == {"SNV": 2}
-    assert repository.get_dashboard_variant_counts()["total_variants"] == 2
+    assert rollup["fps"] == 1
 
-    adapter.app.cache.clear()
-    adapter.coyote_db.dashboard_metrics.update_one(
-        {"_id": "variant_rollup_v4"},
-        {"$set": {"updated_at": datetime.now(timezone.utc) - timedelta(days=2)}},
+    adapter.variants_collection.insert_one(
+        {
+            **repository._simple_id_identity_query("2_20_C_G"),
+            "variant_class": "INDEL",
+        }
     )
-    assert repository._read_persisted_metric("missing") is None
-    assert repository._read_persisted_metric("variant_rollup_v4", max_age_seconds=1) is None
-    repository.invalidate_dashboard_metrics_cache()
-    assert adapter.coyote_db.dashboard_metrics.count_documents({}) == 0
+    refreshed_rollup = repository.get_dashboard_variant_counts()
+    assert refreshed_rollup["total_variants"] == 3
+    assert refreshed_rollup["by_variant_class"] == {"INDEL": 1, "SNV": 2}
 
 
 def test_annotation_dashboard_classification_stats_use_latest_identity() -> None:
@@ -1238,6 +1235,73 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
         "tier4": 1,
     }
     assert stats["by_assay"]["hematology"]["tier1"] == 1
+
+
+def test_annotation_dashboard_top_tiered_genes_spans_nomenclatures() -> None:
+    adapter = _adapter()
+    repository = AnnotationsRepository(adapter)
+    created = datetime.now(timezone.utc)
+    genomic = "7_140753336_A_T"
+    genomic_hash = "bd1db16fb7262c049364318a6f0873a3"
+    braf_protein = {
+        "nomenclature": "p",
+        "variant": "p.Val600Glu",
+        "hgvsp": "p.Val600Glu",
+        "hgvsc": "c.1799T>A",
+        "genomic": genomic,
+        "genomic_hash": genomic_hash,
+        "gene": "BRAF",
+        "transcript": "NM_004333.6",
+    }
+    repository.get_collection().insert_many(
+        [
+            {**braf_protein, "class": 3, "time_created": created - timedelta(days=1)},
+            {**braf_protein, "class": 2, "time_created": created},
+            {
+                "nomenclature": "c",
+                "variant": "c.1799T>A",
+                "hgvsp": "p.Val600Glu",
+                "hgvsc": "c.1799T>A",
+                "genomic": genomic,
+                "genomic_hash": genomic_hash,
+                "gene": "BRAF",
+                "transcript": "NM_004333.6",
+                "class": 1,
+                "time_created": created + timedelta(seconds=1),
+            },
+            {
+                "nomenclature": "f",
+                "variant": "BCR::ABL1",
+                "gene1": "BCR",
+                "gene2": "ABL1",
+                "class": 1,
+                "time_created": created,
+            },
+            {
+                "nomenclature": "f",
+                "variant": "JAK2::JAK2",
+                "gene1": "JAK2",
+                "gene2": "JAK2",
+                "class": 2,
+                "time_created": created,
+            },
+        ]
+    )
+
+    rows = repository.get_dashboard_top_tiered_genes(limit=20)
+    rows_by_gene = {row["gene"]: row for row in rows}
+
+    assert rows_by_gene["BRAF"] == {
+        "gene": "BRAF",
+        "total": 1,
+        "tier1": 1,
+        "tier2": 0,
+        "tier3": 0,
+        "tier4": 0,
+        "nomenclatures": ["c", "p"],
+    }
+    assert set(rows_by_gene) == {"ABL1", "BRAF", "BCR", "JAK2"}
+    assert all(row["total"] == 1 for row in rows)
 
 
 def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -> None:

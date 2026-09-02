@@ -194,10 +194,13 @@ def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch,
         {"username": "inactive", "is_active": False},
     ]
     refreshed: list[str] = []
+    shared_payload = {"global": "metrics"}
     service = SimpleNamespace(
         user_repository=SimpleNamespace(get_all_users=lambda: users),
+        build_shared_summary_payload=lambda: shared_payload,
         summary_scope_key=lambda *, user: "shared" if user.username in {"one", "two"} else "other",
-        refresh_summary_payload=lambda *, user: refreshed.append(user.username) or {},
+        refresh_summary_payload=lambda *, user, shared_payload: refreshed.append(user.username)
+        or {"shared_payload": shared_payload},
     )
     monkeypatch.setattr(maintenance, "get_dashboard_service", lambda: service)
     monkeypatch.setattr(

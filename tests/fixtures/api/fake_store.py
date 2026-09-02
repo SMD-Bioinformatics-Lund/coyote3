@@ -131,6 +131,7 @@ def build_fake_store() -> SimpleNamespace:
                     "total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0},
                     "by_assay": {},
                 },
+                "get_dashboard_top_tiered_genes": lambda limit=15: [],
                 "get_annotation_text_by_oid": lambda oid: {"_id": oid, "text": "note"},
             }
         ),

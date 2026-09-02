@@ -219,8 +219,7 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
             }
         ),
         anno_vep_repository=store_stub.anno_vep_repository,
-        invalidate_variant_cache=lambda: None,
-        invalidate_summary_cache=lambda: None,
+        invalidate_dashboard_summary=lambda: None,
     )
 
 
@@ -611,8 +610,7 @@ def test_hgnc_metadata_maps_include_case_insensitive_aliases():
     service = ingest.InternalIngestService(
         collection_gateway=_Gateway(),
         anno_vep_repository=_AnnoVepRepo(),
-        invalidate_variant_cache=lambda: None,
-        invalidate_summary_cache=lambda: None,
+        invalidate_dashboard_summary=lambda: None,
     )
     by_id, by_symbol = service._hgnc_metadata_maps()
 
@@ -1075,8 +1073,7 @@ def test_parse_yaml_payload():
             collections={"samples": _Col(), "anno_vep": _Col()}
         ),
         anno_vep_repository=_AnnoVepRepo(),
-        invalidate_variant_cache=lambda: None,
-        invalidate_summary_cache=lambda: None,
+        invalidate_dashboard_summary=lambda: None,
     )
     parsed = service.parse_yaml_payload("name: S1\nasp_id: A\ndatabase_versions:\n  vep: '110'\n")
     assert parsed["name"] == "S1"
@@ -1390,8 +1387,7 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
             collections={"samples": _Col(), "anno_vep": _Col()}
         ),
         anno_vep_repository=_AnnoVepRepo(),
-        invalidate_variant_cache=lambda: None,
-        invalidate_summary_cache=lambda: None,
+        invalidate_dashboard_summary=lambda: None,
     )
     out = service._prepare_update_payload(
         sample_doc={"omics_layer": "rna", "fusion_files": "x"},
