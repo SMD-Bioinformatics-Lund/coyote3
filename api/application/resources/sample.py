@@ -44,7 +44,6 @@ class ResourceSampleService:
             finding_comment_repository=store.finding_comment_repository,
             report_repository=store.report_repository,
             reported_variant_repository=store.reported_variant_repository,
-            oncokb_public_cache_repository=store.oncokb_public_cache_repository,
             assay_panel_repository=store.assay_panel_repository,
         )
 
@@ -66,7 +65,6 @@ class ResourceSampleService:
         finding_comment_repository: Any,
         report_repository: Any,
         reported_variant_repository: Any,
-        oncokb_public_cache_repository: Any,
         assay_panel_repository: Any,
     ) -> None:
         """Create the service with explicit injected persistence/util dependencies."""
@@ -85,7 +83,6 @@ class ResourceSampleService:
         self.finding_comment_repository = finding_comment_repository
         self.report_repository = report_repository
         self.reported_variant_repository = reported_variant_repository
-        self.oncokb_public_cache_repository = oncokb_public_cache_repository
         self.assay_panel_repository = assay_panel_repository
 
     @measured_operation("query.samples")
@@ -217,7 +214,6 @@ class ResourceSampleService:
             finding_comment_repository=self.finding_comment_repository,
             report_repository=self.report_repository,
             reported_variant_repository=self.reported_variant_repository,
-            oncokb_public_cache_repository=self.oncokb_public_cache_repository,
         )
         payload = change_payload(resource="sample", resource_id=sample_id, action="delete")
         payload["meta"]["sample_name"] = deletion_summary.get("sample_name") or sample_name

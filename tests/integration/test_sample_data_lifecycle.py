@@ -33,17 +33,6 @@ class _SampleRepository:
         return OperationResult.from_delete(self.collection.delete_one({"_id": sample_id}))
 
 
-class _OncoKbRepository:
-    def __init__(self, collection) -> None:
-        self.collection = collection
-
-    def remove_sample_references(self, *, sample_id: str, sample_name: str | None):
-        result = self.collection.delete_many(
-            {"$or": [{"sample_ids": sample_id}, {"sample_names": sample_name}]}
-        )
-        return OperationResult.from_delete(result)
-
-
 class _IngestService:
     def __init__(self, database) -> None:
         self.database = database
@@ -138,12 +127,9 @@ def test_delete_all_sample_traces_removes_every_owned_document() -> None:
         repositories[argument_name] = _CollectionDeleteRepository(
             database[collection_name], method_name, key
         )
-    database.oncokb_public.insert_one({"sample_ids": [sample_id], "sample_names": [sample_name]})
-
     summary = delete_all_sample_traces(
         sample_id,
         sample_repository=_SampleRepository(database.samples),
-        oncokb_public_cache_repository=_OncoKbRepository(database.oncokb_public),
         **repositories,
     )
 
@@ -151,5 +137,4 @@ def test_delete_all_sample_traces_removes_every_owned_document() -> None:
     assert database.samples.count_documents({"_id": sample_id}) == 0
     for collection_name, _method_name, key in repository_specs.values():
         assert database[collection_name].count_documents({key: sample_id}) == 0
-    assert database.oncokb_public.count_documents({"sample_ids": sample_id}) == 0
     assert all(result["ok"] for result in summary["results"])

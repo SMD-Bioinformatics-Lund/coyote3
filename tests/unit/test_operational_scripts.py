@@ -65,9 +65,11 @@ def test_preflight_checks_runtime_mount_write_access() -> None:
 def test_preflight_requires_explicit_database_names() -> None:
     script = (REPOSITORY_ROOT / "scripts/center_preflight.sh").read_text(encoding="utf-8")
 
-    assert "for key in MONGO_URI COYOTE3_DB BAM_DB SECRET_KEY" in script
+    assert "for key in MONGO_URI COYOTE3_DB KNOWLEDGEBASE_DB BAM_DB SECRET_KEY" in script
     assert "CORS_ORIGINS COYOTE3_APP_NETWORK" in script
     assert 'data.get("COYOTE3_DB", "")' in script
+    assert 'data.get("KNOWLEDGEBASE_DB", "")' in script
+    assert "ERROR: KNOWLEDGEBASE_DB must be different from COYOTE3_DB and BAM_DB" in script
     assert "ERROR: BAM_DB must be set" in script
 
 

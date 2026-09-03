@@ -16,6 +16,7 @@ Copy `deploy/env/example.env` to a file outside version control and set the requ
 | --- | --- |
 | `MONGO_URI` | MongoDB connection string reachable from the API and workers. |
 | `COYOTE3_DB` | Coyote3 application database name. It has no application default. |
+| `KNOWLEDGEBASE_DB` | Dedicated external knowledgebase database name. It must differ from `COYOTE3_DB` and `BAM_DB`. |
 | `BAM_DB` | BAM service database name. It has no application default. |
 | `SECRET_KEY` | Signs application security material. Generate a unique random value. |
 | `INTERNAL_API_TOKEN` | Authenticates internal service operations. Generate a separate random value. |

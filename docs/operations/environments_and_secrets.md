@@ -96,7 +96,11 @@ mongosh "<admin-mongo-uri>" --eval '
   db = db.getSiblingDB("'"${COYOTE3_DB:?COYOTE3_DB must be set}"'");
   var user = "'"${MONGO_APP_USER}"'";
   var pwd  = "'"${MONGO_APP_PASSWORD}"'";
-  var roles = [{role: "readWrite", db: "'"${COYOTE3_DB:?COYOTE3_DB must be set}"'"}];
+  var roles = [
+    {role: "readWrite", db: "'"${COYOTE3_DB:?COYOTE3_DB must be set}"'"},
+    {role: "readWrite", db: "'"${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB must be set}"'"},
+    {role: "readWrite", db: "'"${BAM_DB:?BAM_DB must be set}"'"}
+  ];
   var info = db.getUser(user);
   if (info) { db.updateUser(user, {pwd: pwd, roles: roles}); print("updated"); }
   else       { db.createUser({user: user, pwd: pwd, roles: roles}); print("created"); }

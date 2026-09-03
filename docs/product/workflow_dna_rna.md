@@ -345,11 +345,11 @@ children keyed by its sample identifier: small variants, CNVs, coverage,
 translocations, fusions, biomarkers, RNA expression, RNA classification, RNA
 quality control, sample comments, reports, and reported-finding snapshots.
 
-Shared knowledgebase cache entries are retained. The deleted sample identifier
-and name are removed from their `sample_ids` and `sample_names` reference
-arrays. Global annotations, HGNC/VEP/reference collections, audit events, and
-records owned by the external BAM service are also retained because they are
-shared reference or traceability data rather than sample-owned Coyote records.
+Shared knowledgebase cache entries are retained because they contain no sample
+identifiers or sample-owned relationships. Global annotations, HGNC/VEP
+reference collections, audit events, and records owned by the external BAM
+service are also retained because they are shared reference or traceability
+data rather than sample-owned Coyote records.
 
 See also:
 

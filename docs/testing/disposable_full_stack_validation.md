@@ -155,6 +155,7 @@ Create the environment file used by MongoDB and the application stack:
 cat > "$VALIDATION_ENV_FILE" <<EOF
 ENV_NAME=testing
 COYOTE3_DB=coyote3_validation
+KNOWLEDGEBASE_DB=coyote3_knowledgebase_validation
 BAM_DB=BAM_Service_validation
 ORGANIZATION_NAME=Coyote3 disposable validation
 LOCAL_TIME_ZONE=UTC

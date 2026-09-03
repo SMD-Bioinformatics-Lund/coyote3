@@ -78,7 +78,6 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
             "finding_comments",
             "reports",
             "reported_variants",
-            "oncokb_public_cache",
         )
     ]
     service = ResourceSampleService(
@@ -97,7 +96,6 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
         finding_comment_repository=dependencies[11],
         report_repository=dependencies[12],
         reported_variant_repository=dependencies[13],
-        oncokb_public_cache_repository=dependencies[14],
         assay_panel_repository=AssayPanelRepository(),
     )
     return service, sample_repository, dependencies
@@ -144,7 +142,6 @@ def test_from_store_wires_all_repositories() -> None:
             "finding_comment_repository",
             "report_repository",
             "reported_variant_repository",
-            "oncokb_public_cache_repository",
             "assay_panel_repository",
         )
     }
@@ -301,7 +298,6 @@ def test_delete_delegates_all_repositories_and_returns_summary(
         finding_comment_repository=dependencies[11],
         report_repository=dependencies[12],
         reported_variant_repository=dependencies[13],
-        oncokb_public_cache_repository=dependencies[14],
     )
     assert result["meta"]["sample_name"] == "synthetic-sample"
     assert result["meta"]["sample_oid"] == "sample-oid"

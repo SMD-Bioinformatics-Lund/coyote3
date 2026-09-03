@@ -2,12 +2,17 @@
  * Runs only on first initialization of an empty /data/db volume.
  */
 const appDbName = process.env.COYOTE3_DB;
+const knowledgebaseDbName = process.env.KNOWLEDGEBASE_DB;
 const bamDbName = process.env.BAM_DB;
 const appUser = process.env.MONGO_APP_USER;
 const appPassword = process.env.MONGO_APP_PASSWORD;
 
-if (!appDbName || !bamDbName) {
-  throw new Error("COYOTE3_DB and BAM_DB must be configured explicitly");
+if (!appDbName || !knowledgebaseDbName || !bamDbName) {
+  throw new Error("COYOTE3_DB, KNOWLEDGEBASE_DB, and BAM_DB must be configured explicitly");
+}
+
+if (knowledgebaseDbName === appDbName || knowledgebaseDbName === bamDbName) {
+  throw new Error("KNOWLEDGEBASE_DB must be different from COYOTE3_DB and BAM_DB");
 }
 
 if (!appUser || !appPassword) {
@@ -23,11 +28,12 @@ if (!appUser || !appPassword) {
       pwd: appPassword,
       roles: [
         { role: "readWrite", db: appDbName },
+        { role: "readWrite", db: knowledgebaseDbName },
         { role: "readWrite", db: bamDbName },
       ],
     });
     print(
-      `[mongo-init] created app user '${appUser}' in db '${appDbName}' with readWrite on '${bamDbName}'`
+      `[mongo-init] created app user '${appUser}' with application, knowledgebase, and BAM access`
     );
   }
 }

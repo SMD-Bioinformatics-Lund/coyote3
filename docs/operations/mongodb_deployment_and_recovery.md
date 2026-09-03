@@ -106,6 +106,68 @@ docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.ym
   --authenticationDatabase admin --quiet --eval 'rs.status().members.map(m => ({host: m.name, state: m.stateStr}))'
 ```
 
+## Knowledgebase database migration
+
+Coyote3 stores external knowledgebase datasets in the database selected by
+`KNOWLEDGEBASE_DB`. It must differ from `COYOTE3_DB` and `BAM_DB`. HGNC, VEP metadata,
+clinical annotations, samples, findings, comments, and reports remain in the
+primary application database.
+
+Upgrade an installation that still has knowledgebase collections in
+`COYOTE3_DB` before starting the new API or workers. Starting first can create
+empty destination collections and correctly block migration into them.
+
+1. Stop application writers and take a logical backup.
+2. Grant the application and migration identity read/write access to the
+   database named by `KNOWLEDGEBASE_DB`.
+3. Run the read-only inspection:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --source-db "$COYOTE3_DB" \
+  --target-db "$KNOWLEDGEBASE_DB" \
+  --report knowledgebase-migration-dry-run.json
+```
+
+4. Copy into staging collections, preserve indexes, verify complete collection
+   digests, and atomically publish each verified destination:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --source-db "$COYOTE3_DB" \
+  --target-db "$KNOWLEDGEBASE_DB" \
+  --apply \
+  --report knowledgebase-migration-applied.json
+```
+
+The command removes `sample_ids` and `sample_names` from migrated
+`oncokb_public` documents. Those fields are forbidden in the destination. It
+does not modify any source collection during the normal apply operation.
+
+5. Start Coyote3 with `KNOWLEDGEBASE_DB` configured, verify knowledgebase
+   markers and finding-detail evidence, and retain the source collections for
+   the center's rollback interval.
+6. After the migration has been accepted, remove only the verified source
+   knowledgebase collections with the explicit destructive confirmation:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --source-db "$COYOTE3_DB" \
+  --target-db "$KNOWLEDGEBASE_DB" \
+  --apply \
+  --drop-source \
+  --confirm-drop-source "$COYOTE3_DB" \
+  --report knowledgebase-migration-cleanup.json
+```
+
+The migration is restartable. An existing destination is accepted only when
+its transformed document count and complete SHA-256 digest match the source.
+A differing destination or an existing staging collection stops the command
+for operator review; neither is overwritten automatically.
+
 ## Data durability
 
 MongoDB data and archives are host bind mounts. `docker compose down` stops and removes containers but does not remove either host directory. The project wrapper also rejects `down -v` and `down --volumes`.

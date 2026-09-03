@@ -48,25 +48,25 @@ review, and reporting.
 
 ## Optional Enhancement Collections
 
-These collections improve interpretation quality, search, or external context.
+These collections belong in `KNOWLEDGEBASE_DB` and improve interpretation
+quality, search, or external context. `hgnc_genes`, `vep_metadata`, `annotation`,
+and `blacklist` remain in `COYOTE3_DB` because they participate in application
+annotation and review contracts.
 The application can run without all of them, but missing collections reduce the
 richness of the UI.
 
 | Collection | Purpose |
 | --- | --- |
-| `hgnc_genes` | HGNC-stable gene lookup, previous-symbol and alias matching, gene detail pages, and transcript-selection support. |
-| `vep_metadata` | VEP version metadata, consequence group mapping, consequence descriptions, and impact coloring. |
-| `annotation` | Tiered annotation history used by variant search, known classifications, and report text reuse. |
-| `blacklist` | Blacklist and false-positive support for variant review state. |
 | `oncokb_genes_public` | Public OncoKB curated gene list from `/utils/allCuratedGenes`. |
 | `oncokb_cancer_genes_public` | Public cancer gene list from `/utils/cancerGeneList`; used for actionable/cancer-gene markers where therapeutic detail is not available through public API. |
 | `clinpgx_genes_public` | Local ClinPGx gene markers imported from the approved gene source package; used to label PGx-relevant genes in tables. |
 | `civic_genes`, `civic_variants` | CIViC knowledgebase context displayed in the variant knowledgebase card. |
 | `brcaexchange` | BRCA Exchange context for relevant BRCA findings. |
 | `iarc_tp53` | IARC TP53 context for TP53 interpretation support. |
-| `cosmic` | COSMIC reference context where licensed/imported data is available. |
+| `cosmic` and `cosmic_*` product collections | Licensed COSMIC variant, structural, molecular, phenotype, census, and actionability products selected by the center. |
+| `versions` | Active, retired, staging, and failed knowledgebase release provenance for manual snapshot updates. This is separate from each sample's pipeline-supplied `database_versions`. |
 | `group_coverage` | Aggregated coverage metrics used by coverage views and dashboard summaries. |
-| `hpaexpr`, `rna_expression`, `rna_qc`, `rna_classification` | RNA/expression review and quality-control support. |
+| `hpaexpr` | Human Protein Atlas transcript expression reference data. |
 
 > **Warning: External data licensing**
 >

@@ -7,7 +7,6 @@ from typing import Any
 
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -134,24 +133,6 @@ class OncoKbPublicCacheRepository(BaseRepository):
         rows = self.get_collection().find({"query_hash": {"$in": hashes}}, {"query_hash": 1})
         return {str(row.get("query_hash")) for row in rows if row.get("query_hash")}
 
-    def remove_sample_references(
-        self, *, sample_id: str, sample_name: str | None = None
-    ) -> OperationResult:
-        """Remove one deleted sample from shared public annotation cache records."""
-        pull: dict[str, str] = {"sample_ids": str(sample_id)}
-        if sample_name:
-            pull["sample_names"] = str(sample_name)
-        result = self.get_collection().update_many(
-            {
-                "$or": [
-                    {"sample_ids": str(sample_id)},
-                    *([{"sample_names": str(sample_name)}] if sample_name else []),
-                ]
-            },
-            {"$pull": pull},
-        )
-        return OperationResult.from_update(result)
-
     def public_gene_count(self) -> int:
         """Return the number of public OncoKB gene marker records."""
         return int(self.gene_collection.estimated_document_count() or 0)
@@ -191,6 +172,12 @@ class OncoKbPublicCacheRepository(BaseRepository):
         now = _utc_now()
         prepared: list[dict[str, Any]] = []
         for doc in docs:
+            forbidden = sorted({"sample_ids", "sample_names"}.intersection(doc))
+            if forbidden:
+                raise ValueError(
+                    "OncoKB public cache records cannot contain sample identity fields: "
+                    f"{', '.join(forbidden)}"
+                )
             record = dict(doc)
             record.setdefault("created_on", now)
             record.setdefault("queried_at", now)

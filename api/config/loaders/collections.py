@@ -9,27 +9,37 @@ from typing import Any
 from api.config.paths import COLLECTIONS_CONFIG_PATH
 
 
-def load_collection_mapping(
+def load_collection_section(
+    section: str,
     *,
-    primary_database: str,
-    bam_database: str,
     config_path: str | Path = COLLECTIONS_CONFIG_PATH,
-) -> dict[str, dict[str, str]]:
-    """Load logical mappings and bind them to the configured database names."""
+) -> dict[str, str]:
+    """Load one logical collection section for a maintenance command."""
     path_obj = Path(config_path)
     if not path_obj.exists():
         raise RuntimeError(f"Collections configuration does not exist: {path_obj}")
     with path_obj.open("rb") as handle:
         raw: dict[str, Any] = tomllib.load(handle)
+    mapping = raw.get(section)
+    if not isinstance(mapping, dict):
+        raise ValueError(f"Logical section '{section}' is missing from {path_obj}")
+    return {str(key): str(value) for key, value in mapping.items()}
 
-    logical_sections = {"primary": primary_database, "bam": bam_database}
-    missing = [section for section in logical_sections if section not in raw]
-    if missing:
-        raise ValueError(
-            f"Logical section(s) {', '.join(missing)} are missing from collections "
-            f"configuration: {path_obj}"
-        )
+
+def load_collection_mapping(
+    *,
+    primary_database: str,
+    knowledgebase_database: str,
+    bam_database: str,
+    config_path: str | Path = COLLECTIONS_CONFIG_PATH,
+) -> dict[str, dict[str, str]]:
+    """Load logical mappings and bind them to the configured database names."""
+    logical_sections = {
+        "primary": primary_database,
+        "knowledgebase": knowledgebase_database,
+        "bam": bam_database,
+    }
     return {
-        database: {str(key): str(value) for key, value in dict(raw[section]).items()}
+        database: load_collection_section(section, config_path=config_path)
         for section, database in logical_sections.items()
     }

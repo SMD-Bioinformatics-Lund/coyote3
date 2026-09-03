@@ -31,6 +31,7 @@
     vep_metadata_collection = "vep_metadata"
     hgnc_collection = "hgnc_genes"
 
+[knowledgebase]
     civic_variants_collection = "civic_variants"
     civic_gene_collection = "civic_genes"
     oncokb_collection = "onkokb"
@@ -43,6 +44,17 @@
     brcaexchange_collection = "brcaexchange"
     iarc_tp53_collection = "iarc_tp53"
     cosmic_collection = "cosmic"
+    cosmic_noncoding_collection = "cosmic_noncoding_variants"
+    cosmic_breakpoints_collection = "cosmic_breakpoints"
+    cosmic_structural_collection = "cosmic_structural_variants"
+    cosmic_cna_collection = "cosmic_copy_number"
+    cosmic_fusion_collection = "cosmic_fusions"
+    cosmic_expression_collection = "cosmic_gene_expression"
+    cosmic_methylation_collection = "cosmic_methylation"
+    cosmic_classification_collection = "cosmic_classifications"
+    cosmic_cgc_hallmarks_collection = "cosmic_cgc_hallmarks"
+    cosmic_actionability_collection = "cosmic_actionability"
+    knowledgebase_versions_collection = "versions"
     expression_collection = "hpaexpr"
 
 [bam]

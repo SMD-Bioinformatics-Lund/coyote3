@@ -692,7 +692,9 @@ Use this order for a clean deployment at a new center.
      demonstration configuration.
 3. Start Coyote3 services.
 4. Import approved center ASP, ASPC, and ISGL configuration.
-5. Optionally import filtering and annotation knowledgebase collections.
+5. Optionally import filtering and annotation knowledgebase collections. The
+   collection gateway resolves these destinations in `KNOWLEDGEBASE_DB`, not
+   the sample-bearing application database.
    - `civic_genes`, `civic_variants`, `oncokb_genes`, `oncokb_actionable`,
      `brcaexchange`, `iarc_tp53`, `cosmic`, `hpaexpr`
 6. Ingest sample data.

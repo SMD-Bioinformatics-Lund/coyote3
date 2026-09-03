@@ -80,6 +80,7 @@ def public_about_read():
             "references": _public_reference_versions(),
             "databases": {
                 "primary": runtime_app.config.get("COYOTE3_DB"),
+                "knowledgebase": runtime_app.config.get("KNOWLEDGEBASE_DB"),
                 "bam_service": runtime_app.config.get("BAM_DB"),
                 "knowledgebases": {
                     "oncokb_public": runtime_app.config.get("ONCOKB_BASE_URL"),

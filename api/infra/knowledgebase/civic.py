@@ -22,8 +22,8 @@ class CivicRepository(BaseRepository):
     CivicRepository class for managing CIViC variant and gene data.
 
     This class provides methods to interact with the CIViC data stored in MongoDB,
-    including retrieving variant and gene information. It is designed to work
-    with the `coyote["civic_variants"]` and `coyote["civic_genes"]` collections.
+    including retrieving variant and gene information from the dedicated
+    knowledgebase database.
     """
 
     def __init__(self, adapter):
@@ -74,7 +74,7 @@ class CivicRepository(BaseRepository):
                     "$or": [
                         {
                             "chromosome": str(variant["CHROM"]),
-                            "start": str(variant["POS"]),
+                            "start": int(variant["POS"]),
                             "variant_bases": variant["ALT"],
                         },
                         {

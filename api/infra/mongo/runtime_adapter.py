@@ -162,8 +162,8 @@ class MongoAdapter:
         """
         Setup databases
 
-        This method configures the database connections for the `coyote_db` and `bam_db` attributes
-        using the database names specified in the application's configuration.
+        This method configures the application, knowledgebase, and BAM-service databases
+        using the names specified in the application's configuration.
 
         Attributes:
             coyote_db: The primary database for the application, initialized using the `COYOTE3_DB` from the app's config.
@@ -182,6 +182,9 @@ class MongoAdapter:
         self.coyote_db = client.get_database(self.app.config["COYOTE3_DB"]).with_options(
             read_concern=read_concern, write_concern=write_concern
         )
+        self.knowledgebase_db = client.get_database(
+            self.app.config["KNOWLEDGEBASE_DB"]
+        ).with_options(read_concern=read_concern, write_concern=write_concern)
         self.bam_db = client.get_database(self.app.config["BAM_DB"]).with_options(
             read_concern=read_concern, write_concern=write_concern
         )
@@ -190,16 +193,15 @@ class MongoAdapter:
         """
         Setup collections
 
-        This method initializes the database collections for both the `coyote_db` and `bam_db` attributes.
+        This method initializes collections for the application, knowledgebase, and BAM databases.
         It retrieves the collection configurations from the application's configuration and sets them as attributes
         on the `MongoAdapter` instance for easy access.
 
-        Collections for `coyote_db` are configured using the `DB_COLLECTIONS_CONFIG` dictionary with the key
-        matching the `COYOTE3_DB` from the app's configuration. Similarly, collections for `bam_db` are
-        configured using the `BAM_DB` key.
+        Collection mappings are selected by their configured physical database names.
 
         Attributes:
             coyote_db: The primary database for the application.
+            knowledgebase_db: External knowledgebase datasets and API caches.
             bam_db: The BAM service database.
         """
         # Coyote DB
@@ -209,6 +211,14 @@ class MongoAdapter:
             .items()
         ):
             setattr(self, collection_name, self.coyote_db[collection_value])
+
+        # External knowledgebase DB
+        for collection_name, collection_value in (
+            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
+            .get(self.app.config["KNOWLEDGEBASE_DB"], {})
+            .items()
+        ):
+            setattr(self, collection_name, self.knowledgebase_db[collection_value])
 
         # BAM Service DB
         for bam_collection_name, bam_collection_value in (

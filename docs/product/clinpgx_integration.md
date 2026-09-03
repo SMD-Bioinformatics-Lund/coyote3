@@ -101,7 +101,7 @@ Run the seed command from the repository root:
 python scripts/seed_clinpgx_genes_public.py \
   --zip /srv/coyote3/reference/clinpgx_genes.zip \
   --mongo-uri "$MONGO_URI" \
-  --db "$COYOTE3_DB"
+  --db "$KNOWLEDGEBASE_DB"
 ```
 
 The seed is an upsert by approved symbol. It does not contain sample identifiers

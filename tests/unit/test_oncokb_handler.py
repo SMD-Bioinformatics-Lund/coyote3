@@ -6,6 +6,7 @@ import pytest
 from api.application.ingest.oncokb_public import (
     refresh_public_oncokb_gene_cache,
 )
+from api.infra.knowledgebase.brcaexchange import BRCARepository
 from api.infra.knowledgebase.civic import CivicRepository
 from api.infra.knowledgebase.oncokb import OnkoKBRepository
 from api.infra.knowledgebase.public_oncokb import (
@@ -23,6 +24,10 @@ class _FakeCollection:
         self.last_query = query
         return [{"Gene": "TP53", "Alteration": "R175H"}]
 
+    def find_one(self, query):
+        self.last_query = query
+        return {"Gene": "BRCA1"}
+
 
 class _FakeAdapter:
     def __init__(self):
@@ -31,6 +36,7 @@ class _FakeAdapter:
         self.oncokb_genes_collection = _FakeCollection()
         self.civic_variants_collection = _FakeCollection()
         self.civic_gene_collection = _FakeCollection()
+        self.brcaexchange_collection = _FakeCollection()
 
 
 def test_get_oncokb_action_builds_flat_alteration_list():
@@ -59,6 +65,18 @@ def test_get_civic_data_returns_materialized_documents():
 
     assert rows == [{"Gene": "TP53", "Alteration": "R175H"}]
     assert "$or" in handler.get_collection().last_query
+    assert handler.get_collection().last_query["$or"][0]["start"] == 7674220
+
+
+def test_brca_lookup_uses_integer_position() -> None:
+    handler = BRCARepository(_FakeAdapter())
+
+    handler.get_brca_data(
+        {"CHROM": "17", "POS": "43071077", "REF": "A", "ALT": "G"},
+        "gmsonco",
+    )
+
+    assert handler.get_collection().last_query["pos38"] == 43071077
 
 
 @pytest.mark.parametrize(

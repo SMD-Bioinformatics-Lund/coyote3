@@ -28,6 +28,7 @@ Every center must review and set only this core deployment contract:
 | --- | --- |
 | `MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
 | `COYOTE3_DB` | Selects the primary application database explicitly. |
+| `KNOWLEDGEBASE_DB` | Selects the dedicated external knowledgebase database explicitly. |
 | `BAM_DB` | Selects the BAM-service database explicitly. |
 | `SECRET_KEY` | Signs invitation and password-reset action tokens. |
 | `INTERNAL_API_TOKEN` | Authenticates trusted internal service requests. |
@@ -152,9 +153,9 @@ environment variables and are documented in the linked center-configuration
 tables above.
 
 Some environment variables select database instances rather than duplicate
-collection configuration. `COYOTE3_DB` is bound to the `[primary]` mapping in
-`center/collections.toml`, and `BAM_DB` is bound to `[bam]`. The physical
-collection names themselves remain TOML values.
+collection configuration. `COYOTE3_DB` is bound to `[primary]`,
+`KNOWLEDGEBASE_DB` to `[knowledgebase]`, and `BAM_DB` to `[bam]` in
+`center/collections.toml`. Physical collection names remain TOML values.
 
 > **Warning: HTTPS session cookies**
 >
@@ -174,6 +175,7 @@ registration is not configurable through an environment variable.
 | --- | --- | --- | --- |
 | `ENV_NAME` | No; default `production` at runtime | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
 | `COYOTE3_DB` | Yes | MongoDB database name | Primary application database. The database in `MONGO_URI` must match this value. |
+| `KNOWLEDGEBASE_DB` | Yes | MongoDB database name different from `COYOTE3_DB` and `BAM_DB` | External knowledgebase datasets and public API caches. It must be on the MongoDB deployment addressed by `MONGO_URI`. |
 | `BAM_DB` | Yes | MongoDB database name | BAM-service database used for sample BAM lookups. |
 | `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | Used on login, public, contact, and support pages. |
 | `LOCAL_TIME_ZONE` | No; default `UTC` | IANA timezone such as `Europe/Stockholm` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |

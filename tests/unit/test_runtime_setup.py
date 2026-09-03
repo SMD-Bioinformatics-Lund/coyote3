@@ -167,6 +167,7 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
         LOG_LEVEL="INFO",
         LOGS="logs/api",
         COYOTE3_DB="coyote3_test",
+        KNOWLEDGEBASE_DB="knowledgebase_test",
         BAM_DB="bam_test",
     )
     monkeypatch.setattr(runtime_setup, "_select_config", lambda **_kwargs: config)
@@ -188,13 +189,14 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
     assert phases == ["cache", "database_and_indexes", "total"]
 
 
-@pytest.mark.parametrize("missing_key", ["COYOTE3_DB", "BAM_DB"])
+@pytest.mark.parametrize("missing_key", ["COYOTE3_DB", "KNOWLEDGEBASE_DB", "BAM_DB"])
 def test_create_runtime_context_requires_explicit_database_names(
     monkeypatch: pytest.MonkeyPatch, missing_key: str
 ) -> None:
     config_values = {
         "ENV_NAME": "testing",
         "COYOTE3_DB": "coyote3_test",
+        "KNOWLEDGEBASE_DB": "knowledgebase_test",
         "BAM_DB": "bam_test",
     }
     config_values[missing_key] = ""
@@ -206,6 +208,56 @@ def test_create_runtime_context_requires_explicit_database_names(
 
     with pytest.raises(RuntimeError, match=missing_key):
         runtime_setup.create_runtime_context(testing=True)
+
+
+def test_create_runtime_context_requires_separate_knowledgebase_database(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        runtime_setup,
+        "_select_config",
+        lambda **_kwargs: SimpleNamespace(
+            ENV_NAME="testing",
+            COYOTE3_DB="same_database",
+            KNOWLEDGEBASE_DB="same_database",
+            BAM_DB="bam_test",
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="must be different"):
+        runtime_setup.create_runtime_context(testing=True)
+
+
+def test_mongo_adapter_binds_knowledgebase_collections_to_dedicated_database() -> None:
+    class FakeDatabase:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def __getitem__(self, collection: str) -> tuple[str, str]:
+            return self.name, collection
+
+    adapter = runtime_adapter.MongoAdapter.__new__(runtime_adapter.MongoAdapter)
+    adapter.app = SimpleNamespace(
+        config={
+            "COYOTE3_DB": "application",
+            "KNOWLEDGEBASE_DB": "knowledgebase",
+            "BAM_DB": "bam",
+            "DB_COLLECTIONS_CONFIG": {
+                "application": {"samples_collection": "samples"},
+                "knowledgebase": {"civic_variants_collection": "civic_variants"},
+                "bam": {"bam_samples": "samples"},
+            },
+        }
+    )
+    adapter.coyote_db = FakeDatabase("application")
+    adapter.knowledgebase_db = FakeDatabase("knowledgebase")
+    adapter.bam_db = FakeDatabase("bam")
+
+    adapter.setup()
+
+    assert adapter.samples_collection == ("application", "samples")
+    assert adapter.civic_variants_collection == ("knowledgebase", "civic_variants")
+    assert adapter.bam_samples == ("bam", "samples")
 
 
 def test_index_conflict_is_recorded_without_stopping_startup(

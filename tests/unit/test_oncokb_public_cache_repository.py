@@ -76,26 +76,27 @@ def test_indexes_hash_lookup_counts_and_symbols(repository: OncoKbPublicCacheRep
     assert repository.public_cancer_gene_symbols() == {"ERBB2", "HER2", "NEU"}
 
 
-def test_annotation_insert_and_sample_reference_cleanup(
+def test_annotation_insert_adds_cache_timestamps(
     repository: OncoKbPublicCacheRepository,
 ) -> None:
-    """Annotations receive timestamps and deleted samples are removed from shared arrays."""
+    """Annotations receive timestamps without retaining sample identity."""
     assert repository.insert_missing_annotations([]) == 0
     assert repository.insert_missing_annotations([{"query_hash": "one", "gene": "TP53"}]) == 1
     stored = repository.get_collection().find_one({"query_hash": "one"})
     assert stored is not None
     assert stored["created_on"].tzinfo is None  # mongomock stores UTC datetimes without tzinfo
     assert stored["queried_at"] is not None
+    assert "sample_ids" not in stored
+    assert "sample_names" not in stored
 
-    repository.get_collection().update_one(
-        {"query_hash": "one"},
-        {"$set": {"sample_ids": ["oid-1", "oid-2"], "sample_names": ["S1", "S2"]}},
-    )
-    result = repository.remove_sample_references(sample_id="oid-1", sample_name="S1")
-    assert result.modified_count == 1
-    stored = repository.get_collection().find_one({"query_hash": "one"})
-    assert stored["sample_ids"] == ["oid-2"]
-    assert stored["sample_names"] == ["S2"]
+
+def test_annotation_insert_rejects_sample_identity(
+    repository: OncoKbPublicCacheRepository,
+) -> None:
+    with pytest.raises(ValueError, match="cannot contain sample identity fields"):
+        repository.insert_missing_annotations(
+            [{"query_hash": "one", "gene": "TP53", "sample_names": ["synthetic-sample"]}]
+        )
 
 
 def test_duplicate_only_bulk_write_is_tolerated(

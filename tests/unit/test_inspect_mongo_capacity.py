@@ -6,6 +6,8 @@ from scripts.inspect_mongo_capacity import collection_snapshot, snapshot
 
 
 class FakeDatabase:
+    name = "coyote3_test"
+
     def command(self, command: str, collection_name: str):
         assert command == "collStats"
         return {"storageSize": 20, "size": 12, "totalIndexSize": 8}
@@ -23,6 +25,9 @@ class FakeCollection:
 
 
 class FakeMongoDatabase:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
     def __getitem__(self, collection_name: str):
         if collection_name == "variants":
             return FakeCollection()
@@ -43,15 +48,21 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
         app=SimpleNamespace(
             config={
                 "COYOTE3_DB": "coyote3_test",
+                "KNOWLEDGEBASE_DB": "knowledgebase_test",
+                "BAM_DB": "bam_test",
                 "DB_COLLECTIONS_CONFIG": {
                     "coyote3_test": {
                         "variants_collection": "variants",
                         "samples_collection": "samples",
-                    }
+                    },
+                    "knowledgebase_test": {},
+                    "bam_test": {},
                 },
             }
         ),
-        coyote_db=FakeMongoDatabase(),
+        coyote_db=FakeMongoDatabase("coyote3_test"),
+        knowledgebase_db=FakeMongoDatabase("knowledgebase_test"),
+        bam_db=FakeMongoDatabase("bam_test"),
         iter_repositories=lambda: iter(repositories),
     )
 

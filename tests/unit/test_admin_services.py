@@ -968,7 +968,6 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
         finding_comment_repository=store.finding_comment_repository,
         report_repository=store.report_repository,
         reported_variant_repository=store.reported_variant_repository,
-        oncokb_public_cache_repository=store.oncokb_public_cache_repository,
         assay_panel_repository=store.assay_panel_repository,
     )
 

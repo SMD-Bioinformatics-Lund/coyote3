@@ -17,7 +17,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from api.config.loaders.collections import load_collection_mapping  # noqa: E402
+from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 
 DEFAULT_SEED_DATA_DIR = ROOT_DIR / "api" / "config" / "bootstrap" / "rbac"
@@ -182,8 +182,7 @@ def main() -> int:
     seed_dir = Path(args.seed_data_dir).expanduser().resolve()
     permission_docs = _load_ndjson(seed_dir / "permissions.seed.ndjson")
     role_docs = _load_ndjson(seed_dir / "roles.seed.ndjson")
-    mapping = load_collection_mapping(primary_database=args.db, bam_database=args.bam_db)
-    primary_mapping = mapping[args.db]
+    primary_mapping = load_collection_section("primary")
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     client.admin.command("ping")

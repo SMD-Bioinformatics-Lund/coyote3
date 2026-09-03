@@ -135,7 +135,12 @@ local service names, support contacts, sample-type descriptions, and TAT values.
 
 ## Collection Mapping
 
-The Mongo adapter reads `DB_COLLECTIONS_CONFIG` from the active config object. Each configured collection key becomes an adapter attribute, and repositories bind to those attributes.
+The Mongo adapter reads `DB_COLLECTIONS_CONFIG` from the active config object.
+It binds `[primary]` to `COYOTE3_DB`, `[knowledgebase]` to
+`KNOWLEDGEBASE_DB`, and `[bam]` to `BAM_DB`. Each configured collection key
+becomes an adapter attribute, and repositories bind to those attributes. The
+application layer therefore queries repository interfaces without selecting a
+physical database.
 
 Example flow:
 

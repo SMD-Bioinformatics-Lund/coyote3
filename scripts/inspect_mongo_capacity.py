@@ -46,7 +46,10 @@ def build_adapter() -> MongoAdapter:
 def collection_snapshot(collection: Any) -> dict[str, Any]:
     """Measure metadata for one collection without reading clinical documents."""
     started = time.perf_counter()
-    result: dict[str, Any] = {"collection": collection.name}
+    result: dict[str, Any] = {
+        "database": collection.database.name,
+        "collection": collection.name,
+    }
     try:
         result["estimated_document_count"] = collection.estimated_document_count()
         result["count_duration_ms"] = round((time.perf_counter() - started) * 1000, 2)
@@ -73,27 +76,32 @@ def collection_snapshot(collection: Any) -> dict[str, Any]:
 
 
 def snapshot(adapter: Any, requested_collections: set[str]) -> list[dict[str, Any]]:
-    """Return deterministic snapshots for configured primary-database collections."""
-    collections: dict[str, Any] = {}
-    collection_mapping = adapter.app.config.get("DB_COLLECTIONS_CONFIG", {}).get(
-        adapter.app.config["COYOTE3_DB"], {}
+    """Return deterministic snapshots for all configured MongoDB collections."""
+    collections: dict[tuple[str, str], Any] = {}
+    database_bindings = (
+        (adapter.app.config["COYOTE3_DB"], adapter.coyote_db),
+        (adapter.app.config["KNOWLEDGEBASE_DB"], adapter.knowledgebase_db),
+        (adapter.app.config["BAM_DB"], adapter.bam_db),
     )
-    for collection_name in collection_mapping.values():
-        collections[collection_name] = adapter.coyote_db[collection_name]
+    mappings = adapter.app.config.get("DB_COLLECTIONS_CONFIG", {})
+    for database_name, database in database_bindings:
+        for collection_name in mappings.get(database_name, {}).values():
+            collections[(database_name, collection_name)] = database[collection_name]
 
     # Repositories can expose an enabled plugin collection that is not present
     # in the static mapping. Include it while preserving the same read-only flow.
     for _repository_name, repository in adapter.iter_repositories():
         collection = repository.get_collection()
-        collections[collection.name] = collection
+        collections[(collection.database.name, collection.name)] = collection
 
     if requested_collections:
         collections = {
-            collection_name: collection
-            for collection_name, collection in collections.items()
-            if collection_name in requested_collections
+            identity: collection
+            for identity, collection in collections.items()
+            if identity[1] in requested_collections
         }
-    unknown = requested_collections.difference(collections)
+    known_names = {identity[1] for identity in collections}
+    unknown = requested_collections.difference(known_names)
     if unknown:
         raise ValueError(f"Unknown configured collection(s): {', '.join(sorted(unknown))}")
     return [collection_snapshot(collection) for _, collection in sorted(collections.items())]

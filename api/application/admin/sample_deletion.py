@@ -27,7 +27,6 @@ def delete_all_sample_traces(
     finding_comment_repository,
     report_repository,
     reported_variant_repository,
-    oncokb_public_cache_repository,
 ) -> dict[str, object]:
     """Delete all persisted traces for a sample and return summary metadata."""
     sample = sample_repository.get_sample_by_id(sample_id) or {}
@@ -64,11 +63,6 @@ def delete_all_sample_traces(
                 **result_payload,
             }
         )
-    cache_result = oncokb_public_cache_repository.remove_sample_references(
-        sample_id=sample_id,
-        sample_name=sample.get("name"),
-    )
-    results.append({"collection": "oncokb_public_references", **cache_result.to_dict()})
     return {
         "sample_name": sample.get("name"),
         "results": results,

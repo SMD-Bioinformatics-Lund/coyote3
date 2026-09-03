@@ -21,9 +21,9 @@ class _Adapter:
         self.clinpgx_genes_public_collection = collection
 
 
-def collection_name(config: dict, db_name: str) -> str:
+def collection_name(config: dict) -> str:
     """Resolve the ClinPGx collection name from the API collection config."""
-    db_collections = config.get(db_name, {})
+    db_collections = config.get("knowledgebase", {})
     return db_collections.get("clinpgx_genes_public_collection", "clinpgx_genes_public")
 
 
@@ -35,10 +35,10 @@ def main() -> int:
         help="Path to ClinPGx genes zip export.",
     )
     parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", "mongodb://localhost:27017"))
-    parser.add_argument("--db", default=os.getenv("COYOTE3_DB", ""))
+    parser.add_argument("--db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     args = parser.parse_args()
     if not args.db:
-        parser.error("--db or COYOTE3_DB is required")
+        parser.error("--db or KNOWLEDGEBASE_DB is required")
 
     zip_path = Path(args.zip)
     if not zip_path.exists():
@@ -48,7 +48,7 @@ def main() -> int:
         config = tomllib.load(handle)
     client = MongoClient(args.mongo_uri)
     database = client[args.db]
-    repository = ClinPgxPublicRepository(_Adapter(database[collection_name(config, args.db)]))
+    repository = ClinPgxPublicRepository(_Adapter(database[collection_name(config)]))
     repository.ensure_indexes()
     result = repository.import_gene_zip(zip_path)
     print(

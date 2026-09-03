@@ -691,9 +691,9 @@ JavaScript fragment.
 ## `collections.toml`
 
 This file maps logical repository attributes to physical MongoDB collection
-names. The `[primary]` table applies to the database selected by `COYOTE3_DB`;
-the `[bam]` table applies to the database selected by `BAM_DB`. Database names
-therefore remain deployment settings and do not need matching TOML tables.
+names. `[primary]` applies to `COYOTE3_DB`, `[knowledgebase]` applies to
+`KNOWLEDGEBASE_DB`, and `[bam]` applies to `BAM_DB`. Database names remain
+deployment settings and do not need matching TOML table names.
 
 ### Mapping Contract
 
@@ -703,6 +703,7 @@ does not define a document schema and it does not move data.
 | TOML element | Required | Allowed value | Meaning |
 | --- | --- | --- | --- |
 | `[primary]` | Yes | One TOML table | Collection mapping for the database named by `COYOTE3_DB`. |
+| `[knowledgebase]` | Yes | One TOML table | External reference collection mapping for the database named by `KNOWLEDGEBASE_DB`. |
 | `[bam]` | Yes | One TOML table | Collection mapping for the database named by `BAM_DB`. |
 | `*_collection` | Yes for every active logical repository | Non-empty MongoDB collection name, excluding the reserved `system.*` namespace | Physical destination for one logical repository. Keep the key fixed; change only its value when the center uses another collection name. |
 | `bam_samples` | Required when the selected BAM database is used | Non-empty MongoDB collection name | BAM-service sample lookup collection. |
@@ -713,9 +714,9 @@ does not define a document schema and it does not move data.
 | Assay configuration | `asp_collection`, `aspc_collection`, `insilico_genelist_collection` | Assay definitions, active/versioned assay configurations, and curated gene lists. Clinical report wording remains in repository-owned YAML sources. |
 | Sample and reporting workflow | `samples_collection`, `sample_comments_collection`, `finding_comments_collection`, `reports_collection`, `reported_variants_collection`, `blacklist_collection` | Sample lifecycle records, sample-level comments, finding-level comments, reports, report snapshots, and blacklist state. |
 | DNA findings | `variants_collection`, `annotations_collection`, `anno_vep_collection`, `cnvs_collection`, `fusions_collection`, `transloc_collection`, `biomarkers_collection` | Parsed small variants and their annotations, CNVs, fusions, translocations, and biomarkers. |
-| Coverage and RNA results | `coverage_collection`, `groupcov_collection`, `expression_collection`, `rna_expression_collection`, `rna_qc_collection`, `rna_classification_collection` | Coverage, grouped coverage, expression, RNA quality control, and RNA classification data. |
-| Reference annotations | `hgnc_collection`, `vep_metadata_collection`, `cosmic_collection` | HGNC identity/transcript data, VEP metadata, and COSMIC data. |
-| Knowledgebases | `civic_variants_collection`, `civic_gene_collection`, `oncokb_collection`, `oncokb_actionable_collection`, `oncokb_genes_collection`, `oncokb_public_collection`, `oncokb_genes_public_collection`, `oncokb_cancer_genes_public_collection`, `clinpgx_genes_public_collection`, `brcaexchange_collection`, `iarc_tp53_collection` | Local knowledgebase imports and public reference material used for clinical markers and detail views. |
+| Coverage and RNA results | `coverage_collection`, `groupcov_collection`, `rna_expression_collection`, `rna_qc_collection`, `rna_classification_collection` | Coverage, grouped coverage, RNA expression, RNA quality control, and RNA classification data in the primary database. |
+| Reference annotations | `hgnc_collection`, `vep_metadata_collection` | HGNC identity/transcript data and VEP metadata in the primary database. |
+| Knowledgebases | CIViC, OncoKB, ClinPGx, BRCA Exchange, TP53, COSMIC product, version-manifest, and HPA expression keys under `[knowledgebase]` | External reference datasets in the dedicated knowledgebase database. `oncokb_public` contains query and response data only, never sample identifiers. COSMIC products remain separate collections and `knowledgebase_versions_collection` records their provenance in `versions`. |
 
 > **Caution: Changing names is not a migration**
 >

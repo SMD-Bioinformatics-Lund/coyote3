@@ -69,7 +69,7 @@ class BRCARepository(BaseRepository):
             brca = self.get_collection().find_one(
                 {
                     "chr38": str(variant["CHROM"]),
-                    "pos38": str(variant["POS"]),
+                    "pos38": int(variant["POS"]),
                     "ref38": variant["REF"],
                     "alt38": variant["ALT"],
                 }
@@ -78,7 +78,7 @@ class BRCARepository(BaseRepository):
             brca = self.get_collection().find_one(
                 {
                     "chr": str(variant["CHROM"]),
-                    "pos": str(variant["POS"]),
+                    "pos": int(variant["POS"]),
                     "ref": variant["REF"],
                     "alt": variant["ALT"],
                 }

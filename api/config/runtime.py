@@ -34,5 +34,6 @@ def get_mongo_settings(config: Mapping[str, Any]) -> dict[str, str]:
     return {
         "uri": str(config.get("MONGO_URI") or ""),
         "db_name": str(config.get("COYOTE3_DB") or ""),
+        "knowledgebase_db_name": str(config.get("KNOWLEDGEBASE_DB") or ""),
         "bam_db_name": str(config.get("BAM_DB") or ""),
     }
