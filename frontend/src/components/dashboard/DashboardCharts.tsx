@@ -1,5 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter } from "recharts"
+import { Link } from "react-router-dom"
 import { ChartPanel } from "@/components/plots/ChartPanel"
+import { TableBadge } from "@/components/ui/table-badge"
+import { nomenclatureLabel } from "@/lib/application-constants"
 import { shortCount } from "@/lib/detail-formatters"
 
 type ChartProps = {
@@ -23,6 +26,17 @@ type PipelineDatum = {
   analysed?: number | null
 }
 
+const donutMotion = {
+  isAnimationActive: true,
+  animationBegin: 0,
+  animationDuration: 700,
+  animationEasing: "ease-out" as const,
+}
+
+const donutTooltipLayer = {
+  zIndex: 40,
+}
+
 function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGroup; colors: string[]; colorOffset: number }) {
   const rows = group.rows.filter((row) => row.value > 0)
   const total = rows.reduce((sum, row) => sum + row.value, 0)
@@ -31,19 +45,24 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
     <figure className="min-w-0 border-b border-border/60 pb-3 last:border-b-0 md:border-b-0 md:border-r md:pr-3 md:last:border-r-0">
       <figcaption className="type-label mb-1.5 text-muted-foreground">{group.name}</figcaption>
       {rows.length ? (
-        <div className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-center gap-2">
-          <div className="relative h-28 w-28">
+        <div className="grid min-w-0 grid-cols-[8rem_minmax(0,1fr)] items-center gap-3">
+          <div className="relative h-32 w-32">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={rows}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={31}
-                  outerRadius={49}
-                  paddingAngle={3}
+                  cx="50%"
+                  cy="50%"
+                  startAngle={90}
+                  endAngle={-270}
+                  innerRadius={36}
+                  outerRadius={58}
+                  paddingAngle={4}
+                  cornerRadius={3}
                   stroke="none"
-                  isAnimationActive={false}
+                  {...donutMotion}
                 >
                   {rows.map((row, index) => (
                     <Cell key={row.name} fill={colors[(colorOffset + index) % colors.length]} />
@@ -52,6 +71,7 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
                 <Tooltip
                   formatter={(value, name) => [shortCount(value), String(name)]}
                   contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", fontSize: 11 }}
+                  wrapperStyle={donutTooltipLayer}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -71,7 +91,7 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
           </ul>
         </div>
       ) : (
-        <div className="flex h-28 items-center justify-center text-xs text-muted-foreground">No data</div>
+        <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">No data</div>
       )}
     </figure>
   )
@@ -183,13 +203,21 @@ export function TierDistributionChart({
               nameKey="name"
               cx="50%"
               cy="45%"
+              startAngle={90}
+              endAngle={-270}
               innerRadius="42%"
               outerRadius="70%"
               paddingAngle={4}
+              cornerRadius={3}
+              stroke="none"
+              {...donutMotion}
             >
               {data.map((_, index) => <Cell key={index} fill={colors[index % colors.length]} />)}
             </Pie>
-            <Tooltip contentStyle={{ borderRadius: "10px", border: "1px solid var(--color-border)" }} />
+            <Tooltip
+              contentStyle={{ borderRadius: "10px", border: "1px solid var(--color-border)" }}
+              wrapperStyle={donutTooltipLayer}
+            />
             <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11, lineHeight: "18px" }} />
           </PieChart>
         </ResponsiveContainer>
@@ -283,16 +311,16 @@ export function PanelAnalysisCapabilityChart({
         aria-label={`Panel analysis capability. ${accessibleSummary}`}
       >
         <svg
-          viewBox="0 0 1120 210"
-          className="h-full min-h-[190px] w-full min-w-[840px]"
+          viewBox="0 0 1120 260"
+          className="h-full min-h-[230px] w-full min-w-[840px]"
           preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
         >
           {rows.map((row, index) => {
             const cellWidth = 1120 / Math.max(rows.length, 1)
             const centerX = cellWidth * index + cellWidth / 2
-            const centerY = 88
-            const radius = 46
+            const centerY = 112
+            const radius = 58
             const circumference = 2 * Math.PI * radius
             const progress = circumference * (row.percentage / 100)
             const enabledOnly = row["Enabled only"]
@@ -302,7 +330,7 @@ export function PanelAnalysisCapabilityChart({
                 <title>{`${row.name}: ${row.Reportable} reportable of ${row.Enabled} enabled (${row.percentage}%). ${enabledOnly} enabled but not reportable.`}</title>
                 <text
                   x={centerX}
-                  y="17"
+                  y="20"
                   textAnchor="middle"
                   fill="var(--foreground)"
                   fontSize="11"
@@ -316,7 +344,7 @@ export function PanelAnalysisCapabilityChart({
                   r={radius}
                   fill="none"
                   stroke="var(--muted)"
-                  strokeWidth="13"
+                  strokeWidth="15"
                 />
                 <circle
                   cx={centerX}
@@ -324,7 +352,7 @@ export function PanelAnalysisCapabilityChart({
                   r={radius}
                   fill="none"
                   stroke="var(--color-pass)"
-                  strokeWidth="13"
+                  strokeWidth="15"
                   strokeLinecap="round"
                   strokeDasharray={`${progress} ${circumference - progress}`}
                   transform={`rotate(-90 ${centerX} ${centerY})`}
@@ -335,7 +363,7 @@ export function PanelAnalysisCapabilityChart({
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="var(--foreground)"
-                  fontSize="17"
+                  fontSize="19"
                   fontWeight="600"
                 >
                   {row.Reportable}/{row.Enabled}
@@ -351,7 +379,7 @@ export function PanelAnalysisCapabilityChart({
                 </text>
                 <text
                   x={centerX}
-                  y="158"
+                  y="190"
                   textAnchor="middle"
                   fill="var(--muted-foreground)"
                   fontSize="10"
@@ -361,7 +389,7 @@ export function PanelAnalysisCapabilityChart({
               </g>
             )
           })}
-          <g transform="translate(398 195)">
+          <g transform="translate(398 239)">
             <circle cx="0" cy="0" r="5" fill="var(--color-pass)" />
             <text x="10" y="3.5" fill="var(--muted-foreground)" fontSize="10">Reportable</text>
             <circle cx="128" cy="0" r="5" fill="var(--muted)" />
@@ -370,5 +398,110 @@ export function PanelAnalysisCapabilityChart({
         </svg>
       </div>
     </ChartPanel>
+  )
+}
+
+type TieredGeneDatum = {
+  gene: string
+  total: number
+  tier1?: number
+  tier2?: number
+  tier3?: number
+  tier4?: number
+  nomenclatures?: string[]
+}
+
+const tierColors = [
+  "var(--color-tier1)",
+  "var(--color-tier2)",
+  "var(--color-tier3)",
+  "var(--color-tier4)",
+]
+
+export function TopTieredGenesChart({ data }: { data: TieredGeneDatum[] }) {
+  const maximum = Math.max(...data.map((row) => Number(row.total || 0)), 1)
+
+  return (
+    <div className="space-y-2" role="list" aria-label="Top tiered genes ranked by unique classified findings">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+        <p className="type-meta text-muted-foreground">Bar length represents each gene's total relative to the leading gene.</p>
+        <div className="flex flex-wrap items-center gap-3 type-meta text-muted-foreground" aria-label="Tier legend">
+          {tierColors.map((color, index) => (
+            <span key={color} className="inline-flex items-center gap-1">
+              <i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: color }} />
+              Tier {index + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-x-5 gap-y-2.5 xl:grid-cols-2">
+        {data.map((row, index) => {
+          const tiers = [
+            Number(row.tier1 || 0),
+            Number(row.tier2 || 0),
+            Number(row.tier3 || 0),
+            Number(row.tier4 || 0),
+          ]
+          const total = Math.max(Number(row.total || 0), tiers.reduce((sum, count) => sum + count, 0))
+          const width = `${Math.max(4, (total / maximum) * 100)}%`
+          const tierSummary = tiers
+            .map((count, tierIndex) => count > 0 ? `Tier ${tierIndex + 1}: ${count}` : null)
+            .filter(Boolean)
+            .join(", ")
+
+          return (
+            <article
+              key={row.gene}
+              role="listitem"
+              aria-label={`${index + 1}. ${row.gene}, ${total} unique findings. ${tierSummary}`}
+              className="dashboard-subcard grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 p-2.5"
+            >
+              <span className="row-span-2 flex h-7 w-7 items-center justify-center rounded-full bg-muted type-label text-muted-foreground">
+                {index + 1}
+              </span>
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <Link
+                  to={`/variants/gene-cohort?gene=${encodeURIComponent(row.gene)}`}
+                  className="truncate text-sm font-semibold text-link hover:underline"
+                >
+                  {row.gene}
+                </Link>
+                {(row.nomenclatures || []).filter(Boolean).sort().map((value) => (
+                  <TableBadge key={value} className="border-border bg-muted/60 text-foreground shadow-none">
+                    {nomenclatureLabel(value)}
+                  </TableBadge>
+                ))}
+              </div>
+              <strong className="row-span-2 self-center text-base font-semibold tabular-nums text-foreground" title={`${total} unique classified findings`}>
+                {shortCount(total)}
+              </strong>
+              <div className="min-w-0">
+                <div className="h-3 w-full overflow-hidden rounded-full bg-muted" title={tierSummary}>
+                  <div className="flex h-full overflow-hidden rounded-full" style={{ width }}>
+                    {tiers.map((count, tierIndex) => count > 0 && (
+                      <span
+                        key={tierIndex}
+                        className="h-full min-w-px"
+                        style={{
+                          backgroundColor: tierColors[tierIndex],
+                          width: `${(count / Math.max(total, 1)) * 100}%`,
+                        }}
+                        title={`Tier ${tierIndex + 1}: ${count}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 type-meta text-muted-foreground">
+                  {tiers.map((count, tierIndex) => count > 0 && (
+                    <span key={tierIndex}>T{tierIndex + 1} <strong className="font-semibold text-foreground">{count}</strong></span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    </div>
   )
 }

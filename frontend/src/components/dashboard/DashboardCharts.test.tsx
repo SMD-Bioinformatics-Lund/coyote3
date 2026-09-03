@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react"
+import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
@@ -6,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   cells: vi.fn(),
   bars: vi.fn(),
   pie: vi.fn(),
+  tooltips: vi.fn(),
   legend: vi.fn(),
   scatterChart: vi.fn(),
   scatters: vi.fn(),
@@ -28,12 +30,18 @@ vi.mock("recharts", () => ({
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
-  Tooltip: () => null,
+  Tooltip: (props: Record<string, unknown>) => { mocks.tooltips(props); return null },
   Legend: (props: Record<string, unknown>) => { mocks.legend(props); return <span>Chart legend</span> },
   LabelList: () => null,
 }))
 
-import { GeneCoverageChart, PanelAnalysisCapabilityChart, SampleCompositionCharts, TierDistributionChart } from "./DashboardCharts"
+import {
+  GeneCoverageChart,
+  PanelAnalysisCapabilityChart,
+  SampleCompositionCharts,
+  TierDistributionChart,
+  TopTieredGenesChart,
+} from "./DashboardCharts"
 
 describe("dashboard charts", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -48,8 +56,16 @@ describe("dashboard charts", () => {
       data,
     }))
     expect(mocks.cells.mock.calls.map(([props]) => props.fill)).toEqual(["red", "blue", "red"])
-    expect(mocks.pie).toHaveBeenCalledWith(expect.objectContaining({ innerRadius: "42%", outerRadius: "70%" }))
+    expect(mocks.pie).toHaveBeenCalledWith(expect.objectContaining({
+      startAngle: 90,
+      endAngle: -270,
+      innerRadius: "42%",
+      outerRadius: "70%",
+      isAnimationActive: true,
+      animationDuration: 700,
+    }))
     expect(mocks.legend).toHaveBeenCalledWith(expect.objectContaining({ verticalAlign: "bottom" }))
+    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
     expect(screen.getByText("Chart legend")).toBeVisible()
   })
 
@@ -112,7 +128,39 @@ describe("dashboard charts", () => {
     expect(screen.getByText("Pipeline throughput")).toBeVisible()
     expect(screen.getAllByText("Analysed")[0]).toBeVisible()
     expect(screen.getAllByText("Awaiting review")[0]).toBeVisible()
-    expect(mocks.pie).toHaveBeenCalledWith(expect.objectContaining({ dataKey: "value", nameKey: "name" }))
+    expect(mocks.pie).toHaveBeenCalledWith(expect.objectContaining({
+      dataKey: "value",
+      nameKey: "name",
+      startAngle: 90,
+      endAngle: -270,
+      innerRadius: 36,
+      outerRadius: 58,
+      isAnimationActive: true,
+      animationDuration: 700,
+    }))
+    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
     expect(mocks.bars).toHaveBeenCalledWith(expect.objectContaining({ layout: "vertical" }))
+  })
+
+  it("renders top tiered genes as ranked proportional tier graphics", () => {
+    render(
+      <MemoryRouter>
+        <TopTieredGenesChart
+          data={[
+            { gene: "TP53", total: 12, tier1: 7, tier2: 4, tier3: 1, nomenclatures: ["p", "g"] },
+            { gene: "JAK2", total: 6, tier1: 5, tier2: 1, nomenclatures: ["p"] },
+          ]}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole("list", { name: "Top tiered genes ranked by unique classified findings" })).toBeVisible()
+    expect(screen.getAllByRole("listitem")).toHaveLength(2)
+    expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/variants/gene-cohort?gene=TP53")
+    expect(screen.getByLabelText(/TP53, 12 unique findings/i)).toBeVisible()
+    expect(screen.getAllByText("Protein (p)")).toHaveLength(2)
+    expect(screen.getByText("Genomic (g)")).toBeVisible()
+    expect(screen.getAllByText("T1")).toHaveLength(2)
+    expect(screen.getByLabelText("Tier legend")).toHaveTextContent("Tier 4")
   })
 })

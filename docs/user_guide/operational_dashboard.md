@@ -61,8 +61,11 @@ The variant review section provides persisted finding and curation totals:
 - reported-tier distribution; and
 - small-variant class distribution.
 
-The **Top Tiered Genes** table ranks up to 15 genes by their unique current Tier
-1-4 biological findings. Protein, cDNA, and genomic annotation records that
+The **Top Tiered Genes** visualization ranks up to 15 genes by their unique
+current Tier 1-4 biological findings. Each lane is scaled against the leading
+gene and divided into tier-colored segments. The exact total and tier counts
+remain visible beside the graphic, and badges identify the represented
+nomenclatures. Protein, cDNA, and genomic annotation records that
 share a genomic identity contribute one count, and the latest classification
 sets that finding's tier. Fusion and translocation records contribute once to
 each distinct partner gene. Records without a gene identity are not included.
