@@ -182,59 +182,83 @@ Required keys:
 - `pos` (int)
 - `ref` (str)
 - `alt` (str)
-- `chr38` (str)
-- `pos38` (int)
-- `ref38` (str)
-- `alt38` (str)
 - `enigma_clinsig` (str)
 - `enigma_clinsig_refs` (str)
 - `enigma_clinsig_comment` (str)
 
 Optional keys:
-- None
+- `chr38` (str | None)
+- `pos38` (int | None)
+- `ref38` (str | None)
+- `alt38` (str | None)
+- `gene` (str | None)
+- `transcript` (str | None)
+- `hgvsc` (str | None)
+- `hgvsp` (str | None)
+- `pathogenicity_expert` (str | None)
+- `pathogenicity_all` (str | None)
+- `source_url` (str | None)
+- `source_record` (dict[str, str])
 
 ## `civic_genes`
 
 Required keys:
 - `gene_id` (int)
-- `entrez_id` (int)
 - `name` (str)
-- `description` (str)
 - `gene_civic_url` (str)
 - `last_review_date` (datetime)
 
 Optional keys:
-- None
+- `entrez_id` (int | None)
+- `description` (str | None)
+- `feature_type` (str)
+- `aliases` (list[str])
+- `ncit_id` (str | None)
+- `source_record` (dict[str, str])
 
 ## `civic_variants`
 
 Required keys:
 - `variant_id` (int)
-- `entrez_id` (int)
-- `gene` (str)
 - `variant` (str)
-- `summary` (str)
-- `variant_types` (str)
-- `variant_groups` (str)
-- `chromosome` (str)
-- `start` (int)
-- `stop` (int)
-- `chromosome2` (str)
-- `start2` (int)
-- `stop2` (int)
-- `reference_build` (str)
-- `ensembl_version` (int)
-- `representative_transcript` (str)
-- `representative_transcript2` (str)
-- `reference_bases` (str)
-- `variant_bases` (str)
 - `hgvs_expressions` (list[str])
-- `civic_actionability_score` (float)
 - `variant_civic_url` (str)
 - `last_review_date` (datetime)
 
 Optional keys:
-- None
+- `entrez_id` (int | None)
+- `gene` (str | None)
+- `summary` (str | None)
+- `variant_types` (list[str])
+- `variant_groups` (list[str])
+- `chromosome` (str | None)
+- `start` (int | None)
+- `stop` (int | None)
+- `chromosome2` (str | None)
+- `start2` (int | None)
+- `stop2` (int | None)
+- `reference_build` (str | None)
+- `ensembl_version` (int | None)
+- `representative_transcript` (str | None)
+- `representative_transcript2` (str | None)
+- `reference_bases` (str | None)
+- `variant_bases` (str | None)
+- `civic_actionability_score` (float | None)
+- `feature_type` (str | None)
+- `feature_id` (int | None)
+- `feature_name` (str | None)
+- `feature_civic_url` (str | None)
+- `variant_aliases` (list[str])
+- `is_flagged` (bool)
+- `molecular_profile_id` (int | None)
+- `allele_registry_id` (str | None)
+- `clinvar_ids` (list[str])
+- `ncit_id` (str | None)
+- `five_prime_partner` (str | None)
+- `three_prime_partner` (str | None)
+- `vicc_compliant_name` (str | None)
+- `iscn_name` (str | None)
+- `source_record` (dict[str, str])
 
 ## `clinpgx_genes_public`
 
@@ -289,6 +313,99 @@ Required keys:
 - `start` (int)
 - `end` (int)
 - `cnt` (Dict[str, int])
+
+Optional keys:
+- None
+
+## `cosmic_actionability`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_breakpoints`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_cgc_hallmarks`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_classifications`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_copy_number`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_fusions`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_gene_expression`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_methylation`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_noncoding_variants`
+
+Required keys:
+- `id` (str)
+- `chr` (str)
+- `start` (int)
+- `end` (int)
+- `cnt` (Dict[str, int])
+
+Optional keys:
+- None
+
+## `cosmic_structural_variants`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
 
 Optional keys:
 - None
@@ -398,20 +515,27 @@ Optional keys:
 Required keys:
 - `id` (int)
 - `var` (str)
-- `polymorphism` (str)
-- `cpg` (str)
-- `splice` (str)
-- `transactivation_class` (str)
-- `AGVGD_class` (str)
-- `residue_func` (str)
-- `motif` (str)
-- `structure_function_class` (str)
-- `domain_func` (str)
-- `n_somatic` (int)
-- `n_germline` (int)
 
 Optional keys:
+- `polymorphism` (str | None)
+- `cpg` (str | None)
+- `splice` (str | None)
+- `transactivation_class` (str | None)
+- `AGVGD_class` (str | None)
+- `residue_func` (str | None)
+- `motif` (str | None)
+- `structure_function_class` (str | None)
+- `domain_func` (str | None)
+- `n_somatic` (int | None)
+- `n_germline` (int | None)
 - `topology_count` (int | None)
+- `hgvsg_hg19` (str | None)
+- `hgvsg_hg38` (str | None)
+- `hgvsp` (str | None)
+- `effect` (str | None)
+- `hotspot` (str | None)
+- `external_cohort_count` (int | None)
+- `source_record` (dict[str, str])
 
 ## `insilico_genelists`
 
@@ -552,8 +676,8 @@ Optional keys:
 - `gene_exist` (bool | None)
 - `variant_exist` (bool | None)
 - `variant_ids` (list[str])
-- `sample_ids` (list[str])
-- `sample_names` (list[str])
+
+Sample identity fields such as `sample_ids` and `sample_names` are forbidden. This shared cache stores only normalized queries and public responses.
 
 ## `panel_coverage`
 
@@ -904,3 +1028,19 @@ Required keys:
 
 Optional keys:
 - None
+
+## `versions`
+
+Required keys:
+- `source` (str)
+- `release` (str)
+- `status` (Literal['staging', 'active', 'retired', 'failed'])
+- `started_at` (datetime)
+
+Optional keys:
+- `import_cpus` (int)
+- `files` (list[dict[str, Any]])
+- `collections` (list[dict[str, Any]])
+- `published_at` (datetime.datetime | None)
+- `retired_at` (datetime.datetime | None)
+- `failed_at` (datetime.datetime | None)

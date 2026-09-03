@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-actionability",
+    "source_row": 1,
+    "genomic_mutation_id": "COSV-DEMO",
+    "disease": "synthetic disease",
+    "actionability_rank": "3"
+  }
+]

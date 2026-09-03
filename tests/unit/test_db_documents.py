@@ -238,6 +238,19 @@ def test_collection_validator_accepts_public_oncokb_cancer_gene_shape():
     )
 
 
+def test_collection_validator_rejects_sample_identity_in_public_oncokb_cache():
+    """Shared OncoKB cache records must never retain sample identifiers."""
+    with pytest.raises(ValueError, match="cannot contain sample identity fields"):
+        validate_collection_document(
+            "oncokb_public",
+            {
+                "query_hash": "synthetic-query",
+                "gene": "TP53",
+                "sample_ids": ["synthetic-sample-oid"],
+            },
+        )
+
+
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
     fixture = Path("demo_data/collections/all_collections_dummy/samples.json")

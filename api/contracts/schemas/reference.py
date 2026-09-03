@@ -141,23 +141,41 @@ class BrcaExchangeDoc(_DocBase):
     ref: str
     alt: str
 
-    chr38: str
-    pos38: int
-    ref38: str
-    alt38: str
+    chr38: str | None = None
+    pos38: int | None = None
+    ref38: str | None = None
+    alt38: str | None = None
 
     enigma_clinsig: str
     enigma_clinsig_refs: str
     enigma_clinsig_comment: str
 
-    @field_validator("pos", "pos38", mode="before")
+    gene: str | None = None
+    transcript: str | None = None
+    hgvsc: str | None = None
+    hgvsp: str | None = None
+    pathogenicity_expert: str | None = None
+    pathogenicity_all: str | None = None
+    source_url: str | None = None
+    source_record: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("pos", mode="before")
     @classmethod
     def convert_pos_to_int(cls, v):
+        return int(v)
+
+    @field_validator("pos38", mode="before")
+    @classmethod
+    def convert_optional_pos_to_int(cls, v):
+        if v is None or v == "":
+            return None
         return int(v)
 
     @field_validator("chr", "chr38")
     @classmethod
     def validate_chr(cls, v):
+        if v is None or v == "":
+            return None
         # allow numeric chromosomes + X/Y
         if v not in {str(i) for i in range(1, 23)} | {"X", "Y", "MT", "M"}:
             raise ValueError(f"Invalid chromosome: {v}")
@@ -168,17 +186,29 @@ class BrcaExchangeDoc(_DocBase):
 
 class CivicGenesDoc(_DocBase):
     gene_id: int
-    entrez_id: int
+    entrez_id: int | None = None
     name: str
 
-    description: str
+    description: str | None = None
     gene_civic_url: str
 
     last_review_date: datetime
 
-    @field_validator("gene_id", "entrez_id", mode="before")
+    feature_type: str = "Gene"
+    aliases: list[str] = Field(default_factory=list)
+    ncit_id: str | None = None
+    source_record: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("gene_id", mode="before")
     @classmethod
-    def convert_ids(cls, v):
+    def convert_id(cls, v):
+        return int(v)
+
+    @field_validator("entrez_id", mode="before")
+    @classmethod
+    def convert_optional_id(cls, v):
+        if v is None or v == "":
+            return None
         return int(v)
 
     @field_validator("last_review_date", mode="before")
@@ -203,56 +233,94 @@ class CivicGenesDoc(_DocBase):
 
 class CivicVariantsDoc(_DocBase):
     variant_id: int
-    entrez_id: int
+    entrez_id: int | None = None
 
-    gene: str
+    gene: str | None = None
     variant: str
-    summary: str
+    summary: str | None = None
 
-    variant_types: str
-    variant_groups: str
+    variant_types: list[str] = Field(default_factory=list)
+    variant_groups: list[str] = Field(default_factory=list)
 
-    chromosome: str
-    start: int
-    stop: int
+    chromosome: str | None = None
+    start: int | None = None
+    stop: int | None = None
 
-    chromosome2: str
-    start2: int
-    stop2: int
+    chromosome2: str | None = None
+    start2: int | None = None
+    stop2: int | None = None
 
-    reference_build: str
-    ensembl_version: int
+    reference_build: str | None = None
+    ensembl_version: int | None = None
 
-    representative_transcript: str
-    representative_transcript2: str
+    representative_transcript: str | None = None
+    representative_transcript2: str | None = None
 
-    reference_bases: str
-    variant_bases: str
+    reference_bases: str | None = None
+    variant_bases: str | None = None
 
     hgvs_expressions: list[str]
 
-    civic_actionability_score: float
+    civic_actionability_score: float | None = None
     variant_civic_url: str
     last_review_date: datetime
 
+    feature_type: str | None = None
+    feature_id: int | None = None
+    feature_name: str | None = None
+    feature_civic_url: str | None = None
+    variant_aliases: list[str] = Field(default_factory=list)
+    is_flagged: bool = False
+    molecular_profile_id: int | None = None
+    allele_registry_id: str | None = None
+    clinvar_ids: list[str] = Field(default_factory=list)
+    ncit_id: str | None = None
+    five_prime_partner: str | None = None
+    three_prime_partner: str | None = None
+    vicc_compliant_name: str | None = None
+    iscn_name: str | None = None
+    source_record: dict[str, str] = Field(default_factory=dict)
+
     @field_validator(
         "variant_id",
+        mode="before",
+    )
+    @classmethod
+    def convert_variant_id(cls, v):
+        return int(v)
+
+    @field_validator(
         "entrez_id",
         "start",
         "stop",
         "start2",
         "stop2",
         "ensembl_version",
+        "feature_id",
+        "molecular_profile_id",
         mode="before",
     )
     @classmethod
-    def convert_int_fields(cls, v):
+    def convert_optional_int_fields(cls, v):
+        if v is None or v == "":
+            return None
         return int(v)
 
     @field_validator("civic_actionability_score", mode="before")
     @classmethod
     def convert_score(cls, v):
+        if v is None or v == "":
+            return None
         return float(v)
+
+    @field_validator("variant_types", "variant_groups", "hgvs_expressions", mode="before")
+    @classmethod
+    def convert_list_fields(cls, v):
+        if v is None or v == "":
+            return []
+        if isinstance(v, str):
+            return [part.strip() for part in v.split(",") if part.strip()]
+        return v
 
     @field_validator("last_review_date", mode="before")
     @classmethod
@@ -276,6 +344,8 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("chromosome", "chromosome2")
     @classmethod
     def validate_chr(cls, v):
+        if v is None or v == "":
+            return None
         allowed = {str(i) for i in range(1, 23)} | {"X", "Y", "MT", "M"}
         if v not in allowed:
             raise ValueError(f"Invalid chromosome: {v}")
@@ -320,6 +390,28 @@ class CosmicDoc(_DocBase):
             if not isinstance(val, int) or val < 0:
                 raise ValueError(f"Invalid count for {k}")
         return v
+
+
+class CosmicProductDoc(_DocBase):
+    """Common contract for a source-faithful non-variant COSMIC product record."""
+
+    record_key: str
+    source_row: int
+
+
+class KnowledgebaseReleaseDoc(_DocBase):
+    """Provenance and publication state for one imported knowledgebase snapshot."""
+
+    source: str
+    release: str
+    status: Literal["staging", "active", "retired", "failed"]
+    import_cpus: int = Field(default=1, ge=1)
+    started_at: datetime
+    files: list[dict[str, Any]] = Field(default_factory=list)
+    collections: list[dict[str, Any]] = Field(default_factory=list)
+    published_at: datetime | None = None
+    retired_at: datetime | None = None
+    failed_at: datetime | None = None
 
 
 class HgncAdditionalTranscriptInfoDoc(_DocBase):
@@ -402,28 +494,37 @@ class IarcTp53Doc(_DocBase):
     id: int
     var: str
 
-    polymorphism: str
-    cpg: str
-    splice: str
+    polymorphism: str | None = None
+    cpg: str | None = None
+    splice: str | None = None
 
-    transactivation_class: str
-    AGVGD_class: str
-    residue_func: str
-    motif: str
-    structure_function_class: str
-    domain_func: str
+    transactivation_class: str | None = None
+    AGVGD_class: str | None = None
+    residue_func: str | None = None
+    motif: str | None = None
+    structure_function_class: str | None = None
+    domain_func: str | None = None
 
-    n_somatic: int
-    n_germline: int
+    n_somatic: int | None = None
+    n_germline: int | None = None
 
     topology_count: int | None = None
+    hgvsg_hg19: str | None = None
+    hgvsg_hg38: str | None = None
+    hgvsp: str | None = None
+    effect: str | None = None
+    hotspot: str | None = None
+    external_cohort_count: int | None = None
+    source_record: dict[str, str] = Field(default_factory=dict)
 
-    @field_validator("id", "n_somatic", "n_germline", mode="before")
+    @field_validator("id", mode="before")
     @classmethod
-    def convert_int_fields(cls, v):
+    def convert_id(cls, v):
         return int(v)
 
-    @field_validator("topology_count", mode="before")
+    @field_validator(
+        "n_somatic", "n_germline", "topology_count", "external_cohort_count", mode="before"
+    )
     @classmethod
     def convert_optional_int(cls, v):
         if v is None or v == "":
@@ -491,8 +592,18 @@ class OncoKbPublicDoc(_DocBase):
     gene_exist: bool | None = None
     variant_exist: bool | None = None
     variant_ids: list[str] = Field(default_factory=list)
-    sample_ids: list[str] = Field(default_factory=list)
-    sample_names: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_sample_identity(cls, value: Any) -> Any:
+        """Keep shared knowledgebase cache documents independent of samples."""
+        if isinstance(value, dict):
+            forbidden = sorted({"sample_ids", "sample_names"}.intersection(value))
+            if forbidden:
+                raise ValueError(
+                    f"oncokb_public cannot contain sample identity fields: {', '.join(forbidden)}"
+                )
+        return value
 
 
 class OncoKbGenesPublicDoc(_DocBase):

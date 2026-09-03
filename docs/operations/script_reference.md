@@ -68,6 +68,12 @@ started through `bootstrap_database.py`.
 | --- | --- | --- | --- |
 | `sync_rbac_catalog.py` | Manual operation | RBAC maintenance documentation and tests | Adds missing application-owned permissions and roles while preserving center-owned policies |
 | `seed_clinpgx_genes_public.py` | Manual operation | ClinPGx integration guide | Imports an explicitly supplied official ClinPGx gene export into the configured public marker collection |
+| `migrate_knowledgebase_database.py` | Upgrade operation | MongoDB deployment and recovery guide | Copies external knowledgebase collections into `KNOWLEDGEBASE_DB`, verifies complete content, and optionally removes verified source collections |
+| `update_brca_exchange.py` | Manual operation | Knowledgebase snapshot update guide | Validates and atomically publishes a complete BRCA Exchange TSV release |
+| `update_civic.py` | Manual operation | Knowledgebase snapshot update guide | Validates and publishes matching CIViC feature and variant summary releases as one unit |
+| `update_tp53_database.py` | Manual operation | Knowledgebase snapshot update guide | Imports the NCI TP53 functional/structural variant release used by the TP53 detail card |
+| `update_cosmic.py` | Manual operation | Knowledgebase snapshot update guide | Streams and publishes one explicitly selected licensed COSMIC product archive |
+| `knowledgebase_update_common.py` | Internal helper | Knowledgebase updater scripts | Owns source provenance, staging, batch insertion, indexes, publication rollback, and release manifests |
 
 ## Deciding whether a script can be removed
 

@@ -11,6 +11,14 @@
     "alt38": "G",
     "enigma_clinsig": "Likely_pathogenic",
     "enigma_clinsig_refs": "PMID:12345678",
-    "enigma_clinsig_comment": "Demo seed clinical significance"
+    "enigma_clinsig_comment": "Demo seed clinical significance",
+    "gene": null,
+    "transcript": null,
+    "hgvsc": null,
+    "hgvsp": null,
+    "pathogenicity_expert": null,
+    "pathogenicity_all": null,
+    "source_url": null,
+    "source_record": {}
   }
 ]

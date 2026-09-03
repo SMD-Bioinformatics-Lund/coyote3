@@ -1,0 +1,26 @@
+[
+  {
+    "source": "synthetic_knowledgebase",
+    "release": "demo-1",
+    "status": "active",
+    "import_cpus": 4,
+    "started_at": "2026-01-01T00:00:00Z",
+    "published_at": "2026-01-01T00:01:00Z",
+    "retired_at": null,
+    "failed_at": null,
+    "files": [
+      {
+        "name": "synthetic.tsv",
+        "size_bytes": 100,
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+      }
+    ],
+    "collections": [
+      {
+        "name": "synthetic_collection",
+        "documents": 1,
+        "indexes": ["record_key_1"]
+      }
+    ]
+  }
+]

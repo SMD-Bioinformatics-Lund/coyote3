@@ -20,12 +20,6 @@
     "variant_exist": true,
     "variant_ids": [
       "7_140453136_A_T"
-    ],
-    "sample_ids": [
-      "sample_oid_seed"
-    ],
-    "sample_names": [
-      "demo_dna_sample"
     ]
   }
 ]

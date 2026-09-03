@@ -99,6 +99,12 @@ def main() -> int:
         else:
             lines.append("- None")
         lines.append("")
+        if collection == "oncokb_public":
+            lines.append(
+                "Sample identity fields such as `sample_ids` and `sample_names` are forbidden. "
+                "This shared cache stores only normalized queries and public responses."
+            )
+            lines.append("")
 
     out_path = Path("docs/api/collection_contracts.md")
     out_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

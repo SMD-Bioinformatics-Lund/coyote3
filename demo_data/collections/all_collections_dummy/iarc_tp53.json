@@ -13,6 +13,13 @@
     "domain_func": "core",
     "n_somatic": 120,
     "n_germline": 3,
-    "topology_count": 5
+    "topology_count": 5,
+    "hgvsg_hg19": null,
+    "hgvsg_hg38": null,
+    "hgvsp": null,
+    "effect": null,
+    "hotspot": null,
+    "external_cohort_count": null,
+    "source_record": {}
   }
 ]

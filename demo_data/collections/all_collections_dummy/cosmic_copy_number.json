@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-copy-number",
+    "source_row": 1,
+    "cosmic_cnv_id": "COSCNV-DEMO",
+    "gene_symbol": "GENE1",
+    "total_cn": 3
+  }
+]
