@@ -1,6 +1,4 @@
 // A lightweight typed wrapper around native fetch.
-// It intentionally keeps a small `{ data, status }` response object so existing
-// React Query call sites can migrate incrementally without adding Axios.
 
 import { notify } from "@/components/notifications/notification-store"
 import { apiPath, appPath } from "@/lib/runtime-paths"
@@ -18,19 +16,6 @@ export class ApiClientError extends Error {
   }
 }
 
-export type ApiSuccessEnvelope<T> = {
-  status?: "ok" | string
-  payload?: T
-  meta?: Record<string, unknown>
-}
-
-export type ApiListEnvelope<T> = {
-  status?: "ok" | string
-  items?: T[]
-  pagination?: Record<string, unknown>
-  meta?: Record<string, unknown>
-}
-
 export type ApiResponse<T> = {
   data: T
   status: number
@@ -42,29 +27,6 @@ let csrfToken: string | null = null
 
 export function setCsrfToken(token: string | null | undefined) {
   csrfToken = token || null
-}
-
-export function responsePayload<T>(data: ApiSuccessEnvelope<T> | T): T {
-  if (data && typeof data === "object" && "payload" in data) {
-    return (data as ApiSuccessEnvelope<T>).payload as T
-  }
-  return data as T
-}
-
-export function responseItems<T>(data: ApiListEnvelope<T> | T[]): T[] {
-  if (Array.isArray(data)) return data
-  if (data && typeof data === "object" && "items" in data) {
-    return ((data as ApiListEnvelope<T>).items || []) as T[]
-  }
-  return []
-}
-
-export function unwrapPayload<T>(response: ApiResponse<ApiSuccessEnvelope<T> | T>): T {
-  return responsePayload<T>(response.data)
-}
-
-export function unwrapItems<T>(response: ApiResponse<ApiListEnvelope<T> | T[]>): T[] {
-  return responseItems<T>(response.data)
 }
 
 function encodeBody(body: ApiBody): BodyInit | undefined {
@@ -159,8 +121,4 @@ export const api = {
     request<T>(url, { ...options, method: "PUT", body: encodeBody(body) }),
   delete: <T = any>(url: string, options?: RequestInit) =>
     request<T>(url, { ...options, method: "DELETE" }),
-  getPayload: async <T = any>(url: string, options?: RequestInit) =>
-    unwrapPayload<T>(await request<ApiSuccessEnvelope<T> | T>(url, { ...options, method: "GET" })),
-  getItems: async <T = any>(url: string, options?: RequestInit) =>
-    unwrapItems<T>(await request<ApiListEnvelope<T> | T[]>(url, { ...options, method: "GET" })),
 }

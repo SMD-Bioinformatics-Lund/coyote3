@@ -5,7 +5,7 @@ import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
-import { CommentsPanel } from "@/components/comments/CommentsPanel"
+import { FindingCommentComposer, FindingCommentLists } from "@/components/comments/FindingComments"
 import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, PredictionBadge, TierBadge } from "@/lib/variant-ui"
 import {
   DetailDataTable,
@@ -220,49 +220,28 @@ export function VariantDetail() {
                 <DetailField label="Indel size">{variant?.INFO?.SVLEN || variant?.indel_size || "-"}</DetailField>
               </FindingIdentityCard>
 
-              <div className="h-full lg:col-span-2">
-                <CommentsPanel
-                  sampleId={sampleRouteKey}
-                  title="Add Comment Or Annotation"
-                  resourceType="small_variant"
-                  resource={variant}
-                  comments={[]}
-                  showList={false}
-                  assayGroup={data.assay_group}
-                  subpanel={data.subpanel}
-                  queryKeys={[["variant", id, varId]]}
-                  enableSuggestion={false}
-                  livePreview={false}
-                  draftText={commentDraft}
-                  onDraftChange={setCommentDraft}
-                  fillHeight
-                />
-              </div>
+              <FindingCommentComposer
+                sampleId={sampleRouteKey}
+                resourceType="small_variant"
+                resource={variant}
+                assayGroup={data.assay_group}
+                subpanel={data.subpanel}
+                queryKeys={[["variant", id, varId]]}
+                draftText={commentDraft}
+                onDraftChange={setCommentDraft}
+              />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Sample-Specific Variant Comments"
-                resourceType="small_variant"
-                resource={variant}
-                comments={variant?.comments || []}
-                showComposer={false}
-                queryKeys={[["variant", id, varId]]}
-                onUseAsDraft={setCommentDraft}
-              />
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Global Variant Annotations"
-                resourceType="small_variant"
-                resource={variant}
-                comments={data.annotations || variant?.global_annotations || []}
-                showComposer={false}
-                allowHide={false}
-                queryKeys={[["variant", id, varId]]}
-                onUseAsDraft={setCommentDraft}
-              />
-            </div>
+            <FindingCommentLists
+              sampleId={sampleRouteKey}
+              resourceType="small_variant"
+              resource={variant}
+              queryKeys={[["variant", id, varId]]}
+              findingLabel="Variant"
+              sampleComments={variant?.comments || []}
+              globalComments={data.annotations || variant?.global_annotations || []}
+              onUseAsDraft={setCommentDraft}
+            />
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DetailCard title="Sample Genotype" tone="success">

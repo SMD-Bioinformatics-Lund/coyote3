@@ -16,9 +16,16 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: mocks.notifySuccess, notifyActionError: vi.fn() }))
 vi.mock("@/lib/access-control", () => ({
-  hasPermission: (_user: unknown, permission: string) => permission === "fusion:manage",
+  hasPermission: (user: { permissions?: string[] } | undefined, permission: string) =>
+    Boolean(user?.permissions?.includes(permission)),
   useCurrentUserAccess: () => ({
-    data: { username: "reviewer", roles: [], role: "reviewer", access_level: 10, permissions: ["fusion:manage"] },
+    data: {
+      username: "reviewer",
+      roles: [],
+      role: "reviewer",
+      access_level: 10,
+      permissions: ["snv:manage", "cnv:manage", "fusion:manage", "translocation:manage"],
+    },
   }),
 }))
 vi.mock("@/hooks/useFindingActions", () => ({
@@ -243,7 +250,7 @@ describe("sample analysis table tabs", () => {
 
     expect(await screen.findByText("Low-Coverage Genes")).toBeVisible()
     expect(screen.getAllByText("TP53").length).toBeGreaterThan(0)
-    expect(screen.getByText("NM_000546.6")).toBeVisible()
+    expect(await screen.findByText("NM_000546.6")).toBeVisible()
     expect(screen.getByText("Table with undefined rows")).toBeVisible()
     const geneSearch = screen.getByRole("searchbox", { name: "Search low-coverage genes" })
     fireEvent.change(geneSearch, { target: { value: "BRCA" } })

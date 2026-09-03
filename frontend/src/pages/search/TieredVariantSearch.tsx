@@ -29,7 +29,7 @@ function totalTierCount(stats: Record<string, unknown>) {
   return [1, 2, 3, 4].reduce((total, tier) => total + tierCount(stats, tier), 0)
 }
 
-export function normalizeTieredSearch(value: string, mode: string) {
+function normalizeTieredSearch(value: string, mode: string) {
   const normalized = value.trim()
   if (mode === "gene") return normalized.toUpperCase()
   if (mode === "subpanel") return normalized.toLowerCase()

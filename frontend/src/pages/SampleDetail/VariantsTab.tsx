@@ -26,6 +26,8 @@ import { AnalysisTableCard } from "./AnalysisTableCard"
 import { HotspotIndicator } from "@/components/detail/HotspotIndicator"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { formatPopulationFrequency, hotspotExportValue } from "@/lib/variant-table-format"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { createRowSelectionColumn } from "@/components/data-table/row-selection-column"
 
 const variantClassShort: Record<string, string> = {
   SNV: "SNV",
@@ -59,6 +61,8 @@ export function VariantsTab({
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "small_variant"),
   })
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
+  const access = useCurrentUserAccess()
+  const canManage = hasPermission(access.data, "snv:manage")
   const location = useLocation()
   const tabId = intent === "germline" ? "germline-snvs" : "snvs"
   const {
@@ -116,43 +120,7 @@ export function VariantsTab({
   const assayGroup = String(data?.assay_group || "").trim()
 
   const columns: ColumnDef<any, any>[] = [
-    {
-      id: "select",
-      meta: {
-        headerClassName: "w-8 min-w-8 max-w-8 border-r",
-        cellClassName: "w-8 min-w-8 max-w-8 border-r",
-      },
-      header: ({ table }) => (
-        <div className="flex w-full items-center justify-center ">
-          <input
-            type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            ref={(element) => {
-              if (element) {
-                element.indeterminate =
-                  table.getIsSomePageRowsSelected() &&
-                  !table.getIsAllPageRowsSelected()
-              }
-            }}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-            className="table-checkbox"
-            aria-label="Select all rows on this page"
-          />
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className="flex w-full items-center justify-center">
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-            className="table-checkbox"
-            aria-label="Select row"
-          />
-        </div>
-      ),
-      enableSorting: false,
-    },
+    createRowSelectionColumn<any>(),
     {
       id: "badges",
       header: "Info",
@@ -446,7 +414,7 @@ export function VariantsTab({
         searchPlaceholder="Search variants, genes, HGVS, flags..."
         filename={`variants_${sampleId}.csv`}
         getRowClassName={findingRowClass}
-        renderToolbar={(table) => (
+        renderToolbar={canManage ? (table) => (
           <>
             <BulkActionDropdown
               selectedCount={Object.keys(table.getState().rowSelection).length}
@@ -460,7 +428,7 @@ export function VariantsTab({
               })}
             />
           </>
-        )}
+        ) : undefined}
         renderExportButton={() => (
             <ServerCsvButton
               endpoint={`/samples/${sampleId}/small-variants/exports/snvs/context${

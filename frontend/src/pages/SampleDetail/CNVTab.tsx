@@ -26,6 +26,8 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
 import { AnalysisTableCard } from "./AnalysisTableCard"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { createRowSelectionColumn } from "@/components/data-table/row-selection-column"
 
 function cnvRatio(cnv: any): number | null {
   const raw = cnv?.ratio ?? cnv?.log2
@@ -74,6 +76,8 @@ export function CNVTab({ sampleId, header, filterPanel }: { sampleId: string; he
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "cnv"),
   })
   const bulkAction = useBulkFindingAction(sampleId, "cnv")
+  const access = useCurrentUserAccess()
+  const canManage = hasPermission(access.data, "cnv:manage")
   const location = useLocation()
   const [profileRotation, setProfileRotation] = useState(0)
   const {
@@ -112,27 +116,7 @@ export function CNVTab({ sampleId, header, filterPanel }: { sampleId: string; he
   const gensUrl = gensSampleUrl(sample.name)
 
   const columns: ColumnDef<any, any>[] = [
-    {
-      id: "select",
-      meta: { headerClassName: "text-center w-8 border-r", cellClassName: "text-center w-8 border-r" },
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate" as any)}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          className="table-checkbox"
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          className="table-checkbox"
-        />
-      ),
-      enableSorting: false,
-    },
+    createRowSelectionColumn<any>(),
     {
       id: "genes",
       header: "Genes",
@@ -269,7 +253,7 @@ export function CNVTab({ sampleId, header, filterPanel }: { sampleId: string; he
             {...tableProps}
             filename={`cnvs_${sampleId}.csv`}
             getRowClassName={findingRowClass}
-            renderToolbar={(table) => (
+            renderToolbar={canManage ? (table) => (
               <BulkActionDropdown
                 selectedCount={Object.keys(table.getState().rowSelection).length}
                 actions={cnvBulkActions}
@@ -279,7 +263,7 @@ export function CNVTab({ sampleId, header, filterPanel }: { sampleId: string; he
                   resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
                 })}
               />
-            )}
+            ) : undefined}
             renderExportButton={() => (
               <ServerCsvButton
                 endpoint={`/samples/${sampleId}/cnvs/exports/context`}

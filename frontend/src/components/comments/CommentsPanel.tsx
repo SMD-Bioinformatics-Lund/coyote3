@@ -85,31 +85,28 @@ function resourceFormData(
   return data
 }
 
-function fallbackSuggestedText(resourceType?: FindingResourceType, resource?: any) {
-  if (!resourceType || !resource) return ""
-  if (resourceType === "small_variant") {
-    const csq = resource?.INFO?.selected_CSQ || {}
-    const gene = csq.SYMBOL || resource?.gene || "The variant"
-    const protein = csq.HGVSp || resource?.hgvsp || ""
-    const cdna = csq.HGVSc || resource?.hgvsc || ""
-    const tier = resource?.classification?.class ? `tier ${resource.classification.class}` : "currently tiered"
-    return [`${gene} ${protein || cdna}`.trim(), `is ${tier}.`].filter(Boolean).join(" ")
-  }
-  if (resourceType === "cnv") {
-    const genes = Array.isArray(resource?.genes)
-      ? resource.genes.map((gene: any) => gene?.gene).filter(Boolean).join(", ")
-      : resource?.gene || "The CNV"
-    const region = [resource?.chr, resource?.start, resource?.end].filter(Boolean).join(":")
-    return `${genes || "The CNV"} shows a copy-number change${region ? ` at ${region}` : ""}.`
-  }
-  if (resourceType === "fusion") {
-    const genes = resource?.gene1 && resource?.gene2 ? `${resource.gene1}-${resource.gene2}` : resource?.genes
-    return `${genes || "The fusion"} is selected for clinical review.`
-  }
-  if (resourceType === "translocation") {
-    return "The translocation is selected for clinical review."
-  }
-  return ""
+export interface CommentsPanelProps {
+  sampleId: string
+  comments?: any[]
+  title?: string
+  resourceType?: FindingResourceType
+  resource?: any
+  queryKeys?: unknown[][]
+  allowGlobal?: boolean
+  enableSuggestion?: boolean
+  livePreview?: boolean
+  previewToggle?: boolean
+  suggestedText?: string
+  onRequestSuggestion?: () => Promise<string | undefined>
+  showList?: boolean
+  showComposer?: boolean
+  allowHide?: boolean
+  assayGroup?: string
+  subpanel?: string | null
+  draftText?: string
+  onDraftChange?: (value: string) => void
+  onUseAsDraft?: (value: string) => void
+  fillHeight?: boolean
 }
 
 export function CommentsPanel({
@@ -134,29 +131,7 @@ export function CommentsPanel({
   onDraftChange,
   onUseAsDraft,
   fillHeight = false,
-}: {
-  sampleId: string
-  comments?: any[]
-  title?: string
-  resourceType?: FindingResourceType
-  resource?: any
-  queryKeys?: unknown[][]
-  allowGlobal?: boolean
-  enableSuggestion?: boolean
-  livePreview?: boolean
-  previewToggle?: boolean
-  suggestedText?: string
-  onRequestSuggestion?: () => Promise<string | undefined>
-  showList?: boolean
-  showComposer?: boolean
-  allowHide?: boolean
-  assayGroup?: string
-  subpanel?: string | null
-  draftText?: string
-  onDraftChange?: (value: string) => void
-  onUseAsDraft?: (value: string) => void
-  fillHeight?: boolean
-}) {
+}: CommentsPanelProps) {
   const [internalText, setInternalText] = useState("")
   const [global, setGlobal] = useState(false)
   const [mode, setMode] = useState<"edit" | "preview">("edit")
@@ -209,17 +184,17 @@ export function CommentsPanel({
       notifyActionError("Unable to save comment", error, "Comments")
     },
   })
-  const effectiveSuggestedText = suggestedText.trim() || fallbackSuggestedText(resourceType, resource)
-
   const requestSuggestion = async () => {
-    let suggestion = effectiveSuggestedText.trim()
-    if (!suggestion && onRequestSuggestion) {
+    let suggestion = ""
+    if (onRequestSuggestion) {
       setIsSuggestionLoading(true)
       try {
         suggestion = (await onRequestSuggestion())?.trim() || ""
       } finally {
         setIsSuggestionLoading(false)
       }
+    } else {
+      suggestion = suggestedText.trim()
     }
     if (!suggestion) return
     setMode("edit")
@@ -389,8 +364,8 @@ export function CommentsPanel({
               <button
                 type="button"
                 onClick={() => void requestSuggestion()}
-                disabled={isSuggestionLoading || (!effectiveSuggestedText.trim() && !onRequestSuggestion)}
-                title={effectiveSuggestedText.trim() || onRequestSuggestion ? "Insert suggested text" : "No suggested text available"}
+                disabled={isSuggestionLoading || (!suggestedText.trim() && !onRequestSuggestion)}
+                title={suggestedText.trim() || onRequestSuggestion ? "Insert suggested text" : "No suggested text available"}
                 className="inline-flex items-center gap-1.5 rounded-md bg-validation/10 px-2 py-1.5 text-xs font-bold text-validation hover:bg-validation/20 disabled:opacity-45"
               >
                 <Sparkles className="h-4 w-4" />

@@ -2,19 +2,25 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TablePreferencesContext } from "@/components/data-table/table-preferences";
 
 const mocks = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get } }));
+vi.mock("@/components/gene-cohort/GeneCohortCharts", () => ({
+  GeneCohortCharts: () => <div data-testid="gene-cohort-charts" />,
+}));
 
 import { GeneCohortExplorer } from "./GeneCohortExplorer";
 
-function mount(route = "/variants/gene-cohort") {
+function mount(route = "/variants/gene-cohort", pageSize = 50) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[route]}>
-        <GeneCohortExplorer />
-      </MemoryRouter>
+      <TablePreferencesContext.Provider value={{ pageSize, setPageSize: vi.fn() }}>
+        <MemoryRouter initialEntries={[route]}>
+          <GeneCohortExplorer />
+        </MemoryRouter>
+      </TablePreferencesContext.Provider>
     </QueryClientProvider>,
   );
 }
@@ -133,25 +139,25 @@ describe("GeneCohortExplorer", () => {
     mocks.get.mockResolvedValueOnce({
       data: {
         ...response,
-        recurrent_findings: Array.from({ length: 51 }, (_, index) => ({
+        recurrent_findings: Array.from({ length: 6 }, (_, index) => ({
           ...response.recurrent_findings[0],
           identity: `finding_${index + 1}`,
           hgvsp: `p.Test${index + 1}`,
         })),
-        samples: Array.from({ length: 51 }, (_, index) => ({
+        samples: Array.from({ length: 6 }, (_, index) => ({
           ...response.samples[0],
           sample_name: `SAMPLE_${index + 1}`,
         })),
       },
     });
-    mount("/variants/gene-cohort?gene=TP53");
+    mount("/variants/gene-cohort?gene=TP53", 5);
 
     expect(await screen.findAllByRole("button", { name: "Next" })).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "SAMPLE_50" })).toBeVisible();
-    expect(screen.queryByRole("link", { name: "SAMPLE_51" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "SAMPLE_5" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "SAMPLE_6" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Next" })[1]);
-    expect(await screen.findByRole("link", { name: "SAMPLE_51" })).toBeVisible();
+    expect(await screen.findByRole("link", { name: "SAMPLE_6" })).toBeVisible();
   });
 
   it("shows a valid cohort with no reported findings", async () => {

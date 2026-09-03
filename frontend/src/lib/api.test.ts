@@ -7,11 +7,7 @@ vi.mock("@/components/notifications/notification-store", () => ({ notify: notify
 import {
   ApiClientError,
   api,
-  responseItems,
-  responsePayload,
   setCsrfToken,
-  unwrapItems,
-  unwrapPayload,
 } from "./api"
 
 function response(body: string, status = 200, statusText = "OK") {
@@ -24,16 +20,6 @@ describe("typed API client", () => {
     vi.stubGlobal("window", { location: { pathname: "/samples", href: "/samples" } })
     vi.stubGlobal("fetch", vi.fn())
     setCsrfToken(null)
-  })
-
-  it("unwraps payload and list envelopes while retaining direct values", () => {
-    expect(responsePayload({ payload: { id: 1 } })).toEqual({ id: 1 })
-    expect(responsePayload({ id: 2 })).toEqual({ id: 2 })
-    expect(responseItems({ items: [{ id: 1 }] })).toEqual([{ id: 1 }])
-    expect(responseItems([{ id: 2 }])).toEqual([{ id: 2 }])
-    expect(responseItems({})).toEqual([])
-    expect(unwrapPayload({ data: { payload: "value" }, status: 200 })).toBe("value")
-    expect(unwrapItems({ data: { items: ["a"] }, status: 200 })).toEqual(["a"])
   })
 
   it("sends typed JSON requests and parses success and empty responses", async () => {

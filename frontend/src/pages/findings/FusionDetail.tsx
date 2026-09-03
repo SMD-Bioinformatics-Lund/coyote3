@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
-import { CommentsPanel } from "@/components/comments/CommentsPanel"
+import { FindingCommentComposer, FindingCommentLists } from "@/components/comments/FindingComments"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { StatusBadges } from "@/lib/variant-ui"
 import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "@/lib/fusion-ui"
@@ -141,45 +141,25 @@ export function FusionDetail() {
                 </DetailField>
               </FindingIdentityCard>
 
-              <div className="h-full lg:col-span-2">
-                <CommentsPanel
-                  sampleId={sampleRouteKey}
-                  title="Add Comment Or Annotation"
-                  resourceType="fusion"
-                  resource={fusion}
-                  comments={[]}
-                  showList={false}
-                  assayGroup={data.assay_group}
-                  subpanel={data.subpanel}
-                  queryKeys={[["fusion", id, varId]]}
-                  enableSuggestion={false}
-                  livePreview={false}
-                  fillHeight
-                />
-              </div>
+              <FindingCommentComposer
+                sampleId={sampleRouteKey}
+                resourceType="fusion"
+                resource={fusion}
+                assayGroup={data.assay_group}
+                subpanel={data.subpanel}
+                queryKeys={[["fusion", id, varId]]}
+              />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Sample-Specific Fusion Comments"
-                resourceType="fusion"
-                resource={fusion}
-                comments={fusion?.comments || []}
-                showComposer={false}
-                queryKeys={[["fusion", id, varId]]}
-              />
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Global Fusion Annotations"
-                resourceType="fusion"
-                resource={fusion}
-                comments={data.annotations || data.annotations_interesting || []}
-                showComposer={false}
-                allowHide={false}
-                queryKeys={[["fusion", id, varId]]}
-              />
-            </div>
+            <FindingCommentLists
+              sampleId={sampleRouteKey}
+              resourceType="fusion"
+              resource={fusion}
+              queryKeys={[["fusion", id, varId]]}
+              findingLabel="Fusion"
+              sampleComments={fusion?.comments || []}
+              globalComments={data.annotations || data.annotations_interesting || []}
+            />
 
             <DetailCard title="Read Support" tone="success">
               <DetailMetricTable

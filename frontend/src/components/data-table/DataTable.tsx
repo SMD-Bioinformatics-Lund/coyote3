@@ -9,6 +9,7 @@ import {
   getPaginationRowModel,
   type PaginationState,
   type OnChangeFn,
+  type Table,
 } from "@tanstack/react-table";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -29,6 +30,12 @@ export interface CsvExportColumn<TData> {
   value: (row: TData) => unknown;
 }
 
+interface DataTableColumnMeta<TData> {
+  exportValue?: (row: TData) => unknown;
+  headerClassName?: string;
+  cellClassName?: string;
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -41,8 +48,8 @@ interface DataTableProps<TData, TValue> {
   hasPrevious?: boolean;
   onPageChange?: (page: number) => void;
   onPerPageChange?: (perPage: number) => void;
-  renderToolbar?: (table: any) => ReactNode;
-  renderExportButton?: (table: any) => ReactNode;
+  renderToolbar?: (table: Table<TData>) => ReactNode;
+  renderExportButton?: (table: Table<TData>) => ReactNode;
   hideExport?: boolean;
   hideSearch?: boolean;
   searchValue?: string;
@@ -181,7 +188,7 @@ export function DataTable<TData, TValue>({
           .getAllLeafColumns()
           .filter((col) => col.id !== "actions" && col.id !== "select")
           .map((col) => {
-            const exportValue = (col.columnDef.meta as any)?.exportValue;
+            const exportValue = (col.columnDef.meta as DataTableColumnMeta<TData> | undefined)?.exportValue;
             const val =
               typeof exportValue === "function" ? exportValue(row.original) : row.getValue(col.id);
             const strVal = csvCellText(val);
@@ -325,7 +332,7 @@ export function DataTable<TData, TValue>({
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     const align = columnAlign(header.column.id);
-                    const meta = header.column.columnDef.meta as any;
+                    const meta = header.column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
                     const sortedIcon =
                       {
                         asc: <ArrowUp className="h-2 w-2 shrink-0" />,
@@ -397,7 +404,7 @@ export function DataTable<TData, TValue>({
                   >
                     {row.getVisibleCells().map((cell) => {
                       const align = columnAlign(cell.column.id);
-                      const meta = cell.column.columnDef.meta as any;
+                      const meta = cell.column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
                       return (
                         <td
                           key={cell.id}

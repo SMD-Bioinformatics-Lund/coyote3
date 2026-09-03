@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
-import { CommentsPanel } from "@/components/comments/CommentsPanel"
+import { FindingCommentComposer, FindingCommentLists } from "@/components/comments/FindingComments"
 import { CallerBadges, StatusBadges } from "@/lib/variant-ui"
 import { selectedTranslocationAnnotation, translocationGenes, translocationPositionLabel } from "@/lib/variant-helpers"
 import {
@@ -135,45 +135,25 @@ export function TranslocationDetail() {
                 <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
               </FindingIdentityCard>
 
-              <div className="h-full lg:col-span-2">
-                <CommentsPanel
-                  sampleId={sampleRouteKey}
-                  title="Add Comment Or Annotation"
-                  resourceType="translocation"
-                  resource={translocation}
-                  comments={[]}
-                  showList={false}
-                  assayGroup={data.assay_group}
-                  subpanel={data.subpanel}
-                  queryKeys={[["translocation", id, varId]]}
-                  enableSuggestion={false}
-                  livePreview={false}
-                  fillHeight
-                />
-              </div>
+              <FindingCommentComposer
+                sampleId={sampleRouteKey}
+                resourceType="translocation"
+                resource={translocation}
+                assayGroup={data.assay_group}
+                subpanel={data.subpanel}
+                queryKeys={[["translocation", id, varId]]}
+              />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Sample-Specific Translocation Comments"
-                resourceType="translocation"
-                resource={translocation}
-                comments={translocation?.comments || []}
-                showComposer={false}
-                queryKeys={[["translocation", id, varId]]}
-              />
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Global Translocation Annotations"
-                resourceType="translocation"
-                resource={translocation}
-                comments={data.annotations || []}
-                showComposer={false}
-                allowHide={false}
-                queryKeys={[["translocation", id, varId]]}
-              />
-            </div>
+            <FindingCommentLists
+              sampleId={sampleRouteKey}
+              resourceType="translocation"
+              resource={translocation}
+              queryKeys={[["translocation", id, varId]]}
+              findingLabel="Translocation"
+              sampleComments={translocation?.comments || []}
+              globalComments={data.annotations || []}
+            />
 
             <DetailCard title="Selected Annotation" tone="success">
               <DetailMetricTable

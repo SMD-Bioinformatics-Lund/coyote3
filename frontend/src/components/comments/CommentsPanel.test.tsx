@@ -68,6 +68,26 @@ describe("CommentsPanel", () => {
     expect(screen.getByRole("textbox")).toHaveValue("")
   })
 
+  it("uses the authoritative suggestion callback when a finding resource is present", async () => {
+    const user = userEvent.setup()
+    const onRequestSuggestion = vi.fn().mockResolvedValue("Server-generated suggestion")
+    renderPanel(
+      <CommentsPanel
+        sampleId="CASE_1"
+        resourceType="small_variant"
+        resource={{ _id: "variant-1", INFO: { selected_CSQ: { SYMBOL: "TP53", HGVSp: "p.Arg175His" } } }}
+        enableSuggestion
+        suggestedText="Stale supplied suggestion"
+        onRequestSuggestion={onRequestSuggestion}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Suggest" }))
+
+    await waitFor(() => expect(onRequestSuggestion).toHaveBeenCalledOnce())
+    expect(screen.getByRole("textbox")).toHaveValue("Server-generated suggestion")
+  })
+
   it("escapes selected markdown syntax without changing the comment format", async () => {
     const user = userEvent.setup()
     renderPanel(<CommentsPanel sampleId="CASE_1" />)

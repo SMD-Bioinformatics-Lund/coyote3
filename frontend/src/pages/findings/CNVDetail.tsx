@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
-import { CommentsPanel } from "@/components/comments/CommentsPanel"
+import { FindingCommentComposer, FindingCommentLists } from "@/components/comments/FindingComments"
 import {
   DetailDataTable,
   DetailMetricTable,
@@ -139,45 +139,25 @@ export function CNVDetail() {
                 <DetailField label="Artefact evidence"><ArtefactFrequencyBadges finding={cnv} /></DetailField>
               </FindingIdentityCard>
 
-              <div className="h-full lg:col-span-2">
-                <CommentsPanel
-                  sampleId={sampleRouteKey}
-                  title="Add Comment Or Annotation"
-                  resourceType="cnv"
-                  resource={cnv}
-                  comments={[]}
-                  showList={false}
-                  assayGroup={data.assay_group}
-                  subpanel={data.subpanel}
-                  queryKeys={[["cnv", id, varId]]}
-                  enableSuggestion={false}
-                  livePreview={false}
-                  fillHeight
-                />
-              </div>
+              <FindingCommentComposer
+                sampleId={sampleRouteKey}
+                resourceType="cnv"
+                resource={cnv}
+                assayGroup={data.assay_group}
+                subpanel={data.subpanel}
+                queryKeys={[["cnv", id, varId]]}
+              />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Sample-Specific CNV Comments"
-                resourceType="cnv"
-                resource={cnv}
-                comments={cnv?.comments || []}
-                showComposer={false}
-                queryKeys={[["cnv", id, varId]]}
-              />
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Global CNV Annotations"
-                resourceType="cnv"
-                resource={cnv}
-                comments={data.annotations || []}
-                showComposer={false}
-                allowHide={false}
-                queryKeys={[["cnv", id, varId]]}
-              />
-            </div>
+            <FindingCommentLists
+              sampleId={sampleRouteKey}
+              resourceType="cnv"
+              resource={cnv}
+              queryKeys={[["cnv", id, varId]]}
+              findingLabel="CNV"
+              sampleComments={cnv?.comments || []}
+              globalComments={data.annotations || []}
+            />
 
             <DetailCard title="Structural Evidence" tone="success">
               <DetailMetricTable metrics={structuralEvidenceMetrics(cnv)} dense />

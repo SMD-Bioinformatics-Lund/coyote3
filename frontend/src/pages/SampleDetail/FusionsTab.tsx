@@ -33,6 +33,7 @@ import {
 } from "@/hooks/useClinicalTableState"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { AnalysisTableCard } from "./AnalysisTableCard"
+import { createRowSelectionColumn } from "@/components/data-table/row-selection-column"
 
 export function FusionsTab({ sampleId, header, filterPanel }: { sampleId: string; header?: ReactNode; filterPanel?: ReactNode }) {
   const controlsQuery = useApplicationModules()
@@ -76,27 +77,7 @@ export function FusionsTab({ sampleId, header, filterPanel }: { sampleId: string
   const assayGroup = String(data?.assay_group || "").trim()
 
   const columns: ColumnDef<any, any>[] = [
-    {
-      id: "select",
-      meta: { headerClassName: "text-center w-8 border-r", cellClassName: "text-center w-8 border-r" },
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate" as any)}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          className="table-checkbox"
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          className="table-checkbox"
-        />
-      ),
-      enableSorting: false,
-    },
+    createRowSelectionColumn<any>(),
     {
       id: "badges",
       header: "Info",
