@@ -534,6 +534,10 @@
     --knowledgebase-accent: var(--badge-pgx-foreground);
     --knowledgebase-tint: var(--badge-pgx-background);
   }
+  .knowledgebase-block[data-knowledgebase="cosmic"] {
+    --knowledgebase-accent: var(--status-warning);
+    --knowledgebase-tint: var(--status-warning-soft);
+  }
   .knowledgebase-block[data-knowledgebase="hpa"] {
     --knowledgebase-accent: var(--status-success);
     --knowledgebase-tint: var(--status-success-soft);

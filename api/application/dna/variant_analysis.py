@@ -44,6 +44,7 @@ class DnaService:
             civic_repository=store.civic_repository,
             brca_repository=store.brca_repository,
             iarc_tp53_repository=store.iarc_tp53_repository,
+            cosmic_repository=store.cosmic_repository,
             hgnc_repository=getattr(store, "hgnc_repository", None),
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
@@ -70,6 +71,7 @@ class DnaService:
         civic_repository: Any,
         brca_repository: Any,
         iarc_tp53_repository: Any,
+        cosmic_repository: Any,
         hgnc_repository: Any | None = None,
         oncokb_public_cache_repository: Any | None = None,
         clinpgx_public_repository: Any | None = None,
@@ -95,6 +97,7 @@ class DnaService:
         self.civic_repository = civic_repository
         self.brca_repository = brca_repository
         self.iarc_tp53_repository = iarc_tp53_repository
+        self.cosmic_repository = cosmic_repository
         self.hgnc_repository = hgnc_repository
 
     @staticmethod

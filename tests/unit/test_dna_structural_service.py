@@ -67,6 +67,13 @@ class _RepoStub:
         self.vep_metadata_repository = SimpleNamespace(
             get_conseq_translations=lambda _vep: {"A": "B"}
         )
+        self.cosmic_repository = SimpleNamespace(
+            get_cnv_evidence=lambda _cnv: {"kind": "copy_number", "records": []},
+            get_translocation_evidence=lambda _transloc: {
+                "kind": "translocation",
+                "records": [],
+            },
+        )
 
 
 class _UtilModule:
@@ -110,6 +117,7 @@ def _service_from_repo(repo: _RepoStub) -> DnaStructuralService:
         gene_list_repository=repo.gene_list_repository,
         bam_record_repository=repo.bam_record_repository,
         vep_metadata_repository=repo.vep_metadata_repository,
+        cosmic_repository=repo.cosmic_repository,
     )
 
 
@@ -162,6 +170,7 @@ def test_list_cnvs_payload_uses_selected_cnvlists_for_effective_genes(monkeypatc
         gene_list_repository=repo.gene_list_repository,
         bam_record_repository=repo.bam_record_repository,
         vep_metadata_repository=repo.vep_metadata_repository,
+        cosmic_repository=repo.cosmic_repository,
     )
     sample = _sample()
     sample["filters"] = {"somatic": {"cnv": {"cnvlists": ["GL1"], "cnveffects": ["gain"]}}}
@@ -440,6 +449,7 @@ def test_service_factory_and_config_resolution_use_injected_repositories(monkeyp
         gene_list_repository=object(),
         bam_record_repository=object(),
         vep_metadata_repository=object(),
+        cosmic_repository=object(),
     )
     service = DnaStructuralService.from_store(store)
     captured: dict[str, object] = {}

@@ -149,6 +149,7 @@ class RnaService:
             annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
+            cosmic_repository=store.cosmic_repository,
         )
 
     def __init__(
@@ -165,6 +166,7 @@ class RnaService:
         annotation_repository: Any,
         reported_variant_repository: Any,
         report_repository: Any,
+        cosmic_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -176,6 +178,7 @@ class RnaService:
         self.rna_classification_repository = rna_classification_repository
         self.rna_quality_repository = rna_quality_repository
         self.annotation_repository = annotation_repository
+        self.cosmic_repository = cosmic_repository
         self.workflow = RNAWorkflowService(
             sample_repository=sample_repository,
             gene_list_repository=gene_list_repository,
@@ -355,6 +358,7 @@ class RnaService:
             assay_group,
             subpanel,
         )
+        cosmic = self.cosmic_repository.get_fusion_evidence(show_context["fusion"])
         return {
             "sample": sample,
             "sample_summary": {
@@ -377,6 +381,7 @@ class RnaService:
             "assay_group_mappings": show_context["assay_group_mappings"],
             "fusion_caller_options": list(CLINICAL_VOCABULARY.fusion_callers),
             "fusion_annotation_metadata": CLINICAL_VOCABULARY.fusion_annotation_metadata(),
+            "cosmic": cosmic,
         }
 
     def build_fusion_export_rows(self, fusions: list[dict[str, Any]]) -> list[RnaFusionExportRow]:

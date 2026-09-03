@@ -82,6 +82,7 @@ class DnaVariantContextPayload(BaseModel):
     clinpgx_gene: Any = None
     brca_exchange: Any
     iarc_tp53: Any
+    cosmic: dict[str, Any]
     assay_group: str
     subpanel: str | None = None
     pon: Any
@@ -113,6 +114,7 @@ class DnaCnvContextPayload(BaseModel):
     has_hidden_comments: bool
     hidden_comments: bool
     assay_group: str
+    cosmic: dict[str, Any]
 
 
 class DnaTranslocationsPayload(BaseModel):
@@ -138,6 +140,7 @@ class DnaTranslocationContextPayload(BaseModel):
     has_hidden_comments: bool
     hidden_comments: bool
     assay_group: str
+    cosmic: dict[str, Any]
 
 
 class DnaSnvExportRow(BaseModel):

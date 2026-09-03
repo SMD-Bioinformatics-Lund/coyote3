@@ -27,6 +27,7 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, igvLoadUrl, pubmedSearchUrl } from "@/lib/external-links"
+import { CosmicKnowledgeBlock } from "@/components/detail/VariantKnowledgebase"
 
 function translatedConsequence(annotation: any, translations: Record<string, any> = {}) {
   const raw = annotation?.Annotation || annotation?.Consequence
@@ -167,6 +168,10 @@ export function TranslocationDetail() {
                 ]}
                 dense
               />
+            </DetailCard>
+
+            <DetailCard title="Knowledge Bases" tone="success">
+              <CosmicKnowledgeBlock evidence={data.cosmic} />
             </DetailCard>
 
             <DetailCard title="Transcript Combinations">

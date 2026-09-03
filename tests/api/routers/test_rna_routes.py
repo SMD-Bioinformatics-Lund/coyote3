@@ -39,6 +39,15 @@ def _rna_service() -> RnaService:
         annotation_repository=store.annotation_repository,
         reported_variant_repository=store.reported_variant_repository,
         report_repository=store.report_repository,
+        cosmic_repository=SimpleNamespace(
+            get_fusion_evidence=lambda _fusion: {
+                "kind": "fusion",
+                "match_count": 0,
+                "records": [],
+                "hallmarks": [],
+                "actionability": [],
+            }
+        ),
     )
 
 

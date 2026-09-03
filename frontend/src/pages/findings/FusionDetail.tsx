@@ -29,6 +29,7 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, EXTERNAL_LINK_BASES, pubmedSearchUrl } from "@/lib/external-links"
+import { CosmicKnowledgeBlock } from "@/components/detail/VariantKnowledgebase"
 
 function fusionName(fusion: any) {
   const genes = fusionGenes(fusion)
@@ -170,6 +171,10 @@ export function FusionDetail() {
                 ]}
                 dense
               />
+            </DetailCard>
+
+            <DetailCard title="Knowledge Bases" tone="success">
+              <CosmicKnowledgeBlock evidence={data.cosmic} />
             </DetailCard>
 
             <DetailCard title="Fusion Calls From Callers">

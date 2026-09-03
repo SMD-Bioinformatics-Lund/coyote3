@@ -161,6 +161,7 @@ class DnaStructuralService:
             gene_list_repository=store.gene_list_repository,
             bam_record_repository=store.bam_record_repository,
             vep_metadata_repository=store.vep_metadata_repository,
+            cosmic_repository=store.cosmic_repository,
         )
 
     def __init__(
@@ -173,6 +174,7 @@ class DnaStructuralService:
         gene_list_repository: Any,
         bam_record_repository: Any,
         vep_metadata_repository: Any,
+        cosmic_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.copy_number_variant_repository = copy_number_variant_repository
@@ -182,6 +184,7 @@ class DnaStructuralService:
         self.gene_list_repository = gene_list_repository
         self.bam_record_repository = bam_record_repository
         self.vep_metadata_repository = vep_metadata_repository
+        self.cosmic_repository = cosmic_repository
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
         """Resolve formatted assay config using injected repositories when available."""
@@ -349,6 +352,7 @@ class DnaStructuralService:
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
+        cosmic = self.cosmic_repository.get_cnv_evidence(cnv)
         return {
             "sample": sample,
             "sample_summary": {
@@ -364,6 +368,7 @@ class DnaStructuralService:
             "has_hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "assay_group": assay_group,
+            "cosmic": cosmic,
         }
 
     def set_cnv_flag(self, *, cnv_id: str, apply: bool, flag: str) -> None:
@@ -540,6 +545,7 @@ class DnaStructuralService:
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
+        cosmic = self.cosmic_repository.get_translocation_evidence(transloc)
         return {
             "sample": sample,
             "sample_summary": {
@@ -560,6 +566,7 @@ class DnaStructuralService:
             ),
             "hidden_comments": self.translocation_repository.hidden_transloc_comments(transloc_id),
             "assay_group": assay_group,
+            "cosmic": cosmic,
         }
 
     def set_translocation_flag(self, *, transloc_id: str, apply: bool, flag: str) -> None:

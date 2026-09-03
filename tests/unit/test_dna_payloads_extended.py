@@ -303,6 +303,15 @@ def _context_service(variant):
         clinpgx_public_repository=SimpleNamespace(get_gene_record=lambda gene: {"pgx": gene}),
         brca_repository=SimpleNamespace(get_brca_data=lambda row, group: {"group": group}),
         iarc_tp53_repository=SimpleNamespace(find_iarc_tp53=lambda row: {"found": True}),
+        cosmic_repository=SimpleNamespace(
+            get_variant_evidence=lambda row: {
+                "kind": "small_variant",
+                "match_count": 1,
+                "records": [{"id": "COSV1"}],
+                "hallmarks": [],
+                "actionability": [],
+            }
+        ),
         bam_record_repository=SimpleNamespace(get_bams=lambda ids: ids),
         vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda version: {"version": version},

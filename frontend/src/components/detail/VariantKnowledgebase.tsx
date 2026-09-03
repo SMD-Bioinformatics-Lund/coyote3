@@ -1,7 +1,12 @@
 /* eslint-disable react/only-export-components -- this module intentionally colocates knowledgebase renderers with their pure presentation helpers. */
 
 import type { ReactNode } from "react"
-import { Database } from "lucide-react"
+import { Database, ExternalLink } from "lucide-react"
+import {
+  DetailDataTable,
+  EvidenceBadge,
+} from "@/components/detail/DetailEvidenceCards"
+import { DetailCard } from "@/components/detail/FindingDetailLayout"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { isPresent } from "@/lib/detail-formatters"
 import {
@@ -20,6 +25,7 @@ export type KnowledgebaseSource =
   | "brca-exchange"
   | "civic"
   | "clinpgx"
+  | "cosmic"
   | "hpa"
   | "iarc-tp53"
   | "oncokb"
@@ -35,6 +41,7 @@ const knowledgebasePresentation: Record<
   },
   civic: { logo: "/civic.png", logoAlt: "CIViC logo", logoWidth: "w-16" },
   clinpgx: { logo: "/clinPGxpng.png", logoAlt: "ClinPGx logo", logoWidth: "w-16" },
+  cosmic: { logo: "/COSMIC.png", logoAlt: "COSMIC logo", logoWidth: "w-16" },
   hpa: { logoAlt: "Human Protein Atlas", logoWidth: "w-7" },
   "iarc-tp53": { logoAlt: "IARC TP53", logoWidth: "w-7" },
   oncokb: { logo: "/OncoKB.png", logoAlt: "OncoKB logo", logoWidth: "w-16" },
@@ -184,6 +191,157 @@ export function VariantKnowledgeBlock({
   )
 }
 
+function cosmicRecordId(row: any) {
+  return row?.id || row?.cosmic_fusion_id || row?.cosmic_structural_id
+    || (Array.isArray(row?.cosmic_ids) ? row.cosmic_ids[0] : undefined)
+}
+
+function cosmicFinding(row: any) {
+  if (row?.gene || row?.gene_symbol) {
+    return [row.gene || row.gene_symbol, row.hgvsp || row.hgvsc || row.type]
+      .filter(Boolean)
+      .join(" · ")
+  }
+  if (row?.five_prime_gene_symbol || row?.three_prime_gene_symbol) {
+    return [row.five_prime_gene_symbol, row.three_prime_gene_symbol].filter(Boolean).join("::")
+  }
+  if (row?.chrom_from || row?.chrom_to) {
+    return `${row.chrom_from || "?"}:${row.location_from_min || "?"} · ${row.chrom_to || "?"}:${row.location_to_min || "?"}`
+  }
+  return row?.hgvsg || row?.type || "-"
+}
+
+export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
+  const records = Array.isArray(evidence?.records) ? evidence.records : []
+  const hallmarks = Array.isArray(evidence?.hallmarks) ? evidence.hallmarks : []
+  const actionability = Array.isArray(evidence?.actionability) ? evidence.actionability : []
+
+  return (
+    <VariantKnowledgeBlock
+      source="cosmic"
+      title="COSMIC"
+      defaultOpen
+      badges={evidence?.match_count ? <EvidenceBadge tone="info">{evidence.match_count} observations</EvidenceBadge> : null}
+    >
+      <div className="space-y-3">
+        <DetailDataTable
+          rows={records}
+          empty="No matching COSMIC records are available for this finding."
+          columns={[
+            {
+              key: "id",
+              header: "COSMIC record",
+              render: (row: any) => {
+                const identifier = cosmicRecordId(row)
+                return identifier ? (
+                  <a className="link-text" href={cosmicSearchUrl(String(identifier))} target="_blank" rel="noreferrer">
+                    {identifier}
+                  </a>
+                ) : "-"
+              },
+            },
+            { key: "finding", header: "Finding", render: cosmicFinding },
+            {
+              key: "evidence",
+              header: "Evidence",
+              render: (row: any) => row.observations
+                ? `${Number(row.observations).toLocaleString()} observations`
+                : row.primary_histology || row.so_term || row.mutation_type || row.tier || "-",
+            },
+          ]}
+        />
+
+        {hallmarks.length ? (
+          <div>
+            <h5 className="mb-1 type-section-title">Cancer Gene Census hallmarks</h5>
+            <DetailDataTable
+              rows={hallmarks}
+              columns={[
+                { key: "gene", header: "Gene", render: (row: any) => row.gene_symbol || "-" },
+                { key: "hallmark", header: "Hallmark", render: (row: any) => row.hallmark || row.impact || "-" },
+                { key: "description", header: "Description", render: (row: any) => <ExpandableText text={row.description || "-"} maxLength={120} /> },
+              ]}
+            />
+          </div>
+        ) : null}
+
+        {actionability.length ? (
+          <div>
+            <h5 className="mb-1 type-section-title">Actionability</h5>
+            <DetailDataTable
+              rows={actionability}
+              columns={[
+                { key: "disease", header: "Disease", render: (row: any) => row.disease || "-" },
+                { key: "drug", header: "Drug", render: (row: any) => row.drug_name || row.drug || "-" },
+                { key: "evidence", header: "Evidence", render: (row: any) => row.evidence_type || row.rank || "-" },
+              ]}
+            />
+          </div>
+        ) : null}
+      </div>
+    </VariantKnowledgeBlock>
+  )
+}
+
+function identifierValues(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : value ? [value] : []
+  return listUnique(values.map(String).map((item) => item.trim()).filter(Boolean))
+}
+
+function listUnique(values: string[]) {
+  return [...new Set(values)]
+}
+
+function IdentifierRow({
+  label,
+  values,
+  href,
+}: {
+  label: string
+  values: string[]
+  href: (value: string) => string
+}) {
+  return (
+    <div className="border-b border-border/60 px-3 py-2 last:border-b-0">
+      <div className="detail-field-label mb-1">{label}</div>
+      {values.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {values.map((value) => (
+            <a
+              key={value}
+              className="inline-flex min-w-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 type-badge text-primary hover:bg-primary/10"
+              href={href(value)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="break-all">{value}</span>
+              <ExternalLink className="size-3 shrink-0" />
+            </a>
+          ))}
+        </div>
+      ) : (
+        <span className="type-body-sm text-muted-foreground">Not available</span>
+      )}
+    </div>
+  )
+}
+
+export function VariantIdentifiersCard({ variant }: { variant: any }) {
+  const cosmicIds = identifierValues(variant?.cosmic_ids)
+  const dbsnpIds = identifierValues(variant?.dbsnp_ids ?? variant?.dbsnp_id)
+  const pubmedIds = identifierValues(variant?.pubmed_ids)
+
+  return (
+    <DetailCard title="Variant Identifiers" tone="info">
+      <div className="overflow-hidden rounded-lg border border-border/70 bg-background/45">
+        <IdentifierRow label="COSMIC" values={cosmicIds} href={cosmicSearchUrl} />
+        <IdentifierRow label="dbSNP" values={dbsnpIds} href={dbsnpUrl} />
+        <IdentifierRow label="PubMed" values={pubmedIds} href={pubmedArticleUrl} />
+      </div>
+    </DetailCard>
+  )
+}
+
 export function clinpgxEvidenceRows(payload: any, key: string) {
   const response = payload?.response || {}
   return Array.isArray(response?.[key]) ? response[key] : []
@@ -211,21 +369,15 @@ export function clinpgxEvidenceColumns(kind: "annotation" | "object") {
 export function externalVariantLinks(variant: any, csq: any, data: any) {
   const gene = csq?.SYMBOL
   const hgvsp = csq?.HGVSp
-  const dbsnp = variant?.dbsnp_id
-  const cosmic = Array.isArray(variant?.cosmic_ids) ? variant.cosmic_ids[0] : undefined
-  const pubmed = Array.isArray(variant?.pubmed_ids) ? variant.pubmed_ids[0] : undefined
   const clinvar = variant?.INFO?.CLNACC
   const position = variant?.CHROM && variant?.POS ? `${variant.CHROM}:${variant.POS}` : ""
   const igvUrl = data?.bam_id && position ? igvLoadUrl(data.bam_id, position) : null
 
   return [
     igvUrl ? { label: "Open region in IGV", value: position, href: igvUrl } : null,
-    dbsnp ? { label: `dbSNP ${dbsnp}`, value: dbsnp, href: dbsnpUrl(dbsnp) } : null,
-    cosmic ? { label: `COSMIC ${cosmic}`, value: cosmic, href: cosmicSearchUrl(cosmic) } : null,
     clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: clinvarSearchUrl(clinvar) } : null,
     gene ? { label: `cBioPortal ${gene}`, value: gene, href: cbioportalOncoprintUrl(gene) } : null,
     gene ? { label: `OncoKB ${gene}`, value: gene, href: oncokbGeneUrl(gene) } : null,
     gene && hgvsp ? { label: "LitVar", value: `${gene} ${hgvsp}`, href: litvarSearchUrl(`${gene} ${hgvsp}`) } : null,
-    pubmed ? { label: `PubMed ${pubmed}`, value: pubmed, href: pubmedArticleUrl(pubmed) } : null,
   ].filter(Boolean) as any[]
 }

@@ -47,6 +47,15 @@ def _dna_service() -> DnaService:
         civic_repository=store.civic_repository,
         brca_repository=store.brca_repository,
         iarc_tp53_repository=store.iarc_tp53_repository,
+        cosmic_repository=SimpleNamespace(
+            get_variant_evidence=lambda _variant: {
+                "kind": "small_variant",
+                "match_count": 0,
+                "records": [],
+                "hallmarks": [],
+                "actionability": [],
+            }
+        ),
     )
 
 
@@ -149,6 +158,7 @@ def test_select_variant_transcript_uses_sample_vep_vault():
         civic_repository=None,
         brca_repository=None,
         iarc_tp53_repository=None,
+        cosmic_repository=None,
     )
 
     operation = service.select_variant_transcript(

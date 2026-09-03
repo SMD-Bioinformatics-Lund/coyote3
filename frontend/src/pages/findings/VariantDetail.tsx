@@ -34,12 +34,14 @@ import {
   clinpgxEvidenceColumns,
   clinpgxEvidenceRows,
   clinpgxGeneMetrics,
+  CosmicKnowledgeBlock,
   externalVariantLinks,
   hpaExpressionRows,
   objectMetrics,
   oncokbActionRows,
   oncokbApiSummary,
   oncokbPublicGeneMetrics,
+  VariantIdentifiersCard,
   VariantKnowledgeBlock,
 } from "@/components/detail/VariantKnowledgebase"
 import { notifyActionError } from "@/lib/notifications"
@@ -308,6 +310,8 @@ export function VariantDetail() {
 
             <DetailCard title="Knowledge Bases" tone="success">
               <div className="space-y-2">
+                <CosmicKnowledgeBlock evidence={data.cosmic} />
+
                 <VariantKnowledgeBlock
                   source="civic"
                   title="CIViC"
@@ -623,6 +627,8 @@ export function VariantDetail() {
                 dense
               />
             </DetailCard>
+
+            <VariantIdentifiersCard variant={variant} />
 
             <DetailCard title="Seen In Other Samples" tone="info">
               <DetailDataTable
