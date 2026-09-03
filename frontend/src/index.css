@@ -234,6 +234,19 @@
   .brand-action:active {
     box-shadow: inset 0 1px 3px color-mix(in srgb, var(--brand-start) 45%, transparent);
   }
+  .detail-navigation-button {
+    @apply interaction-transition inline-flex size-7 shrink-0 items-center justify-center rounded-full text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    border: 1px solid color-mix(in srgb, var(--brand-start) 58%, var(--brand-end));
+    background: var(--brand-gradient);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--brand-start) 24%, transparent);
+  }
+  .detail-navigation-button:hover {
+    transform: translateX(1px);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--brand-start) 30%, transparent);
+  }
+  .detail-navigation-button:active {
+    transform: translateX(1px) scale(0.96);
+  }
   .glass-panel {
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
@@ -1212,6 +1225,10 @@
   }
   .app-loader-material span {
     opacity: 0.75;
+  }
+  .detail-navigation-button:hover,
+  .detail-navigation-button:active {
+    transform: none;
   }
 }
 

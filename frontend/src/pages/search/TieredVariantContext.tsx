@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, ArrowLeft, ExternalLink } from "lucide-react"
+import { AlertTriangle, ArrowLeft } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -10,6 +10,7 @@ import { TimeDisplay } from "@/components/ui/time-display"
 import { TierBadge } from "@/lib/variant-ui"
 import { displayValue } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
+import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton"
 
 function selectedCsq(variant: any) {
   return variant?.INFO?.selected_CSQ || {}
@@ -133,9 +134,11 @@ export function TieredVariantContext() {
         const id = sampleId(row.original)
         const varOid = row.original.var_oid || row.original.variant_oid
         return id && varOid ? (
-          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-primary-foreground">
-            <ExternalLink className="h-4 w-4" />
-          </Link>
+          <DetailNavigationButton
+            to={`${sampleDetailPath(samplePayload(row.original), id)}/variant/${varOid}`}
+            label="View variant details"
+            description="Open this reported finding in its sample context."
+          />
         ) : <span className="text-muted-foreground">-</span>
       },
     },

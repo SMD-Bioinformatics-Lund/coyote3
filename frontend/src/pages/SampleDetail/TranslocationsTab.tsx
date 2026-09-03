@@ -1,20 +1,16 @@
-import { useQuery } from "@tanstack/react-query"
-import type { ReactNode } from "react"
-import { Link, useLocation } from "react-router-dom"
-import { api } from "@/lib/api"
-import { AlertTriangle, ExternalLink } from "lucide-react"
-import { DataTable } from "@/components/data-table/DataTable"
-import { AppTooltip } from "@/components/ui/app-tooltip"
-import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown"
-import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
-import { AppLoader } from "@/components/layout/AppLoader"
-import { ColumnDef } from "@tanstack/react-table"
-import { ExpandableText } from "@/components/detail/ExpandableText"
-import {
-  ConsequenceBadges,
-  StatusBadges,
-  TierBadge,
-} from "@/lib/variant-ui"
+import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { api } from "@/lib/api";
+import { AlertTriangle } from "lucide-react";
+import { DataTable } from "@/components/data-table/DataTable";
+import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
+import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
+import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
+import { AppLoader } from "@/components/layout/AppLoader";
+import { ColumnDef } from "@tanstack/react-table";
+import { ExpandableText } from "@/components/detail/ExpandableText";
+import { ConsequenceBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import {
   findingRowClass,
   selectedTranslocationAnnotation,
@@ -25,58 +21,70 @@ import {
   translocationPanelStatus,
   translocationPositionLabel,
   translocationType,
-} from "@/lib/variant-helpers"
-import { useBulkFindingAction } from "@/hooks/useFindingActions"
-import { findingBulkActionOptions } from "@/lib/finding-actions"
-import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
+} from "@/lib/variant-helpers";
+import { useBulkFindingAction } from "@/hooks/useFindingActions";
+import { findingBulkActionOptions } from "@/lib/finding-actions";
+import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
   useClinicalTableState,
-} from "@/hooks/useClinicalTableState"
-import { AnalysisTableCard } from "./AnalysisTableCard"
-import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
-import { createRowSelectionColumn } from "@/components/data-table/row-selection-column"
+} from "@/hooks/useClinicalTableState";
+import { AnalysisTableCard } from "./AnalysisTableCard";
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
+import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
 
-export function TranslocationsTab({ sampleId, header, filterPanel }: { sampleId: string; header?: ReactNode; filterPanel?: ReactNode }) {
-  const controlsQuery = useApplicationModules()
+export function TranslocationsTab({
+  sampleId,
+  header,
+  filterPanel,
+}: {
+  sampleId: string;
+  header?: ReactNode;
+  filterPanel?: ReactNode;
+}) {
+  const controlsQuery = useApplicationModules();
   const translocationBulkActions = findingBulkActionOptions("translocation", {
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "translocation"),
-  })
-  const bulkAction = useBulkFindingAction(sampleId, "translocation")
-  const access = useCurrentUserAccess()
-  const canManage = hasPermission(access.data, "translocation:manage")
-  const location = useLocation()
-  const {
-    page,
-    perPage,
-    sortParam,
-    debouncedSearchText,
-    tableProps,
-  } = useClinicalTableState({ prefix: "transloc", tab: "translocations" })
+  });
+  const bulkAction = useBulkFindingAction(sampleId, "translocation");
+  const access = useCurrentUserAccess();
+  const canManage = hasPermission(access.data, "translocation:manage");
+  const location = useLocation();
+  const { page, perPage, sortParam, debouncedSearchText, tableProps } = useClinicalTableState({
+    prefix: "transloc",
+    tab: "translocations",
+  });
   const { data, isLoading, error } = useQuery({
     queryKey: ["sample-translocations", sampleId, page, perPage, debouncedSearchText, sortParam],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
         per_page: String(perPage),
-      })
-      if (debouncedSearchText) params.set("q", debouncedSearchText)
-      if (sortParam) params.set("sort", sortParam)
-      return api.get(`/samples/${sampleId}/translocations?${params.toString()}`).then(res => res.data)
+      });
+      if (debouncedSearchText) params.set("q", debouncedSearchText);
+      if (sortParam) params.set("sort", sortParam);
+      return api
+        .get(`/samples/${sampleId}/translocations?${params.toString()}`)
+        .then((res) => res.data);
     },
     placeholderData: (previousData) => previousData,
     staleTime: CLINICAL_TABLE_STALE_MS,
     gcTime: CLINICAL_TABLE_CACHE_MS,
-  })
+  });
 
-  if (isLoading) return <AppLoader label="Loading translocations" />
-  if (error) return <div className="text-destructive p-4 flex gap-2"><AlertTriangle /> Error loading Translocations</div>
+  if (isLoading) return <AppLoader label="Loading translocations" />;
+  if (error)
+    return (
+      <div className="text-destructive p-4 flex gap-2">
+        <AlertTriangle /> Error loading Translocations
+      </div>
+    );
 
-  const translocations = data?.display_sections_data?.translocs || data?.translocations || []
-  const translocationCount = Number(data?.meta?.count ?? translocations.length)
-  const hasNext = Boolean(data?.meta?.has_next)
-  const hasPrevious = Boolean(data?.meta?.has_previous)
+  const translocations = data?.display_sections_data?.translocs || data?.translocations || [];
+  const translocationCount = Number(data?.meta?.count ?? translocations.length);
+  const hasNext = Boolean(data?.meta?.has_next);
+  const hasPrevious = Boolean(data?.meta?.has_previous);
 
   const columns: ColumnDef<any, any>[] = [
     createRowSelectionColumn<any>(),
@@ -84,26 +92,30 @@ export function TranslocationsTab({ sampleId, header, filterPanel }: { sampleId:
       id: "gene1",
       header: "Gene 1",
       accessorFn: (row) => translocationGenes(row)[0] || "-",
-      cell: ({ row }) => <span className="font-medium text-primary hover:underline cursor-pointer">{translocationGenes(row.original)[0] || "-"}</span>
+      cell: ({ row }) => (
+        <span className="font-medium text-primary hover:underline cursor-pointer">
+          {translocationGenes(row.original)[0] || "-"}
+        </span>
+      ),
     },
     {
       id: "gene2",
       header: "Gene 2",
       accessorFn: (row) => translocationGenes(row)[1] || "-",
-      cell: ({ row }) => <span className="font-medium text-primary hover:underline cursor-pointer">{translocationGenes(row.original)[1] || "-"}</span>
+      cell: ({ row }) => (
+        <span className="font-medium text-primary hover:underline cursor-pointer">
+          {translocationGenes(row.original)[1] || "-"}
+        </span>
+      ),
     },
     {
       id: "positions",
       header: "Positions",
       accessorFn: translocationPositionLabel,
       cell: ({ row }) => {
-        const position = translocationPositionLabel(row.original)
-        return (
-          <span className="type-table-value text-muted-foreground">
-            {position}
-          </span>
-        )
-      }
+        const position = translocationPositionLabel(row.original);
+        return <span className="type-table-value text-muted-foreground">{position}</span>;
+      },
     },
     {
       id: "type",
@@ -122,68 +134,83 @@ export function TranslocationsTab({ sampleId, header, filterPanel }: { sampleId:
       id: "hgvs",
       header: "HGVS",
       accessorFn: (row) => {
-        const ann = selectedTranslocationAnnotation(row)
-        const hgvs = translocationHgvs(ann)
-        return [hgvs.coding, hgvs.protein].filter(Boolean).join(" ")
+        const ann = selectedTranslocationAnnotation(row);
+        const hgvs = translocationHgvs(ann);
+        return [hgvs.coding, hgvs.protein].filter(Boolean).join(" ");
       },
       meta: { headerClassName: "w-80 min-w-72", cellClassName: "w-80 min-w-72" },
       cell: ({ row }) => {
-        const ann = selectedTranslocationAnnotation(row.original)
-        const hgvs = translocationHgvs(ann)
+        const ann = selectedTranslocationAnnotation(row.original);
+        const hgvs = translocationHgvs(ann);
         return (
           <div className="flex w-full max-w-80 flex-col leading-tight">
-            <ExpandableText text={hgvs.coding || "-"} maxLength={42} className="type-table-value text-muted-foreground" />
-            <ExpandableText text={hgvs.protein || "-"} maxLength={42} className="type-table-value-emphasis" />
+            <ExpandableText
+              text={hgvs.coding || "-"}
+              maxLength={42}
+              className="type-table-value text-muted-foreground"
+            />
+            <ExpandableText
+              text={hgvs.protein || "-"}
+              maxLength={42}
+              className="type-table-value-emphasis"
+            />
           </div>
-        )
-      }
+        );
+      },
     },
     {
       id: "panel",
       header: "Panel",
       accessorFn: translocationPanelStatus,
-      cell: ({ row }) => <span className="type-table-value text-muted-foreground">{translocationPanelStatus(row.original)}</span>
+      cell: ({ row }) => (
+        <span className="type-table-value text-muted-foreground">
+          {translocationPanelStatus(row.original)}
+        </span>
+      ),
     },
     {
       id: "tier",
       header: "Tier",
       accessorFn: tierValue,
-      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
+      meta: {
+        exportValue: (row: any) => (tierValue(row) === 999 ? "" : tierValue(row)),
+        headerClassName: "w-14 min-w-14",
+        cellClassName: "w-14 min-w-14",
+      },
       cell: ({ row }) => <TierBadge tier={tierValue(row.original)} />,
     },
     {
       id: "badges",
       header: "Status",
-      meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
+      meta: {
+        exportValue: statusLabels,
+        headerClassName: "w-24 min-w-24 max-w-24",
+        cellClassName: "w-24 min-w-24 max-w-24",
+      },
       accessorFn: (row) => statusLabels(row),
       cell: ({ row }) => <StatusBadges finding={row.original} />,
     },
     {
       id: "actions",
       header: "",
-      meta: { headerClassName: "w-8 min-w-8 max-w-8 pr-1", cellClassName: "w-8 min-w-8 max-w-8 pr-1" },
+      meta: {
+        headerClassName: "w-10 min-w-10 max-w-10 pr-3",
+        cellClassName: "w-10 min-w-10 max-w-10 pr-3",
+      },
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">
-            <AppTooltip
-              context="Table action"
+            <DetailNavigationButton
+              to={`/samples/${sampleId}/translocation/${row.original._id}`}
+              state={{ from: `${location.pathname}${location.search}` }}
               label="View translocation details"
-              content="Open the complete translocation record, evidence, comments, and classification controls."
-            >
-              <Link
-                to={`/samples/${sampleId}/translocation/${row.original._id}`}
-                state={{ from: `${location.pathname}${location.search}` }}
-                aria-label="View translocation details"
-                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Link>
-            </AppTooltip>
+              description="Open the complete translocation record, evidence, comments, and classification controls."
+            />
           </div>
-        )
-      }
+        );
+      },
     },
-  ]
+  ];
 
   return (
     <AnalysisTableCard header={header} filterPanel={filterPanel}>
@@ -199,27 +226,35 @@ export function TranslocationsTab({ sampleId, header, filterPanel }: { sampleId:
         {...tableProps}
         filename={`translocations_${sampleId}.csv`}
         getRowClassName={findingRowClass}
-        renderToolbar={canManage ? (table) => (
-          <>
-            <BulkActionDropdown
-              selectedCount={Object.keys(table.getState().rowSelection).length}
-              actions={translocationBulkActions}
-              isPending={bulkAction.isPending}
-              onAction={(action) => bulkAction.mutateAsync({
-                action,
-                resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
-              })}
-            />
-          </>
-        ) : undefined}
+        renderToolbar={
+          canManage
+            ? (table) => (
+                <>
+                  <BulkActionDropdown
+                    selectedCount={Object.keys(table.getState().rowSelection).length}
+                    actions={translocationBulkActions}
+                    isPending={bulkAction.isPending}
+                    onAction={(action) =>
+                      bulkAction.mutateAsync({
+                        action,
+                        resourceIds: table
+                          .getSelectedRowModel()
+                          .rows.map((row: any) => String(row.original._id)),
+                      })
+                    }
+                  />
+                </>
+              )
+            : undefined
+        }
         renderExportButton={() => (
-            <ServerCsvButton
-              endpoint={`/samples/${sampleId}/translocations/exports/context`}
-              fallbackFilename={`${sampleId}.filtered.translocations.csv`}
-              label="Export to CSV"
-            />
+          <ServerCsvButton
+            endpoint={`/samples/${sampleId}/translocations/exports/context`}
+            fallbackFilename={`${sampleId}.filtered.translocations.csv`}
+            label="Export to CSV"
+          />
         )}
       />
     </AnalysisTableCard>
-  )
+  );
 }

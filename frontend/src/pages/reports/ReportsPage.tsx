@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Download, ExternalLink, FileText } from "lucide-react"
+import { Download, FileText } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { DataTable } from "@/components/data-table/DataTable"
@@ -10,6 +10,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TableBadge } from "@/components/ui/table-badge"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton"
 import { api } from "@/lib/api"
 import { apiPath } from "@/lib/runtime-paths"
 
@@ -132,14 +133,11 @@ export function ReportsPage() {
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex items-center gap-1.5">
-          <Link
+          <DetailNavigationButton
             to={`/samples/${encodeURIComponent(row.original.sample_id)}/reports/${encodeURIComponent(row.original.report_id)}`}
-            className="paper-raised-control inline-flex h-8 w-8 items-center justify-center rounded-lg"
-            title="Open saved report and reported findings"
-            aria-label={`Open report ${row.original.report_id}`}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Link>
+            label={`Open report ${row.original.report_id}`}
+            description="Open the saved report and its reported findings."
+          />
           <a
             href={apiPath(`/samples/${encodeURIComponent(row.original.sample_id)}/reports/${encodeURIComponent(row.original.report_id)}/download`)}
             className="paper-raised-control inline-flex h-8 w-8 items-center justify-center rounded-lg"
