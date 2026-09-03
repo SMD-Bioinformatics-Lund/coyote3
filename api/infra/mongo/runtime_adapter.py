@@ -31,7 +31,6 @@ from api.infra.mongo.repositories.biomarkers import BiomarkerRepository
 from api.infra.mongo.repositories.blacklist import BlacklistRepository
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
 from api.infra.mongo.repositories.coverage import CoverageRepository
-from api.infra.mongo.repositories.dashboard_metrics import DashboardMetricsRepository
 from api.infra.mongo.repositories.expression import ExpressionRepository
 from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
@@ -84,7 +83,6 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("rna_quality_repository", RNAQCRepository, "rna_qc"),
     ("reported_variant_repository", ReportedVariantsRepository, "reported_variants"),
     ("report_repository", ReportRepository, "reports"),
-    ("dashboard_metrics_repository", DashboardMetricsRepository, "dashboard_metrics"),
     ("oncokb_public_cache_repository", OncoKbPublicCacheRepository, "oncokb_public_cache"),
     ("clinpgx_public_repository", ClinPgxPublicRepository, "clinpgx_public"),
 )

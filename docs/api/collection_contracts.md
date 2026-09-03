@@ -293,15 +293,6 @@ Required keys:
 Optional keys:
 - None
 
-## `dashboard_metrics`
-
-Required keys:
-- `payload` (DashboardPayloadDoc)
-- `updated_at` (datetime)
-
-Optional keys:
-- None
-
 ## `finding_comments`
 
 Required keys:

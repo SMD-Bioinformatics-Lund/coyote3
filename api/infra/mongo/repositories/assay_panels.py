@@ -245,7 +245,7 @@ class ASPRepository(BaseRepository):
         operation = OperationResult.from_insert_one(
             self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
         )
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def rotate_asp(
@@ -264,7 +264,7 @@ class ASPRepository(BaseRepository):
             new_document=self.ensure_asp_id(dict(asp_data)),
             retire_fields=retire_fields,
         )
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> OperationResult:
@@ -295,7 +295,7 @@ class ASPRepository(BaseRepository):
                 {"$set": {"is_active": active_status}},
             )
         )
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def delete_panel(self, asp_id: str) -> OperationResult:
@@ -317,7 +317,7 @@ class ASPRepository(BaseRepository):
                 {"$set": {"is_active": False}},
             )
         )
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def get_all_asps_unique_gene_count(self) -> int:

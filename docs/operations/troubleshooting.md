@@ -69,45 +69,27 @@ PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_
 python -m pre_commit run --all-files
 ```
 
-## Unbounded Collection Growth Metrics
+## Dashboard Metrics Do Not Refresh
 
 **Signature:**
 
-- Storage analytics indicate the `dashboard_metrics` target collection expands perpetually without data reduction.
+- A dashboard section remains marked stale after its source data changes.
+- Selecting **Refresh metrics** does not produce a newer metric timestamp.
 
-**Diagnostic Protocol:**
+**Checks:**
 
-1. Verify the `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` configuration metric defines a valid positive integer payload.
-2. Confirm the existence of the targeted TTL index by executing the following administrative command against the database:
+1. Confirm Redis, the Celery worker, and Celery Beat are healthy.
+2. Check worker logs for `api.tasks.maintenance.refresh_dashboard_metrics`.
+3. Verify `DASHBOARD_METRIC_CACHE_TTL_SECONDS` and
+   `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` are positive integers, with
+   retention greater than or equal to freshness.
+4. Request the affected `/api/v1/dashboard/metrics/...` endpoint directly and
+   inspect `metric_meta.generated_at` and `metric_meta.stale`.
 
-```javascript
-db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
-```
-
-3. Ensure standard snapshot write transactions are actively appending the `updated_at` temporal field.
-4. MongoDB removes expired TTL records asynchronously, so deletion may occur
-   after the configured expiry time.
-
-**Remediation Protocol:**
-
-1. Inspect the managed index contract and confirm the TTL index is reported as
-   missing rather than conflicting:
-
-   ```bash
-   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py plan
-   ```
-
-2. Apply missing compatible definitions during an approved maintenance window:
-
-   ```bash
-   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py apply
-   ```
-
-3. Run `status` and verify that `updated_at_ttl_1` is present. If storage
-   policies require a different retention period, change
-   `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`, review the resulting conflict, and
-   follow the guarded retirement procedure in the next section. Restarting a
-   container is not an index migration procedure.
+Dashboard metrics are held in Redis, not in a MongoDB collection. MongoDB index
+maintenance therefore does not repair dashboard cache state. Restarting Redis
+clears cached values; the next request or scheduled refresh rebuilds them from
+the authoritative collections.
 
 ## Mongo Index Conflicts
 

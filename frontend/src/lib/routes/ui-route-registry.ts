@@ -49,7 +49,14 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/",
     page: "Dashboard",
     area: "clinical",
-    api: ["GET /dashboard/summary"],
+    api: [
+      "GET /dashboard/metrics/samples",
+      "GET /dashboard/metrics/findings",
+      "GET /dashboard/metrics/top-tiered-genes",
+      "GET /dashboard/metrics/panels",
+      "GET /dashboard/metrics/clinical-configuration",
+      "GET /dashboard/metrics/resources",
+    ],
     dataUsed: ["sample counts", "variant counts", "tier distribution", "assay profile summary", "resource capacity"],
   },
   {

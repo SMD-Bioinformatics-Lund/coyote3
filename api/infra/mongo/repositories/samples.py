@@ -563,7 +563,7 @@ class SampleRepository(BaseRepository):
             {"$set": update},
         )
         invalidate_samples_cache(self.adapter)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
 
     def update_sample_filters(
         self,
@@ -600,7 +600,7 @@ class SampleRepository(BaseRepository):
             {"$set": update},
         )
         invalidate_samples_cache(self.adapter)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
 
     def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> OperationResult:
         """
@@ -608,7 +608,7 @@ class SampleRepository(BaseRepository):
         """
         result = self.get_collection().replace_one({"_id": sample_id}, sample_doc)
         invalidate_samples_cache(self.adapter)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return OperationResult.from_update(result)
 
     def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
@@ -1040,7 +1040,7 @@ class SampleRepository(BaseRepository):
         result = self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
         invalidate_samples_cache(self.adapter)
         operation = OperationResult.from_delete(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def save_report(

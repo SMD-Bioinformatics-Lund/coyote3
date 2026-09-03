@@ -99,7 +99,7 @@ class ReportRepository(BaseRepository):
             },
         )
         invalidate_samples_cache(self.adapter)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return report_oid
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:
@@ -155,6 +155,9 @@ class ReportRepository(BaseRepository):
 
     def delete_sample_reports(self, sample_oid: str) -> OperationResult:
         """Delete report metadata owned by a sample."""
-        return OperationResult.from_delete(
+        result = OperationResult.from_delete(
             self.get_collection().delete_many({"sample_oid": self._object_id(sample_oid)})
         )
+        if result.deleted_count:
+            self.invalidate_dashboard_metrics()
+        return result

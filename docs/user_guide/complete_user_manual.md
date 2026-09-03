@@ -70,9 +70,10 @@ columns can no longer remain readable.
 
 ## Dashboard
 
-The dashboard is a summary, not a live query console. The API prepares a cached
-snapshot in the background so opening the page does not need to recalculate all
-metrics. An authorized user can request an immediate refresh from the page.
+The dashboard is a summary, not a live query console. Each section reads its
+own short-lived cached metric. Background workers refresh these metrics so one
+slow section does not delay the rest of the page. An authorized user can
+request an immediate refresh from the page.
 
 | Section | What it answers |
 | --- | --- |

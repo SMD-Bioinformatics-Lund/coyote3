@@ -23,6 +23,12 @@ class DisabledCacheBackend:
     def set(self, _key: str, _value: Any, timeout: int | None = None) -> bool:  # noqa: ARG002
         return False
 
+    def delete(self, _key: str) -> bool:
+        return False
+
+    def add(self, _key: str, _value: Any, timeout: int | None = None) -> bool:  # noqa: ARG002
+        return False
+
     def increment_window(self, _key: str, *, window_seconds: int) -> tuple[int, int]:
         """Reject distributed-counter use when Redis is unavailable."""
         raise RuntimeError("Redis is required for distributed rate limiting")
@@ -84,6 +90,25 @@ class RedisCacheBackend:
 
         self._logger.debug("cache_set key=%s ttl=%s", cache_key, ttl)
         return True
+
+    def delete(self, key: str) -> bool:
+        cache_key = self._key(key)
+        try:
+            return bool(self._client.delete(cache_key))
+        except Exception as exc:
+            self._logger.warning("cache_delete_error key=%s error=%s", cache_key, exc)
+            return False
+
+    def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        """Store a value only when the key does not already exist."""
+        cache_key = self._key(key)
+        ttl = self._default_timeout if timeout is None else int(timeout)
+        try:
+            payload = pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
+            return bool(self._client.set(cache_key, payload, nx=True, ex=max(ttl, 1)))
+        except Exception as exc:
+            self._logger.warning("cache_add_error key=%s error=%s", cache_key, exc)
+            return False
 
     def increment_window(self, key: str, *, window_seconds: int) -> tuple[int, int]:
         """Atomically increment a fixed-window counter and return count and TTL."""

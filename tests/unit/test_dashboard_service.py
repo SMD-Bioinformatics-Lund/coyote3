@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
 
-from api.application.dashboard.analytics import DashboardService, DashboardSnapshotUnavailable
+from api.application.dashboard.analytics import DashboardService
 from api.domain.common.dashboard import (
     format_panel_gene_stats,
     panel_asp_ids,
@@ -186,23 +185,27 @@ def _noop_handler(**methods):
     return SimpleNamespace(**defaults)
 
 
-class _DashboardMetricsStub:
-    def __init__(self, document=None) -> None:
-        self.document = document
-        self.writes: list[tuple[str, dict]] = []
+class _CacheStub:
+    def __init__(self) -> None:
+        self.values: dict[str, object] = {}
 
-    def get_summary_snapshot(self, *, scope_key):  # noqa: ARG002
-        return self.document
+    def get(self, key):
+        return self.values.get(key)
 
-    def upsert_summary_snapshot(self, *, scope_key, payload):
-        self.writes.append((scope_key, payload))
-        self.document = {
-            "payload": payload,
-            "updated_at": datetime.now(timezone.utc),
-        }
+    def set(self, key, value, timeout=0):  # noqa: ARG002
+        self.values[key] = value
+
+    def add(self, key, value, timeout=0):  # noqa: ARG002
+        if key in self.values:
+            return False
+        self.values[key] = value
+        return True
+
+    def delete(self, key):
+        self.values.pop(key, None)
 
 
-def _dashboard_service(backend=None, dashboard_metrics_repository=None) -> DashboardService:
+def _dashboard_service(backend=None, cache=None) -> DashboardService:
     backend = backend or _DashboardBackendStub()
     return DashboardService(
         user_repository=_noop_handler(
@@ -249,7 +252,7 @@ def _dashboard_service(backend=None, dashboard_metrics_repository=None) -> Dashb
         reported_variant_repository=_noop_handler(
             get_dashboard_tier_stats=backend.get_dashboard_tier_stats
         ),
-        dashboard_metrics_repository=dashboard_metrics_repository,
+        cache=cache,
     )
 
 
@@ -293,7 +296,7 @@ def test_resolve_scope_assays_returns_combined_assays():
     assert payload == ["A1", "A2"]
 
 
-def test_summary_payload_calculates_quality_rates(monkeypatch):
+def test_metric_builders_calculate_dashboard_values(monkeypatch):
     service = _dashboard_service(backend=_DashboardBackendStub())
     user = SimpleNamespace(
         id="u1", role="admin", roles=["superuser"], asp_ids=["A1"], asp_groups=["G1"]
@@ -307,7 +310,20 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
         raising=False,
     )
 
-    payload = service.refresh_summary_payload(user=user)
+    payload = {}
+    quality_stats = {}
+    for metric in (
+        "samples",
+        "findings",
+        "top_tiered_genes",
+        "panels",
+        "clinical_configuration",
+        "resources",
+    ):
+        metric_payload = service.metric_payload(metric, user=user, force=True)
+        quality_stats.update(metric_payload.get("quality_stats", {}))
+        payload.update(metric_payload)
+    payload["quality_stats"] = quality_stats
 
     assert payload["total_samples"] == 100
     assert payload["analysed_samples"] == 75
@@ -351,48 +367,38 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     assert payload["dashboard_meta"]["scope_assays"] == ["A1", "A2"]
 
 
-def test_summary_payload_reads_snapshot_without_running_aggregations(monkeypatch):
-    snapshot = {
-        "payload": {"total_samples": 7, "dashboard_meta": {}},
-        "updated_at": datetime.now(timezone.utc),
-    }
-    service = _dashboard_service(
-        backend=_DashboardBackendStub(),
-        dashboard_metrics_repository=_DashboardMetricsStub(snapshot),
-    )
+def test_metric_payload_reads_cached_value_without_running_aggregation(monkeypatch):
+    cache = _CacheStub()
+    service = _dashboard_service(backend=_DashboardBackendStub(), cache=cache)
+    user = SimpleNamespace(id="u1", role="admin", roles=["superuser"], asp_ids=[], asp_groups=[])
+    first = service.metric_payload("samples", user=user)
     monkeypatch.setattr(
         service.sample_repository,
         "get_dashboard_sample_rollup",
-        lambda **_kwargs: pytest.fail("dashboard GET must not aggregate MongoDB data"),
+        lambda **_kwargs: pytest.fail("a fresh metric must be served from Redis"),
     )
+    payload = service.metric_payload("samples", user=user)
+
+    assert payload["total_samples"] == first["total_samples"]
+    assert payload["metric_meta"]["cache_hit"] is True
+    assert payload["metric_meta"]["stale"] is False
+
+
+def test_metric_invalidation_marks_cached_value_stale_and_force_refreshes():
+    cache = _CacheStub()
     user = SimpleNamespace(id="u1", role="admin", roles=["superuser"], asp_ids=[], asp_groups=[])
+    service = _dashboard_service(backend=_DashboardBackendStub(), cache=cache)
+    first = service.metric_payload("findings", user=user)
+    service.metric_cache.invalidate(["findings"])
 
-    payload = service.summary_payload(user=user)
+    stale = service.metric_payload("findings", user=user)
+    refreshed = service.metric_payload("findings", user=user, force=True)
 
-    assert payload["total_samples"] == 7
-    assert payload["dashboard_meta"]["snapshot_stale"] is False
-
-
-def test_summary_payload_returns_stale_snapshot_and_rejects_missing_snapshot():
-    old_snapshot = {
-        "payload": {"total_samples": 7, "dashboard_meta": {}},
-        "updated_at": datetime.now(timezone.utc) - timedelta(minutes=10),
-        "dirty_since": datetime.now(timezone.utc),
-    }
-    user = SimpleNamespace(id="u1", role="admin", roles=["superuser"], asp_ids=[], asp_groups=[])
-    service = _dashboard_service(
-        backend=_DashboardBackendStub(),
-        dashboard_metrics_repository=_DashboardMetricsStub(old_snapshot),
-    )
-
-    assert service.summary_payload(user=user)["dashboard_meta"]["snapshot_stale"] is True
-
-    service = _dashboard_service(
-        backend=_DashboardBackendStub(),
-        dashboard_metrics_repository=_DashboardMetricsStub(),
-    )
-    with pytest.raises(DashboardSnapshotUnavailable):
-        service.summary_payload(user=user)
+    assert first["metric_meta"]["cache_hit"] is False
+    assert stale["metric_meta"]["cache_hit"] is True
+    assert stale["metric_meta"]["stale"] is True
+    assert refreshed["metric_meta"]["cache_hit"] is False
+    assert refreshed["metric_meta"]["stale"] is False
 
 
 def test_panel_gene_stats_exclude_wgs_and_wts_families():

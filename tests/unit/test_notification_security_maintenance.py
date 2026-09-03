@@ -193,14 +193,14 @@ def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch,
         {"username": "two", "is_active": True},
         {"username": "inactive", "is_active": False},
     ]
-    refreshed: list[str] = []
-    shared_payload = {"global": "metrics"}
+    refreshed: list[tuple[str, str]] = []
+    released: list[tuple[str, str]] = []
     service = SimpleNamespace(
         user_repository=SimpleNamespace(get_all_users=lambda: users),
-        build_shared_summary_payload=lambda: shared_payload,
-        summary_scope_key=lambda *, user: "shared" if user.username in {"one", "two"} else "other",
-        refresh_summary_payload=lambda *, user, shared_payload: refreshed.append(user.username)
-        or {"shared_payload": shared_payload},
+        metric_scope_key=lambda metric, *, user: f"{metric}:shared",
+        metric_payload=lambda metric, *, user, force: refreshed.append((user.username, metric))
+        or {"metric": metric},
+        release_metric_refresh=lambda metric, *, user: released.append((user.username, metric)),
     )
     monkeypatch.setattr(maintenance, "get_dashboard_service", lambda: service)
     monkeypatch.setattr(
@@ -210,12 +210,16 @@ def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch,
     )
     monkeypatch.setattr(maintenance, "_serializable", lambda value: value)
 
-    result = maintenance.refresh_dashboard_metrics.run()
+    result = maintenance.refresh_dashboard_metrics.run(metrics=["samples", "findings"])
 
     assert result == {
         "status": "completed",
-        "refreshed": 1,
-        "skipped": 2,
+        "refreshed": 2,
+        "skipped": 3,
         "failures": [],
     }
-    assert refreshed == ["one"]
+    assert refreshed == [("one", "findings"), ("one", "samples")]
+    assert released == [
+        ("one", "findings"),
+        ("one", "samples"),
+    ]

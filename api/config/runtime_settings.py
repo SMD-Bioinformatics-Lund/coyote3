@@ -86,14 +86,12 @@ class CacheSettings:
     CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
 
 
-class DashboardSummarySettings:
-    """Materialized dashboard-summary freshness and retention settings."""
+class DashboardMetricSettings:
+    """Independent dashboard metric cache settings."""
 
-    DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS = int(
-        os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", "300")
-    )
-    DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS = int(
-        os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS", "604800")
+    DASHBOARD_METRIC_CACHE_TTL_SECONDS = int(os.getenv("DASHBOARD_METRIC_CACHE_TTL_SECONDS", "300"))
+    DASHBOARD_METRIC_CACHE_RETENTION_SECONDS = int(
+        os.getenv("DASHBOARD_METRIC_CACHE_RETENTION_SECONDS", "3600")
     )
 
 
@@ -251,7 +249,7 @@ class SearchLimitSettings:
 class DefaultConfig(
     RepositoryMetadataSettings,
     CacheSettings,
-    DashboardSummarySettings,
+    DashboardMetricSettings,
     HttpSecuritySettings,
     OperationsSettings,
     KnowledgebaseSettings,

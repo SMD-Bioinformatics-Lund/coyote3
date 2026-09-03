@@ -414,7 +414,7 @@ class ISGLRepository(BaseRepository):
         """
         result = self.get_collection().insert_one(self.ensure_isgl_id(dict(data)))
         operation = OperationResult.from_insert_one(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def rotate_isgl(
@@ -433,7 +433,7 @@ class ISGLRepository(BaseRepository):
             new_document=self.ensure_isgl_id(dict(updated_data)),
             retire_fields=retire_fields,
         )
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> OperationResult:
@@ -463,7 +463,7 @@ class ISGLRepository(BaseRepository):
             {"$set": {"is_active": active_status}},
         )
         operation = OperationResult.from_update(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def delete_genelist(self, isgl_id: str) -> OperationResult:
@@ -484,7 +484,7 @@ class ISGLRepository(BaseRepository):
             {"$set": {"is_active": False}},
         )
         operation = OperationResult.from_update(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def get_subpanels_for_asp(

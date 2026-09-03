@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Suspense, lazy, useEffect, useState } from "react"
 import { api } from "@/lib/api"
@@ -24,6 +24,15 @@ const GeneCoverageChart = lazy(() => import("@/components/dashboard/DashboardCha
 const PanelAnalysisCapabilityChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.PanelAnalysisCapabilityChart })))
 const SampleCompositionCharts = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.SampleCompositionCharts })))
 
+const dashboardMetrics = [
+  { key: "samples", path: "/dashboard/metrics/samples" },
+  { key: "findings", path: "/dashboard/metrics/findings" },
+  { key: "top_tiered_genes", path: "/dashboard/metrics/top-tiered-genes" },
+  { key: "panels", path: "/dashboard/metrics/panels" },
+  { key: "clinical_configuration", path: "/dashboard/metrics/clinical-configuration" },
+  { key: "resources", path: "/dashboard/metrics/resources" },
+] as const
+
 function fmt(value: unknown) {
   return shortCount(value)
 }
@@ -47,15 +56,57 @@ function ChartFallback() {
   )
 }
 
+function MetricUnavailable({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4 py-6 text-center type-body-sm text-muted-foreground">
+      <span>
+        <AlertTriangle className="mr-2 inline h-4 w-4 text-destructive" />
+        {label} is temporarily unavailable.
+      </span>
+    </div>
+  )
+}
+
 export function Dashboard() {
+  const queryClient = useQueryClient()
   const [refreshStartedAt, setRefreshStartedAt] = useState<number | null>(null)
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["dashboard-summary"],
-    queryFn: () => api.get("/dashboard/summary").then((res) => res.data?.payload || res.data),
-    refetchInterval: 60_000,
+  const metricQueries = useQueries({
+    queries: dashboardMetrics.map((metric) => ({
+      queryKey: ["dashboard-metric", metric.key],
+      queryFn: () => api.get(metric.path).then((response) => response.data?.payload || response.data),
+      refetchInterval: 60_000,
+    })),
   })
+  const data = metricQueries.reduce<Record<string, any>>((combined, query) => {
+    const payload = query.data || {}
+    return {
+      ...combined,
+      ...payload,
+      quality_stats: {
+        ...(combined.quality_stats || {}),
+        ...(payload.quality_stats || {}),
+      },
+    }
+  }, {})
+  const metricMetadata = metricQueries
+    .map((query) => query.data?.metric_meta)
+    .filter(Boolean)
+  const generatedAtSignature = metricMetadata
+    .map((meta) => String(meta?.generated_at || ""))
+    .join("|")
+  const failedMetrics = metricQueries
+    .map((query, index) => (query.error ? dashboardMetrics[index].key : null))
+    .filter(Boolean)
+  const unavailableMetrics = new Set(
+    metricQueries
+      .map((query, index) => (query.error && !query.data ? dashboardMetrics[index].key : null))
+      .filter(Boolean),
+  )
+  const isUnavailable = (metric: (typeof dashboardMetrics)[number]["key"]) => unavailableMetrics.has(metric)
   const refreshMutation = useMutation({
-    mutationFn: () => api.post("/dashboard/summary/refresh"),
+    mutationFn: () => api.post("/dashboard/metrics/refresh", {
+      metrics: dashboardMetrics.map((metric) => metric.key),
+    }),
     onMutate: () => setRefreshStartedAt(Date.now()),
     onError: (mutationError) => {
       setRefreshStartedAt(null)
@@ -66,19 +117,26 @@ export function Dashboard() {
 
   useEffect(() => {
     if (refreshStartedAt === null) return
-    const updatedAt = Date.parse(String(data?.dashboard_meta?.snapshot_updated_at || ""))
-    if (Number.isFinite(updatedAt) && updatedAt >= refreshStartedAt - 1000) {
+    const generatedTimes = generatedAtSignature
+      .split("|")
+      .filter(Boolean)
+      .map((value) => Date.parse(value))
+    const allUpdated = generatedTimes.length === dashboardMetrics.length
+      && generatedTimes.every((generatedAt) => Number.isFinite(generatedAt) && generatedAt >= refreshStartedAt - 1000)
+    if (allUpdated) {
       setRefreshStartedAt(null)
-      notifySuccess("Dashboard metrics updated", "The latest background snapshot is now displayed.", "Dashboard")
+      notifySuccess("Dashboard metrics updated", "The latest metrics are now displayed.", "Dashboard")
       return
     }
-    const interval = window.setInterval(() => void refetch(), 2000)
+    const interval = window.setInterval(() => {
+      void queryClient.refetchQueries({ queryKey: ["dashboard-metric"] })
+    }, 2000)
     const timeout = window.setTimeout(() => {
       window.clearInterval(interval)
       setRefreshStartedAt(null)
       notifyWarning(
         "Dashboard refresh is still running",
-        "The current snapshot remains available. Updated metrics will appear automatically when ready.",
+        "Current values remain available. Updated metrics will appear automatically when ready.",
         "Dashboard",
       )
     }, 120000)
@@ -86,7 +144,7 @@ export function Dashboard() {
       window.clearInterval(interval)
       window.clearTimeout(timeout)
     }
-  }, [data?.dashboard_meta?.snapshot_updated_at, refetch, refreshStartedAt])
+  }, [generatedAtSignature, queryClient, refreshStartedAt])
 
   const refreshButton = (
     <Button
@@ -102,20 +160,8 @@ export function Dashboard() {
     </Button>
   )
 
-  if (isLoading) {
+  if (metricQueries.every((query) => query.isLoading && !query.data)) {
     return <AppLoader label="Loading dashboard" />
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        <span>
-          <AlertTriangle className="mr-2 inline h-4 w-4" />
-          {error instanceof Error ? error.message : "Failed to load dashboard"}
-        </span>
-        {refreshButton}
-      </div>
-    )
   }
 
   const vStats = data?.variant_stats || {}
@@ -177,16 +223,22 @@ export function Dashboard() {
       }
     >
 
-      {(data?.dashboard_meta?.snapshot_stale || refreshPending) && (
+      {failedMetrics.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <span>
+            <AlertTriangle className="mr-2 inline h-4 w-4" />
+            Some dashboard sections could not be updated: {failedMetrics.join(", ").replaceAll("_", " ")}.
+          </span>
+          {refreshButton}
+        </div>
+      )}
+
+      {(metricMetadata.some((meta) => meta?.stale) || refreshPending) && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
           {refreshPending ? (
-            <span>Dashboard metrics are refreshing in the background. The current snapshot remains available.</span>
+            <span>Dashboard metrics are refreshing in the background. Current values remain available.</span>
           ) : (
-            <span className="flex flex-wrap items-center gap-1">
-              <span>Showing the latest available snapshot from</span>
-              <TimeDisplay value={data?.dashboard_meta?.snapshot_updated_at} />
-              <span>while updated metrics are prepared.</span>
-            </span>
+            <span>One or more dashboard sections are showing cached values while updated metrics are prepared.</span>
           )}
         </div>
       )}
@@ -194,6 +246,7 @@ export function Dashboard() {
       <SurfacePanel className="dashboard-panel" title="Operational Snapshot" description="Current clinical workload, analysis progress, and finding volume.">
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.45fr_1fr_1fr]">
           <div className="dashboard-snapshot-card p-3">
+            {isUnavailable("samples") ? <MetricUnavailable label="Sample progress" /> : <>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="type-label text-muted-foreground">Analysis progress</p>
@@ -210,22 +263,28 @@ export function Dashboard() {
               <span>{percent(userScope.analysed_rate_percent ?? quality.analysed_rate_percent)} complete in your visible scope</span>
               <span className="font-semibold text-foreground">{fmt(userScope.pending_samples ?? data?.pending_samples)} awaiting review</span>
             </div>
+            </>}
           </div>
           <div className="dashboard-snapshot-card p-3">
+            {isUnavailable("samples") ? <MetricUnavailable label="Visible sample count" /> : <>
             <p className="type-label text-muted-foreground">My visible samples</p>
             <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(userScope.total_samples ?? data?.total_samples)}</p>
             <p className="type-meta mt-2 text-muted-foreground">Available through your roles, assays, and environments.</p>
+            </>}
           </div>
           <div className="dashboard-snapshot-card p-3">
+            {isUnavailable("findings") ? <MetricUnavailable label="Finding inventory" /> : <>
             <p className="type-label text-muted-foreground">Finding inventory</p>
             <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(findingTotal)}</p>
             <p className="type-meta mt-2 text-muted-foreground">Small variant, CNV, fusion, and translocation records.</p>
+            </>}
           </div>
         </div>
       </SurfacePanel>
 
       <div className="grid items-stretch gap-3 xl:grid-cols-[1.05fr_0.95fr]">
         <SurfacePanel className="dashboard-panel dashboard-panel--teal h-full" title="Review Workload" description="Assay progress and profile distribution.">
+          {isUnavailable("samples") ? <MetricUnavailable label="Review workload" /> : (
           <div className="flex h-full flex-col gap-3">
           <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="grid gap-2 sm:grid-cols-2">
@@ -270,9 +329,11 @@ export function Dashboard() {
             <div><span>Analysed</span><strong>{fmt(data?.analysed_samples)}</strong></div>
           </div>
           </div>
+          )}
         </SurfacePanel>
 
         <SurfacePanel className="dashboard-panel dashboard-panel--rose h-full" title="My Recent Samples" description="Latest samples visible to your account.">
+          {isUnavailable("samples") ? <MetricUnavailable label="Recent samples" /> : <>
           <div className="space-y-2">
             {recentSamples.length ? recentSamples.map((sample: any) => (
               <Link key={sample.id || sample.name} to={sampleDetailPath(sample, sample.id)} className="dashboard-subcard group flex items-center justify-between gap-3 p-2.5 hover:border-primary/40 hover:bg-primary/5">
@@ -301,18 +362,22 @@ export function Dashboard() {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
+          </>}
         </SurfacePanel>
       </div>
 
       <div className="grid items-stretch gap-3 2xl:grid-cols-[0.9fr_1.1fr]">
         <SurfacePanel className="dashboard-panel dashboard-panel--amber h-full" title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
+          {isUnavailable("samples") ? <MetricUnavailable label="Sample composition" /> : (
           <Suspense fallback={<ChartFallback />}>
             <SampleCompositionCharts groups={compositionGroups} pipelines={pipelineData} colors={chartColors} />
           </Suspense>
+          )}
         </SurfacePanel>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-3">
           <SurfacePanel className="dashboard-panel dashboard-panel--blue" title="Variant Review" description="Finding counts and classification quality indicators.">
+            {isUnavailable("findings") ? <MetricUnavailable label="Finding review metrics" /> : (
             <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.8fr)_minmax(14rem,0.7fr)]">
               <div className="grid grid-cols-2 gap-2 break-words md:grid-cols-4">
                 <Metric title="Small variants" value={vStats.snv || vStats.small_variants} sub={`${fmt(vStats.snps)} SNV/SNP class`} />
@@ -352,15 +417,18 @@ export function Dashboard() {
                 </div>
               </div>
             </div>
+            )}
           </SurfacePanel>
 
           <SurfacePanel className="dashboard-panel dashboard-panel--rose flex min-h-0 flex-1 flex-col" title="Panel Portfolio" description="Active targeted-panel design inventory.">
+            {isUnavailable("panels") ? <MetricUnavailable label="Panel portfolio" /> : (
             <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2">
               <Metric title="Active panels" value={panelPortfolio.active_panels} sub={`${fmt(panelPortfolio.accredited_panels)} accredited`} />
               <Metric title="Assay groups" value={panelPortfolio.assay_groups} sub="Represented by active panels" />
               <Metric title="Covered assignments" value={panelPortfolio.covered_gene_assignments} sub="Genes across panel definitions" />
               <Metric title="Germline assignments" value={panelPortfolio.germline_gene_assignments} sub="Configured germline scope" />
             </div>
+            )}
           </SurfacePanel>
         </div>
       </div>
@@ -370,7 +438,7 @@ export function Dashboard() {
         title="Top Tiered Genes"
         description="Current classified annotation identities ranked across all supported nomenclatures."
       >
-        {topTieredGenes.length ? (
+        {isUnavailable("top_tiered_genes") ? <MetricUnavailable label="Top tiered genes" /> : topTieredGenes.length ? (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="type-table-cell w-full min-w-[46rem] border-collapse text-left">
               <thead className="bg-[var(--table-header-surface)]">
@@ -425,6 +493,7 @@ export function Dashboard() {
 
       <div className="grid items-stretch gap-3 xl:grid-cols-[1.35fr_0.65fr]">
         <SurfacePanel className="dashboard-panel dashboard-panel--teal h-full" title="Panel Gene Coverage" description="Covered and germline gene scope across active targeted panels.">
+          {isUnavailable("panels") ? <MetricUnavailable label="Panel gene coverage" /> : (
           <div className="h-[320px]">
             {hasGeneChartData ? (
               <Suspense fallback={<ChartFallback />}>
@@ -439,9 +508,11 @@ export function Dashboard() {
               </div>
             )}
           </div>
+          )}
         </SurfacePanel>
 
         <SurfacePanel className="dashboard-panel dashboard-panel--amber h-full" title="Resource Capacity" description="Configured resources and reference inventory.">
+          {isUnavailable("resources") ? <MetricUnavailable label="Resource capacity" /> : (
           <div className="grid grid-cols-2 gap-2 xl:h-[320px] xl:auto-rows-fr">
             {capacityEntries.length ? capacityEntries.map(([key, value], index) => (
               <div key={key} className="dashboard-subcard p-2.5">
@@ -450,10 +521,12 @@ export function Dashboard() {
               </div>
             )) : <p className="text-xs text-muted-foreground">No capacity data available.</p>}
           </div>
+          )}
         </SurfacePanel>
       </div>
 
       <SurfacePanel className="dashboard-panel dashboard-panel--blue">
+        {isUnavailable("panels") ? <MetricUnavailable label="Panel analysis capabilities" /> : (
         <div className="h-[250px]">
           {panelAnalysisCapabilityData.length ? (
             <Suspense fallback={<ChartFallback />}>
@@ -465,9 +538,11 @@ export function Dashboard() {
             </div>
           )}
         </div>
+        )}
       </SurfacePanel>
 
       <SurfacePanel className="dashboard-panel dashboard-panel--amber" title="Clinical Configuration" description="Gene-list visibility and assay coverage for interpretation workflows.">
+        {isUnavailable("clinical_configuration") ? <MetricUnavailable label="Clinical configuration" /> : (
         <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
             <Metric title="Unique active genes" value={data?.unique_gene_count_all_panels} sub="Across active ASPs" />
@@ -500,6 +575,7 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+        )}
       </SurfacePanel>
     </PageShell>
   )

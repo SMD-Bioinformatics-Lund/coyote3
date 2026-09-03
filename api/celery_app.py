@@ -45,7 +45,7 @@ celery_app.conf.beat_schedule = {
         "task": "api.tasks.maintenance.refresh_dashboard_metrics",
         "schedule": max(
             30,
-            DefaultConfig.DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS // 2,
+            DefaultConfig.DASHBOARD_METRIC_CACHE_TTL_SECONDS // 2,
         ),
     },
 }

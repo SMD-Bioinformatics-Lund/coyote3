@@ -12,9 +12,11 @@ Symptoms:
 Checks:
 
 1. Confirm the Celery worker and beat scheduler are running.
-2. Confirm mutation hooks mark the MongoDB dashboard summary as dirty.
-3. Confirm the scheduled refresh task replaces dirty or expired summaries.
-4. Check MongoDB indexes used by dashboard aggregations.
+2. Confirm Redis is reachable from the API and worker containers.
+3. Check that writes invalidate the metric associated with the changed collection.
+4. Confirm `api.tasks.maintenance.refresh_dashboard_metrics` is running on schedule.
+5. Request the slow `/api/v1/dashboard/metrics/...` endpoint directly to identify the affected aggregate.
+6. Check the MongoDB indexes used by that metric's source repositories.
 
 Quick probe:
 
@@ -23,8 +25,12 @@ Quick probe:
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
-  logs api worker beat 2>&1 | rg "dashboard|summary|refresh"
+  logs api worker beat 2>&1 | rg "dashboard|metric|refresh"
 ```
+
+Dashboard payloads are independent Redis cache entries. There is no MongoDB
+dashboard snapshot document to repair. A stale entry remains readable while a
+worker replaces it; a missing entry is calculated by the first request.
 
 ## Login failure for mixed auth users
 

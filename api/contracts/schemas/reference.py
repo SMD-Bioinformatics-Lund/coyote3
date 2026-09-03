@@ -664,14 +664,3 @@ class VepMetadataDoc(_DocBase):
                 f"{invalid_terms}"
             )
         return self
-
-
-class DashboardPayloadDoc(_DocBase):
-    total_variants: int
-    total_snps: int
-    fps: int
-
-
-class DashboardMetricsDoc(_DocBase):
-    payload: DashboardPayloadDoc
-    updated_at: datetime

@@ -314,6 +314,9 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        return OperationResult.from_delete(
+        result = OperationResult.from_delete(
             self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
         )
+        if result.deleted_count:
+            self.invalidate_dashboard_metrics()
+        return result

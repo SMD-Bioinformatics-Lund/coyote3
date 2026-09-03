@@ -321,7 +321,7 @@ class AnnotationsRepository(BaseRepository):
             requested_count=len(annotations_copy),
         )
         if any(_annotation_class_value(item.get("class")) is not None for item in annotations_copy):
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return result
 
     def get_global_annotations(self, variant: dict, assay_group: str, subpanel: str) -> tuple:
@@ -586,7 +586,7 @@ class AnnotationsRepository(BaseRepository):
         document = normalize_collection_document("annotation", document)
         result = OperationResult.from_insert_one(self.get_collection().insert_one(document))
         if _annotation_class_value(document.get("class")) is not None:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return result
 
     def delete_classified_variant(
@@ -635,7 +635,7 @@ class AnnotationsRepository(BaseRepository):
         scoped_query = {**query, "$or": delete_clause}
         result = OperationResult.from_delete(self.get_collection().delete_many(scoped_query))
         if result.deleted_count:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return result
 
     def get_gene_annotations(self, gene_name: str) -> list:

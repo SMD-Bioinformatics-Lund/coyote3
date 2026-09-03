@@ -40,7 +40,7 @@ from api.config.security import (
     get_audit_events_collection_name,
     get_runtime_environment,
 )
-from api.infra.dashboard_snapshots import mark_dashboard_summaries_dirty
+from api.infra.dashboard_metric_cache import invalidate_dashboard_metrics
 from api.infra.security.sessions import MongoApiSessionRepository
 
 
@@ -186,7 +186,7 @@ def get_internal_ingest_service() -> InternalIngestService:
     """Return the internal ingest service."""
     return InternalIngestService.from_store(
         get_store(),
-        dashboard_summary_invalidator=mark_dashboard_summaries_dirty,
+        dashboard_metrics_invalidator=invalidate_dashboard_metrics,
     )
 
 

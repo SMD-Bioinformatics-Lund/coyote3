@@ -166,7 +166,7 @@ class UsersRepository(BaseRepository):
         )
         operation = OperationResult.from_update(result)
         if operation.modified_count:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return operation
 
     def user_exists(self, user_id=None, email=None, username=None) -> bool:
@@ -199,7 +199,7 @@ class UsersRepository(BaseRepository):
         payload = self.ensure_username(dict(user_data))
         result = self.get_collection().insert_one(payload)
         operation = OperationResult.from_insert_one(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def get_all_users(self) -> list:
@@ -403,7 +403,7 @@ class UsersRepository(BaseRepository):
         normalized = self._normalize_user_id(user_id)
         result = self.get_collection().delete_one(self._identity_query(normalized))
         operation = OperationResult.from_delete(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def update_user(self, user_id, user_data) -> OperationResult:
@@ -423,7 +423,7 @@ class UsersRepository(BaseRepository):
         payload["_id"] = existing["_id"]
         result = self.get_collection().replace_one({"_id": existing["_id"]}, payload)
         operation = OperationResult.from_update(result)
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return operation
 
     def update_user_last_login(self, user_id: str):
@@ -453,7 +453,7 @@ class UsersRepository(BaseRepository):
             self._identity_query(normalized),
             {"$set": {"is_active": active_status}},
         )
-        self.invalidate_dashboard_summary()
+        self.invalidate_dashboard_metrics()
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))
 
     def set_password_action_token(

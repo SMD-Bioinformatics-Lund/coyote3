@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
-from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,11 +17,8 @@ from api.domain.core.repository_protocols import (
     SampleRepositoryProtocol,
     VariantsRepositoryProtocol,
 )
+from api.infra.dashboard_metric_cache import DASHBOARD_METRICS, DashboardMetricCache
 from api.infra.observability.operations import measured_operation
-
-
-class DashboardSnapshotUnavailable(RuntimeError):
-    """Raised when no background-generated dashboard snapshot exists yet."""
 
 
 class DashboardService:
@@ -46,7 +41,7 @@ class DashboardService:
             blacklist_repository=store.blacklist_repository,
             annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
-            dashboard_metrics_repository=store.dashboard_metrics_repository,
+            cache=getattr(getattr(store, "app", None), "cache", None),
             config=config,
         )
 
@@ -66,7 +61,7 @@ class DashboardService:
         blacklist_repository: Any,
         annotation_repository: Any,
         reported_variant_repository: Any,
-        dashboard_metrics_repository: Any | None,
+        cache: Any | None,
         config: dict | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
@@ -83,12 +78,24 @@ class DashboardService:
         self.blacklist_repository = blacklist_repository
         self.annotation_repository = annotation_repository
         self.reported_variant_repository = reported_variant_repository
-        self.dashboard_metrics_repository = dashboard_metrics_repository
         self.config = config or {}
+        self.metric_cache = (
+            DashboardMetricCache(
+                cache,
+                fresh_seconds=int(
+                    self.config.get("DASHBOARD_METRIC_CACHE_TTL_SECONDS", 300) or 300
+                ),
+                retention_seconds=int(
+                    self.config.get("DASHBOARD_METRIC_CACHE_RETENTION_SECONDS", 3600) or 3600
+                ),
+            )
+            if cache is not None
+            else None
+        )
 
     @staticmethod
-    def _summary_scope_key(*, user, scope_assays: list[str] | None) -> str:
-        """Build a stable key for a user's materialized dashboard summary."""
+    def _scope_key(*, user, scope_assays: list[str] | None) -> str:
+        """Build a stable cache key for metrics affected by authorization scope."""
         payload = {
             "roles": sorted(
                 {
@@ -99,55 +106,10 @@ class DashboardService:
             ),
             "assays": sorted(scope_assays) if isinstance(scope_assays, list) else None,
         }
+        import json
+
         raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha1(raw.encode("utf-8")).hexdigest()  # noqa: S324
-
-    def _snapshot_max_age_seconds(self) -> int:
-        """Return persisted summary staleness threshold."""
-        return int(self.config.get("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", 300) or 300)
-
-    def _read_dashboard_summary_snapshot(self, *, scope_key: str) -> dict | None:
-        """Read the latest persisted summary snapshot, including stale snapshots."""
-        if self.dashboard_metrics_repository is None:
-            return None
-
-        doc = self.dashboard_metrics_repository.get_summary_snapshot(scope_key=scope_key)
-        if not isinstance(doc, dict):
-            return None
-        payload = doc.get("payload")
-        updated_at = doc.get("updated_at")
-        if not isinstance(payload, dict) or not isinstance(updated_at, datetime):
-            return None
-        if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-        age_seconds = max(0.0, (datetime.now(timezone.utc) - updated_at).total_seconds())
-        dirty_since = doc.get("dirty_since")
-        result = deepcopy(payload)
-        meta = result.setdefault("dashboard_meta", {})
-        meta.update(
-            {
-                "snapshot_updated_at": updated_at.isoformat(),
-                "snapshot_age_seconds": round(age_seconds, 1),
-                "snapshot_stale": bool(
-                    dirty_since is not None or age_seconds > self._snapshot_max_age_seconds()
-                ),
-                "snapshot_dirty": dirty_since is not None,
-            }
-        )
-        return result
-
-    def _write_dashboard_summary_snapshot(self, *, scope_key: str, payload: dict) -> None:
-        """Persist summary snapshot payload."""
-        if self.dashboard_metrics_repository is None:
-            return
-        self.dashboard_metrics_repository.upsert_summary_snapshot(
-            scope_key=scope_key, payload=payload
-        )
-
-    def summary_scope_key(self, *, user) -> str:
-        """Return the persisted snapshot key for an authenticated user."""
-        scope_assays = self.resolve_scope_assays(user=user)
-        return self._summary_scope_key(user=user, scope_assays=scope_assays)
 
     def build_capacity_counts(self) -> dict[str, int]:
         """Return top-level admin capacity counts for the dashboard.
@@ -312,31 +274,48 @@ class DashboardService:
                 effective_assays.add(str(asp_id).strip())
         return sorted(effective_assays)
 
-    def summary_payload(self, *, user) -> dict[str, Any]:
-        """Return a background-generated dashboard summary without aggregating data.
-
-        Args:
-            user: Authenticated dashboard user.
-
-        Returns:
-            dict[str, Any]: Persisted dashboard summary with freshness metadata.
-
-        Raises:
-            DashboardSnapshotUnavailable: No background snapshot exists for the user scope.
-        """
+    def metric_scope_key(self, metric: str, *, user) -> str:
+        """Return the cache scope for a metric."""
+        if metric not in {"samples", "resources"}:
+            return "global"
         scope_assays = self.resolve_scope_assays(user=user)
-        scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        snapshot_payload = self._read_dashboard_summary_snapshot(scope_key=scope_key)
-        if isinstance(snapshot_payload, dict):
-            return snapshot_payload
+        return self._scope_key(user=user, scope_assays=scope_assays)
 
-        raise DashboardSnapshotUnavailable(
-            "Dashboard metrics are being prepared. Refresh the metrics now or try again shortly."
-        )
-
-    def build_shared_summary_payload(self) -> dict[str, Any]:
-        """Build metrics that are identical for every dashboard authorization scope."""
+    def build_samples_metric(self, *, user) -> dict[str, Any]:
+        """Build sample workload and composition metrics for the user's assay scope."""
         sample_rollup_global = self.sample_repository.get_dashboard_sample_rollup(asp_ids=None)
+        scope_assays = self.resolve_scope_assays(user=user)
+        sample_rollup_scoped = self.sample_repository.get_dashboard_sample_rollup(
+            asp_ids=scope_assays
+        )
+        total = int(sample_rollup_global.get("total_samples", 0) or 0)
+        analysed = int(sample_rollup_global.get("analysed_samples", 0) or 0)
+        scoped_total = int(sample_rollup_scoped.get("total_samples", 0) or 0)
+        scoped_analysed = int(sample_rollup_scoped.get("analysed_samples", 0) or 0)
+        return {
+            "total_samples": total,
+            "analysed_samples": analysed,
+            "pending_samples": int(sample_rollup_global.get("pending_samples", 0) or 0),
+            "sample_stats": sample_rollup_global.get("sample_stats", {}) or {},
+            "user_samples_stats": sample_rollup_scoped.get("user_samples_stats", {}) or {},
+            "user_scope_summary": {
+                "total_samples": scoped_total,
+                "analysed_samples": scoped_analysed,
+                "pending_samples": int(sample_rollup_scoped.get("pending_samples", 0) or 0),
+                "analysed_rate_percent": (
+                    round((scoped_analysed / scoped_total) * 100, 2) if scoped_total else 0.0
+                ),
+                "recent_samples": sample_rollup_scoped.get("recent_samples", []) or [],
+                "sample_stats": sample_rollup_scoped.get("sample_stats", {}) or {},
+            },
+            "quality_stats": {
+                "analysed_rate_percent": round((analysed / total) * 100, 2) if total else 0.0
+            },
+            "dashboard_meta": {"scope_assays": scope_assays},
+        }
+
+    def build_findings_metric(self) -> dict[str, Any]:
+        """Build finding inventory, classification, and quality metrics."""
         variant_rollup = self.variant_repository.get_dashboard_variant_counts()
         total_cnvs = int(self.copy_number_variant_repository.get_total_cnv_count() or 0)
         total_translocs = int(self.translocation_repository.get_total_transloc_count() or 0)
@@ -345,13 +324,7 @@ class DashboardService:
             self.blacklist_repository.get_unique_blacklist_count() or 0
         )
         tier_stats = self.annotation_repository.get_dashboard_classification_stats()
-        top_tiered_genes = self.annotation_repository.get_dashboard_top_tiered_genes(limit=15)
         reported_tier_stats = self.reported_variant_repository.get_dashboard_tier_stats()
-
-        total_samples_count = int(sample_rollup_global.get("total_samples", 0) or 0)
-        analysed_samples_count = int(sample_rollup_global.get("analysed_samples", 0) or 0)
-        pending_samples_count = int(sample_rollup_global.get("pending_samples", 0) or 0)
-        sample_stats = sample_rollup_global.get("sample_stats", {})
         tier_total = tier_stats.get("total", {}) if isinstance(tier_stats, dict) else {}
         tier1 = int(tier_total.get("tier1", tier_total.get("tier_1", 0)) or 0)
         tier2 = int(tier_total.get("tier2", tier_total.get("tier_2", 0)) or 0)
@@ -400,19 +373,26 @@ class DashboardService:
             "by_variant_class": variant_rollup.get("by_variant_class", {}) or {},
         }
 
-        analysed_rate = (
-            round((analysed_samples_count / total_samples_count) * 100, 2)
-            if total_samples_count
-            else 0.0
-        )
         fp_rate = round((total_fp / total_small_variants) * 100, 2) if total_small_variants else 0.0
+        return {
+            "variant_stats": variant_stats,
+            "tier_stats": tier_stats,
+            "reported_tier_stats": reported_tier_stats,
+            "quality_stats": {"fp_rate_percent": fp_rate},
+        }
+
+    def build_top_tiered_genes_metric(self) -> dict[str, Any]:
+        """Build the independently refreshable top-tiered-gene ranking."""
+        return {
+            "top_tiered_genes": self.annotation_repository.get_dashboard_top_tiered_genes(limit=15)
+            or []
+        }
+
+    def build_panels_metric(self) -> dict[str, Any]:
+        """Build targeted-panel coverage and analysis-capability metrics."""
         asp_gene_stats = self.assay_panel_repository.get_all_asp_gene_counts()
         targeted_panel_ids = panel_asp_ids(asp_gene_stats)
         return {
-            "total_samples": total_samples_count,
-            "analysed_samples": analysed_samples_count,
-            "pending_samples": pending_samples_count,
-            "variant_stats": variant_stats,
             "unique_gene_count_all_panels": int(
                 self.assay_panel_repository.get_all_asps_unique_gene_count() or 0
             ),
@@ -422,70 +402,78 @@ class DashboardService:
             "panel_analysis_capabilities": self.assay_configuration_repository.get_dashboard_analysis_type_rollup(
                 asp_ids=targeted_panel_ids
             ),
-            "sample_stats": sample_stats,
-            "tier_stats": tier_stats,
-            "top_tiered_genes": top_tiered_genes,
-            "reported_tier_stats": reported_tier_stats,
-            "quality_stats": {
-                "analysed_rate_percent": analysed_rate,
-                "fp_rate_percent": fp_rate,
-            },
-            "capacity_counts": self.build_capacity_counts(),
+        }
+
+    def build_clinical_configuration_metric(self) -> dict[str, Any]:
+        """Build gene-list visibility and assay-association metrics."""
+        return {
             "isgl_visibility": self.build_isgl_visibility(),
             "isgl_association": self.gene_list_repository.get_dashboard_assay_association_rollup()
             or {},
         }
 
-    @measured_operation("query.dashboard_summary_refresh")
-    def refresh_summary_payload(
-        self,
-        *,
-        user,
-        shared_payload: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Persist one scoped snapshot using a refresh-cycle shared metrics payload."""
-        common_metrics = (
-            shared_payload if shared_payload is not None else self.build_shared_summary_payload()
-        )
-        scope_assays = self.resolve_scope_assays(user=user)
-        scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        sample_rollup_scoped = self.sample_repository.get_dashboard_sample_rollup(
-            asp_ids=scope_assays
-        )
-        user_total_samples = int(sample_rollup_scoped.get("total_samples", 0) or 0)
-        user_analysed_samples = int(sample_rollup_scoped.get("analysed_samples", 0) or 0)
-        user_pending_samples = int(sample_rollup_scoped.get("pending_samples", 0) or 0)
-
-        payload = deepcopy(common_metrics)
-        payload.update(
-            {
-                "user_samples_stats": sample_rollup_scoped.get("user_samples_stats", {}) or {},
-                "user_scope_summary": {
-                    "total_samples": user_total_samples,
-                    "analysed_samples": user_analysed_samples,
-                    "pending_samples": user_pending_samples,
-                    "analysed_rate_percent": (
-                        round((user_analysed_samples / user_total_samples) * 100, 2)
-                        if user_total_samples
-                        else 0.0
-                    ),
-                    "recent_samples": sample_rollup_scoped.get("recent_samples", []) or [],
-                    "sample_stats": sample_rollup_scoped.get("sample_stats", {}) or {},
-                },
-                "dashboard_meta": {"scope_assays": scope_assays},
-                "admin_insights": {},
-            }
-        )
+    def build_resources_metric(self, *, user) -> dict[str, Any]:
+        """Build managed-resource totals and authorized administrative insights."""
+        payload: dict[str, Any] = {
+            "capacity_counts": self.build_capacity_counts(),
+            "admin_insights": {},
+        }
         if "superuser" in {str(role_id or "").strip().lower() for role_id in (user.roles or [])}:
             payload["admin_insights"] = self.build_admin_insights()
-        generated_at = datetime.now(timezone.utc)
-        payload["dashboard_meta"].update(
-            {
-                "snapshot_updated_at": generated_at.isoformat(),
-                "snapshot_age_seconds": 0.0,
-                "snapshot_stale": False,
-                "snapshot_dirty": False,
-            }
-        )
-        self._write_dashboard_summary_snapshot(scope_key=scope_key, payload=payload)
         return payload
+
+    def _build_metric(self, metric: str, *, user) -> dict[str, Any]:
+        builders = {
+            "samples": lambda: self.build_samples_metric(user=user),
+            "findings": self.build_findings_metric,
+            "top_tiered_genes": self.build_top_tiered_genes_metric,
+            "panels": self.build_panels_metric,
+            "clinical_configuration": self.build_clinical_configuration_metric,
+            "resources": lambda: self.build_resources_metric(user=user),
+        }
+        if metric not in builders:
+            raise ValueError(f"Unknown dashboard metric: {metric}")
+        return builders[metric]()
+
+    @measured_operation("query.dashboard_metric")
+    def metric_payload(self, metric: str, *, user, force: bool = False) -> dict[str, Any]:
+        """Return one metric with cache metadata, computing it when no cache exists."""
+        if metric not in DASHBOARD_METRICS:
+            raise ValueError(f"Unknown dashboard metric: {metric}")
+        scope_key = self.metric_scope_key(metric, user=user)
+        cached = self.metric_cache.read(metric, scope_key=scope_key) if self.metric_cache else None
+        if cached is not None and not force:
+            payload = dict(cached.payload)
+            payload["metric_meta"] = {
+                "metric": metric,
+                "generated_at": cached.generated_at.isoformat(),
+                "stale": cached.stale,
+                "cache_hit": True,
+            }
+            return payload
+
+        payload = self._build_metric(metric, user=user)
+        generated_at = datetime.now(timezone.utc)
+        if self.metric_cache:
+            generated_at = self.metric_cache.write(metric, payload, scope_key=scope_key)
+        payload["metric_meta"] = {
+            "metric": metric,
+            "generated_at": generated_at.isoformat(),
+            "stale": False,
+            "cache_hit": False,
+        }
+        return payload
+
+    def acquire_metric_refresh(self, metric: str, *, user) -> bool:
+        """Acquire a short distributed lock before queueing stale metric refresh."""
+        if not self.metric_cache:
+            return False
+        return self.metric_cache.acquire_refresh(
+            metric, scope_key=self.metric_scope_key(metric, user=user)
+        )
+
+    def release_metric_refresh(self, metric: str, *, user) -> None:
+        if self.metric_cache:
+            self.metric_cache.release_refresh(
+                metric, scope_key=self.metric_scope_key(metric, user=user)
+            )

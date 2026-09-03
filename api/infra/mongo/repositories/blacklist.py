@@ -100,11 +100,14 @@ class BlacklistRepository(BaseRepository):
         """
         short_pos = var.get("simple_id", get_simple_id(var))
 
-        return OperationResult.from_insert_one(
+        result = OperationResult.from_insert_one(
             self.get_collection().insert_one(
                 {"assay": assay, "in_normal_perc": 1, "pos": short_pos}
             )
         )
+        if result.inserted_id:
+            self.invalidate_dashboard_metrics()
+        return result
 
     def get_blacklisted_count(self) -> int:
         """

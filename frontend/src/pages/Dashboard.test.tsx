@@ -8,15 +8,34 @@ const queryState = vi.hoisted(() => ({
   data: undefined as any,
   isLoading: false,
   error: null as Error | null,
+  unavailableIndexes: new Set<number>(),
   refetch: vi.fn(),
 }))
 const mutationState = vi.hoisted(() => ({
   mutate: vi.fn(),
   isPending: false,
 }))
+const queryClientState = vi.hoisted(() => ({
+  refetchQueries: vi.fn(),
+}))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => queryState,
+  useQueries: () => Array.from({ length: 6 }, (_, index) => ({
+    ...queryState,
+    error: queryState.unavailableIndexes.has(index) ? new Error("Metric request failed") : queryState.error,
+    data: queryState.data && !queryState.unavailableIndexes.has(index)
+      ? {
+          ...queryState.data,
+          metric_meta: {
+            metric: `metric_${index}`,
+            generated_at: "2026-08-25T10:00:00Z",
+            stale: false,
+            cache_hit: true,
+          },
+        }
+      : undefined,
+  })),
+  useQueryClient: () => queryClientState,
   useMutation: () => mutationState,
 }))
 vi.mock("@/lib/notifications", () => ({
@@ -84,9 +103,11 @@ describe("Dashboard page", () => {
     queryState.data = dashboardData
     queryState.isLoading = false
     queryState.error = null
+    queryState.unavailableIndexes.clear()
     queryState.refetch.mockReset()
     mutationState.mutate.mockReset()
     mutationState.isPending = false
+    queryClientState.refetchQueries.mockReset()
   })
 
   it("renders workload, inventory, recent samples, and chart-backed summaries", async () => {
@@ -167,16 +188,29 @@ describe("Dashboard page", () => {
     expect(screen.getByText("No tiered gene data available.")).toBeInTheDocument()
   })
 
-  it("shows loading and API error states", () => {
+  it("shows the loading state", () => {
     queryState.isLoading = true
-    const loading = renderWithRouter(<Dashboard />)
-    expect(screen.getByRole("status", { name: "Loading dashboard" })).toBeInTheDocument()
-    loading.unmount()
-
-    queryState.isLoading = false
-    queryState.error = new Error("Summary request failed")
+    queryState.data = undefined
     renderWithRouter(<Dashboard />)
-    expect(screen.getByText("Summary request failed")).toBeInTheDocument()
+
+    expect(screen.getByRole("status", { name: "Loading dashboard" })).toBeInTheDocument()
+  })
+
+  it("keeps available sections visible when one metric request fails", () => {
+    queryState.error = new Error("Metric request failed")
+    renderWithRouter(<Dashboard />)
+
+    expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()
+    expect(screen.getByText(/Some dashboard sections could not be updated/)).toBeInTheDocument()
+  })
+
+  it("does not present missing first-load metrics as valid zero values", () => {
+    queryState.unavailableIndexes.add(2)
+    renderWithRouter(<Dashboard />)
+
+    expect(screen.getByText("Top tiered genes is temporarily unavailable.")).toBeInTheDocument()
+    expect(screen.queryByText("No tiered gene data available.")).not.toBeInTheDocument()
+    expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()
   })
 
   it("queues an explicit background refresh without replacing the current dashboard", () => {

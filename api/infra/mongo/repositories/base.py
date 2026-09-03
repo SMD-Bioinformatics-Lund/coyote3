@@ -17,7 +17,7 @@ import pymongo
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_snapshots import mark_dashboard_summaries_dirty
+from api.infra.dashboard_metric_cache import invalidate_dashboard_metrics
 
 
 # -------------------------------------------------------------------------
@@ -47,11 +47,16 @@ class BaseRepository:
             return self.repository_collection
         raise NotImplementedError("get_collection or set_collection must be implemented")
 
-    def invalidate_dashboard_summary(self) -> None:
-        """Mark dashboard summaries stale when source data changes."""
+    def invalidate_dashboard_metrics(self) -> None:
+        """Invalidate dashboard metrics that depend on this collection."""
         adapter = getattr(self, "adapter", None)
         if adapter is not None:
-            mark_dashboard_summaries_dirty(adapter)
+            invalidate_dashboard_metrics(adapter, collection=self.get_collection().name)
+
+    def _invalidate_dashboard_on_change(self, result: OperationResult) -> OperationResult:
+        if result.modified_count or result.deleted_count or result.inserted_count:
+            self.invalidate_dashboard_metrics()
+        return result
 
     def mark_false_positive(self, var_id: str, fp: bool) -> Any:
         """
@@ -67,10 +72,12 @@ class BaseRepository:
         Returns:
             Any: The result of the update operation.
         """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id)},
-                {"$set": {"fp": fp}},
+        return self._invalidate_dashboard_on_change(
+            OperationResult.from_update(
+                self.get_collection().update_one(
+                    {"_id": ObjectId(var_id)},
+                    {"$set": {"fp": fp}},
+                )
             )
         )
 
@@ -99,12 +106,14 @@ class BaseRepository:
             return OperationResult.empty(requested_count=len(var_ids))
 
         try:
-            return OperationResult.from_update(
-                self.get_collection().update_many(
-                    {"_id": {"$in": object_ids}},
-                    {"$set": {"fp": fp}},
-                ),
-                requested_count=len(object_ids),
+            return self._invalidate_dashboard_on_change(
+                OperationResult.from_update(
+                    self.get_collection().update_many(
+                        {"_id": {"$in": object_ids}},
+                        {"$set": {"fp": fp}},
+                    ),
+                    requested_count=len(object_ids),
+                )
             )
         except Exception as exc:
             return OperationResult.failed(str(exc), requested_count=len(object_ids))
@@ -123,10 +132,12 @@ class BaseRepository:
         Returns:
             Any: The result of the update operation.
         """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id)},
-                {"$set": {"interesting": interesting}},
+        return self._invalidate_dashboard_on_change(
+            OperationResult.from_update(
+                self.get_collection().update_one(
+                    {"_id": ObjectId(var_id)},
+                    {"$set": {"interesting": interesting}},
+                )
             )
         )
 
@@ -144,10 +155,12 @@ class BaseRepository:
         Returns:
             Any: The result of the update operation.
         """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id)},
-                {"$set": {"irrelevant": irrelevant}},
+        return self._invalidate_dashboard_on_change(
+            OperationResult.from_update(
+                self.get_collection().update_one(
+                    {"_id": ObjectId(var_id)},
+                    {"$set": {"irrelevant": irrelevant}},
+                )
             )
         )
 
@@ -176,22 +189,26 @@ class BaseRepository:
             return OperationResult.empty(requested_count=len(var_ids))
 
         try:
-            return OperationResult.from_update(
-                self.get_collection().update_many(
-                    {"_id": {"$in": object_ids}},
-                    {"$set": {"irrelevant": irrelevant}},
-                ),
-                requested_count=len(object_ids),
+            return self._invalidate_dashboard_on_change(
+                OperationResult.from_update(
+                    self.get_collection().update_many(
+                        {"_id": {"$in": object_ids}},
+                        {"$set": {"irrelevant": irrelevant}},
+                    ),
+                    requested_count=len(object_ids),
+                )
             )
         except Exception as exc:
             return OperationResult.failed(str(exc), requested_count=len(object_ids))
 
     def mark_blacklisted(self, var_id: str, blacklisted: bool) -> OperationResult:
         """Set the sample-specific blacklist state for a structural finding."""
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id)},
-                {"$set": {"blacklisted": blacklisted}},
+        return self._invalidate_dashboard_on_change(
+            OperationResult.from_update(
+                self.get_collection().update_one(
+                    {"_id": ObjectId(var_id)},
+                    {"$set": {"blacklisted": blacklisted}},
+                )
             )
         )
 
@@ -210,12 +227,14 @@ class BaseRepository:
             return OperationResult.empty(requested_count=len(var_ids))
 
         try:
-            return OperationResult.from_update(
-                self.get_collection().update_many(
-                    {"_id": {"$in": object_ids}},
-                    {"$set": {"blacklisted": blacklisted}},
-                ),
-                requested_count=len(object_ids),
+            return self._invalidate_dashboard_on_change(
+                OperationResult.from_update(
+                    self.get_collection().update_many(
+                        {"_id": {"$in": object_ids}},
+                        {"$set": {"blacklisted": blacklisted}},
+                    ),
+                    requested_count=len(object_ids),
+                )
             )
         except Exception as exc:
             return OperationResult.failed(str(exc), requested_count=len(object_ids))
@@ -236,10 +255,12 @@ class BaseRepository:
         Returns:
             Any: The result of the update operation.
         """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id)},
-                {"$set": {"noteworthy": noteworthy}},
+        return self._invalidate_dashboard_on_change(
+            OperationResult.from_update(
+                self.get_collection().update_one(
+                    {"_id": ObjectId(var_id)},
+                    {"$set": {"noteworthy": noteworthy}},
+                )
             )
         )
 

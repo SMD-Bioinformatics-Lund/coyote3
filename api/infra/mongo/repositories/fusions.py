@@ -282,10 +282,12 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
         for i in range(int(num_calls)):
             updates[f"calls.{i}.selected"] = 0
         updates[f"calls.{int(callidx) - 1}.selected"] = 1
-        self.get_collection().update_one(
+        result = self.get_collection().update_one(
             {"_id": ObjectId(id)},
             {"$set": updates},
         )
+        if result.modified_count:
+            self.invalidate_dashboard_metrics()
 
     def hide_fus_comment(self, id: str, comment_id: str) -> None:
         """
@@ -348,9 +350,12 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        return OperationResult.from_delete(
+        result = OperationResult.from_delete(
             self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
         )
+        if result.deleted_count:
+            self.invalidate_dashboard_metrics()
+        return result
 
     def hidden_fusion_comments(self, fus_id: str) -> bool:
         """

@@ -3,9 +3,15 @@ import { installApiFixtures, modulePayload } from "./support/api-fixtures"
 
 test("dashboard presents distinct workload and panel capability information", async ({ page }) => {
   await installApiFixtures(page, (path) => {
-    if (path !== "/api/v1/dashboard/summary") return
+    if (!path.startsWith("/api/v1/dashboard/metrics/") || path.endsWith("/refresh")) return
     return {
       json: {
+        metric_meta: {
+          metric: path.split("/").at(-1),
+          generated_at: "2026-08-25T10:00:00Z",
+          stale: false,
+          cache_hit: true,
+        },
         total_samples: 8,
         analysed_samples: 5,
         pending_samples: 3,

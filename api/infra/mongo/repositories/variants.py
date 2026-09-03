@@ -187,7 +187,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             )
         )
         if operation.matched_count:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return operation
 
     def get_variant_in_other_samples(self, variant: dict) -> list:
@@ -387,7 +387,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             )
         )
         if operation.matched_count:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return operation
 
     def unmark_false_positive_var(self, variant_id: str, fp: bool = False) -> Any:
@@ -419,7 +419,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         operation = self.mark_false_positive_bulk(variant_ids, fp)
         if operation.matched_count:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return operation
 
     def unmark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = False) -> Any:
@@ -762,7 +762,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
         result = self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
         operation = OperationResult.from_delete(result)
         if operation.deleted_count:
-            self.invalidate_dashboard_summary()
+            self.invalidate_dashboard_metrics()
         return operation
 
     def get_variant_stats(self, sample_id: str, genes: list | None = None) -> dict:

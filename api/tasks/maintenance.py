@@ -13,6 +13,7 @@ from api.app.deps.services import (
     get_public_oncokb_refresh_service,
 )
 from api.celery_app import celery_app
+from api.infra.dashboard_metric_cache import DASHBOARD_METRICS
 from api.security.access import api_user_from_user_doc
 from api.tasks.controls import disabled_result, task_family_enabled
 from api.tasks.ingest import _ensure_worker_runtime, _serializable
@@ -46,8 +47,10 @@ def refresh_public_oncokb(self) -> dict[str, Any]:
 
 
 @celery_app.task(name="api.tasks.maintenance.refresh_dashboard_metrics", bind=True)
-def refresh_dashboard_metrics(self, username: str | None = None) -> dict[str, Any]:
-    """Refresh persisted dashboard snapshots for active users in the background."""
+def refresh_dashboard_metrics(
+    self, username: str | None = None, metrics: list[str] | None = None
+) -> dict[str, Any]:
+    """Refresh independently cached dashboard metrics for active user scopes."""
     _ensure_worker_runtime()
     if not task_family_enabled("maintenance"):
         return disabled_result("maintenance")
@@ -66,30 +69,50 @@ def refresh_dashboard_metrics(self, username: str | None = None) -> dict[str, An
                     or str(user_doc.get("username") or user_doc.get("_id") or "") == username
                 )
             ]
-            shared_payload = service.build_shared_summary_payload() if eligible_user_docs else {}
+            selected_metrics = sorted(set(metrics or DASHBOARD_METRICS) & DASHBOARD_METRICS)
             refreshed = 0
             skipped = 0
             failures: list[dict[str, str]] = []
-            refreshed_scopes: set[str] = set()
+            refreshed_scopes: set[tuple[str, str]] = set()
             skipped += len(user_docs) - len(eligible_user_docs)
             for user_doc in eligible_user_docs:
                 stored_username = str(user_doc.get("username") or user_doc.get("_id") or "")
                 try:
                     api_user = api_user_from_user_doc(user_doc)
-                    scope_key = service.summary_scope_key(user=api_user)
-                    if scope_key in refreshed_scopes:
-                        skipped += 1
-                        continue
-                    service.refresh_summary_payload(user=api_user, shared_payload=shared_payload)
-                    refreshed_scopes.add(scope_key)
-                    refreshed += 1
-                except Exception as exc:  # pragma: no cover - task integration guard
+                except Exception as exc:  # pragma: no cover - invalid stored user guard
                     logger.exception(
-                        "celery_dashboard_metrics_refresh_failed task_id=%s username=%s",
+                        "celery_dashboard_metrics_user_failed task_id=%s username=%s",
                         self.request.id,
                         stored_username,
                     )
                     failures.append({"username": stored_username, "error": type(exc).__name__})
+                    continue
+                for metric in selected_metrics:
+                    scope_key = service.metric_scope_key(metric, user=api_user)
+                    refresh_key = (metric, scope_key)
+                    if refresh_key in refreshed_scopes:
+                        skipped += 1
+                        continue
+                    try:
+                        service.metric_payload(metric, user=api_user, force=True)
+                        refreshed_scopes.add(refresh_key)
+                        refreshed += 1
+                    except Exception as exc:  # pragma: no cover - task integration guard
+                        logger.exception(
+                            "celery_dashboard_metric_refresh_failed task_id=%s username=%s metric=%s",
+                            self.request.id,
+                            stored_username,
+                            metric,
+                        )
+                        failures.append(
+                            {
+                                "username": stored_username,
+                                "metric": metric,
+                                "error": type(exc).__name__,
+                            }
+                        )
+                    finally:
+                        service.release_metric_refresh(metric, user=api_user)
     except Timeout:
         logger.info("celery_dashboard_metrics_refresh_skipped reason=already_running")
         return {"status": "skipped", "reason": "already_running"}

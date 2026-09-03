@@ -1,52 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
-  <title id="title">Dashboard Metric Path</title>
-  <desc id="desc">Background tasks aggregate source collections into a MongoDB materialized summary that the dashboard API reads.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="440" viewBox="0 0 1100 440" role="img" aria-labelledby="title desc">
+  <title id="title">Dashboard metric data path</title>
+  <desc id="desc">Independent dashboard requests read Redis metric entries. Cache misses and stale entries are rebuilt from MongoDB by the service or a Celery background task. Relevant collection writes invalidate only dependent metrics.</desc>
   <defs>
     <style>
       .canvas { fill: #f8fafc; }
-      .title-band { fill: #e2e8f0; }
+      .band { fill: #e2e8f0; }
       .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
       .label { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
       .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
-      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
-      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .box { stroke: #475569; stroke-width: 1.6; rx: 12; ry: 12; }
+      .arrow { stroke: #475569; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke-dasharray: 7 5; }
     </style>
     <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+      <polygon points="0,0 10,4 0,8" fill="#475569"/>
     </marker>
   </defs>
-
-  <rect x="0" y="0" width="980" height="360" class="canvas"/>
-  <rect x="20" y="16" width="940" height="36" rx="10" class="title-band"/>
-  <text x="30" y="40" class="title">Dashboard Metric Path</text>
-
-  <rect x="50" y="96" width="180" height="68" class="box" fill="#dbeafe"/>
-  <text x="140" y="122" text-anchor="middle" class="label">UI dashboard</text>
-  <text x="140" y="140" text-anchor="middle" class="sub">card load request</text>
-
-  <rect x="290" y="96" width="210" height="68" class="box" fill="#e0f2fe"/>
-  <text x="395" y="122" text-anchor="middle" class="label">GET /dashboard API</text>
-  <text x="395" y="140" text-anchor="middle" class="sub">router and contract</text>
-
-  <rect x="560" y="96" width="220" height="68" class="box" fill="#dcfce7"/>
-  <text x="670" y="122" text-anchor="middle" class="label">Dashboard service</text>
-  <text x="670" y="140" text-anchor="middle" class="sub">read materialized summary</text>
-
-  <rect x="500" y="234" width="200" height="68" class="box" fill="#dcfce7"/>
-  <text x="600" y="260" text-anchor="middle" class="label">Celery refresh task</text>
-  <text x="600" y="278" text-anchor="middle" class="sub">aggregate source collections</text>
-
-  <rect x="740" y="234" width="190" height="68" class="box" fill="#fef3c7"/>
-  <text x="835" y="260" text-anchor="middle" class="label">MongoDB summary</text>
-  <text x="835" y="278" text-anchor="middle" class="sub">one document per scope</text>
-
-  <rect x="790" y="96" width="150" height="68" class="box" fill="#ddd6fe"/>
-  <text x="865" y="122" text-anchor="middle" class="label">UI render</text>
-  <text x="865" y="140" text-anchor="middle" class="sub">response cards</text>
-
-  <path d="M230 130 L290 130" class="arrow"/>
-  <path d="M500 130 L560 130" class="arrow"/>
-  <path d="M760 130 L790 130" class="arrow"/>
-  <path d="M670 164 L835 234" class="arrow"/>
-  <path d="M700 268 L740 268" class="arrow"/>
+  <rect width="1100" height="440" class="canvas"/>
+  <rect x="20" y="16" width="1060" height="38" rx="10" class="band"/>
+  <text x="34" y="42" class="title">Independent Dashboard Metric Flow</text>
+  <rect x="40" y="100" width="190" height="76" class="box" fill="#ede9fe"/>
+  <text x="135" y="128" text-anchor="middle" class="label">Dashboard sections</text>
+  <text x="135" y="148" text-anchor="middle" class="sub">six independent requests</text>
+  <rect x="285" y="100" width="210" height="76" class="box" fill="#dbeafe"/>
+  <text x="390" y="128" text-anchor="middle" class="label">Metric API endpoint</text>
+  <text x="390" y="148" text-anchor="middle" class="sub">one domain payload</text>
+  <rect x="550" y="100" width="190" height="76" class="box" fill="#fef3c7"/>
+  <text x="645" y="128" text-anchor="middle" class="label">Redis metric cache</text>
+  <text x="645" y="148" text-anchor="middle" class="sub">fresh, stale, or missing</text>
+  <rect x="805" y="100" width="245" height="76" class="box" fill="#dcfce7"/>
+  <text x="928" y="128" text-anchor="middle" class="label">Immediate section render</text>
+  <text x="928" y="148" text-anchor="middle" class="sub">partial failures remain isolated</text>
+  <rect x="285" y="270" width="210" height="76" class="box" fill="#e0f2fe"/>
+  <text x="390" y="298" text-anchor="middle" class="label">Dashboard service</text>
+  <text x="390" y="318" text-anchor="middle" class="sub">build only requested metric</text>
+  <rect x="550" y="270" width="190" height="76" class="box" fill="#dcfce7"/>
+  <text x="645" y="298" text-anchor="middle" class="label">MongoDB</text>
+  <text x="645" y="318" text-anchor="middle" class="sub">authoritative collections</text>
+  <rect x="805" y="270" width="245" height="76" class="box" fill="#fae8ff"/>
+  <text x="928" y="298" text-anchor="middle" class="label">Celery refresh</text>
+  <text x="928" y="318" text-anchor="middle" class="sub">scheduled, stale, or manual</text>
+  <path d="M230 138 L285 138" class="arrow"/>
+  <path d="M495 138 L550 138" class="arrow"/>
+  <path d="M740 138 L805 138" class="arrow"/>
+  <path d="M645 176 L645 270" class="arrow dashed"/>
+  <text x="656" y="224" class="sub">cache miss</text>
+  <path d="M550 308 L495 308" class="arrow"/>
+  <path d="M390 270 L390 176" class="arrow"/>
+  <path d="M805 308 L740 308" class="arrow"/>
+  <path d="M928 270 L928 176" class="arrow dashed"/>
+  <text x="940" y="224" class="sub">stale value returned first</text>
+  <rect x="40" y="372" width="1010" height="42" rx="10" class="band"/>
+  <text x="550" y="398" text-anchor="middle" class="sub">Collection writes advance dependency markers; only affected metric entries become stale.</text>
 </svg>
