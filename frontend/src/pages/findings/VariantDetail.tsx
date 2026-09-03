@@ -309,6 +309,7 @@ export function VariantDetail() {
             <DetailCard title="Knowledge Bases" tone="success">
               <div className="space-y-2">
                 <VariantKnowledgeBlock
+                  source="civic"
                   title="CIViC"
                   defaultOpen
                   badges={data.civic?.length ? <EvidenceBadge tone="success">{data.civic.length} match{data.civic.length === 1 ? "" : "es"}</EvidenceBadge> : null}
@@ -345,14 +346,14 @@ export function VariantDetail() {
                   ) : null}
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock title="BRCA Exchange" defaultOpen>
+                <VariantKnowledgeBlock source="brca-exchange" title="BRCA Exchange" defaultOpen>
                   <DetailMetricTable
                     metrics={brcaExchangeMetrics(data.brca_exchange)}
                     dense
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock title="IARC TP53" defaultOpen>
+                <VariantKnowledgeBlock source="iarc-tp53" title="IARC TP53" defaultOpen>
                   <DetailMetricTable
                     metrics={data.iarc_tp53
                       ? objectMetrics(data.iarc_tp53, [
@@ -372,7 +373,7 @@ export function VariantDetail() {
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock title="HPA expression" defaultOpen>
+                <VariantKnowledgeBlock source="hpa" title="HPA expression" defaultOpen>
                   <DetailDataTable
                     rows={hpaExpressionRows(data.expression)}
                     empty="No local HPA transcript expression is available."
@@ -386,6 +387,7 @@ export function VariantDetail() {
                 </VariantKnowledgeBlock>
 
                 <VariantKnowledgeBlock
+                  source="oncokb"
                   title="OncoKB public cache"
                   defaultOpen
                   badges={
@@ -415,6 +417,7 @@ export function VariantDetail() {
                 </VariantKnowledgeBlock>
 
                 <VariantKnowledgeBlock
+                  source="oncokb"
                   title="Local actionable evidence"
                   defaultOpen
                   badges={oncokbActionRows(data.oncokb_action).length ? <EvidenceBadge tone="warning">Historical local</EvidenceBadge> : null}
@@ -431,7 +434,7 @@ export function VariantDetail() {
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock title="OncoKB API" defaultOpen>
+                <VariantKnowledgeBlock source="oncokb" title="OncoKB API" defaultOpen>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="type-meta text-muted-foreground">
                       Public API lookup. Therapeutic data is excluded by public OncoKB access.
@@ -486,6 +489,7 @@ export function VariantDetail() {
                 </VariantKnowledgeBlock>
 
                 <VariantKnowledgeBlock
+                  source="clinpgx"
                   title="ClinPGx"
                   defaultOpen
                   badges={

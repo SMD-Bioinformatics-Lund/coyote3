@@ -1,6 +1,7 @@
 /* eslint-disable react/only-export-components -- this module intentionally colocates knowledgebase renderers with their pure presentation helpers. */
 
 import type { ReactNode } from "react"
+import { Database } from "lucide-react"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { isPresent } from "@/lib/detail-formatters"
 import {
@@ -13,6 +14,31 @@ import {
   oncokbGeneUrl,
   pubmedArticleUrl,
 } from "@/lib/external-links"
+import { appPath } from "@/lib/runtime-paths"
+
+export type KnowledgebaseSource =
+  | "brca-exchange"
+  | "civic"
+  | "clinpgx"
+  | "hpa"
+  | "iarc-tp53"
+  | "oncokb"
+
+const knowledgebasePresentation: Record<
+  KnowledgebaseSource,
+  { logo?: string; logoAlt: string; logoWidth: string }
+> = {
+  "brca-exchange": {
+    logo: "/BRCA-Exchange.png",
+    logoAlt: "BRCA Exchange logo",
+    logoWidth: "w-7",
+  },
+  civic: { logo: "/civic.png", logoAlt: "CIViC logo", logoWidth: "w-16" },
+  clinpgx: { logo: "/clinPGxpng.png", logoAlt: "ClinPGx logo", logoWidth: "w-16" },
+  hpa: { logoAlt: "Human Protein Atlas", logoWidth: "w-7" },
+  "iarc-tp53": { logoAlt: "IARC TP53", logoWidth: "w-7" },
+  oncokb: { logo: "/OncoKB.png", logoAlt: "OncoKB logo", logoWidth: "w-16" },
+}
 
 export function objectMetrics(
   value: any,
@@ -113,12 +139,41 @@ export function clinpgxApiSummary(payload: any) {
   ]
 }
 
-export function VariantKnowledgeBlock({ title, badges, defaultOpen = false, children }: { title: string; badges?: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
+export function VariantKnowledgeBlock({
+  source,
+  title,
+  badges,
+  defaultOpen = false,
+  children,
+}: {
+  source: KnowledgebaseSource
+  title: string
+  badges?: ReactNode
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  const presentation = knowledgebasePresentation[source]
+
   return (
-    <details open={defaultOpen} className="group rounded-lg border border-border bg-background/70">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+    <details
+      open={defaultOpen}
+      data-knowledgebase={source}
+      className="knowledgebase-block group rounded-lg border"
+    >
+      <summary className="knowledgebase-block-header flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
         <span className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
+          <span className={`knowledgebase-logo-frame flex h-8 ${presentation.logoWidth} shrink-0 items-center justify-center rounded-md`}>
+            {presentation.logo ? (
+              <img
+                src={appPath(presentation.logo)}
+                alt={presentation.logoAlt}
+                className="max-h-7 max-w-full object-contain"
+              />
+            ) : (
+              <Database className="size-4" aria-label={presentation.logoAlt} />
+            )}
+          </span>
+          <span className="type-card-title text-foreground">{title}</span>
           {badges}
         </span>
         <span className="rounded-md bg-muted px-2 py-0.5 type-label font-semibold uppercase text-muted-foreground group-open:hidden">Expand</span>

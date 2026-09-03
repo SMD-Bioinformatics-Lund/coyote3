@@ -515,6 +515,46 @@
     background: var(--paper-raised);
     box-shadow: 0 1px 2px var(--paper-shadow);
   }
+  .knowledgebase-block {
+    --knowledgebase-accent: var(--status-info);
+    --knowledgebase-tint: var(--status-info-soft);
+    border-color: color-mix(in srgb, var(--knowledgebase-accent) 38%, var(--paper-edge));
+    background: color-mix(in srgb, var(--paper-raised) 96%, var(--knowledgebase-tint));
+    box-shadow: 0 1px 2px var(--paper-shadow);
+  }
+  .knowledgebase-block[data-knowledgebase="brca-exchange"] {
+    --knowledgebase-accent: var(--status-warning);
+    --knowledgebase-tint: var(--status-warning-soft);
+  }
+  .knowledgebase-block[data-knowledgebase="civic"] {
+    --knowledgebase-accent: var(--status-info);
+    --knowledgebase-tint: var(--status-info-soft);
+  }
+  .knowledgebase-block[data-knowledgebase="clinpgx"] {
+    --knowledgebase-accent: var(--badge-pgx-foreground);
+    --knowledgebase-tint: var(--badge-pgx-background);
+  }
+  .knowledgebase-block[data-knowledgebase="hpa"] {
+    --knowledgebase-accent: var(--status-success);
+    --knowledgebase-tint: var(--status-success-soft);
+  }
+  .knowledgebase-block[data-knowledgebase="iarc-tp53"] {
+    --knowledgebase-accent: var(--status-danger);
+    --knowledgebase-tint: var(--status-danger-soft);
+  }
+  .knowledgebase-block[data-knowledgebase="oncokb"] {
+    --knowledgebase-accent: var(--primary);
+    --knowledgebase-tint: var(--surface-selected);
+  }
+  .knowledgebase-block-header {
+    border-radius: calc(var(--radius) - 0.15rem);
+    background: color-mix(in srgb, var(--knowledgebase-tint) 48%, transparent);
+  }
+  .knowledgebase-logo-frame {
+    color: var(--knowledgebase-accent);
+    border: 1px solid color-mix(in srgb, var(--knowledgebase-accent) 28%, var(--paper-edge));
+    background: color-mix(in srgb, var(--paper-raised) 90%, var(--knowledgebase-tint));
+  }
   .detail-section-title {
     @apply mb-3 border-b border-border pb-2 text-sm font-semibold uppercase tracking-wide text-foreground;
   }
