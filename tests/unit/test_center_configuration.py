@@ -36,6 +36,7 @@ def test_center_contact_and_collection_configuration_loads():
     )
     collections = load_collection_mapping(
         primary_database="arbitrary_center_database",
+        identity_database="arbitrary_identity_database",
         knowledgebase_database="arbitrary_knowledgebase_database",
         bam_database="arbitrary_bam_database",
     )
@@ -43,6 +44,8 @@ def test_center_contact_and_collection_configuration_loads():
     assert contact["organization"]["name"] == "Test center"
     assert contact["contacts"]
     assert collections["arbitrary_center_database"]["samples_collection"] == "samples"
+    assert collections["arbitrary_identity_database"]["users_collection"] == "users"
+    assert "users_collection" not in collections["arbitrary_center_database"]
     assert (
         collections["arbitrary_knowledgebase_database"]["civic_variants_collection"]
         == "civic_variants"

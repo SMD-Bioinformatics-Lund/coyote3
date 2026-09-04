@@ -168,6 +168,57 @@ its transformed document count and complete SHA-256 digest match the source.
 A differing destination or an existing staging collection stops the command
 for operator review; neither is overwritten automatically.
 
+## Identity database migration
+
+Coyote3 stores `users`, `roles`, `permissions`, `api_sessions`, and
+`audit_events` in the database selected by `IDENTITY_DB`. Audit events remain
+with identity data because both require restricted access, durable backups,
+and security-controlled administration. Application controls and clinical data
+remain in `COYOTE3_DB`.
+
+For an existing installation, stop API and worker processes and back up MongoDB
+before migration. Grant the application and migration account read/write access
+to `IDENTITY_DB`, then inspect the source without writing:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --source-db "$COYOTE3_DB" \
+  --target-db "$IDENTITY_DB" \
+  --report identity-migration-dry-run.json
+```
+
+Copy documents and indexes through verified staging collections:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --source-db "$COYOTE3_DB" \
+  --target-db "$IDENTITY_DB" \
+  --apply \
+  --report identity-migration-applied.json
+```
+
+Start Coyote3 with `IDENTITY_DB` configured and verify local login, role and
+permission administration, session persistence, audit export, and index status.
+Keep the source collections for the approved rollback period. After acceptance,
+remove only the verified source copies:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --source-db "$COYOTE3_DB" \
+  --target-db "$IDENTITY_DB" \
+  --apply \
+  --drop-source \
+  --confirm-drop-source "$COYOTE3_DB" \
+  --report identity-migration-cleanup.json
+```
+
+The report contains collection counts and content digests, not identity
+documents. A populated destination with different content blocks migration and
+is never overwritten.
+
 ## Data durability
 
 MongoDB data and archives are host bind mounts. `docker compose down` stops and removes containers but does not remove either host directory. The project wrapper also rejects `down -v` and `down --volumes`.

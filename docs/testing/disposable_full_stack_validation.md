@@ -5,7 +5,7 @@ workstation. It is an operator-run local test that follows the center
 deployment sequence:
 
 1. create the MongoDB service;
-2. initialize the empty application database explicitly;
+2. initialize the empty application and identity databases explicitly;
 3. start the application, worker, scheduler, cache, documentation, and reverse
    proxy;
 4. ingest controlled data through the live watch-folder workflow;
@@ -155,6 +155,7 @@ Create the environment file used by MongoDB and the application stack:
 cat > "$VALIDATION_ENV_FILE" <<EOF
 ENV_NAME=testing
 COYOTE3_DB=coyote3_validation
+IDENTITY_DB=coyote3_identity_validation
 KNOWLEDGEBASE_DB=coyote3_knowledgebase_validation
 BAM_DB=BAM_Service_validation
 ORGANIZATION_NAME=Coyote3 disposable validation
@@ -405,6 +406,7 @@ scripts/compose-with-version.sh \
   python scripts/bootstrap_database.py \
     --mongo-uri "$(grep '^MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --db coyote3_validation \
+    --identity-db coyote3_identity_validation \
     --username coyote3.admin \
     --email admin@validation.invalid \
     --password "$VALIDATION_ADMIN_PASSWORD" \

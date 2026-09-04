@@ -28,6 +28,7 @@ Every center must review and set only this core deployment contract:
 | --- | --- |
 | `MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
 | `COYOTE3_DB` | Selects the primary application database explicitly. |
+| `IDENTITY_DB` | Selects the dedicated identity and security database explicitly. |
 | `KNOWLEDGEBASE_DB` | Selects the dedicated external knowledgebase database explicitly. |
 | `BAM_DB` | Selects the BAM-service database explicitly. |
 | `SECRET_KEY` | Signs invitation and password-reset action tokens. |
@@ -153,8 +154,8 @@ environment variables and are documented in the linked center-configuration
 tables above.
 
 Some environment variables select database instances rather than duplicate
-collection configuration. `COYOTE3_DB` is bound to `[primary]`,
-`KNOWLEDGEBASE_DB` to `[knowledgebase]`, and `BAM_DB` to `[bam]` in
+collection configuration. `COYOTE3_DB` is bound to `[primary]`, `IDENTITY_DB`
+to `[identity]`, `KNOWLEDGEBASE_DB` to `[knowledgebase]`, and `BAM_DB` to `[bam]` in
 `center/collections.toml`. Physical collection names remain TOML values.
 
 > **Warning: HTTPS session cookies**
@@ -175,6 +176,7 @@ registration is not configurable through an environment variable.
 | --- | --- | --- | --- |
 | `ENV_NAME` | No; default `production` at runtime | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
 | `COYOTE3_DB` | Yes | MongoDB database name | Primary application database. The database in `MONGO_URI` must match this value. |
+| `IDENTITY_DB` | Yes | MongoDB database name different from every other configured database | User accounts, RBAC policy, API sessions, and durable security/audit events. |
 | `KNOWLEDGEBASE_DB` | Yes | MongoDB database name different from `COYOTE3_DB` and `BAM_DB` | External knowledgebase datasets and public API caches. It must be on the MongoDB deployment addressed by `MONGO_URI`. |
 | `BAM_DB` | Yes | MongoDB database name | BAM-service database used for sample BAM lookups. |
 | `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | Used on login, public, contact, and support pages. |
@@ -305,7 +307,7 @@ The following values are intentionally derived or internal:
 | API health path | Fixed endpoint `/api/v1/health`. |
 | Documentation/help URL | Derived as `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`. |
 | Repository and issue links | `api/config/application_metadata.py`; these are repository-owned product links. |
-| API session and audit collection names | Fixed internal collections `api_sessions` and `audit_events`. |
+| API session and audit collection names | The `api_sessions_collection` and `audit_events_collection` mappings under `[identity]` in `center/collections.toml`. Both collections are stored in `IDENTITY_DB`. |
 | Container data root | Fixed container path `/data`; only the host root is configurable. |
 | MANE transcript reference data | The `hgnc_collection` in the configured application database. It supplies MANE and clinical transcript metadata used by transcript selection; no environment variable or filesystem path is required. |
 

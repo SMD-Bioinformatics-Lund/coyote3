@@ -80,6 +80,7 @@ def snapshot(adapter: Any, requested_collections: set[str]) -> list[dict[str, An
     collections: dict[tuple[str, str], Any] = {}
     database_bindings = (
         (adapter.app.config["COYOTE3_DB"], adapter.coyote_db),
+        (adapter.app.config["IDENTITY_DB"], adapter.identity_db),
         (adapter.app.config["KNOWLEDGEBASE_DB"], adapter.knowledgebase_db),
         (adapter.app.config["BAM_DB"], adapter.bam_db),
     )

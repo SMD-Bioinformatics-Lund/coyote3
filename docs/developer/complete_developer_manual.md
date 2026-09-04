@@ -58,8 +58,8 @@ Use these rules before choosing an implementation:
 | API | Authentication, authorization, validation, workflows, reporting, and repository coordination. | Long-running scheduled execution. |
 | Worker | Ingest, knowledgebase refresh, and maintenance tasks. | HTTP response handling. |
 | Beat | Periodic task scheduling. | Clinical data persistence logic. |
-| MongoDB | Clinical, configuration, audit, report, and operational documents. | Application decisions outside stored configuration. |
-| Redis | Celery broker/results and enabled cache/session infrastructure. | Clinical source data. |
+| MongoDB | Application, identity/security, knowledgebase, and BAM-service documents in separate configured databases. | Application decisions outside stored configuration. |
+| Redis | Celery broker/results and enabled non-clinical caches. | Clinical source data or API session truth. |
 | Reverse proxy | Deployment prefix, TLS boundary, and service routing. | Application authorization. |
 
 ### HTTP request flow

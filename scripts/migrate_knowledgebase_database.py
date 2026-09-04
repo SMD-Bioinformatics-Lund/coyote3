@@ -155,6 +155,7 @@ def migrate_collection(
     collection_name: str,
     *,
     apply: bool,
+    staging_prefix: str = STAGING_PREFIX,
 ) -> dict[str, Any]:
     """Inspect, copy, and verify one configured knowledgebase collection."""
     source_names = set(source_db.list_collection_names())
@@ -183,7 +184,7 @@ def migrate_collection(
         result["status"] = "ready"
         return result
 
-    staging_name = f"{STAGING_PREFIX}{collection_name}"
+    staging_name = f"{staging_prefix}{collection_name}"
     if staging_name in target_names:
         raise RuntimeError(
             f"Staging collection already exists and requires operator review: "

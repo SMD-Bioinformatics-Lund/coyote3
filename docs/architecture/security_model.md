@@ -151,7 +151,7 @@ permission and role documents.
 
 The application ships the canonical policy and built-in role catalogs in
 `api/config/bootstrap/rbac`. They are installed explicitly during first
-deployment into an empty governance database. After initialization, MongoDB is
+deployment into an empty `IDENTITY_DB`. After initialization, MongoDB is
 the runtime source of truth. Normal startup never replaces center role grants or
 permission documents. When a deployed application version contains a new
 policy, use the explicit `scripts/sync_rbac_catalog.py` maintenance command.
@@ -312,7 +312,7 @@ def mark_false_variant(
 ## Durable audit scope
 
 The `audit_events` collection is for significant security, clinical, and
-administrative events. It stores authentication outcomes, authorization
+administrative events in `IDENTITY_DB`. It stores authentication outcomes, authorization
 denials, sample ingest outcomes, mutating API actions, report creation, variant
 curation/classification changes, admin resource changes, application-control
 changes, maintenance outcomes, and unexpected API failures.
@@ -387,7 +387,7 @@ forgot password (local user)
 ## API session transport
 
 The login endpoint `POST /api/v1/auth/sessions` creates an opaque API session
-token and stores it in the configured `api_sessions` collection. The response
+token and stores it in the configured `api_sessions` collection in `IDENTITY_DB`. The response
 sets that token as an HTTP-only cookie named by `API_SESSION_COOKIE_NAME`.
 The request authentication layer accepts the same token through either:
 

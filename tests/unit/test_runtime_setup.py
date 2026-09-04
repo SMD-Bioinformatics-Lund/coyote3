@@ -167,6 +167,7 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
         LOG_LEVEL="INFO",
         LOGS="logs/api",
         COYOTE3_DB="coyote3_test",
+        IDENTITY_DB="identity_test",
         KNOWLEDGEBASE_DB="knowledgebase_test",
         BAM_DB="bam_test",
     )
@@ -189,13 +190,14 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
     assert phases == ["cache", "database_and_indexes", "total"]
 
 
-@pytest.mark.parametrize("missing_key", ["COYOTE3_DB", "KNOWLEDGEBASE_DB", "BAM_DB"])
+@pytest.mark.parametrize("missing_key", ["COYOTE3_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"])
 def test_create_runtime_context_requires_explicit_database_names(
     monkeypatch: pytest.MonkeyPatch, missing_key: str
 ) -> None:
     config_values = {
         "ENV_NAME": "testing",
         "COYOTE3_DB": "coyote3_test",
+        "IDENTITY_DB": "identity_test",
         "KNOWLEDGEBASE_DB": "knowledgebase_test",
         "BAM_DB": "bam_test",
     }
@@ -219,12 +221,32 @@ def test_create_runtime_context_requires_separate_knowledgebase_database(
         lambda **_kwargs: SimpleNamespace(
             ENV_NAME="testing",
             COYOTE3_DB="same_database",
+            IDENTITY_DB="identity_test",
             KNOWLEDGEBASE_DB="same_database",
             BAM_DB="bam_test",
         ),
     )
 
     with pytest.raises(RuntimeError, match="must be different"):
+        runtime_setup.create_runtime_context(testing=True)
+
+
+def test_create_runtime_context_requires_separate_identity_database(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        runtime_setup,
+        "_select_config",
+        lambda **_kwargs: SimpleNamespace(
+            ENV_NAME="testing",
+            COYOTE3_DB="application",
+            IDENTITY_DB="application",
+            KNOWLEDGEBASE_DB="knowledgebase",
+            BAM_DB="bam",
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="IDENTITY_DB must be different"):
         runtime_setup.create_runtime_context(testing=True)
 
 
@@ -240,22 +262,26 @@ def test_mongo_adapter_binds_knowledgebase_collections_to_dedicated_database() -
     adapter.app = SimpleNamespace(
         config={
             "COYOTE3_DB": "application",
+            "IDENTITY_DB": "identity",
             "KNOWLEDGEBASE_DB": "knowledgebase",
             "BAM_DB": "bam",
             "DB_COLLECTIONS_CONFIG": {
                 "application": {"samples_collection": "samples"},
+                "identity": {"users_collection": "users"},
                 "knowledgebase": {"civic_variants_collection": "civic_variants"},
                 "bam": {"bam_samples": "samples"},
             },
         }
     )
     adapter.coyote_db = FakeDatabase("application")
+    adapter.identity_db = FakeDatabase("identity")
     adapter.knowledgebase_db = FakeDatabase("knowledgebase")
     adapter.bam_db = FakeDatabase("bam")
 
     adapter.setup()
 
     assert adapter.samples_collection == ("application", "samples")
+    assert adapter.users_collection == ("identity", "users")
     assert adapter.civic_variants_collection == ("knowledgebase", "civic_variants")
     assert adapter.bam_samples == ("bam", "samples")
 

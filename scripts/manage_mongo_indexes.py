@@ -60,7 +60,10 @@ def main() -> int:
     if args.command == "apply":
         adapter.ensure_repository_indexes()
         ensure_security_indexes(
-            db=adapter.coyote_db, config=adapter.app.config, logger=adapter.app.logger
+            primary_db=adapter.coyote_db,
+            identity_db=adapter.identity_db,
+            config=adapter.app.config,
+            logger=adapter.app.logger,
         )
     elif args.command == "retire":
         if args.confirm_index_name != args.index:

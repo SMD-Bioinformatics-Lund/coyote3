@@ -41,13 +41,17 @@ def adapter_for(repository: FakeRepository):
         "audit_events": FakeCollection("audit_events", []),
         "app_controls": FakeCollection("app_controls", []),
     }
-    database = type(
+    primary_database = type(
         "FakeDatabase", (), {"__getitem__": lambda self, key: security_collections[key]}
+    )()
+    identity_database = type(
+        "FakeIdentityDatabase", (), {"__getitem__": lambda self, key: security_collections[key]}
     )()
     return SimpleNamespace(
         iter_repositories=lambda: iter([("samples", repository)]),
         app=SimpleNamespace(config={}),
-        coyote_db=database,
+        coyote_db=primary_database,
+        identity_db=identity_database,
     )
 
 

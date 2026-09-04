@@ -49,8 +49,8 @@ ASP, ASPC, and ISGL configuration
 | FastAPI API | Validation, authorization, workflows, reporting, and public contracts. |
 | Celery worker | Ingest, maintenance, and explicitly queued background work. |
 | Celery beat | Periodic task scheduling. |
-| MongoDB | Clinical, configuration, identity, audit, and operational documents. |
-| Redis | Task delivery, sessions, and non-clinical cache data. |
+| MongoDB | Separate application, identity/security, knowledgebase, and BAM-service databases. |
+| Redis | Celery task delivery, task results, and non-clinical cache data. |
 | Reverse proxy | One browser origin for UI, API, and documentation. |
 
 The API and worker use the same application services and document contracts.

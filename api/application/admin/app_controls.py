@@ -179,11 +179,13 @@ class AppControlsService:
         self,
         db: Any,
         *,
+        identity_db: Any,
         config: dict[str, Any],
         audit_service: Any | None = None,
         index_conflicts_provider: Any | None = None,
     ) -> None:
         self.collection = db[OPERATIONAL_COLLECTIONS.app_controls]
+        self.audit_collection = identity_db[get_audit_events_collection_name(config)]
         self.config = config
         self.audit_service = audit_service
         self.index_conflicts_provider = index_conflicts_provider
@@ -441,8 +443,7 @@ class AppControlsService:
         """Delete audit events older than the configured retention horizon."""
         retention_days = self.get_controls().retention.audit_events_days
         cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-        audit_collection = self.collection.database[get_audit_events_collection_name(self.config)]
-        result = audit_collection.delete_many(
+        result = self.audit_collection.delete_many(
             {
                 "retention_class": "operational",
                 "occurred_at": {"$lt": cutoff},

@@ -26,7 +26,8 @@ The application is organized around a few stable principles:
 - the FastAPI backend owns API contracts, workflow logic, authorization, and validation
 - MongoDB collections are accessed through repositories and typed Pydantic document contracts
 - Celery runs background work such as ingest and retention maintenance
-- Redis is used for cache/session/task infrastructure, not as a clinical source of truth
+- Redis is used for cache and task infrastructure, not for API session truth or
+  as a clinical source of truth
 - runtime controls may be toggled from Admin, while secrets and infrastructure endpoints stay in environment configuration
 
 ## Runtime Components
@@ -135,12 +136,25 @@ local service names, support contacts, sample-type descriptions, and TAT values.
 
 ## Collection Mapping
 
+MongoDB data is divided by ownership and access boundary:
+
+| Database setting | Data owned by the database |
+| --- | --- |
+| `COYOTE3_DB` | Samples, findings, annotations, reports, comments, assay configuration, coverage, RNA results, notifications, application controls, HGNC data, and VEP metadata. |
+| `IDENTITY_DB` | User accounts, roles, permissions, API sessions, and durable audit events. |
+| `KNOWLEDGEBASE_DB` | Installed external knowledgebase releases, knowledgebase provenance, and public integration caches. It must not contain sample or patient data. |
+| `BAM_DB` | BAM-service sample records. |
+
+These databases are required to have distinct names. Separating identity and
+audit data gives them a dedicated access, backup, and retention boundary while
+keeping clinical application data in `COYOTE3_DB`.
+
 The Mongo adapter reads `DB_COLLECTIONS_CONFIG` from the active config object.
-It binds `[primary]` to `COYOTE3_DB`, `[knowledgebase]` to
-`KNOWLEDGEBASE_DB`, and `[bam]` to `BAM_DB`. Each configured collection key
-becomes an adapter attribute, and repositories bind to those attributes. The
-application layer therefore queries repository interfaces without selecting a
-physical database.
+It binds `[primary]` to `COYOTE3_DB`, `[identity]` to `IDENTITY_DB`,
+`[knowledgebase]` to `KNOWLEDGEBASE_DB`, and `[bam]` to `BAM_DB`. Each
+configured collection key becomes an adapter attribute, and repositories bind
+to those attributes. The application layer therefore queries repository
+interfaces without selecting a physical database.
 
 Example flow:
 

@@ -48,6 +48,7 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
         app=SimpleNamespace(
             config={
                 "COYOTE3_DB": "coyote3_test",
+                "IDENTITY_DB": "identity_test",
                 "KNOWLEDGEBASE_DB": "knowledgebase_test",
                 "BAM_DB": "bam_test",
                 "DB_COLLECTIONS_CONFIG": {
@@ -55,12 +56,14 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
                         "variants_collection": "variants",
                         "samples_collection": "samples",
                     },
+                    "identity_test": {"users_collection": "users"},
                     "knowledgebase_test": {},
                     "bam_test": {},
                 },
             }
         ),
         coyote_db=FakeMongoDatabase("coyote3_test"),
+        identity_db=FakeMongoDatabase("identity_test"),
         knowledgebase_db=FakeMongoDatabase("knowledgebase_test"),
         bam_db=FakeMongoDatabase("bam_test"),
         iter_repositories=lambda: iter(repositories),
@@ -84,7 +87,11 @@ def test_snapshot_filters_and_sorts_managed_collections() -> None:
         repositories=[("variants", SimpleNamespace(get_collection=lambda: variants))]
     )
 
-    assert [item["collection"] for item in snapshot(adapter, set())] == ["samples", "variants"]
+    assert [item["collection"] for item in snapshot(adapter, set())] == [
+        "samples",
+        "variants",
+        "users",
+    ]
     assert [item["collection"] for item in snapshot(adapter, {"variants"})] == ["variants"]
 
 

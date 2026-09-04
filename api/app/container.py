@@ -138,6 +138,7 @@ class MongoStore:
         self._adapter: Any | None = None
         self.client = None
         self.coyote_db = None
+        self.identity_db = None
         self.knowledgebase_db = None
         self.bam_db = None
         self.annotation_repository = _LazyRepositoryProxy()

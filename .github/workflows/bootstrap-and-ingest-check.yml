@@ -21,6 +21,9 @@ jobs:
     timeout-minutes: 35
     env:
       COYOTE3_DB: coyote3_ci
+      IDENTITY_DB: coyote3_identity_ci
+      KNOWLEDGEBASE_DB: coyote3_knowledgebase_ci
+      BAM_DB: BAM_Service
       MONGO_ROOT_USERNAME: coyote3_root
       MONGO_ROOT_PASSWORD: ci-root-password
       MONGO_APP_USER: coyote3_app
@@ -54,7 +57,9 @@ jobs:
           cat > .coyote3_stage_env <<EOF
           ENV_NAME=staging
           COYOTE3_DB=${COYOTE3_DB}
-          BAM_DB=BAM_Service
+          IDENTITY_DB=${IDENTITY_DB}
+          KNOWLEDGEBASE_DB=${KNOWLEDGEBASE_DB}
+          BAM_DB=${BAM_DB}
           ORGANIZATION_NAME=Coyote3 CI
           LOCAL_TIME_ZONE=UTC
           SECRET_KEY=ci-test-secret-key
@@ -108,6 +113,7 @@ jobs:
             python scripts/bootstrap_database.py \
               --mongo-uri "${MONGO_URI}" \
               --db "${COYOTE3_DB}" \
+              --identity-db "${IDENTITY_DB}" \
               --username "${ADMIN_USERNAME}" \
               --email "${ADMIN_EMAIL}" \
               --password "${ADMIN_PASSWORD}" \

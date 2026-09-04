@@ -83,6 +83,7 @@ LOCAL_TIME_ZONE=Europe/Stockholm
 
 MONGO_URI=mongodb://<APP_USER>:<PASSWORD>@<MONGO_HOST>:27017/<DATABASE>?authSource=<AUTH_DATABASE>&replicaSet=<REPLICA_SET>
 COYOTE3_DB=<COYOTE3_DATABASE>
+IDENTITY_DB=<IDENTITY_DATABASE>
 KNOWLEDGEBASE_DB=<KNOWLEDGEBASE_DATABASE>
 BAM_DB=<BAM_SERVICE_DATABASE>
 
@@ -238,6 +239,7 @@ scripts/compose-with-version.sh \
   python scripts/bootstrap_database.py \
     --mongo-uri "$MONGO_URI" \
     --db "$COYOTE3_DB" \
+    --identity-db "$IDENTITY_DB" \
     --username "admin.coyote3" \
     --email "admin@example.org" \
     --password "$FIRST_ADMIN_PASSWORD"
@@ -246,7 +248,7 @@ unset FIRST_ADMIN_PASSWORD
 ```
 
 Do not add `--with-demo-center` to a clinical deployment. Bootstrap rejects a
-partially initialized governance database and leaves an existing superuser
+partially initialized identity database and leaves an existing superuser
 unchanged.
 
 ### 7. Start the production services
@@ -460,8 +462,7 @@ scripts/compose-with-version.sh \
   run --rm --no-deps api \
   python scripts/sync_rbac_catalog.py \
     --mongo-uri "$MONGO_URI" \
-    --db "$COYOTE3_DB" \
-    --bam-db "$BAM_DB"
+    --identity-db "$IDENTITY_DB"
 ```
 
 Inspect and apply newly declared indexes when required:

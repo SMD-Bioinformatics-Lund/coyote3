@@ -52,6 +52,7 @@ Example staging command:
 .venv/bin/python scripts/bootstrap_database.py \
   --mongo-uri "$MONGO_URI" \
   --db "$COYOTE3_DB" \
+  --identity-db "$IDENTITY_DB" \
   --username "admin.coyote3" \
   --email "admin@coyote3.local" \
   --password "ENFORCED_SECRET"

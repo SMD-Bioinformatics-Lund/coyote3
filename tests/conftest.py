@@ -16,6 +16,7 @@ if repo_root_str not in sys.path:
 # Keep test config deterministic regardless of caller shell environment.
 os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
 os.environ.setdefault("COYOTE3_DB", "coyote3_test")
+os.environ.setdefault("IDENTITY_DB", "coyote3_identity_test")
 os.environ.setdefault("KNOWLEDGEBASE_DB", "coyote3_knowledgebase_test")
 os.environ.setdefault("BAM_DB", "bam_test")
 

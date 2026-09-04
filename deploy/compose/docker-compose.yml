@@ -10,6 +10,7 @@ x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
   MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
   COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB is required}
+  IDENTITY_DB: ${IDENTITY_DB:?IDENTITY_DB is required}
   KNOWLEDGEBASE_DB: ${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB is required}
   BAM_DB: ${BAM_DB:?BAM_DB is required}
   SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}

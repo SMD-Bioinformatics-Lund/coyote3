@@ -81,7 +81,7 @@ def test_api_session_repository_loads_only_active_users(
         "inactive": {"username": "inactive", "is_active": False},
     }
     store = SimpleNamespace(
-        coyote_db={"sessions": object()},
+        identity_db={"sessions": object()},
         user_repository=SimpleNamespace(user_with_id=lambda username: users.get(username)),
     )
     captured: dict[str, object] = {}
@@ -111,11 +111,11 @@ def test_api_session_repository_loads_only_active_users(
 def test_audit_service_requires_database_and_uses_runtime_settings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = SimpleNamespace(coyote_db=None)
+    store = SimpleNamespace(coyote_db=object(), identity_db=None)
     monkeypatch.setattr(services, "get_store", lambda: store)
     assert services.get_audit_service() is None
 
-    store.coyote_db = {"audit": object()}
+    store.identity_db = {"audit": object()}
     constructor = Mock(return_value="audit-service")
     monkeypatch.setattr(services, "AuditService", constructor)
     monkeypatch.setattr(services, "get_audit_events_collection_name", lambda config: "audit")
@@ -124,7 +124,7 @@ def test_audit_service_requires_database_and_uses_runtime_settings(
 
     assert services.get_audit_service() == "audit-service"
     constructor.assert_called_once_with(
-        store.coyote_db["audit"], retention_days=90, environment="testing"
+        store.identity_db["audit"], retention_days=90, environment="testing"
     )
 
 
@@ -133,6 +133,7 @@ def test_notification_and_controls_providers_include_runtime_dependencies(
 ) -> None:
     store = SimpleNamespace(
         coyote_db=object(),
+        identity_db=object(),
         _adapter=SimpleNamespace(index_setup_conflicts=[{"name": "conflict"}]),
     )
     monkeypatch.setattr(services, "get_store", lambda: store)
@@ -147,3 +148,4 @@ def test_notification_and_controls_providers_include_runtime_dependencies(
     assert notification_factory.call_args.kwargs["audit_service"] == "audit"
     provider = controls_factory.call_args.kwargs["index_conflicts_provider"]
     assert provider() == [{"name": "conflict"}]
+    assert controls_factory.call_args.kwargs["identity_db"] is store.identity_db

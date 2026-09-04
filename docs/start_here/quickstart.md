@@ -61,16 +61,17 @@ sample.
 .venv/bin/python scripts/bootstrap_database.py \
   --mongo-uri "$MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
+  --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
   --username "<first-superuser-username>" \
   --email "<first-superuser-email>" \
   --password "<generate-a-unique-password>"
 ```
 
-This creates the first local superuser and initializes empty `permissions`,
-`roles`, `hgnc_genes`, and `vep_metadata` collections. It stops rather than
-mixing data into a partially initialized governance database. To install the
-synthetic ASP, ASPC, and ISGL demonstration catalog for a nonclinical local
-environment, add `--with-demo-center`.
+This creates the first local superuser and initializes `permissions` and `roles`
+in `IDENTITY_DB`, plus `hgnc_genes` and `vep_metadata` in `COYOTE3_DB`. It stops
+rather than mixing data into a partially initialized identity database. To
+install the synthetic ASP, ASPC, and ISGL demonstration catalog for a
+nonclinical local environment, add `--with-demo-center`.
 
 For a clinical deployment, import reviewed center-owned ASP, ASPC, and ISGL
 definitions after startup through the managed admin interfaces or approved

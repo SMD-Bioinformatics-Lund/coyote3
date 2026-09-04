@@ -18,8 +18,8 @@ separate deliberate operations.
 
 - Prepare an environment file from `deploy/env/example.env`.
 - Set `MONGO_URI` to the MongoDB service chosen by the center.
-- Create the MongoDB application user with read/write access to the Coyote3
-  database.
+- Create the MongoDB application user with read/write access to the application,
+  identity, knowledgebase, and BAM-service databases selected by the environment.
 - Replace every placeholder secret in the environment file.
 - Keep approved center ASP, ASPC, and ISGL definitions in the center's private
   deployment configuration.
@@ -47,7 +47,7 @@ mongosh "$MONGO_URI" --eval 'db.runCommand({ping: 1})'
 See [MongoDB deployment and recovery](mongodb_deployment_and_recovery.md) for
 the standalone Docker and replica-set procedure.
 
-## 2. Initialize the empty application database
+## 2. Initialize the empty application and identity databases
 
 Run the direct bootstrap command from a checkout with the Python dependencies
 installed. The command does not start Docker Compose, call HTTP endpoints, or
@@ -57,14 +57,15 @@ ingest any sample.
 .venv/bin/python scripts/bootstrap_database.py \
   --mongo-uri "$MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
+  --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
   --username "admin.coyote3" \
   --email "admin@your-center.org" \
   --password "<GENERATED_ADMIN_PASSWORD>"
 ```
 
-It creates the first local `superuser` and loads the bundled `permissions`,
-`roles`, `hgnc_genes`, and `vep_metadata` records into their empty
-collections. A partially initialized governance database is rejected rather
+It creates the first local `superuser` and loads bundled `permissions` and
+`roles` into `IDENTITY_DB`, then loads `hgnc_genes` and `vep_metadata` into
+`COYOTE3_DB`. A partially initialized identity database is rejected rather
 than modified. A database that already has a superuser is reported and left
 unchanged.
 

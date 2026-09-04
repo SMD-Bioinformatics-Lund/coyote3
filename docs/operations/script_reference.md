@@ -22,7 +22,7 @@ execution classes below.
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
-| `bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Directly initializes an empty database with the first local superuser, bundled RBAC, HGNC, and VEP snapshot; optional synthetic ASP/ASPC/ISGL data is selected with `--with-demo-center` |
+| `bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes `IDENTITY_DB` with the first local superuser and bundled RBAC, and initializes `COYOTE3_DB` with HGNC, VEP, and optional synthetic center data |
 | `center_preflight.sh` | Manual operation | Initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, and optional seed or ingest inputs without writing data |
 | `build_seed_bundle.py` | Internal helper | Tests and controlled seed preparation | Normalizes center seed sources into deterministic collection documents |
 | `center_check.sh` | Manual operation | Composed CI verification | Runs authenticated health, baseline-resource, manifest-validation, and ingest checks after services are online |
@@ -69,6 +69,7 @@ started through `bootstrap_database.py`.
 | `sync_rbac_catalog.py` | Manual operation | RBAC maintenance documentation and tests | Adds missing application-owned permissions and roles while preserving center-owned policies |
 | `seed_clinpgx_genes_public.py` | Manual operation | ClinPGx integration guide | Imports an explicitly supplied official ClinPGx gene export into the configured public marker collection |
 | `migrate_knowledgebase_database.py` | Upgrade operation | MongoDB deployment and recovery guide | Copies external knowledgebase collections into `KNOWLEDGEBASE_DB`, verifies complete content, and optionally removes verified source collections |
+| `migrate_identity_database.py` | Upgrade operation | MongoDB deployment and recovery guide | Copies users, roles, permissions, API sessions, and audit events into `IDENTITY_DB`, verifies complete content and indexes, and optionally removes verified source collections |
 | `update_brca_exchange.py` | Manual operation | Knowledgebase snapshot update guide | Validates and atomically publishes a complete BRCA Exchange TSV release |
 | `update_civic.py` | Manual operation | Knowledgebase snapshot update guide | Validates and publishes matching CIViC feature and variant summary releases as one unit |
 | `update_tp53_database.py` | Manual operation | Knowledgebase snapshot update guide | Imports the NCI TP53 functional/structural variant release used by the TP53 detail card |

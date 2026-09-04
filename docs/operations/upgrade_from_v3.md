@@ -130,7 +130,7 @@ centre-defined roles:
 ```bash
 python scripts/sync_rbac_catalog.py \
   --mongo-uri "${MONGO_URI}" \
-  --db "${COYOTE3_DB}"
+  --identity-db "${IDENTITY_DB}"
 ```
 
 This command:
@@ -153,6 +153,7 @@ local administrator before clinical ingest:
 .venv/bin/python scripts/bootstrap_database.py \
   --mongo-uri "$MONGO_URI" \
   --db "$COYOTE3_DB" \
+  --identity-db "$IDENTITY_DB" \
   --username "superuser" \
   --email "superuser@your-center.org" \
   --password "<GENERATED_ADMIN_PASSWORD>"

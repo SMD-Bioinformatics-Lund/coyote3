@@ -1,7 +1,4 @@
 [primary]
-    users_collection = "users"
-    roles_collection = "roles"
-    permissions_collection = "permissions"
     notifications_collection = "notifications"
 
     insilico_genelist_collection = "insilico_genelists"
@@ -30,6 +27,13 @@
 
     vep_metadata_collection = "vep_metadata"
     hgnc_collection = "hgnc_genes"
+
+[identity]
+    users_collection = "users"
+    roles_collection = "roles"
+    permissions_collection = "permissions"
+    api_sessions_collection = "api_sessions"
+    audit_events_collection = "audit_events"
 
 [knowledgebase]
     civic_variants_collection = "civic_variants"

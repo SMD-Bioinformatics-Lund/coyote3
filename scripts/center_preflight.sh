@@ -74,7 +74,7 @@ echo "[check] validating compose render"
 docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config -q
 
 echo "[check] mandatory keys"
-for key in MONGO_URI COYOTE3_DB KNOWLEDGEBASE_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS COYOTE3_APP_NETWORK; do
+for key in MONGO_URI COYOTE3_DB IDENTITY_DB KNOWLEDGEBASE_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS COYOTE3_APP_NETWORK; do
   if ! grep -qE "^${key}=" "$ENV_FILE"; then
     echo "ERROR: missing key in env file: $key" >&2
     exit 1
@@ -120,6 +120,9 @@ with open(env_file, "r", encoding="utf-8") as fh:
 db = data.get("COYOTE3_DB", "")
 if not db:
     raise SystemExit("ERROR: COYOTE3_DB must be set")
+identity_db = data.get("IDENTITY_DB", "")
+if not identity_db:
+    raise SystemExit("ERROR: IDENTITY_DB must be set")
 knowledgebase_db = data.get("KNOWLEDGEBASE_DB", "")
 if not knowledgebase_db:
     raise SystemExit("ERROR: KNOWLEDGEBASE_DB must be set")
@@ -128,6 +131,8 @@ if not bam_db:
     raise SystemExit("ERROR: BAM_DB must be set")
 if knowledgebase_db in {db, bam_db}:
     raise SystemExit("ERROR: KNOWLEDGEBASE_DB must be different from COYOTE3_DB and BAM_DB")
+if identity_db in {db, knowledgebase_db, bam_db}:
+    raise SystemExit("ERROR: IDENTITY_DB must be different from all other configured databases")
 uri = data.get("MONGO_URI", "")
 if not uri:
     raise SystemExit("ERROR: MONGO_URI must be set")

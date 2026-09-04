@@ -98,6 +98,7 @@ mongosh "<admin-mongo-uri>" --eval '
   var pwd  = "'"${MONGO_APP_PASSWORD}"'";
   var roles = [
     {role: "readWrite", db: "'"${COYOTE3_DB:?COYOTE3_DB must be set}"'"},
+    {role: "readWrite", db: "'"${IDENTITY_DB:?IDENTITY_DB must be set}"'"},
     {role: "readWrite", db: "'"${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB must be set}"'"},
     {role: "readWrite", db: "'"${BAM_DB:?BAM_DB must be set}"'"}
   ];

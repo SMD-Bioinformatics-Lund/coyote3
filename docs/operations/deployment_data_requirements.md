@@ -19,24 +19,25 @@ reporting.
 
 ## Minimum Collections
 
-A fresh deployment needs the following collections in the configured
-`COYOTE3_DB` database to support login, authorization, assay resolution, sample
-review, and reporting.
+A fresh deployment needs application collections in `COYOTE3_DB` and identity
+and security collections in `IDENTITY_DB`. Both databases are required for
+login, authorization, assay resolution, sample review, and reporting.
 
 | Logical area | Default collection | Required content |
 | --- | --- | --- |
-| Users | `users` | User accounts with unique `username` and `email`, role assignments, auth providers, active state, and assay/profile scope. |
-| Roles | `roles` | Role records used by the RBAC permission engine. Users may have multiple roles; the UI displays the highest role where a compact label is needed. |
-| Permissions | `permissions` | Permission vocabulary using `resource:action[:scope]` naming. Routes check these through the authorization service. |
+| Users (`IDENTITY_DB`) | `users` | User accounts with unique `username` and `email`, role assignments, auth providers, active state, and assay/profile scope. |
+| Roles (`IDENTITY_DB`) | `roles` | Role records used by the RBAC permission engine. Users may have multiple roles; the UI displays the highest role where a compact label is needed. |
+| Permissions (`IDENTITY_DB`) | `permissions` | Permission vocabulary using `resource:action[:scope]` naming. Routes check these through the authorization service. |
 | Assay panels (ASP) | `assay_specific_panels` | Physical assay definitions: `asp_id`, category, family, group, platform, read mode, expected file keys, covered genes, and germline genes. |
 | Assay configurations (ASPC) | `asp_configs` | Operational rulebooks for `asp_id + subpanel_id + environment`: analysis types, filters, report sections, and default review behavior. |
 | In-silico gene lists (ISGL) | `insilico_genelists` | Curated clinical gene lists for SNV, CNV, fusion, expression, PGx, and ad-hoc list types. |
 | Samples | `samples` | Sample metadata, file references, ASPC id, current filter snapshot, ingest status, report status, and data counts. |
 | Findings | `variants`, `cnvs`, `fusions`, `translocations`, `biomarkers`, `panel_coverage` | Analysis-specific records loaded from the sample files. Only collections for enabled analyses need data for a given sample. |
+| Coverage policy | `group_coverage` | Center-managed gene, CDS, and probe exclusions used when presenting coverage for an assay group. |
 | Reports | `reports`, `reported_variants` | Saved report documents and reportable-finding snapshots. |
 | Sample comments | `sample_comments` | Sample-level comment and annotation history. |
 | Finding comments | `finding_comments` | Comments tied to one sample finding. Each record identifies its sample, finding, and finding type. |
-| Audit and sessions | `audit_events`, `api_sessions` | Security, mutation, and session records. |
+| Audit and sessions (`IDENTITY_DB`) | `audit_events`, `api_sessions` | Security, mutation, and session records. Audit is colocated with identity data because both require restricted access and protected backups. |
 
 > **Tip: Collection names**
 >
@@ -65,7 +66,6 @@ richness of the UI.
 | `iarc_tp53` | IARC TP53 context for TP53 interpretation support. |
 | `cosmic` and `cosmic_*` product collections | Licensed COSMIC variant, structural, molecular, phenotype, census, and actionability products selected by the center. |
 | `versions` | Active, retired, staging, and failed knowledgebase release provenance for manual snapshot updates. This is separate from each sample's pipeline-supplied `database_versions`. |
-| `group_coverage` | Aggregated coverage metrics used by coverage views and dashboard summaries. |
 | `hpaexpr` | Human Protein Atlas transcript expression reference data. |
 
 > **Warning: External data licensing**

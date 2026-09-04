@@ -11,7 +11,7 @@ The system consists of:
 
 - A Python 3.12 FastAPI API using Pydantic contracts and PyMongo repositories.
 - A React 19 and TypeScript frontend built with Vite and Tailwind CSS.
-- MongoDB for application and genomic data.
+- MongoDB with separate application, identity/security, knowledgebase, and BAM-service databases.
 - Celery workers and beat scheduling, with Redis as broker, result backend, and cache.
 - Nginx, API, frontend, documentation, worker, beat, and Redis services managed through
   Docker Compose. MongoDB is supplied separately through `MONGO_URI`.

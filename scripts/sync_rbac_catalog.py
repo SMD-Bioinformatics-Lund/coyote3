@@ -165,8 +165,7 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", ""))
-    parser.add_argument("--db", default=os.getenv("COYOTE3_DB", ""))
-    parser.add_argument("--bam-db", default=os.getenv("BAM_DB", ""))
+    parser.add_argument("--identity-db", default=os.getenv("IDENTITY_DB", ""))
     parser.add_argument("--seed-data-dir", default=str(DEFAULT_SEED_DATA_DIR))
     return parser.parse_args()
 
@@ -174,22 +173,20 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     """Run the RBAC catalog synchronization command."""
     args = parse_args()
-    if not args.mongo_uri or not args.db:
-        raise SystemExit("--mongo-uri/MONGO_URI and --db/COYOTE3_DB are required")
-    if not args.bam_db:
-        raise SystemExit("--bam-db/BAM_DB is required")
+    if not args.mongo_uri or not args.identity_db:
+        raise SystemExit("--mongo-uri/MONGO_URI and --identity-db/IDENTITY_DB are required")
 
     seed_dir = Path(args.seed_data_dir).expanduser().resolve()
     permission_docs = _load_ndjson(seed_dir / "permissions.seed.ndjson")
     role_docs = _load_ndjson(seed_dir / "roles.seed.ndjson")
-    primary_mapping = load_collection_section("primary")
+    identity_mapping = load_collection_section("identity")
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     client.admin.command("ping")
     result = synchronize_rbac_catalog(
-        client[args.db],
-        permissions_collection=primary_mapping["permissions_collection"],
-        roles_collection=primary_mapping["roles_collection"],
+        client[args.identity_db],
+        permissions_collection=identity_mapping["permissions_collection"],
+        roles_collection=identity_mapping["roles_collection"],
         permission_docs=permission_docs,
         role_docs=role_docs,
     )

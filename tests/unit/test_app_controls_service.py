@@ -57,7 +57,7 @@ class _Db:
 
 def test_app_controls_update_keeps_created_on_insert_only_metadata():
     collection = _AppControlsCollection()
-    service = AppControlsService(_Db(collection), config={})
+    service = AppControlsService(_Db(collection), identity_db=_Db(collection), config={})
     actor = SimpleNamespace(username="coyote3.admin")
 
     result = service.update_controls(
@@ -88,7 +88,7 @@ def test_app_controls_update_validates_existing_created_on_metadata():
         "retention": {"audit_events_days": 730},
         "modules": {"dna_analysis_enabled": True},
     }
-    service = AppControlsService(_Db(collection), config={})
+    service = AppControlsService(_Db(collection), identity_db=_Db(collection), config={})
 
     result = service.update_controls({"modules": {"rna_analysis_enabled": False}})
 
@@ -103,7 +103,7 @@ def test_public_module_payload_exposes_only_module_availability_metadata():
         "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "modules": {"reports_enabled": False},
     }
-    service = AppControlsService(_Db(collection), config={})
+    service = AppControlsService(_Db(collection), identity_db=_Db(collection), config={})
 
     payload = service.public_module_payload()
 
@@ -122,7 +122,7 @@ def test_public_module_payload_exposes_only_module_availability_metadata():
 
 def test_app_controls_persist_resource_tiering_switches():
     collection = _AppControlsCollection()
-    service = AppControlsService(_Db(collection), config={})
+    service = AppControlsService(_Db(collection), identity_db=_Db(collection), config={})
 
     result = service.update_controls(
         {"curation": {"tiering": {"cnv_enabled": True, "fusion_enabled": False}}}
@@ -179,7 +179,8 @@ def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch
         return _Inspect()
 
     monkeypatch.setattr(celery_app.control, "inspect", _inspect)
-    service = AppControlsService(_Db(_AppControlsCollection()), config={})
+    controls = _AppControlsCollection()
+    service = AppControlsService(_Db(controls), identity_db=_Db(controls), config={})
 
     runtime = service.runtime_status()["celery"]
 
@@ -264,7 +265,9 @@ def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
         "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "retention": {"disk_log_days": 30, "gzip_disk_logs_after_days": 1},
     }
-    service = AppControlsService(_Db(collection), config={"LOGS": str(tmp_path)})
+    service = AppControlsService(
+        _Db(collection), identity_db=_Db(collection), config={"LOGS": str(tmp_path)}
+    )
     compressible = tmp_path / "api.log"
     expired = tmp_path / "worker.log"
     recent = tmp_path / "recent.log"
@@ -292,7 +295,7 @@ def test_cleanup_audit_events_only_deletes_expired_operational_events():
         "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "retention": {"audit_events_days": 90},
     }
-    service = AppControlsService(_Db(collection), config={})
+    service = AppControlsService(_Db(collection), identity_db=_Db(collection), config={})
 
     result = service.cleanup_audit_events()
 
@@ -306,7 +309,10 @@ def test_cleanup_audit_events_only_deletes_expired_operational_events():
 def test_run_maintenance_audits_failure_without_exposing_error_text(monkeypatch):
     events: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
     audit = SimpleNamespace(record=lambda *args, **kwargs: events.append((args, kwargs)))
-    service = AppControlsService(_Db(_AppControlsCollection()), config={}, audit_service=audit)
+    controls = _AppControlsCollection()
+    service = AppControlsService(
+        _Db(controls), identity_db=_Db(controls), config={}, audit_service=audit
+    )
     monkeypatch.setattr(
         service, "cleanup_audit_events", lambda: (_ for _ in ()).throw(OSError("secret path"))
     )

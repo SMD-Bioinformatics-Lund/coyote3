@@ -251,15 +251,15 @@ def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles(
 def test_first_deployment_bootstrap_detects_empty_partial_and_complete_state():
     """First-run bootstrap runs only against empty governance collections."""
     database = mongomock.MongoClient()["coyote3_test"]
-    assert _deployment_is_initialized(database) is False
-    assert _superuser_exists(database) is False
+    assert _deployment_is_initialized(database, ("users", "roles", "permissions")) is False
+    assert _superuser_exists(database, "users") is False
 
     database.permissions.insert_one({"permission_id": "sample:view"})
-    assert _deployment_is_initialized(database) is True
-    assert _superuser_exists(database) is False
+    assert _deployment_is_initialized(database, ("users", "roles", "permissions")) is True
+    assert _superuser_exists(database, "users") is False
 
     database.users.insert_one({"username": "root", "roles": ["superuser"]})
-    assert _superuser_exists(database) is True
+    assert _superuser_exists(database, "users") is True
 
 
 def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center():
@@ -285,11 +285,31 @@ def test_database_bootstrap_writes_only_empty_baseline_collections():
     }
     user_document = {"username": "admin", "roles": ["superuser"]}
 
-    assert _initialize_governance(database, seed=seed, user_document=user_document) == "loaded"
+    assert (
+        _initialize_governance(
+            database,
+            seed=seed,
+            user_document=user_document,
+            users_collection="users",
+            roles_collection="roles",
+            permissions_collection="permissions",
+        )
+        == "loaded"
+    )
     assert _insert_if_empty(database, "hgnc_genes", seed["hgnc_genes"]) == "loaded"
     assert _insert_if_empty(database, "hgnc_genes", [{"hgnc_id": "HGNC:2"}]) == "skipped"
     assert database["hgnc_genes"].count_documents({}) == 1
-    assert _initialize_governance(database, seed=seed, user_document=user_document) == "skipped"
+    assert (
+        _initialize_governance(
+            database,
+            seed=seed,
+            user_document=user_document,
+            users_collection="users",
+            roles_collection="roles",
+            permissions_collection="permissions",
+        )
+        == "skipped"
+    )
 
 
 def test_seed_payload_utils_count_and_payload(tmp_path):

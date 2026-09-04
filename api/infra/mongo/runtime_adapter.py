@@ -162,8 +162,8 @@ class MongoAdapter:
         """
         Setup databases
 
-        This method configures the application, knowledgebase, and BAM-service databases
-        using the names specified in the application's configuration.
+        This method configures application, identity, knowledgebase, and BAM-service
+        databases using names from the application's configuration.
 
         Attributes:
             coyote_db: The primary database for the application, initialized using the `COYOTE3_DB` from the app's config.
@@ -182,6 +182,9 @@ class MongoAdapter:
         self.coyote_db = client.get_database(self.app.config["COYOTE3_DB"]).with_options(
             read_concern=read_concern, write_concern=write_concern
         )
+        self.identity_db = client.get_database(self.app.config["IDENTITY_DB"]).with_options(
+            read_concern=read_concern, write_concern=write_concern
+        )
         self.knowledgebase_db = client.get_database(
             self.app.config["KNOWLEDGEBASE_DB"]
         ).with_options(read_concern=read_concern, write_concern=write_concern)
@@ -193,14 +196,15 @@ class MongoAdapter:
         """
         Setup collections
 
-        This method initializes collections for the application, knowledgebase, and BAM databases.
-        It retrieves the collection configurations from the application's configuration and sets them as attributes
-        on the `MongoAdapter` instance for easy access.
+        This method initializes collections for application, identity, knowledgebase, and
+        BAM databases. It retrieves collection configuration and exposes each collection
+        as an attribute on the `MongoAdapter` instance.
 
         Collection mappings are selected by their configured physical database names.
 
         Attributes:
             coyote_db: The primary database for the application.
+            identity_db: User accounts, authorization policy, sessions, and audit events.
             knowledgebase_db: External knowledgebase datasets and API caches.
             bam_db: The BAM service database.
         """
@@ -211,6 +215,14 @@ class MongoAdapter:
             .items()
         ):
             setattr(self, collection_name, self.coyote_db[collection_value])
+
+        # Identity and security DB
+        for collection_name, collection_value in (
+            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
+            .get(self.app.config["IDENTITY_DB"], {})
+            .items()
+        ):
+            setattr(self, collection_name, self.identity_db[collection_value])
 
         # External knowledgebase DB
         for collection_name, collection_value in (

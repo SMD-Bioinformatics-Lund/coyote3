@@ -195,7 +195,7 @@ def get_api_session_repository() -> MongoApiSessionRepository:
     from api.security.access import api_user_from_user_doc
 
     store = get_store()
-    collection = store.coyote_db[get_api_sessions_collection_name(runtime_app.config)]
+    collection = store.identity_db[get_api_sessions_collection_name(runtime_app.config)]
 
     def _load_user(username: str):
         user_doc = store.user_repository.user_with_id(username)
@@ -213,10 +213,10 @@ def get_api_session_repository() -> MongoApiSessionRepository:
 def get_audit_service() -> AuditService | None:
     """Return the durable Mongo-backed audit service when runtime is initialized."""
     store = get_store()
-    if store.coyote_db is None:
+    if store.identity_db is None:
         return None
     return AuditService(
-        store.coyote_db[get_audit_events_collection_name(runtime_app.config)],
+        store.identity_db[get_audit_events_collection_name(runtime_app.config)],
         retention_days=effective_audit_retention_days(store.coyote_db, runtime_app.config),
         environment=get_runtime_environment(runtime_app.config),
     )
@@ -236,6 +236,7 @@ def get_app_controls_service() -> AppControlsService:
     store = get_store()
     return AppControlsService(
         store.coyote_db,
+        identity_db=store.identity_db,
         config=runtime_app.config,
         audit_service=get_audit_service(),
         index_conflicts_provider=lambda: getattr(

@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import mongomock
 from pymongo.errors import OperationFailure
 
+from api.config.security import get_api_sessions_collection_name, get_audit_events_collection_name
 from api.infra.notifications import email
 from api.infra.security.indexes import _create_index, ensure_security_indexes
 from api.tasks import maintenance
@@ -33,6 +34,21 @@ class _SmtpServer:
 
     def send_message(self, message) -> None:
         self.message = message
+
+
+def test_identity_collection_names_follow_the_identity_mapping() -> None:
+    config = {
+        "IDENTITY_DB": "identity",
+        "DB_COLLECTIONS_CONFIG": {
+            "identity": {
+                "api_sessions_collection": "sessions",
+                "audit_events_collection": "audit",
+            }
+        },
+    }
+
+    assert get_api_sessions_collection_name(config) == "sessions"
+    assert get_audit_events_collection_name(config) == "audit"
 
 
 def test_smtp_configuration_and_unconfigured_send(monkeypatch) -> None:
@@ -127,16 +143,29 @@ def test_email_transport_failure_is_reported(monkeypatch) -> None:
 
 def test_security_indexes_are_created_and_failures_are_nonfatal() -> None:
     """Security collections receive required indexes while one conflict is logged."""
-    database = mongomock.MongoClient()["coyote3_test"]
+    client = mongomock.MongoClient()
+    primary_database = client["coyote3_test"]
+    identity_database = client["coyote3_identity_test"]
     logger = logging.getLogger("test.security.indexes")
-    ensure_security_indexes(db=database, config={}, logger=logger)
-    assert "ttl_api_session_expiry" in database.api_sessions.index_information()
+    ensure_security_indexes(
+        primary_db=primary_database,
+        identity_db=identity_database,
+        config={},
+        logger=logger,
+    )
+    assert "ttl_api_session_expiry" in identity_database.api_sessions.index_information()
     assert (
-        database.api_sessions.index_information()["ttl_api_session_expiry"]["expireAfterSeconds"]
+        identity_database.api_sessions.index_information()["ttl_api_session_expiry"][
+            "expireAfterSeconds"
+        ]
         == 0
     )
-    assert "idx_audit_actor_time" in database.audit_events.index_information()
-    assert database.app_controls.index_information()["uniq_app_controls_control_id"]["unique"]
+    assert "idx_audit_actor_time" in identity_database.audit_events.index_information()
+    assert primary_database.app_controls.index_information()["uniq_app_controls_control_id"][
+        "unique"
+    ]
+    assert "api_sessions" not in primary_database.list_collection_names()
+    assert "app_controls" not in identity_database.list_collection_names()
 
     class BrokenCollection:
         name = "broken"
@@ -198,8 +227,9 @@ def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch,
     service = SimpleNamespace(
         user_repository=SimpleNamespace(get_all_users=lambda: users),
         metric_scope_key=lambda metric, *, user: f"{metric}:shared",
-        metric_payload=lambda metric, *, user, force: refreshed.append((user.username, metric))
-        or {"metric": metric},
+        metric_payload=lambda metric, *, user, force: (
+            refreshed.append((user.username, metric)) or {"metric": metric}
+        ),
         release_metric_refresh=lambda metric, *, user: released.append((user.username, metric)),
     )
     monkeypatch.setattr(maintenance, "get_dashboard_service", lambda: service)

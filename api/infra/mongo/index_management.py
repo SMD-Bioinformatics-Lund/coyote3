@@ -81,7 +81,8 @@ def build_index_plan(adapter: Any) -> list[dict[str, Any]]:
             repository.set_collection(original)
         plan.extend(recorder.contracts)
     for contract in security_index_contracts(adapter.app.config):
-        recorder = _ContractCollection(adapter.coyote_db[contract.collection], "security")
+        database = adapter.identity_db if contract.database == "identity" else adapter.coyote_db
+        recorder = _ContractCollection(database[contract.collection], "security")
         recorder.create_index(list(contract.fields), name=contract.name, **contract.options)
         plan.extend(recorder.contracts)
     return [asdict(item) for item in plan]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Initialize an empty Coyote3 database before application services are started.
+"""Initialize empty Coyote3 application and identity databases before startup.
 
 This is an operator-run deployment step. It connects directly to MongoDB and
 never starts Compose services, calls the Coyote3 API, or queues ingest work.
@@ -19,6 +19,7 @@ if str(ROOT_DIR) not in sys.path:
 from pymongo import MongoClient  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
+from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 from scripts.build_seed_bundle import (  # noqa: E402
     canonicalize_seed_contract,
@@ -32,13 +33,13 @@ BOOTSTRAP_ROOT = ROOT_DIR / "api" / "config" / "bootstrap"
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
 DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
 DEFAULT_DEMO_CENTER_DIR = BOOTSTRAP_ROOT / "demo_center"
-GOVERNANCE_COLLECTIONS = ("users", "roles", "permissions")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", required=True, help="MongoDB URI with readWrite access")
     parser.add_argument("--db", required=True, help="Application database name")
+    parser.add_argument("--identity-db", required=True, help="Identity database name")
     parser.add_argument("--username", required=True, help="First local superuser login name")
     parser.add_argument("--email", required=True, help="First local superuser email address")
     parser.add_argument("--password", required=True, help="First local superuser password")
@@ -77,14 +78,14 @@ def _fail_if_placeholder_values(args: argparse.Namespace) -> None:
         )
 
 
-def _deployment_is_initialized(db) -> bool:
+def _deployment_is_initialized(db, collection_names: tuple[str, ...]) -> bool:
     """Return whether governance data exists in the target database."""
-    return any(db[name].count_documents({}, limit=1) > 0 for name in GOVERNANCE_COLLECTIONS)
+    return any(db[name].count_documents({}, limit=1) > 0 for name in collection_names)
 
 
-def _superuser_exists(db) -> bool:
+def _superuser_exists(db, users_collection: str) -> bool:
     """Return whether the target database already has a superuser."""
-    return db["users"].count_documents({"roles": "superuser"}, limit=1) > 0
+    return db[users_collection].count_documents({"roles": "superuser"}, limit=1) > 0
 
 
 def _resolve_directory(value: str, *, label: str) -> Path:
@@ -166,9 +167,18 @@ def _insert_if_empty(db, collection: str, documents: list[dict]) -> str:
     return "loaded"
 
 
-def _initialize_governance(db, *, seed: dict[str, list[dict]], user_document: dict) -> str:
-    if _deployment_is_initialized(db):
-        if _superuser_exists(db):
+def _initialize_governance(
+    db,
+    *,
+    seed: dict[str, list[dict]],
+    user_document: dict,
+    users_collection: str,
+    roles_collection: str,
+    permissions_collection: str,
+) -> str:
+    collection_names = (users_collection, roles_collection, permissions_collection)
+    if _deployment_is_initialized(db, collection_names):
+        if _superuser_exists(db, users_collection):
             return "skipped"
         raise SystemExit(
             "Governance collections are partially initialized but no superuser exists. "
@@ -182,15 +192,17 @@ def _initialize_governance(db, *, seed: dict[str, list[dict]], user_document: di
             f"Bootstrap role '{assigned_role}' is not present in the bundled RBAC catalog."
         )
 
-    db["permissions"].insert_many(seed["permissions"], ordered=True)
-    db["roles"].insert_many(seed["roles"], ordered=True)
-    db["users"].insert_one(user_document)
+    db[permissions_collection].insert_many(seed["permissions"], ordered=True)
+    db[roles_collection].insert_many(seed["roles"], ordered=True)
+    db[users_collection].insert_one(user_document)
     return "loaded"
 
 
 def main() -> int:
     args = parse_args()
     _fail_if_placeholder_values(args)
+    if args.db == args.identity_db:
+        raise SystemExit("--identity-db must be different from --db")
     rbac_dir = _resolve_directory(args.rbac_dir, label="RBAC seed")
     reference_dir = _resolve_directory(args.reference_dir, label="Reference seed")
     demo_center_dir = (
@@ -209,20 +221,37 @@ def main() -> int:
     missing = sorted(required.difference(seed))
     if missing:
         raise SystemExit("Bootstrap data is missing required collections: " + ", ".join(missing))
+    primary_mapping = load_collection_section("primary")
+    identity_mapping = load_collection_section("identity")
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     try:
         client.admin.command("ping")
         db = client[args.db]
+        identity_db = client[args.identity_db]
         governance = _initialize_governance(
-            db, seed=seed, user_document=_make_superuser_document(args, actor=actor)
+            identity_db,
+            seed=seed,
+            user_document=_make_superuser_document(args, actor=actor),
+            users_collection=identity_mapping["users_collection"],
+            roles_collection=identity_mapping["roles_collection"],
+            permissions_collection=identity_mapping["permissions_collection"],
         )
         print(f"[{governance}] governance: permissions, roles, first superuser")
-        for collection in ("hgnc_genes", "vep_metadata"):
-            print(f"[{_insert_if_empty(db, collection, seed[collection])}] {collection}")
-        for collection in ("assay_specific_panels", "asp_configs", "insilico_genelists"):
-            if collection in seed:
-                print(f"[{_insert_if_empty(db, collection, seed[collection])}] {collection}")
+        primary_collections = {
+            "hgnc_genes": primary_mapping["hgnc_collection"],
+            "vep_metadata": primary_mapping["vep_metadata_collection"],
+            "assay_specific_panels": primary_mapping["asp_collection"],
+            "asp_configs": primary_mapping["aspc_collection"],
+            "insilico_genelists": primary_mapping["insilico_genelist_collection"],
+        }
+        for logical_name in ("hgnc_genes", "vep_metadata"):
+            collection = primary_collections[logical_name]
+            print(f"[{_insert_if_empty(db, collection, seed[logical_name])}] {logical_name}")
+        for logical_name in ("assay_specific_panels", "asp_configs", "insilico_genelists"):
+            if logical_name in seed:
+                collection = primary_collections[logical_name]
+                print(f"[{_insert_if_empty(db, collection, seed[logical_name])}] {logical_name}")
     finally:
         client.close()
 

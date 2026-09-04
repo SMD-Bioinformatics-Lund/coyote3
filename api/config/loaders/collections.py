@@ -29,13 +29,15 @@ def load_collection_section(
 def load_collection_mapping(
     *,
     primary_database: str,
+    identity_database: str,
     knowledgebase_database: str,
     bam_database: str,
     config_path: str | Path = COLLECTIONS_CONFIG_PATH,
 ) -> dict[str, dict[str, str]]:
-    """Load logical mappings and bind them to the configured database names."""
+    """Bind primary, identity, knowledgebase, and BAM mappings to database names."""
     logical_sections = {
         "primary": primary_database,
+        "identity": identity_database,
         "knowledgebase": knowledgebase_database,
         "bam": bam_database,
     }

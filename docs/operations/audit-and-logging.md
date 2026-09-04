@@ -13,8 +13,8 @@ worker, and beat logs survive container replacement and use the center-selected 
 Every API request binds a request context so log records can include `request_id`, client IP,
 method, and path. The API returns the correlation id in the `X-Request-ID` response header.
 
-Durable audit events are append-only MongoDB documents in the fixed
-`audit_events` collection. Events include:
+Durable audit events are append-only MongoDB documents in the configured
+`audit_events` collection in `IDENTITY_DB`. Events include:
 
 - `occurred_at`, `retention_class`, and `immutable`
 - `expires_at` for expiring operational events only
@@ -34,8 +34,9 @@ Metadata keys resembling passwords, secrets, tokens, cookies, authorization head
 report bodies, or file contents are redacted before storage.
 
 API sessions are opaque random tokens. Only a SHA-256 hash is stored in the
-fixed `api_sessions` collection, together with `user_id`, `csrf_token`, `created_at`,
-`last_seen_at`, and `expires_at`. Disabled or missing users are rejected during session lookup.
+configured `api_sessions` collection in `IDENTITY_DB`, together with `user_id`,
+`csrf_token`, `created_at`, `last_seen_at`, and `expires_at`. Disabled or missing
+users are rejected during session lookup.
 
 Indexes are created at runtime for session expiry and audit retention/filtering:
 

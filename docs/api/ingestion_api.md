@@ -248,6 +248,7 @@ application services:
 .venv/bin/python scripts/bootstrap_database.py \
   --mongo-uri "$MONGO_URI" \
   --db "$COYOTE3_DB" \
+  --identity-db "$IDENTITY_DB" \
   --username "admin.coyote3" \
   --email "admin@your-center.org" \
   --password "<GENERATED_ADMIN_PASSWORD>"
@@ -257,7 +258,7 @@ Behavior:
 
 - It creates the first local superuser and loads `permissions`, `roles`,
   `hgnc_genes`, and `vep_metadata` only into empty collections.
-- It rejects a partially initialized governance database rather than merging
+- It rejects a partially initialized identity database rather than merging
   uncertain state.
 - Add `--with-demo-center` only to load the repository's synthetic ASP, ASPC,
   and ISGL demonstration documents in a nonclinical environment.
@@ -685,9 +686,9 @@ not authorize arbitrary collection ingestion.
 Use this order for a clean deployment at a new center.
 
 1. Provision the MongoDB application user outside Coyote3.
-2. Run `scripts/bootstrap_database.py` against the empty application database.
-   - It creates the first superuser and loads `permissions`, `roles`,
-     `hgnc_genes`, and `vep_metadata` when those collections are empty.
+2. Run `scripts/bootstrap_database.py` against the empty application and identity databases.
+   - It creates the first superuser and loads `permissions` and `roles` into
+     `IDENTITY_DB`, and `hgnc_genes` and `vep_metadata` into `COYOTE3_DB`.
    - Add `--with-demo-center` only for the synthetic ASP, ASPC, and ISGL
      demonstration configuration.
 3. Start Coyote3 services.
