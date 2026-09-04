@@ -168,6 +168,7 @@ export function Layout() {
       {
         label: "Reference",
         items: [
+          ...(moduleIsEnabled(modules, "knowledgebases") ? [{ name: "Knowledgebases", href: "/knowledgebases", icon: Database }] : []),
           ...(moduleIsEnabled(modules, "assay_catalog") ? [
             { name: "Matrix", href: "/public/matrix", icon: Database },
             { name: "Catalog", href: "/public/catalog", icon: FileText },

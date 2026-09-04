@@ -104,3 +104,25 @@ class CivicRepository(BaseRepository):
             dict: A dictionary containing the CIViC gene data if found, or None if no match is found.
         """
         return self.adapter.civic_gene_collection.find_one({"name": gene_smbl})
+
+    def get_gene_records(self, genes: list[str]) -> dict[str, dict]:
+        """Return CIViC gene records keyed by requested symbols."""
+        symbols = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not symbols:
+            return {}
+        return {
+            str(row["name"]): row
+            for row in self.adapter.civic_gene_collection.find({"name": {"$in": symbols}})
+            if row.get("name")
+        }
+
+    def get_summary(self) -> dict:
+        """Return aggregate CIViC gene and variant counts."""
+        genes = int(self.adapter.civic_gene_collection.estimated_document_count() or 0)
+        variants = int(self.get_collection().estimated_document_count() or 0)
+        return {
+            "available": bool(genes or variants),
+            "total": genes,
+            "distribution": [],
+            "metrics": [{"name": "Variants", "value": variants}],
+        }

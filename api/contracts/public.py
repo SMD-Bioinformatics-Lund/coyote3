@@ -15,6 +15,7 @@ class PublicGenelistViewPayload(BaseModel):
     filtered_genes: list[str]
     germline_genes: list[str]
     is_public: bool
+    gene_markers: dict[str, dict[str, Any]] = {}
 
 
 class PublicAspGenesPayload(BaseModel):
@@ -74,6 +75,7 @@ class PublicAssayCatalogMatrixPayload(BaseModel):
     cat_spans: dict[str, int]
     genes: list[str]
     matrix: dict[str, Any]
+    gene_markers: dict[str, dict[str, Any]] = {}
     page: int = 1
     per_page: int = 100
     total: int = 0

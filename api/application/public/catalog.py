@@ -31,6 +31,10 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             knowledgebase_version_repository=getattr(
                 store, "knowledgebase_version_repository", None
             ),
+            oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
+            clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
+            civic_repository=getattr(store, "civic_repository", None),
+            cosmic_repository=getattr(store, "cosmic_repository", None),
         )
 
     def __init__(
@@ -43,6 +47,10 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         sample_repository: Any,
         vep_metadata_repository: Any,
         knowledgebase_version_repository: Any | None = None,
+        oncokb_public_cache_repository: Any | None = None,
+        clinpgx_public_repository: Any | None = None,
+        civic_repository: Any | None = None,
+        cosmic_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
@@ -52,6 +60,10 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         self.sample_repository = sample_repository
         self.vep_metadata_repository = vep_metadata_repository
         self.knowledgebase_version_repository = knowledgebase_version_repository
+        self.oncokb_public_cache_repository = oncokb_public_cache_repository
+        self.clinpgx_public_repository = clinpgx_public_repository
+        self.civic_repository = civic_repository
+        self.cosmic_repository = cosmic_repository
 
     def knowledgebase_status(self) -> dict[str, Any]:
         """Return non-sensitive installed knowledgebase release metadata."""

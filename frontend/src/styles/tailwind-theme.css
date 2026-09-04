@@ -167,6 +167,7 @@
   --color-testing: #857d88;
   --color-validation: #a37c27;
   --color-pass: #4d765b;
+  --color-somatic: #8f5f8f;
   --color-germline: #b5761b;
   --color-germline-risk: #9b3d12;
   --color-warn: #c17c00;
@@ -792,6 +793,7 @@
   --color-testing: #b0a9b5;
   --color-validation: #cfa85b;
   --color-pass: #86ac91;
+  --color-somatic: #c28bc2;
   --color-germline: #d4a053;
   --color-germline-risk: #d98b65;
   --color-warn: #d69a3a;

@@ -1,50 +1,12 @@
-import { CheckCircle2, Cloud, Database, Layers3 } from "lucide-react"
+import { CheckCircle2, Cloud, Database } from "lucide-react"
 
 import { TimeDisplay } from "@/components/ui/time-display"
 import { databaseLogo } from "@/lib/database-logos"
 import { shortCount } from "@/lib/detail-formatters"
+import { knowledgebaseSourceDetails, type KnowledgebaseStatusPayload } from "@/lib/knowledgebase-status"
 import { appPath } from "@/lib/runtime-paths"
 
-export type KnowledgebaseRelease = {
-  source: string
-  release: string
-  status: string
-  published_at?: string | null
-  records: number
-  collections?: Array<{ name: string; records: number }>
-}
-
-export type KnowledgebaseStatusPayload = {
-  releases?: KnowledgebaseRelease[]
-  summary?: {
-    installed_products?: number
-    configured_services?: number
-    available_products?: number
-    total_records?: number
-  }
-}
-
-const familyLabels: Record<string, string> = {
-  brca_exchange: "BRCA Exchange",
-  civic: "CIViC",
-  clinpgx: "ClinPGx",
-  hpa: "Human Protein Atlas",
-  iarc_tp53: "IARC TP53",
-  nci_tp53: "NCI TP53",
-  oncokb: "OncoKB",
-}
-
-function sourceDetails(source: string) {
-  if (source.startsWith("cosmic_")) {
-    return { family: "COSMIC", product: source.slice(7).replaceAll("_", " ") }
-  }
-  const familyKey = Object.keys(familyLabels).find((key) => source.startsWith(key))
-  const suffix = familyKey ? source.slice(familyKey.length).replace(/^_/, "") : ""
-  return {
-    family: familyKey ? familyLabels[familyKey] : source.replaceAll("_", " "),
-    product: suffix ? suffix.replaceAll("_", " ") : "reference",
-  }
-}
+export type { KnowledgebaseStatusPayload } from "@/lib/knowledgebase-status"
 
 export function KnowledgebaseStatus({
   payload,
@@ -66,8 +28,8 @@ export function KnowledgebaseStatus({
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-border bg-success/5 px-4 py-3">
+    <div className="overflow-hidden rounded-md border border-border bg-card">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-border bg-success/5 px-3 py-2">
         <div className="flex items-baseline gap-1.5">
           <span className="type-card-title text-primary">
             {shortCount(payload?.summary?.available_products ?? releases.length)}
@@ -80,59 +42,38 @@ export function KnowledgebaseStatus({
         </div>
       </div>
 
-      <div className="grid gap-2 bg-card p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {releases.map((release) => {
-          const details = sourceDetails(release.source)
-          const logo = databaseLogo(release.source)
-          return (
-            <article key={release.source} className="static-info-card min-w-0 p-3" data-static-tone="success">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-start gap-2">
-                  {logo ? (
-                    <span className="flex h-7 w-16 shrink-0 items-center justify-center">
-                      <img src={appPath(logo.src)} alt={logo.alt} className="max-h-6 max-w-full object-contain" />
-                    </span>
-                  ) : (
-                    <span className="static-icon flex size-7 shrink-0 items-center justify-center rounded-md">
-                      <Database className="size-3.5" aria-hidden="true" />
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <p className="type-body-sm truncate text-foreground">{details.family}</p>
-                    <p className="type-label mt-0.5 capitalize text-muted-foreground">{details.product}</p>
-                  </div>
-                </div>
-                {release.status === "configured" ? (
-                  <Cloud className="size-4 shrink-0 text-info" aria-label="Configured remote service" />
-                ) : (
-                  <CheckCircle2 className="size-4 shrink-0 text-pass" aria-label="Installed" />
-                )}
-              </div>
-              <div className="mt-2 flex items-end justify-between gap-3">
-                <div>
-                  <p className="type-label uppercase text-muted-foreground">Release</p>
-                  <p className="type-meta text-foreground">{release.release}</p>
-                </div>
-                <div className="text-right">
-                  <p className="type-label uppercase text-muted-foreground">Records</p>
-                  <p className="type-meta text-foreground">{shortCount(release.records)}</p>
-                </div>
-              </div>
-              {!compact && release.collections?.length ? (
-                <div className="mt-2 flex items-center gap-1.5 border-t border-border pt-2 type-label text-muted-foreground">
-                  <Layers3 className="size-3.5" />
-                  {release.collections.length} collection{release.collections.length === 1 ? "" : "s"}
-                </div>
-              ) : null}
-              {!compact && release.published_at ? (
-                <div className="mt-1 flex items-center gap-1.5 type-label text-muted-foreground">
-                  <Database className="size-3.5" />
-                  <TimeDisplay value={release.published_at} />
-                </div>
-              ) : null}
-            </article>
-          )
-        })}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[42rem] border-collapse text-left type-table-cell">
+          <thead className="bg-muted/80 type-table-header text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2">Source</th><th className="px-3 py-2">Product</th>
+              <th className="px-3 py-2">Release</th><th className="px-3 py-2 text-right">Records</th>
+              <th className="px-3 py-2 text-right">Collections</th>
+              {!compact && <th className="px-3 py-2">Published</th>}
+              <th className="px-3 py-2 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {releases.map((release) => {
+              const details = knowledgebaseSourceDetails(release.source)
+              const logo = databaseLogo(release.source)
+              return (
+                <tr key={release.source} className="border-t border-border/70 hover:bg-muted/35">
+                  <td className="px-3 py-2"><div className="flex min-w-0 items-center gap-2">
+                    {logo ? <img src={appPath(logo.src)} alt={logo.alt} className="h-5 w-14 object-contain" /> : <Database className="size-4 text-muted-foreground" />}
+                    <span className="type-body-sm truncate text-foreground">{details.family}</span>
+                  </div></td>
+                  <td className="px-3 py-2 capitalize text-muted-foreground">{details.product}</td>
+                  <td className="px-3 py-2 font-medium">{release.release}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{shortCount(release.records)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{release.collections?.length || 0}</td>
+                  {!compact && <td className="px-3 py-2 text-muted-foreground">{release.published_at ? <TimeDisplay value={release.published_at} /> : "-"}</td>}
+                  <td className="px-3 py-2 text-center">{release.status === "configured" ? <Cloud className="mx-auto size-4 text-info" aria-label="Configured remote service" /> : <CheckCircle2 className="mx-auto size-4 text-pass" aria-label="Installed" />}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

@@ -77,6 +77,7 @@ These appear in the compact status column of variant-like tables.
 | `OKB` | The gene is present in the local public OncoKB cancer gene cache. This links to the OncoKB gene page. | Status column, knowledgebase cards |
 | `Rx` | Historical local OncoKB actionable evidence exists for the gene or alteration. This is local evidence only and can include drug-level fields from historical center data. | Status column, knowledgebase cards |
 | `PGx` | The gene is present in the ClinPGx public gene cache. This links to ClinPGx public gene information when available. Detail pages can fetch richer public API knowledge on demand. | Status column, knowledgebase cards |
+| `CGC` | At least one involved gene is present in the installed COSMIC Cancer Gene Census. The tooltip identifies the matching gene or genes. | Small-variant, CNV, fusion, and translocation status columns |
 
 > **Warning: Badge placement**
 >
@@ -149,13 +150,38 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | Panel portfolio | Active targeted-panel count, represented assay groups, accreditation count, and covered/germline gene assignments. |
 | Panel analysis capability | Active targeted-panel ASPCs grouped by analysis type, comparing configurations where the analysis is enabled with configurations where it is reportable. WGS and WTS are excluded. |
 | Resource health | Operational counts and configuration coverage that help identify stale or missing setup. |
-| Knowledgebase inventory | Active knowledgebase products, release identifiers, collection counts, and indexed record totals from the dedicated knowledgebase version catalog. |
+| Knowledgebases online | One compact entry per installed or configured source family, with active release identifiers de-duplicated across that family's products and a link to Knowledgebase Details. |
 
 > **Info: Dashboard performance**
 >
 >
 > Dashboard panels should use aggregate backend endpoints instead of loading full clinical tables. The page is intended to answer "what needs attention?" without triggering heavy review queries.
 >
+
+## Knowledgebase Details
+
+Route: `/knowledgebases`
+
+The Knowledgebase Details page is the reference-data inventory and aggregate
+coverage view. Opaque source panels group availability, reference coverage,
+Cancer Gene Census detail, and a compact product release table. OncoKB gene
+types and ClinPGx capabilities use interactive donuts; CIViC and HPA appear
+when their local collections contain data. Hovering a segment emphasizes that
+segment without changing the underlying count.
+
+When Cancer Gene Census is installed, a large multi-ring chart shows CGC tier,
+somatic/germline scope, and role-in-cancer distributions. Ranked mutation
+types, molecular-genetics terms, and hallmarks appear only when their source
+fields or companion collection have data. Sections for absent collections are
+omitted.
+
+This page contains knowledgebase metadata and aggregate reference counts only;
+it does not query or display sample-linked information.
+
+The public catalog, assay matrix, assay gene tables, and public gene-list tables
+show compact `OncoKB`, `CGC`, `CIViC`, and `PGx` source tags beside genes when
+the corresponding local reference collection contains that gene. These tags
+indicate reference membership only and do not classify a gene or finding.
 
 ## Samples Page
 
@@ -504,7 +530,7 @@ Detail pages put the review decision, comments, and evidence around the finding.
 | Transcript consequences | Selected and alternative transcripts, transcript provenance badges, canonical-source status, cDNA/protein notation, consequence, exon/intron, impact, and the newest tier for the exact transcript in the current assay scope. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
 | Prediction cards | SIFT, PolyPhen, and other configured prediction signals. |
 | PON evidence | Separate rows by PON tool/source. |
-| Knowledgebase | Default-expanded source sections for CIViC variant and gene evidence, BRCA Exchange coordinate evidence, IARC TP53 evidence for TP53 variants, and HPA transcript expression. The same card also contains local OncoKB cancer gene/actionable evidence, public OncoKB lookup, and ClinPGx local/API context. ClinPGx local context stays compact; fetched API context can include VIP summary, guideline annotations, labels, top connected drugs, pathways, and variant annotation examples. |
+| Knowledgebase | Default-expanded, responsive source sections for COSMIC, CIViC, BRCA Exchange, IARC TP53, HPA, OncoKB, and ClinPGx evidence when applicable. One search filters all loaded sources. Tables show 10 rows initially and can reveal the complete returned response. Missing type-specific COSMIC products are identified as not configured rather than treated as negative evidence. |
 | Seen in other samples | Other samples with the same genomic identity, with assay group, case VAF, and the newest tier resolved in each sample's assay scope. |
 
 > **Info: Transcript selection**
@@ -526,6 +552,9 @@ column:
 
 The **Canonical** column shows VEP canonical evidence directly from the VEP
 CSQ payload.
+
+Knowledgebase matches, gene-level context, table markers, and release visibility
+are defined in [Knowledgebase Evidence](knowledgebase_evidence.md).
 
 ## Tiered Variant Search
 
@@ -717,7 +746,7 @@ Gene pages present HGNC-centered gene context.
 | Identity | Approved symbol, HGNC ID, gene name, status, locus, aliases, and previous symbols. |
 | Transcript context | MANE Clinical Plus, MANE Select, Ensembl/RefSeq transcript information when available. |
 | Catalog membership | Assays, subpanels, and gene lists that include the gene. |
-| Knowledgebase markers | OncoKB public cancer gene, historical actionable evidence, and ClinPGx cache/API context when available. |
+| Knowledgebase context | Available source families, OncoKB and ClinPGx context, COSMIC Cancer Gene Census role and tier, somatic/germline scope, mutation types, and hallmarks. Finding-specific evidence remains on finding detail pages. |
 
 ## Admin Pages
 

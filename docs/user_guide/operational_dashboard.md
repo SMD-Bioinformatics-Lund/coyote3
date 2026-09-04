@@ -110,6 +110,14 @@ the configured review and reporting policy.
 The resource panel reports administrative inventory such as users, roles,
 ASPs, ASPCs, and ISGLs when those values are available to the current user.
 
+### Knowledgebases Online
+
+The dashboard lists each installed or configured knowledgebase family once,
+with its active release. Multiple products from the same release are grouped
+under one top-level name, such as COSMIC or OncoKB. **Details** opens the
+Knowledgebase Details page for product-level record counts and available
+aggregate content.
+
 ## Clinical Configuration
 
 This section summarizes active gene-list and assay relationships, including
@@ -129,6 +137,7 @@ and gene-list reference.
 | Panel gene coverage and portfolio | Active targeted-panel ASP definitions | Covered and germline gene assignments and panel metadata. |
 | Panel analysis capability | Active targeted-panel ASPC definitions | Enabled analyses compared with reportable sections. |
 | Clinical configuration | Active ASP and ISGL aggregates | Gene-list visibility and assay relationships. |
+| Knowledgebases online | `KNOWLEDGEBASE_DB.versions` and configured remote services | One status entry per top-level knowledgebase family with de-duplicated active releases. |
 
 ## Metric Refresh Behavior
 
@@ -147,9 +156,12 @@ aggregate in one request.
 | Panel inventory | `/api/v1/dashboard/metrics/panels` | `assay_specific_panels` and `asp_configs` |
 | Clinical configuration | `/api/v1/dashboard/metrics/clinical-configuration` | `assay_specific_panels` and `insilico_genelists` |
 | Resource capacity | `/api/v1/dashboard/metrics/resources` | `users`, `roles`, ASP, ASPC, and ISGL repositories |
+| Knowledgebases online | `/api/v1/public/knowledgebases/status` | Active release manifests and configured remote services |
 
 Each section is requested independently. A failure in one metric displays an
-error for that section while the remaining dashboard continues to work.
+error for that section while the remaining dashboard continues to work. The
+knowledgebase status has its own five-minute browser freshness interval and is
+not part of the dashboard metric refresh job.
 
 A fresh cache entry is returned immediately. When an entry reaches its
 freshness limit, the API returns the existing value and queues a refresh for

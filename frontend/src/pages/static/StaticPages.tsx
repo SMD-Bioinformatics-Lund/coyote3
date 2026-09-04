@@ -141,7 +141,16 @@ export function AboutPage() {
           bodyClassName="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4"
         >
           <InfoCard tone="primary" icon={GitBranch} label="Application version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined} />
-          <InfoCard tone="info" icon={Database} label="Primary database" value={databases.primary || "-"} hint={databases.bam_service ? `BAM service: ${databases.bam_service}` : undefined} />
+          <InfoCard
+            tone="info"
+            icon={Database}
+            label="Primary database"
+            value={databases.primary || "-"}
+            hint={[
+              databases.identity ? `Identity: ${databases.identity}` : "",
+              databases.bam_service ? `BAM service: ${databases.bam_service}` : "",
+            ].filter(Boolean).join(" | ") || undefined}
+          />
           <InfoCard tone="success" icon={FileText} label="VEP metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
           <InfoCard tone="warning" icon={Building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote3 deployment"} />
         </ContentSection>

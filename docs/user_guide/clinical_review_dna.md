@@ -66,6 +66,7 @@ The Small Variants table is the primary DNA review table for SNVs and indels.
 | `OKB` | Gene exists in the local public OncoKB cancer gene cache. |
 | `Rx` | Historical local OncoKB actionable evidence exists. |
 | `PGx` | Gene exists in the ClinPGx public gene cache. |
+| `CGC` | At least one displayed gene exists in the installed COSMIC Cancer Gene Census. |
 
 > **Warning: Knowledgebase evidence**
 >
@@ -118,7 +119,7 @@ The variant detail page arranges decision-making cards around the finding.
 | Transcript consequences | Selected and alternate transcript rows with consequence, impact, and the newest tier assigned to that exact transcript in the current assay scope. |
 | Prediction and clinical signals | SIFT, PolyPhen, population frequency, germline risk, or other configured signals. |
 | PON evidence | Separate panel-of-normals rows per tool/source. |
-| Knowledgebase | Default-expanded sections for CIViC variant and gene evidence, BRCA Exchange coordinate evidence, IARC TP53 evidence for TP53 variants, and HPA transcript expression. The same card contains local/public OncoKB and ClinPGx local/API context. |
+| Knowledgebase | Default-expanded responsive sections for COSMIC, CIViC, BRCA Exchange, IARC TP53, HPA, OncoKB, and ClinPGx where applicable. One search filters all loaded sections, and long tables show 10 rows before explicit expansion. |
 | Seen in other samples | Other samples with the same genomic finding, including assay group, case VAF, and the newest tier in that sample's assay scope. |
 
 ## CNVs, Fusions, And Translocations

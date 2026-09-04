@@ -61,6 +61,7 @@ are not offered as usable actions.
 | Gene cohort | Review reported findings, prevalence, and recurrence for one gene. |
 | Reports | Find reports that have already been saved. Reports are created inside a sample. |
 | Catalog | Review public assay, panel, gene-list, and gene coverage information. |
+| Knowledgebases | Review installed sources, releases, record totals, and available aggregate reference statistics. |
 | Notifications | Read messages addressed to the current user. |
 | Admin | Manage resources allowed by the current user's permissions. |
 
@@ -85,6 +86,7 @@ request an immediate refresh from the page.
 | Panel gene coverage | How many covered and germline genes are assigned to active targeted panels? |
 | Panel analysis capability | Which analyses are enabled and reportable across active panel configurations? |
 | Clinical configuration | How many ASPs, ASPCs, ISGLs, users, and roles are available? |
+| Knowledgebases online | Which top-level knowledgebase families and releases are currently available? |
 
 Dashboard counts are limited by the current user's access scope. A zero can
 mean either that no matching records exist or that none are visible to the
@@ -206,6 +208,7 @@ application invalidates the affected cached query and reloads persisted state.
 | Interesting | The finding is marked for attention; reporting still follows report rules and snapshot selection. |
 | Blacklisted | The finding matches a blacklist decision. |
 | Hotspot | Curated hotspot evidence is available. The detail tooltip shows the supported source records. |
+| `CGC` | An involved gene is present in the installed COSMIC Cancer Gene Census. This is gene-level context, not a finding classification. |
 
 Rows marked false positive, irrelevant, or blacklisted are visually subdued.
 They remain available in the analysis view when requested but are excluded from
@@ -220,7 +223,7 @@ genotype data and annotation markers.
 
 | Column group | Content |
 | --- | --- |
-| Info | OncoKB, ClinPGx, prescription, hotspot, and other compact evidence markers. |
+| Info | OncoKB, ClinPGx, COSMIC Cancer Gene Census, prescription, hotspot, and other compact evidence markers. |
 | Identity | Gene, HGVS values, exon/intron, type, indel size, and genomic position. |
 | Interpretation | Consequence, population frequency, tier, and finding flags. |
 | Genotype | Case and optional control VAF, read counts, and supporting values. |
@@ -229,6 +232,14 @@ Population frequency is displayed to six decimal places when available. The
 detail page provides transcript consequences, SIFT, PolyPhen, knowledgebase
 links, comments, classifications, sample genotype, population frequencies, and
 occurrence in other samples.
+
+Knowledgebase sections start expanded and arrange themselves according to their
+content height. Use the knowledgebase search to filter all source sections at
+once. Long evidence tables show 10 rows initially; **Show all** reveals the
+remaining rows returned for that finding. A not-configured warning means the
+corresponding COSMIC product is unavailable, not that the finding has no evidence.
+See [Knowledgebase Evidence](../product/knowledgebase_evidence.md) for source and
+matching semantics.
 
 The selected transcript follows the configured transcript priority. Alternate
 transcripts remain available in the transcript table and gene symbols link to
@@ -333,6 +344,12 @@ users.
 Reports are previewed and saved inside a sample. The global Reports page lists
 saved reports; it does not create a report outside a sample.
 
+The global list is searchable, paginated, newest first, and restricted to the
+current user's assay and environment access. The report number is the primary
+link. A distinct source report name appears as truncated secondary text so a
+long generated name does not displace the sample, assay, author, date, or
+finding-count columns.
+
 ### Preview and save
 
 | Stage | Stored state |
@@ -364,6 +381,10 @@ Gene-cohort prevalence uses profiled samples in the applicable ASP or effective
 sample gene-list scope as the denominator. By default, calculations use the
 current reported occurrence for a sample. The historic option includes older
 report snapshots but counts the same finding only once per sample.
+
+Gene Information and Gene Cohort Explorer display HGNC-normalized gene-level
+knowledgebase context. External evidence does not change the cohort denominator,
+reported-finding numerator, tier distribution, or recurrence counts.
 
 ## Notifications and profile
 
@@ -437,6 +458,7 @@ filter choices.
 | Coverage | [Coverage review](coverage_analytics.md) |
 | Sample worklist | [Sample management](sample_management.md) |
 | Dashboard | [Operational dashboard](operational_dashboard.md) |
+| Knowledgebases | [Knowledgebase evidence](../product/knowledgebase_evidence.md) |
 | Page and column definitions | [UI page and table reference](../product/ui_page_table_reference.md) |
 | Administration | [Management guide](management_guide.md) |
 | Reporting | [Reporting workflow and snapshots](../product/reporting_workflow_and_variant_snapshots.md) |

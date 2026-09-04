@@ -8,7 +8,7 @@ import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ColumnDef } from "@tanstack/react-table"
-import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
+import { GeneWithOncoKbBadge, KnowledgebaseGeneTags } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 
@@ -53,7 +53,9 @@ export function PublicCatalog() {
       "locus_sortable",
       "alias_symbol",
     ]
-    const availableKeys = new Set<string>(genes.flatMap((gene: any) => Object.keys(gene || {})))
+    const availableKeys = new Set<string>(
+      genes.flatMap((gene: any) => Object.keys(gene || {})).filter((key: string) => key !== "knowledgebase_markers"),
+    )
     const keys = preferredKeys
       .filter((key) => availableKeys.has(key))
       .concat(Array.from(availableKeys).filter((key) => !preferredKeys.includes(key)))
@@ -73,6 +75,7 @@ export function PublicCatalog() {
               hgncId={row.original.hgnc_id || row.original._id}
               matchSource={row.original.hgnc_match_source}
               showOncoKbBadge={false}
+              markers={row.original.knowledgebase_markers}
             />
           )
         }
@@ -116,8 +119,8 @@ export function PublicCatalog() {
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
-          <div className="glass-card space-y-3 p-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="surface-panel dashboard-panel dashboard-panel--blue space-y-3 p-3">
+            <h2 className="surface-panel-heading mb-0 flex items-center gap-2 text-sm font-semibold uppercase text-foreground">
               <ListTree className="h-4 w-4" />
               Modalities
             </h2>
@@ -171,7 +174,7 @@ export function PublicCatalog() {
           </div>
 
           <div className="space-y-4">
-            <section className="glass-card p-4">
+            <section className="surface-panel dashboard-panel dashboard-panel--teal p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-xl font-semibold">{right.title || right.label || "Assay Catalog"}</h2>
@@ -267,7 +270,7 @@ export function PublicCatalog() {
               )}
             </section>
 
-            <section className="glass-card border-border/50 p-3">
+            <section className="surface-panel dashboard-panel dashboard-panel--rose border-border/50 p-3">
               <DataTable columns={geneColumns} data={data?.genes || []} filename="assay_catalog_genes.csv" />
             </section>
           </div>
@@ -507,6 +510,7 @@ export function PublicCatalogMatrix() {
           onFilterChange={setMatrixFilter}
           genes={genes}
           matrix={data?.matrix || {}}
+          geneMarkers={data?.gene_markers || {}}
           headerSpans={headerSpans}
           page={data?.page || page}
           perPage={data?.per_page || perPage}
@@ -600,6 +604,7 @@ function AssayMatrixTable({
   onFilterChange,
   genes,
   matrix,
+  geneMarkers,
   headerSpans,
   page,
   perPage,
@@ -620,6 +625,7 @@ function AssayMatrixTable({
   onFilterChange: (next: Record<string, string>) => void
   genes: string[]
   matrix: Record<string, any>
+  geneMarkers: Record<string, any>
   headerSpans: {
     mod: Array<{ key: string; label: string; span: number }>
     assayGroup: Array<{ key: string; label: string; span: number }>
@@ -642,7 +648,7 @@ function AssayMatrixTable({
   }
 
   return (
-    <div className="glass-card border-border/50 p-3">
+    <div className="surface-panel dashboard-panel dashboard-panel--blue border-border/50 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
@@ -795,12 +801,15 @@ function AssayMatrixTable({
             {genes.map((gene) => (
               <tr key={gene} className="bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10 dark:hover:bg-primary/20">
                 <th className="sticky left-0 z-10 border-b border-r border-border/40 bg-card px-3 py-1 text-sm font-semibold">
-                  <Link
-                    to={`/public/gene/${encodeURIComponent(gene)}/info`}
-                    className="link-text transition-colors duration-100"
-                  >
-                    {gene}
-                  </Link>
+                  <div className="flex max-w-40 flex-wrap items-center gap-1">
+                    <Link
+                      to={`/public/gene/${encodeURIComponent(gene)}/info`}
+                      className="link-text transition-colors duration-100"
+                    >
+                      {gene}
+                    </Link>
+                    <KnowledgebaseGeneTags markers={geneMarkers[gene]} compact />
+                  </div>
                 </th>
                 {columns.map((col) => {
                   const present = Boolean(matrix?.[gene]?.[col.mod]?.[col.cat]?.[col.isgl_key])

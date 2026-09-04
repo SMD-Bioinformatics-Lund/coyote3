@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections import Counter
 from typing import Any
 
 from api.infra.mongo.repositories.base import BaseRepository
@@ -41,6 +42,39 @@ def _gene_symbols(values: Any) -> list[str]:
         if symbol:
             symbols.append(str(symbol).upper())
     return list(dict.fromkeys(symbols))[:50]
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        return value != 0
+    return str(value or "").strip().lower() in {"1", "true", "yes", "y"}
+
+
+def _category_values(value: Any) -> list[str]:
+    values = value if isinstance(value, list | tuple | set) else [value]
+    categories: list[str] = []
+    for item in values:
+        categories.extend(part.strip() for part in re.split(r"[;|]", str(item or "")))
+    return [category for category in categories if category]
+
+
+def _distribution(counter: Counter[str], *, limit: int | None = None) -> list[dict[str, Any]]:
+    rows = sorted(counter.items(), key=lambda item: (-item[1], item[0].lower()))
+    if limit is not None and len(rows) > limit:
+        visible = rows[:limit]
+        visible.append(("Other", sum(value for _, value in rows[limit:])))
+        rows = visible
+    return [{"name": name, "value": value} for name, value in rows if value > 0]
+
+
+def _role_label(value: Any) -> str:
+    role = str(value or "").strip()
+    if not role:
+        return "Not specified"
+    labels = {"tsg": "Tumour suppressor", "oncogene": "Oncogene"}
+    return labels.get(role.lower(), role)
 
 
 class CosmicRepository(BaseRepository):
@@ -143,6 +177,88 @@ class CosmicRepository(BaseRepository):
             str(record["gene_symbol"]).upper(): record
             for record in records
             if record.get("gene_symbol")
+        }
+
+    def get_cancer_gene_census_summary(self) -> dict[str, Any]:
+        """Summarize the installed Cancer Gene Census without clinical data."""
+        database = getattr(self.adapter, "knowledgebase_db", None)
+        collection = getattr(self.adapter, "cosmic_cgc_collection", None)
+        empty = {
+            "available": False,
+            "total_genes": 0,
+            "tiers": [],
+            "origins": [],
+            "roles": [],
+            "mutation_types": [],
+            "molecular_genetics": [],
+            "hallmarks": [],
+            "hallmark_records": 0,
+        }
+        collection_names = set(database.list_collection_names()) if database is not None else set()
+        if collection is None or collection.name not in collection_names:
+            return empty
+
+        projection = {
+            "_id": 0,
+            "gene_symbol": 1,
+            "tier": 1,
+            "somatic": 1,
+            "germline": 1,
+            "role_in_cancer": 1,
+            "mutation_types": 1,
+            "molecular_genetics": 1,
+        }
+        records_by_gene = {
+            str(row["gene_symbol"]).strip().upper(): row
+            for row in collection.find({}, projection)
+            if row.get("gene_symbol")
+        }
+        if not records_by_gene:
+            return empty
+
+        tiers: Counter[str] = Counter()
+        origins: Counter[str] = Counter()
+        roles: Counter[str] = Counter()
+        mutation_types: Counter[str] = Counter()
+        molecular_genetics: Counter[str] = Counter()
+        for row in records_by_gene.values():
+            tier = str(row.get("tier") or "").strip()
+            tiers[f"Tier {tier}" if tier else "Not specified"] += 1
+
+            somatic = _truthy(row.get("somatic"))
+            germline = _truthy(row.get("germline"))
+            if somatic and germline:
+                origins["Somatic and germline"] += 1
+            elif somatic:
+                origins["Somatic only"] += 1
+            elif germline:
+                origins["Germline only"] += 1
+            else:
+                origins["Not specified"] += 1
+
+            roles[_role_label(row.get("role_in_cancer"))] += 1
+            mutation_types.update(_category_values(row.get("mutation_types")))
+            molecular_genetics.update(_category_values(row.get("molecular_genetics")))
+
+        hallmarks: Counter[str] = Counter()
+        hallmark_records = 0
+        hallmark_collection = getattr(self.adapter, "cosmic_cgc_hallmarks_collection", None)
+        if hallmark_collection is not None and hallmark_collection.name in collection_names:
+            for row in hallmark_collection.find({}, {"_id": 0, "hallmark": 1, "impact": 1}):
+                values = _category_values(row.get("hallmark") or row.get("impact"))
+                hallmarks.update(values)
+                hallmark_records += 1
+
+        return {
+            "available": True,
+            "total_genes": len(records_by_gene),
+            "tiers": _distribution(tiers),
+            "origins": _distribution(origins),
+            "roles": _distribution(roles, limit=7),
+            "mutation_types": _distribution(mutation_types, limit=8),
+            "molecular_genetics": _distribution(molecular_genetics, limit=8),
+            "hallmarks": _distribution(hallmarks, limit=8),
+            "hallmark_records": hallmark_records,
         }
 
     def _hallmarks(self, genes: list[str]) -> list[dict[str, Any]]:

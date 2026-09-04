@@ -243,6 +243,46 @@ class PublicCatalogGeneViewsMixin:
             gene["drug_target"] = symbol in drug_symbols
         return genes
 
+    def knowledgebase_gene_markers(self, genes: list[str]) -> dict[str, dict[str, Any]]:
+        """Return sanitized source-membership markers for public gene views."""
+        symbols = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not symbols:
+            return {}
+
+        def records(repository: Any, method: str = "get_gene_records") -> dict[str, Any]:
+            getter = getattr(repository, method, None)
+            return getter(symbols) if callable(getter) else {}
+
+        oncokb = records(getattr(self, "oncokb_public_cache_repository", None))
+        clinpgx = records(getattr(self, "clinpgx_public_repository", None))
+        civic = records(getattr(self, "civic_repository", None))
+        cosmic = records(
+            getattr(self, "cosmic_repository", None),
+            "get_cancer_gene_census_records",
+        )
+        markers: dict[str, dict[str, Any]] = {}
+        for symbol in symbols:
+            pgx = clinpgx.get(symbol) or clinpgx.get(symbol.upper()) or {}
+            markers[symbol] = {
+                "oncokb": bool(oncokb.get(symbol) or oncokb.get(symbol.upper())),
+                "cosmic_cgc": bool(cosmic.get(symbol) or cosmic.get(symbol.upper())),
+                "civic": bool(civic.get(symbol) or civic.get(symbol.upper())),
+                "clinpgx": bool(pgx),
+                "clinpgx_accession": pgx.get("pharmgkb_accession_id"),
+            }
+        return markers
+
+    def apply_knowledgebase_gene_markers(self, genes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Attach public source-membership markers to gene rows in one batch."""
+        symbols = [
+            str(gene.get("resolved_symbol") or gene.get("hgnc_symbol") or gene.get("symbol") or "")
+            for gene in genes
+        ]
+        markers = self.knowledgebase_gene_markers(symbols)
+        for gene, symbol in zip(genes, symbols, strict=True):
+            gene["knowledgebase_markers"] = markers.get(symbol, {})
+        return genes
+
     def genelist_view_context(
         self, genelist_id: str, assay: str | None = None
     ) -> dict[str, Any] | None:
@@ -273,6 +313,7 @@ class PublicCatalogGeneViewsMixin:
             "filtered_genes": filtered_genes,
             "germline_genes": germline_genes,
             "is_public": True,
+            "gene_markers": self.knowledgebase_gene_markers(filtered_genes),
         }
 
     def asp_genes_payload(self, asp_id: str) -> dict[str, Any]:
@@ -292,7 +333,7 @@ class PublicCatalogGeneViewsMixin:
                 "germline_total": len(germline_gene_symbols or []),
                 "displayed_total": len(gene_details),
             },
-            "gene_details": gene_details,
+            "gene_details": self.apply_knowledgebase_gene_markers(gene_details),
             "germline_gene_symbols": list(germline_gene_symbols or []),
         }
 
@@ -476,6 +517,7 @@ class PublicCatalogGeneViewsMixin:
             "cat_spans": cat_spans,
             "genes": visible_genes,
             "matrix": matrix,
+            "gene_markers": self.knowledgebase_gene_markers(visible_genes),
             "page": page,
             "per_page": per_page,
             "total": total,

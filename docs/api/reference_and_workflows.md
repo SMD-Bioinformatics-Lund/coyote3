@@ -34,6 +34,37 @@ examples, bearer-token examples, and prefix-aware URLs.
 
 ## Common Request Patterns
 
+### Knowledgebase read flows
+
+`GET /api/v1/knowledgebases/gene/{gene_id}` returns the HGNC-normalized,
+aggregated gene context used by Gene Information and Gene Cohort Explorer.
+`GET /api/v1/knowledgebases/variant/evidence` returns matched local evidence for
+one small-variant identity. Finding detail endpoints add type-specific COSMIC
+evidence for CNVs, fusions, and translocations through their application
+services.
+
+`GET /api/v1/knowledgebases/cosmic/cancer-gene-census/summary` returns
+non-clinical aggregate counts for the optional Knowledgebase Details Cancer Gene Census
+visualization. `available` is false when the census collection is absent or
+empty. Hallmark counts are included only when the companion hallmark collection
+is populated.
+
+`GET /api/v1/knowledgebases/statistics` returns aggregate, non-clinical source
+coverage for the Knowledgebase Details page. Each source reports availability,
+its total unit, an optional mutually exclusive distribution, and labelled
+feature counts. The endpoint reads knowledgebase collections only and returns
+no sample-linked records.
+
+Public catalog context, matrix, assay-gene, and gene-list responses include
+bounded `knowledgebase_markers` or `gene_markers` maps for visible genes. These
+maps contain source membership and public accessions only.
+
+`GET /api/v1/public/knowledgebases/status` returns non-sensitive active release
+metadata for the About page. It exposes product names, release
+identifiers, publication state, collection counts, and record totals. It must
+not expose importer paths, source manifests, checksums, credentials, sample
+identifiers, or patient data.
+
 ### Read Flows
 
 A typical read flow looks like this:

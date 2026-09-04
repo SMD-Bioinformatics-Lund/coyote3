@@ -144,6 +144,45 @@ class KnowledgebaseGenePayload(BaseModel):
     available_sources: list[str] = []
 
 
+class KnowledgebaseSummaryDatum(BaseModel):
+    """Represent one named count in a knowledgebase summary."""
+
+    name: str
+    value: int
+
+
+class CancerGeneCensusSummaryPayload(BaseModel):
+    """Represent non-clinical aggregate Cancer Gene Census information."""
+
+    available: bool
+    total_genes: int = 0
+    tiers: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    origins: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    roles: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    mutation_types: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    molecular_genetics: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    hallmarks: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    hallmark_records: int = 0
+
+
+class KnowledgebaseSourceStatisticsPayload(BaseModel):
+    """Represent aggregate, non-clinical statistics for one reference source."""
+
+    key: str
+    name: str
+    available: bool
+    total: int = 0
+    unit: str = "records"
+    distribution: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+    metrics: list[KnowledgebaseSummaryDatum] = Field(default_factory=list)
+
+
+class KnowledgebaseStatisticsPayload(BaseModel):
+    """Represent aggregate statistics for configured knowledgebase sources."""
+
+    sources: list[KnowledgebaseSourceStatisticsPayload] = Field(default_factory=list)
+
+
 class KnowledgebaseVariantPayload(BaseModel):
     """Represent aggregated variant-level knowledgebase context."""
 

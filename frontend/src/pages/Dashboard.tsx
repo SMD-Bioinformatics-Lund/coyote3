@@ -14,7 +14,7 @@ import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
-import { KnowledgebaseStatus } from "@/components/knowledgebase/KnowledgebaseStatus"
+import { KnowledgebaseOnline } from "@/components/knowledgebase/KnowledgebaseOnline"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
 const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
@@ -455,15 +455,15 @@ export function Dashboard() {
 
       <SurfacePanel
         className="dashboard-panel dashboard-panel--blue"
-        title="Knowledgebase Inventory"
-        description="Installed reference products, releases, and indexed evidence available to interpretation views."
+        title="Knowledgebases online"
+        description="Installed or configured reference sources and their active releases."
       >
         {knowledgebaseQuery.isLoading ? (
-          <AppLoader label="Loading knowledgebase inventory" />
+          <AppLoader label="Loading knowledgebase status" />
         ) : knowledgebaseQuery.error ? (
-          <MetricUnavailable label="Knowledgebase inventory" />
+          <MetricUnavailable label="Knowledgebase status" />
         ) : (
-          <KnowledgebaseStatus payload={knowledgebaseQuery.data} compact />
+          <KnowledgebaseOnline payload={knowledgebaseQuery.data} />
         )}
       </SurfacePanel>
 

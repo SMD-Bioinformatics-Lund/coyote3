@@ -38,7 +38,7 @@ result set rather than only the rows visible on the current page.
 | Column | Information shown |
 | --- | --- |
 | Selection | Selects rows for an allowed bulk action. |
-| Status | Curation markers such as false positive or irrelevant. Hover a marker to read its meaning. |
+| Status | Curation and knowledgebase markers such as false positive, irrelevant, or COSMIC Cancer Gene Census (`CGC`). Hover a marker to read its meaning and matched gene context. |
 | Gene 1 and Gene 2 | The two fusion partners selected from the normalized fusion call. |
 | Effect | The predicted fusion effect, such as in-frame, when supplied by the source data. |
 | Spanning pairs | Read-pair evidence supporting the fusion. |

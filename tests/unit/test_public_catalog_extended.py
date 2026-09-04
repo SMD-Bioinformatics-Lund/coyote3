@@ -181,6 +181,28 @@ def test_knowledgebase_status_aggregates_active_release_counts():
     }
 
 
+def test_public_gene_markers_are_resolved_in_batches():
+    service = _service()
+    service.oncokb_public_cache_repository = SimpleNamespace(
+        get_gene_records=lambda genes: {"TP53": {"gene": "TP53"}}
+    )
+    service.clinpgx_public_repository = SimpleNamespace(
+        get_gene_records=lambda genes: {
+            "BRCA1": {"symbol": "BRCA1", "pharmgkb_accession_id": "PA1"}
+        }
+    )
+    service.civic_repository = SimpleNamespace(get_gene_records=lambda genes: {})
+    service.cosmic_repository = SimpleNamespace(
+        get_cancer_gene_census_records=lambda genes: {"TP53": {"gene": "TP53"}}
+    )
+
+    markers = service.knowledgebase_gene_markers(["TP53", "BRCA1"])
+
+    assert markers["TP53"]["oncokb"] is True
+    assert markers["TP53"]["cosmic_cgc"] is True
+    assert markers["BRCA1"]["clinpgx_accession"] == "PA1"
+
+
 def test_overlay_parsing_helpers_cover_list_dict_and_precedence():
     list_overlay = {"categories": [{"asp_id": "panel_a"}, "bad"]}
     assert PublicCatalogService._overlay_categories(list_overlay) == [{"asp_id": "panel_a"}]

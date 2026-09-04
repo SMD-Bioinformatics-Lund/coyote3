@@ -141,6 +141,43 @@ class OncoKbPublicCacheRepository(BaseRepository):
         """Return the number of public OncoKB cancer-gene marker records."""
         return int(self.cancer_gene_collection.estimated_document_count() or 0)
 
+    def get_summary(self) -> dict[str, Any]:
+        """Return aggregate public OncoKB cancer-gene statistics."""
+        total = self.public_cancer_gene_count()
+        if not total:
+            return {"available": False, "total": 0, "distribution": [], "metrics": []}
+        gene_types = [
+            {"name": str(row.get("_id") or "Not specified"), "value": int(row["value"])}
+            for row in self.cancer_gene_collection.aggregate(
+                [
+                    {
+                        "$group": {
+                            "_id": {"$ifNull": ["$gene_type", "Not specified"]},
+                            "value": {"$sum": 1},
+                        }
+                    },
+                    {"$sort": {"value": -1}},
+                ]
+            )
+        ]
+        flags = (
+            "oncokb_annotated",
+            "sanger_cgc",
+            "vogelstein",
+            "foundation",
+            "foundation_heme",
+            "msk_impact",
+            "msk_heme",
+        )
+        metrics = [
+            {
+                "name": flag.replace("_", " ").title(),
+                "value": int(self.cancer_gene_collection.count_documents({flag: True})),
+            }
+            for flag in flags
+        ]
+        return {"available": True, "total": total, "distribution": gene_types, "metrics": metrics}
+
     def public_gene_symbols(self) -> set[str]:
         """Return all public OncoKB gene symbols currently cached."""
         return {

@@ -82,6 +82,7 @@ def public_about_read():
             "references": _public_reference_versions(),
             "databases": {
                 "primary": runtime_app.config.get("COYOTE3_DB"),
+                "identity": runtime_app.config.get("IDENTITY_DB"),
                 "knowledgebase": runtime_app.config.get("KNOWLEDGEBASE_DB"),
                 "bam_service": runtime_app.config.get("BAM_DB"),
                 "knowledgebases": {
@@ -330,6 +331,7 @@ def public_assay_catalog_context_read(
         )
 
     genes = service.apply_drug_info(genes=deepcopy(genes), druglist_name="drug_addon")
+    genes = service.apply_knowledgebase_gene_markers(genes)
     vm = {
         "meta": {
             "version": catalog.get("version"),

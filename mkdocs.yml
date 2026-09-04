@@ -57,6 +57,7 @@ nav:
       - UI actions and effects: product/ui_action_effects_reference.md
       - Functional matrix: product/ui_functionality_matrix.md
       - Clinical vocabulary: operations/clinical_vocabulary.md
+      - Knowledgebase evidence: product/knowledgebase_evidence.md
       - OncoKB integration: product/oncokb_integration.md
       - ClinPGx integration: product/clinpgx_integration.md
       - Sample YAML manifest: api/sample_yaml.md

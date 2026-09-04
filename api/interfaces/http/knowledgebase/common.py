@@ -11,11 +11,13 @@ from api.app.deps.services import get_common_query_service
 from api.app.runtime_state import app as runtime_app
 from api.application.common.query_service import CommonQueryService
 from api.contracts.common import (
+    CancerGeneCensusSummaryPayload,
     CommonGeneCohortPayload,
     CommonGeneInfoPayload,
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
     KnowledgebaseGenePayload,
+    KnowledgebaseStatisticsPayload,
     KnowledgebaseVariantPayload,
 )
 from api.interfaces.http.tags import TAG_KNOWLEDGEBASE
@@ -102,6 +104,34 @@ def common_gene_cohort_read(
             include_history=include_history,
         )
     )
+
+
+@router.get(
+    "/api/v1/knowledgebases/cosmic/cancer-gene-census/summary",
+    response_model=CancerGeneCensusSummaryPayload,
+    summary="Get aggregate Cancer Gene Census information",
+)
+def cancer_gene_census_summary_read(
+    user: ApiUser = Depends(require_access()),
+    service: CommonQueryService = Depends(get_common_query_service),
+):
+    """Return non-clinical CGC distributions when the collection is populated."""
+    _ = user
+    return util.common.convert_to_serializable(service.cancer_gene_census_summary())
+
+
+@router.get(
+    "/api/v1/knowledgebases/statistics",
+    response_model=KnowledgebaseStatisticsPayload,
+    summary="Get aggregate knowledgebase statistics",
+)
+def knowledgebase_statistics_read(
+    user: ApiUser = Depends(require_access()),
+    service: CommonQueryService = Depends(get_common_query_service),
+):
+    """Return non-clinical source coverage statistics."""
+    _ = user
+    return util.common.convert_to_serializable(service.knowledgebase_statistics())
 
 
 @router.get(

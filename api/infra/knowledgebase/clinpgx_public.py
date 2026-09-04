@@ -437,6 +437,27 @@ class ClinPgxPublicRepository(BaseRepository):
             name="pharmgkb_accession_id_1",
             background=True,
         )
+
+    def get_summary(self) -> dict[str, Any]:
+        """Return aggregate public ClinPGx gene capability statistics."""
+        collection = self.get_collection()
+        total = int(collection.estimated_document_count() or 0)
+        if not total:
+            return {"available": False, "total": 0, "distribution": [], "metrics": []}
+        fields = (
+            ("VIP genes", "is_vip"),
+            ("CPIC dosing guidance", "has_cpic_dosing_guideline"),
+            ("Variant annotations", "has_variant_annotation"),
+        )
+        return {
+            "available": True,
+            "total": total,
+            "distribution": [],
+            "metrics": [
+                {"name": label, "value": int(collection.count_documents({field: True}))}
+                for label, field in fields
+            ],
+        }
         collection.create_index(
             [("alternate_symbols", 1)], name="alternate_symbols_1", background=True
         )

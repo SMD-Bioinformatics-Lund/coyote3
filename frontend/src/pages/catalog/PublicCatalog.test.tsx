@@ -18,6 +18,7 @@ vi.mock("@/components/data-table/DataTable", () => ({
 
 vi.mock("@/components/knowledgebase/OncoKbGeneBadge", () => ({
   GeneWithOncoKbBadge: ({ displayGene }: { displayGene: string }) => <span>{displayGene}</span>,
+  KnowledgebaseGeneTags: () => null,
 }))
 
 function renderPage(ui: React.ReactElement) {

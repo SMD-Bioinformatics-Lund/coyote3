@@ -36,6 +36,7 @@ vi.mock("recharts", () => ({
 }))
 
 import {
+  CancerGeneCensusChart,
   GeneCoverageChart,
   PanelAnalysisCapabilityChart,
   SampleCompositionCharts,
@@ -67,6 +68,36 @@ describe("dashboard charts", () => {
     expect(mocks.legend).toHaveBeenCalledWith(expect.objectContaining({ verticalAlign: "bottom" }))
     expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
     expect(screen.getByText("Chart legend")).toBeVisible()
+  })
+
+  it("renders three animated census rings and ranked supporting context", () => {
+    render(<CancerGeneCensusChart data={{
+      available: true,
+      total_genes: 3,
+      tiers: [{ name: "Tier 1", value: 2 }, { name: "Tier 2", value: 1 }],
+      origins: [{ name: "Somatic only", value: 2 }, { name: "Germline only", value: 1 }],
+      roles: [{ name: "Tumour suppressor", value: 2 }, { name: "Oncogene", value: 1 }],
+      mutation_types: [{ name: "Missense", value: 2 }],
+      molecular_genetics: [{ name: "Dominant", value: 1 }],
+      hallmarks: [{ name: "Genome instability", value: 1 }],
+      hallmark_records: 1,
+    }} />)
+
+    expect(screen.getByRole("img", { name: /cancer gene census summary for 3 genes/i })).toBeVisible()
+    expect(screen.getByText("Inner ring - CGC tier")).toBeVisible()
+    expect(screen.getByText("Middle ring - origin scope")).toBeVisible()
+    expect(screen.getByText("Outer ring - role in cancer")).toBeVisible()
+    expect(screen.getByText("Mutation types")).toBeVisible()
+    expect(screen.getByText("Hallmarks - 1 record")).toBeVisible()
+    expect(mocks.pie).toHaveBeenCalledTimes(3)
+    expect(mocks.pie).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      innerRadius: "73%",
+      outerRadius: "91%",
+      startAngle: 90,
+      endAngle: -270,
+      isAnimationActive: true,
+    }))
+    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
   })
 
   it("renders covered and germline series from assay coverage data", () => {

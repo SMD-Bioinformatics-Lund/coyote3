@@ -58,7 +58,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /dashboard/metrics/resources",
       "GET /public/knowledgebases/status",
     ],
-    dataUsed: ["sample counts", "variant counts", "tier distribution", "assay profile summary", "resource capacity", "knowledgebase releases and record counts"],
+    dataUsed: ["sample counts", "variant counts", "tier distribution", "assay profile summary", "resource capacity", "top-level knowledgebase availability and releases"],
   },
   {
     path: "/samples",
@@ -180,6 +180,16 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     area: "public",
     api: ["GET /knowledgebases/gene/:geneId"],
     dataUsed: ["gene metadata", "external references", "gene-level knowledgebase evidence"],
+  },
+  {
+    path: "/knowledgebases",
+    page: "KnowledgebaseDetails",
+    area: "clinical",
+    api: [
+      "GET /public/knowledgebases/status",
+      "GET /knowledgebases/cosmic/cancer-gene-census/summary",
+    ],
+    dataUsed: ["installed knowledgebase releases", "product record totals", "Cancer Gene Census aggregate counts"],
   },
   {
     path: "/about",

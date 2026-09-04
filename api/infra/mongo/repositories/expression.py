@@ -64,3 +64,13 @@ class ExpressionRepository(BaseRepository):
             expression_dict[transcript_expression["tid"]] = transcript_expression["expr"]
 
         return expression_dict
+
+    def get_summary(self) -> dict:
+        """Return aggregate HPA expression reference statistics."""
+        transcripts = int(self.get_collection().estimated_document_count() or 0)
+        return {
+            "available": bool(transcripts),
+            "total": transcripts,
+            "distribution": [],
+            "metrics": [],
+        }

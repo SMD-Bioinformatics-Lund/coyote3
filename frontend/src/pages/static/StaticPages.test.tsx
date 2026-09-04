@@ -57,6 +57,7 @@ const publicPayload = {
   software_links: [{ label: "GENS", url: "https://gens.example.org", description: "Genome visualization", icon: "external" }],
   databases: {
     primary: "coyote3",
+    identity: "coyote3_identity",
     bam_service: "BAM_Service",
     knowledgebases: { oncokb: "https://public.api.oncokb.org/api/v1" },
   },
@@ -97,7 +98,7 @@ describe("public static pages", () => {
     expect(await screen.findByText("4.0.0")).toBeVisible()
     expect(screen.getByText("Environment: production")).toBeVisible()
     expect(screen.getByText("coyote3")).toBeVisible()
-    expect(screen.getByText("BAM service: BAM_Service")).toBeVisible()
+    expect(screen.getByText("Identity: coyote3_identity | BAM service: BAM_Service")).toBeVisible()
     expect(screen.getByText("SomaticPanelPipeline")).toBeVisible()
     expect(screen.getByText("GRCh38.p13")).toBeVisible()
     expect(screen.getByText("GRCh38")).toBeVisible()

@@ -13,6 +13,7 @@ vi.mock("./components/admin/AdminPermissionBoundary", () => ({
 }))
 vi.mock("./pages/auth/Login", () => ({ Login: () => <div>Login page</div> }))
 vi.mock("./pages/Dashboard", () => ({ Dashboard: () => <div>Dashboard page</div> }))
+vi.mock("./pages/KnowledgebaseDetails", () => ({ KnowledgebaseDetails: () => <div>Knowledgebase details page</div> }))
 vi.mock("./pages/SampleDetail", () => ({ SampleDetail: () => {
   const { id } = useParams()
   return <div>Sample detail {id}</div>
@@ -50,6 +51,11 @@ describe("App route wiring", () => {
     navigate("/samples/SAMPLE_42")
     expect(await screen.findByText("Sample detail SAMPLE_42")).toBeVisible()
     expect(screen.getByTestId("layout")).toBeVisible()
+  })
+
+  it("routes the knowledgebase module to its details page", async () => {
+    navigate("/knowledgebases")
+    expect(await screen.findByText("Knowledgebase details page")).toBeVisible()
   })
 
   it("wraps protected admin routes in their exact permission boundary", async () => {

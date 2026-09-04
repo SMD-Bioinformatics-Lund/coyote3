@@ -36,6 +36,7 @@ const GeneCohortExplorer = lazy(() => import("./pages/search/GeneCohortExplorer"
 const Profile = lazy(() => import("./pages/account/Profile").then((module) => ({ default: module.Profile })))
 const ContactPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.ContactPage })))
 const AboutPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.AboutPage })))
+const KnowledgebaseDetails = lazy(() => import("./pages/KnowledgebaseDetails").then((module) => ({ default: module.KnowledgebaseDetails })))
 const NotFoundPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.NotFoundPage })))
 const CoverageBlacklistPage = lazy(() => import("./pages/resources/CommonResourcePages").then((module) => ({ default: module.CoverageBlacklistPage })))
 const GeneInfoPage = lazy(() => import("./pages/resources/CommonResourcePages").then((module) => ({ default: module.GeneInfoPage })))
@@ -123,6 +124,7 @@ export default function App() {
             <Route path="/reports" element={withModule(<ReportsPage />, "reports")} />
             <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />
             <Route path="/about" element={withRouteLoader(<AboutPage />)} />
+            <Route path="/knowledgebases" element={withModule(<KnowledgebaseDetails />, "knowledgebases")} />
             <Route path="/contact" element={withRouteLoader(<ContactPage />)} />
             <Route path="/public" element={withModule(<PublicCatalog />, "assay_catalog")} />
             <Route path="/public/catalog" element={withModule(<PublicCatalog />, "assay_catalog")} />

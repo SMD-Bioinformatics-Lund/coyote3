@@ -15,13 +15,14 @@ import {
   GeneKnowledgebaseSummary,
   type GeneKnowledgebasePayload,
 } from "@/components/knowledgebase/GeneKnowledgebaseSummary"
+import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 
 function columnsFor(rows: any[], preferred: string[] = []): ColumnDef<any, any>[] {
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row || {}))]
   const seen = new Set<string>()
   return keys
     .filter((key) => {
-      if (seen.has(key) || key.startsWith("_rev")) return false
+      if (seen.has(key) || key.startsWith("_rev") || key === "knowledgebase_markers") return false
       seen.add(key)
       return rows.some((row) => row?.[key] !== undefined)
     })
@@ -38,6 +39,17 @@ function columnsFor(rows: any[], preferred: string[] = []): ColumnDef<any, any>[
       cell: ({ row }) => {
         const value = row.original?.[key]
         const label = Array.isArray(value) ? value.join(", ") : value && typeof value === "object" ? JSON.stringify(value) : String(value ?? "-")
+        if (["hgnc_symbol", "symbol", "gene"].includes(key)) {
+          return (
+            <GeneWithOncoKbBadge
+              gene={label}
+              displayGene={label}
+              hgncId={row.original?.hgnc_id || row.original?._id}
+              showOncoKbBadge={false}
+              markers={row.original?.knowledgebase_markers}
+            />
+          )
+        }
         return <span className="block max-w-[24rem] truncate text-xs" title={label}>{label}</span>
       },
     }))
@@ -361,8 +373,12 @@ export function PublicGenelistPage() {
     queryFn: () => api.get(`/public/genelists/${genelistId}/view_context${assay ? `?assay=${encodeURIComponent(assay)}` : ""}`).then((res) => res.data),
     enabled: Boolean(genelistId),
   })
-  const genes = useMemo(() => data?.genes || data?.gene_objects || data?.rows || [], [data])
-  const rows = useMemo(() => Array.isArray(genes) ? genes.map((gene: any) => typeof gene === "string" ? { gene } : gene) : [], [genes])
+  const genes = useMemo(() => data?.filtered_genes || data?.genes || data?.gene_objects || data?.rows || [], [data])
+  const rows = useMemo(() => Array.isArray(genes) ? genes.map((gene: any) => {
+    const row = typeof gene === "string" ? { gene } : gene
+    const symbol = typeof gene === "string" ? gene : gene?.hgnc_symbol || gene?.symbol || gene?.gene
+    return { ...row, knowledgebase_markers: data?.gene_markers?.[symbol] || row.knowledgebase_markers }
+  }) : [], [data?.gene_markers, genes])
   const columns = useMemo(() => columnsFor(rows, ["hgnc_symbol", "symbol", "gene"]), [rows])
 
   return (

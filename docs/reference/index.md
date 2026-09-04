@@ -20,7 +20,9 @@ format must be understood precisely.
 | Ingested data-file formats | [Sample Input Files](../api/sample_input_files.md) |
 | MongoDB collection fields and validation | [Collection Contracts](../api/collection_contracts.md) |
 | Terms used in the clinical interface | [Clinical Vocabulary](../operations/clinical_vocabulary.md) |
-| Supported external knowledgebases | [OncoKB](../product/oncokb_integration.md) and [ClinPGx](../product/clinpgx_integration.md) |
+| Knowledgebase evidence in clinical views | [Knowledgebase Evidence](../product/knowledgebase_evidence.md) |
+| OncoKB and ClinPGx integrations | [OncoKB](../product/oncokb_integration.md) and [ClinPGx](../product/clinpgx_integration.md) |
+| Knowledgebase release management | [Knowledgebase Snapshot Updates](../operations/knowledgebase_updates.md) |
 
 The collection-contract reference is generated from the Pydantic schemas. Do
 not edit it manually; update the schema and regenerate the document.

@@ -49,6 +49,7 @@ class CommonQueryService:
             brca_repository=getattr(store, "brca_repository", None),
             iarc_tp53_repository=getattr(store, "iarc_tp53_repository", None),
             cosmic_repository=getattr(store, "cosmic_repository", None),
+            expression_repository=getattr(store, "expression_repository", None),
             bam_record_repository=getattr(store, "bam_record_repository", None),
         )
 
@@ -69,6 +70,7 @@ class CommonQueryService:
         brca_repository: Any | None = None,
         iarc_tp53_repository: Any | None = None,
         cosmic_repository: Any | None = None,
+        expression_repository: Any | None = None,
         bam_record_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
@@ -86,6 +88,7 @@ class CommonQueryService:
         self.brca_repository = brca_repository
         self.iarc_tp53_repository = iarc_tp53_repository
         self.cosmic_repository = cosmic_repository
+        self.expression_repository = expression_repository
         self.bam_record_repository = bam_record_repository
 
     def _resolve_gene(self, gene_id: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
@@ -197,6 +200,37 @@ class CommonQueryService:
             "sources": sources,
             "available_sources": self._available_sources(sources),
         }
+
+    def cancer_gene_census_summary(self) -> dict[str, Any]:
+        """Return aggregate Cancer Gene Census information when it is installed."""
+        if self.cosmic_repository is None:
+            return {"available": False}
+        return self.cosmic_repository.get_cancer_gene_census_summary()
+
+    def knowledgebase_statistics(self) -> dict[str, Any]:
+        """Return aggregate, non-clinical statistics for configured sources."""
+        repositories = (
+            ("oncokb", "OncoKB", "genes", self.oncokb_public_cache_repository),
+            ("clinpgx", "ClinPGx / PharmGKB", "genes", self.clinpgx_public_repository),
+            ("civic", "CIViC", "genes", self.civic_repository),
+            ("hpa", "Human Protein Atlas", "transcripts", self.expression_repository),
+        )
+        sources = []
+        for key, name, unit, repository in repositories:
+            getter = getattr(repository, "get_summary", None)
+            summary = getter() if callable(getter) else {"available": False}
+            sources.append(
+                {
+                    "key": key,
+                    "name": name,
+                    "unit": unit,
+                    "available": bool(summary.get("available")),
+                    "total": int(summary.get("total") or 0),
+                    "distribution": summary.get("distribution") or [],
+                    "metrics": summary.get("metrics") or [],
+                }
+            )
+        return {"sources": sources}
 
     def knowledgebase_variant_payload(
         self,

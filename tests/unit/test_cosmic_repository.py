@@ -147,6 +147,77 @@ def test_cancer_gene_census_records_are_returned_as_a_gene_map() -> None:
     assert records["TP53"]["role_in_cancer"] == "TSG"
 
 
+def test_cancer_gene_census_summary_is_unavailable_without_collection() -> None:
+    repository, _ = _repository()
+
+    summary = repository.get_cancer_gene_census_summary()
+
+    assert summary["available"] is False
+    assert summary["total_genes"] == 0
+
+
+def test_cancer_gene_census_summary_does_not_require_hallmarks() -> None:
+    repository, adapter = _repository()
+    adapter.cosmic_cgc_collection.insert_one(
+        {"gene_symbol": "TP53", "tier": "1", "role_in_cancer": "TSG"}
+    )
+
+    summary = repository.get_cancer_gene_census_summary()
+
+    assert summary["available"] is True
+    assert summary["total_genes"] == 1
+    assert summary["hallmarks"] == []
+    assert summary["hallmark_records"] == 0
+
+
+def test_cancer_gene_census_summary_counts_unique_genes_and_optional_hallmarks() -> None:
+    repository, adapter = _repository()
+    adapter.cosmic_cgc_collection.insert_many(
+        [
+            {
+                "gene_symbol": "TP53",
+                "tier": "1",
+                "somatic": "yes",
+                "germline": "yes",
+                "role_in_cancer": "TSG",
+                "mutation_types": "Missense; Frameshift",
+                "molecular_genetics": "Dominant",
+            },
+            {
+                "gene_symbol": "NTRK1",
+                "tier": "1",
+                "somatic": True,
+                "germline": False,
+                "role_in_cancer": "oncogene",
+                "mutation_types": "Fusion",
+                "molecular_genetics": "Dominant",
+            },
+        ]
+    )
+    adapter.cosmic_cgc_hallmarks_collection.insert_many(
+        [
+            {"gene_symbol": "TP53", "hallmark": "Genome instability"},
+            {"gene_symbol": "NTRK1", "impact": "Proliferative signalling"},
+        ]
+    )
+
+    summary = repository.get_cancer_gene_census_summary()
+
+    assert summary["available"] is True
+    assert summary["total_genes"] == 2
+    assert summary["tiers"] == [{"name": "Tier 1", "value": 2}]
+    assert summary["origins"] == [
+        {"name": "Somatic and germline", "value": 1},
+        {"name": "Somatic only", "value": 1},
+    ]
+    assert summary["roles"] == [
+        {"name": "Oncogene", "value": 1},
+        {"name": "Tumour suppressor", "value": 1},
+    ]
+    assert summary["molecular_genetics"] == [{"name": "Dominant", "value": 2}]
+    assert summary["hallmark_records"] == 2
+
+
 def test_fusion_evidence_matches_either_partner_orientation() -> None:
     repository, adapter = _repository()
     adapter.cosmic_fusion_collection.insert_many(

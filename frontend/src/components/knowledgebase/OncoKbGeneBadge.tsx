@@ -4,6 +4,55 @@ import { cn } from "@/lib/utils"
 import { isOncoKbGene, type OncoKbGeneRecord } from "@/lib/oncokb-ui"
 import { oncokbGeneUrl } from "@/lib/external-links"
 
+export type KnowledgebaseGeneMarkers = {
+  oncokb?: boolean
+  cosmic_cgc?: boolean
+  civic?: boolean
+  clinpgx?: boolean
+  clinpgx_accession?: string | null
+}
+
+const markerStyles = {
+  oncokb: "border-tier3/35 bg-tier3/10 text-tier3",
+  cosmic_cgc: "border-loss/35 bg-loss/10 text-loss",
+  civic: "border-info/35 bg-info/10 text-info",
+  clinpgx: "border-pass/35 bg-pass/10 text-pass",
+}
+
+export function KnowledgebaseGeneTags({
+  markers,
+  compact = false,
+}: {
+  markers?: KnowledgebaseGeneMarkers | null
+  compact?: boolean
+}) {
+  const tags = [
+    ["oncokb", "OncoKB", "OncoKB public cancer gene"],
+    ["cosmic_cgc", "CGC", "COSMIC Cancer Gene Census gene"],
+    ["civic", "CIViC", "CIViC curated gene"],
+    ["clinpgx", "PGx", "ClinPGx / PharmGKB gene"],
+  ] as const
+  const visible = tags.filter(([key]) => markers?.[key])
+  if (!visible.length) return null
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-1" aria-label="Knowledgebase sources">
+      {visible.map(([key, label, title]) => (
+        <span
+          key={key}
+          className={cn(
+            "inline-flex items-center rounded-full border font-semibold leading-none",
+            compact ? "h-4 px-1 type-label" : "h-5 px-1.5 type-label",
+            markerStyles[key],
+          )}
+          title={title}
+        >
+          {label}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export function OncoKbGeneBadge({
   gene,
   record,
@@ -45,6 +94,7 @@ export function GeneWithOncoKbBadge({
   matchSource,
   oncokbGenes,
   record,
+  markers,
   showOncoKbBadge = true,
   geneTo,
   className,
@@ -56,6 +106,7 @@ export function GeneWithOncoKbBadge({
   matchSource?: string
   oncokbGenes?: string[] | Record<string, OncoKbGeneRecord>
   record?: OncoKbGeneRecord | null
+  markers?: KnowledgebaseGeneMarkers | null
   showOncoKbBadge?: boolean
   geneTo?: string
   className?: string
@@ -93,6 +144,7 @@ export function GeneWithOncoKbBadge({
         </span>
       )}
       {showBadge && <OncoKbGeneBadge gene={currentGene || shownGene} record={record} />}
+      <KnowledgebaseGeneTags markers={markers} compact />
     </span>
   )
 }

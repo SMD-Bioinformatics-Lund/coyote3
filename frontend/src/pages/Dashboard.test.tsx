@@ -18,13 +18,22 @@ const mutationState = vi.hoisted(() => ({
 const queryClientState = vi.hoisted(() => ({
   refetchQueries: vi.fn(),
 }))
+const knowledgebaseState = vi.hoisted(() => ({
+  data: {
+    releases: [
+      { source: "cosmic_cancer_gene_census", release: "104", status: "active", records: 768 },
+      { source: "cosmic_mutation_census", release: "104", status: "active", records: 2000 },
+      { source: "oncokb_public", release: "Remote service", status: "configured", records: 0 },
+      { source: "iarc_tp53", release: "R21", status: "active", records: 3000 },
+    ],
+    summary: { available_products: 4, total_records: 5768 },
+  } as any,
+  isLoading: false,
+  error: null as Error | null,
+}))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({
-    data: { releases: [], summary: { installed_products: 0, total_records: 0 } },
-    isLoading: false,
-    error: null,
-  }),
+  useQuery: () => knowledgebaseState,
   useQueries: () => Array.from({ length: 6 }, (_, index) => ({
     ...queryState,
     error: queryState.unavailableIndexes.has(index) ? new Error("Metric request failed") : queryState.error,
@@ -113,6 +122,7 @@ describe("Dashboard page", () => {
     mutationState.mutate.mockReset()
     mutationState.isPending = false
     queryClientState.refetchQueries.mockReset()
+    knowledgebaseState.error = null
   })
 
   it("renders workload, inventory, recent samples, and chart-backed summaries", async () => {
@@ -138,6 +148,11 @@ describe("Dashboard page", () => {
     expect(screen.getByText("Pairing")).toBeInTheDocument()
     expect(screen.getByText("Pipeline throughput")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Top Tiered Genes" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Knowledgebases online" })).toBeInTheDocument()
+    expect(screen.getByText("COSMIC")).toBeInTheDocument()
+    expect(screen.getByText("OncoKB")).toBeInTheDocument()
+    expect(screen.getByText("IARC TP53")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /details/i })).toHaveAttribute("href", "/knowledgebases")
     expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/variants/gene-cohort?gene=TP53")
     expect(screen.getByText("Protein (p)")).toBeInTheDocument()
     expect(screen.getByText("cDNA (c)")).toBeInTheDocument()

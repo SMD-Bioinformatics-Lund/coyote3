@@ -141,6 +141,29 @@ def test_common_gene_cohort_read_can_include_report_history(monkeypatch):
     assert captured["include_history"] is True
 
 
+def test_knowledgebase_statistics_read_returns_aggregate_sources(monkeypatch):
+    service = SimpleNamespace(
+        knowledgebase_statistics=lambda: {
+            "sources": [
+                {
+                    "key": "oncokb",
+                    "name": "OncoKB",
+                    "available": True,
+                    "total": 42,
+                    "unit": "genes",
+                    "distribution": [],
+                    "metrics": [],
+                }
+            ]
+        }
+    )
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = common.knowledgebase_statistics_read(user=fx.api_user(), service=service)
+
+    assert payload["sources"][0]["total"] == 42
+
+
 def test_knowledgebase_gene_read_returns_external_sources(monkeypatch):
     """Aggregated gene knowledgebase endpoint should expose configured source blocks."""
     service = _knowledgebase_service()
@@ -152,6 +175,22 @@ def test_knowledgebase_gene_read_returns_external_sources(monkeypatch):
     assert payload["sources"]["oncokb_public"]["gene"] == "TP53"
     assert payload["sources"]["clinpgx_public"]["pharmgkb_accession_id"] == "PA1"
     assert "oncokb_public" in payload["available_sources"]
+
+
+def test_cancer_gene_census_summary_read_returns_repository_aggregate(monkeypatch):
+    service = SimpleNamespace(
+        cancer_gene_census_summary=lambda: {
+            "available": True,
+            "total_genes": 1,
+            "tiers": [{"name": "Tier 1", "value": 1}],
+        }
+    )
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = common.cancer_gene_census_summary_read(user=fx.api_user(), service=service)
+
+    assert payload["available"] is True
+    assert payload["total_genes"] == 1
 
 
 def test_knowledgebase_variant_evidence_read_returns_variant_sources(monkeypatch):

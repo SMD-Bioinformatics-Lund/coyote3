@@ -216,8 +216,9 @@ Supported products:
 Each command validates or replaces exactly one product. Products are optional and
 can be updated on separate schedules. A missing or empty product remains absent;
 the updater does not create placeholder records. Finding detail pages identify
-each applicable absent product as **Not configured**, which is distinct from a
-configured product having no match for the current finding.
+missing type-specific products included in their COSMIC availability contract as
+**Not configured**, which is distinct from an installed product having no match
+for the current finding.
 
 TSV imports retain every non-empty upstream column under a stable snake-case
 field name. VCF imports retain the complete `QUAL`, `FILTER`, `INFO`, `FORMAT`,
@@ -258,11 +259,12 @@ the products relevant to its finding type:
 | `cosmic_copy_number` |  | Yes |  |  | Reported genomic interval and affected gene symbols; results are grouped into observation counts |
 | `cosmic_fusions` |  |  | Yes |  | Exact gene pair in both orientations |
 | `cosmic_breakpoints` |  |  |  | Yes | Reported breakends against bounded COSMIC breakpoint ranges |
+| `cosmic_structural_variants` |  |  |  | Yes | Joined from breakpoint matches by COSMIC structural identifier |
 | `cosmic_classifications` | Yes | Yes | Yes | Yes | Phenotype identifiers from matched records resolve to primary site, histology, and subtype |
 | `cosmic_cgc_hallmarks` | Yes | Yes | Yes | When genes are available | Indexed gene symbol |
 | `cosmic_cancer_gene_census` | Yes | Yes | Yes | When genes are available | Indexed gene symbol |
 | `cosmic_resistance_mutations` | Yes |  |  |  | COSV identifier |
-| `cosmic_actionability` | Yes |  | Yes |  | COSMIC mutation or fusion identifier |
+| `cosmic_actionability` | Yes | Yes | Yes | Yes | Normalized gene or gene-pair membership; broader context rather than an exact finding assertion |
 
 All managed genomic, interval, partner, and identifier lookups use the indexes
 created by the updater. Result sets are bounded and use restricted projections. CNV
@@ -282,8 +284,11 @@ read by a finding knowledgebase card:
 
 | Collection | Intended role |
 | --- | --- |
-| `cosmic_structural_variants` | Structural descriptions and phenotype references that can enrich breakpoint matches by `cosmic_structural_id` |
 | `cosmic_gene_expression` | Large sample-level expression dataset; it must be aggregated by gene and cancer type before any UI use |
+| `cosmic_methylation` | Differential methylation source data; no current finding-level interpretation consumes it |
+| `cosmic_classification_papers` | Paper-specific phenotype hierarchy; current finding views resolve the main classification product |
+| `cosmic_genes`, `cosmic_transcripts` | Source identifier mappings retained for future cross-product workflows |
+| `cosmic_signature_sbs`, `cosmic_signature_dbs`, `cosmic_signature_sv` | Reference signature profiles for a future sample-level signature workflow |
 
 These collections are not interchangeable with variant evidence. Methylation and
 gene-expression rows must not be attached to a finding merely because they share
@@ -302,18 +307,22 @@ mutation types, and hallmark context. Sample prevalence and tier counts still
 come only from access-scoped Coyote3 reports; external knowledgebases never alter
 those clinical counts.
 
-The About page and dashboard read active releases from the knowledgebase
-`versions` collection. Only source name, release, publication time, collection
-names, and record counts leave the repository; importer paths, file manifests,
-and checksums are not exposed by the public status endpoint.
+The About and Knowledgebase Details pages read active releases from the knowledgebase `versions`
+collection. Only source name, release, publication time, collection names, and
+record counts leave the repository; importer paths, file manifests, and
+checksums are not exposed by the public status endpoint. The dashboard groups
+that sanitized payload into one compact status entry per source family.
+Knowledgebase Details obtains aggregate source coverage directly from the
+installed OncoKB, ClinPGx, CIViC, HPA, and COSMIC reference collections. Empty
+optional collections are omitted. These aggregate reads do not access the
+application sample database.
 
-#### Recommended evidence enrichment
+#### Evidence relationships
 
-The most useful extension for structural findings is to join a bounded
-`cosmic_breakpoints` result to `cosmic_structural_variants` by
-`cosmic_structural_id`. The card can then present the structural description,
-mutation type, study, phenotype reference, and publication without exposing a
-COSMIC sample record.
+Translocation lookup joins bounded `cosmic_breakpoints` matches to
+`cosmic_structural_variants` by `cosmic_structural_id`. The detail response can
+therefore present structural description, mutation type, coordinates, phenotype
+reference, and publication without exposing a COSMIC sample record.
 
 `cosmic_classifications` is used as a lookup table, not as independent evidence.
 The detail response resolves `cosmic_phenotype_id` values from matched mutation,
