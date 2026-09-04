@@ -7,9 +7,12 @@ import argparse
 import csv
 import gzip
 import io
+import re
 import tarfile
+import zipfile
 from collections.abc import Iterator
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -36,6 +39,11 @@ class Product:
     data_suffix: str
     file_type: str
     indexes: tuple[tuple[tuple[tuple[str, int], ...], dict[str, Any]], ...]
+    archive_extension: str = ".tar"
+    archive_has_assembly: bool = True
+
+
+RECORD_KEY_INDEX = (("record_key", 1),)
 
 
 PRODUCTS: dict[str, Product] = {
@@ -58,9 +66,24 @@ PRODUCTS: dict[str, Product] = {
         "vcf",
         (
             ((("record_key", 1),), {"name": "record_key_1", "unique": True}),
-            ((("chr", 1), ("start", 1), ("ref", 1), ("alt", 1)), {"name": "genomic_variant"}),
+            (
+                (("chr", 1), ("start", 1), ("ref", 1), ("alt", 1)),
+                {"name": "genomic_variant"},
+            ),
             ((("id", 1),), {"name": "cosmic_id_1"}),
             ((("gene", 1),), {"name": "gene_1", "sparse": True}),
+        ),
+    ),
+    "targeted_variants": Product(
+        "cosmic_targeted_collection",
+        "Cosmic_CompleteTargetedScreensMutant_VcfNormal_",
+        ".vcf.gz",
+        "vcf",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("chr", 1), ("start", 1), ("ref", 1), ("alt", 1)), {"name": "genomic_variant"}),
+            ((("id", 1),), {"name": "cosmic_id_1"}),
+            ((("gene", 1), ("hgvsp", 1)), {"name": "gene_hgvsp", "sparse": True}),
         ),
     ),
     "breakpoints": Product(
@@ -133,7 +156,7 @@ PRODUCTS: dict[str, Product] = {
         ".tsv.gz",
         "tsv",
         (
-            ((("record_key", 1),), {"name": "record_key_1", "unique": True}),
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
             ((("chromosome", 1), ("position", 1)), {"name": "genomic_position"}),
             ((("gene_symbol", 1),), {"name": "gene_1"}),
         ),
@@ -148,6 +171,28 @@ PRODUCTS: dict[str, Product] = {
             ((("cosmic_phenotype_id", 1),), {"name": "phenotype_id_1", "unique": True}),
         ),
     ),
+    "classification_papers": Product(
+        "cosmic_classification_paper_collection",
+        "Cosmic_ClassificationPaper_Tsv_",
+        ".tsv.gz",
+        "tsv",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("cosmic_phenotype_paper_id", 1),), {"name": "phenotype_paper_id_1"}),
+            ((("cosmic_phenotype_id", 1),), {"name": "phenotype_id_1"}),
+        ),
+    ),
+    "cancer_gene_census": Product(
+        "cosmic_cgc_collection",
+        "Cosmic_CancerGeneCensus_Tsv_",
+        ".tsv.gz",
+        "tsv",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("gene_symbol", 1),), {"name": "gene_1", "unique": True}),
+            ((("cosmic_gene_id", 1),), {"name": "cosmic_gene_id_1"}),
+        ),
+    ),
     "cgc_hallmarks": Product(
         "cosmic_cgc_hallmarks_collection",
         "Cosmic_CancerGeneCensusHallmarksOfCancer_Tsv_",
@@ -158,6 +203,79 @@ PRODUCTS: dict[str, Product] = {
             ((("gene_symbol", 1),), {"name": "gene_1"}),
         ),
     ),
+    "genes": Product(
+        "cosmic_genes_collection",
+        "Cosmic_Genes_Tsv_",
+        ".tsv.gz",
+        "tsv",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("cosmic_gene_id", 1),), {"name": "cosmic_gene_id_1", "unique": True}),
+            ((("gene_symbol", 1),), {"name": "gene_1"}),
+            ((("hgnc_id", 1),), {"name": "hgnc_id_1", "sparse": True}),
+        ),
+    ),
+    "transcripts": Product(
+        "cosmic_transcripts_collection",
+        "Cosmic_Transcripts_Tsv_",
+        ".tsv.gz",
+        "tsv",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("transcript_accession", 1),), {"name": "transcript_1", "unique": True}),
+            ((("cosmic_gene_id", 1),), {"name": "cosmic_gene_id_1"}),
+        ),
+    ),
+    "census_gene_mutations": Product(
+        "cosmic_mutant_census_collection",
+        "Cosmic_MutantCensus_Tsv_",
+        ".tsv.gz",
+        "tsv",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("genomic_mutation_id", 1),), {"name": "mutation_id_1"}),
+            (
+                (
+                    ("chromosome", 1),
+                    ("genome_start", 1),
+                    ("genomic_wt_allele", 1),
+                    ("genomic_mut_allele", 1),
+                ),
+                {"name": "genomic_variant"},
+            ),
+            ((("gene_symbol", 1), ("hgvsp", 1)), {"name": "gene_hgvsp", "sparse": True}),
+        ),
+    ),
+    "resistance_mutations": Product(
+        "cosmic_resistance_collection",
+        "Cosmic_ResistanceMutations_Tsv_",
+        ".tsv.gz",
+        "tsv",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("genomic_mutation_id", 1),), {"name": "mutation_id_1", "sparse": True}),
+            ((("gene_symbol", 1),), {"name": "gene_1"}),
+        ),
+    ),
+    "mutation_census": Product(
+        "cosmic_mutation_census_collection",
+        "CancerMutationCensus_AllData_Tsv_",
+        ".tsv.gz",
+        "mutation_census",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("genomic_mutation_id", 1),), {"name": "mutation_id_1"}),
+            (
+                (("chr_grch38", 1), ("start_grch38", 1), ("ref", 1), ("alt", 1)),
+                {"name": "grch38_variant"},
+            ),
+            (
+                (("chr_grch37", 1), ("start_grch37", 1), ("ref", 1), ("alt", 1)),
+                {"name": "grch37_variant"},
+            ),
+            ((("gene_name", 1), ("mutation_aa", 1)), {"name": "gene_protein"}),
+        ),
+    ),
     "actionability": Product(
         "cosmic_actionability_collection",
         "Actionability_AllData_Tsv_",
@@ -165,10 +283,45 @@ PRODUCTS: dict[str, Product] = {
         "tsv",
         (
             ((("record_key", 1),), {"name": "record_key_1", "unique": True}),
-            ((("genomic_mutation_id", 1),), {"name": "mutation_id_1", "sparse": True}),
-            ((("fusion_id", 1),), {"name": "fusion_id_1", "sparse": True}),
+            ((("genes", 1),), {"name": "genes_1"}),
             ((("classification_id", 1),), {"name": "classification_id_1"}),
         ),
+    ),
+    "signature_sbs": Product(
+        "cosmic_signature_sbs_collection",
+        "COSMIC_catalogue-signatures_SBS96_",
+        ".txt",
+        "signature",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("signature", 1),), {"name": "signature_1", "unique": True}),
+        ),
+        archive_extension=".zip",
+        archive_has_assembly=False,
+    ),
+    "signature_dbs": Product(
+        "cosmic_signature_dbs_collection",
+        "COSMIC_catalogue-signatures_DBS78_",
+        ".txt",
+        "signature",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("signature", 1),), {"name": "signature_1", "unique": True}),
+        ),
+        archive_extension=".zip",
+        archive_has_assembly=False,
+    ),
+    "signature_sv": Product(
+        "cosmic_signature_sv_collection",
+        "COSMIC_catalogue-signatures_SV32_",
+        ".txt",
+        "signature",
+        (
+            (RECORD_KEY_INDEX, {"name": "record_key_1", "unique": True}),
+            ((("signature", 1),), {"name": "signature_1", "unique": True}),
+        ),
+        archive_extension=".zip",
+        archive_has_assembly=False,
     ),
 }
 
@@ -186,6 +339,10 @@ INTEGER_FIELDS = {
     "number_of_patients",
     "treated_number",
     "control_number",
+    "aa_mut_start",
+    "aa_mut_stop",
+    "cosmic_sample_tested",
+    "cosmic_sample_mutated",
 }
 FLOAT_FIELDS = {
     "z_score",
@@ -204,7 +361,22 @@ FLOAT_FIELDS = {
     "dcr_con",
     "os_treat",
     "os_con",
+    "exac_af",
+    "exac_afr_af",
+    "exac_amr_af",
+    "exac_adj_af",
+    "exac_eas_af",
+    "exac_fin_af",
+    "exac_nfe_af",
+    "exac_sas_af",
+    "gerp_rs",
+    "min_sift_score",
 }
+
+_GENOMIC_LOCATION = re.compile(r"(?:chr)?([^:]+):(\d+)-(\d+)$", re.IGNORECASE)
+_ACTIONABILITY_PREFIX_SYMBOL = re.compile(r"(?<![A-Z0-9])([A-Z][A-Z0-9]{1,14})(?=[_-])")
+_ACTIONABILITY_STANDALONE_SYMBOL = re.compile(r"(?<=[(,\- ])\??([A-Z][A-Z0-9]{1,14})(?=[, )])")
+_ACTIONABILITY_NON_GENES = {"AND", "COSF", "ITD", "NOT", "OR"}
 
 
 def _archive_data_stream(path: Path, suffix: str):
@@ -240,8 +412,18 @@ def _info_fields(value: str) -> dict[str, Any]:
     return result
 
 
+def _quality_value(value: str) -> float | str | None:
+    text = clean_text(value)
+    if text is None:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return text
+
+
 def vcf_documents(path: Path) -> Iterator[dict[str, Any]]:
-    """Stream normalized COSMIC VCF records without extracting the archive."""
+    """Stream complete normalized COSMIC VCF records without extracting the archive."""
     archive, handle = _archive_data_stream(path, ".vcf.gz")
     try:
         source_row = 0
@@ -252,11 +434,24 @@ def vcf_documents(path: Path) -> Iterator[dict[str, Any]]:
             columns = line.rstrip("\r\n").split("\t")
             if len(columns) < 8:
                 raise ValueError(f"Malformed VCF row {source_row} in {path}")
-            chromosome, position_text, cosmic_id, reference, alternates = columns[:5]
+            chromosome, position_text, cosmic_id, reference, alternates, quality, filters = columns[
+                :7
+            ]
             info = _info_fields(columns[7])
             position = int(position_text)
             for alternate in alternates.split(","):
-                count_value = info.get("genome_screen_sample_count", info.get("sample_count"))
+                count_value = next(
+                    (
+                        info[key]
+                        for key in (
+                            "targeted_screen_sample_count",
+                            "genome_screen_sample_count",
+                            "sample_count",
+                        )
+                        if key in info
+                    ),
+                    None,
+                )
                 count = parse_int(count_value)
                 counts = {}
                 if count is not None:
@@ -273,10 +468,18 @@ def vcf_documents(path: Path) -> Iterator[dict[str, Any]]:
                         "end": position + len(reference) - 1,
                         "ref": reference,
                         "alt": alternate,
+                        "qual": _quality_value(quality),
+                        "filter": clean_text(filters),
+                        "info": info,
+                        "format": clean_text(columns[8]) if len(columns) > 8 else None,
+                        "samples": columns[9:] if len(columns) > 9 else None,
                         "cnt": counts,
                         "gene": info.get("gene"),
                         "transcript": info.get("transcript"),
+                        "strand": info.get("strand"),
                         "legacy_id": info.get("legacy_id"),
+                        "cds": info.get("cds"),
+                        "aa": info.get("aa"),
                         "hgvsc": info.get("hgvsc"),
                         "hgvsp": info.get("hgvsp"),
                         "hgvsg": info.get("hgvsg"),
@@ -295,7 +498,9 @@ def _typed_tsv_value(field: str, value: Any) -> Any:
     try:
         if field in INTEGER_FIELDS:
             return parse_int(value)
-        if field in FLOAT_FIELDS:
+        if field in FLOAT_FIELDS or (
+            field.endswith("_af") and field.startswith(("exac_", "gnomad_"))
+        ):
             return parse_float(value)
     except ValueError:
         # COSMIC occasionally uses accession-qualified positions in coordinate columns.
@@ -327,11 +532,99 @@ def tsv_documents(path: Path, suffix: str) -> Iterator[dict[str, Any]]:
         archive.close()
 
 
+def _locus_fields(value: Any, assembly: str) -> dict[str, Any]:
+    text = clean_text(value)
+    match = _GENOMIC_LOCATION.fullmatch(text or "")
+    if match is None:
+        return {}
+    chromosome, start, end = match.groups()
+    suffix = assembly.lower()
+    return {
+        f"chr_{suffix}": chromosome.removeprefix("chr"),
+        f"start_{suffix}": int(start),
+        f"end_{suffix}": int(end),
+    }
+
+
+def mutation_census_documents(path: Path) -> Iterator[dict[str, Any]]:
+    """Preserve CMC rows and add indexed GRCh37/GRCh38 variant identities."""
+    for document in tsv_documents(path, ".tsv.gz"):
+        document.update(_locus_fields(document.get("mutation_genome_position_grch37"), "grch37"))
+        document.update(_locus_fields(document.get("mutation_genome_position_grch38"), "grch38"))
+        document["ref"] = document.get("genomic_wt_allele_seq")
+        document["alt"] = document.get("genomic_mut_allele_seq")
+        yield without_missing(document)
+
+
+def actionability_documents(path: Path, suffix: str) -> Iterator[dict[str, Any]]:
+    """Preserve Actionability rows and derive indexed gene symbols from its expression."""
+    for document in tsv_documents(path, suffix):
+        remark = str(document.get("mutation_remark") or "")
+        candidates = [
+            *_ACTIONABILITY_PREFIX_SYMBOL.findall(remark),
+            *_ACTIONABILITY_STANDALONE_SYMBOL.findall(remark),
+        ]
+        genes = list(
+            dict.fromkeys(
+                symbol
+                for symbol in candidates
+                if symbol not in _ACTIONABILITY_NON_GENES
+                and not symbol.startswith(("COSF", "COSV", "COSM"))
+            )
+        )
+        if genes:
+            document["genes"] = genes
+        yield document
+
+
+def signature_documents(
+    path: Path, *, signature_class: str, assembly: str
+) -> Iterator[dict[str, Any]]:
+    """Transpose one COSMIC signature matrix into query-efficient signature documents."""
+    try:
+        archive = zipfile.ZipFile(path)
+    except zipfile.BadZipFile as exc:
+        raise ValueError(f"Cannot read COSMIC signature archive {path}: {exc}") from exc
+    members = [name for name in archive.namelist() if name.endswith(".txt")]
+    if len(members) != 1:
+        archive.close()
+        raise ValueError(f"Expected one *.txt member in {path}, found {len(members)}")
+    if assembly not in members[0]:
+        archive.close()
+        raise ValueError(
+            f"Signature matrix {members[0]} does not match requested assembly {assembly}"
+        )
+    with archive, archive.open(members[0]) as raw:
+        handle = io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
+        reader = csv.DictReader(handle, delimiter="\t")
+        if not reader.fieldnames or reader.fieldnames[0] != "Type":
+            raise ValueError(f"COSMIC signature matrix has no Type header: {path}")
+        signatures = reader.fieldnames[1:]
+        profiles: dict[str, dict[str, float]] = {name: {} for name in signatures}
+        for row in reader:
+            mutation_type = clean_text(row.get("Type"))
+            if mutation_type is None:
+                continue
+            for signature in signatures:
+                value = parse_float(row.get(signature))
+                if value is not None:
+                    profiles[signature][mutation_type] = value
+        for source_row, signature in enumerate(signatures, start=1):
+            yield {
+                "record_key": record_key(signature_class, assembly, signature),
+                "source_row": source_row,
+                "signature": signature,
+                "signature_class": signature_class,
+                "assembly": assembly,
+                "profile": profiles[signature],
+            }
+
+
 def _find_archive(directory: Path, product: Product, release: str, assembly: str) -> Path:
-    matches = sorted(directory.glob(f"{product.archive_prefix}*.tar"))
-    expected_release = f"_v{release}_"
-    matches = [path for path in matches if expected_release in path.name]
-    if assembly:
+    matches = sorted(directory.glob(f"{product.archive_prefix}*{product.archive_extension}"))
+    release_pattern = re.compile(rf"_v{re.escape(release)}(?:_|\.)")
+    matches = [path for path in matches if release_pattern.search(path.name)]
+    if assembly and product.archive_has_assembly:
         matches = [path for path in matches if f"_{assembly}.tar" in path.name]
     if len(matches) != 1:
         raise ValueError(
@@ -361,11 +654,22 @@ def main() -> int:
     def run() -> dict[str, Any]:
         product = PRODUCTS[args.product]
         path = _find_archive(args.directory, product, args.release, args.assembly)
-        factory = (
-            (lambda: vcf_documents(path))
-            if product.file_type == "vcf"
-            else (lambda: tsv_documents(path, product.data_suffix))
-        )
+        if product.file_type == "vcf":
+            factory = partial(vcf_documents, path)
+        elif product.file_type == "mutation_census":
+            factory = partial(mutation_census_documents, path)
+        elif product.file_type == "signature":
+            signature_class = args.product.removeprefix("signature_").upper()
+            factory = partial(
+                signature_documents,
+                path,
+                signature_class=signature_class,
+                assembly=args.assembly,
+            )
+        elif args.product == "actionability":
+            factory = partial(actionability_documents, path, product.data_suffix)
+        else:
+            factory = partial(tsv_documents, path, product.data_suffix)
         spec = CollectionSpec(
             name=mapped_collection(args, product.collection_key),
             documents=factory,

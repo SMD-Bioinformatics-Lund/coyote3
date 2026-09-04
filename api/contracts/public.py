@@ -133,3 +133,11 @@ class PublicAboutPayload(PublicContactPayload):
     software: dict[str, Any]
     databases: dict[str, Any]
     software_links: list[dict[str, Any]] = []
+    knowledgebase_status: dict[str, Any] = {}
+
+
+class PublicKnowledgebaseStatusPayload(BaseModel):
+    """Represent sanitized installed knowledgebase release metadata."""
+
+    releases: list[dict[str, Any]]
+    summary: dict[str, Any]

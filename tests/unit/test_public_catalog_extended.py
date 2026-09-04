@@ -123,6 +123,18 @@ class _VepRepository:
         return ["110"]
 
 
+class _KnowledgebaseVersionRepository:
+    def list_active_releases(self):
+        return [
+            {
+                "source": "cosmic_actionability",
+                "release": "v21",
+                "records": 12,
+                "status": "active",
+            }
+        ]
+
+
 def _service() -> PublicCatalogService:
     return PublicCatalogService(
         assay_configuration_repository=_AspcRepository(),
@@ -149,6 +161,23 @@ def test_catalog_service_from_store_and_observed_versions():
     assert built.observed_reference_versions() == {
         "sample_database_versions": {"vep": ["110"]},
         "vep_metadata": ["110"],
+    }
+
+
+def test_knowledgebase_status_aggregates_active_release_counts():
+    service = _service()
+    service.knowledgebase_version_repository = _KnowledgebaseVersionRepository()
+
+    assert service.knowledgebase_status() == {
+        "releases": [
+            {
+                "source": "cosmic_actionability",
+                "release": "v21",
+                "records": 12,
+                "status": "active",
+            }
+        ],
+        "summary": {"installed_products": 1, "total_records": 12},
     }
 
 

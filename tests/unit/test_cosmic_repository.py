@@ -10,15 +10,35 @@ from api.infra.knowledgebase.cosmic import CosmicRepository
 def _repository() -> tuple[CosmicRepository, SimpleNamespace]:
     database = mongomock.MongoClient().knowledgebase
     adapter = SimpleNamespace(
+        knowledgebase_db=database,
         cosmic_collection=database.cosmic,
         cosmic_noncoding_collection=database.cosmic_noncoding,
+        cosmic_targeted_collection=database.cosmic_targeted,
+        cosmic_mutation_census_collection=database.cosmic_mutation_census,
+        cosmic_mutant_census_collection=database.cosmic_mutant_census,
         cosmic_cna_collection=database.cosmic_cna,
         cosmic_fusion_collection=database.cosmic_fusions,
         cosmic_breakpoints_collection=database.cosmic_breakpoints,
         cosmic_cgc_hallmarks_collection=database.cosmic_cgc_hallmarks,
+        cosmic_cgc_collection=database.cosmic_cgc,
+        cosmic_classification_collection=database.cosmic_classifications,
+        cosmic_resistance_collection=database.cosmic_resistance,
         cosmic_actionability_collection=database.cosmic_actionability,
+        cosmic_structural_collection=database.cosmic_structural,
+        knowledgebase_versions_collection=database.versions,
     )
     return CosmicRepository(adapter), adapter
+
+
+def test_index_setup_does_not_create_an_absent_optional_genome_collection() -> None:
+    repository, adapter = _repository()
+
+    repository.ensure_indexes()
+
+    assert (
+        adapter.cosmic_collection.name
+        not in adapter.cosmic_collection.database.list_collection_names()
+    )
 
 
 def test_variant_evidence_matches_identity_and_never_exposes_source_samples() -> None:
@@ -57,12 +77,83 @@ def test_variant_evidence_matches_identity_and_never_exposes_source_samples() ->
     assert evidence["hallmarks"][0]["gene_symbol"] == "DNMT3A"
 
 
+def test_variant_evidence_uses_mutation_census_and_reports_product_availability() -> None:
+    repository, adapter = _repository()
+    adapter.cosmic_mutation_census_collection.insert_one(
+        {
+            "genomic_mutation_id": "COSV2",
+            "chr_grch38": "17",
+            "start_grch38": 7_676_154,
+            "ref": "G",
+            "alt": "A",
+            "gene_name": "TP53",
+            "mutation_aa": "p.Arg175His",
+            "cosmic_sample_mutated": 120,
+            "source_row": 1,
+            "record_key": "cmc-1",
+        }
+    )
+    adapter.cosmic_cgc_collection.insert_one(
+        {"gene_symbol": "TP53", "tier": "1", "role_in_cancer": "TSG"}
+    )
+    adapter.cosmic_resistance_collection.insert_one(
+        {"genomic_mutation_id": "COSV2", "drug_name": "Example drug"}
+    )
+    adapter.cosmic_actionability_collection.insert_one(
+        {
+            "genes": ["TP53"],
+            "mutation_remark": "TP53_unspecified",
+            "disease": "solid tumour",
+        }
+    )
+    adapter.knowledgebase_versions_collection.insert_many(
+        [
+            {"source": "cosmic_mutation_census", "status": "active"},
+            {"source": "cosmic_cancer_gene_census", "status": "active"},
+            {"source": "cosmic_resistance_mutations", "status": "active"},
+        ]
+    )
+
+    evidence = repository.get_variant_evidence(
+        {
+            "CHROM": "17",
+            "POS": 7_676_154,
+            "REF": "G",
+            "ALT": "A",
+            "INFO": {"selected_CSQ": {"SYMBOL": "TP53"}},
+        }
+    )
+
+    assert evidence["records"][0]["source_product"] == "Mutation Census"
+    assert evidence["gene_census"][0]["role_in_cancer"] == "TSG"
+    assert evidence["resistance"][0]["drug_name"] == "Example drug"
+    assert evidence["actionability"][0]["mutation_remark"] == "TP53_unspecified"
+    assert evidence["availability"]["mutation_census"] is True
+    assert evidence["availability"]["actionability"] is False
+
+
+def test_cancer_gene_census_records_are_returned_as_a_gene_map() -> None:
+    repository, adapter = _repository()
+    adapter.cosmic_cgc_collection.insert_many(
+        [
+            {"gene_symbol": "TP53", "tier": "1", "role_in_cancer": "TSG"},
+            {"gene_symbol": "NTRK1", "tier": "1", "role_in_cancer": "oncogene"},
+        ]
+    )
+
+    records = repository.get_cancer_gene_census_records(["tp53", "NOT_CGC"])
+
+    assert list(records) == ["TP53"]
+    assert records["TP53"]["role_in_cancer"] == "TSG"
+
+
 def test_fusion_evidence_matches_either_partner_orientation() -> None:
     repository, adapter = _repository()
     adapter.cosmic_fusion_collection.insert_many(
         [
             {
                 "cosmic_fusion_id": "COSF1",
+                "cosmic_phenotype_id": "COSO1",
                 "five_prime_gene_symbol": "NTRK1",
                 "three_prime_gene_symbol": "TPM3",
                 "cosmic_sample_id": "private",
@@ -74,12 +165,20 @@ def test_fusion_evidence_matches_either_partner_orientation() -> None:
             },
         ]
     )
+    adapter.cosmic_classification_collection.insert_one(
+        {
+            "cosmic_phenotype_id": "COSO1",
+            "primary_site": "soft tissue",
+            "primary_histology": "sarcoma",
+        }
+    )
 
     evidence = repository.get_fusion_evidence({"fusion": [{"gene1": "NTRK1", "gene2": "TPM3"}]})
 
     assert evidence["match_count"] == 2
     assert evidence["cosmic_ids"] == ["COSF1", "COSF2"]
     assert all("cosmic_sample_id" not in row for row in evidence["records"])
+    assert evidence["classifications"][0]["primary_histology"] == "sarcoma"
 
 
 def test_cnv_evidence_requires_interval_overlap() -> None:

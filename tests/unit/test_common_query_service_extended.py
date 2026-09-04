@@ -127,6 +127,9 @@ def _service(**overrides) -> CommonQueryService:
             )
         ),
         "gene_list_repository": SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
+        "cosmic_repository": SimpleNamespace(
+            get_gene_evidence=lambda gene: {"gene_census": [{"gene_symbol": gene}]},
+        ),
     }
     values.update(overrides)
     return CommonQueryService(**values)
@@ -305,6 +308,7 @@ def test_tiered_search_merges_sources_deduplicates_and_preserves_sample_names() 
     assert result["docs"][1]["samples"]["missing-sample"]["sample_name"] == ("preserved-name")
     assert result["docs"][1]["text"] == "text:text-2"
     assert result["docs"][2]["text"] == "matched:reported-no-text"
+    assert "knowledgebase" not in result["docs"][0]
 
 
 def test_tiered_search_without_search_uses_all_assays_and_skips_stats() -> None:
@@ -477,6 +481,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
     assert result["denominator"]["samples_excluded_outside_gene_scope"] == 1
     assert result["denominator"]["report_scope"] == "latest"
     assert result["denominator"]["duplicate_report_observations_removed"] == 0
+    assert result["knowledgebase"]["sources"]["cosmic"]["gene_census"][0]["gene_symbol"] == "TP53"
 
 
 def test_gene_cohort_requires_an_exact_approved_gene_symbol() -> None:

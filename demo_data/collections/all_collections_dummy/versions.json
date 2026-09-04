@@ -4,8 +4,8 @@
     "release": "demo-1",
     "status": "active",
     "import_cpus": 4,
-    "started_at": "2026-01-01T00:00:00Z",
-    "published_at": "2026-01-01T00:01:00Z",
+    "started_at": "2026-01-01T00:00:00+00:00",
+    "published_at": "2026-01-01T00:01:00+00:00",
     "retired_at": null,
     "failed_at": null,
     "files": [

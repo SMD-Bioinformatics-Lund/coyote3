@@ -66,6 +66,7 @@ class MongoStore:
     civic_repository: Any
     copy_number_variant_repository: Any
     cosmic_repository: Any
+    knowledgebase_version_repository: Any
     coverage_repository: Any
     expression_repository: Any
     fusion_repository: Any
@@ -103,6 +104,7 @@ class MongoStore:
         "civic_repository",
         "copy_number_variant_repository",
         "cosmic_repository",
+        "knowledgebase_version_repository",
         "coverage_repository",
         "expression_repository",
         "fusion_repository",
@@ -150,6 +152,7 @@ class MongoStore:
         self.civic_repository = _LazyRepositoryProxy()
         self.copy_number_variant_repository = _LazyRepositoryProxy()
         self.cosmic_repository = _LazyRepositoryProxy()
+        self.knowledgebase_version_repository = _LazyRepositoryProxy()
         self.coverage_repository = _LazyRepositoryProxy()
         self.expression_repository = _LazyRepositoryProxy()
         self.fusion_repository = _LazyRepositoryProxy()

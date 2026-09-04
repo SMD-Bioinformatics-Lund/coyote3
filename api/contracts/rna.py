@@ -29,6 +29,7 @@ class RnaFusionListPayload(BaseModel):
     ai_text: str
     fusion_caller_options: list[str] = Field(default_factory=list)
     fusion_annotation_metadata: dict[str, list[str]] = Field(default_factory=dict)
+    cosmic_cancer_gene_map: dict[str, Any] = Field(default_factory=dict)
 
 
 class RnaFusionContextPayload(BaseModel):

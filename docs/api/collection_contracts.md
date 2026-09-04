@@ -335,7 +335,34 @@ Required keys:
 Optional keys:
 - None
 
+## `cosmic_cancer_gene_census`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_census_gene_mutations`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
 ## `cosmic_cgc_hallmarks`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_classification_papers`
 
 Required keys:
 - `record_key` (str)
@@ -380,7 +407,25 @@ Required keys:
 Optional keys:
 - None
 
+## `cosmic_genes`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
 ## `cosmic_methylation`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_mutation_census`
 
 Required keys:
 - `record_key` (str)
@@ -401,7 +446,64 @@ Required keys:
 Optional keys:
 - None
 
+## `cosmic_resistance_mutations`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_signature_dbs`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_signature_sbs`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_signature_sv`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
 ## `cosmic_structural_variants`
+
+Required keys:
+- `record_key` (str)
+- `source_row` (int)
+
+Optional keys:
+- None
+
+## `cosmic_targeted_variants`
+
+Required keys:
+- `id` (str)
+- `chr` (str)
+- `start` (int)
+- `end` (int)
+- `cnt` (Dict[str, int])
+
+Optional keys:
+- None
+
+## `cosmic_transcripts`
 
 Required keys:
 - `record_key` (str)

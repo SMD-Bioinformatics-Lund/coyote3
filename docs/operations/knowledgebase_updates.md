@@ -192,6 +192,7 @@ Supported products:
 | --- | --- | --- |
 | `coding_variants` | Normalized genome-screen coding mutation VCF | `cosmic` |
 | `noncoding_variants` | Normalized non-coding mutation VCF | `cosmic_noncoding_variants` |
+| `targeted_variants` | Normalized targeted-screen coding mutation VCF | `cosmic_targeted_variants` |
 | `breakpoints` | Breakpoint-level structural records | `cosmic_breakpoints` |
 | `structural_variants` | Structural variant descriptions and intervals | `cosmic_structural_variants` |
 | `copy_number` | Complete gene-level CNA records | `cosmic_copy_number` |
@@ -199,26 +200,72 @@ Supported products:
 | `gene_expression` | TCGA level 3 expression calls and z-scores | `cosmic_gene_expression` |
 | `methylation` | Differential methylation probes and beta values | `cosmic_methylation` |
 | `classifications` | COSMIC phenotype identifiers, sites, and histologies | `cosmic_classifications` |
+| `classification_papers` | Paper-specific COSMIC phenotype hierarchy | `cosmic_classification_papers` |
+| `cancer_gene_census` | Cancer genes, evidence tier, roles, and tumour associations | `cosmic_cancer_gene_census` |
 | `cgc_hallmarks` | Cancer Gene Census hallmark evidence | `cosmic_cgc_hallmarks` |
+| `genes` | COSMIC gene identifier and HGNC/Entrez mapping | `cosmic_genes` |
+| `transcripts` | COSMIC transcript-to-gene mapping | `cosmic_transcripts` |
+| `census_gene_mutations` | Coding mutation observations restricted to Census genes | `cosmic_census_gene_mutations` |
+| `resistance_mutations` | Curated drug-response mutation evidence | `cosmic_resistance_mutations` |
+| `mutation_census` | Coding mutation driver likelihood and population evidence | `cosmic_mutation_census` |
 | `actionability` | Mutation, disease, drug, trial, and outcome relationships | `cosmic_actionability` |
+| `signature_sbs` | SBS96 signature probability matrix | `cosmic_signature_sbs` |
+| `signature_dbs` | DBS78 signature probability matrix | `cosmic_signature_dbs` |
+| `signature_sv` | SV32 signature probability matrix | `cosmic_signature_sv` |
+
+Each command validates or replaces exactly one product. Products are optional and
+can be updated on separate schedules. A missing or empty product remains absent;
+the updater does not create placeholder records. Finding detail pages identify
+each applicable absent product as **Not configured**, which is distinct from a
+configured product having no match for the current finding.
+
+TSV imports retain every non-empty upstream column under a stable snake-case
+field name. VCF imports retain the complete `QUAL`, `FILTER`, `INFO`, `FORMAT`,
+and sample-column content in addition to normalized fields used by indexes.
+Repositories expose only bounded clinical evidence projections; upstream COSMIC
+sample names and identifiers are never returned to the browser.
+
+The complete genome-screen coding, non-coding, and differential methylation
+products are storage-heavy optional imports. The recommended clinical baseline
+uses Cancer Mutation Census, Census Genes Mutations, and Targeted Screens for
+small-variant evidence and does not load these three large products. Import them
+only when the center's analysis scope requires the additional evidence.
+
+The updater retains explicit `coding_variants`, `noncoding_variants`, and
+`methylation` commands and creates their indexes only when that product is
+imported. Runtime initialization does not create an empty `cosmic` collection.
+Exact small-variant lookup reads `cosmic` and `cosmic_noncoding_variants` when
+present. Methylation rows are not attached to SNV, CNV, fusion, or translocation
+cards because a shared gene symbol is not finding-level evidence.
+
+The signature commands transpose each published matrix into one document per
+signature. The `profile` object retains every mutation type and probability from
+the source matrix. Signatures are reference profiles for sample-level signature
+analysis and are not matched to individual finding cards.
 
 ### Detail-page lookups
 
-Seven COSMIC collections supply evidence to finding detail pages. A page queries
-only the products relevant to its finding type:
+COSMIC collections supply evidence to finding detail pages. A page queries only
+the products relevant to its finding type:
 
 | Collection | Small variant | CNV | Fusion | Translocation | Lookup |
 | --- | :---: | :---: | :---: | :---: | --- |
-| `cosmic` | Yes |  |  |  | Exact chromosome, position, reference, and alternate allele; stored COSMIC IDs are an additional identity |
-| `cosmic_noncoding_variants` | Yes |  |  |  | Same exact genomic identity as coding variants |
+| `cosmic_mutation_census` | Yes |  |  |  | GRCh38 genomic identity or COSV identifier; driver tier and aggregate coding evidence |
+| `cosmic_targeted_variants` | Yes |  |  |  | Exact chromosome, position, reference, and alternate allele |
+| `cosmic_census_gene_mutations` | Yes |  |  |  | Exact Census-gene mutation identity and curated source evidence |
+| `cosmic` | Yes |  |  |  | Optional genome-screen mutation evidence |
+| `cosmic_noncoding_variants` | Yes |  |  |  | Optional non-coding evidence using exact genomic identity |
 | `cosmic_copy_number` |  | Yes |  |  | Reported genomic interval and affected gene symbols; results are grouped into observation counts |
 | `cosmic_fusions` |  |  | Yes |  | Exact gene pair in both orientations |
 | `cosmic_breakpoints` |  |  |  | Yes | Reported breakends against bounded COSMIC breakpoint ranges |
+| `cosmic_classifications` | Yes | Yes | Yes | Yes | Phenotype identifiers from matched records resolve to primary site, histology, and subtype |
 | `cosmic_cgc_hallmarks` | Yes | Yes | Yes | When genes are available | Indexed gene symbol |
+| `cosmic_cancer_gene_census` | Yes | Yes | Yes | When genes are available | Indexed gene symbol |
+| `cosmic_resistance_mutations` | Yes |  |  |  | COSV identifier |
 | `cosmic_actionability` | Yes |  | Yes |  | COSMIC mutation or fusion identifier |
 
-All genomic, interval, partner, and identifier lookups use the indexes created
-by the updater. Result sets are bounded and use restricted projections. CNV
+All managed genomic, interval, partner, and identifier lookups use the indexes
+created by the updater. Result sets are bounded and use restricted projections. CNV
 queries require the reported interval before aggregation; they do not aggregate
 the complete CNA collection by gene alone.
 
@@ -230,20 +277,35 @@ those source identifiers are displayed separately on the variant detail page.
 
 #### Products not presented on detail pages
 
-The following supported collections are retained as source datasets but are not
+The following managed collections are retained as source datasets but are not
 read by a finding knowledgebase card:
 
 | Collection | Intended role |
 | --- | --- |
 | `cosmic_structural_variants` | Structural descriptions and phenotype references that can enrich breakpoint matches by `cosmic_structural_id` |
-| `cosmic_classifications` | Shared lookup from `cosmic_phenotype_id` to primary site and histology |
-| `cosmic_methylation` | Probe-level methylation evidence for a future methylation or biomarker workflow |
 | `cosmic_gene_expression` | Large sample-level expression dataset; it must be aggregated by gene and cancer type before any UI use |
 
 These collections are not interchangeable with variant evidence. Methylation and
 gene-expression rows must not be attached to a finding merely because they share
 a gene symbol. Raw COSMIC expression rows and their source sample identifiers must
 never be returned to the browser.
+
+### Search and cohort use
+
+Tiered finding search remains focused on report and finding identity and does not
+add knowledgebase columns. This keeps the cross-sample result table compact.
+
+Gene Cohort Explorer and the Gene Information page use the same gene-level
+knowledgebase response for the exact approved HGNC symbol. The summary identifies
+available sources and presents bounded COSMIC Cancer Gene Census roles, tiers,
+mutation types, and hallmark context. Sample prevalence and tier counts still
+come only from access-scoped Coyote3 reports; external knowledgebases never alter
+those clinical counts.
+
+The About page and dashboard read active releases from the knowledgebase
+`versions` collection. Only source name, release, publication time, collection
+names, and record counts leave the repository; importer paths, file manifests,
+and checksums are not exposed by the public status endpoint.
 
 #### Recommended evidence enrichment
 
@@ -253,25 +315,23 @@ The most useful extension for structural findings is to join a bounded
 mutation type, study, phenotype reference, and publication without exposing a
 COSMIC sample record.
 
-`cosmic_classifications` should be used as a lookup table, not displayed as an
-independent evidence source. Joining `cosmic_phenotype_id` can add primary site,
-histology, and subtype to aggregated variant, CNA, fusion, and rearrangement
-evidence. Grouped tumor-classification counts are appropriate; case-level rows
-are not.
+`cosmic_classifications` is used as a lookup table, not as independent evidence.
+The detail response resolves `cosmic_phenotype_id` values from matched mutation,
+CNA, fusion, breakpoint, and structural records to primary site, histology, and
+subtype. Case-level classification rows are not returned.
 
-Actionability evidence is most useful when the mutation and fusion identifiers
-are normalized during import and indexed as individual values. A detail card can
-then show disease, drug or combination, evidence rank, trial and phase, outcome,
-and publication. Missing identifier matches must remain missing rather than
-falling back to an unindexed collection scan.
+Actionability mutation expressions are normalized to an indexed `genes` array at
+import. Finding pages use that index to show bounded gene-level or gene-pair trial
+context, including the original mutation selection, disease, drug or combination,
+evidence rank, status, and outcome. This is broader context rather than an exact
+variant assertion; the original mutation expression remains visible in the card.
 
-The complete Cancer Gene Census would add gene tier, oncogene or tumor-suppressor
+The complete Cancer Gene Census adds gene tier, oncogene or tumor-suppressor
 role, fusion-gene role, somatic or germline involvement, associated tumor types,
 and supporting publications. `cosmic_cgc_hallmarks` contains only the hallmark
 portion and is not a substitute for the complete census. The Cancer Mutation
-Census is also a candidate for small-variant driver and pathogenicity evidence.
-Neither complete census is accepted by the updater until a dedicated product
-schema, indexes, validation, and display contract are implemented. See the
+Census supplies coding small-variant driver and population evidence and includes
+both GRCh37 and GRCh38 genomic positions in its GRCh37 distribution. See the
 official [COSMIC modules](https://www.cosmickb.org/knowledgebase/cosmic-modules/)
 for the distinctions between Core COSMIC, Gene Census, Mutation Census,
 signatures, resistance, and Actionability.
@@ -280,22 +340,42 @@ Mutational signatures belong to sample-level profile interpretation rather than
 an individual finding card. COSMIC drug-resistance data can complement
 Actionability after a separate identifier and disease-context mapping is defined.
 
-The coding and non-coding commands deliberately select the normalized VCF
-archives. Do not supply both normalized and unnormalized forms. The coding
-product currently supported by Coyote3 is the **Genome Screens Mutant Normal
-VCF**; it is not the separate Census Genes Mutations TSV or a claim that every
-COSMIC coding-curation product has been imported.
+The coding, non-coding, and targeted commands deliberately select normalized VCF
+archives. Do not import normalized and unnormalized forms of the same product.
+Cancer Mutation Census and Census Genes Mutations are separate products with
+different evidence scopes; their records remain in separate collections.
 
 Actionability has its own release cycle and must use its own version. For
-example, COSMIC core v104 can coexist with Actionability v20:
+example, COSMIC core v104 can coexist with Actionability v21:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
   --directory /path/to/cosmic-release \
   --assembly GRCh37 \
   --product actionability \
-  --release 20 \
+  --release 21 \
   --cpus 8
+```
+
+Cancer Mutation Census, core COSMIC, Actionability, and signatures can reside in
+different source directories. Run the same updater once for each selected file:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
+  --directory /data/cosmic/cmc-v104 \
+  --assembly GRCh37 \
+  --product mutation_census \
+  --release 104 \
+  --cpus 8 \
+  --apply
+
+PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
+  --directory /data/cosmic/signatures-v3.6 \
+  --assembly GRCh38 \
+  --product signature_sv \
+  --release 3.6 \
+  --cpus 8 \
+  --apply
 ```
 
 Each COSMIC product is stored as a flat, typed record optimized for its natural

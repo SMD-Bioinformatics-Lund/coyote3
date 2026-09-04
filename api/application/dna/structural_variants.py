@@ -15,6 +15,7 @@ from api.application.common.table_state import (
     sort_spec_to_query_value,
     sortable_text,
 )
+from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
 from api.config.database_versions import require_sample_vep_version
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
@@ -303,6 +304,12 @@ class DnaStructuralService:
         if paginate:
             page, per_page = request_pagination(request)
             page_cnvs, pagination_meta = paginate_items(cnvs, page=page, per_page=per_page)
+        page_genes = [
+            str(gene.get("gene") or gene.get("name"))
+            for cnv in page_cnvs
+            for gene in (cnv.get("genes") or [])
+            if isinstance(gene, dict) and (gene.get("gene") or gene.get("name"))
+        ]
         return {
             "sample": {
                 "id": str(sample.get("_id")),
@@ -320,6 +327,7 @@ class DnaStructuralService:
             },
             "filters": sample_filters,
             "cnvs": page_cnvs,
+            "cosmic_cancer_gene_map": cosmic_cancer_gene_map(self.cosmic_repository, page_genes),
         }
 
     def show_cnv_payload(self, *, sample: dict, cnv_id: str, util_module) -> dict[str, Any]:
@@ -493,6 +501,7 @@ class DnaStructuralService:
             page_translocs, pagination_meta = paginate_items(
                 translocs, page=page, per_page=per_page
             )
+        page_genes = [gene for transloc in page_translocs for gene in translocation_genes(transloc)]
         return {
             "sample": {
                 "id": str(sample.get("_id")),
@@ -511,6 +520,7 @@ class DnaStructuralService:
                 require_sample_vep_version(sample)
             ),
             "translocations": page_translocs,
+            "cosmic_cancer_gene_map": cosmic_cancer_gene_map(self.cosmic_repository, page_genes),
         }
 
     def show_translocation_payload(

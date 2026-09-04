@@ -1,0 +1,8 @@
+[
+  {
+    "record_key": "demo-cosmic-signature-sv",
+    "source_row": 1,
+    "signature": "SV1",
+    "profile": {"clustered_del_1-10Kb": 1.0}
+  }
+]

@@ -18,6 +18,7 @@ from api.application.common.table_state import (
 from api.application.dna.export import export_rows_to_csv, join_tokens, safe_text, yes_no
 from api.application.interpretation.annotation_enrichment import add_global_annotations
 from api.application.interpretation.report_summary import generate_summary_text
+from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
 from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.managed_resources import aspc_spec_for_category
@@ -289,6 +290,7 @@ class RnaService:
         if paginate:
             page, per_page = request_pagination(request)
             page_fusions, pagination_meta = paginate_items(fusions, page=page, per_page=per_page)
+        page_genes = [gene for fusion in page_fusions for gene in _fusion_genes(fusion)]
         sample = self.workflow.attach_rna_analysis_sections(sample)
         ai_text = generate_summary_text(
             sample_ids,
@@ -324,6 +326,7 @@ class RnaService:
             "ai_text": ai_text,
             "fusion_caller_options": list(CLINICAL_VOCABULARY.fusion_callers),
             "fusion_annotation_metadata": CLINICAL_VOCABULARY.fusion_annotation_metadata(),
+            "cosmic_cancer_gene_map": cosmic_cancer_gene_map(self.cosmic_repository, page_genes),
         }
 
     def show_fusion_payload(self, *, sample: dict, fusion_id: str) -> dict[str, Any]:

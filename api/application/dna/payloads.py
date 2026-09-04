@@ -12,6 +12,7 @@ from api.application.common.table_state import (
     sort_spec_to_query_value,
 )
 from api.application.dna.export import consequence_terms
+from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
 from api.application.reporting.dna_report_payload import hotspot_variant
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.managed_resources import aspc_spec_for_category
@@ -584,6 +585,9 @@ def list_variants_payload(
         variant_genes,
     )
     clinpgx_gene_map = _collect_clinpgx_gene_map(service, variant_genes)
+    cosmic_cancer_gene_map_by_symbol = cosmic_cancer_gene_map(
+        getattr(service, "cosmic_repository", None), variant_genes
+    )
     if include_report_context:
         display_sections_data, summary_sections_data = _build_display_and_summary_sections(
             service,
@@ -651,6 +655,7 @@ def list_variants_payload(
         "oncokb_actionable_gene_map": oncokb_actionable_gene_map,
         "clinpgx_genes": list(clinpgx_gene_map),
         "clinpgx_gene_map": clinpgx_gene_map,
+        "cosmic_cancer_gene_map": cosmic_cancer_gene_map_by_symbol,
         "verification_sample_used": verification_sample_used,
         "variants": variants_page,
         "display_sections_data": display_sections_data,

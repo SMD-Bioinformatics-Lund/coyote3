@@ -6,6 +6,7 @@ import csv
 import datetime
 import io
 from copy import deepcopy
+from typing import Any
 
 import yaml
 from fastapi import APIRouter, Query
@@ -30,6 +31,7 @@ from api.contracts.public import (
     PublicFilterFlagMetadataPayload,
     PublicGenelistViewPayload,
     PublicGeneSymbolsPayload,
+    PublicKnowledgebaseStatusPayload,
     PublicModulesPayload,
 )
 from api.interfaces.http.tags import TAG_PUBLIC
@@ -88,9 +90,51 @@ def public_about_read():
                 },
             },
             "software_links": application_integration_links(runtime_app.config),
+            "knowledgebase_status": _public_knowledgebase_status(),
         }
     )
     return util.common.convert_to_serializable(payload)
+
+
+@router.get(
+    "/api/v1/public/knowledgebases/status",
+    response_model=PublicKnowledgebaseStatusPayload,
+)
+def public_knowledgebase_status_read() -> dict[str, Any]:
+    """Return installed knowledgebase products, releases, and record counts."""
+    return util.common.convert_to_serializable(_public_knowledgebase_status())
+
+
+def _public_knowledgebase_status() -> dict[str, Any]:
+    """Build public release metadata without source files or operational paths."""
+    try:
+        payload = get_public_catalog_service().knowledgebase_status()
+        releases = list(payload.get("releases") or [])
+        installed_sources = {str(item.get("source") or "") for item in releases}
+        configured_services = {
+            "oncokb_public": runtime_app.config.get("ONCOKB_BASE_URL"),
+            "clinpgx_public": runtime_app.config.get("CLINPGX_BASE_URL"),
+        }
+        for source, endpoint in configured_services.items():
+            if endpoint and source not in installed_sources:
+                releases.append(
+                    {
+                        "source": source,
+                        "release": "Remote service",
+                        "status": "configured",
+                        "records": 0,
+                        "collections": [],
+                    }
+                )
+        payload["releases"] = sorted(releases, key=lambda item: str(item.get("source") or ""))
+        payload["summary"]["configured_services"] = sum(
+            bool(endpoint) for endpoint in configured_services.values()
+        )
+        payload["summary"]["available_products"] = len(releases)
+        return payload
+    except Exception as exc:  # pragma: no cover - defensive public metadata path
+        runtime_app.logger.warning("Could not build knowledgebase status: %s", exc)
+        return {"releases": [], "summary": {"installed_products": 0, "total_records": 0}}
 
 
 def _public_contact_payload() -> dict:

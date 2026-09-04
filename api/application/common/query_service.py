@@ -48,6 +48,7 @@ class CommonQueryService:
             civic_repository=getattr(store, "civic_repository", None),
             brca_repository=getattr(store, "brca_repository", None),
             iarc_tp53_repository=getattr(store, "iarc_tp53_repository", None),
+            cosmic_repository=getattr(store, "cosmic_repository", None),
             bam_record_repository=getattr(store, "bam_record_repository", None),
         )
 
@@ -67,6 +68,7 @@ class CommonQueryService:
         civic_repository: Any | None = None,
         brca_repository: Any | None = None,
         iarc_tp53_repository: Any | None = None,
+        cosmic_repository: Any | None = None,
         bam_record_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
@@ -83,6 +85,7 @@ class CommonQueryService:
         self.civic_repository = civic_repository
         self.brca_repository = brca_repository
         self.iarc_tp53_repository = iarc_tp53_repository
+        self.cosmic_repository = cosmic_repository
         self.bam_record_repository = bam_record_repository
 
     def _resolve_gene(self, gene_id: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
@@ -169,6 +172,7 @@ class CommonQueryService:
         public_oncokb_getter = getattr(self.oncokb_public_cache_repository, "get_gene_record", None)
         clinpgx_getter = getattr(self.clinpgx_public_repository, "get_gene_record", None)
         civic_getter = getattr(self.civic_repository, "get_civic_gene_info", None)
+        cosmic_getter = getattr(self.cosmic_repository, "get_gene_evidence", None)
         sources = {
             "oncokb_public": public_oncokb_getter(symbol)
             if callable(public_oncokb_getter)
@@ -177,6 +181,7 @@ class CommonQueryService:
             "oncokb_actionable_local": self.oncokb_repository.get_oncokb_action_gene(upper_symbol),
             "clinpgx_public": clinpgx_getter(symbol) if callable(clinpgx_getter) else None,
             "civic_gene": civic_getter(symbol) if callable(civic_getter) else None,
+            "cosmic": cosmic_getter(symbol) if callable(cosmic_getter) else None,
             "brca_exchange": {
                 "applies_to_gene": upper_symbol in {"BRCA1", "BRCA2"},
                 "lookup": "variant-coordinate",
@@ -890,6 +895,7 @@ class CommonQueryService:
         return {
             "query": query,
             "gene": gene,
+            "knowledgebase": self.knowledgebase_gene_payload(symbol),
             "summary": {
                 "profiled_samples": denominator_count,
                 "finding_samples": finding_sample_count,

@@ -10,6 +10,7 @@ from api.infra.knowledgebase.cosmic import CosmicRepository
 from api.infra.knowledgebase.hgnc import HGNCRepository
 from api.infra.knowledgebase.iarc_tp53 import IARCTP53Repository
 from api.infra.knowledgebase.oncokb import OnkoKBRepository
+from api.infra.knowledgebase.versions import KnowledgebaseVersionRepository
 
 
 @dataclass(frozen=True)
@@ -28,5 +29,11 @@ BUILTIN_KNOWLEDGEBASE_REPOSITORIES: tuple[KnowledgebasePlugin, ...] = (
     KnowledgebasePlugin("brca", "brca_repository", BRCARepository, "brca"),
     KnowledgebasePlugin("oncokb", "oncokb_repository", OnkoKBRepository, "oncokb"),
     KnowledgebasePlugin("cosmic", "cosmic_repository", CosmicRepository, "cosmic"),
+    KnowledgebasePlugin(
+        "knowledgebase_versions",
+        "knowledgebase_version_repository",
+        KnowledgebaseVersionRepository,
+        "knowledgebase_versions",
+    ),
     KnowledgebasePlugin("hgnc", "hgnc_repository", HGNCRepository, "hgnc"),
 )

@@ -35,6 +35,7 @@ class DnaVariantsListPayload(BaseModel):
     oncokb_actionable_gene_map: dict[str, Any] = {}
     clinpgx_genes: list[str] = []
     clinpgx_gene_map: dict[str, Any] = {}
+    cosmic_cancer_gene_map: dict[str, Any] = {}
     verification_sample_used: str | None = None
     variants: list[dict[str, Any]]
     display_sections_data: dict[str, Any]
@@ -100,6 +101,7 @@ class DnaCnvListPayload(BaseModel):
     meta: dict[str, Any]
     filters: dict[str, Any]
     cnvs: list[dict[str, Any]]
+    cosmic_cancer_gene_map: dict[str, Any] = Field(default_factory=dict)
 
 
 class DnaCnvContextPayload(BaseModel):
@@ -125,6 +127,7 @@ class DnaTranslocationsPayload(BaseModel):
     filters: dict[str, Any]
     vep_conseq_translations: dict[str, Any]
     translocations: list[dict[str, Any]]
+    cosmic_cancer_gene_map: dict[str, Any] = Field(default_factory=dict)
 
 
 class DnaTranslocationContextPayload(BaseModel):

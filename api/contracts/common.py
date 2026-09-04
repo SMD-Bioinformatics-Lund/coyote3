@@ -123,6 +123,7 @@ class CommonGeneCohortPayload(BaseModel):
 
     query: dict[str, Any]
     gene: dict[str, Any] | None = None
+    knowledgebase: dict[str, Any] = Field(default_factory=dict)
     summary: GeneCohortSummary
     denominator: GeneCohortDenominator
     tier_counts: dict[str, int]

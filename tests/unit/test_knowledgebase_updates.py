@@ -5,6 +5,7 @@ from __future__ import annotations
 import gzip
 import io
 import tarfile
+import zipfile
 from pathlib import Path
 
 import mongomock
@@ -19,7 +20,14 @@ from scripts.knowledgebase_update_common import (
 )
 from scripts.update_brca_exchange import documents as brca_documents
 from scripts.update_civic import gene_documents, variant_documents
-from scripts.update_cosmic import tsv_documents, vcf_documents
+from scripts.update_cosmic import (
+    PRODUCTS,
+    actionability_documents,
+    mutation_census_documents,
+    signature_documents,
+    tsv_documents,
+    vcf_documents,
+)
 from scripts.update_tp53_database import documents as tp53_documents
 
 
@@ -37,12 +45,22 @@ def _tar_gzip_member(path: Path, member_name: str, value: str) -> Path:
     return path
 
 
+def _zip_member(path: Path, member_name: str, value: str) -> Path:
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr(member_name, value)
+    return path
+
+
 def test_source_number_parsers_preserve_missing_values() -> None:
     assert clean_text("-") is None
     assert parse_int("") is None
     assert parse_float("NA") is None
     assert parse_int("0") == 0
     assert parse_float("0") == 0.0
+
+
+def test_cosmic_import_retains_explicit_large_optional_products() -> None:
+    assert {"coding_variants", "noncoding_variants", "methylation"} <= PRODUCTS.keys()
 
 
 def test_publish_release_replaces_collection_and_records_manifest() -> None:
@@ -207,4 +225,56 @@ def test_cosmic_vcf_and_tsv_stream_from_tar_without_extraction(tmp_path: Path) -
 
     assert variant["cnt"] == {"samples": 8}
     assert variant["gene"] == "TP53"
+    assert variant["filter"] == "."
+    assert variant["qual"] == "."
+    assert variant["info"]["hgvsp"] == "p.Arg175His"
+    assert variant["info"]["genome_screen_sample_count"] == "8"
     assert classification["cosmic_phenotype_id"] == "COSO1"
+
+
+def test_cosmic_mutation_census_preserves_source_and_indexes_both_assemblies(
+    tmp_path: Path,
+) -> None:
+    path = _tar_gzip_member(
+        tmp_path / "cmc.tar",
+        "cmc.tsv.gz",
+        "GENE_NAME\tGENOMIC_MUTATION_ID\tMutation genome position GRCh37\t"
+        "Mutation genome position GRCh38\tGENOMIC_WT_ALLELE_SEQ\t"
+        "GENOMIC_MUT_ALLELE_SEQ\tCOSMIC_SAMPLE_MUTATED\n"
+        "TP53\tCOSV1\t17:7579472-7579472\t17:7676154-7676154\tG\tA\t0\n",
+    )
+
+    document = next(mutation_census_documents(path))
+
+    assert document["mutation_genome_position_grch37"] == "17:7579472-7579472"
+    assert document["chr_grch38"] == "17"
+    assert document["start_grch38"] == 7_676_154
+    assert document["ref"] == "G"
+    assert document["alt"] == "A"
+    assert document["cosmic_sample_mutated"] == 0
+
+
+def test_cosmic_actionability_derives_gene_lookup_keys(tmp_path: Path) -> None:
+    path = _tar_gzip_member(
+        tmp_path / "actionability.tar",
+        "actionability.tsv.gz",
+        "MUTATION_REMARK\tMUTATION_SELECTIVITY\n"
+        "(EGFR_Exon19del or EGFR_L858R) and TP53_not_Exon4\tSet\n",
+    )
+
+    document = next(actionability_documents(path, ".tsv.gz"))
+
+    assert document["genes"] == ["EGFR", "TP53"]
+
+
+def test_cosmic_signature_matrix_is_transposed_without_losing_weights(tmp_path: Path) -> None:
+    path = _zip_member(
+        tmp_path / "signatures.zip",
+        "COSMIC_v3.6_SBS_GRCh37.txt",
+        "Type\tSBS1\tSBS2\nA[C>A]A\t0.25\t0.75\nA[C>A]C\t0.4\t0.6\n",
+    )
+
+    documents = list(signature_documents(path, signature_class="SBS", assembly="GRCh37"))
+
+    assert [document["signature"] for document in documents] == ["SBS1", "SBS2"]
+    assert documents[0]["profile"] == {"A[C>A]A": 0.25, "A[C>A]C": 0.4}

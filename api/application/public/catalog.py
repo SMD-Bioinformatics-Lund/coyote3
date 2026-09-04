@@ -28,6 +28,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             gene_list_repository=store.gene_list_repository,
             sample_repository=store.sample_repository,
             vep_metadata_repository=store.vep_metadata_repository,
+            knowledgebase_version_repository=getattr(
+                store, "knowledgebase_version_repository", None
+            ),
         )
 
     def __init__(
@@ -39,6 +42,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         gene_list_repository: Any,
         sample_repository: Any,
         vep_metadata_repository: Any,
+        knowledgebase_version_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
@@ -47,6 +51,22 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         self.gene_list_repository = gene_list_repository
         self.sample_repository = sample_repository
         self.vep_metadata_repository = vep_metadata_repository
+        self.knowledgebase_version_repository = knowledgebase_version_repository
+
+    def knowledgebase_status(self) -> dict[str, Any]:
+        """Return non-sensitive installed knowledgebase release metadata."""
+        releases = (
+            self.knowledgebase_version_repository.list_active_releases()
+            if self.knowledgebase_version_repository is not None
+            else []
+        )
+        return {
+            "releases": releases,
+            "summary": {
+                "installed_products": len(releases),
+                "total_records": sum(int(item.get("records") or 0) for item in releases),
+            },
+        }
 
     def observed_software_versions(self) -> dict[str, object]:
         """Return bounded software versions observed across ready samples."""
