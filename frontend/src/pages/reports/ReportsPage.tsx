@@ -69,14 +69,26 @@ export function ReportsPage() {
     {
       id: "report",
       header: "Report",
-      accessorFn: (row) => row.report_name || row.report_id,
+      accessorFn: (row) => `${row.report_id} ${row.report_name || ""}`,
       cell: ({ row }) => (
-        <Link
-          to={`/samples/${encodeURIComponent(row.original.sample_id)}/reports/${encodeURIComponent(row.original.report_id)}`}
-          className="font-semibold text-link hover:underline"
-        >
-          {row.original.report_name || row.original.report_id}
-        </Link>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileText className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <Link
+              to={`/samples/${encodeURIComponent(row.original.sample_id)}/reports/${encodeURIComponent(row.original.report_id)}`}
+              className="type-body-sm text-link hover:underline"
+            >
+              {row.original.report_id}
+            </Link>
+            {row.original.report_name && row.original.report_name !== row.original.report_id ? (
+              <p className="max-w-64 truncate type-label text-muted-foreground" title={row.original.report_name}>
+                {row.original.report_name}
+              </p>
+            ) : null}
+          </div>
+        </div>
       ),
     },
     {
@@ -84,7 +96,10 @@ export function ReportsPage() {
       header: "Sample",
       accessorKey: "sample_id",
       cell: ({ row }) => (
-        <Link to={`/samples/${encodeURIComponent(row.original.sample_id)}?tab=reports`} className="text-link hover:underline">
+        <Link
+          to={`/samples/${encodeURIComponent(row.original.sample_id)}?tab=reports`}
+          className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-2 py-1 type-meta text-primary hover:bg-primary/15"
+        >
           {row.original.sample_id}
         </Link>
       ),
@@ -94,9 +109,14 @@ export function ReportsPage() {
       header: "Assay",
       accessorFn: (row) => [row.asp_id, row.subpanel_id, row.environment].filter(Boolean).join(" / "),
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {[row.original.asp_id, row.original.subpanel_id, row.original.environment].filter(Boolean).join(" / ") || "-"}
-        </span>
+        <div className="space-y-0.5">
+          <p className="type-table-cell text-foreground">
+            {[row.original.asp_id, row.original.subpanel_id].filter(Boolean).join(" / ") || "-"}
+          </p>
+          {row.original.environment ? (
+            <p className="type-label capitalize text-muted-foreground">{row.original.environment}</p>
+          ) : null}
+        </div>
       ),
     },
     {
