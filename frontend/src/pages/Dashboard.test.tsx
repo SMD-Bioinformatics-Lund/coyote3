@@ -20,6 +20,11 @@ const queryClientState = vi.hoisted(() => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({
+    data: { releases: [], summary: { installed_products: 0, total_records: 0 } },
+    isLoading: false,
+    error: null,
+  }),
   useQueries: () => Array.from({ length: 6 }, (_, index) => ({
     ...queryState,
     error: queryState.unavailableIndexes.has(index) ? new Error("Metric request failed") : queryState.error,

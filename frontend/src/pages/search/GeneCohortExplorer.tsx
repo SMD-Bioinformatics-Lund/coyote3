@@ -17,6 +17,10 @@ import { valueBadgeClass } from "@/lib/badge-colors";
 import { nomenclatureLabel } from "@/lib/application-constants";
 import { sampleDetailPath } from "@/lib/sample-routing";
 import { TierBadge } from "@/lib/variant-ui";
+import {
+  GeneKnowledgebaseSummary,
+  type GeneKnowledgebasePayload,
+} from "@/components/knowledgebase/GeneKnowledgebaseSummary";
 
 type CohortBreakdown = {
   profiled_samples: number;
@@ -68,6 +72,7 @@ type CohortSample = {
 type GeneCohortPayload = {
   query: { resolved_symbol?: string; requested?: string };
   gene?: Record<string, unknown> | null;
+  knowledgebase?: GeneKnowledgebasePayload;
   summary: CohortBreakdown & {
     reported_observations: number;
     unique_findings: number;
@@ -452,6 +457,8 @@ export function GeneCohortExplorer() {
               />
             </div>
           </section>
+
+          <GeneKnowledgebaseSummary payload={cohortQuery.data.knowledgebase} />
 
           <GeneCohortCharts
             gene={gene}

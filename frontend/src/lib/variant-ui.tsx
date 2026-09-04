@@ -15,7 +15,7 @@ import {
   verticalTooltipPosition,
 } from "@/lib/variant-badge-primitives"
 import { cn } from "@/lib/utils"
-import { clinpgxGeneUrl, oncokbGeneUrl } from "@/lib/external-links"
+import { clinpgxGeneUrl, cosmicSearchUrl, oncokbGeneUrl } from "@/lib/external-links"
 import { filterFlags, normalizedCallerList } from "@/lib/variant-helpers"
 import { TIER_LABELS } from "@/lib/variant-ui-meta"
 
@@ -97,6 +97,64 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
   )
 }
 
+export function CopyNumberBadge({
+  value,
+  label,
+}: {
+  value: unknown
+  label?: ReactNode
+}) {
+  const normalized = String(value || "").trim().toLowerCase()
+  const isGain = normalized.includes("gain") || normalized.includes("amplif") || normalized === "dup"
+  const isLoss = normalized.includes("loss") || normalized.includes("delet") || normalized === "del"
+  const className = isGain ? "badge-cnv-gain" : isLoss ? "badge-cnv-loss" : "badge-neutral"
+
+  return (
+    <TableBadge className={cn("gap-1 whitespace-normal uppercase", className)}>
+      <span>{label || normalized || "Unknown"}</span>
+      {label && normalized ? <span className="type-label">{normalized}</span> : null}
+    </TableBadge>
+  )
+}
+
+export function AnalysisIntentBadge({ intent }: { intent: unknown }) {
+  const normalized = String(intent || "").trim().toLowerCase()
+  const className = normalized === "germline"
+    ? "badge-germline"
+    : normalized === "somatic"
+      ? "badge-somatic"
+      : "badge-neutral"
+
+  return <TableBadge className={cn("uppercase", className)}>{normalized || "Unknown"}</TableBadge>
+}
+
+function intentIsPresent(value: unknown) {
+  if (typeof value === "boolean") return value
+  const normalized = String(value ?? "").trim().toLowerCase()
+  return Boolean(normalized) && !["-", "0", "false", "no", "none"].includes(normalized)
+}
+
+export function AnalysisIntentBadges({
+  somatic,
+  germline,
+  showEmpty = true,
+}: {
+  somatic?: unknown
+  germline?: unknown
+  showEmpty?: boolean
+}) {
+  if (!intentIsPresent(somatic) && !intentIsPresent(germline)) {
+    return showEmpty ? <span className="text-muted-foreground">-</span> : null
+  }
+
+  return (
+    <span className="flex flex-wrap gap-1">
+      {intentIsPresent(somatic) ? <AnalysisIntentBadge intent="somatic" /> : null}
+      {intentIsPresent(germline) ? <AnalysisIntentBadge intent="germline" /> : null}
+    </span>
+  )
+}
+
 /**
  * Shape of a finding/variant document as consumed by StatusBadges.
  * Fields are optional because not every variant type carries every flag.
@@ -130,6 +188,7 @@ export function StatusBadges({
   hasOncoKbCancerGene = false,
   hasOncoKbActionable = false,
   hasClinPgxGene = false,
+  cosmicCancerGenes = [],
   clinPgxRecord,
 }: {
   finding: FindingRecord
@@ -137,6 +196,7 @@ export function StatusBadges({
   hasOncoKbCancerGene?: boolean
   hasOncoKbActionable?: boolean
   hasClinPgxGene?: boolean
+  cosmicCancerGenes?: string[]
   clinPgxRecord?: ClinPgxRecord
 }) {
   const isFp = Boolean(finding?.fp)
@@ -147,6 +207,7 @@ export function StatusBadges({
   const isNormalCall = finding?.NORMAL === 1 || finding?.NORMAL === true
   const hasBlacklistOverride = Boolean(finding?.override_blacklist)
   const hasComments = Array.isArray(finding?.comments) && finding.comments.length > 0
+  const censusGenes = Array.from(new Set(cosmicCancerGenes.filter(Boolean)))
 
   return (
     <div className="flex flex-wrap items-center gap-1">
@@ -241,6 +302,18 @@ export function StatusBadges({
           textBadge
         >
           OKB
+        </VariantTooltipBadge>
+      )}
+      {censusGenes.length > 0 && (
+        <VariantTooltipBadge
+          href={cosmicSearchUrl(censusGenes.join(" "))}
+          label="COSMIC Cancer Gene Census"
+          description={`${censusGenes.join(", ")} ${censusGenes.length === 1 ? "is" : "are"} present in the installed COSMIC Cancer Gene Census.`}
+          severity="pass"
+          ariaLabel={`COSMIC Cancer Gene Census: ${censusGenes.join(", ")}`}
+          textBadge
+        >
+          CGC
         </VariantTooltipBadge>
       )}
       {hasOncoKbActionable && (
@@ -583,7 +656,7 @@ export function CallerBadges({ value }: { value: unknown }) {
   return (
     <div className="flex flex-wrap items-center gap-1">
       {callers.map((caller) => (
-        <TableBadge key={caller} className="border-primary/25 bg-primary/10 text-primary">
+        <TableBadge key={caller} className="max-w-full break-all border-primary/25 bg-primary/10 text-primary">
           {caller}
         </TableBadge>
       ))}
@@ -643,7 +716,7 @@ export function PredictionBadge({ value }: { value: unknown }) {
   const severity = predictionSeverity(value)
   return (
     <span
-      className="inline-flex"
+      className="inline-flex min-w-0 max-w-full"
       data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
       onMouseMove={(event) => setPosition(verticalTooltipPosition(event))}
@@ -654,7 +727,7 @@ export function PredictionBadge({ value }: { value: unknown }) {
       <TableBadge
         tabIndex={0}
         className={cn(
-          "cursor-help outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "max-w-full whitespace-normal break-words text-left cursor-help outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           badgeSeverityClass(severity),
         )}
       >

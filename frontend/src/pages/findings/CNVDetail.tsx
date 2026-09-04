@@ -11,7 +11,7 @@ import {
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
 import { percentValue } from "@/lib/detail-formatters"
-import { ArtefactFrequencyBadges, CallerBadges, StatusBadges } from "@/lib/variant-ui"
+import { ArtefactFrequencyBadges, CallerBadges, CopyNumberBadge, StatusBadges } from "@/lib/variant-ui"
 import {
   DetailCard,
   DetailField,
@@ -25,7 +25,7 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, igvLoadUrl } from "@/lib/external-links"
-import { CosmicKnowledgeBlock } from "@/components/detail/VariantKnowledgebase"
+import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
 function cnvRegion(cnv: any) {
   if (!cnv) return "-"
@@ -133,7 +133,7 @@ export function CNVDetail() {
               <FindingIdentityCard title="CNV Identity">
                 <DetailField label="Region">{region}</DetailField>
                 <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
-                <DetailField label="Type" valueClassName="uppercase">{type || "-"}</DetailField>
+                <DetailField label="Type"><CopyNumberBadge value={type} /></DetailField>
                 <DetailField label="Ratio (log2)">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
                 <DetailField label="Copy number" valueClassName="text-tier4">{copyNumber(cnv)}</DetailField>
                 <DetailField label="Status"><StatusBadges finding={cnv} /></DetailField>
@@ -160,12 +160,10 @@ export function CNVDetail() {
               globalComments={data.annotations || []}
             />
 
-            <DetailCard title="Structural Evidence" tone="success">
-              <DetailMetricTable metrics={structuralEvidenceMetrics(cnv)} dense />
-            </DetailCard>
-
             <DetailCard title="Knowledge Bases" tone="success">
-              <CosmicKnowledgeBlock evidence={data.cosmic} />
+              <KnowledgebaseExplorer>
+                <CosmicKnowledgeBlock evidence={data.cosmic} />
+              </KnowledgebaseExplorer>
             </DetailCard>
 
             <DetailCard title="Panel Genes">
@@ -175,21 +173,11 @@ export function CNVDetail() {
                 columns={[
                   { key: "gene", header: "Gene", render: (row: any) => row.gene || row.name || "-" },
                   { key: "class", header: "Class", render: (row: any) => row.class || "-" },
-                  { key: "effect", header: "Effect", render: (row: any) => row.effect || type || "-" },
+                  { key: "effect", header: "Effect", render: (row: any) => <CopyNumberBadge value={row.effect || type} /> },
                 ]}
               />
             </DetailCard>
 
-            <DetailCard title="Other Overlapping Genes" tone="info">
-              <DetailDataTable
-                rows={cnvGenes(cnv, false)}
-                empty="No other overlapping genes available."
-                columns={[
-                  { key: "gene", header: "Gene", render: (row: any) => row.gene || row.name || "-" },
-                  { key: "effect", header: "Effect", render: (row: any) => row.effect || type || "-" },
-                ]}
-              />
-            </DetailCard>
           </>
         }
         aside={
@@ -198,6 +186,22 @@ export function CNVDetail() {
               latest={latest_classification}
               other={data.other_classifications || []}
             />
+
+            <DetailCard title="Structural Evidence" tone="success">
+              <DetailMetricTable metrics={structuralEvidenceMetrics(cnv)} dense />
+            </DetailCard>
+
+            <DetailCard title="Other Overlapping Genes" tone="info">
+              <DetailDataTable
+                rows={cnvGenes(cnv, false)}
+                initialRows={10}
+                empty="No other overlapping genes available."
+                columns={[
+                  { key: "gene", header: "Gene", render: (row: any) => <span className="font-semibold text-foreground">{row.gene || row.name || "-"}</span> },
+                  { key: "effect", header: "Effect", render: (row: any) => <CopyNumberBadge value={row.effect || type} /> },
+                ]}
+              />
+            </DetailCard>
 
             <ExternalLinksCard
               links={[

@@ -2,7 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import {
   ArtefactFrequencyBadges,
+  AnalysisIntentBadges,
   CallerBadges,
+  CopyNumberBadge,
   ConsequenceBadges,
   FilterFlagBadges,
   ImpactBadge,
@@ -34,6 +36,21 @@ describe("variant UI semantics", () => {
     expect(screen.getByText("-")).toBeInTheDocument()
   })
 
+  it("uses domain badges for copy-number direction and analysis intent", () => {
+    render(
+      <>
+        <CopyNumberBadge value="gain" />
+        <CopyNumberBadge value="loss" />
+        <AnalysisIntentBadges somatic="yes" germline />
+      </>,
+    )
+
+    expect(screen.getByText("gain").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-gain")
+    expect(screen.getByText("loss").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-loss")
+    expect(screen.getByText("somatic")).toHaveClass("badge-somatic")
+    expect(screen.getByText("germline")).toHaveClass("badge-germline")
+  })
+
   it("renders all finding state and knowledgebase markers", () => {
     render(
       <StatusBadges
@@ -49,6 +66,7 @@ describe("variant UI semantics", () => {
         hasOncoKbCancerGene
         hasOncoKbActionable
         hasClinPgxGene
+        cosmicCancerGenes={["TP53"]}
         clinPgxRecord={{ pharmgkb_accession_id: "PA123", has_cpic_dosing_guideline: true }}
       />,
     )
@@ -60,6 +78,7 @@ describe("variant UI semantics", () => {
       "Interesting",
       "Has comments",
       "OncoKB public cancer gene",
+      "COSMIC Cancer Gene Census: TP53",
       "Historical local OncoKB actionable evidence",
       "ClinPGx gene",
     ]) {

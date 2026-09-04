@@ -50,7 +50,7 @@ describe("GeneInfoPage", () => {
     renderRoute("/genes/HGNC%3A11998", "/genes/:geneId", <GeneInfoPage />)
 
     expect(await screen.findByRole("heading", { name: "TP53", level: 1 })).toBeVisible()
-    expect(mocks.get).toHaveBeenCalledWith("/common/gene/HGNC:11998/info")
+    expect(mocks.get).toHaveBeenCalledWith("/knowledgebases/gene/HGNC:11998")
     expect(screen.getAllByText("tumor protein p53")).toHaveLength(2)
     expect(screen.getByText("P53")).toBeVisible()
     expect(screen.getAllByText("NM_001126112.3")).toHaveLength(2)

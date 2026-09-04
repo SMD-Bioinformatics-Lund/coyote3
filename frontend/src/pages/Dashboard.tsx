@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Suspense, lazy, useEffect, useState } from "react"
 import { api } from "@/lib/api"
@@ -14,6 +14,7 @@ import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
+import { KnowledgebaseStatus } from "@/components/knowledgebase/KnowledgebaseStatus"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
 const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
@@ -74,6 +75,11 @@ export function Dashboard() {
       queryFn: () => api.get(metric.path).then((response) => response.data?.payload || response.data),
       refetchInterval: 60_000,
     })),
+  })
+  const knowledgebaseQuery = useQuery({
+    queryKey: ["knowledgebase-status"],
+    queryFn: () => api.get("/public/knowledgebases/status").then((response) => response.data),
+    staleTime: 5 * 60 * 1000,
   })
   const data = metricQueries.reduce<Record<string, any>>((combined, query) => {
     const payload = query.data || {}
@@ -444,6 +450,20 @@ export function Dashboard() {
           <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center type-body-sm text-muted-foreground">
             No tiered gene data available.
           </div>
+        )}
+      </SurfacePanel>
+
+      <SurfacePanel
+        className="dashboard-panel dashboard-panel--blue"
+        title="Knowledgebase Inventory"
+        description="Installed reference products, releases, and indexed evidence available to interpretation views."
+      >
+        {knowledgebaseQuery.isLoading ? (
+          <AppLoader label="Loading knowledgebase inventory" />
+        ) : knowledgebaseQuery.error ? (
+          <MetricUnavailable label="Knowledgebase inventory" />
+        ) : (
+          <KnowledgebaseStatus payload={knowledgebaseQuery.data} compact />
         )}
       </SurfacePanel>
 

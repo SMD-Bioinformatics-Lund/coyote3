@@ -29,7 +29,7 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, EXTERNAL_LINK_BASES, pubmedSearchUrl } from "@/lib/external-links"
-import { CosmicKnowledgeBlock } from "@/components/detail/VariantKnowledgebase"
+import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
 function fusionName(fusion: any) {
   const genes = fusionGenes(fusion)
@@ -162,19 +162,10 @@ export function FusionDetail() {
               globalComments={data.annotations || data.annotations_interesting || []}
             />
 
-            <DetailCard title="Read Support" tone="success">
-              <DetailMetricTable
-                metrics={[
-                  { label: "Spanning pairs", value: selectedCall?.spanpairs || fusion?.supporting_reads?.span, monospace: true },
-                  { label: "Spanning reads", value: selectedCall?.spanreads || fusion?.supporting_reads?.split, monospace: true },
-                  { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
-                ]}
-                dense
-              />
-            </DetailCard>
-
             <DetailCard title="Knowledge Bases" tone="success">
-              <CosmicKnowledgeBlock evidence={data.cosmic} />
+              <KnowledgebaseExplorer>
+                <CosmicKnowledgeBlock evidence={data.cosmic} />
+              </KnowledgebaseExplorer>
             </DetailCard>
 
             <DetailCard title="Fusion Calls From Callers">
@@ -207,6 +198,17 @@ export function FusionDetail() {
               resourceId={String(fusion?._id || "")}
               onUpdate={() => refetch()}
             />
+
+            <DetailCard title="Read Support" tone="success">
+              <DetailMetricTable
+                metrics={[
+                  { label: "Spanning pairs", value: selectedCall?.spanpairs || fusion?.supporting_reads?.span, monospace: true },
+                  { label: "Spanning reads", value: selectedCall?.spanreads || fusion?.supporting_reads?.split, monospace: true },
+                  { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
+                ]}
+                dense
+              />
+            </DetailCard>
 
             <ExternalLinksCard
               links={[

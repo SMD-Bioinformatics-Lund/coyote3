@@ -27,7 +27,7 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, igvLoadUrl, pubmedSearchUrl } from "@/lib/external-links"
-import { CosmicKnowledgeBlock } from "@/components/detail/VariantKnowledgebase"
+import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
 function translatedConsequence(annotation: any, translations: Record<string, any> = {}) {
   const raw = annotation?.Annotation || annotation?.Consequence
@@ -87,7 +87,8 @@ export function TranslocationDetail() {
   const annRows = Array.isArray(translocation?.INFO?.ANN) ? translocation.INFO.ANN : []
   const position = translocationPositionLabel(translocation)
   const callers = translocation?.INFO?.variant_callers || translocation?.callers
-  const maxSupport = genotypeRows(translocation).reduce(
+  const readEvidence = genotypeRows(translocation)
+  const maxSupport = readEvidence.reduce(
     (max: number, row: any) => Math.max(max, row.prPct || 0, row.srPct || 0),
     0,
   )
@@ -156,22 +157,10 @@ export function TranslocationDetail() {
               globalComments={data.annotations || []}
             />
 
-            <DetailCard title="Selected Annotation" tone="success">
-              <DetailMetricTable
-                metrics={[
-                  { label: "Transcript", value: annotation?.Feature_ID || annotation?.Feature, monospace: true },
-                  { label: "Protein", value: annotation?.HGVS_p || annotation?.HGVSp, monospace: true },
-                  { label: "cDNA", value: annotation?.HGVS_c || annotation?.HGVSc, monospace: true },
-                  { label: "Consequence", value: translatedConsequence(annotation, data.vep_conseq_translations) },
-                  { label: "Exon rank", value: annotation?.Rank || annotation?.EXON || annotation?.INTRON },
-                  { label: "Biotype", value: annotation?.BioType || annotation?.BIOTYPE },
-                ]}
-                dense
-              />
-            </DetailCard>
-
             <DetailCard title="Knowledge Bases" tone="success">
-              <CosmicKnowledgeBlock evidence={data.cosmic} />
+              <KnowledgebaseExplorer>
+                <CosmicKnowledgeBlock evidence={data.cosmic} />
+              </KnowledgebaseExplorer>
             </DetailCard>
 
             <DetailCard title="Transcript Combinations">
@@ -189,19 +178,6 @@ export function TranslocationDetail() {
               />
             </DetailCard>
 
-            <DetailCard title="Sample Read Evidence" tone="info">
-              <DetailDataTable
-                rows={genotypeRows(translocation)}
-                empty="No genotype read evidence available."
-                columns={[
-                  { key: "type", header: "Type", render: (row: any) => row.type || row.sample || "-" },
-                  { key: "pr", header: "PR", render: (row: any) => Array.isArray(row.PR) ? row.PR.join("/") : displayValue(row.PR) },
-                  { key: "prpct", header: "PR %", render: (row: any) => percentValue(row.prPct, 1) },
-                  { key: "sr", header: "SR", render: (row: any) => Array.isArray(row.SR) ? row.SR.join("/") : displayValue(row.SR) },
-                  { key: "srpct", header: "SR %", render: (row: any) => percentValue(row.srPct, 1) },
-                ]}
-              />
-            </DetailCard>
           </>
         }
         aside={
@@ -214,6 +190,49 @@ export function TranslocationDetail() {
               resourceId={String(translocation?._id || "")}
               onUpdate={() => refetch()}
             />
+
+            <DetailCard title="Selected Annotation" tone="success">
+              <DetailMetricTable
+                metrics={[
+                  { label: "Transcript", value: annotation?.Feature_ID || annotation?.Feature, monospace: true },
+                  { label: "Protein", value: annotation?.HGVS_p || annotation?.HGVSp, monospace: true },
+                  { label: "cDNA", value: annotation?.HGVS_c || annotation?.HGVSc, monospace: true },
+                  { label: "Consequence", value: translatedConsequence(annotation, data.vep_conseq_translations) },
+                  { label: "Exon rank", value: annotation?.Rank || annotation?.EXON || annotation?.INTRON },
+                  { label: "Biotype", value: annotation?.BioType || annotation?.BIOTYPE },
+                ]}
+                dense
+              />
+            </DetailCard>
+
+            <DetailCard title="Sample Read Evidence" tone="info">
+              <div className="space-y-2">
+                {readEvidence.map((row: any, index: number) => (
+                  <div key={index} className="rounded-lg border border-border/70 bg-background/55 p-2.5">
+                    <EvidenceBadge tone="info">{row.type || row.sample || "Sample"}</EvidenceBadge>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="detail-field-label">Paired reads</span>
+                        <span className="type-body-sm font-semibold text-foreground">
+                          {Array.isArray(row.PR) ? row.PR.join("/") : displayValue(row.PR)}
+                        </span>
+                        <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.prPct, 1)}</span>
+                      </div>
+                      <div>
+                        <span className="detail-field-label">Split reads</span>
+                        <span className="type-body-sm font-semibold text-foreground">
+                          {Array.isArray(row.SR) ? row.SR.join("/") : displayValue(row.SR)}
+                        </span>
+                        <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.srPct, 1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!readEvidence.length ? (
+                  <p className="type-body-sm text-muted-foreground">No genotype read evidence available.</p>
+                ) : null}
+              </div>
+            </DetailCard>
 
             <ExternalLinksCard
               links={[

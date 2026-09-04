@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { AlertTriangle } from "lucide-react";
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
+import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
 import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
@@ -33,6 +34,7 @@ import {
 import { AnalysisTableCard } from "./AnalysisTableCard";
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
 import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
+import { matchedKnowledgebaseGenes } from "@/lib/knowledgebase-markers";
 
 export function TranslocationsTab({
   sampleId,
@@ -85,6 +87,7 @@ export function TranslocationsTab({
   const translocationCount = Number(data?.meta?.count ?? translocations.length);
   const hasNext = Boolean(data?.meta?.has_next);
   const hasPrevious = Boolean(data?.meta?.has_previous);
+  const cosmicCancerGeneMap = data?.cosmic_cancer_gene_map || {};
 
   const columns: ColumnDef<any, any>[] = [
     createRowSelectionColumn<any>(),
@@ -188,18 +191,23 @@ export function TranslocationsTab({
         cellClassName: "w-24 min-w-24 max-w-24",
       },
       accessorFn: (row) => statusLabels(row),
-      cell: ({ row }) => <StatusBadges finding={row.original} />,
+      cell: ({ row }) => (
+        <StatusBadges
+          finding={row.original}
+          cosmicCancerGenes={matchedKnowledgebaseGenes(
+            translocationGenes(row.original),
+            cosmicCancerGeneMap,
+          )}
+        />
+      ),
     },
     {
       id: "actions",
       header: "",
-      meta: {
-        headerClassName: "w-10 min-w-10 max-w-10 pr-3",
-        cellClassName: "w-10 min-w-10 max-w-10 pr-3",
-      },
+      meta: DETAIL_NAVIGATION_COLUMN_META,
       cell: ({ row }) => {
         return (
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-center">
             <DetailNavigationButton
               to={`/samples/${sampleId}/translocation/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}

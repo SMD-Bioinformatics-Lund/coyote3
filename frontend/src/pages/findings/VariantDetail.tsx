@@ -35,13 +35,15 @@ import {
   clinpgxEvidenceRows,
   clinpgxGeneMetrics,
   CosmicKnowledgeBlock,
+  KnowledgebaseExplorer,
   externalVariantLinks,
   hpaExpressionRows,
+  KnowledgebaseGrid,
   objectMetrics,
   oncokbActionRows,
   oncokbApiSummary,
   oncokbPublicGeneMetrics,
-  VariantIdentifiersCard,
+  VariantIdentifierLinks,
   VariantKnowledgeBlock,
 } from "@/components/detail/VariantKnowledgebase"
 import { notifyActionError } from "@/lib/notifications"
@@ -245,57 +247,6 @@ export function VariantDetail() {
               onUseAsDraft={setCommentDraft}
             />
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <DetailCard title="Sample Genotype" tone="success">
-                <div className="overflow-x-auto">
-                  <table className="type-table-cell w-full text-left">
-                    <thead className="type-table-header bg-muted/50 text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-1">Type</th>
-                        <th className="px-3 py-1">VAF</th>
-                        <th className="px-3 py-1">Alt Depth</th>
-                        <th className="px-3 py-1">Total Depth</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {variant?.GT?.map((gt: any, i: number) => (
-                        <tr key={i}>
-                          <td className="px-3 py-1 capitalize font-semibold">{gt.type}</td>
-                          <td className="type-allele-frequency px-3 py-1">{(gt.AF * 100).toFixed(1)}%</td>
-                          <td className="px-3 py-1 ">{gt.VD}</td>
-                          <td className="px-3 py-1 ">{gt.DP}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </DetailCard>
-
-              <DetailCard title="Prediction And Clinical Signals">
-                <div className="space-y-2">
-                  <DetailMetricTable
-                    metrics={[
-                      { label: "CADD", value: csq.CADD_PHRED, monospace: true },
-                      { label: "ClinVar", value: clinicalSig(csq, variant) },
-                      { label: "Callers", value: callers },
-                      { label: "Selected by", value: variant?.INFO?.selected_CSQ_criteria },
-                    ]}
-                    dense
-                  />
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border bg-background/50 p-2">
-                      <span className="detail-field-label">SIFT</span>
-                      <PredictionBadge value={csq.SIFT} />
-                    </div>
-                    <div className="rounded-lg border border-border bg-background/50 p-2">
-                      <span className="detail-field-label">PolyPhen</span>
-                      <PredictionBadge value={csq.PolyPhen} />
-                    </div>
-                  </div>
-                </div>
-              </DetailCard>
-            </div>
-
             <DetailCard title="Panel Of Normals Evidence" tone="info">
               <DetailDataTable
                 rows={ponRows(data.pon) || []}
@@ -309,17 +260,20 @@ export function VariantDetail() {
             </DetailCard>
 
             <DetailCard title="Knowledge Bases" tone="success">
-              <div className="space-y-2">
+              <KnowledgebaseExplorer>
                 <CosmicKnowledgeBlock evidence={data.cosmic} />
 
-                <VariantKnowledgeBlock
-                  source="civic"
-                  title="CIViC"
-                  defaultOpen
-                  badges={data.civic?.length ? <EvidenceBadge tone="success">{data.civic.length} match{data.civic.length === 1 ? "" : "es"}</EvidenceBadge> : null}
-                >
+                <KnowledgebaseGrid>
+                  <VariantKnowledgeBlock
+                    source="civic"
+                    title="CIViC"
+                    defaultOpen
+                    searchData={[data.civic, data.civic_gene]}
+                    badges={data.civic?.length ? <EvidenceBadge tone="success">{data.civic.length} match{data.civic.length === 1 ? "" : "es"}</EvidenceBadge> : null}
+                  >
                   <DetailDataTable
                     rows={Array.isArray(data.civic) ? data.civic : []}
+                    initialRows={10}
                     empty="No local CIViC variant evidence is available."
                     columns={[
                       { key: "variant", header: "Variant", render: (row: any) => row.variant || "-" },
@@ -345,19 +299,21 @@ export function VariantDetail() {
                           href: metric.label === "Record" && typeof metric.value === "string" && metric.value.startsWith("http") ? metric.value : undefined,
                         }))}
                         dense
+                        initialRows={10}
                       />
                     </div>
                   ) : null}
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock source="brca-exchange" title="BRCA Exchange" defaultOpen>
+                <VariantKnowledgeBlock source="brca-exchange" title="BRCA Exchange" defaultOpen searchData={data.brca_exchange}>
                   <DetailMetricTable
                     metrics={brcaExchangeMetrics(data.brca_exchange)}
                     dense
+                    initialRows={10}
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock source="iarc-tp53" title="IARC TP53" defaultOpen>
+                <VariantKnowledgeBlock source="iarc-tp53" title="IARC TP53" defaultOpen searchData={data.iarc_tp53}>
                   <DetailMetricTable
                     metrics={data.iarc_tp53
                       ? objectMetrics(data.iarc_tp53, [
@@ -374,12 +330,14 @@ export function VariantDetail() {
                           : "IARC TP53 applies only to TP53 variants.",
                       }]}
                     dense
+                    initialRows={10}
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock source="hpa" title="HPA expression" defaultOpen>
+                <VariantKnowledgeBlock source="hpa" title="HPA expression" defaultOpen searchData={data.expression}>
                   <DetailDataTable
                     rows={hpaExpressionRows(data.expression)}
+                    initialRows={10}
                     empty="No local HPA transcript expression is available."
                     columns={[
                       { key: "transcript", header: "Transcript", render: (row) => row.transcript },
@@ -394,6 +352,7 @@ export function VariantDetail() {
                   source="oncokb"
                   title="OncoKB public cache"
                   defaultOpen
+                  searchData={data.oncokb_gene}
                   badges={
                     <>
                       {data.oncokb_gene?.public_cancer_gene || data.oncokb_gene?.oncokb_annotated != null ? (
@@ -405,7 +364,7 @@ export function VariantDetail() {
                     </>
                   }
                 >
-                  <DetailMetricTable metrics={oncokbPublicGeneMetrics(data.oncokb_gene)} dense />
+                  <DetailMetricTable metrics={oncokbPublicGeneMetrics(data.oncokb_gene)} dense initialRows={10} />
                   {data.oncokb_gene?.gene_summary ? (
                     <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
                       <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Gene summary</p>
@@ -424,10 +383,12 @@ export function VariantDetail() {
                   source="oncokb"
                   title="Local actionable evidence"
                   defaultOpen
+                  searchData={data.oncokb_action}
                   badges={oncokbActionRows(data.oncokb_action).length ? <EvidenceBadge tone="warning">Historical local</EvidenceBadge> : null}
                 >
                   <DetailDataTable
                     rows={oncokbActionRows(data.oncokb_action)}
+                    initialRows={10}
                     empty="No local OncoKB actionable evidence for this variant."
                     columns={[
                       { key: "alteration", header: "Alteration", render: (row: any) => row.Alteration || row["Protein Change"] || "-" },
@@ -438,7 +399,7 @@ export function VariantDetail() {
                   />
                 </VariantKnowledgeBlock>
 
-                <VariantKnowledgeBlock source="oncokb" title="OncoKB API" defaultOpen>
+                <VariantKnowledgeBlock source="oncokb" title="OncoKB API" defaultOpen searchData={oncokbPublic.data}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="type-meta text-muted-foreground">
                       Public API lookup. Therapeutic data is excluded by public OncoKB access.
@@ -464,7 +425,7 @@ export function VariantDetail() {
                             {intent} annotation
                           </p>
                           <div className="mt-2">
-                            <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data, response)} dense />
+                            <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data, response)} dense initialRows={10} />
                           </div>
                         </div>
                       ))}
@@ -496,6 +457,7 @@ export function VariantDetail() {
                   source="clinpgx"
                   title="ClinPGx"
                   defaultOpen
+                  searchData={[data.clinpgx_gene, clinpgxPublic.data]}
                   badges={
                     <>
                       {data.clinpgx_gene?.is_vip ? <EvidenceBadge tone="warning">VIP</EvidenceBadge> : null}
@@ -504,7 +466,7 @@ export function VariantDetail() {
                     </>
                   }
                 >
-                  <DetailMetricTable metrics={clinpgxGeneMetrics(data.clinpgx_gene)} dense />
+                  <DetailMetricTable metrics={clinpgxGeneMetrics(data.clinpgx_gene)} dense initialRows={10} />
                   {data.clinpgx_gene?.alternate_symbols?.length ? (
                     <p className="mt-2 type-meta text-muted-foreground">
                       Alternate symbols: {data.clinpgx_gene.alternate_symbols.join(", ")}
@@ -527,7 +489,7 @@ export function VariantDetail() {
 
                   {clinpgxPublic.data ? (
                     <div className="mt-3 space-y-3">
-                      <DetailMetricTable metrics={clinpgxApiSummary(clinpgxPublic.data)} dense />
+                      <DetailMetricTable metrics={clinpgxApiSummary(clinpgxPublic.data)} dense initialRows={10} />
                       {clinpgxPublic.data.response?.vip?.summary ? (
                         <div className="rounded-lg border border-border/70 bg-card/60 p-3">
                           <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">VIP summary</p>
@@ -539,6 +501,7 @@ export function VariantDetail() {
                           <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Guidelines</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "guidelines")}
+                            initialRows={10}
                             columns={clinpgxEvidenceColumns("annotation")}
                             empty="No guideline annotations returned by ClinPGx."
                           />
@@ -547,6 +510,7 @@ export function VariantDetail() {
                           <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Drug labels</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "labels")}
+                            initialRows={10}
                             columns={clinpgxEvidenceColumns("annotation")}
                             empty="No drug-label annotations returned by ClinPGx."
                           />
@@ -555,6 +519,7 @@ export function VariantDetail() {
                           <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Top connected drugs</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "top_chemicals")}
+                            initialRows={10}
                             columns={clinpgxEvidenceColumns("object")}
                             empty="No connected drugs returned by ClinPGx."
                           />
@@ -563,6 +528,7 @@ export function VariantDetail() {
                           <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Pathways</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "pathways")}
+                            initialRows={10}
                             columns={clinpgxEvidenceColumns("object")}
                             empty="No pathways returned by ClinPGx."
                           />
@@ -572,6 +538,7 @@ export function VariantDetail() {
                         <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Variant annotation examples</h5>
                         <DetailDataTable
                           rows={clinpgxEvidenceRows(clinpgxPublic.data, "variant_annotations")}
+                          initialRows={10}
                           columns={clinpgxEvidenceColumns("annotation")}
                           empty="No variant annotations returned by ClinPGx."
                         />
@@ -589,7 +556,8 @@ export function VariantDetail() {
                     </p>
                   ) : null}
                 </VariantKnowledgeBlock>
-              </div>
+                </KnowledgebaseGrid>
+              </KnowledgebaseExplorer>
             </DetailCard>
 
             <DetailCard title="Transcript Consequences">
@@ -614,7 +582,78 @@ export function VariantDetail() {
               onUpdate={() => refetch()}
             />
 
-            <ExternalLinksCard links={externalVariantLinks(variant, csq, data)} />
+            <DetailCard title="Sample Genotype" tone="success">
+              <div className="space-y-2">
+                {variant?.GT?.map((gt: any, i: number) => (
+                  <div
+                    key={i}
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg border border-border/70 bg-background/55 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <span className="detail-field-label">Genotype</span>
+                      <EvidenceBadge tone="info">{gt.type || "Unknown"}</EvidenceBadge>
+                    </div>
+                    <div className="text-right">
+                      <span className="detail-field-label">VAF</span>
+                      <span className="type-allele-frequency block">{percentValue(gt.AF, 1)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="detail-field-label">Alt / depth</span>
+                      <span className="type-body-sm font-semibold text-foreground">{displayValue(gt.VD)} / {displayValue(gt.DP)}</span>
+                    </div>
+                  </div>
+                ))}
+                {!variant?.GT?.length ? <p className="type-body-sm text-muted-foreground">No genotype data available.</p> : null}
+              </div>
+            </DetailCard>
+
+            <DetailCard title="Prediction and Clinical Signals">
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                    <span className="detail-field-label">CADD</span>
+                    <span className="type-body font-semibold text-foreground">{displayValue(csq.CADD_PHRED)}</span>
+                  </div>
+                  <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                    <span className="detail-field-label">ClinVar</span>
+                    <ExpandableText
+                      text={displayValue(clinicalSig(csq, variant))}
+                      maxLength={18}
+                      className="type-body-sm font-semibold text-foreground"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-background/50 p-2.5">
+                    <span className="detail-field-label">SIFT</span>
+                    <PredictionBadge value={csq.SIFT} />
+                  </div>
+                  <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-background/50 p-2.5">
+                    <span className="detail-field-label">PolyPhen</span>
+                    <PredictionBadge value={csq.PolyPhen} />
+                  </div>
+                </div>
+                <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                  <span className="detail-field-label">Called by</span>
+                  <div className="min-w-0 overflow-hidden"><CallerBadges value={callers} /></div>
+                </div>
+                <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                  <span className="detail-field-label">Transcript selected by</span>
+                  <ExpandableText
+                    text={displayValue(variant?.INFO?.selected_CSQ_criteria)}
+                    maxLength={32}
+                    className="type-body-sm text-foreground"
+                  />
+                </div>
+              </div>
+            </DetailCard>
+
+            <ExternalLinksCard
+              title="External Evidence and Identifiers"
+              links={externalVariantLinks(variant, csq, data)}
+            >
+              <VariantIdentifierLinks variant={variant} />
+            </ExternalLinksCard>
 
             <DetailCard title="Population Frequencies" tone="info">
               <DetailMetricTable
@@ -627,8 +666,6 @@ export function VariantDetail() {
                 dense
               />
             </DetailCard>
-
-            <VariantIdentifiersCard variant={variant} />
 
             <DetailCard title="Seen In Other Samples" tone="info">
               <DetailDataTable

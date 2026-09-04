@@ -9,7 +9,7 @@ import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle } from "lucide-react";
-import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
+import { AnalysisIntentBadge, ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
 import { findingBulkActionOptions } from "@/lib/finding-actions";
@@ -29,6 +29,8 @@ import { formatPopulationFrequency, hotspotExportValue } from "@/lib/variant-tab
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
 import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
+import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
+import { matchedKnowledgebaseGenes } from "@/lib/knowledgebase-markers";
 
 const variantClassShort: Record<string, string> = {
   SNV: "SNV",
@@ -106,6 +108,7 @@ export function VariantsTab({
   const oncokbGeneMap = data?.oncokb_gene_map || {};
   const oncokbActionableGeneMap = data?.oncokb_actionable_gene_map || {};
   const clinpgxGeneMap = data?.clinpgx_gene_map || {};
+  const cosmicCancerGeneMap = data?.cosmic_cancer_gene_map || {};
   const variantCount = Number(data?.meta?.count ?? variants.length);
   const hasNext = Boolean(data?.meta?.has_next);
   const hasPrevious = Boolean(data?.meta?.has_previous);
@@ -147,6 +150,7 @@ export function VariantsTab({
             hasOncoKbActionable={Boolean(oncokbActionableGeneMap?.[symbol])}
             hasClinPgxGene={Boolean(clinpgxGeneMap?.[symbol])}
             clinPgxRecord={clinpgxGeneMap?.[symbol]}
+            cosmicCancerGenes={matchedKnowledgebaseGenes([symbol], cosmicCancerGeneMap)}
           />
         );
       },
@@ -434,13 +438,10 @@ export function VariantsTab({
     {
       id: "actions",
       header: "",
-      meta: {
-        headerClassName: "w-10 min-w-10 max-w-10 pr-3",
-        cellClassName: "w-10 min-w-10 max-w-10 pr-3",
-      },
+      meta: DETAIL_NAVIGATION_COLUMN_META,
       cell: ({ row }) => {
         return (
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-center">
             <DetailNavigationButton
               to={`/samples/${sampleId}/variant/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}
@@ -454,7 +455,15 @@ export function VariantsTab({
   ];
 
   return (
-    <AnalysisTableCard header={header} filterPanel={filterPanel}>
+    <AnalysisTableCard
+      header={(
+        <div className="flex min-w-0 items-center gap-2">
+          {header}
+          <AnalysisIntentBadge intent={intent} />
+        </div>
+      )}
+      filterPanel={filterPanel}
+    >
       <DataTable
         columns={columns}
         data={variants || []}

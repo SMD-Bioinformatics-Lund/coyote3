@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { AlertTriangle, Image as ImageIcon, RotateCw } from "lucide-react";
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
+import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
 import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
@@ -19,7 +20,12 @@ import { gensSampleUrl } from "@/lib/external-links";
 import { ResizableSplitPane } from "@/components/layout/ResizableSplitPane";
 import { Button } from "@/components/ui/button";
 import { RotatableImage } from "@/components/detail/RotatableImage";
-import { ArtefactFrequencyBadges, CallerBadges, StatusBadges } from "@/lib/variant-ui";
+import {
+  ArtefactFrequencyBadges,
+  CallerBadges,
+  CopyNumberBadge,
+  StatusBadges,
+} from "@/lib/variant-ui";
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -28,6 +34,7 @@ import {
 import { AnalysisTableCard } from "./AnalysisTableCard";
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
 import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
+import { matchedKnowledgebaseGenes } from "@/lib/knowledgebase-markers";
 
 function cnvRatio(cnv: any): number | null {
   const raw = cnv?.ratio ?? cnv?.log2;
@@ -126,6 +133,7 @@ export function CNVTab({
   const cnvProfileName = sampleFileName(sample, "cnvprofile");
   const hasCnvImage = hasSampleFile(sample, "cnvprofile") && cnvProfileName;
   const gensUrl = gensSampleUrl(sample.name);
+  const cosmicCancerGeneMap = data?.cosmic_cancer_gene_map || {};
 
   const columns: ColumnDef<any, any>[] = [
     createRowSelectionColumn<any>(),
@@ -191,12 +199,9 @@ export function CNVTab({
         const copyNumber = cnvCopyNumber(cnv);
         if (ratio === null || copyNumber === null)
           return <span className="text-muted-foreground">-</span>;
-        const isGain = ratio > 0;
         return (
           <div className="flex items-center gap-2 leading-tight">
-            <span className={`type-table-value-emphasis ${isGain ? "text-fail" : "text-tier3"}`}>
-              {copyNumber.toFixed(2)}
-            </span>
+            <CopyNumberBadge value={ratio > 0 ? "gain" : "loss"} label={copyNumber.toFixed(2)} />
             <span className="type-table-value text-muted-foreground">({ratio.toFixed(2)})</span>
           </div>
         );
@@ -239,7 +244,15 @@ export function CNVTab({
             .filter(Boolean)
             .join(" | "),
       },
-      cell: ({ row }) => <StatusBadges finding={row.original} />,
+      cell: ({ row }) => (
+        <StatusBadges
+          finding={row.original}
+          cosmicCancerGenes={matchedKnowledgebaseGenes(
+            (row.original.genes || []).map((gene: any) => gene?.gene || gene?.name),
+            cosmicCancerGeneMap,
+          )}
+        />
+      ),
     },
     {
       id: "artefact",
@@ -251,13 +264,10 @@ export function CNVTab({
     {
       id: "actions",
       header: "",
-      meta: {
-        headerClassName: "w-10 min-w-10 max-w-10 pr-3",
-        cellClassName: "w-10 min-w-10 max-w-10 pr-3",
-      },
+      meta: DETAIL_NAVIGATION_COLUMN_META,
       cell: ({ row }) => {
         return (
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-center">
             <DetailNavigationButton
               to={`/samples/${sampleId}/cnv/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}

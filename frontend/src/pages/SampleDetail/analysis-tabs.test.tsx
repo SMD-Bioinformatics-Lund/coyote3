@@ -114,6 +114,7 @@ describe("sample analysis table tabs", () => {
           meta: { count: 201, page: 1, per_page: 50, has_next: true, has_previous: false },
           sample: { name: "S1", paired: false },
           assay_group: "solid",
+          cosmic_cancer_gene_map: { TP53: { tier: "1", role_in_cancer: "TSG" } },
         },
       })
     })
@@ -126,6 +127,7 @@ describe("sample analysis table tabs", () => {
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       rowLabel: "variants", totalCount: 201, hasNext: true, hasPrevious: false,
     }))
+    expect(screen.getByLabelText("COSMIC Cancer Gene Census: TP53")).toBeVisible()
   })
 
   it("keeps germline requests isolated with the germline intent", async () => {
@@ -142,8 +144,9 @@ describe("sample analysis table tabs", () => {
   it("renders CNV profile only when the sample declares the image resource", async () => {
     mocks.get.mockResolvedValue({
       data: {
-        cnvs: [{ _id: "C1", chr: "1", start: 10, end: 20, size: 10, ratio: 0, genes: [] }],
+        cnvs: [{ _id: "C1", chr: "1", start: 10, end: 20, size: 10, ratio: 0, genes: [{ gene: "TP53", class: true }] }],
         meta: { count: 1 },
+        cosmic_cancer_gene_map: { TP53: { tier: "1" } },
         sample: {
           name: "S3",
           files: { cnvprofile: { path: "/data/S3/profile.png" } },
@@ -155,6 +158,7 @@ describe("sample analysis table tabs", () => {
     expect(await screen.findByText("Table with 1 rows")).toBeVisible()
     expect(screen.getByText("CNV Profile")).toBeVisible()
     expect(screen.getByRole("img", { name: "CNV profile for S3" })).toBeVisible()
+    expect(screen.getByLabelText("COSMIC Cancer Gene Census: TP53")).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/samples/S3/cnvs?page=1&per_page=50")
   })
 
@@ -169,6 +173,7 @@ describe("sample analysis table tabs", () => {
     mocks.get.mockResolvedValue({ data: {
       fusions: [{ _id: "F1", genes: ["BCR", "ABL1"], callers: ["ARRIBA"] }],
       meta: { count: 71, page: 2, per_page: 50, has_next: false, has_previous: true },
+      cosmic_cancer_gene_map: { ABL1: { tier: "1" } },
     } })
     mount(<FusionsTab sampleId="RNA_1" />, "/samples/RNA_1?tab=fusions&fusion_page=2")
 
@@ -182,6 +187,7 @@ describe("sample analysis table tabs", () => {
       hasPrevious: true,
       filename: "fusions_RNA_1.csv",
     }))
+    expect(screen.getByLabelText("COSMIC Cancer Gene Census: ABL1")).toBeVisible()
   })
 
   it("supports both current and historical translocation response envelopes", async () => {
@@ -191,9 +197,11 @@ describe("sample analysis table tabs", () => {
           _id: "T1",
           CHROM: "11",
           POS: 100,
+          genes: ["KMT2A", "AFF1"],
           INFO: { MANE_ANN: { Consequence: "gene_fusion" } },
         }],
       },
+      cosmic_cancer_gene_map: { KMT2A: { tier: "1" }, AFF1: { tier: "1" } },
       meta: { count: 1, page: 1, per_page: 50 },
       vep_conseq_translations: {
         gene_fusion: {
@@ -215,6 +223,7 @@ describe("sample analysis table tabs", () => {
       rowLabel: "translocations",
       filename: "translocations_DNA_1.csv",
     }))
+    expect(screen.getByLabelText("COSMIC Cancer Gene Census: KMT2A, AFF1")).toBeVisible()
   })
 
   it.each([

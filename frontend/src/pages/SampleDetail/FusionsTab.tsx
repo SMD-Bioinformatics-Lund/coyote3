@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { AlertTriangle } from "lucide-react";
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
+import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
 import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
@@ -31,6 +32,7 @@ import {
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
 import { AnalysisTableCard } from "./AnalysisTableCard";
 import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
+import { matchedKnowledgebaseGenes } from "@/lib/knowledgebase-markers";
 
 export function FusionsTab({
   sampleId,
@@ -82,6 +84,7 @@ export function FusionsTab({
   const hasNext = Boolean(data?.meta?.has_next);
   const hasPrevious = Boolean(data?.meta?.has_previous);
   const assayGroup = String(data?.assay_group || "").trim();
+  const cosmicCancerGeneMap = data?.cosmic_cancer_gene_map || {};
 
   const columns: ColumnDef<any, any>[] = [
     createRowSelectionColumn<any>(),
@@ -98,7 +101,15 @@ export function FusionsTab({
       size: 72,
       minSize: 72,
       maxSize: 72,
-      cell: ({ row }) => <StatusBadges finding={row.original} />,
+      cell: ({ row }) => (
+        <StatusBadges
+          finding={row.original}
+          cosmicCancerGenes={matchedKnowledgebaseGenes(
+            fusionGenes(row.original),
+            cosmicCancerGeneMap,
+          )}
+        />
+      ),
     },
     {
       id: "gene1",
@@ -229,13 +240,10 @@ export function FusionsTab({
     {
       id: "actions",
       header: "",
-      meta: {
-        headerClassName: "w-10 min-w-10 max-w-10 pr-3",
-        cellClassName: "w-10 min-w-10 max-w-10 pr-3",
-      },
+      meta: DETAIL_NAVIGATION_COLUMN_META,
       cell: ({ row }) => {
         return (
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-center">
             <DetailNavigationButton
               to={`/samples/${sampleId}/fusion/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}

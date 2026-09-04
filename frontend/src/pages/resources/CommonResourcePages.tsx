@@ -11,6 +11,10 @@ import { omimEntryUrl } from "@/lib/external-links"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { clinGenGeneUrl, ensemblGeneSummaryUrl, geneCardsUrl, hgncReportUrl, ncbiGeneUrl } from "@/lib/external-links"
 import { localDate } from "@/lib/detail-formatters"
+import {
+  GeneKnowledgebaseSummary,
+  type GeneKnowledgebasePayload,
+} from "@/components/knowledgebase/GeneKnowledgebaseSummary"
 
 function columnsFor(rows: any[], preferred: string[] = []): ColumnDef<any, any>[] {
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row || {}))]
@@ -152,7 +156,7 @@ export function GeneInfoPage() {
   const { geneId = "" } = useParams()
   const { data, isLoading, error } = useQuery({
     queryKey: ["gene-info", geneId],
-    queryFn: () => api.get(`/common/gene/${geneId}/info`).then((res) => res.data),
+    queryFn: () => api.get(`/knowledgebases/gene/${geneId}`).then((res) => res.data),
     enabled: Boolean(geneId),
   })
 
@@ -254,6 +258,10 @@ export function GeneInfoPage() {
               </div>
             </section>
           </aside>
+
+          <div className="xl:col-span-2">
+            <GeneKnowledgebaseSummary payload={data as GeneKnowledgebasePayload} />
+          </div>
 
           <section className="surface-panel p-4">
             <SectionTitle icon={MapPinned}>Genomic Location</SectionTitle>

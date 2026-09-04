@@ -579,6 +579,18 @@
   --badge-production-border: #87aaa1;
   --badge-production-background: #e1eeea;
   --badge-production-foreground: #285e57;
+  --badge-cnv-gain-border: #c89a96;
+  --badge-cnv-gain-background: #f3e3e1;
+  --badge-cnv-gain-foreground: #823b3c;
+  --badge-cnv-loss-border: #90aabe;
+  --badge-cnv-loss-background: #e2ebf1;
+  --badge-cnv-loss-foreground: #365f7b;
+  --badge-somatic-border: #b596ae;
+  --badge-somatic-background: #f0e5ed;
+  --badge-somatic-foreground: #774766;
+  --badge-germline-border: #c7a36a;
+  --badge-germline-background: #f3ead9;
+  --badge-germline-foreground: #805d1e;
 
   /* General-purpose status surfaces. Domain colors remain separate. */
   --status-info: #4f7d9f;
@@ -730,6 +742,18 @@
   --badge-production-border: #47736b;
   --badge-production-background: #203834;
   --badge-production-foreground: #b3d7ce;
+  --badge-cnv-gain-border: #7d4d51;
+  --badge-cnv-gain-background: #3c2629;
+  --badge-cnv-gain-foreground: #e0aeb0;
+  --badge-cnv-loss-border: #416879;
+  --badge-cnv-loss-background: #203541;
+  --badge-cnv-loss-foreground: #a9cbe0;
+  --badge-somatic-border: #76566e;
+  --badge-somatic-background: #382b36;
+  --badge-somatic-foreground: #d8b6cf;
+  --badge-germline-border: #7c653a;
+  --badge-germline-background: #3d301e;
+  --badge-germline-foreground: #e2c78c;
 
   --status-info: #7fa6c4;
   --status-info-soft: #203541;

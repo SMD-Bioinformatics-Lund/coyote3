@@ -9,6 +9,8 @@ export const configuredValueClasses: Record<string, string> = {
   development: "badge-info",
   testing: "badge-neutral",
   validation: "badge-warning",
+  somatic: "badge-somatic",
+  germline: "badge-germline",
   hematology: "badge-danger",
   solid: "badge-warning",
   pgx: "badge-pgx",

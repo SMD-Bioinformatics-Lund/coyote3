@@ -149,6 +149,7 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | Panel portfolio | Active targeted-panel count, represented assay groups, accreditation count, and covered/germline gene assignments. |
 | Panel analysis capability | Active targeted-panel ASPCs grouped by analysis type, comparing configurations where the analysis is enabled with configurations where it is reportable. WGS and WTS are excluded. |
 | Resource health | Operational counts and configuration coverage that help identify stale or missing setup. |
+| Knowledgebase inventory | Active knowledgebase products, release identifiers, collection counts, and indexed record totals from the dedicated knowledgebase version catalog. |
 
 > **Info: Dashboard performance**
 >
@@ -580,6 +581,7 @@ variants, CNVs, fusions, and translocations without replacing the tiered search.
 | Sex distribution | Prevalence grouped by the sample-level `sex` value. Missing values remain visible as **Not recorded**. |
 | Recurrent findings | Distinct nomenclature-aware identities ordered by affected sample count. |
 | Samples | Linked sample workspaces, assay context, sex, tiers, finding types, and reported finding labels. |
+| Knowledgebase context | Available gene-level sources, Cancer Gene Census role and tier, somatic/germline scope, mutation types, and curated COSMIC hallmarks. |
 
 Each cohort plot can be downloaded as PNG or SVG for presentation and review,
 or as CSV for independent inspection of the plotted values. Export filenames
@@ -650,9 +652,11 @@ configuration, comments, and findings are available for clinical review. The
 global page cannot preview or create a new report.
 
 The library is newest first, paginated, searchable, and restricted by the
-current user's assay and environment access. Each row identifies the report,
-sample, assay context, author, creation time, and finding counts grouped by
-analysis type. Selecting a row opens the saved report together with the
+current user's assay and environment access. Each row identifies the report
+number, linked sample, assay context, author, creation time, and finding counts
+grouped by analysis type. The source filename is secondary metadata under the
+report number and is truncated so long generated names do not displace clinical
+columns. Selecting a row opens the saved report together with the
 immutable `reported_variants` rows captured when that report was created.
 These rows can contain SNVs, CNVs, fusions, and translocations according to the
 report snapshot. The rendered HTML and downloadable artifact come from the
