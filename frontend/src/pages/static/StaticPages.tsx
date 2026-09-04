@@ -1,12 +1,15 @@
 import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import type { ReactNode } from "react"
 import type { LucideIcon } from "lucide-react"
-import { BookOpen, Bug, Building2, Database, ExternalLink, FileText, GitBranch, Home, LifeBuoy, Lightbulb, Mail, MapPin, MessageSquareWarning, Phone, Workflow } from "lucide-react"
+import { BookOpen, Bug, Building2, Clock3, Database, ExternalLink, FileText, GitBranch, Home, LifeBuoy, Lightbulb, Mail, MapPin, MessageSquareWarning, Phone, Workflow } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { api } from "@/lib/api"
 import { appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
+import { KnowledgebaseStatus } from "@/components/knowledgebase/KnowledgebaseStatus"
+import { databaseLogo } from "@/lib/database-logos"
 
 export function ContactPage() {
   const { data, isLoading } = useQuery({
@@ -28,47 +31,54 @@ export function ContactPage() {
       title="Contact and Support"
       description={`Support channels, service hours, and public resources for ${orgName}.`}
     >
-      <section className="space-y-4">
+      <section className="space-y-3">
         {isLoading ? (
           <AppLoader label="Loading contact information" />
         ) : null}
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
-          <section className="content-section flex items-start gap-3 p-4">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary"><LifeBuoy className="h-5 w-5" /></div>
-            <div>
-              <h2 className="text-base font-semibold">Choose the appropriate support channel</h2>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Contact the clinical team for interpretation and report questions, the sample team for incoming material and sequencing, or platform support for access and operational incidents.
-              </p>
-            </div>
-          </section>
-          <HoursCard hours={hours} />
-        </div>
+        <ContentSection
+          icon={LifeBuoy}
+          title="Support channels"
+          description="Choose the clinical, sample, or platform channel that matches the request."
+          aside={<HoursSummary hours={hours} />}
+          tone="primary"
+          bodyClassName="flex flex-wrap gap-3 p-3"
+        >
+            {contacts.length ? contacts.map((contact, index) => (
+              <ContactCard key={`${contact.label}-${index}`} contact={contact} tone={STATIC_TONES[index % STATIC_TONES.length]} />
+            )) : (
+              <div className="min-w-full flex-1 rounded-lg border border-dashed border-border bg-muted/25 p-4 type-body-sm text-muted-foreground">No contact channels are configured yet.</div>
+            )}
+        </ContentSection>
 
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.45fr)]">
-          <section className="content-section p-4">
-            <SectionHeading icon={Mail} title="Support channels" />
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {contacts.length ? contacts.map((contact, index) => (
-                <ContactCard key={`${contact.label}-${index}`} contact={contact} />
-              )) : (
-                <p className="text-sm text-muted-foreground">No contact channels are configured yet.</p>
-              )}
-            </div>
-          </section>
-
-          <aside className="space-y-3">
+        <ContentSection
+          icon={Building2}
+          title="Center and service details"
+          description="Deployment ownership, central contacts, location, and related resources."
+          tone="info"
+          bodyClassName="flex flex-wrap gap-3 p-3"
+        >
             <OrganizationCard organization={organization} fallbackName={orgName} />
             <SupportCard support={support} />
             <AddressCard organization={organization} />
             <UsefulLinksCard links={links} />
-            <Link to="/about" className="content-section flex items-center gap-2 p-4 text-sm font-semibold text-link hover:bg-muted">
-              <Building2 className="h-4 w-4" />
-              About Coyote3 and this deployment
+            <Link
+              to="/about"
+              className="static-info-card flex min-w-full flex-1 flex-col justify-between gap-3 p-4 md:min-w-80 md:basis-96"
+              data-static-tone="primary"
+            >
+              <div>
+                <DetailHeading icon={Building2} title="Application and deployment" />
+                <p className="mt-2 type-body-sm text-muted-foreground">
+                  Review application, reference database, pipeline, and knowledgebase versions.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-2 type-body-sm font-semibold text-link">
+                Open deployment details
+                <ExternalLink className="size-4" />
+              </span>
             </Link>
-          </aside>
-        </div>
+        </ContentSection>
       </section>
     </PageShell>
   )
@@ -99,94 +109,84 @@ export function AboutPage() {
       eyebrow="About"
       title="Coyote3"
       description={`Application, reference, version, and support information for ${orgName}.`}
+      actions={
+        <>
+          <Link to="/public/catalog" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2 type-body-sm">
+            <Home className="size-4" />
+            Catalog
+          </Link>
+          <Link to="/contact" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2 type-body-sm">
+            <LifeBuoy className="size-4" />
+            Contact
+          </Link>
+          {codebase.license_url ? (
+            <a href={codebase.license_url} target="_blank" rel="noreferrer" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2 type-body-sm">
+              <ExternalLink className="size-4" />
+              License
+            </a>
+          ) : null}
+        </>
+      }
     >
-      <section className="space-y-4">
-        <section className="content-section mb-5 flex flex-wrap items-start justify-between gap-4 p-5">
-          <div className="flex max-w-3xl items-start gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary"><Workflow className="h-5 w-5" /></div>
-            <div>
-              <h2 className="text-lg font-semibold">Clinical interpretation and reporting workspace</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {application.description || "Coyote3 brings assay-aware review, variant interpretation, knowledgebase context, and traceable report generation into one application."}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-              <Home className="h-4 w-4" />
-              Catalog
-            </Link>
-            <Link to="/contact" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-              <LifeBuoy className="h-4 w-4" />
-              Contact
-            </Link>
-            {codebase.license_url ? (
-              <a
-                href={codebase.license_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
-              >
-                <ExternalLink className="h-4 w-4" />
-                License
-              </a>
-            ) : null}
-          </div>
-        </section>
-
+      <section className="space-y-3">
         {isLoading ? (
           <AppLoader label="Loading application information" />
         ) : null}
 
-        <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <InfoCard icon={GitBranch} label="Application Version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined} />
-          <InfoCard icon={Database} label="Primary Database" value={databases.primary || "-"} hint={databases.bam_service ? `BAM service: ${databases.bam_service}` : undefined} />
-          <InfoCard icon={FileText} label="VEP Metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
-          <InfoCard icon={Building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote3 deployment"} />
-        </div>
+        <ContentSection
+          icon={Workflow}
+          title="Clinical interpretation and reporting workspace"
+          description={application.description || "Coyote3 brings assay-aware review, variant interpretation, knowledgebase context, and traceable report generation into one application."}
+          tone="primary"
+          bodyClassName="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <InfoCard tone="primary" icon={GitBranch} label="Application version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined} />
+          <InfoCard tone="info" icon={Database} label="Primary database" value={databases.primary || "-"} hint={databases.bam_service ? `BAM service: ${databases.bam_service}` : undefined} />
+          <InfoCard tone="success" icon={FileText} label="VEP metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
+          <InfoCard tone="warning" icon={Building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote3 deployment"} />
+        </ContentSection>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-          <div className="space-y-4">
-            <section className="content-section p-4">
-              <SectionHeading icon={Database} title="Reference and software versions" />
-              <div className="grid gap-3 md:grid-cols-2">
-                <VersionBlock title="Analysis Pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
-                <VersionBlock title="Sample Reference Databases" values={sampleReferenceVersions} empty="No sample database versions recorded yet." />
-                <VersionBlock title="VEP Metadata Versions" values={{ vep_metadata: references.vep_metadata || [] }} empty="No VEP metadata versions recorded yet." />
-                <div className="md:col-span-2">
-                  <VersionBlock title="External Knowledgebases" values={databases.knowledgebases || {}} empty="No external knowledgebase endpoints configured." />
-                </div>
-              </div>
-            </section>
+        <ContentSection
+          icon={Database}
+          title="Reference and software versions"
+          description="Versions observed in loaded samples and configured external services."
+          tone="info"
+          bodyClassName="grid gap-3 p-3 xl:grid-cols-4"
+        >
+            <VersionBlock icon={GitBranch} tone="primary" className="xl:col-span-2" title="Analysis pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
+            <VersionBlock icon={Database} showDatabaseLogos tone="info" className="xl:col-span-2" title="Sample reference databases" values={sampleReferenceVersions} empty="No sample database versions recorded yet." />
+            <VersionBlock icon={FileText} tone="success" title="VEP metadata versions" values={{ vep_metadata: references.vep_metadata || [] }} empty="No VEP metadata versions recorded yet." />
+            <VersionBlock icon={ExternalLink} showDatabaseLogos tone="warning" className="xl:col-span-3" title="External knowledgebases" values={databases.knowledgebases || {}} empty="No external knowledgebase endpoints configured." />
+        </ContentSection>
 
-          </div>
+        <ContentSection
+          icon={Database}
+          title="Installed knowledgebase releases"
+          description="Locally indexed products and configured external services."
+          tone="success"
+          bodyClassName=""
+        >
+          <KnowledgebaseStatus payload={data?.knowledgebase_status} />
+        </ContentSection>
 
-          <aside className="space-y-3">
-            {aboutLinks.length ? (
-              <section className="content-section p-4">
-                <SectionHeading icon={ExternalLink} title="Useful links" />
-                <div className="space-y-2">
-                  {aboutLinks.map((link) => (
-                    <ResourceLink key={`${link.label}-${link.url}`} link={link} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-            <section className="content-section p-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-primary/10 p-2 text-primary"><LifeBuoy className="h-4 w-4" /></div>
-                <div>
-                  <h3 className="text-sm font-semibold">Need help?</h3>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Support contacts, service hours, and escalation information are maintained on the Contact page.</p>
-                  <Link to="/contact" className="link-text mt-2 inline-flex items-center gap-2 text-sm font-semibold">
-                    Open contact and support
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-            </section>
-          </aside>
-        </div>
+        <ContentSection
+          icon={ExternalLink}
+          title="Resources and support"
+          description="Documentation, source, licensing, and service contacts."
+          tone="warning"
+          bodyClassName="flex flex-wrap gap-3 p-3"
+        >
+            {aboutLinks.map((link) => (
+              <ResourceLink key={`${link.label}-${link.url}`} link={link} />
+            ))}
+            <Link to="/contact" className="static-info-card flex min-w-full flex-1 items-start gap-2 p-4 type-body-sm text-link sm:min-w-80 sm:basis-96" data-static-tone="primary">
+              <LifeBuoy className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>
+                Contact and support
+                <span className="block type-caption text-muted-foreground">Service hours, support channels, and escalation details.</span>
+              </span>
+            </Link>
+        </ContentSection>
       </section>
     </PageShell>
   )
@@ -217,18 +217,22 @@ type PublicAboutPayload = PublicContactPayload & {
   software: Record<string, any>
   databases: Record<string, any>
   software_links?: LinkLike[]
+  knowledgebase_status?: import("@/components/knowledgebase/KnowledgebaseStatus").KnowledgebaseStatusPayload
 }
 
 type LinkLike = Record<string, string>
+type StaticTone = "primary" | "info" | "success" | "warning"
 
-function ContactCard({ contact }: { contact: ContactChannel }) {
+const STATIC_TONES: StaticTone[] = ["primary", "info", "success", "warning"]
+
+function ContactCard({ contact, tone }: { contact: ContactChannel; tone: StaticTone }) {
   const people = contact.people || (contact.email ? [{ email: contact.email }] : [])
   return (
-    <article className="content-item p-4">
-      <p className="text-sm font-semibold text-foreground">{contact.label}</p>
-      {contact.role ? <p className="mt-1 text-xs font-medium text-muted-foreground">{contact.role}</p> : null}
-      {contact.description ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{contact.description}</p> : null}
-      <div className="mt-4 space-y-2 text-sm">
+    <article className="static-info-card min-w-full flex-1 p-4 sm:min-w-80 sm:basis-96" data-static-tone={tone}>
+      {contact.role ? <p className="type-page-eyebrow text-primary">{contact.role}</p> : null}
+      <p className="type-card-title mt-0.5 text-foreground">{contact.label}</p>
+      {contact.description ? <p className="type-body-sm mt-1.5 text-muted-foreground">{contact.description}</p> : null}
+      <div className="mt-3 space-y-1.5 type-body-sm">
         {people.map((person) => (
           <a key={person.email} className="link-text flex items-start gap-2 font-semibold" href={`mailto:${person.email}`}>
             <Mail className="mt-0.5 h-4 w-4 shrink-0" />
@@ -249,9 +253,9 @@ function ContactCard({ contact }: { contact: ContactChannel }) {
 function SupportCard({ support }: { support: Record<string, string> }) {
   if (!support.primary_email && !support.urgent_phone) return null
   return (
-    <div className="content-section p-4">
-      <p className="text-sm font-semibold">Central support</p>
-      <div className="mt-3 space-y-2 text-sm">
+    <div className="static-info-card min-w-full flex-1 p-4 md:min-w-80 md:basis-96" data-static-tone="success">
+      <DetailHeading icon={LifeBuoy} title="Central support" />
+      <div className="mt-2 space-y-1.5 type-body-sm">
         {support.primary_email ? (
           <a className="link-text flex items-center gap-2 font-semibold" href={`mailto:${support.primary_email}`}>
             <Mail className="h-4 w-4" />
@@ -271,41 +275,36 @@ function SupportCard({ support }: { support: Record<string, string> }) {
 
 function OrganizationCard({ organization, fallbackName }: { organization: Record<string, string>; fallbackName: string }) {
   return (
-    <section className="content-section p-4">
-      <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-primary/10 p-2 text-primary"><Building2 className="h-4 w-4" /></div>
-        <div>
-          <h3 className="text-sm font-semibold">{fallbackName}</h3>
-          {organization.department ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{organization.department}</p> : null}
-          {organization.description ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{organization.description}</p> : null}
-        </div>
-      </div>
+    <section className="static-info-card min-w-full flex-1 p-4 md:min-w-80 md:basis-96" data-static-tone="primary">
+      <DetailHeading icon={Building2} title={fallbackName} />
+      {organization.department ? <p className="type-label mt-2 uppercase text-muted-foreground">{organization.department}</p> : null}
+      {organization.description ? <p className="type-body-sm mt-2 text-muted-foreground">{organization.description}</p> : null}
     </section>
   )
 }
 
-function HoursCard({ hours }: { hours: Array<Record<string, string>> }) {
+function HoursSummary({ hours }: { hours: Array<Record<string, string>> }) {
   if (!hours.length) return null
   return (
-    <div className="content-section p-4">
-      <SectionHeading icon={Workflow} title="Service hours" />
-      <dl className="mt-3 space-y-2 text-sm">
+    <dl className="flex flex-wrap gap-2 lg:justify-end">
         {hours.map((item) => (
-          <div key={`${item.label}-${item.value}`} className="grid grid-cols-[110px_1fr] gap-3">
-            <dt className="font-semibold text-muted-foreground">{item.label}</dt>
-            <dd>{item.value}</dd>
+          <div key={`${item.label}-${item.value}`} className="flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
+            <Clock3 className="size-4 shrink-0 text-primary" />
+            <div>
+              <dt className="type-label text-muted-foreground">{item.label}</dt>
+              <dd className="type-meta text-foreground">{item.value}</dd>
+            </div>
           </div>
         ))}
-      </dl>
-    </div>
+    </dl>
   )
 }
 
 function AddressCard({ organization }: { organization: Record<string, string> }) {
   if (!organization.address) return null
   return (
-    <div className="content-section p-4 text-sm">
-      <SectionHeading icon={MapPin} title="Address" />
+    <div className="static-info-card min-w-full flex-1 p-4 type-body-sm md:min-w-80 md:basis-96" data-static-tone="warning">
+      <DetailHeading icon={MapPin} title="Address" />
       <p className="mt-2 whitespace-pre-line text-muted-foreground">{organization.address}</p>
     </div>
   )
@@ -314,16 +313,16 @@ function AddressCard({ organization }: { organization: Record<string, string> })
 function UsefulLinksCard({ links }: { links: LinkLike[] }) {
   if (!links.length) return null
   return (
-    <div className="content-section p-4">
-      <SectionHeading icon={ExternalLink} title="Useful links" />
-      <div className="mt-3 space-y-2">
-        {links.map((link) => <ResourceLink key={`${link.label}-${link.url}`} link={link} />)}
+    <div className="static-info-card min-w-full flex-1 p-4 md:min-w-80 md:basis-96" data-static-tone="info">
+      <DetailHeading icon={ExternalLink} title="Useful links" />
+      <div className="mt-1">
+        {links.map((link) => <ResourceLink key={`${link.label}-${link.url}`} link={link} embedded />)}
       </div>
     </div>
   )
 }
 
-function ResourceLink({ link }: { link: LinkLike }) {
+function ResourceLink({ link, embedded = false }: { link: LinkLike; embedded?: boolean }) {
   const Icon =
     link.icon === "bug" ? Bug :
     link.icon === "feature" ? Lightbulb :
@@ -336,7 +335,10 @@ function ResourceLink({ link }: { link: LinkLike }) {
       href={publicHref(link.url)}
       target={isExternalHref(link.url) ? "_blank" : undefined}
       rel={isExternalHref(link.url) ? "noreferrer" : undefined}
-      className="content-item flex items-start gap-2 px-3 py-2 text-sm font-semibold hover:bg-muted"
+      className={embedded
+        ? "flex items-start gap-2 border-b border-border/70 px-1 py-2 type-body-sm last:border-b-0 hover:text-link"
+        : "static-info-card flex min-w-full flex-1 basis-96 items-start gap-2 p-4 type-body-sm sm:min-w-80"}
+      data-static-tone={embedded ? undefined : "info"}
     >
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
       <span>
@@ -347,39 +349,48 @@ function ResourceLink({ link }: { link: LinkLike }) {
   )
 }
 
-function InfoCard({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
+function InfoCard({ icon: Icon, label, value, hint, tone }: { icon: any; label: string; value: string; hint?: string; tone: StaticTone }) {
   return (
-    <article className="content-item p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+    <article className="static-metric flex min-w-0 items-start gap-3 bg-card p-4" data-static-tone={tone}>
+      <div className="static-icon flex size-8 shrink-0 items-center justify-center rounded-lg"><Icon className="size-4" /></div>
+      <div className="min-w-0">
+        <p className="type-label text-muted-foreground">{label}</p>
+        <p className="type-body-sm mt-0.5 break-words text-foreground">{value}</p>
+        {hint ? <p className="type-caption mt-0.5 break-words text-muted-foreground">{hint}</p> : null}
       </div>
-      <p className="break-words text-sm font-semibold text-foreground">{value}</p>
-      {hint ? <p className="mt-1 break-words text-xs text-muted-foreground">{hint}</p> : null}
     </article>
   )
 }
 
-function VersionBlock({ title, values, empty }: { title: string; values: any; empty: string }) {
+function VersionBlock({ icon: Icon, title, values, empty, tone, showDatabaseLogos = false, className = "" }: { icon: LucideIcon; title: string; values: any; empty: string; tone: StaticTone; showDatabaseLogos?: boolean; className?: string }) {
   const entries = Object.entries(values || {}).filter(([, value]) => {
     if (Array.isArray(value)) return value.length > 0
     return value !== undefined && value !== null && String(value).trim() !== ""
   })
   return (
-    <div className="content-item p-3">
-      <p className="mb-2 text-sm font-semibold text-foreground">{title}</p>
+    <div className={`static-info-card p-4 ${className}`} data-static-tone={tone}>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="static-icon flex size-7 shrink-0 items-center justify-center rounded-md">
+          <Icon className="size-3.5" />
+        </span>
+        <p className="type-card-title text-foreground">{title}</p>
+      </div>
       {entries.length ? (
-        <dl className="space-y-2 text-sm">
-          {entries.map(([key, value]) => (
-            <div key={key} className="grid grid-cols-[minmax(110px,0.42fr)_minmax(0,1fr)] gap-3">
-              <dt className="break-words font-semibold text-muted-foreground">{humanLabel(key)}</dt>
-              <dd className="flex flex-wrap gap-1.5">
-                {Array.isArray(value) ? value.map((item) => (
-                  <span key={`${key}-${item}`} className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">{String(item)}</span>
-                )) : <span className="break-words font-semibold text-foreground">{String(value)}</span>}
-              </dd>
-            </div>
-          ))}
+        <dl className="flex flex-wrap gap-2">
+          {entries.map(([key, value]) => {
+            const logo = showDatabaseLogos ? databaseLogo(key) : undefined
+            return (
+              <div key={key} className="flex min-w-36 max-w-full items-center gap-2 rounded-md bg-muted/60 px-2 py-1.5">
+                {logo ? <img src={appPath(logo.src)} alt={logo.alt} className="max-h-5 w-12 shrink-0 object-contain" /> : null}
+                <dt className="type-label shrink-0 text-muted-foreground">{humanLabel(key)}</dt>
+                <dd className="flex min-w-0 flex-wrap gap-1">
+                  {Array.isArray(value) ? value.map((item) => (
+                    <span key={`${key}-${item}`} className="rounded-full border border-border bg-background px-2 py-0.5 type-label text-foreground">{String(item)}</span>
+                  )) : <span className="break-all type-meta text-foreground">{String(value)}</span>}
+                </dd>
+              </div>
+            )
+          })}
         </dl>
       ) : (
         <p className="text-sm text-muted-foreground">{empty}</p>
@@ -392,13 +403,47 @@ function humanLabel(value: string) {
   return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-function SectionHeading({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+function ContentSection({
+  icon: Icon,
+  title,
+  description,
+  tone,
+  aside,
+  bodyClassName = "p-4",
+  children,
+}: {
+  icon: LucideIcon
+  title: string
+  description?: string
+  tone: StaticTone
+  aside?: ReactNode
+  bodyClassName?: string
+  children: ReactNode
+}) {
   return (
-    <div className="mb-3 flex items-center gap-2 border-b border-border/70 pb-2">
-      <span className="rounded-md bg-primary/10 p-1.5 text-primary">
-        <Icon className="h-4 w-4" />
-      </span>
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+    <section className="static-page-section overflow-hidden" data-static-tone={tone}>
+      <header className="static-page-section-header flex flex-col gap-3 border-b border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="static-icon mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md">
+            <Icon className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="type-card-title text-foreground">{title}</h2>
+            {description ? <p className="mt-0.5 type-body-sm text-muted-foreground">{description}</p> : null}
+          </div>
+        </div>
+        {aside}
+      </header>
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  )
+}
+
+function DetailHeading({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className="size-4 shrink-0 text-primary" />
+      <h3 className="type-card-title text-foreground">{title}</h3>
     </div>
   )
 }
