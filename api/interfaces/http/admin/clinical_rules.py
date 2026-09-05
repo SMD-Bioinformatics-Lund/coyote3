@@ -173,6 +173,16 @@ def update_rule_set_draft(
     return _serializable(service.update_draft(document_id, payload, actor=user.username))
 
 
+@router.delete("/drafts/{document_id}", status_code=204)
+def delete_rule_set_draft(
+    document_id: str,
+    revision: int = Query(ge=1),
+    user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
+    service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
+):
+    service.delete_draft(document_id, expected_revision=revision, actor=user.username)
+
+
 @router.post("/drafts/{document_id}/validate", response_model=ClinicalRuleValidationResult)
 def validate_rule_set_draft(
     document_id: str,

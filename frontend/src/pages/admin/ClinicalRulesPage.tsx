@@ -26,6 +26,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
@@ -372,6 +373,7 @@ function RuleEditor({ rule, block, facts, change }: { rule: ClinicalRule; block:
         <label className="type-label">Clinical rule name<Input className="mt-1" value={rule.name} onChange={(event) => change({ ...rule, name: event.target.value })} /></label>
         <label className="type-label">Rule identifier<Input className="mt-1" value={rule.rule_id} onChange={(event) => change({ ...rule, rule_id: event.target.value })} /></label>
       </div>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rule.enabled} onChange={(event) => change({ ...rule, enabled: event.target.checked })} /> Include this rule in generated report text</label>
       <section><h3 className="type-section-title mb-2">When this text applies</h3>{rule.condition ? <ConditionBuilder value={rule.condition} facts={scopedFacts} allFacts={facts} onChange={(condition) => change({ ...rule, condition })} onRemove={() => change({ ...rule, condition: null })} /> : <Button type="button" variant="outline" onClick={() => change({ ...rule, condition: newPredicate(scopedFacts) })}><Plus /> Add condition</Button>}</section>
       <section><h3 className="type-section-title mb-2">Report text</h3><OutputEditor nodes={rule.output} facts={scopedFacts} onChange={(output) => change({ ...rule, output })} /></section>
       <label className="type-label block">Clinical rationale<textarea className="paper-inset mt-1 min-h-20 w-full rounded-lg p-2 text-sm" value={rule.rationale || ""} onChange={(event) => change({ ...rule, rationale: event.target.value || null })} /></label>
@@ -399,6 +401,7 @@ export function ClinicalRulesPage() {
   const [previewWidth, setPreviewWidth] = useState(() => storedWidth("clinical-rules-width:Resize text preview", 380))
   const [historyOpen, setHistoryOpen] = useState(false)
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null)
+  const [deleteDraftOpen, setDeleteDraftOpen] = useState(false)
   const editGeneration = useRef(0)
 
   const listQuery = useQuery({ queryKey: ["clinical-rule-sets", search, status], queryFn: () => api.get<{ items: ClinicalRuleSet[] }>(`/admin/clinical-rule-sets?q=${encodeURIComponent(search)}${status ? `&status=${status}` : ""}`).then((response) => response.data) })
@@ -466,8 +469,24 @@ export function ClinicalRulesPage() {
   }
 
   const actionMutation = useMutation({ mutationFn: ({ path, body = {} }: { path: string; body?: Record<string, unknown> }) => api.post<ClinicalRuleSet>(path, body).then((response) => response.data), onSuccess: (document) => { setSelectedId(document._id); setDraft(clone(document)); setDirty(false); setCreating(false); queryClient.invalidateQueries({ queryKey: ["clinical-rule-sets"] }); queryClient.invalidateQueries({ queryKey: ["clinical-rule-revisions", document._id] }) } })
+  const deleteDraftMutation = useMutation({
+    mutationFn: ({ documentId, revision }: { documentId: string; revision: number }) => api.delete(`/admin/clinical-rule-sets/drafts/${documentId}?revision=${revision}`),
+    onSuccess: (_, { documentId }) => {
+      setDeleteDraftOpen(false)
+      setSelectedId(null)
+      setDraft(null)
+      setDirty(false)
+      setHistoryOpen(false)
+      queryClient.invalidateQueries({ queryKey: ["clinical-rule-sets"] })
+      queryClient.removeQueries({ queryKey: ["clinical-rule-set", documentId] })
+      queryClient.removeQueries({ queryKey: ["clinical-rule-revisions", documentId] })
+    },
+  })
   const createRevision = () => draft && actionMutation.mutate({ path: "/admin/clinical-rule-sets/drafts", body: { source_version_id: draft._id } })
   const createRuleSet = () => actionMutation.mutate({ path: "/admin/clinical-rule-sets/drafts", body: { scope: { asp_id: newScope.asp_id.trim(), subpanel_id: newScope.subpanel_id.trim(), analyte: newScope.analyte, language: newScope.language.trim() }, name: newScope.name.trim() } })
+  const deleteDraft = () => {
+    if (draft) deleteDraftMutation.mutate({ documentId: draft._id, revision: draft.revision })
+  }
   const lifecycleAction = (action: string, body: Record<string, unknown> = { reason: draft?.change_summary || "Workflow transition" }) => draft && actionMutation.mutate({ path: `/admin/clinical-rule-sets/drafts/${draft._id}/${action}`, body })
   const retireRuleSet = () => draft && actionMutation.mutate({ path: `/admin/clinical-rule-sets/versions/${draft._id}/retire`, body: { reason: draft.change_summary || "Clinical rule set retired" } })
 
@@ -508,7 +527,7 @@ export function ClinicalRulesPage() {
           {!draft ? <div className="grid h-full place-items-center p-8 text-sm text-muted-foreground">Select a rule set to inspect or edit.</div> : <>
             <div className="border-b border-border bg-muted/35 p-3">
               <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 flex-1">{draft.status === "draft" ? <Input aria-label="Rule-set name" className="max-w-xl font-semibold" value={draft.name} onChange={(event) => mutateDraft((document) => { document.name = event.target.value })} /> : <h2 className="font-semibold">{draft.name}</h2>}<p className="mt-1 text-xs text-muted-foreground">{draft.rule_set_id} · version {draft.content_version} · revision {draft.revision}</p></div><ClinicalRuleStatusBadge status={draft.status} /></div>
-              {draft.status === "draft" && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!workflowReady} onClick={() => validationQuery.refetch()}><FileCheck2 /> Validate</Button>{can("clinical_rules:submit") && <Button size="sm" disabled={!workflowReady} onClick={() => lifecycleAction("submit")}><Send /> Submit</Button>}</div>}
+              {draft.status === "draft" && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!workflowReady} onClick={() => validationQuery.refetch()}><FileCheck2 /> Validate</Button>{can("clinical_rules:submit") && <Button size="sm" disabled={!workflowReady} onClick={() => lifecycleAction("submit")}><Send /> Submit</Button>}<Button size="sm" variant="destructive" disabled={!workflowReady || deleteDraftMutation.isPending} onClick={() => setDeleteDraftOpen(true)}><Trash2 /> Delete draft</Button></div>}
               {draft.status === "submitted" && can("clinical_rules:clinical_review") && <Button className="mt-3" size="sm" disabled={!workflowReady} onClick={() => lifecycleAction("start-clinical-review")}><ShieldCheck /> Start review</Button>}
               {draft.status === "in_clinical_review" && can("clinical_rules:clinical_review") && <div className="mt-3 flex gap-2"><Button size="sm" disabled={!workflowReady} onClick={() => lifecycleAction("clinical-review", { approve: true, reason: draft.change_summary || "Clinical content approved" })}><Check /> Approve</Button><Button size="sm" variant="outline" disabled={!workflowReady} onClick={() => lifecycleAction("clinical-review", { approve: false, reason: draft.change_summary || "Clinical changes required" })}>Reject</Button></div>}
               {draft.status === "approved" && can("clinical_rules:publish") && <Button className="mt-3" size="sm" onClick={() => lifecycleAction("publish")}><FileCheck2 /> Publish</Button>}
@@ -537,7 +556,7 @@ export function ClinicalRulesPage() {
                   {draft.status === "draft" && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={block.show_heading} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].show_heading = event.target.checked })} /> Show section heading</label>}
                   <div className="flex gap-2 overflow-x-auto">{block.rules.map((item, index) => <div key={item.rule_id} className={cn("flex shrink-0 items-center rounded-md", selectedRule === index ? "bg-primary text-primary-foreground" : "bg-muted")}><button type="button" className="px-3 py-1.5 text-sm" onClick={() => setSelectedRule(index)}>{item.name}</button>{draft.status === "draft" && block.rules.length > 1 && <Button type="button" variant="ghost" size="icon-sm" title="Remove rule" onClick={() => mutateDraft((document) => { document.blocks[selectedBlock].rules.splice(index, 1); setSelectedRule(Math.max(0, Math.min(selectedRule, document.blocks[selectedBlock].rules.length - 1))) })}><Trash2 /></Button>}</div>)}{draft.status === "draft" && <Button className="shrink-0" variant="outline" size="sm" onClick={() => mutateDraft((document) => { const currentBlock = document.blocks[selectedBlock]; const allRuleIds = document.blocks.flatMap((item) => item.rules.map((itemRule) => itemRule.rule_id)); currentBlock.rules.push(newRule(currentBlock, allRuleIds)); setSelectedRule(currentBlock.rules.length - 1) })}><Plus /> Add rule</Button>}</div>
                 </div>}
-                {rule && block ? <RuleEditor rule={rule} block={block} facts={facts} change={(next) => mutateDraft((document) => { document.blocks[selectedBlock].rules[selectedRule] = next })} /> : <div className="p-8 text-sm text-muted-foreground">This rule set does not have an authored section yet.</div>}
+                {rule && block ? <RuleEditor rule={rule} block={block} facts={facts} change={(next) => mutateDraft((document) => { document.blocks[selectedBlock].rules[selectedRule] = next })} /> : <div className="grid min-h-72 place-items-center p-8 text-center"><div><p className="text-sm text-muted-foreground">This rule set does not have an authored section yet.</p>{draft.status === "draft" && <Button className="mt-3" variant="outline" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add first section</Button>}</div></div>}
               </div>
             </div>
           </>}
@@ -567,6 +586,7 @@ export function ClinicalRulesPage() {
           </section>}
         </aside>
       </div>
+      <ConfirmationDialog open={deleteDraftOpen} title="Delete draft?" description="This permanently removes the editable draft and its draft revision history. Published rule-set versions cannot be deleted." confirmLabel="Delete draft" isPending={deleteDraftMutation.isPending} onConfirm={deleteDraft} onCancel={() => setDeleteDraftOpen(false)} />
     </PageShell>
   )
 }

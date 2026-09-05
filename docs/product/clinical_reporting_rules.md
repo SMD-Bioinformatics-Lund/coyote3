@@ -137,7 +137,12 @@ snapshots detectable during an integrity review.
 The current document update and its revision snapshot are committed in the same MongoDB
 transaction. If either write fails, neither state is committed. Publishing also snapshots the
 automatic deactivation of the previously active release. Clinical-rule writes therefore require
-a MongoDB deployment that supports transactions: a replica set or sharded cluster.
+a MongoDB deployment that supports transactions: a replica set or sharded cluster. A standalone
+`mongod` is not supported for draft creation, editing, deletion, review transitions, or
+publication. A one-member replica set is a supported local or single-host deployment: it enables
+the required transaction semantics, but it does not provide failover. See the
+[MongoDB deployment guide](../operations/mongodb_deployment_and_recovery.md) for the supported
+single-member setup and URI requirements.
 
 > **Important: preserve both stores**
 >
@@ -385,15 +390,19 @@ draft -> submitted -> in_clinical_review -> approved -> published -> retired
                                   |-> rejected
 ```
 
-Rejected and published versions can seed a new draft. The latest content editor cannot
-approve that version. Publication requires an independent recorded clinical reviewer.
+Rejected and published versions can seed a new draft. Authors with `clinical_rules:draft`
+may permanently discard a version only while it remains in `draft`; this removes the draft
+and its private revision snapshots and records a central audit event. Once a version is
+submitted, it cannot be deleted. Published versions are immutable: they can only be
+superseded by a new version or retired. The latest content editor cannot approve that
+version. Publication requires an independent recorded clinical reviewer.
 Every transition records the actor, time, reason, rule-set identity, version, and
 revision in the rule document and central audit log.
 
 | Permission | Operations |
 | --- | --- |
 | `clinical_rules:view` | Read rule sets, versions, facts, provenance, and queues. |
-| `clinical_rules:draft` | Create/edit drafts, validate, and preview. |
+| `clinical_rules:draft` | Create, edit, delete, validate, and preview drafts. |
 | `clinical_rules:test` | Search authorized compatible samples and run read-only sample-backed previews. |
 | `clinical_rules:submit` | Submit a validated draft. |
 | `clinical_rules:clinical_review` | Start review and approve or reject content. |

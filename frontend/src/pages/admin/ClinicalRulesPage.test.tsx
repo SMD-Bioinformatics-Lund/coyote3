@@ -1,17 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  delete: vi.fn(),
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
 }))
 
 vi.mock("@/lib/api", () => ({
-  api: { get: mocks.get, post: mocks.post, patch: mocks.patch },
+  api: { delete: mocks.delete, get: mocks.get, post: mocks.post, patch: mocks.patch },
 }))
 
 vi.mock("@/lib/access-control", async (importOriginal) => {
@@ -178,6 +179,69 @@ describe("ClinicalRulesPage", () => {
     await user.clear(screen.getByLabelText("Rule identifier"))
     await user.type(screen.getByLabelText("Rule identifier"), "custom_result_rule")
     expect(screen.getByLabelText("Rule identifier")).toHaveValue("custom_result_rule")
+  })
+
+  it("deletes only the selected draft after confirmation", async () => {
+    const user = userEvent.setup()
+    mocks.delete.mockResolvedValue({ data: {}, status: 204 })
+    mocks.get.mockImplementation((path: string) => {
+      if (path === "/admin/clinical-rule-sets/facts") return Promise.resolve({ data: { items: [] } })
+      if (path === "/admin/clinical-rule-sets/authoring-options") return Promise.resolve({ data: { assays: [] } })
+      if (path === "/admin/clinical-rule-sets/versions/rule-version-1") return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], page: 1, per_page: 30, total: 1 } })
+    })
+    renderPage()
+
+    await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await user.click(await screen.findByRole("button", { name: "Delete draft" }))
+    const confirmation = screen.getByRole("alertdialog", { name: "Delete draft?" })
+    expect(confirmation).toBeVisible()
+    await user.click(within(confirmation).getByRole("button", { name: "Delete draft" }))
+
+    expect(mocks.delete).toHaveBeenCalledWith(
+      "/admin/clinical-rule-sets/drafts/rule-version-1?revision=1",
+    )
+    expect(await screen.findByText("Select a rule set to inspect or edit.")).toBeVisible()
+  })
+
+  it("opens a newly created draft directly in the visual rule builder", async () => {
+    const user = userEvent.setup()
+    const newDraft = {
+      ...existingDraft,
+      _id: "new-rule-version",
+      name: "New rule set",
+      blocks: [{
+        block_id: "report_section_1",
+        name: "Report section 1",
+        analysis: null,
+        evaluation: { mode: "once", collection: null },
+        section: "Report section 1",
+        section_order: 100,
+        block_order: 10,
+        show_heading: true,
+        match_strategy: "first_match",
+        rules: [{
+          rule_id: "report_section_1_rule_1",
+          name: "Report section 1 rule 1",
+          order: 10,
+          enabled: false,
+          condition: null,
+          output: [{ type: "text", value: "Add report wording." }],
+          references: [],
+        }],
+      }],
+    }
+    mocks.post.mockResolvedValue({ data: newDraft })
+    renderPage()
+
+    await user.click(await screen.findByRole("button", { name: "New rule set" }))
+    await user.selectOptions(screen.getByLabelText("Assay"), "solid_gmsv3")
+    await user.click(screen.getByRole("button", { name: "Create draft" }))
+
+    expect(await screen.findByLabelText("Clinical rule name")).toHaveValue("Report section 1 rule 1")
+    expect(screen.getByRole("button", { name: "Add condition" })).toBeVisible()
+    expect(screen.getByText("Report text")).toBeVisible()
+    expect(screen.getByLabelText("Include this rule in generated report text")).not.toBeChecked()
   })
 
   it("collapses the rule-set and section sidebars into vertical rails", async () => {

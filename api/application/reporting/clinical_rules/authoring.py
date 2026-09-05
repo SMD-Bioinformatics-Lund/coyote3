@@ -24,6 +24,39 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _new_rule_set_blocks() -> list[dict[str, Any]]:
+    """Return the first editable section for a newly authored rule set.
+
+    A draft must open into the visual builder rather than an empty workspace.
+    The starter rule is disabled until its author has supplied report wording
+    and deliberately enabled it.
+    """
+    return [
+        {
+            "block_id": "report_section_1",
+            "name": "Report section 1",
+            "analysis": None,
+            "evaluation": {"mode": "once", "collection": None},
+            "section": "Report section 1",
+            "section_order": 100,
+            "block_order": 10,
+            "show_heading": True,
+            "match_strategy": "first_match",
+            "rules": [
+                {
+                    "rule_id": "report_section_1_rule_1",
+                    "name": "Report section 1 rule 1",
+                    "order": 10,
+                    "enabled": False,
+                    "condition": None,
+                    "output": [{"type": "text", "value": "Add report wording."}],
+                    "references": [],
+                }
+            ],
+        }
+    ]
+
+
 class ClinicalRuleAuthoringService:
     """Manage rule drafts, independent clinical approval, and releases."""
 
@@ -191,7 +224,7 @@ class ClinicalRuleAuthoringService:
                 "minimum_engine_version": 1,
                 "analysis_declarations": {},
                 "terminology": {},
-                "blocks": [],
+                "blocks": _new_rule_set_blocks(),
                 "test_cases": [],
                 "references": [],
                 "change_summary": "",
@@ -238,6 +271,19 @@ class ClinicalRuleAuthoringService:
         parsed = ClinicalRuleSetDoc.model_validate(updated)
         self._audit("draft_updated", parsed, actor)
         return parsed.model_dump(mode="python", by_alias=True)
+
+    def delete_draft(self, document_id: str, *, expected_revision: int, actor: str) -> None:
+        """Permanently discard an editable draft before clinical governance begins."""
+        document = self._document(document_id)
+        if document.status != ClinicalRuleStatus.DRAFT:
+            raise api_error(409, "Only a draft clinical rule set can be deleted")
+        deleted = self.repository.delete_draft(document_id, expected_revision=expected_revision)
+        if deleted is None:
+            raise api_error(
+                409,
+                "The clinical rule draft changed while it was being deleted. Reload and try again.",
+            )
+        self._audit("draft_deleted", document, actor)
 
     def validate(self, document_id: str) -> dict[str, Any]:
         return validate_rule_set(self._document(document_id)).model_dump(mode="python")

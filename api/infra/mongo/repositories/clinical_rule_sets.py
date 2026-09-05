@@ -315,6 +315,26 @@ class ClinicalRuleSetRepository(BaseRepository):
         with self.adapter.client.start_session() as session:
             return session.with_transaction(_transaction)
 
+    def delete_draft(self, document_id: Any, *, expected_revision: int) -> dict[str, Any] | None:
+        """Delete one editable draft and its private revision snapshots together."""
+        object_id = _object_id(document_id)
+        if object_id is None:
+            return None
+
+        def _transaction(session: Any) -> dict[str, Any] | None:
+            deleted = self.get_collection().find_one_and_delete(
+                {"_id": object_id, "status": "draft", "revision": expected_revision},
+                session=session,
+            )
+            if deleted is not None:
+                self.revision_collection.delete_many(
+                    {"rule_set_oid": str(object_id)}, session=session
+                )
+            return deleted
+
+        with self.adapter.client.start_session() as session:
+            return session.with_transaction(_transaction)
+
     def transition(
         self,
         document_id: Any,

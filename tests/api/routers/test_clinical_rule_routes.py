@@ -149,6 +149,30 @@ def test_create_draft_records_authenticated_actor(monkeypatch) -> None:
     assert observed == {"payload": payload, "actor": "rule.author"}
 
 
+def test_delete_draft_delegates_authenticated_actor() -> None:
+    observed = {}
+
+    def delete(document_id, *, expected_revision, actor):
+        observed.update(document_id=document_id, expected_revision=expected_revision, actor=actor)
+
+    user = fx.api_user()
+    user.username = "rule.author"
+    assert (
+        rules.delete_rule_set_draft(
+            "507f1f77bcf86cd799439011",
+            revision=3,
+            user=user,
+            service=SimpleNamespace(delete_draft=delete),
+        )
+        is None
+    )
+    assert observed == {
+        "document_id": "507f1f77bcf86cd799439011",
+        "expected_revision": 3,
+        "actor": "rule.author",
+    }
+
+
 def test_review_decision_passes_explicit_reason_and_actor(monkeypatch) -> None:
     monkeypatch.setattr(rules, "_serializable", lambda value: value)
     observed = {}

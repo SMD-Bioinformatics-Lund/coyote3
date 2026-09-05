@@ -54,6 +54,13 @@ class Repository:
         self.document["revision"] += 1
         return deepcopy(self.document)
 
+    def delete_draft(self, _document_id, *, expected_revision):
+        if self.document["status"] != "draft" or self.document["revision"] != expected_revision:
+            return None
+        deleted = deepcopy(self.document)
+        self.deleted_document = deleted
+        return deleted
+
     def transition(self, _document_id, *, from_statuses, changes, event):
         if self.fail_transition or self.document["status"] not in from_statuses:
             return None
@@ -162,6 +169,8 @@ def test_new_draft_creation_validates_assay_and_persists_scope() -> None:
     assert result["content_version"] == 2
     assert result["rule_set_id"] == "assay_1__base__sv"
     assert result["lifecycle"][0]["action"] == "draft_created"
+    assert result["blocks"][0]["block_id"] == "report_section_1"
+    assert result["blocks"][0]["rules"][0]["enabled"] is False
     assert repository.insert_metadata[:2] == ("draft_created", "author")
 
 
@@ -203,6 +212,22 @@ def test_validate_preview_and_update_audit_paths() -> None:
     assert updated["revision"] == 2
     assert repository.update_actor == "author-2"
     assert audit.called is True
+
+
+def test_only_editable_drafts_can_be_deleted_and_the_action_is_audited() -> None:
+    repository = Repository(_document(status="draft"))
+    audit = SimpleNamespace(record=lambda *args, **kwargs: setattr(audit, "call", (args, kwargs)))
+    service = ClinicalRuleAuthoringService(repository, audit_service=audit)
+
+    service.delete_draft("id", expected_revision=1, actor="author")
+
+    assert repository.deleted_document["status"] == "draft"
+    assert audit.call[0] == ("clinical_rules.draft_deleted", "Clinical rule set draft_deleted")
+
+    with pytest.raises(AppError, match="Only a draft"):
+        ClinicalRuleAuthoringService(
+            Repository(_document(status="published", active=True))
+        ).delete_draft("id", expected_revision=1, actor="author")
 
 
 def test_submit_review_reject_and_retire_lifecycle() -> None:
