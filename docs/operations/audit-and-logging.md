@@ -197,7 +197,7 @@ Audit events use explicit retention classes:
 | Retention class | Intended content | Expiry behavior |
 | --- | --- | --- |
 | `operational` | Routine requests, access observations, runtime diagnostics, and other time-bounded operational records | Receives `expires_at`; eligible for MongoDB TTL expiry and manual/nightly cleanup |
-| `traceability` | Clinical-configuration mutations whose history is needed to explain ASP, ASPC, or ISGL lineage | Stores `immutable: true`, omits `expires_at`, and is excluded from application cleanup |
+| `traceability` | Clinical-configuration mutations and clinical rule-set lifecycle operations whose history is needed to explain configuration or reporting lineage | Stores `immutable: true`, omits `expires_at`, and is excluded from application cleanup |
 
 Audit retention is enforced in two layers for `operational` events only:
 
@@ -212,6 +212,14 @@ protects them from routine retention changes, but it cannot prevent a
 privileged database administrator from deleting collection data directly.
 Production deployments must therefore restrict database write access and
 include `audit_events` in protected backup and restore procedures.
+
+Traceability audit events are event records, not automatic resource snapshots. Clinical
+rule-set events contain the rule-set identity, content version, revision, status, actor, and
+operation metadata, but not the complete rule document at that revision. Full, hash-chained rule
+documents are stored separately in `clinical_rule_revisions` in the same transaction as each
+rule mutation. The
+[clinical reporting rules reference](../product/clinical_reporting_rules.md#immutable-revision-history)
+defines the responsibilities and backup requirements of both records.
 
 Disk log retention is handled by the same maintenance task when file logging is enabled. The task:
 

@@ -340,7 +340,7 @@ There is deliberately no `priority` key for query exceptions. The resulting
 exception predicates are additive `$or` branches; their order cannot change
 the returned result set. TOML order is retained only for human readability and
 diagnostic output; it has no clinical or query meaning. Reporting-text rule
-priority is a separate YAML concept used for first-match template rendering.
+ordering is a separate governed rule-set concept used for deterministic match behavior.
 
 ### Condition Examples
 

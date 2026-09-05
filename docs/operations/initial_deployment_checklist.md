@@ -113,11 +113,14 @@ collection-import process. The required active configuration is:
 | Collection | Required purpose |
 | --- | --- |
 | `assay_specific_panels` | Panel metadata, assay group, platform, and covered-gene scope. |
+| `clinical_rule_sets` | Active published clinical report wording for every ASPC binding. |
+| `clinical_rule_revisions` | Immutable baseline and subsequent snapshots for every rule-set version. |
 | `asp_configs` | Active assay, subpanel, environment, analysis, filter, and reporting configuration. |
 | `insilico_genelists` | Optional analysis-specific gene-list selection. |
 
-An active ASPC must contain the appropriate `analysis_types`, `filters`, and
-`reporting` configuration. These documents are center clinical configuration;
+Load and publish rule sets before creating their ASPC bindings. An active ASPC
+must contain the appropriate `analysis_types`, `filters`, and `reporting`
+configuration. These documents are center clinical configuration;
 the demonstration catalog is not suitable for clinical use.
 
 ## 6. Validate and ingest controlled data

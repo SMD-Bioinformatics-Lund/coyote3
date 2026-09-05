@@ -15,7 +15,7 @@ The system consists of:
 - Celery workers and beat scheduling, with Redis as broker, result backend, and cache.
 - Nginx, API, frontend, documentation, worker, beat, and Redis services managed through
   Docker Compose. MongoDB is supplied separately through `MONGO_URI`.
-- Static YAML clinical reporting rules and center-configurable TOML files.
+- MongoDB-backed governed clinical reporting rules and center-configurable TOML files.
 
 ## Repository structure
 
@@ -31,7 +31,7 @@ The system consists of:
 | `api/tasks/` | Celery task entry points. |
 | `frontend/src/` | React pages, reusable components, hooks, libraries, styles, and unit tests. |
 | `frontend/tests/e2e/` | Playwright browser tests. |
-| `clinical_reporting_rules/` | Versioned static report-rule YAML grouped by assay and subpanel. |
+| `api/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
 | `tests/` | Backend unit, API, integration, contract, and fixture coverage. |
 | `deploy/` | Dockerfiles, Compose definitions, proxy configuration, and environment examples. |
 | `scripts/` | Quality, bootstrap, deployment, maintenance, and contract-generation tools. |

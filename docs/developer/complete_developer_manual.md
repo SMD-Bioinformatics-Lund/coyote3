@@ -267,19 +267,17 @@ release and a rule-set version change.
 | Stage | Input | Output |
 | --- | --- | --- |
 | Fact preparation | Sample, ASP, ASPC, applied gene lists, filtered findings, biomarkers, and comments. | Typed report facts and aggregates. |
-| Rule evaluation | Static rule set and prepared facts. | Ordered report sections and text. |
+| Rule evaluation | Explicitly bound active published rule set and prepared facts. | Ordered report sections, text, and evaluation trace. |
 | Preview | Current state, without persistence. | Temporary HTML/PDF context and finding rows. |
 | Save | Confirmed preview context. | Report, artifacts, filter/config snapshots, rule-set identity/version, and typed reported findings. |
 
-Templates run in a restricted Jinja environment. Only documented variables,
-filters, and helpers may be used. Rule conditions within one `when` list are
-combined with AND; OR is represented as separate rules. This keeps each rule
-testable and avoids ambiguous nested condition trees.
+Rules use a typed condition tree and typed output nodes. They cannot execute
+templates, Python, database queries, filesystem access, or network calls.
 
 The report summary comes from the latest visible sample comment. Preview and
 save do not generate a replacement comment. See
-[clinical reporting rules](../product/clinical_reporting_rules.md) for the YAML
-schema, priority protocol, available facts/helpers, and complete examples.
+[clinical reporting rules](../product/clinical_reporting_rules.md) for the
+document contract, authoring workflow, available facts, and release controls.
 
 ## Authentication, authorization, and audit
 

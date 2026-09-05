@@ -2,540 +2,517 @@
 
 ## Purpose
 
-Clinical reporting rules turn an already prepared reporting result into
-approved narrative text. They do not filter findings, select transcripts,
-assign tiers, or alter a finding. Those analytical decisions are completed
-before the rules engine runs.
+Clinical reporting rules convert a prepared clinical result into governed report
+wording. They do not select transcripts, filter findings, assign tiers, or modify
+findings. Those decisions are complete before rule evaluation begins.
 
-The evaluator receives the reportable SNVs and small indels, CNVs, fusions,
-translocations, biomarkers, ASP, ASPC, and applied in-silico gene lists. It
-uses the static YAML source for the assay and subpanel to decide which text is
-included in the report.
+The authoritative rule source is the `clinical_rule_sets` collection in the primary
+application database. Each ASPC binds explicitly to one stable rule-set identity with
+`reporting.clinical_rule_set_id`. Runtime report generation does not load rule files,
+evaluate arbitrary templates, or fall back to another assay or subpanel.
 
 ![Clinical report generation flow](../assets/diagrams/report_generation_flow.svg)
 
-> **Info**
->
-> The report text is clinical content. Changes to a rule file are reviewed
-> and released with the application source. They are not edited in MongoDB
-> and are not copied into ASPC documents.
->
-
 > **Important: classification annotations are separate**
 >
-> The report rules engine does not generate text while a finding is being
-> classified. Bulk Tier III classification of small variants may optionally
-> invoke the application generator `create_annotation_text_from_gene`. That
-> generator uses the selected consequence, gene, assay group, and locally
-> stored OncoKB gene status. It does not read ASPC reporting fields or a
-> clinical reporting YAML file. Tier I, II, and IV classifications do not have
-> automatic annotation text.
->
+> Rule sets produce report narrative only. The optional automatic text used during
+> bulk Tier III classification remains finding annotation behavior and is not read
+> from an ASPC or clinical rule set.
 
-## Scope Resolution
+## Rule-Set Identity And Binding
 
-Rule sources live in the repository with one predictable layout:
+The stable identity is:
 
 ```text
-clinical_reporting_rules/
-  <asp_id>/
-    base.yaml
-    <subpanel_id>.yaml
+<asp_id>__<subpanel_id>__<language>
 ```
 
-The source selection protocol is deterministic:
+For example, `hema_gmsv1__base__sv` identifies Swedish reporting rules for the base
+subpanel of `hema_gmsv1`. Environment and ASPC version are not part of the identity.
+Production, validation, and development ASPCs may bind the same approved rule set when
+their clinical wording is identical.
 
-1. Read the effective ASP identifier from the report context.
-2. Read the effective ASPC `subpanel_id`.
-3. Load `clinical_reporting_rules/<asp_id>/<subpanel_id>.yaml` when it exists.
-4. Otherwise load `clinical_reporting_rules/<asp_id>/base.yaml`.
+An ASPC is valid only when all of the following are true:
 
-`base.yaml` has two roles. It is the complete rule set for an ASP with no
-subpanel, and it is the fallback rule set when a named subpanel has no
-subpanel-specific clinical text. A subpanel-specific file is complete on its
-own; it is not merged with `base.yaml`.
+- `reporting.clinical_rule_set_id` names an active published rule set.
+- The rule-set analyte matches the ASPC category.
+- Every entry in `reporting.report_sections` has an explicit analysis declaration.
+- A declaration is either `enabled`, meaning rule blocks may produce wording, or
+  `none`, meaning no narrative is intentionally produced for that analysis.
 
-Rules are not environment-specific and do not use ASPC document versions.
-The stable clinical identity is the ASP and subpanel scope. Development,
-testing, validation, and production ASPCs may therefore use the same source
-when their approved wording is identical.
+There is no implicit `base` fallback. A subpanel that uses base wording binds the base
+rule-set identifier explicitly.
 
-The ASPC participates through its stable `asp_id` and `subpanel_id` fields.
-Its generated `aspc_id` also contains the environment, so it is retained in
-the report configuration snapshot but is not used as a YAML filename or rule
-scope. This prevents identical clinical text from being duplicated solely for
-different deployment environments.
+Samples do not store `clinical_rule_set_id`. Existing and newly ingested samples resolve
+their effective ASPC by assay, subpanel, and environment; the ASPC then supplies the
+binding. Legacy sample documents therefore require no reporting-rule backfill. Historical
+ASPC versions are migrated as well as active versions so their configuration remains
+self-describing.
 
-## ASP, ASPC, And ISGL Inputs
+In **Admin > Assay Configurations**, the Clinical Rule Set control is a dropdown of active
+published releases for the selected assay. Selecting an assay chooses its `base` release
+by default. Selecting a subpanel chooses the exact subpanel release when one exists, or
+the explicitly listed base release otherwise. All available releases for that assay stay
+visible so an authorized administrator can deliberately choose another compatible
+release. Save-time validation still rejects a missing, unpublished, inactive, or
+analyte-incompatible selection.
 
-The three configuration records have distinct responsibilities.
+## Document Model
 
-| Record | Information used for reporting | Purpose |
-| --- | --- | --- |
-| ASP | `asp_id`, analyte, assay name, accreditation, covered genes, germline genes | Identifies the clinical assay and provides assay-level wording context. |
-| ASPC | `asp_id`, `subpanel_id`, `analysis_types`, `reporting.report_sections`, report header, method, description, and general summary | Selects the rule scope. `analysis_types` controls review availability; `report_sections` selects the subset that can contribute report text. |
-| ISGL | Selected list type, display name, genes, and germline genes | Supplies the applied clinical gene scope in the introduction and report context. |
+Each collection document is one independently versioned draft or immutable release.
 
-For a DNA introduction produced by `dna_report_intro`, the ASPC must provide
-`reporting.general_report_summary`. A paired sample adds the control-material
-sentence. The selected SNV ISGL adds its display name and gene count. Germline
-genes shared by the applied scope and ASP add the germline statement. This
-preserves the established report wording while deriving the current list and
-gene count from the effective configuration.
-
-### DNA introduction example
-
-The introduction is assembled from typed facts; it is not copied from one
-record as a finished paragraph. The following example shows the inputs and
-the condition that controls each addition.
-
-| Source | Example value | Condition | Contribution to the introduction |
-| --- | --- | --- | --- |
-| `ASPC.reporting.general_report_summary` | `DNA har extraherats ... GMS-HEM v1.1 sekvenseringspanel.` | Always required by `dna_report_intro`. | The approved assay method and panel baseline. |
-| `sample.paired` | `true` | The sample has a paired control. | The approved control-material sentence is appended. |
-| Selected SNV ISGL | Display name `HEMATOLOGY_MYELOID`; `197` genes | One or more SNV ISGLs are selected for the sample. | `Analysen omfattar genlistan: HEMATOLOGY_MYELOID som innefattar 197 gener.` |
-| `ASP.germline_genes` and selected ISGL germline genes | Both contain `CEBPA` | The intersection of the two germline-gene sets is non-empty. | The approved germline statement, for example `För CEBPA undersöks även konstitutionella mutationer.` |
-
-For this example, the final introduction contains the ASPC baseline followed
-by the paired-control sentence, the selected SNV gene-list sentence, and the
-CEBPA germline statement in that order. If the sample is unpaired, no SNV
-ISGL is selected, or the two germline-gene sets do not overlap, only the
-corresponding optional sentence is omitted; the configured baseline remains
-unchanged.
-
-## Analysis Gates
-
-The YAML `analyses` mapping uses the same analysis identifiers as ASPC
-`reporting.report_sections`. Every valid analysis is declared explicitly in a source
-file, even when no wording is currently required.
-
-### DNA analysis identifiers
-
-| Identifier | Reporting domain |
+| Area | Purpose |
 | --- | --- |
-| `SNV` | Small variants and small indels |
-| `CNV` | Copy-number variants |
-| `TRANSLOCATION` | Structural translocations |
-| `BIOMARKER` | Biomarker results |
-| `CNV_PROFILE` | Copy-number profile interpretation |
-| `COVERAGE` | Coverage and quality context |
-| `FUSION` | Fusion findings in DNA workflows |
-| `TMB` | Tumour mutational burden |
-| `PGX` | Pharmacogenomic findings |
+| `rule_set_id`, `scope` | Stable ASP, subpanel, analyte, and language identity. |
+| `content_version` | Monotonic clinical content version within the stable identity. |
+| `revision` | Optimistic-lock revision incremented by edits and lifecycle changes. |
+| `status`, `active` | Workflow state; only one published version can be active. |
+| `analysis_declarations` | Explicit narrative decision for each report analysis. |
+| `blocks` | Ordered report sections, evaluation scope, match policy, and rules. |
+| `terminology` | Approved phrase sets consumed by named deterministic renderers. |
+| `test_cases` | Prepared facts and exact expected rules/text evaluated before release. |
+| `review`, `lifecycle` | Submission, review, publication, retirement, actors, and reasons. |
+| `content_hash` | SHA-256 hash of immutable clinical content recorded at publication. |
 
-### RNA analysis identifiers
+MongoDB enforces unique `(rule_set_id, content_version)` values and at most one active
+published version for each `rule_set_id`. Publication deactivates the previous release
+in one transaction. Released documents are never edited in place; create a new draft
+revision from the release.
 
-| Identifier | Reporting domain |
-| --- | --- |
-| `FUSION` | Fusion findings |
-| `EXPRESSION` | Expression result |
-| `CLASSIFICATION` | RNA classification result |
-| `QC` | RNA quality-control result |
-| `PGX` | Pharmacogenomic findings |
+### Rule-set identity, content version, and revision
 
-Both the ASPC and YAML must allow an analysis before its YAML rules can render.
+These values identify different layers of the rule-set history and must not be used
+interchangeably.
 
-| ASPC `reporting.report_sections` | YAML `enabled` | Result |
-| --- | --- | --- |
-| Not selected | `true` | No text is rendered. |
-| Not selected | `false` | No text is rendered. |
-| Selected | `false` | No text is rendered; the source intentionally omits narrative wording for that domain. |
-| Selected | `true` | The block rules are evaluated. |
-
-If an ASPC selects an analysis that the selected YAML file does not declare,
-report preparation stops with a validation error. This exposes an incomplete
-clinical configuration rather than silently producing a partial report.
-
-## YAML Structure
-
-Each YAML file follows this exact schema.
-
-```yaml
-rule_set:
-  name: Hematology GMSv1 base report text
-  version: 1
-  analyte: dna
-  asp_id: hema_gmsv1
-  subpanel_id: base
-
-document_rules:
-  - rule_id: hema_GMSv1_accredited_conclusion
-    family: summary_text
-    section: Report conclusion
-    priority: 200
-    when:
-      - fact: asp.accredited
-        operator: eq
-        value: true
-    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. "
-    heading: false
-    stop: true
-
-analyses:
-  SNV:
-    enabled: true
-    rules:
-      - rule_id: hema_GMSv1_tiered_snv_summary
-        family: result_text
-        section: Kliniskt relevanta SNVs och små INDELs
-        priority: 90
-        when:
-          - fact: aggregates.has_tiered_snvs
-            operator: eq
-            value: true
-        template: "{{ aggregates.tier_summaries | tier_summary }}"
-        heading: true
-        stop: false
-  CNV: { enabled: false }
-  TRANSLOCATION: { enabled: false }
-  BIOMARKER: { enabled: false }
-  CNV_PROFILE: { enabled: false }
-  COVERAGE: { enabled: false }
-  FUSION: { enabled: false }
-  TMB: { enabled: false }
-  PGX: { enabled: false }
-```
-
-### Source fields
-
-| Field | Required | Allowed values / format | Meaning |
+| Value | Scope | Changes when | Clinical meaning |
 | --- | --- | --- | --- |
-| `rule_set.name` | Yes | Human-readable text, 1-160 characters | Immutable display name for this report-text source. It is recorded with every saved report that uses the source. |
-| `rule_set.version` | Yes | Positive integer | Release number for this exact YAML source. Increment it whenever approved report wording or rule behavior changes in this file. |
-| `rule_set.analyte` | Yes | `dna`, `rna` | Must match the sample/ASPC analyte. |
-| `rule_set.asp_id` | Yes | Existing ASP identifier | Must match the source directory name. |
-| `rule_set.subpanel_id` | Yes | `base` or existing subpanel identifier | Must match the YAML file name. |
-| `document_rules` | Yes | List, possibly empty | Rules for report-level text such as introduction and conclusion. |
-| `analyses` | Yes | Mapping of valid analysis identifiers | One explicit wording decision for every analysis domain. |
-| `analyses.<name>.enabled` | Yes | `true` or `false` | Enables YAML wording for that analysis after ASPC permits it. |
-| `analyses.<name>.rules` | Conditional | List of rules | Required only when executable wording is needed. Disabled blocks cannot contain rules. |
+| `rule_set_id` | One assay, subpanel, and language combination | Never for that scope | Stable identity, for example `hema_gmsv1__base__sv`. |
+| `content_version` | One independently governed clinical content candidate or release | A new draft is created for the same `rule_set_id` | Clinical release sequence. This is the version shown as `v1`, `v2`, and so forth. |
+| `revision` | One MongoDB document for one content version | The draft is saved or the document changes workflow state | Technical concurrency and mutation counter, not a clinical release number. |
+| `schema_version` | The rule-document contract | The application adopts a new incompatible document format | Technical format version, not authored content history. |
 
-### Rule fields
+A newly created scope starts with content version `1`, revision `1`. Creating a draft from
+a published or rejected version allocates the next content version for the same stable
+identity and resets revision to `1`. The content version remains unchanged as that document
+moves through submission, clinical review, approval, publication, and retirement.
 
-| Field | Required | Allowed values / format | Meaning |
-| --- | --- | --- | --- |
-| `rule_id` | Yes | Unique stable identifier | Identifies the rendered rule in the report trace. |
-| `family` | Yes | `finding_text`, `result_text`, `summary_text` | Evaluation phase. Finding rules run for each finding; the other families run once per report. |
-| `section` | Yes | Report section label | Destination section for rendered text. |
-| `priority` | Yes | Integer from `1` to `100000` | Evaluation order within a family. Lower values run first. |
-| `when` | Yes | List of conditions; empty list allowed | All conditions must be true. |
-| `template` | Yes | Restricted Jinja template | Approved text and fact interpolation. |
-| `heading` | No | `true` by default | Whether the rendered section receives a Markdown heading. |
-| `stop` | No | `true` by default | Stops further rules in the same family for the current report or finding after a match. |
+Draft auto-save sends the revision currently displayed by the editor. MongoDB updates the
+draft only if that revision is still current and increments it atomically. If another editor
+has already saved, the update matches no document and the API returns a conflict instead of
+overwriting the newer draft. Workflow transitions also increment revision. Consequently,
+revision numbers can rise frequently and can contain both content saves and status changes.
+They must not appear in a report as the identity of the approved clinical content.
 
-### Conditions
+For example:
 
-Conditions are AND-combined. Each condition has the following form:
-
-```yaml
-- fact: finding.gene
-  operator: eq
-  value: TP53
+```text
+hema_gmsv1__base__sv · content version 2 · revision 7 · draft
 ```
 
-> **Important**
->
-> A rule does not support a general `OR` group between different conditions.
-> This is deliberate. Clinical rules are evaluated in priority order and a
-> matching rule can stop later rules in the same family. Allowing nested
-> `AND`/`OR` expressions without a separately designed precedence model
-> would make it difficult to determine which approved sentence won and why.
->
-> Use `in`, `not_in`, or `overlaps` when the alternatives concern the same
-> fact. For example, `finding.tier in [1, 2]` means Tier I **or** Tier II.
-> Do not duplicate a rule merely to simulate an alternative across different
-> facts, such as `finding.gene == TP53 OR asp.accredited == true`. That can
-> create overlapping matches and unclear `stop` behavior. Add a reviewed
-> condition-group capability to the rule contract, evaluator, validation,
-> documentation, and exact-output tests before authoring that type of rule.
->
-> Negation is supported without an `OR` group: use `ne`, `not_in`, or
-> `exists: false` as appropriate.
->
+This identifies the seventh persisted state of the version 2 document. After independent
+review and publication, it remains content version 2 even though publication increments its
+revision. A later clinical wording change starts a separate version 3 document at revision 1.
+Content-version gaps are valid because a rejected or otherwise unused draft still consumed its
+version number; identifiers are never reused.
 
-| Key | Meaning |
+### Immutable revision history
+
+The application preserves the following history:
+
+| History | Preserved | Stored information |
+| --- | --- | --- |
+| Published, rejected, and retired content versions | Yes | The complete rule-set document remains in `clinical_rule_sets`; a later publication does not replace or delete it. |
+| Current draft state | Yes | The latest complete draft document and its current revision in `clinical_rule_sets`. |
+| Workflow history within a version | Yes | Append-only lifecycle entries record transition, actor, time, and reason. |
+| Central rule-operation audit | Yes, when audit persistence succeeds | A non-expiring `traceability` event records action, actor, rule-set identity, content version, revision, and status. It contains metadata, not the full rule content. |
+| Exact content of every persisted revision | Yes | `clinical_rule_revisions` stores the complete canonical rule-set document after creation, each draft save, every workflow transition, publication-driven deactivation, publication, and retirement. |
+| Sample-backed test executions | **No** | Testing is deliberately non-persisting and currently creates no clinical test-result record. |
+
+Each immutable snapshot contains the rule-set ObjectId, stable identity, content version,
+revision, action, actor, timestamp, reason, complete document, SHA-256 revision hash, and the
+previous revision hash. The unique `(rule_set_oid, revision)` index prevents duplicate revision
+numbers. The previous hash forms a per-version chain, making missing, reordered, or changed
+snapshots detectable during an integrity review.
+
+The current document update and its revision snapshot are committed in the same MongoDB
+transaction. If either write fails, neither state is committed. Publishing also snapshots the
+automatic deactivation of the previously active release. Clinical-rule writes therefore require
+a MongoDB deployment that supports transactions: a replica set or sharded cluster.
+
+> **Important: preserve both stores**
+>
+> `clinical_rule_revisions` is the authoritative full-content revision archive. Lifecycle entries
+> describe state changes inside a version, while `audit_events` supports cross-application event
+> review and remains metadata-only. Back up `clinical_rule_sets`, `clinical_rule_revisions`,
+> `reports`, `reported_variants`, and traceability audit events together. Application immutability
+> does not prevent a privileged database administrator from changing MongoDB directly.
+
+Issued-report traceability has a stronger boundary. A saved report retains the rendered text,
+rule-set object identifier, stable identity, content version, schema version, content hash,
+effective date, and matched rule identifiers. The corresponding published rule-set document
+is retained after replacement or retirement. These values identify and integrity-check the
+approved rule content used for the report.
+
+In the admin authoring workspace, **Revision history** opens the preserved revisions for the
+selected content version. An operator can select any revision and inspect its status, actor,
+time, reason, hash chain, sections, rendered output composition, conditions, and exact rule
+definition. History is read-only; restoring old content requires creating or editing a draft
+through normal governance.
+
+## Blocks And Rules
+
+A block controls where and how a group of rules is evaluated.
+
+| Field | Meaning |
 | --- | --- |
-| `fact` | Registered path in the prepared report context. Use only the exact paths in the following table. |
-| `operator` | `eq`, `ne`, `in`, `not_in`, `contains`, `overlaps`, `exists`, `gt`, `gte`, `lt`, or `lte`. |
-| `value` | Comparison value. `in`, `not_in`, and `overlaps` require a list; `exists` requires `true` or `false`. |
+| `section` | Destination report section. |
+| `section_order`, `block_order` | Stable report ordering; lower values render first. |
+| `analysis` | Optional report analysis gate such as `SNV`, `CNV`, or `FUSION`. |
+| `evaluation.mode` | `once`, `each_finding`, or `each_item`. |
+| `evaluation.collection` | Required for `each_item`; selects a prepared collection. |
+| `show_heading` | Whether the flattened Markdown contains a section heading. |
+| `match_strategy` | `all_matches`, `first_match`, `exactly_one`, or `at_most_one`. |
 
-The template context is intentionally restricted to `sample`, `asp`, `aspc`,
-`applied_gene_lists`, `finding`, `biomarkers`, and `aggregates`. The generic
-Python formatter provides shared clinical grammar such as tier-summary
-sentence construction. Assay-specific wording remains in YAML.
+Rules within a block have a stable `rule_id`, display name, order, optional condition,
+typed output sequence, rationale, and references. Rules with no condition always match.
+`first_match` provides ordered fallback behavior. `exactly_one` and `at_most_one` make
+ambiguous rule sets fail visibly instead of silently combining unintended wording.
 
-### Allowed `when.fact` paths
+## Conditions
 
-| Context | Allowed paths |
-| --- | --- |
-| Sample | `sample.name`, `sample.asp_id`, `sample.subpanel_id`, `sample.environment`, `sample.omics_layer`, `sample.paired`, `sample.genome_build`, `sample.analysis_intent` |
-| ASP | `asp.asp_id`, `asp.asp_group`, `asp.asp_category`, `asp.accredited`, `asp.germline_genes` |
-| ASPC | `aspc.aspc_id`, `aspc.asp_id`, `aspc.asp_group`, `aspc.asp_category`, `aspc.subpanel_id`, `aspc.environment`, `aspc.reporting.report_sections`, `aspc.reporting.general_report_summary` |
-| Applied lists | `applied_gene_lists` |
-| Finding | `finding.kind`, `finding.gene`, `finding.genes`, `finding.tier`, `finding.exon`, `finding.intron`, `finding.case_vaf`, `finding.case_vaf_percent`, `finding.control_vaf`, `finding.control_vaf_percent`, `finding.consequence`, `finding.hgvsc`, `finding.hgvsp`, `finding.variant_type`, `finding.cnv_effect`, `finding.fusion_gene_1`, `finding.fusion_gene_2` |
-| Biomarkers | `biomarkers` |
-| Aggregates | `aggregates.finding_count`, `aggregates.snv_count`, `aggregates.cnv_count`, `aggregates.fusion_count`, `aggregates.translocation_count`, `aggregates.biomarker_count`, `aggregates.tier_1_count`, `aggregates.tier_2_count`, `aggregates.tier_3_count`, `aggregates.tier_summaries`, `aggregates.has_tiered_snvs`, `aggregates.has_reportable_findings` |
+The visual condition builder creates a typed expression tree. It supports:
 
-## Template Authoring Reference
+- `all`: every child condition must match.
+- `any`: at least one child condition must match.
+- `not`: the child condition must not match.
+- `predicate`: compare one registered fact with a typed value.
+- `collection_match`: apply a nested condition to `any`, `none`, `all`, or a specified
+  count of items in a prepared collection.
 
-`template` is evaluated in a sandboxed Jinja environment with strict missing
-value handling. A template can only use the root objects and filters listed in
-this section. It cannot import Python modules, query MongoDB, call web
-services, access the filesystem, or use arbitrary Jinja globals.
+Available comparison operators depend on the fact type. They include equality,
+membership, list containment/overlap, numeric comparisons, inclusive ranges, existence,
+empty values, and explicit unknown values. Missing values are not converted to zero,
+`false`, or an empty string. Missing data fails a condition closed and is recorded in
+the evaluation trace.
 
-> **Warning**
->
-> A value that is not present in the prepared context produces a rendering
-> error. Do not use informal worksheet labels or raw database keys in a
-> template. Add a typed prepared fact, registry entry, and test first when a
-> new clinical datum is required.
->
+The complete fact catalog is returned by `GET /api/v1/admin/clinical-rule-sets/facts` and is
+the source for the UI controls. Current groups cover sample, ASP, ASPC, finding,
+aggregate-result, and current collection-item facts. A new fact requires a typed
+prepared-context field, registry entry, validation, UI support, and tests; rule authors
+cannot address arbitrary MongoDB fields.
 
-### Available template roots
+### Condition fields
 
-| Root | Available fields | Typical use |
+| Field | Values | Meaning |
 | --- | --- | --- |
-| `sample` | `name`, `asp_id`, `subpanel_id`, `environment`, `omics_layer`, `paired`, `genome_build`, `analysis_intent` | Sample-level wording and paired-control context. `analysis_intent` is `somatic` or `germline`. |
-| `asp` | `asp_id`, `asp_group`, `asp_category`, `accredited`, `germline_genes` | Assay identity, accreditation, and germline scope. |
-| `aspc` | `aspc_id`, `asp_id`, `asp_group`, `asp_category`, `subpanel_id`, `environment`, `reporting` | Effective assay-configuration wording context. |
-| `aspc.reporting` | `report_sections`, `general_report_summary` | Selected report domains and the approved DNA introduction baseline. |
-| `applied_gene_lists` | List entries with `isgl_id`, `version`, `list_type`, `selected_for`, `genes`, `germline_genes`, `adhoc` | Exact ISGL scope applied to this report. |
-| `finding` | `kind`, `gene`, `genes`, `tier`, `exon`, `intron`, `case_vaf`, `case_vaf_percent`, `control_vaf`, `control_vaf_percent`, `consequence`, `hgvsc`, `hgvsp`, `variant_type`, `cnv_effect`, `fusion_gene_1`, `fusion_gene_2`, `fusion_breakpoint_1`, `fusion_breakpoint_2`, `fusion_effect`, `fusion_spanning_pairs`, `fusion_spanning_reads`, `fusion_annotation` | One finding; populated only for `finding_text` rules. Fusion fields come from the selected caller record and latest visible reviewed annotation. |
-| `findings` | List of the same prepared finding objects described above | The complete reportable finding set supplied to a report-wide rule. The RNA fusion summary helper consumes this list; it never reloads or broadens the set. |
-| `biomarkers` | List of prepared biomarker result mappings | Biomarker text where a typed result is already prepared. Use only fields confirmed by a corresponding test. |
-| `aggregates` | `finding_count`, `snv_count`, `cnv_count`, `fusion_count`, `translocation_count`, `biomarker_count`, `tier_1_count`, `tier_2_count`, `tier_3_count`, `tier_summaries`, `has_tiered_snvs`, `has_reportable_findings` | Report-wide counts, positive/negative states, and tier summary text. |
+| `type` | `predicate`, `all`, `any`, `not`, `collection_match` | Selects the typed condition node. |
+| `fact` | Registered fact path | Value read from the prepared context by a predicate. |
+| `operator` | Operator allowed for the selected fact type | Defines the comparison without executable expressions. |
+| `value` | Typed scalar or list | Expected value; omitted only for `is_empty` and `is_unknown`. |
+| `children` | One or more conditions | Child conditions for `all` and `any`. |
+| `child` | One condition | Negated condition for `not`. |
+| `collection` | `findings`, `biomarkers`, `applied_gene_lists`, `tier_summaries` | Prepared list inspected by `collection_match`. |
+| `quantifier` | `any`, `none`, `all`, `count` | Required collection cardinality. `all` does not match an empty collection. |
+| `where` | One nested condition | Condition evaluated with the current collection member exposed under `item`. |
+| `count.operator` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` | Comparison used only by the `count` quantifier. |
+| `count.value` | Non-negative integer | Expected number of matching collection members. |
 
-The `when.fact` field is stricter than template access. It accepts only the
-registered paths documented in the **Conditions** table above and validated by
-the application. `biomarkers` can be rendered as a prepared value, but no
-individual nested biomarker path is currently registered for a `when`
-condition.
+### Operator matrix
 
-### Available filters and helpers
+| Operator | String/boolean | Number/integer | List | Behavior |
+| --- | --- | --- | --- | --- |
+| `eq`, `ne` | Yes | Yes | No | Exact typed equality or inequality. |
+| `in`, `not_in` | Yes | Yes | No | Actual scalar is, or is not, a member of the configured list. |
+| `gt`, `gte`, `lt`, `lte` | No | Yes | No | Numeric comparison. Type mismatch fails closed. |
+| `between` | No | Yes | No | Inclusive lower and upper bounds supplied as a two-value list. |
+| `contains` | No | No | Yes | Actual list contains the configured scalar. |
+| `overlaps` | No | No | Yes | Actual list and configured list share at least one value. |
+| `exists` | Yes | Yes | Yes | Tests path presence. A present `null` value still exists. |
+| `is_unknown` | Yes | Yes | Yes | Matches explicit `null` or the canonical string `unknown`; it does not match a missing path. |
+| `is_empty` | No | No | Yes | Matches an empty string, list, tuple, mapping, or set. |
 
-| Syntax | Purpose | Example |
-| --- | --- | --- |
-| <code>{{ value &#124; default('not available') }}</code> | Provides a fallback for an undefined or empty value. | <code>{{ finding.hgvsp &#124; default('-') }}</code> |
-| <code>{{ values &#124; join(', ') }}</code> | Joins a list into text. | <code>{{ finding.consequence &#124; join(', ') }}</code> |
-| <code>{{ values &#124; length }}</code> | Returns a collection length. | <code>{{ applied_gene_lists &#124; length }}</code> |
-| <code>{{ value &#124; lower }}</code> | Lowercases text. | <code>{{ sample.environment &#124; lower }}</code> |
-| <code>{{ value &#124; upper }}</code> | Uppercases text. | <code>{{ finding.gene &#124; upper }}</code> |
-| <code>{{ value &#124; round(1) }}</code> | Rounds a numeric value. | <code>{{ finding.case_vaf_percent &#124; round(1) }}</code> |
-| <code>{{ aspc.reporting.general_report_summary &#124; dna_report_intro(sample, asp, applied_gene_lists) }}</code> | Builds the standard DNA introduction from the configured baseline, paired status, applied SNV ISGLs, and germline scope. | Used in DNA <code>document_rules</code>. |
-| <code>{{ aggregates.tier_summaries &#124; tier_summary }}</code> | Builds the standard Swedish tiered mutation summary from prepared tier groups. | Used for positive SNV result text. |
-| <code>{{ findings &#124; fusion_summary }}</code> | Builds the reviewed RNA fusion finding paragraphs from Tier I-III fusion facts, selected breakpoints, read support, and the latest visible global annotation. | Used between the assay-specific RNA introduction and closing text. |
+### Registered variables
 
-`dna_report_intro`, `tier_summary`, and `fusion_summary` are the only
-domain-specific helpers.
-Their grammar is shared Python behavior because it is common across rule
-sources; the decision to include them and every assay-specific sentence remain
-in YAML. They accept no optional phrase dictionaries or other author-defined
-arguments.
-
-`tier_summary` applies one shared Swedish clinical grammar from the reporting
-domain. The YAML rule decides whether and where the summary is emitted; Python
-supplies only the invariant sentence construction and tier labels used by every
-assay. The annotation-suggestion service imports the same labels, so report
-summaries and suggested annotation wording cannot drift into independent
-vocabularies. English tier labels in the React interface are presentation
-metadata and do not replace the Swedish report wording.
-
-### Working examples
-
-**Report-wide introduction**
-
-```yaml
-template: "{{ aspc.reporting.general_report_summary | dna_report_intro(sample, asp, applied_gene_lists) }}"
-```
-
-The baseline text comes from `ASPC.reporting.general_report_summary`. The
-helper appends the established paired-control sentence, selected SNV gene-list
-name and gene scope, and the germline note where applicable.
-
-**Positive tiered small-variant result**
-
-```yaml
-template: "{{ aggregates.tier_summaries | tier_summary }}"
-```
-
-The helper consumes only the prepared `aggregates.tier_summaries` structure and
-renders the approved Swedish mutation wording for Tiers I, II, and III. It does
-not query variants and it does not choose which variants are tiered.
-
-**Reviewed RNA fusion result**
-
-```yaml
-template: |-
-  RNA har extraherats ...{{ findings | fusion_summary }}För ytterligare information ...
-```
-
-The introduction and closing sentences remain authored verbatim in the
-assay/subpanel YAML. `fusion_summary` inserts one report paragraph for each
-reportable Tier I-III fusion. It uses the two genes, selected caller
-breakpoints, spanning-pair and spanning-read support, and the latest visible
-reviewed global annotation. Findings marked false positive, irrelevant, or
-blacklisted, and Tier IV or unclassified findings, are removed by report
-preparation before the helper receives them. The helper does not query MongoDB,
-select a caller, change classification, or invent missing values.
-
-The helper owns the paragraph boundaries around its generated content. When no
-fusion is reportable, it emits one blank-line separator between the approved
-introduction and closing text. Rule authors must therefore place the helper
-directly between those sentences, as shown above, without adding blank lines
-around the expression.
-
-**Germline-only wording**
-
-```yaml
-when:
-  - fact: sample.analysis_intent
-    operator: eq
-    value: germline
-template: "Germline-specific approved text goes here."
-```
-
-Germline report preparation never falls through to a somatic rule. Every
-germline sentence must include the explicit intent predicate shown above. If
-the ASPC enables germline SNV review and the selected static rule source has
-no matching germline text, Coyote3 emits a visible report-preview warning so
-the configuration gap is reviewed before sign-out.
-
-**Specific finding statement**
-
-```yaml
-when:
-  - fact: finding.gene
-    operator: eq
-    value: TP53
-template: "Varianter i {{ finding.gene }} är klassificerande samt riskstratifierande vid endometriecancer (WHO 5th ed./NVP 2026)."
-```
-
-The condition determines applicability; the template interpolates the same
-prepared finding fact. For a `finding_text` rule, evaluation repeats once per
-prepared finding. For `result_text` and `summary_text`, `finding` is empty and
-must not be used.
-
-### Worked evaluation example
-
-The following example shows how one prepared DNA report context becomes
-rendered text. It uses the existing `hema_gmsv1/base.yaml` rule pattern rather
-than introducing a second authoring model.
-
-**Prepared facts**
-
-```yaml
-asp:
-  accredited: true
-aggregates:
-  has_tiered_snvs: false
-```
-
-**Matching rules**
-
-| Evaluation phase | Rule | Why it matches | Result |
+| Variable | Type | Evaluation scope | Meaning |
 | --- | --- | --- | --- |
-| `result_text` | `hema_GMSv1_report_introduction` | Its `when` list is empty. | The configured DNA introduction is rendered through `dna_report_intro`. |
-| `result_text` | `hema_GMSv1_no_somatic_snv` | `aggregates.has_tiered_snvs` is `false`. | `Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.` |
-| `summary_text` | `hema_GMSv1_accredited_conclusion` | `asp.accredited` is `true`. | The approved accredited conclusion is rendered. |
+| `sample.asp_id` | string | all | Assay identity resolved for the sample. |
+| `sample.subpanel_id` | string | all | Effective subpanel identity. |
+| `sample.environment` | string | all | Effective ASPC environment. |
+| `sample.omics_layer` | string | all | `dna` or `rna`. |
+| `sample.analysis_intent` | string | all | `somatic` or `germline`. |
+| `sample.paired` | boolean | all | Whether a control sample participates in analysis. |
+| `sample.genome_build` | string | all | Prepared reference genome build; may be unknown. |
+| `asp.asp_group` | string | all | Center-defined assay group. |
+| `asp.asp_category` | string | all | Assay analyte category. |
+| `asp.accredited` | boolean | all | ASP accreditation state. |
+| `asp.germline_genes` | string list | all | Germline-capable genes declared by the ASP. |
+| `aspc.reporting.report_sections` | string list | all | Analyses selected for report composition. |
+| `finding.kind` | string | each finding | `snv`, `cnv`, `fusion`, or `translocation`. |
+| `finding.gene` | string | each finding | Single primary gene when available. |
+| `finding.genes` | string list | each finding | All prepared genes for the finding. |
+| `finding.tier` | integer | each finding | Current clinical tier or unknown. |
+| `finding.exon`, `finding.intron` | string list | each finding | Prepared transcript coordinates. |
+| `finding.case_vaf_percent` | number (%) | each finding | Case VAF converted to percent without substituting missing values. |
+| `finding.control_vaf_percent` | number (%) | each finding | Control VAF percent when available. |
+| `finding.consequence` | string list | each finding | Selected transcript consequence terms. |
+| `finding.hgvsc`, `finding.hgvsp` | string | each finding | Selected transcript HGVS descriptions. |
+| `finding.cnv_effect` | string | each finding | Prepared gain/loss effect. |
+| `finding.fusion_gene_1`, `finding.fusion_gene_2` | string | each finding | Prepared structural-event partners. |
+| `aggregates.finding_count` | integer | all | Number of prepared findings. |
+| `aggregates.snv_count`, `cnv_count`, `fusion_count`, `translocation_count` | integer | all | Prepared finding counts by analysis. |
+| `aggregates.biomarker_count` | integer | all | Number of prepared biomarker result documents. |
+| `aggregates.has_tiered_snvs` | boolean | all | Whether a Tier I-III SNV summary exists. |
+| `aggregates.has_reportable_findings` | boolean | all | Whether any prepared finding or biomarker exists. |
+| `item.kind`, `item.gene`, `item.genes`, `item.tier` | typed by field | each item | Current member during `collection_match` or `each_item` evaluation. |
 
-The unaccredited conclusion and the positive tiered-SNV rule do not match.
-The saved report records the matching rule identifiers alongside the rendered
-report and its configuration snapshot.
+The API fact catalog is authoritative if this table and a deployed service differ. Fields
+present in internal MongoDB documents but absent from the catalog cannot be used by rules.
 
-This is also the precedence model for a more specific rule. If a
-`finding_text` rule at priority `20` and a general `finding_text` rule at
-priority `70` both match a finding, the priority-`20` rule is evaluated first.
-With `stop: true`, the general rule is not rendered for that finding. With
-`stop: false`, both sentences are rendered in priority order.
+## Output
 
-### Adding a new template capability
+Rule output is an ordered sequence of typed nodes rather than executable template code.
 
-Adding a new root, field, filter, or helper is an application change, not a
-YAML-only change. The implementation protocol is:
+| Node | Purpose |
+| --- | --- |
+| `text` | Approved literal clinical wording. |
+| `fact` | A registered scalar fact with an explicit missing-value policy. |
+| `list` | A registered list with controlled formatting and conjunction. |
+| `number` | A registered numeric fact with precision and optional `%` or `x` unit. |
+| `message` | Singular or plural text selected by a registered count. |
+| `paragraph_break` | An explicit Markdown paragraph boundary. |
+| `renderer` | A named, deterministic domain renderer with governed terminology. |
 
-1. Define the typed field in `PreparedReportContext` or one of its nested
-   fact models.
-2. Populate it during report preparation from a defined source collection or
-   report result.
-3. Add the permitted condition path to the fact registry when it must be used
-   in `when`.
-4. Add a narrow, deterministic sandbox filter only when a reusable formatter
-   is necessary; do not place assay-specific prose in the formatter.
-5. Add positive, negative, and missing-value tests before adding the YAML
-   rule that consumes the capability.
+Named renderers are limited to the registered set (`dna_report_intro`, `tier_summary`,
+and `fusion_summary`). They cannot query MongoDB, call external services, execute code,
+or invent missing data. Assay-specific prose belongs in literal output or the rule-set
+terminology payload, not in Python branches.
 
-This keeps the YAML vocabulary predictable and prevents a new report sentence
-from depending on hidden runtime queries or untyped data.
+## Authoring Workspace
 
-## Priority Protocol
+Users with rule permissions open **Admin > Clinical Report Rules**. The workspace keeps
+scope/version selection, rule editing, and output review visible together:
 
-Priority is not a clinical severity value. It resolves rule precedence when
-more than one rule in the same family could match the same report or finding.
-Each `(family, priority)` pair must be unique within a YAML file.
+1. Search or filter rule sets by workflow state.
+2. Create a scoped draft by selecting an active ASP from the assay dropdown, entering the
+   subpanel and language, or create a new content version from a published/rejected one. The
+   analyte is derived from the ASP and cannot be entered independently. Starting creation
+   clears the open release from the editor so existing content cannot be mistaken for the new
+   draft. The suggested rule-set name follows the assay and subpanel until the author edits it.
+3. Add report sections and ordered rules.
+4. Build nested conditions using labelled facts and only compatible operators.
+5. Compose report text from literal text, facts, paragraph breaks, and named summaries.
+6. Review save state, validation results, clinical rationale, and change summary.
+7. Submit, clinically review, publish, or retire according to assigned permissions.
 
-Use these ranges consistently:
+Draft updates use optimistic locking. If another editor saves first, the API rejects the
+stale revision so the newer content must be reloaded and reconciled. The editor cannot
+modify submitted, approved, published, or retired content.
 
-| Range | Intended use | Example |
-| --- | --- | --- |
-| `10-49` | Highly specific finding or molecular-state rule | A gene plus codon/exon or biomarker-state statement. |
-| `50-79` | Gene-, subpanel-, or clinically grouped rule | A gene-specific report sentence. |
-| `80-99` | Generic positive result rule | The tiered SNV summary. |
-| `100-149` | Generic negative result or default conclusion | No reportable mutation found. |
-| `200-249` | Alternative conclusion | Accredited versus non-accredited conclusion. |
+New sections and rules receive readable, collision-free names and identifiers based on their
+section and order. These are starting values, not locked values: authors can edit the rule-set
+name, section name and identifier, and clinical rule name and identifier while the document is
+a draft. Validation still requires identifiers to be non-empty and unique across the rule set.
 
-Authors select the lowest unused value in the appropriate range for the same
-family. A more specific rule must have a lower number than its generic
-fallback. Use `stop: true` when the first match is the only allowed wording;
-use `stop: false` only when multiple sentences are intended to accumulate.
+On wide screens, the rule-set list, report-section list, rule builder, and live text preview are
+separated by keyboard-accessible draggable dividers. The browser retains adjusted widths. The
+workspace fills the available viewport height and scrolls each pane independently. The rule-set
+list can collapse to a narrow vertical rail. The report-section list collapses to a vertical tab
+rail that retains every section as a selectable entry. Collapsed panes are removed from the grid
+calculation so the builder and preview immediately use the released width.
 
-Example: a TP53-specific `finding_text` rule at priority `20` runs before a
-general `finding_text` rule at priority `70`. A `result_text` rule may also use
-priority `20`, because it belongs to another family.
+Workflow badges use distinct semantic status tokens. Section colors are positional navigation
+cues rather than clinical classifications; the selected section, its editor, and its preview use
+the same cue. Condition groups use separate token-based surfaces for predicates, all/any groups,
+negation, and collection matching so nested logic remains visually legible.
 
-## Authoring And Review Protocol
+All authoring and lifecycle endpoints are administrative endpoints under
+`/api/v1/admin/clinical-rule-sets`. They are implemented in the admin HTTP package and
+remain independently protected by the operation-specific permissions below.
 
-1. Confirm the ASP identifier and subpanel identifier from the active ASP and
-   ASPC. Do not invent human worksheet labels as database fields.
-2. Decide whether `base.yaml` is sufficient. Create a subpanel file only when
-   the wording differs from the ASP baseline.
-3. Confirm the ASPC's enabled and reportable analysis domains. Declare each
-   corresponding analysis block in YAML.
-4. Add text to `document_rules` for report-wide wording, or to the appropriate
-   analysis block for analysis-specific wording.
-5. Use only registered prepared facts and the priority protocol above.
-6. Preserve approved wording exactly unless the clinical owner has approved a
-   content change.
-7. Add or update exact-output tests for positive, negative, precedence, and
-   missing-data cases.
-8. Run compilation and tests before review. The file path, scope metadata,
-   facts, template roots, analysis identifiers, rule identifiers, and priority
-   uniqueness are validated automatically.
+### Sample-backed testing
 
-## Report Provenance And Historical Review
+**Admin > Clinical Rule Testing** evaluates any non-retired rule-set version against an
+existing sample before publication. The rule-set selector fixes the required assay and offers
+two search scopes: exact assay plus subpanel, or any sample from the assay. Search results are
+restricted to the operator's assigned assays and environments. Before a search is entered, the
+list contains the ten most recently added compatible samples; a search returns the ten newest
+matching samples using the same server-side identifier search as the sample list. Selecting a
+sample does not change its filters, classifications, comments, ASPC binding, reporting state, or
+files.
 
-When a report is saved, its collection document records the rendered report,
-the ASPC snapshot, filter snapshot, static rule-set identity, report-text
-name, report-text version, source path, canonical content hash, and matched
-rule IDs. Historical reports therefore remain explainable after a later
-application release changes a YAML file.
+The preview uses the same DNA or RNA finding filters, annotations, classifications, and fact
+preparation as a normal report preview. A rule-testing mode omits work that cannot affect rule
+facts: report header and template assembly, display-only finding conversion, sample and finding comments,
+VEP display translations, finding snapshots, and CNV profile file reads. This avoids building an
+entire printable report for an interactive rule test while preserving clinical evaluation parity.
+It substitutes only the explicitly selected rule-set version, evaluates the prepared live facts,
+and returns the rendered report summary and rule trace. Preview segments retain their report
+section color. The initial preview evaluates conditions through the normal report path and returns
+the summary plus the compact matched/unmatched rule trace. Opening the execution trace makes a
+second, explicit diagnostic request that adds collection-item identity, missing facts, and the
+complete nested predicate/all/any/not/collection decision tree. Deferring that recursive trace
+keeps the initial preview responsive for rule sets evaluated once per finding or collection item.
+Detailed condition traces are not added to routine report-preview or saved-report payloads.
+The operation always uses preview mode, disables finding snapshots, and never calls report
+persistence. It requires
+`clinical_rules:test`; ordinary rule visibility does not grant access to sample-backed testing.
 
-The rule provenance is saved at `clinical_rule_source`. Its `source` block
-contains `rule_set_id`, `report_text_name`, `report_text_version`,
-`source_path`, and `content_hash`; `matched_rule_ids` records the evaluated
-rules that contributed text to the report. The stable `rule_set_id` remains
-`<asp_id>__<subpanel_id>` and is not changed when a report-text version is
-incremented.
+## Validation And Embedded Cases
 
-The YAML file is not stored in MongoDB. The report snapshot captures the
-clinical result that was issued, while application source control remains the
-authoritative history of clinical wording.
+Validation checks the complete rule set before submission and again before publication:
 
-## Validation Commands
+- engine-version compatibility;
+- non-empty blocks and unique block/rule identifiers and ordering;
+- analysis declarations and enabled block consistency;
+- condition depth, registered fact scope, and type-compatible operators;
+- output fact availability and formatter contracts;
+- consistent heading behavior per report section;
+- every embedded test case against exact matched rule identifiers and rendered sections.
+
+Warnings identify review gaps, such as enabled analyses without blocks or no embedded
+test cases. Structural or exact-output failures block release.
+
+Embedded cases use the same `PreparedReportContext` contract as production evaluation.
+Include positive, negative, boundary, missing-value, precedence, and multi-finding cases
+for each clinical behavior changed.
+
+## Lifecycle And Permissions
+
+The controlled lifecycle is:
+
+```text
+draft -> submitted -> in_clinical_review -> approved -> published -> retired
+                                  |-> rejected
+```
+
+Rejected and published versions can seed a new draft. The latest content editor cannot
+approve that version. Publication requires an independent recorded clinical reviewer.
+Every transition records the actor, time, reason, rule-set identity, version, and
+revision in the rule document and central audit log.
+
+| Permission | Operations |
+| --- | --- |
+| `clinical_rules:view` | Read rule sets, versions, facts, provenance, and queues. |
+| `clinical_rules:draft` | Create/edit drafts, validate, and preview. |
+| `clinical_rules:test` | Search authorized compatible samples and run read-only sample-backed previews. |
+| `clinical_rules:submit` | Submit a validated draft. |
+| `clinical_rules:clinical_review` | Start review and approve or reject content. |
+| `clinical_rules:publish` | Publish an independently approved version. |
+| `clinical_rules:retire` | Retire an active release with a reason. |
+
+Bundled roles separate these duties: `clinical_rule_author`,
+`clinical_rule_reviewer`, and `clinical_rule_publisher`. Centers may compose equivalent
+roles, but approval separation remains enforced by the service.
+
+## Runtime Evaluation And Provenance
+
+Report preparation creates facts only from the exact filtered findings, biomarkers,
+applied gene lists, ASP, and ASPC used for that report. The service then:
+
+1. resolves the explicit ASPC binding;
+2. requires the active published release and matching analyte;
+3. verifies the release content hash and engine compatibility;
+4. checks all selected report sections are declared;
+5. evaluates blocks in deterministic order;
+6. returns rendered sections and a per-rule trace.
+
+Saved reports retain the rendered result, rule-set object identifier, stable identity,
+schema and content versions, content hash, language, effective date, and ordered matched
+rule identifiers. A later rule release does not alter an issued report.
+
+The sample-comment suggestion endpoints use this same evaluator. Suggested text and
+final report text therefore have one source and one interpretation path.
+
+## Deployment And Initial Population
+
+Application startup verifies the `clinical_rule_sets` and `clinical_rule_revisions` indexes but does not create or
+publish clinical content. Demo bootstrap loads synthetic published rules before ASPCs.
+Existing deployments install the rule permissions and bundled duty-separated roles with:
 
 ```bash
-.venv/bin/pytest tests/unit/reporting/test_clinical_rules.py -q
-.venv/bin/python -c "from api.application.reporting.clinical_rules.compiler import ClinicalRuleCompiler; from api.config.paths import CLINICAL_REPORTING_RULES_DIR; [ClinicalRuleCompiler().load(path) for path in ClinicalRuleCompiler().discover(CLINICAL_REPORTING_RULES_DIR)]"
+PYTHONPATH=. .venv/bin/python scripts/sync_rbac_catalog.py \
+  --mongo-uri "${MONGO_URI}" \
+  --identity-db "${IDENTITY_DB}"
 ```
 
-These checks compile every static source and validate the exact-report
-regressions that protect established clinical wording.
+Before the first clinical-rule edit on an installation that already contains rule sets, capture
+one immutable baseline of every current version:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/backfill_clinical_rule_revisions.py \
+  --mongo-uri "${MONGO_URI}" \
+  --db coyote3_new \
+  --actor reporting.migration \
+  --dry-run
+```
+
+Review the count, remove `--dry-run`, and run the same command. It is idempotent and never changes
+`clinical_rule_sets`. A baseline preserves the complete state that exists at execution time;
+earlier overwritten draft revisions cannot be reconstructed and the command reports this limit.
+New database bootstrap creates baselines for bundled demo rule sets automatically.
+
+For a database whose approved report content is still represented by the repository's
+pre-canonical rule source, run the explicit operator migration before starting the new
+application version:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/migrate_clinical_reporting_rules.py \
+  --mongo-uri mongodb://localhost:27017 \
+  --db coyote3_new \
+  --actor reporting.migration \
+  --clinical-reviewer clinical.reviewer \
+  --dry-run
+```
+
+Remove `--dry-run` only after reviewing the plan. The target `clinical_rule_sets`
+collection must be empty. The command reads the installed ASP catalog, ignores source
+files for assays not installed at that center, and fails when an installed assay has no
+source. It imports base and explicit subpanel sources, incorporates the approved
+introductory wording from matching ASPCs, validates every rule set and prospective ASPC
+before writing, inserts published versions with their immutable first-revision snapshots, and
+binds every active and historical ASPC.
+If a database write or final validation fails, both inserted rule documents and changed
+ASPC reporting objects are restored. Actor and clinical reviewer must be different.
+
+The imported source preserves the established report behavior from the previous report
+generator: configured assay introduction, paired-control wording, selected gene-list and
+germline scope, tiered SNV summaries, no-reportable-SNV wording, accreditation conclusion,
+and RNA fusion summaries. Current source files may add scoped clinical behavior absent
+from the previous generator, such as the `solid_gmsv3/endometrie` finding rules. After
+cutover, the files are migration input only; MongoDB is the sole runtime source.
+
+The previous generator also contained CNV, DNA translocation, HRD, and MSI text branches.
+They are deliberately declared with `narrative: none` in the initial canonical releases.
+Those branches coupled wording to legacy record shapes and embedded interpretation
+thresholds, including HRD and MSI cutoffs, that are not approved clinical-rule facts in the
+current contracts. Do not copy or activate them as part of migration. Introduce each one as
+a reviewed new content version after its result fields, units, thresholds, exact wording,
+and regression cases are approved. The underlying CNV, translocation, and biomarker report
+tables remain unaffected by this narrative decision.
+
+Apply the repository index contract before application startup:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+```
+
+## Verification
+
+```bash
+PYTHONPATH=. .venv/bin/pytest -q tests/unit/reporting/test_clinical_rules.py
+PYTHONPATH=. .venv/bin/pytest -q tests/unit/test_aspc_contract_flow.py
+PYTHONPATH=. .venv/bin/pytest -q tests/api/test_api_route_security.py
+PYTHONPATH=. .venv/bin/pytest -q \
+  tests/unit/reporting \
+  tests/unit/test_report_summary.py \
+  tests/unit/test_report_summary_extended.py \
+  --cov=api.application.reporting.clinical_rules \
+  --cov-config=.coveragerc \
+  --cov-report=term-missing \
+  --cov-fail-under=100
+```
+
+The clinical reporting package has a mandatory 100% statement and branch coverage gate in
+`scripts/run_family_coverage_gates.sh`. Tests cover every operator, nested condition,
+collection quantifier, output node, renderer branch, lifecycle transition, authorization
+boundary, malformed or missing fact behavior, integrity failure, and exact embedded case.

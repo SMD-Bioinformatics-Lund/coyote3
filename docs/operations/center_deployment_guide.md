@@ -41,8 +41,9 @@ Before first sample ingest, ensure these are seeded:
 3. `hgnc_genes`
 4. `vep_metadata`
 5. `assay_specific_panels`
-6. `asp_configs`
-7. `insilico_genelists` when the center uses in-silico gene-list filtering
+6. `clinical_rule_sets`
+7. `asp_configs`
+8. `insilico_genelists` when the center uses in-silico gene-list filtering
 
 The explicit database bootstrap installs the application-owned RBAC catalog,
 creates one local superuser, and imports the bundled HGNC and VEP snapshot. It
@@ -146,6 +147,7 @@ Sample manifest reference:
 ASPC contract rule for first-load data:
 
 - `asp_configs` entries include `filters` and `reporting` objects.
+- Every `reporting.clinical_rule_set_id` resolves to an active published rule set.
 - DNA SNV base behavior is configured with `filters`.
 - DNA SNV retrieval uses the `generic_germline` and `generic_somatic` base groups, and center-specific SNV clauses are added through `query.snv`.
 - DNA assay-specific SNV operator rules are configured with `query.snv`.

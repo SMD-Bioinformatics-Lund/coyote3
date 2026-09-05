@@ -63,31 +63,34 @@ docker compose -f <your-v3-compose-file> down
 
 ---
 
-## Step 3 — Start the Coyote3 application
+## Step 3 — Populate canonical clinical reporting rules
 
-Build and start the target stack using the centre environment file.
-
-```bash
-./scripts/compose-with-version.sh \
-  --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml \
-  up -d --build
-```
-
-Wait for all services to report healthy:
+Convert and validate approved rule content before the strict ASPC contract is
+loaded by the application. Use distinct migration and clinical-review identities.
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
+PYTHONPATH=. .venv/bin/python scripts/migrate_clinical_reporting_rules.py \
+  --mongo-uri "${MONGO_URI}" \
+  --db "${COYOTE3_DB}" \
+  --actor reporting.migration \
+  --clinical-reviewer clinical.reviewer \
+  --dry-run
 ```
 
-> **Note**
->
-> The API performs **read-only index verification** on startup. It does not
-> create or retire indexes automatically. If the startup log reports missing
-> indexes, run `scripts/manage_mongo_indexes.py` as documented in
-> [Maintenance and Quality](maintenance_and_quality.md).
->
+Review the complete plan, then repeat without `--dry-run`. The command requires
+an empty `clinical_rule_sets` collection, imports rules only for installed assays,
+and updates every active and historical ASPC to an explicit published rule-set
+binding. Samples are not changed; they resolve reporting rules through their ASPC.
+
+The initial release does not activate the previous generator's CNV, DNA
+translocation, HRD, or MSI narrative branches. Their legacy record assumptions and
+embedded interpretation thresholds require separate clinical approval against the
+current typed contracts. The migration records those analyses explicitly as having no
+automatic narrative; it does not remove their findings or report tables.
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+```
 
 ---
 
@@ -165,7 +168,31 @@ RBAC and reference-data maintenance procedures for a populated database.
 
 ---
 
-## Step 7 — Validate
+## Step 7 — Start the Coyote3 application
+
+Build and start the target stack using the centre environment file.
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  up -d --build
+```
+
+Wait for all services to report healthy:
+
+```bash
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
+```
+
+The API performs read-only index verification on startup. If it reports a
+missing `clinical_rule_sets` or other index, run `scripts/manage_mongo_indexes.py`
+as documented in [Maintenance and Quality](maintenance_and_quality.md).
+
+---
+
+## Step 8 — Validate
 
 Run the standard post-deployment checks:
 
@@ -194,7 +221,7 @@ cd frontend && npm run test:e2e:real
 
 ---
 
-## Step 8 — Complete operational validation
+## Step 9 — Complete operational validation
 
 Record the following checks before the target installation is accepted for
 clinical use:

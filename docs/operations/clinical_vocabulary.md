@@ -54,7 +54,7 @@ not_important = ["1000genomes", "banned", "matched-normal", "readthrough"]
 context = ["distance100kbp", "duplicates", "healthy", "short_distance"]
 
 [reporting]
-required_aspc_fields = ["report_header", "report_method", "general_report_summary"]
+required_aspc_fields = ["report_header", "report_method", "clinical_rule_set_id"]
 transcript_selection_order = [
   "ncbi_mane_plus_clinical",
   "ensembl_mane_plus_clinical",

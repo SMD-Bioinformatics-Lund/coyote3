@@ -1,11 +1,13 @@
 # Coyote3
 
 ### Build & Release
+
 [![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
 ![Coyote3 4.0.0](https://img.shields.io/badge/Coyote3-4.0.0-4F46A5)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-2E7D32)
 
 ### Core Stack
+
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Pydantic 2](https://img.shields.io/badge/Contracts-Pydantic%202-E92063?logo=pydantic&logoColor=white)
@@ -17,6 +19,7 @@
 ![Docker Compose](https://img.shields.io/badge/Deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)
 
 ### Domain & Capabilities
+
 ![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-1F6FEB)
 ![DNA Support](https://img.shields.io/badge/DNA-Supported-1E90FF)
 ![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
@@ -24,6 +27,7 @@
 ![Report Snapshots](https://img.shields.io/badge/Reports-Immutable%20Snapshots-6B5B95)
 
 ### Security & Governance
+
 ![Casbin RBAC](https://img.shields.io/badge/Security-Casbin%20RBAC-2E8B57)
 ![Audit Logging](https://img.shields.io/badge/Audit-Enabled-2E8B57)
 
@@ -74,7 +78,6 @@ Coyote3 is built around the non-negotiable requirements of clinical laboratory o
 * **Separation of concerns** - deployment configuration, center-configurable clinical content, and fixed product behaviour are kept in distinct, independently owned layers
 * **Extensibility** - the platform is designed to grow alongside diagnostic pipelines: new assays, variant types, integrations, and workflows are added without reworking core behaviour
 
-
 ## Architecture
 
 | Component | Responsibility |
@@ -94,7 +97,6 @@ For the complete component and request flow, see
 ```text
 api/                         FastAPI application and backend contracts
 api/config/center/           Center-configurable TOML and YAML files
-clinical_reporting_rules/    Versioned clinical report rule sources
 frontend/                    React application and frontend tests
 deploy/                      Compose, proxy, and container configuration
 scripts/                     Bootstrap, quality, validation, and operations tools
@@ -166,8 +168,8 @@ Coyote3 separates configuration by ownership:
   query policy;
 - ASP, ASPC, and ISGL are versioned clinical configuration resources, while
   roles and users are managed as operational identity resources;
-- `clinical_reporting_rules/` contains application-versioned clinical report
-  rules; and
+- published clinical report rules are governed in MongoDB and bound explicitly
+  from each ASPC;
 - fixed product behavior remains in Python and frontend theme configuration.
 
 Start with the [Configuration Guide](docs/start_here/configuration.md) and

@@ -111,14 +111,14 @@ block, operator, and example.
 
 ## Reporting flow
 
-Reporting uses prepared facts rather than querying arbitrary data from a Jinja
-template. The report service:
+Reporting uses prepared facts and typed rule output rather than querying
+arbitrary data from report text. The report service:
 
 1. resolves the sample, ASP, ASPC, applied gene lists, and enabled sections;
 2. selects reportable SNVs, CNVs, structural findings, fusions, biomarkers, and
    other enabled analyses;
 3. prepares aggregates such as tier summaries;
-4. evaluates the static YAML rule set for the ASP and subpanel;
+4. resolves and evaluates the active published rule set explicitly bound by the ASPC;
 5. renders the preview; and
 6. saves immutable report context and typed reported-finding rows when asked.
 

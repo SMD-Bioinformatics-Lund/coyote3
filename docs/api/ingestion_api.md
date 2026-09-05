@@ -445,7 +445,7 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
-      "general_report_summary": "Prepared in Coyote3",
+      "clinical_rule_set_id": "assay_1__base__sv",
       "plots_path": "reports/plots",
       "report_folder": "reports/output"
     },
@@ -541,7 +541,7 @@ curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
-      "general_report_summary": "Prepared in Coyote3",
+      "clinical_rule_set_id": "assay_1__base__sv",
       "plots_path": "reports/plots",
       "report_folder": "reports/output"
     },

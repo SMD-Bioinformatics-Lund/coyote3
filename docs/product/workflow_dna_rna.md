@@ -278,14 +278,14 @@ findings. This single reportable set is used for all three outputs:
 
 1. the RNA snapshot table (`fusion`, breakpoints, effect, read support, tier,
    and reviewed annotation);
-2. the YAML-driven clinical conclusion, where `findings | fusion_summary`
-   inserts reviewed finding paragraphs between the assay-specific introduction
-   and closing text; and
+2. the published clinical rule result, where the named `fusion_summary`
+   renderer inserts reviewed finding paragraphs between approved literal
+   introduction and closing output; and
 3. the rendered report's `Fusion / Klassificering` result table and detailed
    fusion sections.
 
 The sample's recorded ASPC revision provides the report header, method, and analysis description.
-The static rule source provides the approved assay/subpanel wording. Fusion
+The explicitly bound published rule set provides the approved assay/subpanel wording. Fusion
 caller selection and filtering occur before rule evaluation, so report rules
 cannot silently select a different call or reintroduce an excluded fusion.
 

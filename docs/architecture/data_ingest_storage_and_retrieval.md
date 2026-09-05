@@ -248,7 +248,7 @@ An ISGL can declare multiple list types and be selectable for several analyses. 
 
 ## Reporting, rollback, and deletion
 
-Review actions update the active analysis record and create their audit events. Reusable tiered annotations live in annotation; reported_variants records freeze the subset attached to a saved report. The report service receives filtered findings, biomarkers, coverage, applied gene lists, ASP, ASPC, and static report rules. It does not re-parse source files.
+Review actions update the active analysis record and create their audit events. Reusable tiered annotations live in annotation; reported_variants records freeze the subset attached to a saved report. The report service receives filtered findings, biomarkers, coverage, applied gene lists, ASP, and ASPC, then resolves the explicitly bound active published rule set. It does not parse report-rule files or broaden the prepared finding set.
 
 Annotation persistence uses one flat, validated contract. Current finding
 fields are translated at the classification boundary, then only canonical

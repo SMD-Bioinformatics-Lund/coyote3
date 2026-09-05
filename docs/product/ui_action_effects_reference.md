@@ -64,7 +64,7 @@ consequence, gene, assay group, and local OncoKB gene status.
 
 The option is unavailable for CNVs, fusions, and translocations, and for Tier
 I, II, and IV. Those actions store the classification only. ASPC reporting
-fields and clinical reporting YAML are not inputs to this annotation generator.
+fields and published clinical report rules are not inputs to this annotation generator.
 
 ## RNA Interpretation Actions
 
