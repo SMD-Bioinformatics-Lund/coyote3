@@ -360,6 +360,8 @@ All permission-gate testing must operate at the logical boundary being enforced:
 - **API Access**: Use the `api_user` mocks to validate FastAPI `Depends` authentication and RBAC logic.
 - **UI visibility**: Verify selective rendering in the React layer with API-shaped fixtures.
 - **Constraint Matching**: Test datasets must define role-derived allow/deny permission arrays to verify both positive and negative authorization outcomes.
+- **Shipped RBAC Matrix**: `tests/api/test_rbac_complete_route_matrix.py` must pass. It covers
+  every active seeded permission, bundled role, and registered `require_access` API endpoint.
 
 ## Performance Checks
 
