@@ -27,6 +27,8 @@ export const ADMIN_UTILITY_PERMISSIONS = {
   schemasView: "schema:list",
   uiRouteAuditView: "ui.route_audit:view",
   broadcastCreate: "notification.broadcast:create",
+  clinicalRulesView: "clinical_rules:view",
+  clinicalRulesTest: "clinical_rules:test",
 } as const
 
 export const ADMIN_ENTRY_PERMISSIONS = [

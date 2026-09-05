@@ -1,6 +1,8 @@
 import type { ComponentType } from "react"
 import { Link } from "react-router-dom"
 import {
+  Beaker,
+  BookOpenCheck,
   Database,
   Dna,
   FileUp,
@@ -35,6 +37,20 @@ const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
 }
 
 const utilityModules = [
+  {
+    title: "Clinical Report Rules",
+    description: "Author, review, validate, and publish governed clinical report wording.",
+    href: "/admin/clinical-rules",
+    icon: BookOpenCheck,
+    permission: ADMIN_UTILITY_PERMISSIONS.clinicalRulesView,
+  },
+  {
+    title: "Clinical Rule Testing",
+    description: "Test rule-set versions against authorized samples without persisting reports or sample changes.",
+    href: "/admin/clinical-rules/testing",
+    icon: Beaker,
+    permission: ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest,
+  },
   {
     title: "Application Controls",
     description: "Manage runtime module switches, Celery task gates, and retention settings.",

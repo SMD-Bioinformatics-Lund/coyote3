@@ -797,6 +797,89 @@
 }
 
 @layer components {
+  .clinical-rules-layout,
+  .clinical-rules-editor-layout {
+    @apply grid grid-cols-1;
+  }
+
+  .clinical-rules-divider {
+    @apply hidden touch-none cursor-col-resize items-center justify-center border-x border-border bg-muted/20 text-muted-foreground outline-none hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .clinical-rules-divider svg {
+    @apply h-4 w-4;
+  }
+
+  .clinical-rules-rail {
+    @apply flex h-full min-h-32 w-full items-center justify-center gap-2 border-r border-primary/20 bg-primary/5 py-3 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .clinical-rules-rail span {
+    @apply type-label whitespace-nowrap;
+  }
+
+  .clinical-rules-section-rail {
+    @apply flex h-full min-h-0 flex-col items-center border-r border-border bg-muted/25 py-2;
+  }
+
+  .clinical-rules-section-rail nav {
+    @apply mt-2 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-1;
+  }
+
+  .clinical-rules-section-tab {
+    @apply flex min-h-20 w-9 shrink-0 items-center justify-center rounded-md border py-2 text-xs font-semibold opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .clinical-rules-section-tab.is-active {
+    @apply opacity-100 shadow-sm ring-1 ring-current;
+  }
+
+  .clinical-rules-section-tab span {
+    writing-mode: vertical-rl;
+    overflow: hidden;
+    max-height: 10rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .clinical-tone-primary {
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+    background: color-mix(in srgb, var(--primary) 9%, var(--background));
+    color: var(--foreground);
+  }
+
+  .clinical-tone-info {
+    border-color: var(--badge-info-border);
+    background: var(--badge-info-background);
+    color: var(--foreground);
+  }
+
+  .clinical-tone-success {
+    border-color: var(--badge-success-border);
+    background: var(--badge-success-background);
+    color: var(--foreground);
+  }
+
+  .clinical-tone-warning {
+    border-color: var(--badge-warning-border);
+    background: var(--badge-warning-background);
+    color: var(--foreground);
+  }
+
+  .clinical-tone-danger {
+    border-color: var(--badge-danger-border);
+    background: var(--badge-danger-background);
+    color: var(--foreground);
+  }
+
+  .clinical-trace-pass {
+    color: var(--badge-success-foreground);
+  }
+
+  .clinical-trace-fail {
+    color: var(--badge-danger-foreground);
+  }
+
   .login-page {
     @apply relative grid min-h-screen grid-rows-[auto_1fr_auto] overflow-hidden px-[clamp(20px,5vw,76px)] py-6;
     background: var(--background);
@@ -1256,6 +1339,39 @@
 }
 
 @media (min-width: 1280px) {
+  .clinical-rules-workspace {
+    height: calc(100dvh - 8.5rem);
+    min-height: 44rem;
+  }
+
+  .clinical-rules-layout {
+    grid-template-columns: var(--rule-list-width) auto minmax(32rem, 1fr) auto var(--preview-width);
+  }
+
+  .clinical-rules-layout.is-rule-list-collapsed {
+    grid-template-columns: 3rem minmax(32rem, 1fr) auto var(--preview-width);
+  }
+
+  .clinical-rules-editor-layout {
+    grid-template-columns: var(--sections-width) auto minmax(0, 1fr);
+  }
+
+  .clinical-rules-editor-layout.is-sections-collapsed {
+    grid-template-columns: 3rem minmax(0, 1fr);
+  }
+
+  .clinical-rules-divider {
+    @apply flex w-5;
+  }
+
+  .clinical-rules-rail {
+    @apply px-0 py-3;
+  }
+
+  .clinical-rules-rail span {
+    writing-mode: vertical-rl;
+  }
+
   .resizable-split-pane {
     @apply flex-row items-stretch;
     gap: clamp(0.25rem, 0.45vw, 0.5rem);

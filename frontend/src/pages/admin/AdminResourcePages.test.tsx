@@ -347,6 +347,70 @@ describe("AdminResourcePage", () => {
     expect(screen.getByLabelText("CLASSIFICATION")).toBeVisible()
   })
 
+  it("selects the exact subpanel clinical rule while keeping assay rules available", async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        form: {
+          sections: { identity: ["asp_id", "subpanel_id"], reporting: ["reporting"] },
+          fields: {
+            asp_id: {
+              label: "ASP",
+              display_type: "select",
+              options: ["solid_gmsv3"],
+            },
+            subpanel_id: {
+              label: "Subpanel",
+              display_type: "select",
+              default: "base",
+              options_by_field: {
+                field: "asp_id",
+                values: { solid_gmsv3: ["base", "endometrie"] },
+              },
+            },
+            reporting: {
+              label: "Reporting",
+              display_type: "reporting-structured",
+              groups: [{
+                title: "Report text",
+                fields: [{
+                  key: "clinical_rule_set_id",
+                  label: "Clinical Rule Set",
+                  type: "select",
+                  options_by_field: {
+                    field: "asp_id",
+                    values: {
+                      solid_gmsv3: [
+                        { value: "solid_gmsv3__base__sv", label: "Base rules", subpanel_id: "base" },
+                        { value: "solid_gmsv3__endometrie__sv", label: "Endometrie rules", subpanel_id: "endometrie" },
+                      ],
+                    },
+                  },
+                  auto_select: {
+                    field: "subpanel_id",
+                    option_field: "subpanel_id",
+                    fallback: "base",
+                  },
+                }],
+              }],
+            },
+          },
+        },
+      },
+    })
+    const user = userEvent.setup()
+    renderEditor("aspc", "create")
+
+    await user.selectOptions(await screen.findByRole("combobox", { name: "ASP" }), "solid_gmsv3")
+    const selector = screen.getByRole("combobox", { name: /Clinical Rule Set/ })
+    expect(selector).toHaveValue("solid_gmsv3__base__sv")
+    expect(screen.getByRole("option", { name: "Endometrie rules" })).toBeVisible()
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Subpanel" }), "endometrie")
+    expect(selector).toHaveValue("solid_gmsv3__endometrie__sv")
+    await user.selectOptions(selector, "solid_gmsv3__base__sv")
+    expect(selector).toHaveValue("solid_gmsv3__base__sv")
+  })
+
   it("shows ASP-scoped optional gene-list checkboxes and clears stale selections", async () => {
     mocks.get.mockResolvedValue({
       data: {

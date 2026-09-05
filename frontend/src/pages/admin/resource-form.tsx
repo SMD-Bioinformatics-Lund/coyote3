@@ -284,6 +284,8 @@ export function StructuredObjectField({
                     ? "checkbox-group"
                     : nested.type === "checkbox"
                       ? "checkbox"
+                      : nested.type === "select"
+                        ? "select"
                       : nested.type === "textarea" || nested.type === "list"
                         ? "textarea"
                         : "input",
@@ -503,6 +505,28 @@ export function AdminManagedForm({
       }
       const current = String(updated[dependentName] ?? "")
       updated[dependentName] = allowed.has(current) ? current : ""
+    })
+    Object.entries(form.fields || {}).forEach(([parentName, parentField]) => {
+      for (const group of parentField.groups || []) {
+        for (const nestedField of group.fields || []) {
+          const automatic = nestedField.auto_select
+          const dependency = nestedField.options_by_field
+          if (!automatic || !dependency) continue
+          if (name !== automatic.field && name !== dependency.field) continue
+          const available = optionsForDependency(nestedField, updated) || []
+          const requested = String(updated[automatic.field] || automatic.fallback || "")
+          const selected = available.find(
+            (option) => String(option?.[automatic.option_field] ?? "") === requested,
+          ) || available.find(
+            (option) => String(option?.[automatic.option_field] ?? "") === automatic.fallback,
+          )
+          const parentValue = updated[parentName]
+          updated[parentName] = {
+            ...(parentValue && typeof parentValue === "object" ? parentValue : {}),
+            [nestedField.key]: selected ? optionValue(selected) : "",
+          }
+        }
+      }
     })
     setValues(updated)
   }
