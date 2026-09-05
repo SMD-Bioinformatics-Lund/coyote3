@@ -14,6 +14,7 @@ from api.contracts.schemas.assay import (
     BlacklistDoc,
     InsilicoGenelistsDoc,
 )
+from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 from api.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
@@ -59,6 +60,8 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "sample_comments": TypeAdapter(SampleCommentRecordDoc),
     "finding_comments": TypeAdapter(FindingCommentRecordDoc),
     "reports": TypeAdapter(SampleReportRecordDoc),
+    "clinical_rule_sets": TypeAdapter(ClinicalRuleSetDoc),
+    "clinical_rule_revisions": TypeAdapter(ClinicalRuleRevisionDoc),
     "variants": TypeAdapter(VariantsDoc),
     "anno_vep": TypeAdapter(AnnoVepDoc),
     "cnvs": TypeAdapter(CnvsDoc),

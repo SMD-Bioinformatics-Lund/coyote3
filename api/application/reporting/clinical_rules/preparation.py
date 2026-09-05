@@ -239,8 +239,8 @@ def prepare_report_context(
             "environment": str(aspc.get("environment") or sample.get("environment") or ""),
             "reporting": {
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),
-                "general_report_summary": str(
-                    (aspc.get("reporting") or {}).get("general_report_summary") or ""
+                "clinical_rule_set_id": str(
+                    (aspc.get("reporting") or {}).get("clinical_rule_set_id") or ""
                 ),
             },
         },

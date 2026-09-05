@@ -263,7 +263,7 @@ def canonicalize_seed_contract(seed: dict[str, list[dict]]) -> None:
 
 
 def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> None:
-    for docs in seed.values():
+    for collection, docs in seed.items():
         if not isinstance(docs, list):
             continue
         for idx, doc in enumerate(docs):
@@ -271,10 +271,16 @@ def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> 
                 continue
             normalized_doc = normalize_extended_json(doc)
             docs[idx] = normalized_doc
+            if collection == "clinical_rule_revisions":
+                continue
             normalized_doc["created_by"] = seed_actor
             normalized_doc["updated_by"] = seed_actor
-            normalized_doc["created_on"] = seed_time
-            normalized_doc["updated_on"] = seed_time
+            if collection == "clinical_rule_sets":
+                normalized_doc["created_at"] = seed_time
+                normalized_doc["updated_at"] = seed_time
+            else:
+                normalized_doc["created_on"] = seed_time
+                normalized_doc["updated_on"] = seed_time
 
 
 def main() -> int:

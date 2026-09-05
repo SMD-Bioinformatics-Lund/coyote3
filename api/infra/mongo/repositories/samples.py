@@ -999,6 +999,8 @@ class SampleRepository(BaseRepository):
         self,
         *,
         asp_ids: list[str] | None = None,
+        environments: list[str] | None = None,
+        subpanel_id: str | None = None,
         search_str: str = "",
         page: int = 1,
         per_page: int = 30,
@@ -1008,6 +1010,10 @@ class SampleRepository(BaseRepository):
         query: dict[str, Any] = {"ingest_status": "ready"} if ready_only else {}
         if asp_ids is not None:
             query["asp_id"] = {"$in": asp_ids}
+        if environments is not None:
+            query["environment"] = {"$in": environments}
+        if subpanel_id:
+            query["subpanel_id"] = {"$in": ["base", None]} if subpanel_id == "base" else subpanel_id
         normalized_q = str(search_str or "").strip()
         if normalized_q:
             pattern = re.escape(normalized_q)

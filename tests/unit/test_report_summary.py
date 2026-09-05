@@ -72,10 +72,3 @@ def test_create_comment_doc_global_annotation_has_flat_variant_identities(monkey
     assert doc["hgvsc"] == "c.265A>G"
     assert doc["genomic"] == "17_76736896_T_C"
     assert "genomic_hash" in doc
-
-
-def test_summarize_bio_uses_current_msi_percentage_key():
-    """Biomarker report text uses the current `per` field from the DB contract."""
-    text = report_summary.summarize_bio([{"MSIS": {"tot": 10, "som": 2, "per": 20.0}}])
-
-    assert "20.0% mikrosatellitinstabilitet" in text

@@ -1,0 +1,42 @@
+[
+  {
+    "rule_set_id": "assay_1__base__sv",
+    "schema_version": 1,
+    "content_version": 1,
+    "revision": 1,
+    "scope": {
+      "asp_id": "assay_1",
+      "subpanel_id": "base",
+      "analyte": "dna",
+      "language": "sv"
+    },
+    "name": "Synthetic clinical rule draft",
+    "status": "draft",
+    "active": false,
+    "minimum_engine_version": 1,
+    "analysis_declarations": {},
+    "terminology": {},
+    "blocks": [],
+    "test_cases": [],
+    "references": [],
+    "change_summary": "Synthetic fixture",
+    "review": {
+      "submitted_by": null,
+      "submitted_at": null,
+      "clinical_reviewer": null,
+      "clinical_decision_at": null,
+      "clinical_decision_reason": null
+    },
+    "lifecycle": [],
+    "created_at": "2026-01-01T10:00:00+00:00",
+    "created_by": "system",
+    "updated_at": "2026-01-01T10:00:00+00:00",
+    "updated_by": "system",
+    "published_at": null,
+    "published_by": null,
+    "effective_from": null,
+    "retired_at": null,
+    "retired_by": null,
+    "content_hash": null
+  }
+]

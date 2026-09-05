@@ -260,6 +260,58 @@ Optional keys:
 - `iscn_name` (str | None)
 - `source_record` (dict[str, str])
 
+## `clinical_rule_revisions`
+
+Required keys:
+- `rule_set_oid` (str)
+- `rule_set_id` (str)
+- `content_version` (int)
+- `revision` (int)
+- `action` (str)
+- `actor` (str)
+- `occurred_at` (datetime)
+- `revision_hash` (str)
+- `document` (ClinicalRuleSetDoc)
+
+Optional keys:
+- `id_` (Any | None)
+- `reason` (str | None)
+- `previous_revision_hash` (str | None)
+
+## `clinical_rule_sets`
+
+Required keys:
+- `rule_set_id` (str)
+- `content_version` (int)
+- `revision` (int)
+- `scope` (ClinicalRuleScope)
+- `name` (str)
+- `status` (ClinicalRuleStatus)
+- `created_at` (datetime)
+- `created_by` (str)
+- `updated_at` (datetime)
+- `updated_by` (str)
+
+Optional keys:
+- `id_` (Any | None)
+- `schema_version` (Literal[1])
+- `active` (bool)
+- `minimum_engine_version` (int)
+- `analysis_declarations` (dict[str, api.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration])
+- `terminology` (dict[str, Any])
+- `blocks` (list[api.contracts.schemas.clinical_rules.ClinicalRuleBlock])
+- `test_cases` (list[api.contracts.schemas.clinical_rules.ClinicalRuleTestCase])
+- `references` (list[dict[str, Any]])
+- `change_summary` (str)
+- `review` (ClinicalRuleReview)
+- `lifecycle` (list[api.contracts.schemas.clinical_rules.ClinicalRuleLifecycleEvent])
+- `published_at` (datetime.datetime | None)
+- `published_by` (str | None)
+- `effective_from` (datetime.datetime | None)
+- `retired_at` (datetime.datetime | None)
+- `retired_by` (str | None)
+- `content_hash` (str | None)
+
 ## `clinpgx_genes_public`
 
 Required keys:

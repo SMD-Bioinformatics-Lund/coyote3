@@ -7,7 +7,6 @@ from pathlib import Path
 API_CONFIG_DIR = Path(__file__).resolve().parent
 REPO_ROOT = API_CONFIG_DIR.parents[1]
 CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
-CLINICAL_REPORTING_RULES_DIR = REPO_ROOT / "clinical_reporting_rules"
 
 # Container filesystem contract. Compose mounts the center-owned host data root
 # at /data for every API and Celery container; runtime code never receives host

@@ -21,6 +21,9 @@ from werkzeug.security import generate_password_hash  # noqa: E402
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
+from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
+    build_revision_snapshot,
+)
 from scripts.build_seed_bundle import (  # noqa: E402
     canonicalize_seed_contract,
     load_reference_seed_pack,
@@ -167,6 +170,30 @@ def _insert_if_empty(db, collection: str, documents: list[dict]) -> str:
     return "loaded"
 
 
+def _seed_clinical_rule_revisions(
+    db, *, rules_collection: str, revisions_collection: str, actor: str
+) -> str:
+    revisions = db[revisions_collection]
+    captured = 0
+    occurred_at = datetime.now(timezone.utc)
+    for document in db[rules_collection].find({}).sort("_id", 1):
+        rule_set_oid = str(document["_id"])
+        if revisions.count_documents({"rule_set_oid": rule_set_oid}, limit=1):
+            continue
+        revisions.insert_one(
+            build_revision_snapshot(
+                document,
+                action="baseline_captured",
+                actor=actor,
+                occurred_at=occurred_at,
+                reason="Initial immutable baseline captured during database bootstrap",
+                previous_revision_hash=None,
+            )
+        )
+        captured += 1
+    return "loaded" if captured else "skipped"
+
+
 def _initialize_governance(
     db,
     *,
@@ -244,14 +271,29 @@ def main() -> int:
             "assay_specific_panels": primary_mapping["asp_collection"],
             "asp_configs": primary_mapping["aspc_collection"],
             "insilico_genelists": primary_mapping["insilico_genelist_collection"],
+            "clinical_rule_sets": primary_mapping["clinical_rule_sets_collection"],
+            "clinical_rule_revisions": primary_mapping["clinical_rule_revisions_collection"],
         }
         for logical_name in ("hgnc_genes", "vep_metadata"):
             collection = primary_collections[logical_name]
             print(f"[{_insert_if_empty(db, collection, seed[logical_name])}] {logical_name}")
-        for logical_name in ("assay_specific_panels", "asp_configs", "insilico_genelists"):
+        for logical_name in (
+            "assay_specific_panels",
+            "clinical_rule_sets",
+            "asp_configs",
+            "insilico_genelists",
+        ):
             if logical_name in seed:
                 collection = primary_collections[logical_name]
                 print(f"[{_insert_if_empty(db, collection, seed[logical_name])}] {logical_name}")
+        if "clinical_rule_sets" in seed:
+            result = _seed_clinical_rule_revisions(
+                db,
+                rules_collection=primary_collections["clinical_rule_sets"],
+                revisions_collection=primary_collections["clinical_rule_revisions"],
+                actor=actor,
+            )
+            print(f"[{result}] clinical_rule_revisions")
     finally:
         client.close()
 

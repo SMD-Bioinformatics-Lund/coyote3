@@ -67,6 +67,18 @@ permission grants no access until it is reactivated.
 | `internal.task:view` | View internal task status | View Celery state and result details for internal background tasks. |
 | `ui.route_audit:view` | View UI route audit | Review the frontend route inventory, API dependencies, and consumed response fields. |
 
+## Clinical Reporting Rules
+
+| Permission ID | Label | What it permits |
+| --- | --- | --- |
+| `clinical_rules:clinical_review` | Clinically review reporting rules | Start clinical review and approve or reject submitted clinical reporting content. |
+| `clinical_rules:draft` | Draft clinical reporting rules | Create, edit, validate, and preview draft clinical reporting rule sets. |
+| `clinical_rules:publish` | Publish clinical reporting rules | Publish an independently approved clinical reporting rule-set version. |
+| `clinical_rules:retire` | Retire clinical reporting rules | Retire an active published clinical reporting rule-set version while retaining its history. |
+| `clinical_rules:submit` | Submit clinical reporting rules | Submit a validated clinical reporting rule-set draft for independent review. |
+| `clinical_rules:test` | Test clinical reporting rules | Run a rule-set version against authorized sample data without changing the sample or saving a report. |
+| `clinical_rules:view` | View clinical reporting rules | View published clinical reporting rules, draft work queues, release history, and provenance. |
+
 ## Data Downloads
 
 | Permission ID | Label | What it permits |

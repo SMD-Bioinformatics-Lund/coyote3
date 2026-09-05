@@ -23,6 +23,7 @@ TAG_ADMIN_OPERATIONS = "Admin: Operations"
 TAG_ADMIN_ASSAYS = "Admin: Assays & Gene Lists"
 TAG_ADMIN_USERS = "Admin: Users"
 TAG_ADMIN_ACCESS = "Admin: Roles & Permissions"
+TAG_CLINICAL_RULES = "Clinical Reporting Rules"
 TAG_INTERNAL = "Internal Ingest & Maintenance"
 
 OPENAPI_TAGS = [
@@ -71,6 +72,10 @@ OPENAPI_TAGS = [
         "description": "Report preview, snapshot, save, HTML/PDF artifact, and context endpoints.",
     },
     {
+        "name": TAG_CLINICAL_RULES,
+        "description": "Governed clinical report-rule authoring, validation, review, and releases.",
+    },
+    {
         "name": TAG_KNOWLEDGEBASE,
         "description": (
             "Gene information, tiered variant search, annotations, external knowledgebases "
@@ -111,6 +116,7 @@ __all__ = [
     "TAG_AUTH",
     "TAG_BIOMARKERS",
     "TAG_CLINICAL_SAMPLES",
+    "TAG_CLINICAL_RULES",
     "TAG_COVERAGE",
     "TAG_DASHBOARD",
     "TAG_DNA_CNV",

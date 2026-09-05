@@ -21,6 +21,7 @@ from api.application.reporting.snapshot_rows import (
 )
 from api.config.constants import primary_analysis_file_key
 from api.config.database_versions import sample_vep_version
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.domain.common.assay_filters import (
     get_assay_genelist_names,
     get_sample_effective_genes,
@@ -526,6 +527,9 @@ def build_dna_report_payload(
     annotation_repository,
     pgx_repository=None,
     clinical_rule_service=None,
+    clinical_rule_override: ClinicalRuleSetDoc | None = None,
+    clinical_rule_only: bool = False,
+    clinical_rule_condition_trace: bool = False,
 ) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
     """
     Build DNA report template context and optional reported-variant snapshot rows.
@@ -543,10 +547,11 @@ def build_dna_report_payload(
 
     assay_panel_doc = assay_panel_repository.get_asp(asp_name=sample_assay)
     # Preserve assay genelist hydration step for parity with historical report flow.
-    _insilico_panel_genelists = list(
-        gene_list_repository.get_isgl_by_asp(sample_assay, is_active=True) or []
-    )
-    _all_panel_genelist_names = get_assay_genelist_names(_insilico_panel_genelists)
+    if not clinical_rule_only:
+        _insilico_panel_genelists = list(
+            gene_list_repository.get_isgl_by_asp(sample_assay, is_active=True) or []
+        )
+        get_assay_genelist_names(_insilico_panel_genelists)
 
     sample, sample_filters = _ensure_sample_filters(sample, assay_config)
     genes_covered_in_panel, filter_genes = _resolve_filter_genes(
@@ -579,9 +584,9 @@ def build_dna_report_payload(
         ),
     )
 
-    variants = variant_repository.hydrate_finding_comments_many(
-        list(variant_repository.get_case_variants(query) or [])
-    )
+    variants = list(variant_repository.get_case_variants(query) or [])
+    if not clinical_rule_only:
+        variants = variant_repository.hydrate_finding_comments_many(variants)
     variants = blacklist_repository.add_blacklist_data(variants, assay=assay_group)
 
     variants, tiered_variants = shared_add_global_annotations(
@@ -599,8 +604,10 @@ def build_dna_report_payload(
         ),
     )
 
-    latest_sample_comment = sample_repository.get_latest_sample_comment(
-        sample_id=str(sample["_id"])
+    latest_sample_comment = (
+        None
+        if clinical_rule_only
+        else sample_repository.get_latest_sample_comment(sample_id=str(sample["_id"]))
     )
 
     snapshot_rows: List[Dict[str, Any]] = []
@@ -612,8 +619,9 @@ def build_dna_report_payload(
             latest_sample_comment=latest_sample_comment,
         )
 
-    variants_simple = get_simple_variants_for_report(variants, assay_config)
-    report_sections_data["snvs"] = sort_by_class_and_af(variants_simple)
+    if not clinical_rule_only:
+        variants_simple = get_simple_variants_for_report(variants, assay_config)
+        report_sections_data["snvs"] = sort_by_class_and_af(variants_simple)
     rule_sections_data: Dict[str, Any] = {"snvs": variants}
 
     germline_variants: list[dict[str, Any]] = []
@@ -637,9 +645,9 @@ def build_dna_report_payload(
             ),
             intent="germline",
         )
-        germline_variants = variant_repository.hydrate_finding_comments_many(
-            list(variant_repository.get_case_variants(germline_query) or [])
-        )
+        germline_variants = list(variant_repository.get_case_variants(germline_query) or [])
+        if not clinical_rule_only:
+            germline_variants = variant_repository.hydrate_finding_comments_many(germline_variants)
         germline_variants = blacklist_repository.add_blacklist_data(
             germline_variants, assay=assay_group
         )
@@ -668,9 +676,11 @@ def build_dna_report_payload(
                     intent="germline",
                 )
             )
-        report_sections_data["germline_snvs"] = sort_by_class_and_af(
-            get_simple_variants_for_report(germline_variants, assay_config)
-        )
+        if not clinical_rule_only:
+            report_sections_data["germline_snvs"] = sort_by_class_and_af(
+                get_simple_variants_for_report(germline_variants, assay_config)
+            )
+        rule_sections_data["germline_snvs"] = germline_variants
 
     if "CNV" in report_sections:
         cnv_filter_genes = _resolve_cnv_filter_genes(
@@ -697,7 +707,7 @@ def build_dna_report_payload(
         if include_snapshot:
             snapshot_rows.extend(build_cnv_snapshot_rows(report_sections_data["cnvs"]))
 
-    if "CNV_PROFILE" in report_sections:
+    if "CNV_PROFILE" in report_sections and not clinical_rule_only:
         report_sections_data["cnv_profile_base64"] = get_plot(
             os.path.basename(
                 _sample_file_path(sample, primary_analysis_file_key("dna", "CNV_PROFILE"))
@@ -759,15 +769,6 @@ def build_dna_report_payload(
         if include_snapshot:
             snapshot_rows.extend(build_pgx_snapshot_rows(report_sections_data["pgx"]))
 
-    assay_config["reporting"]["report_header"] = get_report_header(
-        assay_group,
-        sample,
-        assay_config["reporting"].get("report_header", "Unknown"),
-    )
-
-    vep_variant_class_meta = vep_metadata_repository.get_variant_class_translations(
-        sample_vep_version
-    )
     selected_list_ids = list(
         dict.fromkeys(
             [
@@ -805,13 +806,37 @@ def build_dna_report_payload(
         applied_gene_lists=applied_gene_lists,
         report_sections_data=rule_sections_data,
     )
-    clinical_rule_evaluation = (
-        clinical_rule_service.evaluate(
-            aspc=assay_config,
-            context=prepared_rule_context,
+    clinical_rule_evaluation = None
+    if clinical_rule_service is not None:
+        clinical_rule_evaluation = (
+            clinical_rule_service.evaluate_document(
+                rule_set=clinical_rule_override,
+                context=prepared_rule_context,
+                include_condition_trace=clinical_rule_condition_trace,
+            )
+            if clinical_rule_override is not None
+            else clinical_rule_service.evaluate(aspc=assay_config, context=prepared_rule_context)
         )
-        if clinical_rule_service is not None
-        else None
+    if clinical_rule_only:
+        return (
+            "",
+            {
+                "clinical_rule_evaluation": (
+                    clinical_rule_evaluation.model_dump(mode="json")
+                    if clinical_rule_evaluation
+                    else None
+                )
+            },
+            [],
+        )
+
+    assay_config["reporting"]["report_header"] = get_report_header(
+        assay_group,
+        sample,
+        assay_config["reporting"].get("report_header", "Unknown"),
+    )
+    vep_variant_class_meta = vep_metadata_repository.get_variant_class_translations(
+        sample_vep_version
     )
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()

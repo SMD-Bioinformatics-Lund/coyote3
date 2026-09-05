@@ -8,6 +8,7 @@ from api.application.reporting.persistence import (
 from api.application.reporting.persistence import (
     prepare_report_output as prepare_shared_report_output,
 )
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.domain.core.reporting.report_paths import build_report_file_location
 from api.domain.core.workflows.contracts import validate_report_inputs
 
@@ -92,7 +93,14 @@ class DNAWorkflowService:
         )
 
     def build_report_payload(
-        self, sample: dict, assay_config: dict, save: int, include_snapshot: bool
+        self,
+        sample: dict,
+        assay_config: dict,
+        save: int,
+        include_snapshot: bool,
+        clinical_rule_override: ClinicalRuleSetDoc | None = None,
+        clinical_rule_only: bool = False,
+        clinical_rule_condition_trace: bool = False,
     ):
         """Build the DNA report payload and optional snapshot rows."""
         return build_dna_report_payload(
@@ -112,6 +120,9 @@ class DNAWorkflowService:
             vep_metadata_repository=self.vep_metadata_repository,
             annotation_repository=self.annotation_repository,
             clinical_rule_service=self.clinical_rule_service,
+            clinical_rule_override=clinical_rule_override,
+            clinical_rule_only=clinical_rule_only,
+            clinical_rule_condition_trace=clinical_rule_condition_trace,
         )
 
     @staticmethod

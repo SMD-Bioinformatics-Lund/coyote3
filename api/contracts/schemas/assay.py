@@ -47,10 +47,10 @@ class AssayPanelToAssayGroupMappingDoc(_DocBase):
 class AspcReportingDoc(_StrictDocBase):
     # Reporting
     report_sections: list[str] = Field(default_factory=list)
+    clinical_rule_set_id: str
     report_header: str
     report_method: str
     report_description: str
-    general_report_summary: str
     plots_path: str
     report_folder: str
 
@@ -72,8 +72,8 @@ class AspcReportingDoc(_StrictDocBase):
         if not self.report_description:
             raise ValueError("report_description cannot be empty")
 
-        if not self.general_report_summary:
-            raise ValueError("general_report_summary cannot be empty")
+        if not self.clinical_rule_set_id:
+            raise ValueError("clinical_rule_set_id cannot be empty")
 
         return self
 

@@ -40,7 +40,7 @@ class PreparedAspcReportingFacts(_FactModel):
     """Stable ASPC reporting facts."""
 
     report_sections: list[str] = Field(default_factory=list)
-    general_report_summary: str = ""
+    clinical_rule_set_id: str
 
 
 class PreparedAspcFacts(_FactModel):
@@ -144,8 +144,12 @@ class PreparedReportContext(BaseModel):
     biomarkers: list[dict[str, Any]] = Field(default_factory=list)
     aggregates: PreparedAggregateFacts = Field(default_factory=PreparedAggregateFacts)
 
-    def evaluation_scope(self, finding: PreparedFindingFacts | None = None) -> dict[str, Any]:
-        """Return the allowlisted root objects exposed to rules and templates."""
+    def evaluation_scope(
+        self,
+        finding: PreparedFindingFacts | None = None,
+        item: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Return the allowlisted root objects exposed to clinical rules."""
         return {
             "sample": self.sample.model_dump(mode="python"),
             "asp": self.asp.model_dump(mode="python"),
@@ -154,6 +158,7 @@ class PreparedReportContext(BaseModel):
                 gene_list.model_dump(mode="python") for gene_list in self.applied_gene_lists
             ],
             "finding": finding.model_dump(mode="python") if finding else {},
+            "item": dict(item or {}),
             "findings": [item.model_dump(mode="python") for item in self.findings],
             "biomarkers": self.biomarkers,
             "aggregates": self.aggregates.model_dump(mode="python"),

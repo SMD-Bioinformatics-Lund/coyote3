@@ -59,7 +59,6 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
         sample=sample,
         util_module=util_module,
         add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
-        generate_summary_text_fn=lambda *args, **kwargs: "",
         build_query_fn=lambda assay_group, params, intent="somatic": {
             "assay_group": assay_group,
             "intent": intent,
@@ -122,7 +121,6 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
             enriched_counts.append(len(rows)) or rows,
             [],
         ),
-        generate_summary_text_fn=lambda *args, **kwargs: "",
         build_query_fn=lambda assay_group, params, intent="somatic": {},
         get_filter_conseq_terms_fn=lambda values: [],
         assay_config_getter=lambda _sample: assay_config,
@@ -181,7 +179,6 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
         sample=sample,
         util_module=util_module,
         add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
-        generate_summary_text_fn=lambda *args, **kwargs: "",
         build_query_fn=lambda assay_group, params, intent="somatic": {
             "assay_group": assay_group,
             "intent": intent,
@@ -210,7 +207,6 @@ def test_list_variants_payload_rejects_unconfigured_analysis_intent() -> None:
             sample=sample,
             util_module=SimpleNamespace(),
             add_global_annotations_fn=lambda *args: ([], []),
-            generate_summary_text_fn=lambda *args: "",
             build_query_fn=lambda *args, **kwargs: {},
             get_filter_conseq_terms_fn=lambda *args: [],
             assay_config_getter=lambda _sample: {"analysis_types": ["SNV"]},

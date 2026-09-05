@@ -1,74 +1,44 @@
-"""Static YAML rule-source selection and evaluation."""
+"""Runtime resolution and evaluation of published clinical report rules."""
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import Any
 
-from api.application.reporting.clinical_rules.compiler import ClinicalRuleCompiler
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.config.constants import (
-    SUBPANEL_BASE_ID,
-    normalize_analysis_type,
-    normalize_clinical_identifier,
-)
-from api.config.paths import CLINICAL_REPORTING_RULES_DIR
-from api.contracts.schemas.clinical_rules import ClinicalRuleEvaluation, ClinicalRuleSetSource
+from api.application.reporting.clinical_rules.validation import ENGINE_VERSION, content_hash
+from api.config.constants import normalize_analysis_type
+from api.contracts.schemas.clinical_rules import ClinicalRuleEvaluation, ClinicalRuleSetDoc
 
 
 class ClinicalRuleService:
-    """Resolve repository-owned rules by stable ASP and subpanel identifiers."""
+    """Resolve the explicitly bound active release and evaluate prepared facts."""
 
-    def __init__(
-        self,
-        *,
-        rules_root: str | Path = CLINICAL_REPORTING_RULES_DIR,
-        compiler: ClinicalRuleCompiler | None = None,
-        evaluator: ClinicalRuleEvaluator | None = None,
-    ) -> None:
-        self.rules_root = Path(rules_root)
-        self.compiler = compiler or ClinicalRuleCompiler()
+    def __init__(self, repository: Any, evaluator: ClinicalRuleEvaluator | None = None) -> None:
+        self.repository = repository
         self.evaluator = evaluator or ClinicalRuleEvaluator()
 
     @classmethod
-    def from_store(cls, _store) -> "ClinicalRuleService":
-        """Create the static service; report rules do not depend on MongoDB."""
-        return cls()
+    def from_store(cls, store: Any) -> "ClinicalRuleService":
+        return cls(store.clinical_rule_set_repository)
 
-    def _source_paths(self, *, asp_id: str, subpanel_id: str) -> list[Path]:
-        directory = self.rules_root / normalize_clinical_identifier(asp_id, label="asp_id")
-        requested = normalize_clinical_identifier(
-            subpanel_id or SUBPANEL_BASE_ID,
-            label="subpanel_id",
-        )
-        paths = [directory / f"{requested}.yaml"]
-        if requested != SUBPANEL_BASE_ID:
-            paths.append(directory / f"{SUBPANEL_BASE_ID}.yaml")
-        return paths
-
-    def resolve(self, *, context: PreparedReportContext) -> tuple[ClinicalRuleSetSource, Path]:
-        """Load the exact subpanel file or that ASP's complete ``base.yaml`` fallback."""
-        asp_id = normalize_clinical_identifier(
-            context.asp.asp_id or context.sample.asp_id,
-            label="asp_id",
-        )
-        subpanel_id = normalize_clinical_identifier(
-            context.aspc.subpanel_id or SUBPANEL_BASE_ID,
-            label="subpanel_id",
-        )
-        for source_path in self._source_paths(asp_id=asp_id, subpanel_id=subpanel_id):
-            if not source_path.is_file():
-                continue
-            source = self.compiler.load(source_path)
-            if source.rule_set.analyte != context.sample.omics_layer:
-                raise ValueError("Clinical rule source analyte does not match the report context")
-            if source.rule_set.asp_id != asp_id:
-                raise ValueError("Clinical rule source ASP does not match the report context")
-            return source, source_path
-        raise ValueError(
-            "No clinical rule source exists for ASP "
-            f"'{asp_id}' and subpanel '{subpanel_id}', including base.yaml fallback"
-        )
+    def resolve(self, *, context: PreparedReportContext) -> ClinicalRuleSetDoc:
+        rule_set_id = context.aspc.reporting.clinical_rule_set_id
+        if not rule_set_id:
+            raise ValueError("ASPC does not define reporting.clinical_rule_set_id")
+        document = self.repository.get_active(rule_set_id)
+        if document is None:
+            raise ValueError(f"No active published clinical rule set exists for '{rule_set_id}'")
+        rule_set = ClinicalRuleSetDoc.model_validate(document)
+        if rule_set.minimum_engine_version > ENGINE_VERSION:
+            raise ValueError(
+                f"Clinical rule set requires engine version {rule_set.minimum_engine_version}"
+            )
+        if rule_set.scope.analyte != context.sample.omics_layer:
+            raise ValueError("Clinical rule-set analyte does not match the report context")
+        if rule_set.content_hash != content_hash(rule_set):
+            raise ValueError("Published clinical rule-set content failed integrity validation")
+        return rule_set
 
     @staticmethod
     def _report_sections(context: PreparedReportContext) -> set[str]:
@@ -81,25 +51,39 @@ class ClinicalRuleService:
     def evaluate(
         self,
         *,
-        aspc: dict,
+        aspc: dict[str, Any],
         context: PreparedReportContext,
     ) -> ClinicalRuleEvaluation:
-        """Evaluate the selected static source against one prepared report result."""
         _ = aspc
-        source, source_path = self.resolve(context=context)
+        rule_set = self.resolve(context=context)
+        return self.evaluate_document(rule_set=rule_set, context=context)
+
+    def evaluate_document(
+        self,
+        *,
+        rule_set: ClinicalRuleSetDoc,
+        context: PreparedReportContext,
+        include_condition_trace: bool = False,
+    ) -> ClinicalRuleEvaluation:
+        """Evaluate an explicitly selected rule version against prepared report facts."""
+        if rule_set.minimum_engine_version > ENGINE_VERSION:
+            raise ValueError(
+                f"Clinical rule set requires engine version {rule_set.minimum_engine_version}"
+            )
+        if rule_set.scope.analyte != context.sample.omics_layer:
+            raise ValueError("Clinical rule-set analyte does not match the report context")
         report_sections = self._report_sections(context)
-        undeclared = sorted(report_sections - set(source.analyses))
+        undeclared = sorted(report_sections - set(rule_set.analysis_declarations))
         if undeclared:
             raise ValueError(
-                "Clinical rule source does not declare every ASPC report section: "
+                "Clinical rule set does not declare every ASPC report section: "
                 + ", ".join(undeclared)
             )
         return self.evaluator.evaluate(
             context,
-            source,
-            source_path=source_path.relative_to(self.rules_root.parent),
-            content_hash=self.compiler.content_hash(source),
+            rule_set,
             reporting_analyses=report_sections,
+            include_condition_trace=include_condition_trace,
         )
 
 

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from api.application.reporting import dna_report_payload as dna_payload
 from api.application.reporting import dna_workflow, rna_workflow
 
 
@@ -246,7 +247,10 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
                 }
             },
         ),
-        variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
+        variant_repository=SimpleNamespace(
+            get_case_variants=lambda query: [],
+            hydrate_finding_comments_many=lambda rows: rows,
+        ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
         sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
         copy_number_variant_repository=SimpleNamespace(
@@ -282,6 +286,92 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
     assert snapshot_rows[0]["analysis_type"] == "CNV"
     assert snapshot_rows[0]["var_oid"] == "cnv3"
     assert [cnv["_id"] for cnv in context["report_sections_data"]["cnvs"]] == ["cnv3"]
+
+
+def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
+    def unexpected(*_args, **_kwargs):
+        raise AssertionError("display-only report work must not run during rule testing")
+
+    monkeypatch.setattr(dna_payload, "get_plot", unexpected)
+    template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+        sample={
+            "_id": "s1",
+            "name": "S1",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
+            "database_versions": {"vep": "110"},
+            "filters": {"somatic": {"snv": {"snvlists": [], "vep_consequences": []}}},
+        },
+        assay_config={
+            "asp_group": "hematology",
+            "filters": {"somatic": {"snv": {"snvlists": [], "vep_consequences": []}}},
+            "reporting": {"report_sections": ["SNV", "CNV_PROFILE"]},
+        },
+        assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {}),
+        gene_list_repository=SimpleNamespace(
+            get_isgl_by_asp=unexpected,
+            get_isgl_by_ids=lambda ids: {},
+        ),
+        variant_repository=SimpleNamespace(
+            get_case_variants=lambda query: [],
+            hydrate_finding_comments_many=unexpected,
+        ),
+        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+        sample_repository=SimpleNamespace(get_latest_sample_comment=unexpected),
+        copy_number_variant_repository=SimpleNamespace(),
+        biomarker_repository=SimpleNamespace(),
+        translocation_repository=SimpleNamespace(),
+        vep_metadata_repository=SimpleNamespace(
+            get_consequence_group_map=lambda version: {},
+            get_variant_class_translations=unexpected,
+        ),
+        annotation_repository=SimpleNamespace(),
+        clinical_rule_service=SimpleNamespace(
+            evaluate_document=lambda **kwargs: SimpleNamespace(
+                model_dump=lambda **options: {"sections": {}, "trace": []}
+            )
+        ),
+        clinical_rule_override=SimpleNamespace(),
+        clinical_rule_only=True,
+    )
+
+    assert template_name == ""
+    assert context["clinical_rule_evaluation"] == {"sections": {}, "trace": []}
+    assert snapshot_rows == []
+
+
+def test_rna_clinical_rule_only_payload_skips_print_report_work():
+    def unexpected(*_args, **_kwargs):
+        raise AssertionError("display-only report work must not run during rule testing")
+
+    workflow = _rna_workflow(
+        sample_repository=SimpleNamespace(get_latest_sample_comment=unexpected),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
+        fusion_repository=SimpleNamespace(
+            get_sample_fusions=lambda query: [],
+            hydrate_finding_comments_many=unexpected,
+        ),
+        assay_panel_repository=SimpleNamespace(get_asp=lambda asp_id: {}),
+    )
+    workflow.pgx_repository = None
+    workflow.clinical_rule_service = SimpleNamespace(
+        evaluate_document=lambda **kwargs: SimpleNamespace(
+            model_dump=lambda **options: {"sections": {}, "trace": []}
+        )
+    )
+
+    template_name, context, snapshot_rows = workflow.build_report_payload(
+        sample={"_id": "s1", "name": "S1", "asp_id": "rna_assay"},
+        assay_config={"asp_group": "rna", "reporting": {"report_sections": ["FUSION"]}},
+        save=0,
+        include_snapshot=False,
+        clinical_rule_override=SimpleNamespace(),
+        clinical_rule_only=True,
+    )
+
+    assert template_name == ""
+    assert context["clinical_rule_evaluation"] == {"sections": {}, "trace": []}
+    assert snapshot_rows == []
 
 
 def test_rna_workflow_merge_and_persist_filters(monkeypatch):
@@ -425,6 +515,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
             dict(fusion_doc),
             dict(tier_four_interesting_fusion),
         ],
+        hydrate_finding_comments_many=lambda rows: rows,
         get_fusion_annotations=lambda fusion: ([{"text": "a"}], fusion.get("classification")),
     )
 

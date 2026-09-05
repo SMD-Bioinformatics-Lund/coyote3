@@ -495,7 +495,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         store.gene_list_repository, "get_isgl_by_asp", lambda assay, is_active=True: []
     )
     monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
-    monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     req = SimpleNamespace(

@@ -13,6 +13,8 @@ from api.application.common.table_state import (
 )
 from api.application.dna.export import consequence_terms
 from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
+from api.application.reporting.clinical_rules.preparation import prepare_report_context
+from api.application.reporting.clinical_rules.service import rendered_summary
 from api.application.reporting.dna_report_payload import hotspot_variant
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.managed_resources import aspc_spec_for_category
@@ -379,7 +381,6 @@ def list_variants_payload(
     sample: dict,
     util_module,
     add_global_annotations_fn,
-    generate_summary_text_fn,
     build_query_fn,
     get_filter_conseq_terms_fn,
     assay_config_getter,
@@ -603,13 +604,46 @@ def list_variants_payload(
             translocation_restricted=translocation_restricted,
             assay_group=assay_group,
         )
-        ai_text = generate_summary_text_fn(
-            sample_ids,
-            assay_config,
-            assay_panel_doc,
-            summary_sections_data,
-            filter_genes,
-            checked_snvlists,
+        translocation_filters = merged_dna_translocation_filters(sample_filters)
+        selected_list_ids = list(
+            dict.fromkeys(
+                [
+                    *checked_snvlists,
+                    *cnv_filters.get("cnvlists", []),
+                    *translocation_filters.get("fusionlists", []),
+                ]
+            )
+        )
+        selected_list_docs = service.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        applied_gene_lists = [
+            {
+                **document,
+                "isgl_id": isgl_id,
+                "selected_for": [
+                    domain
+                    for domain, selected_ids in (
+                        ("snv", checked_snvlists),
+                        ("cnv", cnv_filters.get("cnvlists", [])),
+                        ("translocation", translocation_filters.get("fusionlists", [])),
+                    )
+                    if isgl_id in selected_ids
+                ],
+            }
+            for isgl_id, document in selected_list_docs.items()
+        ]
+        context = prepare_report_context(
+            sample=sample,
+            asp=assay_panel_doc or {},
+            aspc=assay_config,
+            analyte="dna",
+            applied_gene_lists=applied_gene_lists,
+            report_sections_data=summary_sections_data,
+            intent=intent,
+        )
+        ai_text = rendered_summary(
+            service.clinical_rule_service.evaluate(aspc=assay_config, context=context)
+            if service.clinical_rule_service is not None
+            else None
         )
     else:
         display_sections_data = {"snvs": variants_page}
