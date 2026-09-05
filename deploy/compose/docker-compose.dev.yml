@@ -34,7 +34,6 @@ services:
     volumes: &dev-app-volumes
       - ../../.git:/app/.git:ro
       - ../../api:/app/api
-      - ../../clinical_reporting_rules:/app/clinical_reporting_rules:ro
       - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
       - ../../docs:/app/docs
       - ../../CHANGELOG.md:/app/CHANGELOG.md:ro

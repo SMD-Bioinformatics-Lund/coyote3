@@ -63,30 +63,26 @@ docker compose -f <your-v3-compose-file> down
 
 ---
 
-## Step 3 — Populate canonical clinical reporting rules
+## Step 3 — Verify canonical clinical reporting rules
 
-Convert and validate approved rule content before the strict ASPC contract is
-loaded by the application. Use distinct migration and clinical-review identities.
+Ensure `clinical_rule_sets` is populated in the target database before app startup,
+and verify that each ASPC binding points to an active published rule set:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_clinical_reporting_rules.py \
-  --mongo-uri "${MONGO_URI}" \
-  --db "${COYOTE3_DB}" \
-  --actor reporting.migration \
-  --clinical-reviewer clinical.reviewer \
-  --dry-run
+mongosh "${MONGO_URI}/${COYOTE3_DB}" --eval 'db.asp_configs.countDocuments({ "reporting.clinical_rule_set_id": { $exists: true, $ne: "" } })'
 ```
 
-Review the complete plan, then repeat without `--dry-run`. The command requires
-an empty `clinical_rule_sets` collection, imports rules only for installed assays,
-and updates every active and historical ASPC to an explicit published rule-set
-binding. Samples are not changed; they resolve reporting rules through their ASPC.
+```bash
+mongosh "${MONGO_URI}/${COYOTE3_DB}" --eval 'db.clinical_rule_sets.countDocuments()'
+```
 
-The initial release does not activate the previous generator's CNV, DNA
-translocation, HRD, or MSI narrative branches. Their legacy record assumptions and
-embedded interpretation thresholds require separate clinical approval against the
-current typed contracts. The migration records those analyses explicitly as having no
-automatic narrative; it does not remove their findings or report tables.
+If either value is zero, restore from the canonical rules snapshot source or apply
+your approved migration package before continuing. If any ASPC is not bound to an active
+published rule-set document, stop and repair before deployment.
+
+The previous generator narrative branches (`CNV`, `DNA translocation`, `HRD`, and `MSI`)
+are intentionally explicit `narrative: none` in the canonical workflow until clinically
+approved versions are authored and published.
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply

@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-import yaml
 from bson import ObjectId
 
 from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
@@ -27,7 +25,6 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleTransition,
 )
 from api.domain.core.exceptions import AppError
-from scripts.migrate_clinical_reporting_rules import _convert_source
 
 
 def _context():
@@ -279,24 +276,6 @@ def test_runtime_resolves_only_explicit_active_binding_and_verifies_hash():
     result = ClinicalRuleService(Repository()).evaluate(aspc={}, context=_context())
     assert result.source.rule_set_id == "assay_1__base__sv"
     assert result.source.content_version == 1
-
-
-def test_all_tracked_legacy_sources_convert_without_template_execution():
-    now = datetime.now(timezone.utc)
-    converted = []
-    for path in sorted(Path("clinical_reporting_rules").glob("*/*.yaml")):
-        source = yaml.safe_load(path.read_text(encoding="utf-8"))
-        converted.append(
-            _convert_source(
-                source,
-                base_text="Configured introduction. ",
-                language="sv",
-                actor="migration.test",
-                now=now,
-            )
-        )
-    assert len(converted) == 10
-    assert all(validate_rule_set(document).valid for document in converted)
 
 
 class _MemoryRepository:

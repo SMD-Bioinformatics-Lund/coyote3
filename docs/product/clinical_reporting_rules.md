@@ -435,8 +435,7 @@ PYTHONPATH=. .venv/bin/python scripts/sync_rbac_catalog.py \
   --identity-db "${IDENTITY_DB}"
 ```
 
-Before the first clinical-rule edit on an installation that already contains rule sets, capture
-one immutable baseline of every current version:
+Before the first clinical-rule edit, capture one immutable baseline of every current version:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/backfill_clinical_rule_revisions.py \
@@ -450,36 +449,6 @@ Review the count, remove `--dry-run`, and run the same command. It is idempotent
 `clinical_rule_sets`. A baseline preserves the complete state that exists at execution time;
 earlier overwritten draft revisions cannot be reconstructed and the command reports this limit.
 New database bootstrap creates baselines for bundled demo rule sets automatically.
-
-For a database whose approved report content is still represented by the repository's
-pre-canonical rule source, run the explicit operator migration before starting the new
-application version:
-
-```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_clinical_reporting_rules.py \
-  --mongo-uri mongodb://localhost:27017 \
-  --db coyote3_new \
-  --actor reporting.migration \
-  --clinical-reviewer clinical.reviewer \
-  --dry-run
-```
-
-Remove `--dry-run` only after reviewing the plan. The target `clinical_rule_sets`
-collection must be empty. The command reads the installed ASP catalog, ignores source
-files for assays not installed at that center, and fails when an installed assay has no
-source. It imports base and explicit subpanel sources, incorporates the approved
-introductory wording from matching ASPCs, validates every rule set and prospective ASPC
-before writing, inserts published versions with their immutable first-revision snapshots, and
-binds every active and historical ASPC.
-If a database write or final validation fails, both inserted rule documents and changed
-ASPC reporting objects are restored. Actor and clinical reviewer must be different.
-
-The imported source preserves the established report behavior from the previous report
-generator: configured assay introduction, paired-control wording, selected gene-list and
-germline scope, tiered SNV summaries, no-reportable-SNV wording, accreditation conclusion,
-and RNA fusion summaries. Current source files may add scoped clinical behavior absent
-from the previous generator, such as the `solid_gmsv3/endometrie` finding rules. After
-cutover, the files are migration input only; MongoDB is the sole runtime source.
 
 The previous generator also contained CNV, DNA translocation, HRD, and MSI text branches.
 They are deliberately declared with `narrative: none` in the initial canonical releases.

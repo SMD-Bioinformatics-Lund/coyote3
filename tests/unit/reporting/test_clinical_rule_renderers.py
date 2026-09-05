@@ -10,8 +10,11 @@ from api.application.reporting.clinical_rules.renderers import (
     render_named,
     render_tier_summary,
 )
+from api.application.reporting.clinical_rules.terminology_defaults import (
+    DNA_TERMINOLOGY,
+    FUSION_TERMINOLOGY,
+)
 from api.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
-from scripts.migrate_clinical_reporting_rules import DNA_TERMINOLOGY, FUSION_TERMINOLOGY
 
 
 def _terms() -> dict:
