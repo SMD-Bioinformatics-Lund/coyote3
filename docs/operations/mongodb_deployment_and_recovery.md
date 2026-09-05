@@ -12,13 +12,28 @@ networking, and application-user provisioning. In Docker-based local
 development, use `host.docker.internal` in `MONGO_URI` to reach a MongoDB
 server installed on the host.
 
+## Replica-set requirement
+
+Coyote3 requires a MongoDB replica set or sharded cluster. A standalone `mongod` cannot run
+MongoDB transactions and therefore cannot support governed clinical-rule writes, including draft
+creation, edits, deletion, approval, and publication. This requirement applies even when all
+services and data are on one development machine.
+
+A one-member replica set is supported for local development and single-host deployments. It is a
+normal writable primary and provides the transaction semantics Coyote3 needs. It is not a
+high-availability configuration: the database is unavailable while that one server is unavailable.
+The application `MONGO_URI` must target the member through an address reachable from API, worker,
+and beat containers and include its `replicaSet` query parameter.
+
 ## Docker deployment model
 
 The repository provides `deploy/compose/docker-compose.mongo.yml` for a
 self-hosted MongoDB 8.2 instance. It joins an operator-created dedicated
 Docker network and starts a single-member replica set.
 
-The first member is a normal MongoDB primary, not a high-availability cluster. It provides replica-set semantics needed for consistent oplog backups and gives a controlled path to add secondaries later.
+The first member is a normal MongoDB primary, not a high-availability cluster. It provides the
+transaction semantics Coyote3 requires, supports consistent oplog backups, and gives a controlled
+path to add secondaries later.
 
 > **Warning**
 >

@@ -195,7 +195,7 @@ registration is not configurable through an environment variable.
 | `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | MongoDB administrative password. |
 | `MONGO_APP_USER` | Self-hosted MongoDB | Username | Application MongoDB username created during first database initialization. |
 | `MONGO_APP_PASSWORD` | Self-hosted MongoDB | Secret password | Application MongoDB password. |
-| `MONGO_URI` | Yes | MongoDB URI | API and worker MongoDB connection string. |
+| `MONGO_URI` | Yes | MongoDB URI | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
 | `MONGO_MAX_POOL_SIZE` | No | Positive integer; default `100` | Maximum PyMongo connections per application process. Size this with `API_WORKERS` and MongoDB capacity. |
 | `MONGO_MIN_POOL_SIZE` | No | Non-negative integer; default `0` | Minimum idle PyMongo connections retained per process. |
 | `MONGO_CONNECT_TIMEOUT_MS` | No | Milliseconds; default `10000` | Maximum time allowed to establish a MongoDB socket. |
