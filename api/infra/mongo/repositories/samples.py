@@ -1057,6 +1057,8 @@ class SampleRepository(BaseRepository):
         filepath: str,
         pdf_filepath: str | None = None,
         rule_provenance: dict | None = None,
+        snapshot_rows: list[dict] | None = None,
+        created_by: str | None = None,
     ) -> bool | None:
         """
         Save a report to a sample document in the database.
@@ -1080,6 +1082,8 @@ class SampleRepository(BaseRepository):
             filepath=filepath,
             pdf_filepath=pdf_filepath,
             rule_provenance=rule_provenance,
+            snapshot_rows=snapshot_rows,
+            created_by=created_by,
         )
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:

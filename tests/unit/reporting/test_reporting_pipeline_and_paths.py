@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -9,6 +10,7 @@ import pytest
 from api.application.reporting import persistence as pipeline
 from api.domain.core.exceptions import AppError
 from api.domain.core.reporting import report_paths
+from api.domain.core.reporting.errors import ReportCommitUncertain
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
@@ -170,20 +172,9 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
     """
     calls = {}
 
-    monkeypatch.setattr(
-        pipeline,
-        "util",
-        SimpleNamespace(
-            common=SimpleNamespace(
-                write_report=lambda html, path: calls.setdefault("write", (html, path)) and True
-            )
-        ),
-    )
+    monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
     sample_repository = SimpleNamespace(
         save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
-    )
-    reported_variant_repository = SimpleNamespace(
-        bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault("bulk_upsert", kwargs)
     )
     report_file = str(tmp_path / "seed_report.html")
 
@@ -204,21 +195,17 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
         snapshot_rows=None,
         created_by="tester",
         sample_repository=sample_repository,
-        reported_variant_repository=reported_variant_repository,
     )
 
     assert report_oid == "oid1"
     assert pdf_file == str(tmp_path / "seed_report.pdf")
-    assert calls["write"] == ("<html/>", report_file)
+    assert Path(report_file).read_text() == "<html/>"
+    assert Path(pdf_file).read_bytes() == b"pdf"
     assert calls["save_report"]["sample_id"] == "sample_oid_seed"
-    assert calls["bulk_upsert"]["snapshot_rows"] == []
-    assert calls["bulk_upsert"]["assay"] == "solid_gmsv3"
-    assert calls["bulk_upsert"]["assay_group"] == "solid"
-    assert calls["bulk_upsert"]["subpanel"] == "colon"
-    assert calls["bulk_upsert"]["environment"] == "production"
+    assert calls["save_report"]["snapshot_rows"] == []
 
 
-def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch):
+def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch, tmp_path):
     """Test persist report and snapshot raises when report write fails.
 
     Args:
@@ -227,11 +214,7 @@ def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch)
     Returns:
         The function result.
     """
-    monkeypatch.setattr(
-        pipeline,
-        "util",
-        SimpleNamespace(common=SimpleNamespace(write_report=lambda _html, _path: False)),
-    )
+    monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
 
     with pytest.raises(AppError) as exc:
         pipeline.persist_report_and_snapshot(
@@ -239,13 +222,99 @@ def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch)
             sample={"_id": "sample_oid_seed", "name": "seed_sample"},
             report_num=2,
             report_id="seed_report",
-            report_file="/reports/rid1.html",
+            report_file=str(tmp_path / "missing" / "rid1.html"),
             html="<html/>",
             snapshot_rows=[],
             created_by="tester",
             sample_repository=SimpleNamespace(),
-            reported_variant_repository=SimpleNamespace(),
         )
 
     assert exc.value.status_code == 500
     assert "failed to save report" in exc.value.message.lower()
+
+
+@pytest.mark.parametrize(
+    "folder", ["../outside", "/outside", "nested/../../outside", "..\\outside"]
+)
+def test_report_folder_cannot_escape_configured_root(tmp_path, folder):
+    with pytest.raises(AppError):
+        report_paths.build_report_file_location(
+            sample={"case_id": "synthetic"},
+            assay_config={"reporting": {"report_folder": folder}},
+            default_assay_group="test",
+            reports_base_path=str(tmp_path),
+        )
+
+
+def test_report_identifier_cannot_inject_path(tmp_path):
+    with pytest.raises(AppError):
+        report_paths.build_report_file_location(
+            sample={"case_id": "../outside"},
+            assay_config={"reporting": {"report_folder": "reports"}},
+            default_assay_group="test",
+            reports_base_path=str(tmp_path),
+        )
+
+
+def test_database_failure_cleans_up_only_new_report_artifacts(monkeypatch, tmp_path):
+    monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
+
+    def fail(**kwargs):
+        raise RuntimeError("Synthetic database failure")
+
+    with pytest.raises(AppError):
+        pipeline.persist_report_and_snapshot(
+            sample_id="synthetic",
+            sample={},
+            report_num=1,
+            report_id="r1",
+            report_file=str(tmp_path / "r1.html"),
+            html="report",
+            snapshot_rows=[],
+            created_by="test",
+            sample_repository=SimpleNamespace(save_report=fail),
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_exclusive_creation_does_not_overwrite_or_delete_existing_artifact(monkeypatch, tmp_path):
+    monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
+    existing = tmp_path / "r1.pdf"
+    existing.write_bytes(b"existing")
+    with pytest.raises(AppError) as error:
+        pipeline.persist_report_and_snapshot(
+            sample_id="synthetic",
+            sample={},
+            report_num=1,
+            report_id="r1",
+            report_file=str(tmp_path / "r1.html"),
+            html="report",
+            snapshot_rows=[],
+            created_by="test",
+            sample_repository=SimpleNamespace(),
+        )
+    assert error.value.status_code == 409
+    assert existing.read_bytes() == b"existing"
+    assert not (tmp_path / "r1.html").exists()
+
+
+def test_uncertain_commit_retains_artifacts_for_reconciliation(monkeypatch, tmp_path):
+    monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
+
+    def uncertain(**kwargs):
+        raise ReportCommitUncertain()
+
+    with pytest.raises(ReportCommitUncertain):
+        pipeline.persist_report_and_snapshot(
+            sample_id="synthetic",
+            sample={},
+            report_num=1,
+            report_id="r1",
+            report_file=str(tmp_path / "r1.html"),
+            html="report",
+            snapshot_rows=[],
+            created_by="test",
+            sample_repository=SimpleNamespace(save_report=uncertain),
+        )
+    assert (tmp_path / "r1.html").read_text() == "report"
+    assert (tmp_path / "r1.pdf").read_bytes() == b"pdf"

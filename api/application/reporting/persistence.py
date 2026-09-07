@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import os
-from types import SimpleNamespace
+from pathlib import Path
 
 from api.application.reporting.report_renderer import render_pdf_bytes
-from api.domain.common.reporting import write_report
 from api.domain.core.exceptions import AppError
-
-util = SimpleNamespace(common=SimpleNamespace(write_report=write_report))
+from api.domain.core.reporting.errors import ReportCommitUncertain
 
 
 def prepare_report_output(report_path: str, report_file: str, logger=None) -> None:
@@ -47,51 +45,46 @@ def persist_report_and_snapshot(
     snapshot_rows: list | None,
     created_by: str,
     sample_repository,
-    reported_variant_repository,
     rule_provenance: dict | None = None,
 ) -> tuple[str, str]:
     """
     Persist report HTML, report metadata, and typed report-finding snapshot rows.
     Returns created report_oid and PDF file path.
     """
-    if not util.common.write_report(html, report_file):
-        raise AppError(
-            status_code=500,
-            message=f"Failed to save report {report_id}.html",
-            details="Could not write the report to the file system.",
-        )
     pdf_file = os.path.splitext(report_file)[0] + ".pdf"
+    created: list[Path] = []
     try:
         pdf_bytes = render_pdf_bytes(html)
-        with open(pdf_file, "wb") as handle:
-            handle.write(pdf_bytes)
+        for path, content in (
+            (Path(report_file), html.encode("utf-8")),
+            (Path(pdf_file), pdf_bytes),
+        ):
+            with path.open("xb") as handle:
+                created.append(path)
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+        report_oid = sample_repository.save_report(
+            sample_id=sample_id,
+            report_num=report_num,
+            report_id=report_id,
+            filepath=report_file,
+            pdf_filepath=pdf_file,
+            rule_provenance=rule_provenance,
+            snapshot_rows=snapshot_rows or [],
+            created_by=created_by,
+        )
+        if report_oid is None:
+            raise AppError(404, "Sample no longer exists.")
+    except ReportCommitUncertain:
+        # A committed report must never lose its artifacts after an ambiguous acknowledgement.
+        raise
     except Exception as exc:
-        raise AppError(
-            status_code=500,
-            message=f"Failed to save report {report_id}.pdf",
-            details=str(exc),
-        ) from exc
-
-    report_oid = sample_repository.save_report(
-        sample_id=sample_id,
-        report_num=report_num,
-        report_id=report_id,
-        filepath=report_file,
-        pdf_filepath=pdf_file,
-        rule_provenance=rule_provenance,
-    )
-
-    reported_variant_repository.bulk_upsert_from_snapshot_rows(
-        sample_name=sample.get("name"),
-        sample_oid=sample.get("_id"),
-        report_oid=report_oid,
-        report_id=report_id,
-        report_num=report_num,
-        assay=sample.get("asp_id") or sample.get("assay"),
-        assay_group=sample.get("asp_group") or sample.get("assay_group"),
-        subpanel=sample.get("subpanel_id") or sample.get("subpanel"),
-        environment=sample.get("environment") or sample.get("profile"),
-        snapshot_rows=snapshot_rows or [],
-        created_by=created_by,
-    )
+        for path in reversed(created):
+            path.unlink(missing_ok=True)
+        if isinstance(exc, AppError):
+            raise
+        if isinstance(exc, FileExistsError):
+            raise AppError(409, "Report artifact already exists.") from exc
+        raise AppError(500, "Failed to save report.") from exc
     return report_oid, pdf_file

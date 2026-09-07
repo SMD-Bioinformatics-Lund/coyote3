@@ -13,6 +13,7 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
     ClinicalRuleImportRequest,
+    ClinicalRuleStatus,
     ClinicalRuleTransition,
 )
 from api.domain.core.exceptions import AppError
@@ -118,6 +119,76 @@ def governed_service(repository):
     return ClinicalRuleAuthoringService(
         repository, user_repository=UserRepository(), role_repository=RoleRepository()
     )
+
+
+def test_assignee_validation_rejects_missing_ineligible_and_self_review():
+    service = governed_service(Repository())
+    assert service._eligible_users("unassigned:permission") == []
+    for username, message, exclude in [
+        (None, "Assign an eligible", None),
+        ("unknown", "not an active", None),
+        ("reviewer", "latest content editor", "reviewer"),
+    ]:
+        with pytest.raises(AppError, match=message):
+            service._validate_assignee(
+                username, "clinical_rules:clinical_review", label="reviewer", exclude=exclude
+            )
+
+
+def test_import_rejects_invalid_canonical_document():
+    service = governed_service(Repository())
+    payload = ClinicalRuleImportRequest(
+        document={}, scope=_document().scope, name="Synthetic import"
+    )
+    with pytest.raises(AppError, match="not a valid canonical export"):
+        service.import_draft(payload, actor="author")
+
+
+def test_draft_delete_rejects_stale_revision():
+    with pytest.raises(AppError, match="changed while it was being deleted"):
+        governed_service(Repository(_document(status="draft"))).delete_draft(
+            "id", expected_revision=99, actor="author"
+        )
+
+
+def test_assigned_review_and_publication_cannot_be_taken_by_another_user():
+    document = _document(status="submitted")
+    document.review.clinical_reviewer = "reviewer"
+    service = governed_service(Repository(document))
+    with pytest.raises(AppError, match="assigned to another"):
+        service.start_review("id", ClinicalRuleTransition(), actor="other")
+    with pytest.raises(AppError, match="assigned to another"):
+        service.clinical_decision(
+            "id", ClinicalRuleDecision(approve=False, reason="reject"), actor="other"
+        )
+    document.status = ClinicalRuleStatus.APPROVED
+    document.review.publisher = "publisher"
+    with pytest.raises(AppError, match="assigned to another"):
+        governed_service(Repository(document)).publish(
+            "id", ClinicalRuleTransition(), actor="other"
+        )
+
+
+def test_notifications_include_review_rejection_and_creator_publication():
+    document = _document(status="draft")
+    document.created_by = "publisher"
+    repository = Repository(document)
+    service = governed_service(repository)
+    calls = []
+    service.notification_service = SimpleNamespace(
+        create_notification=lambda **kwargs: calls.append(kwargs)
+    )
+    service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    service.clinical_decision(
+        "id",
+        ClinicalRuleDecision(approve=True, publisher="publisher", reason="approved"),
+        actor="reviewer",
+    )
+    assert (
+        service.publish("id", ClinicalRuleTransition(), actor="publisher")["status"] == "published"
+    )
+    assert len(calls) == 2
 
 
 def test_from_store_list_versions_get_and_audit() -> None:

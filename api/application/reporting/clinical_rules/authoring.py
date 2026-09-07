@@ -581,7 +581,7 @@ class ClinicalRuleAuthoringService:
                 "review.publisher": publisher,
             },
         )
-        if payload.approve and publisher:
+        if payload.approve:
             approved = ClinicalRuleSetDoc.model_validate(result)
             self._notify(
                 recipient=publisher,
@@ -590,7 +590,7 @@ class ClinicalRuleAuthoringService:
                 document=approved,
                 actor=actor,
             )
-        elif not payload.approve:
+        else:
             rejected = ClinicalRuleSetDoc.model_validate(result)
             self._notify(
                 recipient=document.created_by,

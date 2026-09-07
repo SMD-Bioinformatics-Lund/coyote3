@@ -169,6 +169,7 @@ class ReportedVariantsRepository(BaseRepository):
         assay_group: str | None = None,
         subpanel: str | None = None,
         environment: str | None = None,
+        session: Any = None,
     ) -> int:
         """
         Upsert reported variant snapshot rows for a single report.
@@ -188,7 +189,7 @@ class ReportedVariantsRepository(BaseRepository):
         for r in snapshot_rows:
             simple_id = r.get("simple_id")
             if not simple_id:
-                continue
+                raise ValueError("Every report snapshot row requires a finding identity")
             simple_id_hash = r.get("simple_id_hash") or build_simple_id_hash_from_simple_id(
                 simple_id
             )
@@ -238,8 +239,10 @@ class ReportedVariantsRepository(BaseRepository):
         if not ops:
             return 0
 
-        res = self.get_collection().bulk_write(ops, ordered=False)
-        if res.upserted_count or res.modified_count:
+        res = self.get_collection().bulk_write(
+            ops, ordered=False, **({"session": session} if session is not None else {})
+        )
+        if session is None and (res.upserted_count or res.modified_count):
             self.invalidate_dashboard_metrics()
         return int(res.upserted_count or 0)
 

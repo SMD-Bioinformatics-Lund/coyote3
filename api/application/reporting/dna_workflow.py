@@ -155,5 +155,4 @@ class DNAWorkflowService:
             created_by=created_by,
             rule_provenance=rule_provenance,
             sample_repository=self.sample_repository,
-            reported_variant_repository=self.reported_variant_repository,
         )
