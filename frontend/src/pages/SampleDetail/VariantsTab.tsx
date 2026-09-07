@@ -15,7 +15,7 @@ import { useBulkFindingAction } from "@/hooks/useFindingActions";
 import { findingBulkActionOptions } from "@/lib/finding-actions";
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge";
-import { igvLoadUrl } from "@/lib/external-links";
+import { igvAlignmentLinks, igvLoadUrl } from "@/lib/external-links";
 import { tieredVariantSearchPath } from "@/lib/variant-routing";
 import {
   CLINICAL_TABLE_CACHE_MS,
@@ -331,16 +331,25 @@ export function VariantsTab({
       cell: ({ row }) => {
         const v = row.original;
         const loc = `${v.CHROM}:${v.POS}`;
-        const igvUrl = igvLoadUrl(sampleId, loc);
-        return igvUrl ? (
-          <a
-            href={igvUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60"
-          >
-            {loc}
-          </a>
+        const links = igvAlignmentLinks(data?.bam_id, loc, data?.bai_id);
+        const fallback = links.length ? null : igvLoadUrl(sampleId, loc);
+        const igvLinks = fallback ? [{ href: fallback, label: "Open in IGV" }] : links;
+        return igvLinks.length ? (
+          <span className="inline-flex flex-wrap gap-1">
+            {igvLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                title={link.label}
+                aria-label={`${link.label}: ${loc}`}
+                target="_blank"
+                rel="noreferrer"
+                className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60"
+              >
+                {loc}
+              </a>
+            ))}
+          </span>
         ) : (
           <span className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground">
             {loc}

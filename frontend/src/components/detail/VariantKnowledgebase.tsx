@@ -15,7 +15,7 @@ import {
   clinvarSearchUrl,
   cosmicSearchUrl,
   dbsnpUrl,
-  igvLoadUrl,
+  igvAlignmentLinks,
   litvarSearchUrl,
   oncokbGeneUrl,
   pubmedArticleUrl,
@@ -685,10 +685,9 @@ export function externalVariantLinks(variant: any, csq: any, data: any) {
   const hgvsp = csq?.HGVSp
   const clinvar = variant?.INFO?.CLNACC
   const position = variant?.CHROM && variant?.POS ? `${variant.CHROM}:${variant.POS}` : ""
-  const igvUrl = data?.bam_id && position ? igvLoadUrl(data.bam_id, position) : null
 
   return [
-    igvUrl ? { label: "Open region in IGV", value: position, href: igvUrl } : null,
+    ...igvAlignmentLinks(data?.bam_id, position, data?.bai_id),
     clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: clinvarSearchUrl(clinvar) } : null,
     gene ? { label: `cBioPortal ${gene}`, value: gene, href: cbioportalOncoprintUrl(gene) } : null,
     gene ? { label: `OncoKB ${gene}`, value: gene, href: oncokbGeneUrl(gene) } : null,

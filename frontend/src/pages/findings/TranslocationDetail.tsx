@@ -26,7 +26,7 @@ import {
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
-import { cbioportalOncoprintUrl, igvLoadUrl, pubmedSearchUrl } from "@/lib/external-links"
+import { cbioportalOncoprintUrl, igvAlignmentLinks, pubmedSearchUrl } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
 function translatedConsequence(annotation: any, translations: Record<string, any> = {}) {
@@ -236,9 +236,7 @@ export function TranslocationDetail() {
 
             <ExternalLinksCard
               links={[
-                data.bam_id && position !== "-" && igvLoadUrl(data.bam_id, position)
-                  ? { label: "Open junction in IGV", value: position, href: igvLoadUrl(data.bam_id, position)! }
-                  : null,
+                ...igvAlignmentLinks(data.bam_id, position, data.bai_id),
                 genes[0]
                   ? { label: `cBioPortal ${genes[0]}`, value: genes[0], href: cbioportalOncoprintUrl(genes) }
                   : null,

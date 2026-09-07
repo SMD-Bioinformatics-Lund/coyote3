@@ -19,6 +19,10 @@ from api.config.database_versions import (
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
 
 _CASE_CONTROL_KEYS = [
+    "case_bam",
+    "case_bai",
+    "control_bam",
+    "control_bai",
     "case_id",
     "control_id",
     "clarity_control_id",
@@ -153,10 +157,22 @@ def normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[s
         if key in normalized and normalized[key] is None:
             normalized[key] = None
 
-    case: dict[str, Any] = {}
-    control: dict[str, Any] = {}
+    case: dict[str, Any] = dict(args.get("case") or {})
+    control: dict[str, Any] = dict(args.get("control") or {})
+    for role, details in (("case", case), ("control", control)):
+        bam_key = f"{role}_bam"
+        if (
+            bam_key in normalized
+            and (normalized[bam_key] or "") != (details.get("bam") or "")
+            and f"{role}_bai" not in normalized
+        ):
+            details["bai"] = ""
     for key in _CASE_CONTROL_KEYS:
+        if key not in normalized:
+            continue
         value = normalized.get(key)
+        if key in {"case_bam", "case_bai", "control_bam", "control_bai"} and value is None:
+            value = ""
         if value is None:
             continue
         if "case" in key:

@@ -171,6 +171,10 @@ shape is not an accepted model for authoring a raw pipeline manifest.
 
 | Raw manifest key | Required | Applies to | Stored field | Meaning |
 | --- | --- | --- | --- | --- |
+| `case_bam` | No | DNA, RNA | `samples.case.bam` | BAM file path or URL accessible to IGV; empty string when omitted. |
+| `case_bai` | No | DNA, RNA | `samples.case.bai` | Explicit BAM index path or URL; empty string when omitted. |
+| `control_bam` | No, paired only | DNA, RNA | `samples.control.bam` | Control BAM path or URL; empty string when omitted. |
+| `control_bai` | No, paired only | DNA, RNA | `samples.control.bai` | Control index path or URL; empty string when omitted. |
 | `clarity_case_id` | Recommended | DNA, RNA | `samples.case.clarity_id` | Clarity/LIMS identifier for the case. |
 | `clarity_control_id` | Paired only | DNA, RNA | `samples.control.clarity_id` | Clarity/LIMS identifier for the control. |
 | `clarity_case_pool_id` | Recommended | DNA, RNA | `samples.case.clarity_pool_id` | Clarity/LIMS pool identifier for the case. |
@@ -183,6 +187,42 @@ shape is not an accepted model for authoring a raw pipeline manifest.
 | `control_reads` | Paired only | DNA, RNA | `samples.control.reads` | Read count for the control. |
 | `case_purity` | No | DNA | `samples.case.purity` | Optional tumor purity estimate. |
 | `control_purity` | No | DNA | `samples.control.purity` | Optional control purity value when supplied by the pipeline. |
+
+### Alignment references for IGV
+
+```yaml
+case_bam: /alignments/synthetic_case.bam
+case_bai: /indexes/synthetic_case.bai
+control_bam: /alignments/synthetic_control.bam
+control_bai: ""
+```
+
+Ingest stores these strings; it does not parse, copy, or require local access to
+the BAM/BAI files. They are not analysis file keys in `expected_files` and are not
+remapped to temporary ZIP extraction paths. Supply paths or URLs reachable by the
+reviewer's IGV installation, not paths available only inside the API container.
+Do not embed credentials in URLs. Omitted, null, and blank references become `""`.
+For an unpaired sample, omit control metadata; `samples.control` remains null.
+Metadata updates preserve existing references when the keys are omitted. Explicit
+null/empty values clear them. Replacing a BAM without supplying a new BAI clears
+the previous index reference so it cannot be applied to a different alignment.
+
+For each case/control independently, a non-empty BAM reference takes precedence
+over the BAM-service catalog. Only missing BAM references use the existing
+sample-ID lookup. Existing documents without these keys remain readable without
+a database backfill. Finding responses retain `bam_id` (sample ID to path list)
+and include `bai_id` (BAM path to supplied index path).
+
+IGV links are separate per alignment, use `merge=true`, and pass `index` only when
+an index is supplied. This keeps automatic index discovery for the other alignment.
+If a BAI is supplied without a BAM, it is applied only when the fallback resolves
+exactly one BAM for that role; multiple fallback matches cannot safely share an
+unidentified index. The variants table retains its sample-ID link when no BAM
+path resolves. The planned retirement of these fallbacks is tracked in
+`scripts/TODO.md`; they remain supported today.
+
+See [IGV external control](https://igv.org/doc/desktop/UserGuide/advanced/external_control/)
+and its [HTTP command implementation](https://github.com/igvteam/igv/blob/main/src/main/java/org/igv/batch/CommandListener.java).
 
 ## Pipeline file declaration format
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.application.common.alignment_files import alignment_files_payload
 from api.application.common.pagination import paginate_items, request_pagination
 from api.application.common.table_state import (
     parse_sort_specs,
@@ -535,7 +536,9 @@ def list_variants_payload(
     variants = _sort_variants_for_table(variants, sort_specs=sort_specs)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-    bam_id = service.bam_record_repository.get_bams(sample_ids)
+    alignment_files = alignment_files_payload(
+        sample, sample_ids, service.bam_record_repository.get_bams
+    )
     vep_version = require_sample_vep_version(sample)
     vep_variant_class_meta = service.vep_metadata_repository.get_variant_class_translations(
         vep_version
@@ -679,7 +682,7 @@ def list_variants_payload(
         "checked_snvlists_dict": genes_covered_in_panel,
         "filter_genes": filter_genes,
         "sample_ids": sample_ids,
-        "bam_id": bam_id,
+        **alignment_files,
         "hidden_comments": has_hidden_comments,
         "vep_var_class_translations": vep_variant_class_meta,
         "vep_conseq_translations": vep_conseq_meta,
@@ -922,7 +925,7 @@ def variant_context_payload(
         "subpanel": subpanel,
         "pon": format_pon(variant),
         "sample_ids": sample_ids,
-        "bam_id": service.bam_record_repository.get_bams(sample_ids),
+        **alignment_files_payload(sample, sample_ids, service.bam_record_repository.get_bams),
         "vep_var_class_translations": service.vep_metadata_repository.get_variant_class_translations(
             vep_version
         ),

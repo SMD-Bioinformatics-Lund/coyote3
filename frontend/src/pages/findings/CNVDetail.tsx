@@ -24,7 +24,7 @@ import {
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
-import { cbioportalOncoprintUrl, igvLoadUrl } from "@/lib/external-links"
+import { cbioportalOncoprintUrl, igvAlignmentLinks } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
 function cnvRegion(cnv: any) {
@@ -205,9 +205,7 @@ export function CNVDetail() {
 
             <ExternalLinksCard
               links={[
-                data.bam_id && region !== "-" && igvLoadUrl(data.bam_id, region)
-                  ? { label: "Open CNV in IGV", value: region, href: igvLoadUrl(data.bam_id, region)! }
-                  : null,
+                ...igvAlignmentLinks(data.bam_id, region, data.bai_id),
                 primaryGenes[0]
                   ? { label: `cBioPortal ${primaryGenes[0]}`, value: primaryGenes[0], href: cbioportalOncoprintUrl(primaryGenes[0]) }
                   : null,

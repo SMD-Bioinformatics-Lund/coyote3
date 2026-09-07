@@ -86,6 +86,8 @@
       "germline": null
     },
     "case": {
+      "bam": "",
+      "bai": "",
       "id": "seed_case",
       "clarity_id": "seed_case_clarity",
       "clarity_pool_id": "seed_pool",
@@ -95,6 +97,8 @@
       "purity": null
     },
     "control": {
+      "bam": "",
+      "bai": "",
       "id": "seed_control",
       "clarity_id": "seed_control_clarity",
       "clarity_pool_id": "seed_pool",

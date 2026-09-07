@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.application.common.alignment_files import alignment_files_payload
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import paginate_items, request_pagination
 from api.application.common.table_state import (
@@ -374,7 +375,7 @@ class DnaStructuralService:
             "cnv": cnv,
             "annotations": self.copy_number_variant_repository.get_cnv_annotations(cnv),
             "sample_ids": sample_ids,
-            "bam_id": self.bam_record_repository.get_bams(sample_ids),
+            **alignment_files_payload(sample, sample_ids, self.bam_record_repository.get_bams),
             "has_hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "assay_group": assay_group,
@@ -571,7 +572,7 @@ class DnaStructuralService:
             "translocation": transloc,
             "annotations": self.translocation_repository.get_transloc_annotations(transloc),
             "sample_ids": sample_ids,
-            "bam_id": self.bam_record_repository.get_bams(sample_ids),
+            **alignment_files_payload(sample, sample_ids, self.bam_record_repository.get_bams),
             "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
                 require_sample_vep_version(sample)
             ),

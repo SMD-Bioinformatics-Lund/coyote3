@@ -324,7 +324,7 @@ def test_sample_meta_omits_unknown_ffpe_and_uses_contract_default():
     assert "pipeline_version" not in validated
     meta = ingest.build_sample_meta_dict(validated)
 
-    assert meta["case"] == {"id": "RNA1"}
+    assert meta["case"] == {"id": "RNA1", "bam": "", "bai": "", "ffpe": False}
     final_sample = ingest.SamplesDoc.model_validate(meta)
     assert final_sample.case.ffpe is False
     assert final_sample.case.sequencing_run is None
@@ -1542,7 +1542,8 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     assert zero["inserted_count"] == 0
 
 
-def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch):
+@pytest.mark.parametrize("bam,bai", [(None, None), ("/case.bam", "/index.bai")])
+def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch, bam, bai):
     sample_col = _Col([])
     stub = _store_stub()
     stub.sample_repository = _Handler(sample_col)
@@ -1561,6 +1562,8 @@ def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch):
             "subpanel_id": "base",
             "environment": "production",
             "case_id": "C2",
+            "case_bam": bam,
+            "case_bai": bai,
             "sample_no": 1,
             "paired": False,
             "sequencing_scope": "panel",
@@ -1576,6 +1579,8 @@ def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch):
     assert inserted["pipeline_version"] is None
     assert inserted["control"] is None
     assert inserted["case"]["purity"] is None
+    assert inserted["case"]["bam"] == (bam or "")
+    assert inserted["case"]["bai"] == (bai or "")
     assert inserted["files"]["vcf_files"]["checksum"] is None
 
 

@@ -17,9 +17,26 @@ export const EXTERNAL_LINK_BASES = {
   clinGenGene: "https://search.clinicalgenome.org/kb/genes",
 } as const
 
-export function igvLoadUrl(file: unknown, locus: unknown) {
-  if (!runtimeConfig.igvUri || !file || !locus) return null
-  return `${runtimeConfig.igvUri}/load?file=${encodeURIComponent(String(file))}&locus=${encodeURIComponent(String(locus))}`
+export function igvLoadUrl(file: unknown, locus: unknown, index?: string) {
+  if (!runtimeConfig.igvUri || typeof file !== "string" || !file.trim() || !locus) return null
+  const indexQuery = index ? `&index=${encodeURIComponent(index)}` : ""
+  return `${runtimeConfig.igvUri}/load?file=${encodeURIComponent(file)}&locus=${encodeURIComponent(String(locus))}${indexQuery}&merge=true`
+}
+
+export function igvAlignmentLinks(files: unknown, locus: string, indexes: Record<string, string> = {}) {
+  if (!files || typeof files !== "object" || !locus || locus === "-") return []
+  return Object.entries(files).flatMap(([sampleId, paths]) => {
+    if (!Array.isArray(paths)) return []
+    return paths.flatMap((path: unknown, index: number) => {
+      if (typeof path !== "string") return []
+      const href = igvLoadUrl(path, locus, indexes[path])
+      return href ? [{
+        label: `IGV: ${sampleId}${paths.length > 1 ? ` (${index + 1})` : ""}`,
+        value: locus,
+        href,
+      }] : []
+    })
+  })
 }
 
 export function gensSampleUrl(sampleName: unknown) {

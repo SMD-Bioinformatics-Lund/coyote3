@@ -312,7 +312,9 @@ def _context_service(variant):
                 "actionability": [],
             }
         ),
-        bam_record_repository=SimpleNamespace(get_bams=lambda ids: ids),
+        bam_record_repository=SimpleNamespace(
+            get_bams=lambda ids: {sample_id: [f"/{sample_id}.bam"] for sample_id in ids.values()}
+        ),
         vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda version: {"version": version},
             get_conseq_translations=lambda version: {"version": version},
@@ -394,7 +396,8 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     assert observed["oncokb_gene"] == {"public": "TP53"}
     assert observed["clinpgx_gene"] == {"pgx": "TP53"}
     assert observed["civic"]["description"] == "NOTHING_IN_HERE"
-    assert observed["bam_id"] == {"case": "C1"}
+    assert observed["bam_id"] == {"C1": ["/C1.bam"]}
+    assert observed["bai_id"] == {}
 
 
 def test_variant_context_derives_transcript_badges_from_current_hgnc() -> None:

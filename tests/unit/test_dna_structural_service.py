@@ -62,7 +62,7 @@ class _RepoStub:
             }
         )
         self.bam_record_repository = SimpleNamespace(
-            get_bams=lambda sample_ids: {"ids": sample_ids}
+            get_bams=lambda sample_ids: {sid: [f"/{sid}.bam"] for sid in sample_ids.values()}
         )
         self.vep_metadata_repository = SimpleNamespace(
             get_conseq_translations=lambda _vep: {"A": "B"}
@@ -83,7 +83,7 @@ class _UtilModule:
             {"genes": []},
             ["TP53"],
         ),
-        get_case_and_control_sample_ids=lambda _sample: ["S1", "S2"],
+        get_case_and_control_sample_ids=lambda _sample: {"case": "S1", "control": "S2"},
     )
 
 
