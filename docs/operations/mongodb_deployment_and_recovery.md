@@ -15,9 +15,10 @@ server installed on the host.
 ## Replica-set requirement
 
 Coyote3 requires a MongoDB replica set or sharded cluster. A standalone `mongod` cannot run
-MongoDB transactions and therefore cannot support governed clinical-rule writes, including draft
-creation, edits, deletion, approval, and publication. This requirement applies even when all
-services and data are on one development machine.
+MongoDB transactions and therefore cannot support related-document writes: sample ingestion,
+evidence replacement, sample deletion, report persistence, revision rotation, governed clinical
+rules, and catalog publication. This requirement applies even when all services and data are on
+one development machine. See [transaction boundaries and recovery](../architecture/transactions_and_ingest_recovery.md).
 
 A one-member replica set is supported for local development and single-host deployments. It is a
 normal writable primary and provides the transaction semantics Coyote3 needs. It is not a

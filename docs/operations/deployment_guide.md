@@ -201,7 +201,7 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 - **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
 - **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the version from `api/version.py` for all image resolutions.
 - **Durable Data Protection**: The deployment wrapper rejects destructive volume operations (`down -v`) in every environment. Normal teardown stops and removes containers only; it never removes Compose volumes or the host-mounted MongoDB data directory.
-- **Cache Persistence**: Redis instances are pinned to specific versioned images (`7.4.3`) to prevent state corruption during floating tag updates.
+- **Queue persistence**: Redis uses the `redis-data` volume, AOF with `appendfsync always`, and `noeviction`. Cache, broker, and task results use Redis databases 0, 1, and 2 respectively. MongoDB ingest receipts provide delivery recovery independently of task-result retention. See [transaction and queue deployment requirements](../architecture/transactions_and_ingest_recovery.md#deployment-and-rollout).
 
 ## Upgrades
 

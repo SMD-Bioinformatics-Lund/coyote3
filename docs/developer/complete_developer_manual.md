@@ -208,9 +208,11 @@ and its dependent documents must pass their collection contracts before the
 sample is committed as ready. Optional files may be absent only when they were
 not declared.
 
-Readiness is not an unconditional transaction guarantee. Fresh creation can fall
-back to non-transactional writes if session setup fails; updates use best-effort
-compensating restoration. See the [persistence and recovery boundaries](../api/ingestion_api.md#persistence-and-recovery-boundaries)
+Fresh creation and updates use required MongoDB transactions for the sample and
+its declared evidence. Async completion receipts join those transactions. Parsing,
+filesystem operations, and cache invalidation remain outside the transaction.
+See the [persistence and recovery boundaries](../api/ingestion_api.md#persistence-and-recovery-boundaries)
+and [transaction rules](../architecture/transactions_and_ingest_recovery.md)
 before changing write ordering or defining recovery procedures.
 
 ### Manifest processing
@@ -220,10 +222,10 @@ before changing write ordering or defining recovery procedures.
 | Parse | Read YAML and normalize supported top-level pipeline keys. | Manifest rejected. |
 | Resolve | Find ASP and subpanel/base ASPC for the environment. | No sample committed. |
 | Validate files | Check declared paths, mounts, readability, and required-file policy. | No sample committed. |
-| Parse analysis | Convert VCF, CNV, coverage, fusion, expression, classification, QC, and biomarkers. | Dependent writes rolled back. |
+| Parse analysis | Convert VCF, CNV, coverage, fusion, expression, classification, QC, and biomarkers. | No clinical writes started. |
 | Normalize | Apply collection-specific field and identity rules. | Contract error recorded. |
-| Persist | Write dependent collections and final sample. | Bundle restored or removed. |
-| Complete | Mark watched manifest done and write audit outcome. | Failed suffix and audit event on error. |
+| Persist | Commit sample, dependent collections, and async completion receipt together. | Transaction aborts; previous clinical state remains unchanged. |
+| Complete | Remove successful upload staging, acknowledge watched manifest, and deliver audit outcome. | Retain committed result; a marker or audit failure cannot undo it. |
 
 When adding an input:
 

@@ -49,13 +49,14 @@ the ingest flow follows this order:
 Failure behavior:
 
 - If validation or file parsing fails, no sample document is inserted.
-- If a write fails after the sample anchor is created, ingest attempts to delete the staged sample and dependent documents. This cleanup is best-effort and can itself fail.
-- Fresh creation uses a MongoDB transaction when session and transaction setup succeed. The current setup helpers can fall back to non-transactional writes, so readiness must not be interpreted as an unconditional crash-atomicity guarantee.
+- The sample anchor, dependent evidence, and ready state commit in one required MongoDB transaction. A failed transaction exposes none of its writes; there is no unprotected-write fallback or compensating deletion.
+- A replica set or sharded cluster is required, including for local development.
 
 Scope note:
 
-- The sequence above describes **fresh sample creation**.
-- `update_existing=true` replaces evidence through separate writes with best-effort restoration from an in-memory backup. Evidence replacement and sample metadata updates do not share a transaction. A crash, concurrent update, or failed restoration can leave partial state and requires reconciliation before clinical use.
+- `update_existing=true` changes metadata and replaces declared evidence in one transaction. Evidence not declared in the update is retained. A concurrent sample change detected after preparation rejects the update rather than overwriting it.
+- Async ingestion commits its job completion receipt in the same transaction as the data. File parsing occurs before the transaction; cache invalidation and file cleanup occur after commit.
+- See [transactions and ingest recovery](../architecture/transactions_and_ingest_recovery.md) for delivery, retry, file-retention, and deployment requirements.
 
 ## Endpoints
 
@@ -77,8 +78,11 @@ Scope note:
 ## Celery-backed async ingest
 
 The async routes perform the same API authentication and authorization checks as
-the synchronous internal ingest routes, then enqueue work on the Celery `ingest`
-queue. Every Compose environment uses the stable `worker` service key.
+the synchronous internal ingest routes, persist an `ingest_jobs` record, and then
+publish its identifier to the Celery `ingest` queue. Acceptance means the job is
+durably recorded, not that ingestion has completed. Beat redelivers pending jobs
+and expired leases every 30 seconds. Every Compose environment uses the stable
+`worker` service key.
 
 Runtime settings:
 
@@ -107,8 +111,10 @@ curl -sS "${BASE_URL}/api/v1/internal/tasks/${TASK_ID}" \
 ```
 
 The async upload route stores the uploaded YAML and ZIP archive contents in a durable staging
-directory before enqueueing the task. The worker removes that staging directory
-after the ingest task finishes or fails.
+directory before recording the job. The worker removes that staging directory
+only after confirmed success. Failed jobs retain their payload and staged files
+for investigation. Task status is available to its submitter or a superuser and
+does not expose the stored source payload, staging path, or lease token.
 
 ## Admin ingest workspace
 

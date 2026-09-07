@@ -259,7 +259,14 @@ by the migration utility and have no runtime read fallback. See
 [clinical data and reporting flow](clinical_data_and_reporting_flow.md#53-annotation-identity-and-matching)
 for the complete nomenclature shapes and matching protocol.
 
-A re-ingest snapshots dependent records that will be replaced. If a new write fails, the earlier records are restored. Administrative sample deletion removes sample-bound variants, CNVs, coverage, translocations, fusions, biomarkers, RNA expression, classification, QC, sample comments, finding comments, reports, and reported-variant snapshots before deleting the sample. The deletion audit event keeps sample name and internal identifier as traceability metadata.
+A re-ingest replaces declared evidence and updates sample metadata in one required
+transaction. A failed transaction leaves the prior data unchanged. Administrative
+sample deletion removes the sample anchor and its owned findings, quality data,
+PGx results, comments, report metadata, and reported-variant snapshots in one
+transaction. Shared annotations, audit records, and report files are retained.
+The deletion audit event keeps sample name and internal identifier as traceability
+metadata. See [transaction boundaries and recovery](transactions_and_ingest_recovery.md)
+for async receipts and artifact reconciliation.
 
 ## Operational diagnosis
 

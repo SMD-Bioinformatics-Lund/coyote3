@@ -307,7 +307,7 @@ The following values are intentionally derived or internal:
 | --- | --- |
 | Application version | `api/version.py`; compose wrappers export this transiently for image names. |
 | Git commit and build time | Build metadata injected by CI or compose wrappers, not hand-edited env values. |
-| Redis URLs and Celery broker/result URLs | Internal Compose wiring through the stable `redis` service name, for example `redis://redis:6379/0`. |
+| Redis URLs and Celery broker/result URLs | Internal Compose wiring through `redis`: cache uses database 0, broker database 1, and task results database 2. |
 | API health path | Fixed endpoint `/api/v1/health`. |
 | Documentation/help URL | Derived as `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`. |
 | Repository and issue links | `api/config/application_metadata.py`; these are repository-owned product links. |
