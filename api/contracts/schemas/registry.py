@@ -26,6 +26,7 @@ from api.contracts.schemas.dna import (
     VariantsDoc,
 )
 from api.contracts.schemas.governance import PermissionsDoc, RolesDoc, UsersDoc
+from api.contracts.schemas.ingest_jobs import IngestJobDoc
 from api.contracts.schemas.public_catalog import (
     PublicAssayCatalogDoc,
     PublicAssayCatalogVersionDoc,
@@ -61,6 +62,7 @@ from api.contracts.schemas.samples import (
 )
 
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
+    "ingest_jobs": TypeAdapter(IngestJobDoc),
     "samples": TypeAdapter(SamplesDoc),
     "sample_comments": TypeAdapter(SampleCommentRecordDoc),
     "finding_comments": TypeAdapter(FindingCommentRecordDoc),

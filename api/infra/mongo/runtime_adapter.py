@@ -40,6 +40,7 @@ from api.infra.mongo.repositories.finding_comments import FindingCommentsReposit
 from api.infra.mongo.repositories.fusions import FusionsRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
 from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
+from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
 from api.infra.mongo.repositories.pgx import PgxRepository
@@ -69,6 +70,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("anno_vep_repository", AnnoVepRepository, "anno_vep"),
     ("annotation_repository", AnnotationsRepository, "annotations"),
     ("sample_repository", SampleRepository, "samples"),
+    ("ingest_jobs_repository", IngestJobsRepository, "ingest_jobs"),
     ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),
     ("finding_comment_repository", FindingCommentsRepository, "finding_comments"),
     ("assay_panel_repository", ASPRepository, "asp"),

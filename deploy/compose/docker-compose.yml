@@ -33,8 +33,8 @@ x-app-environment: &app-environment
   CACHE_REDIS_URL: redis://redis:6379/0
   CACHE_REDIS_CONNECT_TIMEOUT: ${CACHE_REDIS_CONNECT_TIMEOUT:-1.0}
   CACHE_REDIS_SOCKET_TIMEOUT: ${CACHE_REDIS_SOCKET_TIMEOUT:-1.0}
-  CELERY_BROKER_URL: redis://redis:6379/0
-  CELERY_RESULT_BACKEND: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/1
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
   CELERY_LOG_LEVEL: ${CELERY_LOG_LEVEL:-INFO}
   CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
   CELERY_TASK_TIME_LIMIT: ${CELERY_TASK_TIME_LIMIT:-7200}
@@ -156,7 +156,7 @@ services:
       retries: 20
       start_period: 10s
     depends_on:
-      redis: {condition: service_started}
+      redis: {condition: service_healthy}
 
   worker:
     <<: [*runtime-defaults, *api-image]
@@ -165,7 +165,7 @@ services:
     volumes: *app-volumes
     command: celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
-      redis: {condition: service_started}
+      redis: {condition: service_healthy}
 
   beat:
     <<: [*runtime-defaults, *api-image]
@@ -174,11 +174,19 @@ services:
     volumes: *app-volumes
     command: celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     depends_on:
-      redis: {condition: service_started}
+      redis: {condition: service_healthy}
 
   redis:
     <<: *runtime-defaults
     image: redis:7.4.3
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   proxy:
     <<: *runtime-defaults
@@ -197,6 +205,9 @@ services:
       frontend: {condition: service_started}
       api: {condition: service_healthy}
       docs: {condition: service_started}
+
+volumes:
+  redis-data:
 
 networks:
   app:

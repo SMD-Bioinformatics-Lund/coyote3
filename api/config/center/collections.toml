@@ -1,4 +1,5 @@
 [primary]
+    ingest_jobs_collection = "ingest_jobs"
     notifications_collection = "notifications"
 
     insilico_genelist_collection = "insilico_genelists"

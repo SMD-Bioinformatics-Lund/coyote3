@@ -60,6 +60,7 @@ class MongoStore:
     bam_record_repository: Any
     biomarker_repository: Any
     pgx_repository: Any
+    ingest_jobs_repository: Any
     public_assay_catalog_repository: Any
     public_assay_catalog_version_repository: Any
     public_assay_catalog_revision_repository: Any

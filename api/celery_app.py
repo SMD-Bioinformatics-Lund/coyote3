@@ -31,12 +31,21 @@ celery_app.conf.update(
     task_soft_time_limit=DefaultConfig.CELERY_TASK_SOFT_TIME_LIMIT,
     result_expires=DefaultConfig.CELERY_RESULT_EXPIRES,
     worker_prefetch_multiplier=DefaultConfig.CELERY_WORKER_PREFETCH_MULTIPLIER,
+    broker_transport_options={"visibility_timeout": DefaultConfig.CELERY_TASK_TIME_LIMIT + 120},
+    result_backend_transport_options={
+        "visibility_timeout": DefaultConfig.CELERY_TASK_TIME_LIMIT + 120
+    },
+    visibility_timeout=DefaultConfig.CELERY_TASK_TIME_LIMIT + 120,
     task_routes={
         "api.tasks.ingest.*": {"queue": DefaultConfig.CELERY_INGEST_QUEUE},
     },
 )
 
 celery_app.conf.beat_schedule = {
+    "coyote3-ingest-job-dispatch": {
+        "task": "api.tasks.ingest.dispatch_pending_jobs",
+        "schedule": 30,
+    },
     "coyote3-retention-maintenance": {
         "task": "api.tasks.maintenance.run_retention_maintenance",
         "schedule": crontab(hour=DefaultConfig.COYOTE3_MAINTENANCE_HOUR, minute=0),

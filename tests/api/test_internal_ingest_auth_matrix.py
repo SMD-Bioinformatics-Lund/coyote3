@@ -6,14 +6,25 @@ import io
 from types import SimpleNamespace
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import mongomock
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
 from api.application.ingest.service import InternalIngestService
+from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.interfaces.http.operations import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
+
+
+@pytest.fixture(autouse=True)
+def ingest_jobs(monkeypatch):
+    jobs = IngestJobsRepository(
+        SimpleNamespace(ingest_jobs_collection=mongomock.MongoClient().test.ingest_jobs)
+    )
+    monkeypatch.setattr(internal_router, "get_ingest_jobs_repository", lambda: jobs)
+    return jobs
 
 
 def _user(*, role: str, level: int, permissions: list[str] | None = None) -> ApiUser:
@@ -235,11 +246,11 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
     assert calls["allow_update"] is True
 
 
-def test_internal_ingest_async_collection_enqueues_after_permission_check(monkeypatch):
+def test_internal_ingest_async_collection_enqueues_after_permission_check(monkeypatch, ingest_jobs):
     """Async collection ingest enqueues the Celery task after route-level permission checks."""
     captured: dict[str, object] = {}
 
-    def _fake_apply_async(*, kwargs, queue):
+    def _fake_apply_async(*, kwargs, queue, task_id):
         captured["kwargs"] = kwargs
         captured["queue"] = queue
         return SimpleNamespace(id="task-123")
@@ -261,23 +272,23 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
 
     assert response == {
         "status": "accepted",
-        "task_id": "task-123",
+        "task_id": captured["kwargs"]["job_id"],
         "task_name": "api.tasks.ingest.insert_collection_document",
         "queue": "ingest",
     }
     assert captured["queue"] == "ingest"
-    assert captured["kwargs"] == {
+    assert ingest_jobs.get(response["task_id"])["source_payload"] == {
         "collection": "users",
         "document": {"username": "new.user", "email": "new.user@example.org"},
         "ignore_duplicate": True,
     }
 
 
-def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch):
+def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch, ingest_jobs):
     """Async sample-bundle ingest parses YAML on the API side and enqueues worker execution."""
     captured: dict[str, object] = {}
 
-    def _fake_apply_async(*, kwargs, queue):
+    def _fake_apply_async(*, kwargs, queue, task_id):
         captured["kwargs"] = kwargs
         captured["queue"] = queue
         return SimpleNamespace(id="task-sample")
@@ -302,20 +313,25 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch):
     )
 
     assert response["status"] == "accepted"
-    assert response["task_id"] == "task-sample"
+    assert response["task_id"] == captured["kwargs"]["job_id"]
     assert captured["queue"] == "ingest"
-    assert captured["kwargs"] == {
-        "source_payload": {"name": "SAMPLE_1", "asp_id": "assay_1", "environment": "production"},
-        "update_existing": True,
-        "increment": True,
+    job = ingest_jobs.get(response["task_id"])
+    assert job["source_payload"] == {
+        "name": "SAMPLE_1",
+        "asp_id": "assay_1",
+        "environment": "production",
     }
+    assert job["update_existing"] is True
+    assert job["increment"] is True
 
 
-def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tmp_path):
+def test_internal_ingest_async_sample_bundle_upload_stages_files(
+    monkeypatch, tmp_path, ingest_jobs
+):
     """Async upload ingest stages uploaded files durably before enqueueing."""
     captured: dict[str, object] = {}
 
-    def _fake_apply_async(*, kwargs, queue):
+    def _fake_apply_async(*, kwargs, queue, task_id):
         captured["kwargs"] = kwargs
         captured["queue"] = queue
         return SimpleNamespace(id="task-upload")
@@ -349,8 +365,8 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tm
     )
 
     assert response["status"] == "accepted"
-    assert response["task_id"] == "task-upload"
-    kwargs = captured["kwargs"]
+    assert response["task_id"] == captured["kwargs"]["job_id"]
+    kwargs = ingest_jobs.get(response["task_id"])
     assert kwargs["staging_dir"].startswith(str(tmp_path))
     staged_vcf = kwargs["source_payload"]["_runtime_files"]["vcf_files"]
     assert staged_vcf.startswith(kwargs["staging_dir"])
@@ -388,3 +404,16 @@ def test_internal_task_status_payload_success(monkeypatch):
         "successful": True,
         "result": {"status": "ok"},
     }
+
+
+def test_durable_job_status_is_limited_to_submitter_or_superuser(ingest_jobs):
+    identity = ingest_jobs.submit(source_payload={}, submitted_by="another.user")
+    with pytest.raises(HTTPException) as error:
+        internal_router.get_internal_task_status(
+            task_id=identity, _user=_user(role="developer", level=50)
+        )
+    assert error.value.status_code == 403
+    response = internal_router.get_internal_task_status(
+        task_id=identity, _user=_user(role="superuser", level=100)
+    )
+    assert response["state"] == "PENDING"

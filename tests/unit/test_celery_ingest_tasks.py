@@ -1,3 +1,10 @@
+from pathlib import Path
+from types import SimpleNamespace
+
+import mongomock
+import pytest
+
+from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.tasks import ingest
 
 
@@ -23,7 +30,8 @@ def test_resolve_sample_paths_uses_container_visible_manifest_paths(tmp_path):
     assert payload["files"]["cov"] == str((manifest.parent / "relative/sample.cov.json").resolve())
 
 
-def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch):
+@pytest.mark.parametrize("retry_marker", [False, True])
+def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch, retry_marker):
     watch_dir = tmp_path / "incoming"
     sample_dir = watch_dir / "sample_1"
     sample_dir.mkdir(parents=True)
@@ -37,7 +45,9 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
             assert "SAMPLE_1" in raw
             return {"name": "SAMPLE_1", "cnv": "files/sample.cnv.json"}
 
-        def ingest_sample_bundle(self, payload, *, allow_update=False, increment=False):
+        def ingest_sample_bundle(
+            self, payload, *, allow_update=False, increment=False, record_completion=None
+        ):
             captured_payloads.append(
                 {
                     "payload": payload,
@@ -45,14 +55,31 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
                     "increment": increment,
                 }
             )
-            return {"sample_id": "sample-id", "sample_name": "SAMPLE_1"}
+            result = {"sample_id": "sample-id", "sample_name": "SAMPLE_1"}
+            record_completion(result, None)
+            return result
 
     monkeypatch.setattr(ingest, "WATCH_INGEST_DIRECTORY", watch_dir)
+    jobs = IngestJobsRepository(
+        SimpleNamespace(ingest_jobs_collection=mongomock.MongoClient().test.ingest_jobs)
+    )
+    monkeypatch.setattr(ingest, "get_ingest_jobs_repository", lambda: jobs)
     monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_UPDATE_EXISTING", True)
     monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_INCREMENT", False)
     monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(ingest, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(ingest, "get_internal_ingest_service", lambda: _Service())
+    if retry_marker:
+
+        def unavailable_marker(*args, **kwargs):
+            raise OSError("Synthetic marker failure")
+
+        with monkeypatch.context() as marker_patch:
+            marker_patch.setattr(Path, "rename", unavailable_marker)
+            ingest.ingest_watch_directory_once.run()
+        assert manifest.exists()
+        assert len(captured_payloads) == 1
+
     result = ingest.ingest_watch_directory_once.run()
 
     assert result["scanned"] == 1
@@ -70,6 +97,32 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
             "increment": False,
         }
     ]
+
+
+def test_watch_defers_manifest_changed_during_read(tmp_path, monkeypatch):
+    manifest = tmp_path / "coyote3.yaml"
+    manifest.write_text("name: SYNTHETIC_A\n", encoding="utf-8")
+    original_read = Path.read_bytes
+
+    def changing_read(path):
+        content = original_read(path)
+        path.write_text("name: SYNTHETIC_REPLACEMENT\n", encoding="utf-8")
+        return content
+
+    def unexpected_parse(raw):
+        pytest.fail("An unstable manifest must not be parsed or submitted")
+
+    monkeypatch.setattr(Path, "read_bytes", changing_read)
+    monkeypatch.setattr(ingest, "WATCH_INGEST_DIRECTORY", tmp_path)
+    monkeypatch.setattr(
+        ingest,
+        "get_internal_ingest_service",
+        lambda: SimpleNamespace(parse_yaml_payload=unexpected_parse),
+    )
+    result = ingest._run_watch_directory_once(SimpleNamespace(request=SimpleNamespace(id="scan")))
+    assert result["ingested"] == []
+    assert result["failed"] == []
+    assert manifest.exists()
 
 
 def test_ingest_watch_directory_once_skips_when_another_scan_is_active(tmp_path, monkeypatch):

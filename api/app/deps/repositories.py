@@ -38,6 +38,11 @@ def get_sample_repository():
     return store.sample_repository
 
 
+def get_ingest_jobs_repository():
+    """Return the durable sample-ingest delivery ledger."""
+    return store.ingest_jobs_repository
+
+
 def get_gene_list_repository():
     """Return the shared gene-list repository."""
     return store.gene_list_repository

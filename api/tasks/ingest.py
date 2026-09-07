@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import shutil
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+from billiard.exceptions import SoftTimeLimitExceeded
 from celery.utils.log import get_task_logger
 from filelock import FileLock, Timeout
+from pymongo.errors import ConnectionFailure, PyMongoError
 
 from api.app.container import util
+from api.app.deps.repositories import get_ingest_jobs_repository
 from api.app.deps.services import get_audit_service, get_internal_ingest_service
 from api.app.lifecycle import ensure_runtime_initialized
 from api.celery_app import celery_app
@@ -42,12 +46,19 @@ def _record_ingest_audit(event_type: str, message: str, **kwargs: Any) -> None:
     audit = get_audit_service()
     if audit is None:
         return
-    audit.record(
-        event_type,
-        message,
-        category="data",
-        tags=["celery", "ingest"],
-        **kwargs,
+    try:
+        audit.record(event_type, message, category="data", tags=["celery", "ingest"], **kwargs)
+    except Exception:
+        logger.exception("Ingest audit delivery failed; durable job state is unchanged")
+
+
+def _retryable_ingest_error(exc):
+    return isinstance(exc, (ConnectionFailure, SoftTimeLimitExceeded)) or (
+        isinstance(exc, PyMongoError)
+        and (
+            exc.has_error_label("TransientTransactionError")
+            or exc.has_error_label("UnknownTransactionCommitResult")
+        )
     )
 
 
@@ -113,16 +124,38 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
         try:
             task_context = {"task_id": self.request.id, "manifest": str(manifest_path)}
             with timed_operation("ingest.manifest_parse", **task_context):
-                payload = service.parse_yaml_payload(manifest_path.read_text(encoding="utf-8"))
+                before = manifest_path.stat()
+                manifest_bytes = manifest_path.read_bytes()
+                after = manifest_path.stat()
+                if (before.st_ino, before.st_size, before.st_mtime_ns) != (
+                    after.st_ino,
+                    after.st_size,
+                    after.st_mtime_ns,
+                ):
+                    logger.warning("Manifest changed during discovery; deferred to next scan")
+                    continue
+                payload = service.parse_yaml_payload(manifest_bytes.decode("utf-8"))
                 payload = _resolve_relative_sample_paths(payload, manifest_path)
             with timed_operation("ingest.sample_bundle", **task_context):
-                result = service.ingest_sample_bundle(
-                    payload,
-                    allow_update=allow_update,
+                identity = sha256(
+                    f"{manifest_path.resolve()}:{after.st_mtime_ns}:".encode() + manifest_bytes
+                ).hexdigest()
+                get_ingest_jobs_repository().submit(
+                    job_id=identity,
+                    source_payload=payload,
+                    update_existing=allow_update,
                     increment=increment,
+                    submitted_by="ingest-watcher",
                 )
+                result = _execute_ingest_job(identity)
+                if result.get("status") == "busy":
+                    continue
             done_path = _unique_marker_path(manifest_path, done_suffix, self.request.id)
-            manifest_path.rename(done_path)
+            try:
+                manifest_path.rename(done_path)
+            except OSError:
+                logger.exception("Ingest committed; manifest acknowledgement remains pending")
+                continue
             ingested.append(
                 {
                     "manifest": str(manifest_path),
@@ -146,6 +179,8 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
             )
         except Exception as exc:  # pragma: no cover - defensive logging path
             logger.exception("celery_ingest_watch_failed manifest=%s", manifest_path)
+            if _retryable_ingest_error(exc):
+                continue
             failed_path = _unique_marker_path(manifest_path, failed_suffix, self.request.id)
             try:
                 manifest_path.rename(failed_path)
@@ -202,28 +237,61 @@ def ingest_watch_directory_once(self) -> dict[str, Any]:
         return {"status": "skipped", "reason": "already_running"}
 
 
-@celery_app.task(name="api.tasks.ingest.ingest_sample_bundle", bind=True)
-def ingest_sample_bundle_task(
-    self,
-    *,
-    source_payload: dict[str, Any],
-    update_existing: bool = False,
-    increment: bool = False,
-    staging_dir: str | None = None,
-) -> dict[str, Any]:
-    """Create or update a sample bundle through the internal ingest service."""
-    _ensure_worker_runtime()
-    if not task_family_enabled("sample_ingest"):
-        return disabled_result("sample_ingest")
-    logger.info("celery_ingest_sample_bundle_started task_id=%s", self.request.id)
+def _execute_ingest_job(job_id: str) -> dict[str, Any]:
+    repository = get_ingest_jobs_repository()
+    existing = repository.get(job_id)
+    if existing is None:
+        raise ValueError("Ingest job not found")
+    family = "sample_ingest" if existing["kind"] == "sample_bundle" else "collection_writes"
+    if not task_family_enabled(family):
+        return disabled_result(family)
+    if existing["state"] == "succeeded":
+        if existing.get("staging_dir"):
+            shutil.rmtree(existing["staging_dir"], ignore_errors=True)
+        return _serializable(existing["result"])
+    if existing["state"] == "failed":
+        raise ValueError(existing.get("error") or "Ingest job failed")
+    job = repository.claim(job_id, lease_seconds=DefaultConfig.CELERY_TASK_TIME_LIMIT + 60)
+    if job is None:
+        return {"status": "busy", "job_id": job_id}
     try:
-        with timed_operation("ingest.sample_bundle", task_id=self.request.id):
-            result = get_internal_ingest_service().ingest_sample_bundle(
-                source_payload,
-                allow_update=update_existing,
-                increment=increment,
+        with timed_operation("ingest.sample_bundle", task_id=job_id):
+            service = get_internal_ingest_service()
+
+            def completion(result, session):
+                repository.complete(job_id, job["lease_token"], result, session)
+
+            if job["kind"] == "sample_bundle":
+                result = service.ingest_sample_bundle(
+                    job["source_payload"],
+                    allow_update=job["update_existing"],
+                    increment=job["increment"],
+                    record_completion=completion,
+                )
+            else:
+                operation = {
+                    "insert_document": service.insert_collection_document,
+                    "insert_documents": service.insert_collection_documents,
+                    "upsert_document": service.upsert_collection_document,
+                }[job["kind"]]
+                result = operation(**job["source_payload"], record_completion=completion)
+    except Exception as exc:
+        repository.fail(job_id, job["lease_token"], retryable=_retryable_ingest_error(exc))
+        committed = repository.get(job_id)
+        if committed is not None and committed["state"] == "succeeded":
+            result = committed["result"]
+        else:
+            _record_ingest_audit(
+                "ingest.bundle.failed",
+                "Ingest attempt failed",
+                severity="error",
+                outcome="failure",
+                metadata={"task_id": job_id, "retryable": _retryable_ingest_error(exc)},
             )
-        logger.info("celery_ingest_sample_bundle_finished task_id=%s", self.request.id)
+            raise
+    if job.get("staging_dir"):
+        shutil.rmtree(job["staging_dir"], ignore_errors=True)
+    try:
         _record_ingest_audit(
             "ingest.bundle.succeeded",
             "Sample bundle ingested",
@@ -231,98 +299,106 @@ def ingest_sample_bundle_task(
             resource_id=str(result.get("sample_id", "")),
             resource_name=str(result.get("sample_name", "")),
             metadata={
-                "task_id": self.request.id,
+                "task_id": job_id,
                 "counts": result.get("counts") or result.get("data_counts"),
             },
         )
-        return _serializable(result)
-    except Exception as exc:
-        _record_ingest_audit(
-            "ingest.bundle.failed",
-            "Sample bundle ingest failed",
-            severity="error",
-            outcome="failure",
-            metadata={"task_id": self.request.id, "error": str(exc)},
+    except Exception:
+        logger.exception("Ingest committed; audit delivery failed")
+    return _serializable(result)
+
+
+@celery_app.task(
+    name="api.tasks.ingest.ingest_sample_bundle",
+    bind=True,
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
+def ingest_sample_bundle_task(self, *, job_id: str) -> dict[str, Any]:
+    """Execute a durable job; duplicate delivery cannot repeat a committed bundle."""
+    _ensure_worker_runtime()
+    if not task_family_enabled("sample_ingest"):
+        return disabled_result("sample_ingest")
+    return _execute_ingest_job(job_id)
+
+
+@celery_app.task(name="api.tasks.ingest.dispatch_pending_jobs")
+def dispatch_pending_jobs() -> dict[str, Any]:
+    """Recover accepted jobs after broker loss, worker loss, or dispatch interruption."""
+    _ensure_worker_runtime()
+    dispatched = 0
+    kinds = []
+    if task_family_enabled("sample_ingest"):
+        kinds.append("sample_bundle")
+    if task_family_enabled("collection_writes"):
+        kinds.extend(["insert_document", "insert_documents", "upsert_document"])
+    if not kinds:
+        return {"status": "ok", "dispatched": 0}
+    for job in get_ingest_jobs_repository().pending(kinds=kinds):
+        task = {
+            "sample_bundle": ingest_sample_bundle_task,
+            "insert_document": insert_collection_document_task,
+            "insert_documents": insert_collection_documents_task,
+            "upsert_document": upsert_collection_document_task,
+        }[job["kind"]]
+        task.apply_async(
+            kwargs={"job_id": job["_id"]},
+            task_id=job["_id"],
+            queue=DefaultConfig.CELERY_INGEST_QUEUE,
         )
-        raise
-    finally:
-        if staging_dir:
-            shutil.rmtree(staging_dir, ignore_errors=True)
+        dispatched += 1
+    return {"status": "ok", "dispatched": dispatched}
 
 
-@celery_app.task(name="api.tasks.ingest.insert_collection_document", bind=True)
+@celery_app.task(
+    name="api.tasks.ingest.insert_collection_document",
+    bind=True,
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
 def insert_collection_document_task(
     self,
     *,
-    collection: str,
-    document: dict[str, Any],
-    ignore_duplicate: bool = False,
+    job_id: str,
 ) -> dict[str, Any]:
     """Insert one validated document into a supported collection."""
     _ensure_worker_runtime()
     if not task_family_enabled("collection_writes"):
         return disabled_result("collection_writes")
-    logger.info(
-        "celery_insert_collection_document_started task_id=%s collection=%s",
-        self.request.id,
-        collection,
-    )
-    result = get_internal_ingest_service().insert_collection_document(
-        collection=collection,
-        document=document,
-        ignore_duplicate=ignore_duplicate,
-    )
-    return _serializable(result)
+    return _execute_ingest_job(job_id)
 
 
-@celery_app.task(name="api.tasks.ingest.insert_collection_documents", bind=True)
+@celery_app.task(
+    name="api.tasks.ingest.insert_collection_documents",
+    bind=True,
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
 def insert_collection_documents_task(
     self,
     *,
-    collection: str,
-    documents: list[dict[str, Any]],
-    ignore_duplicates: bool = False,
+    job_id: str,
 ) -> dict[str, Any]:
     """Insert many validated documents into a supported collection."""
     _ensure_worker_runtime()
     if not task_family_enabled("collection_writes"):
         return disabled_result("collection_writes")
-    logger.info(
-        "celery_insert_collection_documents_started task_id=%s collection=%s count=%s",
-        self.request.id,
-        collection,
-        len(documents),
-    )
-    result = get_internal_ingest_service().insert_collection_documents(
-        collection=collection,
-        documents=documents,
-        ignore_duplicates=ignore_duplicates,
-    )
-    return _serializable(result)
+    return _execute_ingest_job(job_id)
 
 
-@celery_app.task(name="api.tasks.ingest.upsert_collection_document", bind=True)
+@celery_app.task(
+    name="api.tasks.ingest.upsert_collection_document",
+    bind=True,
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
 def upsert_collection_document_task(
     self,
     *,
-    collection: str,
-    match: dict[str, Any],
-    document: dict[str, Any],
-    upsert: bool = False,
+    job_id: str,
 ) -> dict[str, Any]:
     """Replace/update one validated document in a supported collection."""
     _ensure_worker_runtime()
     if not task_family_enabled("collection_writes"):
         return disabled_result("collection_writes")
-    logger.info(
-        "celery_upsert_collection_document_started task_id=%s collection=%s",
-        self.request.id,
-        collection,
-    )
-    result = get_internal_ingest_service().upsert_collection_document(
-        collection=collection,
-        match=match,
-        document=document,
-        upsert=upsert,
-    )
-    return _serializable(result)
+    return _execute_ingest_job(job_id)

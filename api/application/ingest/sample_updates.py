@@ -82,10 +82,14 @@ def update_meta_fields(
     sample_id: str,
     payload_meta: dict[str, Any],
     block_fields: set[str],
+    session: Any | None = None,
 ) -> None:
     """Update sample metadata fields while rejecting blocked changes."""
     current = (
-        service._sample_collection().find_one({"_id": service._provider_sample_id(sample_id)}) or {}
+        service._sample_collection().find_one(
+            {"_id": service._provider_sample_id(sample_id)}, session=session
+        )
+        or {}
     )
     update_fields: dict[str, Any] = {}
     for key, value in payload_meta.items():
@@ -102,4 +106,5 @@ def update_meta_fields(
             {"_id": service._provider_sample_id(sample_id)},
             {"$set": update_fields},
             upsert=False,
+            session=session,
         )

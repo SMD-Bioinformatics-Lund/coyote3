@@ -14,10 +14,6 @@ from api.application.ingest.parsers import DnaIngestParser, RnaIngestParser, inf
 from api.config.contracts.application import PIPELINE_MANIFEST
 from api.contracts.schemas.registry import normalize_collection_document, supported_collections
 from api.domain.core.internal.results import ReplaceDocumentResult
-from api.infra.mongo.persistence import (
-    insert_many_documents,
-    insert_one_document,
-)
 
 
 def _normalize_pipeline_manifest_fields(payload: dict[str, Any]) -> dict[str, Any]:
@@ -75,53 +71,6 @@ def normalize_collection_docs(collection: str, docs: list[dict[str, Any]]) -> li
     return [normalize_collection_document(collection, doc) for doc in docs]
 
 
-def insert_collection_document(
-    service: Any,
-    *,
-    collection: str,
-    document: dict[str, Any],
-    ignore_duplicate: bool = False,
-) -> dict[str, Any]:
-    """Validate and insert one document into a supported collection."""
-    normalized_doc = normalize_collection_document(collection, document)
-    inserted_id = insert_one_document(
-        service._collection(collection),
-        dict(normalized_doc),
-        ignore_duplicate=ignore_duplicate,
-    )
-    if inserted_id is None:
-        return {"status": "ok", "collection": collection, "inserted_count": 0}
-    return {
-        "status": "ok",
-        "collection": collection,
-        "inserted_count": 1,
-        "inserted_id": inserted_id,
-    }
-
-
-def insert_collection_documents(
-    service: Any,
-    *,
-    collection: str,
-    documents: list[dict[str, Any]],
-    ignore_duplicates: bool = False,
-) -> dict[str, Any]:
-    """Validate and insert many documents into a supported collection."""
-    if not documents:
-        return {"status": "ok", "collection": collection, "inserted_count": 0}
-    normalized_docs = normalize_collection_docs(collection, documents)
-    inserted_count = insert_many_documents(
-        service._collection(collection),
-        [dict(doc) for doc in normalized_docs],
-        ignore_duplicates=ignore_duplicates,
-    )
-    return {
-        "status": "ok",
-        "collection": collection,
-        "inserted_count": inserted_count,
-    }
-
-
 def upsert_collection_document(
     service: Any,
     *,
@@ -129,6 +78,7 @@ def upsert_collection_document(
     match: dict[str, Any],
     document: dict[str, Any],
     upsert: bool = False,
+    session: Any = None,
 ) -> dict[str, Any]:
     """Validate and replace one document in a supported collection."""
     if not isinstance(match, dict) or not match:
@@ -138,6 +88,7 @@ def upsert_collection_document(
         filter=match,
         replacement=dict(normalized_doc),
         upsert=bool(upsert),
+        session=session,
     )
     replace_result = ReplaceDocumentResult(
         matched_count=int(result.matched_count or 0),

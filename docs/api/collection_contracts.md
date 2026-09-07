@@ -692,6 +692,27 @@ Optional keys:
 - `external_cohort_count` (int | None)
 - `source_record` (dict[str, str])
 
+## `ingest_jobs`
+
+Required keys:
+- `created_at` (datetime)
+- `updated_at` (datetime)
+- `submitted_by` (str)
+
+Optional keys:
+- `id_` (Any | None)
+- `kind` (Literal['sample_bundle', 'insert_document', 'insert_documents', 'upsert_document'])
+- `state` (Literal['pending', 'running', 'succeeded', 'failed'])
+- `source_payload` (dict[str, Any] | None)
+- `update_existing` (bool)
+- `increment` (bool)
+- `staging_dir` (str | None)
+- `lease_until` (datetime.datetime | None)
+- `lease_token` (str | None)
+- `attempts` (int)
+- `result` (dict[str, Any] | None)
+- `error` (str | None)
+
 ## `insilico_genelists`
 
 Required keys:
