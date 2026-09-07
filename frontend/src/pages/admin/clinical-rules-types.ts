@@ -16,6 +16,8 @@ export type FactDefinition = {
   scopes: string[]
   unit?: string | null
   description?: string
+  value_options?: string[]
+  value_format?: "gene" | "integer" | "number" | "text"
 }
 
 export type ClinicalRuleAssayOption = {
@@ -23,6 +25,8 @@ export type ClinicalRuleAssayOption = {
   display_name: string
   analyte: "dna" | "rna"
 }
+
+export type ClinicalRuleReviewerOption = { username: string; name: string }
 
 export type PredicateCondition = {
   type: "predicate"
@@ -100,9 +104,12 @@ export type ClinicalRuleSet = {
     submitted_by?: string | null
     clinical_reviewer?: string | null
     clinical_decision_reason?: string | null
+    publisher?: string | null
   }
   updated_at: string
   updated_by: string
+  created_at?: string
+  created_by?: string
 }
 
 export type ClinicalRuleRevision = {

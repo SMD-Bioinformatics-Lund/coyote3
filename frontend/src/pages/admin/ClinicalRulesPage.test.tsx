@@ -154,6 +154,24 @@ describe("ClinicalRulesPage", () => {
     expect(screen.queryByDisplayValue("Existing solid rules")).not.toBeInTheDocument()
   })
 
+  it("keeps the selected rule set open when its sidebar row is clicked again", async () => {
+    const user = userEvent.setup()
+    mocks.get.mockImplementation((path: string) => {
+      if (path === "/admin/clinical-rule-sets/facts") return Promise.resolve({ data: { items: [] } })
+      if (path === "/admin/clinical-rule-sets/authoring-options") return Promise.resolve({ data: { assays: [] } })
+      if (path === "/admin/clinical-rule-sets/versions/rule-version-1") return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], page: 1, per_page: 30, total: 1 } })
+    })
+    renderPage()
+
+    const ruleSet = await screen.findByRole("button", { name: /Existing solid rules/ })
+    await user.click(ruleSet)
+    expect(await screen.findByRole("textbox", { name: "Rule-set name" })).toHaveValue("Existing solid rules")
+
+    await user.click(ruleSet)
+    expect(screen.getByRole("textbox", { name: "Rule-set name" })).toHaveValue("Existing solid rules")
+  })
+
   it("generates editable section and clinical rule identifiers", async () => {
     const user = userEvent.setup()
     mocks.get.mockImplementation((path: string) => {

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from api.app.container import util
 from api.app.deps.services import (
@@ -19,6 +19,7 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleDraftUpdate,
     ClinicalRuleEvaluation,
     ClinicalRuleFactsPayload,
+    ClinicalRuleImportRequest,
     ClinicalRulePreviewRequest,
     ClinicalRuleRevisionDoc,
     ClinicalRuleRevisionsPayload,
@@ -129,6 +130,16 @@ def get_rule_set_version(
     return _serializable(service.get(document_id))
 
 
+@router.get("/versions/{document_id}/export", response_model=ClinicalRuleSetDoc)
+def export_rule_set_version(
+    document_id: str,
+    _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
+    service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
+):
+    """Return the canonical JSON representation of one governed version."""
+    return _serializable(service.get(document_id))
+
+
 @router.get(
     "/versions/{document_id}/revisions",
     response_model=ClinicalRuleRevisionsPayload,
@@ -163,6 +174,16 @@ def create_rule_set_draft(
     return _serializable(service.create_draft(payload, actor=user.username))
 
 
+@router.post("/imports", status_code=201, response_model=ClinicalRuleSetDoc)
+def import_rule_set_draft(
+    payload: ClinicalRuleImportRequest,
+    user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
+    service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
+):
+    """Validate canonical JSON and create a new editable draft from it."""
+    return _serializable(service.import_draft(payload, actor=user.username))
+
+
 @router.patch("/drafts/{document_id}", response_model=ClinicalRuleSetDoc)
 def update_rule_set_draft(
     document_id: str,
@@ -173,7 +194,7 @@ def update_rule_set_draft(
     return _serializable(service.update_draft(document_id, payload, actor=user.username))
 
 
-@router.delete("/drafts/{document_id}", status_code=204)
+@router.delete("/drafts/{document_id}", status_code=204, response_class=Response)
 def delete_rule_set_draft(
     document_id: str,
     revision: int = Query(ge=1),

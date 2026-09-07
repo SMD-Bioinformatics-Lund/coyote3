@@ -20,6 +20,8 @@ class ClinicalFactDefinition(BaseModel):
     scopes: tuple[str, ...] = ("once", "each_finding", "each_item")
     unit: str | None = None
     description: str = ""
+    value_options: tuple[str, ...] = ()
+    value_format: Literal["gene", "integer", "number", "text"] = "text"
 
 
 def _fact(
@@ -30,6 +32,8 @@ def _fact(
     operators: tuple[str, ...],
     scopes: tuple[str, ...] = ("once", "each_finding", "each_item"),
     unit: str | None = None,
+    value_options: tuple[str, ...] = (),
+    value_format: Literal["gene", "integer", "number", "text"] = "text",
 ) -> ClinicalFactDefinition:
     return ClinicalFactDefinition(
         path=path,
@@ -39,6 +43,8 @@ def _fact(
         operators=operators,
         scopes=scopes,
         unit=unit,
+        value_options=value_options,
+        value_format=value_format,
     )
 
 
@@ -63,20 +69,72 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("sample.asp_id", "Assay", "Sample", "string", _EQUALITY),
     _fact("sample.subpanel_id", "Subpanel", "Sample", "string", _EQUALITY),
     _fact("sample.environment", "Environment", "Sample", "string", _EQUALITY),
-    _fact("sample.omics_layer", "Omics layer", "Sample", "string", _EQUALITY),
-    _fact("sample.analysis_intent", "Analysis intent", "Sample", "string", _EQUALITY),
+    _fact(
+        "sample.omics_layer",
+        "Omics layer",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("dna", "rna"),
+    ),
+    _fact(
+        "sample.analysis_intent",
+        "Analysis intent",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("somatic", "germline"),
+    ),
     _fact("sample.paired", "Paired analysis", "Sample", "boolean", _EQUALITY),
-    _fact("sample.genome_build", "Genome build", "Sample", "string", _EQUALITY),
+    _fact(
+        "sample.genome_build",
+        "Genome build",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("GRCh37", "GRCh38"),
+    ),
     _fact("asp.asp_group", "Assay group", "Assay", "string", _EQUALITY),
-    _fact("asp.asp_category", "Assay category", "Assay", "string", _EQUALITY),
+    _fact(
+        "asp.asp_category",
+        "Assay category",
+        "Assay",
+        "string",
+        _EQUALITY,
+        value_options=("dna", "rna"),
+    ),
     _fact("asp.accredited", "Accredited", "Assay", "boolean", _EQUALITY),
     _fact("asp.germline_genes", "Germline genes", "Assay", "string_list", _LIST),
     _fact(
         "aspc.reporting.report_sections", "Report analyses", "Configuration", "string_list", _LIST
     ),
-    _fact("finding.kind", "Finding type", "Finding", "string", _EQUALITY, ("each_finding",)),
-    _fact("finding.gene", "Gene", "Finding", "string", _EQUALITY, ("each_finding",)),
-    _fact("finding.genes", "Genes", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact(
+        "finding.kind",
+        "Finding type",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_options=("snv", "cnv", "fusion", "translocation", "biomarker"),
+    ),
+    _fact(
+        "finding.gene",
+        "Gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
+        "finding.genes",
+        "Genes",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+        value_format="gene",
+    ),
     _fact("finding.tier", "Tier", "Finding", "integer", _NUMBER, ("each_finding",)),
     _fact("finding.exon", "Exon", "Finding", "string_list", _LIST, ("each_finding",)),
     _fact("finding.intron", "Intron", "Finding", "string_list", _LIST, ("each_finding",)),
@@ -108,6 +166,7 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         "string",
         _EQUALITY,
         ("each_finding",),
+        value_options=("gain", "loss"),
     ),
     _fact(
         "finding.fusion_gene_1",
@@ -116,6 +175,7 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         "string",
         _EQUALITY,
         ("each_finding",),
+        value_format="gene",
     ),
     _fact(
         "finding.fusion_gene_2",
@@ -124,6 +184,7 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         "string",
         _EQUALITY,
         ("each_finding",),
+        value_format="gene",
     ),
     _fact("aggregates.finding_count", "Finding count", "Result", "integer", _NUMBER),
     _fact("aggregates.snv_count", "SNV count", "Result", "integer", _NUMBER),
@@ -140,8 +201,24 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         _EQUALITY,
     ),
     _fact("item.kind", "Item type", "Current item", "string", _EQUALITY, ("each_item",)),
-    _fact("item.gene", "Item gene", "Current item", "string", _EQUALITY, ("each_item",)),
-    _fact("item.genes", "Item genes", "Current item", "string_list", _LIST, ("each_item",)),
+    _fact(
+        "item.gene",
+        "Item gene",
+        "Current item",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_format="gene",
+    ),
+    _fact(
+        "item.genes",
+        "Item genes",
+        "Current item",
+        "string_list",
+        _LIST,
+        ("each_item",),
+        value_format="gene",
+    ),
     _fact("item.tier", "Item tier", "Current item", "integer", _NUMBER, ("each_item",)),
 )
 

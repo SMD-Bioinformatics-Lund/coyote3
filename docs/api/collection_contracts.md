@@ -302,6 +302,7 @@ Optional keys:
 - `blocks` (list[api.contracts.schemas.clinical_rules.ClinicalRuleBlock])
 - `test_cases` (list[api.contracts.schemas.clinical_rules.ClinicalRuleTestCase])
 - `references` (list[dict[str, Any]])
+- `provenance` (api.contracts.schemas.clinical_rules.ClinicalRuleProvenance | None)
 - `change_summary` (str)
 - `review` (ClinicalRuleReview)
 - `lifecycle` (list[api.contracts.schemas.clinical_rules.ClinicalRuleLifecycleEvent])

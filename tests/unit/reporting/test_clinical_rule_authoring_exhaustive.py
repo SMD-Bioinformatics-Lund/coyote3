@@ -12,6 +12,7 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
+    ClinicalRuleImportRequest,
     ClinicalRuleTransition,
 )
 from api.domain.core.exceptions import AppError
@@ -93,6 +94,32 @@ class RevisionRepository:
         return deepcopy(self.document) if revision == self.document["revision"] else None
 
 
+class RoleRepository:
+    def get_all_roles_plus_permissions(self):
+        return [
+            {
+                "role_id": "clinical_rule_reviewer",
+                "permissions": ["clinical_rules:clinical_review"],
+            },
+            {"role_id": "clinical_rule_publisher", "permissions": ["clinical_rules:publish"]},
+        ]
+
+
+class UserRepository:
+    def list_active_users_for_notifications(self, *, role_ids):
+        users = {
+            "clinical_rule_reviewer": {"username": "reviewer", "fullname": "Reviewer"},
+            "clinical_rule_publisher": {"username": "publisher", "fullname": "Publisher"},
+        }
+        return [users[role_id] for role_id in role_ids if role_id in users]
+
+
+def governed_service(repository):
+    return ClinicalRuleAuthoringService(
+        repository, user_repository=UserRepository(), role_repository=RoleRepository()
+    )
+
+
 def test_from_store_list_versions_get_and_audit() -> None:
     repository = Repository()
     audit = SimpleNamespace(record=lambda *args, **kwargs: setattr(audit, "call", (args, kwargs)))
@@ -128,7 +155,7 @@ def test_authoring_options_use_identifier_as_missing_display_name() -> None:
             {"asp_id": "assay_1", "asp_category": "DNA", "display_name": ""}
         ]
     )
-    service = ClinicalRuleAuthoringService(object(), assay_panel_repository=panels)
+    service = ClinicalRuleAuthoringService(Repository(), assay_panel_repository=panels)
     assert service.authoring_options()["assays"][0]["display_name"] == "assay_1"
     service._validate_new_scope(ClinicalRuleDraftCreate())
 
@@ -199,6 +226,27 @@ def test_clone_rejects_nonreleased_source() -> None:
         )
 
 
+def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
+    source = _document(status="published", active=True).model_dump(mode="python", by_alias=True)
+    repository = Repository()
+    panels = SimpleNamespace(
+        get_asp=lambda _asp_id: {"asp_id": "assay_1", "asp_category": "DNA", "is_active": True}
+    )
+    result = ClinicalRuleAuthoringService(repository, assay_panel_repository=panels).import_draft(
+        ClinicalRuleImportRequest(
+            document=source,
+            scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
+            name="Imported report rules",
+        ),
+        actor="author",
+    )
+
+    assert result["status"] == "draft"
+    assert result["active"] is False
+    assert result["provenance"]["source"] == "import"
+    assert result["lifecycle"][0]["action"] == "draft_imported"
+
+
 def test_validate_preview_and_update_audit_paths() -> None:
     repository = Repository(_document(status="draft"))
     audit = SimpleNamespace(record=lambda *args, **kwargs: setattr(audit, "called", True))
@@ -232,8 +280,10 @@ def test_only_editable_drafts_can_be_deleted_and_the_action_is_audited() -> None
 
 def test_submit_review_reject_and_retire_lifecycle() -> None:
     repository = Repository(_document(status="draft"))
-    service = ClinicalRuleAuthoringService(repository)
-    submitted = service.submit("id", ClinicalRuleTransition(reason="ready"), actor="author")
+    service = governed_service(repository)
+    submitted = service.submit(
+        "id", ClinicalRuleTransition(reason="ready", assignee="reviewer"), actor="author"
+    )
     assert submitted["status"] == "submitted"
     reviewing = service.start_review(
         "id", ClinicalRuleTransition(reason="review"), actor="reviewer"
@@ -242,7 +292,7 @@ def test_submit_review_reject_and_retire_lifecycle() -> None:
     rejected = service.clinical_decision(
         "id",
         ClinicalRuleDecision(approve=False, reason="needs changes"),
-        actor="other-reviewer",
+        actor="reviewer",
     )
     assert rejected["status"] == "rejected"
 
@@ -264,12 +314,11 @@ def test_lifecycle_failure_paths(monkeypatch) -> None:
     with pytest.raises(AppError, match="retirement reason"):
         service.retire("id", ClinicalRuleTransition(), actor="publisher")
 
-    repository = Repository(_document(status="draft"))
+    repository = Repository(_document(status="submitted"))
+    repository.document["review"] = {"clinical_reviewer": "reviewer"}
     repository.fail_transition = True
     with pytest.raises(AppError, match="cannot transition"):
-        ClinicalRuleAuthoringService(repository).start_review(
-            "id", ClinicalRuleTransition(), actor="reviewer"
-        )
+        governed_service(repository).start_review("id", ClinicalRuleTransition(), actor="reviewer")
 
 
 def test_publication_rejects_invalid_unapproved_nonindependent_and_stale(monkeypatch) -> None:
@@ -296,6 +345,7 @@ def test_publication_rejects_invalid_unapproved_nonindependent_and_stale(monkeyp
 
     approved = _document(status="approved")
     approved.review.clinical_reviewer = "reviewer"
+    approved.review.publisher = "publisher"
     repository = Repository(approved)
     repository.fail_publish = True
     with pytest.raises(AppError, match="Only an approved"):

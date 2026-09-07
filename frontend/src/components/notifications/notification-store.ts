@@ -19,6 +19,7 @@ export type NotificationResource = {
   name?: string
   sampleName?: string
   finding?: string
+  uri?: string
 }
 
 export type NotificationInput = {

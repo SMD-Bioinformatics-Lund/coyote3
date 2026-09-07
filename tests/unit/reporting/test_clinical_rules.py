@@ -343,11 +343,26 @@ def test_latest_editor_cannot_approve_own_rule_content():
 
 def test_independent_review_and_publication_preserve_content_hash():
     document = _document().model_copy(update={"status": ClinicalRuleStatus.IN_CLINICAL_REVIEW})
+    document.review.clinical_reviewer = "reviewer"
     repository = _MemoryRepository(document)
-    service = ClinicalRuleAuthoringService(repository)
+    roles = SimpleNamespace(
+        get_all_roles_plus_permissions=lambda: [
+            {"role_id": "clinical_rule_publisher", "permissions": ["clinical_rules:publish"]}
+        ]
+    )
+    users = SimpleNamespace(
+        list_active_users_for_notifications=lambda *, role_ids: (
+            [{"username": "publisher", "fullname": "Publisher"}]
+            if "clinical_rule_publisher" in role_ids
+            else []
+        )
+    )
+    service = ClinicalRuleAuthoringService(repository, user_repository=users, role_repository=roles)
     approved = service.clinical_decision(
         str(repository.document["_id"]),
-        ClinicalRuleDecision(approve=True, reason="Clinical review complete"),
+        ClinicalRuleDecision(
+            approve=True, reason="Clinical review complete", publisher="publisher"
+        ),
         actor="reviewer",
     )
     assert approved["status"] == "approved"
@@ -376,15 +391,24 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
             {"display_name": "Missing ID", "asp_category": "DNA"},
         ]
     )
-    service = ClinicalRuleAuthoringService(object(), assay_panel_repository=panels)
+    repository = SimpleNamespace(list_rule_sets=lambda **_kwargs: ([], 0))
+    service = ClinicalRuleAuthoringService(repository, assay_panel_repository=panels)
 
-    assert service.authoring_options() == {
-        "assays": [
-            {"asp_id": "dna_a", "display_name": "DNA A", "analyte": "dna"},
-            {"asp_id": "rna_b", "display_name": "RNA B", "analyte": "rna"},
-        ]
+    options = service.authoring_options()
+    assert options["assays"] == [
+        {"asp_id": "dna_a", "display_name": "DNA A", "analyte": "dna"},
+        {"asp_id": "rna_b", "display_name": "RNA B", "analyte": "rna"},
+    ]
+    assert options["condition_values"]["sample.asp_id"] == ["rna_b", "dna_a"]
+    assert options["condition_values"]["sample.subpanel_id"] == ["base"]
+    assert options["clinical_reviewers"] == []
+    assert options["publishers"] == []
+    assert ClinicalRuleAuthoringService(object()).authoring_options() == {
+        "assays": [],
+        "condition_values": {},
+        "clinical_reviewers": [],
+        "publishers": [],
     }
-    assert ClinicalRuleAuthoringService(object()).authoring_options() == {"assays": []}
 
 
 @pytest.mark.parametrize(

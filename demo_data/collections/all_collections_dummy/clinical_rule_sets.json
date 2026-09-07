@@ -19,11 +19,13 @@
     "blocks": [],
     "test_cases": [],
     "references": [],
+    "provenance": null,
     "change_summary": "Synthetic fixture",
     "review": {
       "submitted_by": null,
       "submitted_at": null,
       "clinical_reviewer": null,
+      "publisher": null,
       "clinical_decision_at": null,
       "clinical_decision_reason": null
     },

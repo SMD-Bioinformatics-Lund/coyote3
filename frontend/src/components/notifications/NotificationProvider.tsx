@@ -186,6 +186,7 @@ type ServerNotification = {
     name?: string
     sample_name?: string
     finding?: string
+    uri?: string
   }
   created_at: string
   read: boolean
@@ -205,6 +206,7 @@ function mapServerNotification(item: ServerNotification): AppNotification {
       name: item.resource.name,
       sampleName: item.resource.sample_name,
       finding: item.resource.finding,
+      uri: item.resource.uri,
     } : undefined,
     createdAt: item.created_at,
     read: item.read,
@@ -257,6 +259,11 @@ function NotificationToast({
                 </span>
               ))}
             </div>
+          )}
+          {notification.resource?.uri && (
+            <a className="link-text mt-2 inline-flex text-xs font-semibold" href={notification.resource.uri}>
+              Open rule set
+            </a>
           )}
           {notification.source && (
             <p className="mt-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">{notification.source}</p>

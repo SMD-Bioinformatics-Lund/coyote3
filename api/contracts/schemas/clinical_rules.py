@@ -257,6 +257,7 @@ class ClinicalRuleReview(_StrictModel):
     submitted_by: str | None = None
     submitted_at: datetime | None = None
     clinical_reviewer: str | None = None
+    publisher: str | None = None
     clinical_decision_at: datetime | None = None
     clinical_decision_reason: str | None = None
 
@@ -266,6 +267,16 @@ class ClinicalRuleLifecycleEvent(_StrictModel):
     actor: str
     occurred_at: datetime
     reason: str | None = None
+
+
+class ClinicalRuleProvenance(_StrictModel):
+    """Origin retained when a draft is copied or imported."""
+
+    source: Literal["ui", "template", "api", "import"]
+    source_rule_set_id: str | None = None
+    source_content_version: int | None = Field(default=None, ge=1)
+    source_revision: int | None = Field(default=None, ge=1)
+    imported_schema_version: int | None = Field(default=None, ge=1)
 
 
 class ClinicalRuleTestCase(_StrictModel):
@@ -293,6 +304,7 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
     blocks: list[ClinicalRuleBlock] = Field(default_factory=list)
     test_cases: list[ClinicalRuleTestCase] = Field(default_factory=list)
     references: list[dict[str, Any]] = Field(default_factory=list)
+    provenance: ClinicalRuleProvenance | None = None
     change_summary: str = ""
     review: ClinicalRuleReview = Field(default_factory=ClinicalRuleReview)
     lifecycle: list[ClinicalRuleLifecycleEvent] = Field(default_factory=list)
@@ -392,6 +404,15 @@ class ClinicalRuleDraftCreate(_StrictModel):
     source_version_id: str | None = None
     scope: ClinicalRuleScope | None = None
     name: str | None = None
+    source: Literal["ui", "template", "api"] = "ui"
+
+
+class ClinicalRuleImportRequest(_StrictModel):
+    """Canonical JSON export uploaded to create a separately governed draft."""
+
+    document: dict[str, Any]
+    scope: ClinicalRuleScope
+    name: str = Field(min_length=1, max_length=160)
 
 
 class ClinicalRuleDraftUpdate(_StrictModel):
@@ -408,10 +429,12 @@ class ClinicalRuleDraftUpdate(_StrictModel):
 class ClinicalRuleDecision(_StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
     approve: bool
+    publisher: str | None = None
 
 
 class ClinicalRuleTransition(_StrictModel):
     reason: str = Field(default="", max_length=1000)
+    assignee: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class ClinicalRulePreviewRequest(_StrictModel):
@@ -448,6 +471,8 @@ class ClinicalRuleFactPayload(_StrictModel):
     scopes: list[str]
     unit: str | None = None
     description: str = ""
+    value_options: list[str] = Field(default_factory=list)
+    value_format: Literal["gene", "integer", "number", "text"] = "text"
 
 
 class ClinicalRuleFactsPayload(_StrictModel):
@@ -462,6 +487,9 @@ class ClinicalRuleAssayOption(_StrictModel):
 
 class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
     assays: list[ClinicalRuleAssayOption]
+    condition_values: dict[str, list[str]] = Field(default_factory=dict)
+    clinical_reviewers: list[dict[str, str]] = Field(default_factory=list)
+    publishers: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ClinicalRuleTestSample(_StrictModel):

@@ -71,7 +71,8 @@ Each collection document is one independently versioned draft or immutable relea
 | `blocks` | Ordered report sections, evaluation scope, match policy, and rules. |
 | `terminology` | Approved phrase sets consumed by named deterministic renderers. |
 | `test_cases` | Prepared facts and exact expected rules/text evaluated before release. |
-| `review`, `lifecycle` | Submission, review, publication, retirement, actors, and reasons. |
+| `review`, `lifecycle` | Assignment, submission, review, publication, retirement, actors, and reasons. |
+| `provenance` | UI/template/API/import origin and immutable source-version reference for copied content. |
 | `content_hash` | SHA-256 hash of immutable clinical content recorded at publication. |
 
 MongoDB enforces unique `(rule_set_id, content_version)` values and at most one active
@@ -298,8 +299,10 @@ Users with rule permissions open **Admin > Clinical Report Rules**. The workspac
 scope/version selection, rule editing, and output review visible together:
 
 1. Search or filter rule sets by workflow state.
-2. Create a scoped draft by selecting an active ASP from the assay dropdown, entering the
-   subpanel and language, or create a new content version from a published/rejected one. The
+2. Select a creation method: build in the UI, copy an assay-specific published template, import
+   a canonical JSON export, or create a new content version from a published/rejected one. The
+   template selector is restricted to the selected assay. A copy always creates an independent
+   draft, never a link to the source document. The
    analyte is derived from the ASP and cannot be entered independently. Starting creation
    clears the open release from the editor so existing content cannot be mistaken for the new
    draft. The suggested rule-set name follows the assay and subpanel until the author edits it.
@@ -308,6 +311,38 @@ scope/version selection, rule editing, and output review visible together:
 5. Compose report text from literal text, facts, paragraph breaks, and named summaries.
 6. Review save state, validation results, clinical rationale, and change summary.
 7. Submit, clinically review, publish, or retire according to assigned permissions.
+
+### Condition Value Editors
+
+The builder chooses the value editor from the registered fact contract. Boolean and controlled
+facts use selectors. This includes finding type, omics layer, analysis intent, genome build,
+assay category, and copy-number effect. Numeric facts use numeric parsing; list and range
+operators use comma-separated value lists; gene facts are checked as HGNC-symbol-shaped values.
+The editor marks an invalid value with an error border and an explanation before save. This is
+an authoring aid only: the API validates the complete typed document on import, draft save,
+submission, and publication.
+
+Assay and subpanel scope are selected when the rule set is created. The ASPC form independently
+offers active published rule sets for its selected assay, then selects the matching subpanel
+release where available. Report-time resolution always uses the ASPC binding, not a rule selected
+ad hoc from a sample or report page.
+
+### Templates, Import, And Export
+
+`GET /api/v1/admin/clinical-rule-sets/versions/{document_id}/export` returns the canonical JSON
+for a governed version. The builder downloads that representation as a `.json` file. It is an
+interchange format, not an editable runtime source.
+
+`POST /api/v1/admin/clinical-rule-sets/imports` accepts that canonical JSON plus the new target
+scope and name. The API parses the complete document, assigns a new document ID, content version,
+revision, workflow state, timestamps, and owner, then validates it exactly as it validates a UI
+draft. Imported JSON cannot carry a published state, approval, active flag, or source identity
+into the new draft.
+
+Copied and imported drafts retain provenance: creation source (`ui`, `template`, `api`, or
+`import`), source rule-set identity, source content version and revision, and imported schema
+version. This is visible in the preserved document and revision archive. The source version is
+never changed by the copy or import.
 
 Draft updates use optimistic locking. If another editor saves first, the API rejects the
 stale revision so the newer content must be reloaded and reconciled. The editor cannot
@@ -412,6 +447,30 @@ revision in the rule document and central audit log.
 Bundled roles separate these duties: `clinical_rule_author`,
 `clinical_rule_reviewer`, and `clinical_rule_publisher`. Centers may compose equivalent
 roles, but approval separation remains enforced by the service.
+
+| Role | Intended operator | Grants |
+| --- | --- | --- |
+| `clinical_rule_viewer` | Geneticist or auditor inspecting governed wording | View rule sets, provenance, revision history, and canonical JSON export. |
+| `clinical_rule_tester` | Validator checking report behavior against authorized samples | Viewer rights plus read-only sample-backed rule testing. |
+| `clinical_rule_author` | Author preparing clinical wording | Viewer/tester rights plus draft creation, editing, validation, import, export, deletion, and submission. |
+| `clinical_rule_reviewer` | Independent clinical reviewer | Viewer/tester rights plus start-review, approval, and rejection actions. |
+| `clinical_rule_publisher` | Release owner | Viewer rights plus publication and retirement actions. |
+
+Assign these roles in combination only when one person is deliberately expected to perform more
+than one duty. The service still prevents a latest content editor from approving their own
+content, even when that person holds multiple roles.
+
+Submission requires the author to assign an active user holding `clinical_rules:clinical_review`.
+Only that assigned reviewer may start and complete clinical review. On approval, the reviewer
+assigns an active user holding `clinical_rules:publish`; only that assigned publisher may publish.
+The service checks eligibility when assigning and again through the protected action route. It
+also prevents the latest editor from clinically approving their own content.
+
+Each assignment and outcome is recorded in the rule-set revision/lifecycle chain and central
+audit trail. The assigned reviewer receives a recipient-scoped in-app notification with a direct
+rule-set URI. Rejection notifies the author, and publication notifies the author when another
+user publishes the release. Notifications are delivery signals; the revision archive and audit
+events remain the traceability records.
 
 ## Runtime Evaluation And Provenance
 
