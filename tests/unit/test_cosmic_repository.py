@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import mongomock
+import pytest
 
 from api.infra.knowledgebase.cosmic import CosmicRepository
 
@@ -27,7 +28,51 @@ def _repository() -> tuple[CosmicRepository, SimpleNamespace]:
         cosmic_structural_collection=database.cosmic_structural,
         knowledgebase_versions_collection=database.versions,
     )
+    adapter.knowledgebase_versions_collection.insert_many(
+        [
+            {"source": f"cosmic_{product}", "status": "active", "assembly": "GRCh38"}
+            for product in [
+                "coding_variants",
+                "noncoding_variants",
+                "targeted_variants",
+                "census_gene_mutations",
+                "copy_number",
+                "breakpoints",
+            ]
+        ]
+    )
     return CosmicRepository(adapter), adapter
+
+
+@pytest.mark.parametrize("build", [37, None])
+def test_coordinates_never_match_a_different_or_unknown_assembly(build):
+    repository, adapter = _repository()
+    adapter.cosmic_collection.insert_one(
+        {"id": "COSV1", "chr": "2", "start": 100, "ref": "A", "alt": "T"}
+    )
+    variant = {"CHROM": "2", "POS": 100, "REF": "A", "ALT": "T"}
+    assert repository.get_variant_evidence(variant, genome_build=build)["records"] == []
+    variant["cosmic_ids"] = ["COSV1"]
+    assert repository.get_variant_evidence(variant, genome_build=build)["cosmic_ids"] == ["COSV1"]
+
+
+def test_mutation_census_uses_the_requested_coordinate_columns():
+    repository, adapter = _repository()
+    adapter.cosmic_mutation_census_collection.insert_one(
+        {
+            "genomic_mutation_id": "COSV1",
+            "chr_grch37": "2",
+            "start_grch37": 100,
+            "chr_grch38": "2",
+            "start_grch38": 200,
+            "ref": "A",
+            "alt": "T",
+        }
+    )
+    variant = {"CHROM": "2", "POS": 100, "REF": "A", "ALT": "T"}
+    assert repository.get_variant_evidence(variant, genome_build=37)["match_count"] == 1
+    assert repository.get_variant_evidence(variant, genome_build=38)["match_count"] == 0
+    assert repository.get_variant_evidence(variant, genome_build=None)["match_count"] == 0
 
 
 def test_index_setup_does_not_create_an_absent_optional_genome_collection() -> None:
@@ -67,7 +112,8 @@ def test_variant_evidence_matches_identity_and_never_exposes_source_samples() ->
             "ALT": "T",
             "cosmic_ids": [],
             "INFO": {"selected_CSQ": {"SYMBOL": "DNMT3A"}},
-        }
+        },
+        genome_build=38,
     )
 
     assert evidence["match_count"] == 1
@@ -121,7 +167,8 @@ def test_variant_evidence_uses_mutation_census_and_reports_product_availability(
             "REF": "G",
             "ALT": "A",
             "INFO": {"selected_CSQ": {"SYMBOL": "TP53"}},
-        }
+        },
+        genome_build=38,
     )
 
     assert evidence["records"][0]["source_product"] == "Mutation Census"
@@ -276,7 +323,8 @@ def test_cnv_evidence_requires_interval_overlap() -> None:
     )
 
     evidence = repository.get_cnv_evidence(
-        {"chr": "7", "start": 150, "end": 250, "genes": [{"gene": "EGFR"}]}
+        {"chr": "7", "start": 150, "end": 250, "genes": [{"gene": "EGFR"}]},
+        genome_build=38,
     )
 
     assert evidence["match_count"] == 1
@@ -298,7 +346,7 @@ def test_translocation_evidence_matches_breakpoint_ranges() -> None:
         }
     )
 
-    evidence = repository.get_translocation_evidence({"positions": "2:100-5:200"})
+    evidence = repository.get_translocation_evidence({"positions": "2:100-5:200"}, genome_build=38)
 
     assert evidence["match_count"] == 1
     assert evidence["cosmic_ids"] == ["COSS1"]

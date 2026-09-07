@@ -304,7 +304,7 @@ def _context_service(variant):
         brca_repository=SimpleNamespace(get_brca_data=lambda row, group: {"group": group}),
         iarc_tp53_repository=SimpleNamespace(find_iarc_tp53=lambda row: {"found": True}),
         cosmic_repository=SimpleNamespace(
-            get_variant_evidence=lambda row: {
+            get_variant_evidence=lambda row, **_kwargs: {
                 "kind": "small_variant",
                 "match_count": 1,
                 "records": [{"id": "COSV1"}],

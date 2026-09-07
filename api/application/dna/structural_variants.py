@@ -360,7 +360,9 @@ class DnaStructuralService:
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-        cosmic = self.cosmic_repository.get_cnv_evidence(cnv)
+        cosmic = self.cosmic_repository.get_cnv_evidence(
+            cnv, genome_build=sample.get("genome_build")
+        )
         return {
             "sample": sample,
             "sample_summary": {
@@ -555,7 +557,9 @@ class DnaStructuralService:
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-        cosmic = self.cosmic_repository.get_translocation_evidence(transloc)
+        cosmic = self.cosmic_repository.get_translocation_evidence(
+            transloc, genome_build=sample.get("genome_build")
+        )
         return {
             "sample": sample,
             "sample_summary": {

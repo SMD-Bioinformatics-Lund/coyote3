@@ -365,6 +365,12 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
       badges={evidence?.match_count ? <EvidenceBadge tone="info">{evidence.match_count} observations</EvidenceBadge> : null}
     >
       <div className="space-y-3">
+        {Object.values(evidence?.coordinate_matching || {}).some(value => value === false) && (
+          <p role="status" className="rounded-md border border-warn/30 bg-warn/10 p-2 text-sm text-warn">
+            Coordinate matching is unavailable for products without a confirmed matching genome build.
+            Identifier matches and gene-level context remain available.
+          </p>
+        )}
         {rowSearch ? (
           <span className="type-meta text-muted-foreground">
             {visibleResultCount} matching {visibleResultCount === 1 ? "row" : "rows"}

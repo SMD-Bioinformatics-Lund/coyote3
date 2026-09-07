@@ -884,7 +884,9 @@ def variant_context_payload(
     )
     brca_exchange = service.brca_repository.get_brca_data(variant, assay_group)
     iarc_tp53 = service.iarc_tp53_repository.find_iarc_tp53(variant)
-    cosmic = service.cosmic_repository.get_variant_evidence(variant)
+    cosmic = service.cosmic_repository.get_variant_evidence(
+        variant, genome_build=sample.get("genome_build")
+    )
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     return {

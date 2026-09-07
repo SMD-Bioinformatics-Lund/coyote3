@@ -7,6 +7,13 @@ report inclusion.
 
 ## Supported sources
 
+COSMIC coordinate matching uses `samples.genome_build`. Genome/targeted screens,
+census gene mutations, CNAs, and breakpoints require a matching active release's
+`assembly` in the knowledgebase `versions` collection. Unknown or mismatched builds
+suppress coordinate matching and display a warning. Cancer Mutation Census queries
+select the explicit GRCh37 or GRCh38 coordinate columns. COSMIC identifier matches
+and gene-level context do not imply a coordinate match. No liftover is performed.
+
 | Source | Context used by Coyote3 |
 | --- | --- |
 | COSMIC | Exact or bounded finding matches, tumour classifications, Cancer Gene Census, hallmarks, resistance, structural context, and actionability when the corresponding products are installed. |

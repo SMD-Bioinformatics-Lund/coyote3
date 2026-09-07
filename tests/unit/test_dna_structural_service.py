@@ -68,8 +68,8 @@ class _RepoStub:
             get_conseq_translations=lambda _vep: {"A": "B"}
         )
         self.cosmic_repository = SimpleNamespace(
-            get_cnv_evidence=lambda _cnv: {"kind": "copy_number", "records": []},
-            get_translocation_evidence=lambda _transloc: {
+            get_cnv_evidence=lambda _cnv, **_kwargs: {"kind": "copy_number", "records": []},
+            get_translocation_evidence=lambda _transloc, **_kwargs: {
                 "kind": "translocation",
                 "records": [],
             },

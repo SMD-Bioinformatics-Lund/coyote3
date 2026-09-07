@@ -48,7 +48,7 @@ def _dna_service() -> DnaService:
         brca_repository=store.brca_repository,
         iarc_tp53_repository=store.iarc_tp53_repository,
         cosmic_repository=SimpleNamespace(
-            get_variant_evidence=lambda _variant: {
+            get_variant_evidence=lambda _variant, **_kwargs: {
                 "kind": "small_variant",
                 "match_count": 0,
                 "records": [],
