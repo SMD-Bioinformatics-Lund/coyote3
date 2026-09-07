@@ -55,7 +55,7 @@ def _new_sample_id() -> str:
 
 
 class InternalIngestService:
-    """API-side service that ingests a fresh sample plus analysis data atomically."""
+    """Validate and persist sample bundles with readiness and recovery handling."""
 
     @classmethod
     def from_store(
@@ -366,7 +366,7 @@ class InternalIngestService:
     def _replace_dependents(
         self, *, preload: dict[str, Any], sample_id: str, sample_name: str
     ) -> dict[str, int]:
-        """Atomically replace dependent data with transactional rollback on failure.
+        """Replace dependent data with best-effort compensating restoration.
 
         Snapshots the current dependents, deletes them, writes the new preload,
         and restores the snapshot if any step raises.
@@ -442,7 +442,7 @@ class InternalIngestService:
 
         Locates the existing sample by name, validates the update payload against
         the current document's omics layer, updates metadata fields, and replaces
-        dependent analysis data with transactional rollback.
+        dependent analysis data with compensating restoration on write failure.
 
         Args:
             payload: Update payload dict containing at minimum a ``name`` key.

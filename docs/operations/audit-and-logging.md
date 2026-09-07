@@ -115,8 +115,8 @@ Use Admin -> Application Controls to manage:
 | Retention maintenance | Scheduled and manual maintenance may apply audit and disk-log cleanup. | Maintenance tasks return without cleanup; MongoDB TTL behavior remains independent. |
 | Application modules | Governed navigation, pages, and APIs are available. | Governed navigation is hidden, direct UI routes show an unavailable state, and governed APIs return HTTP `503` with `category: module_disabled`. Stored data is retained. |
 
-The complete sample-ingestion gate intentionally represents one clinical
-transaction. Watch-folder scanning and manual submission are two entry points,
+The complete sample-ingestion gate controls one bundle workflow, not a guarantee
+of database transaction atomicity. Watch-folder scanning and manual submission are two entry points,
 not different persistence models. Once a manifest is accepted, every declared
 analysis resource is parsed and written through the same bundle service. A
 sample becomes `ready` only after the complete declared bundle succeeds.

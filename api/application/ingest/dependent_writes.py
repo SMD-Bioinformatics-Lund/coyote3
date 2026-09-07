@@ -128,7 +128,7 @@ def restore_dependents(
 def replace_dependents(
     service: Any, *, preload: dict[str, Any], sample_id: str, sample_name: str
 ) -> dict[str, int]:
-    """Atomically replace dependent data with rollback on failure."""
+    """Replace dependent data with non-atomic, best-effort restoration on failure."""
     sid = str(sample_id)
     keys_to_replace = set(preload.keys()) & set(INGEST_DEPENDENT_COLLECTIONS)
     backup = service._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)

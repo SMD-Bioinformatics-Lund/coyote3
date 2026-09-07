@@ -203,10 +203,15 @@ and [query strategy](../product/aspc_driven_query_strategy.md).
 
 ![Sample ingest workflow](../assets/diagrams/celery_ingest_flow.svg)
 
-Ingest is atomic at the sample-bundle level: every declared file must be read
+Ingest readiness is checked at the sample-bundle level: every declared file must be read
 and its dependent documents must pass their collection contracts before the
 sample is committed as ready. Optional files may be absent only when they were
 not declared.
+
+Readiness is not an unconditional transaction guarantee. Fresh creation can fall
+back to non-transactional writes if session setup fails; updates use best-effort
+compensating restoration. See the [persistence and recovery boundaries](../api/ingestion_api.md#persistence-and-recovery-boundaries)
+before changing write ordering or defining recovery procedures.
 
 ### Manifest processing
 

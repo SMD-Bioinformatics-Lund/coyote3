@@ -31,7 +31,7 @@ All ingest endpoints validate request documents with backend Pydantic contracts 
 
 ![Celery-backed sample ingest flow](../assets/diagrams/celery_ingest_flow.svg)
 
-## Atomicity and rollback guarantees
+## Persistence and recovery boundaries
 
 For fresh sample creation through:
 
@@ -49,13 +49,13 @@ the ingest flow follows this order:
 Failure behavior:
 
 - If validation or file parsing fails, no sample document is inserted.
-- If any write fails after the sample anchor is created, ingest attempts rollback cleanup and deletes the staged sample plus dependent analysis documents.
-- When Mongo sessions/transactions are supported by the runtime, the create flow executes inside a transaction boundary as an additional safeguard.
+- If a write fails after the sample anchor is created, ingest attempts to delete the staged sample and dependent documents. This cleanup is best-effort and can itself fail.
+- Fresh creation uses a MongoDB transaction when session and transaction setup succeed. The current setup helpers can fall back to non-transactional writes, so readiness must not be interpreted as an unconditional crash-atomicity guarantee.
 
 Scope note:
 
-- These guarantees apply to **fresh sample creation**.
-- `update_existing=true` still uses dependent-data replacement with rollback for evidence collections, but sample metadata updates are not yet a full multi-document transaction.
+- The sequence above describes **fresh sample creation**.
+- `update_existing=true` replaces evidence through separate writes with best-effort restoration from an in-memory backup. Evidence replacement and sample metadata updates do not share a transaction. A crash, concurrent update, or failed restoration can leave partial state and requires reconciliation before clinical use.
 
 ## Endpoints
 
@@ -221,7 +221,7 @@ directory. After successful ingest, the watcher renames the manifest to
 `coyote3.yaml.done`; failed manifests are renamed to `coyote3.yaml.failed` so
 they do not loop continuously.
 
-The success marker covers the required clinical transaction: the sample and
+The success marker records completion of the required bundle workflow: the sample and
 every declared analysis resource have been validated, persisted, and marked
 `ready`. Optional public knowledgebase enrichment is queued only after that
 marker is written. A slow or unavailable external service cannot hold the
