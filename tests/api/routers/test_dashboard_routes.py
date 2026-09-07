@@ -26,16 +26,18 @@ from tests.fixtures.api import mock_collections as fx
 def test_dashboard_metric_routes_return_only_the_requested_metric(monkeypatch, route, metric):
     calls: list[str] = []
     service = SimpleNamespace(
-        metric_payload=lambda requested, *, user: calls.append(requested)
-        or {
-            "value": 3,
-            "metric_meta": {
-                "metric": requested,
-                "generated_at": "2026-09-03T10:00:00Z",
-                "cache_hit": True,
-                "stale": False,
-            },
-        },
+        metric_payload=lambda requested, *, user: (
+            calls.append(requested)
+            or {
+                "value": 3,
+                "metric_meta": {
+                    "metric": requested,
+                    "generated_at": "2026-09-03T10:00:00Z",
+                    "cache_hit": True,
+                    "stale": False,
+                },
+            }
+        ),
         acquire_metric_refresh=lambda requested, *, user: False,
     )
     monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda value: value)

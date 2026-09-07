@@ -91,6 +91,7 @@ nav:
           - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
   - Deploy and operate Coyote3:
       - Release readiness: operations/release_readiness.md
+      - Dependency advisories: operations/dependency_advisories.md
       - Target-center acceptance: operations/target_center_acceptance.md
       - Center deployment: operations/center_deployment_guide.md
       - Initial deployment checklist: operations/initial_deployment_checklist.md
