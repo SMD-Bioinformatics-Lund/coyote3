@@ -14,6 +14,27 @@ from api.security.access import _enforce_password_change
 from api.security.audit_events import request_ip
 
 
+def test_session_uses_validated_credentials_without_reloading_user(monkeypatch):
+    from api.app.deps import repositories
+    from api.security import access
+
+    validated = {"username": "synthetic-user", "password": "validated-hash"}
+    captured = []
+    monkeypatch.setattr(access, "api_user_from_user_doc", lambda doc: captured.append(doc) or doc)
+    monkeypatch.setattr(
+        repositories,
+        "get_user_repository",
+        lambda: pytest.fail("Session creation must not reload newer credentials"),
+    )
+    monkeypatch.setattr(
+        access,
+        "get_api_session_repository",
+        lambda: SimpleNamespace(create=lambda user, **kwargs: user),
+    )
+    assert access.create_api_session(validated, provider="local") is validated
+    assert captured == [validated]
+
+
 @pytest.mark.parametrize(
     "collection",
     ["users", "roles", "permissions", "samples", "variants", "annotation", "reported_variants"],

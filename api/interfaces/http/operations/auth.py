@@ -155,7 +155,7 @@ def _login_response(payload: ApiAuthLoginRequest, request: Request | None = None
             status_code=500, detail={"status": 500, "error": "User identity missing"}
         )
     update_user_last_login(identity_username)
-    session = create_api_session(identity_username, provider=provider)
+    session = create_api_session(user_doc, provider=provider)
     from api.app.deps.services import get_audit_service
 
     audit = get_audit_service()

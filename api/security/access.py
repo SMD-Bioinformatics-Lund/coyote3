@@ -13,7 +13,6 @@ from api.app.deps.repositories import (
     get_permissions_repository,
     get_roles_repository,
     get_sample_repository,
-    get_user_repository,
 )
 from api.app.deps.services import get_api_session_repository
 from api.app.runtime_state import app as runtime_app
@@ -239,18 +238,18 @@ def get_api_session_cookie_samesite() -> str:
     return settings_session_cookie_samesite(runtime_app.config)
 
 
-def create_api_session(username: str, *, provider: str | None = None):
+def create_api_session(user_doc: dict, *, provider: str | None = None):
     """Create and return a Mongo-backed API session for a user.
 
     Args:
-        username: Username to embed in the token.
+        user_doc: The credential snapshot returned by successful authentication.
 
     Returns:
         ApiSession: Opaque session credentials and authenticated user.
     """
-    user_doc = get_user_repository().user_with_id(str(username).strip().lower())
     if not user_doc or not user_doc.get("is_active", True):
         raise _api_error(401, "Login required")
+    # Bind to the validated credentials, even if a password changes during login.
     user = api_user_from_user_doc(user_doc)
     session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
     session = get_api_session_repository().create(user, provider=session_provider)
