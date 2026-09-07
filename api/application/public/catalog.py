@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-import yaml
 
 from api.application.public.catalog_gene_views import PublicCatalogGeneViewsMixin
 from api.config.constants import ASP_CATEGORY_OPTIONS, DEFAULT_ENVIRONMENT, SUBPANEL_BASE_ID
-from api.config.paths import ASSAY_CATALOG_PATH
+from api.domain.common.errors import api_error
 
 
 class PublicCatalogService(PublicCatalogGeneViewsMixin):
@@ -35,6 +33,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
             civic_repository=getattr(store, "civic_repository", None),
             cosmic_repository=getattr(store, "cosmic_repository", None),
+            public_assay_catalog_repository=store.public_assay_catalog_repository,
         )
 
     def __init__(
@@ -51,6 +50,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         clinpgx_public_repository: Any | None = None,
         civic_repository: Any | None = None,
         cosmic_repository: Any | None = None,
+        public_assay_catalog_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
@@ -64,6 +64,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         self.clinpgx_public_repository = clinpgx_public_repository
         self.civic_repository = civic_repository
         self.cosmic_repository = cosmic_repository
+        self.public_assay_catalog_repository = public_assay_catalog_repository
 
     def knowledgebase_status(self) -> dict[str, Any]:
         """Return non-sensitive installed knowledgebase release metadata."""
@@ -92,18 +93,12 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "vep_metadata": self.vep_metadata_repository.list_versions(),
         }
 
-    @staticmethod
-    def _catalog_overlay_path() -> Path:
-        return ASSAY_CATALOG_PATH
-
-    @classmethod
-    def _load_catalog_overlay(cls) -> dict[str, Any]:
-        path = cls._catalog_overlay_path()
-        if not path.exists():
+    def _load_catalog_document(self) -> dict[str, Any]:
+        """Return center-owned presentation metadata from the primary database."""
+        if self.public_assay_catalog_repository is None:
             return {}
-        with path.open("r", encoding="utf-8") as handle:
-            loaded = yaml.safe_load(handle) or {}
-        return loaded if isinstance(loaded, dict) else {}
+        document = self.public_assay_catalog_repository.get_default()
+        return dict(document) if isinstance(document, dict) else {}
 
     @staticmethod
     def _overlay_modalities(overlay: dict[str, Any]) -> dict[str, Any]:
@@ -169,7 +164,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 return item
         return {}
 
-    def load_catalog(self) -> Dict[str, Any]:
+    def load_catalog(self, *, preview_document: dict[str, Any] | None = None) -> Dict[str, Any]:
         """Build the public assay catalog from active ASP, ASPC, and ISGL documents.
 
         Returns:
@@ -179,12 +174,12 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         active_isgls = self.gene_list_repository.get_all_isgl(
             is_active=True, is_public=True, adhoc=False
         )
-        overlay = self._load_catalog_overlay()
+        overlay = self._load_catalog_document() if preview_document is None else preview_document
         overlay_modalities = self._overlay_modalities(overlay)
         isgls_by_asp = self._group_isgls_by_asp_and_subpanel(active_isgls)
         nav_groups = self._nav_groups_from_asps(active_asps)
 
-        if overlay_modalities:
+        if overlay or preview_document is not None:
             modalities = self._catalog_from_overlay_modalities(
                 overlay_modalities=overlay_modalities,
                 active_asps=active_asps,
@@ -198,7 +193,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 "maintainer": overlay.get("maintainer") or "Coyote3",
                 "header": overlay.get("header") or "Assay Catalog",
                 "description": overlay.get("description")
-                or "Catalog generated from center YAML metadata and active collection documents.",
+                or "Catalog generated from center metadata and active collection documents.",
                 "layout": {"order": order},
                 "modalities": modalities,
                 "nav_groups": nav_groups,
@@ -292,7 +287,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "maintainer": overlay.get("maintainer") or "Coyote3",
             "header": overlay.get("header") or "Assay Catalog",
             "description": overlay.get("description")
-            or "Catalog generated from active ASP, ASPC, and public ISGL collection documents with optional center metadata from YAML.",
+            or "Catalog generated from active ASP, ASPC, and public ISGL collection documents with optional center metadata.",
             "layout": {"order": order},
             "modalities": modalities,
             "nav_groups": nav_groups,
@@ -506,7 +501,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         order = (catalog.get("layout") or {}).get("order") or []
         return order or list((catalog.get("modalities") or {}).keys())
 
-    def normalize_mod(self, mod: Optional[str]) -> Optional[str]:
+    def normalize_mod(
+        self, mod: Optional[str], *, catalog: dict[str, Any] | None = None
+    ) -> Optional[str]:
         """Normalize modality aliases to catalog keys.
 
         Args:
@@ -517,7 +514,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         """
         if not mod:
             return None
-        catalog_modalities = self.load_catalog().get("modalities") or {}
+        catalog_modalities = (self.load_catalog() if catalog is None else catalog).get(
+            "modalities"
+        ) or {}
         if mod in catalog_modalities:
             return mod
         for key in catalog_modalities:
@@ -559,7 +558,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             return value.lower()
         return None
 
-    def modality_block(self, mod: str) -> Optional[Dict[str, Any]]:
+    def modality_block(
+        self, mod: str, *, catalog: dict[str, Any] | None = None
+    ) -> Optional[Dict[str, Any]]:
         """Return the catalog block for a modality.
 
         Args:
@@ -568,9 +569,13 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         Returns:
             Optional[Dict[str, Any]]: Catalog block for the modality.
         """
-        return (self.load_catalog().get("modalities") or {}).get(mod)
+        return ((self.load_catalog() if catalog is None else catalog).get("modalities") or {}).get(
+            mod
+        )
 
-    def categories_for(self, mod: str) -> List[Dict[str, Any]]:
+    def categories_for(
+        self, mod: str, *, catalog: dict[str, Any] | None = None
+    ) -> List[Dict[str, Any]]:
         """Return category entries for a modality.
 
         Args:
@@ -579,7 +584,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         Returns:
             List[Dict[str, Any]]: Category descriptors for the modality.
         """
-        modality = self.modality_block(mod) or {}
+        modality = self.modality_block(mod, catalog=catalog) or {}
         categories = modality.get("categories") or {}
         out: List[Dict[str, Any]] = []
         for key, category in categories.items():
@@ -592,7 +597,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             )
         return out
 
-    def category_def(self, mod: str, cat_id: str) -> Optional[Dict[str, Any]]:
+    def category_def(
+        self, mod: str, cat_id: str, *, catalog: dict[str, Any] | None = None
+    ) -> Optional[Dict[str, Any]]:
         """Return the catalog definition for a modality category.
 
         Args:
@@ -602,7 +609,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         Returns:
             Optional[Dict[str, Any]]: Category definition when found.
         """
-        modality = self.modality_block(mod) or {}
+        modality = self.modality_block(mod, catalog=catalog) or {}
         categories = modality.get("categories") or {}
         for key, category in categories.items():
             if cat_id == (category.get("catalog_id") or key) or cat_id == key:
@@ -821,7 +828,13 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         return out
 
     def hydrate_category(
-        self, mod: str, cat_id: str, gl_id: str | None = None, env: str = DEFAULT_ENV
+        self,
+        mod: str,
+        cat_id: str,
+        gl_id: str | None = None,
+        env: str = DEFAULT_ENV,
+        *,
+        catalog: dict[str, Any] | None = None,
     ) -> Optional[Dict[str, Any]]:
         """Hydrate a public catalog category with runtime metadata.
 
@@ -834,7 +847,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         Returns:
             Optional[Dict[str, Any]]: Hydrated category payload when found.
         """
-        node = self.category_def(mod, cat_id)
+        node = self.category_def(mod, cat_id, catalog=catalog)
         if not node:
             return None
 
@@ -881,7 +894,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "sample_query": node.get("sample_query"),
         }
 
-    def hydrate_modality(self, mod: str) -> Dict[str, Any]:
+    def hydrate_modality(
+        self, mod: str, *, catalog: dict[str, Any] | None = None
+    ) -> Dict[str, Any]:
         """Hydrate summary metadata for a modality.
 
         Args:
@@ -890,7 +905,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         Returns:
             Dict[str, Any]: Hydrated modality payload.
         """
-        modality = self.modality_block(mod) or {}
+        modality = self.modality_block(mod, catalog=catalog) or {}
         return {
             "title": modality.get("title") or modality.get("label", mod),
             "label": modality.get("label", mod),
@@ -903,3 +918,116 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "asp": modality.get("asp"),
             "gene_lists": [],
         }
+
+    def catalog_context(
+        self,
+        mod: str | None = None,
+        cat: str | None = None,
+        isgl_key: str | None = None,
+        *,
+        preview_document: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Build identical public and draft views from one request-scoped catalog."""
+        catalog = self.load_catalog(preview_document=preview_document)
+        order = (catalog.get("layout") or {}).get("order") or list(catalog.get("modalities") or {})
+        if not order:
+            raise api_error(404, "Catalog not found")
+
+        selected_mod = self.normalize_mod(mod, catalog=catalog) if mod else None
+        selected_cat = cat if cat else None
+        selected_isgl = isgl_key if isgl_key else None
+        mods = catalog.get("modalities") or {}
+
+        if not selected_mod:
+            right = {
+                "title": catalog.get("header") or "Assay Catalog",
+                "description": catalog.get("description")
+                or "Select a modality to explore available assays.",
+                "input_material": None,
+                "tat": None,
+                "sample_modes": [],
+                "analysis": [],
+                "report_sections": [],
+                "asp_id": None,
+                "aspc_id": None,
+                "aspc_ids": {},
+                "subpanel_id": None,
+                "asp": None,
+                "clinical_indications": [],
+                "limitations": None,
+                "public_notes": None,
+                "gene_lists": [],
+            }
+            gene_mode, genes, stats = (
+                "covered",
+                [],
+                {"total": 0, "covered_total": 0, "germline_total": 0},
+            )
+        elif selected_mod and not selected_cat:
+            right = self.hydrate_modality(selected_mod, catalog=catalog)
+            gene_mode, genes, stats = self.resolve_gene_table(right.get("asp_id"), None)
+        else:
+            if selected_isgl:
+                hydrated_cat = self.hydrate_category(
+                    selected_mod,
+                    selected_cat,
+                    selected_isgl,
+                    env=DEFAULT_ENVIRONMENT,
+                    catalog=catalog,
+                )
+            else:
+                hydrated_cat = self.hydrate_category(
+                    selected_mod, selected_cat, env=DEFAULT_ENVIRONMENT, catalog=catalog
+                )
+            if not hydrated_cat:
+                raise api_error(404, "Category not found")
+            right = {
+                "title": hydrated_cat.get("title") or hydrated_cat.get("label"),
+                "catalog_id": hydrated_cat.get("catalog_id"),
+                "subheading": hydrated_cat.get("subheading"),
+                "description": hydrated_cat.get("description"),
+                "input_material": hydrated_cat.get("input_material"),
+                "tat": hydrated_cat.get("tat"),
+                "sample_modes": hydrated_cat.get("sample_modes") or [],
+                "analysis": hydrated_cat.get("analysis") or [],
+                "report_sections": hydrated_cat.get("report_sections") or [],
+                "asp_id": hydrated_cat.get("asp_id"),
+                "aspc_id": hydrated_cat.get("aspc_id"),
+                "aspc_ids": hydrated_cat.get("aspc_ids") or {},
+                "subpanel_id": hydrated_cat.get("subpanel_id"),
+                "asp": hydrated_cat.get("asp"),
+                "clinical_indications": hydrated_cat.get("clinical_indications") or [],
+                "limitations": hydrated_cat.get("limitations"),
+                "public_notes": hydrated_cat.get("public_notes"),
+                "gene_lists": hydrated_cat.get("gene_lists") or [],
+                "sample_query": hydrated_cat.get("sample_query"),
+            }
+            gene_mode, genes, stats = self.resolve_gene_table(
+                hydrated_cat.get("asp_id"), selected_isgl
+            )
+
+        genes = self.apply_drug_info(genes=deepcopy(genes), druglist_name="drug_addon")
+        genes = self.apply_knowledgebase_gene_markers(genes)
+        vm = {
+            "meta": {
+                "version": catalog.get("version"),
+                "last_updated": catalog.get("last_updated"),
+                "maintainer": catalog.get("maintainer"),
+                "header": catalog.get("header"),
+                "description": catalog.get("description"),
+                "nav_groups": catalog.get("nav_groups") or [],
+            },
+            "order": order,
+            "modalities": mods,
+            "selected_mod": selected_mod,
+            "categories": self.categories_for(selected_mod, catalog=catalog)
+            if selected_mod
+            else [],
+            "selected_cat": selected_cat,
+            "selected_isgl": selected_isgl,
+            "right": right,
+            "gene_mode": gene_mode,
+            "genes": genes,
+            "stats": stats,
+        }
+        return vm

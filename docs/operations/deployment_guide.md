@@ -1,6 +1,18 @@
 # Deployment Guide
 
-**Procedure verified:** 6 August 2026.
+## Trusted proxy configuration
+
+Set `FORWARDED_ALLOW_IPS` to the ingress proxy's IP or a dedicated trusted proxy
+network CIDR. The loopback-only default does not trust arbitrary container clients.
+Never use `*` on a shared network. The API uses the ASGI-resolved client address for
+audit and rate limiting; it does not parse untrusted forwarded headers itself.
+
+The supplied Nginx gateway replaces `X-Forwarded-For` with its peer address. If an
+external center proxy is in front, this is the center proxy's address unless the
+center configures trusted real-IP handling at that edge. Set
+`COYOTE3_NGINX_PUBLIC_SCHEME=https` only when the public entry point enforces TLS;
+the gateway does not trust an incoming `X-Forwarded-Proto` value. Restrict direct
+API and gateway exposure according to this trust boundary.
 
 This guide is the deployment command and runtime reference for an installed
 Coyote3 environment. It covers normal release deployment and maintenance.
@@ -30,10 +42,10 @@ Compose variables for image names and build metadata. Do not store
 
 ## Deployment Commands
 
-These commands use the MongoDB instance specified by `MONGO_URI`. The
-self-hosted MongoDB stack is started independently before the application
-stack; managed MongoDB services remain supported through their own connection
-string. See [MongoDB deployment and recovery](mongodb_deployment_and_recovery.md).
+These commands use the independently configured MongoDB service endpoints.
+Initialize self-hosted databases before starting the application; managed
+services require no MongoDB Compose profile. See
+[MongoDB service topology](../architecture/mongodb_topology.md).
 
 ## MongoDB baseline
 
@@ -62,7 +74,7 @@ are compiled as part of the Vite bundle; there is no separate Tailwind process.
   `npm run build`.
 
 `SCRIPT_NAME`, `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE`, `GENS_URI`, and
-`IGV_URI` are public Vite build inputs. Changing one requires a new frontend
+`IGV_URI` and `IGV_DATA_ROOT` are public Vite build inputs. Changing one requires a new frontend
 image because it changes the generated browser bundle. Do not place secrets in
 these values.
 
@@ -189,7 +201,7 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 - **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
 - **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the version from `api/version.py` for all image resolutions.
 - **Durable Data Protection**: The deployment wrapper rejects destructive volume operations (`down -v`) in every environment. Normal teardown stops and removes containers only; it never removes Compose volumes or the host-mounted MongoDB data directory.
-- **Cache Persistence**: Redis instances are pinned to specific versioned images (`7.4.3`) to prevent state corruption during floating tag updates.
+- **Queue persistence**: Redis uses the `redis-data` volume, AOF with `appendfsync always`, and `noeviction`. Cache, broker, and task results use Redis databases 0, 1, and 2 respectively. MongoDB ingest receipts provide delivery recovery independently of task-result retention. See [transaction and queue deployment requirements](../architecture/transactions_and_ingest_recovery.md#deployment-and-rollout).
 
 ## Upgrades
 

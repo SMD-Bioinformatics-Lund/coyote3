@@ -18,7 +18,7 @@ details, and presentation metadata without changing Python or React code.
 
 | Location | Owner | Purpose | Edit for a center deployment? |
 | --- | --- | --- | --- |
-| `api/config/center/` | Deploying center | Clinical vocabulary, input field names, collection names, public contact content, catalog copy, and flag wording. | Yes, through reviewed configuration changes. |
+| `api/config/center/` | Deploying center | Clinical vocabulary, input field names, collection names, public contact content, and flag wording. | Yes, through reviewed configuration changes. |
 | `api/config/application_metadata.py` | Coyote3 software | Product description, repository, licence, issue, and support-request URLs. | No. This identifies the Coyote3 codebase. |
 | `api/config/constants.py` | Coyote3 software | Supported workflow semantics, data-model values, validators, permission categories, and sequencing-platform capabilities. | No. Extend the software when a new semantic capability is needed. |
 | `api/config/runtime_settings.py` | Coyote3 software | Environment-derived runtime, security, cache, mail, and service settings. | No. Supply the documented environment values instead. |
@@ -37,7 +37,6 @@ api/config/
     clinical_vocabulary.toml    # center vocabulary and sample-file bindings
     clinical_query_policy.toml  # released analysis-specific query policy
     collections.toml            # Mongo database/collection mapping
-    assay_catalog.yaml          # public assay-catalog narrative overlay
     filter_flag_metadata.yaml   # human-facing VCF filter badge metadata
 ```
 
@@ -340,7 +339,7 @@ There is deliberately no `priority` key for query exceptions. The resulting
 exception predicates are additive `$or` branches; their order cannot change
 the returned result set. TOML order is retained only for human readability and
 diagnostic output; it has no clinical or query meaning. Reporting-text rule
-priority is a separate YAML concept used for first-match template rendering.
+ordering is a separate governed rule-set concept used for deterministic match behavior.
 
 ### Condition Examples
 
@@ -713,7 +712,7 @@ does not define a document schema and it does not move data.
 | Collection family | Logical configuration keys | Content stored in the mapped collection |
 | --- | --- | --- |
 | Identity and security | `users_collection`, `roles_collection`, `permissions_collection`, `api_sessions_collection`, `audit_events_collection` under `[identity]` | User accounts, roles, permission definitions, server-side sessions, and durable audit events. |
-| Assay configuration | `asp_collection`, `aspc_collection`, `insilico_genelist_collection` | Assay definitions, active/versioned assay configurations, and curated gene lists. Clinical report wording remains in repository-owned YAML sources. |
+| Assay configuration | `asp_collection`, `aspc_collection`, `insilico_genelist_collection`, `public_assay_catalog_collection`, `clinical_rule_sets_collection`, `clinical_rule_revisions_collection` | Assay definitions, active/versioned assay configurations, curated gene lists, public presentation content, and governed clinical reporting rules. |
 | Sample and reporting workflow | `samples_collection`, `sample_comments_collection`, `finding_comments_collection`, `reports_collection`, `reported_variants_collection`, `blacklist_collection` | Sample lifecycle records, sample-level comments, finding-level comments, reports, report snapshots, and blacklist state. |
 | DNA findings | `variants_collection`, `annotations_collection`, `anno_vep_collection`, `cnvs_collection`, `fusions_collection`, `transloc_collection`, `biomarkers_collection` | Parsed small variants and their annotations, CNVs, fusions, translocations, and biomarkers. |
 | Coverage and RNA results | `coverage_collection`, `groupcov_collection`, `rna_expression_collection`, `rna_qc_collection`, `rna_classification_collection` | Coverage, grouped coverage, RNA expression, RNA quality control, and RNA classification data in the primary database. |
@@ -728,45 +727,54 @@ does not define a document schema and it does not move data.
 > validate the destination collection before changing a production mapping.
 >
 
-## `assay_catalog.yaml`
+## Public Assay Catalog
 
-This YAML file provides catalog narrative and presentation metadata. Clinical
-assay records, ASPCs, and ISGLs remain the authoritative source for active
-analysis configuration and gene content.
+The public assay catalog is a validated `public_assay_catalog` document in the
+primary database, not a `center/` file. Clinical assay records, ASPCs, and ISGLs
+remain the authoritative source for active analysis configuration and gene
+content.
 
 ### Catalog Key Reference
 
-The catalog is a presentation overlay. ASPs define assays, ASPCs define active
-analysis configuration, and ISGLs define curated genes. Editing this YAML file
-changes public catalog content; it does not change clinical filtering, ingest
-requirements, or report behavior.
+The catalog is a presentation layer. ASPs define assays, ASPCs define active
+analysis configuration, and ISGLs define curated genes. Editing the catalog in
+**Admin > Public Assay Catalog** changes public content only; it does not change
+clinical filtering, ingest requirements, or report behavior. The workspace is
+a structured builder: it selects ASP identifiers from `assay_specific_panels`,
+ASPC identifiers from `asp_configs`, and gene-list identifiers from
+`insilico_genelists`; it then stores public display hierarchy and wording in
+the catalog document. JSON is a portable import/export format, not the normal
+editing surface. A modality JSON export uses the
+`coyote3.public_assay_catalog_modality` envelope and changes only that modality
+in a new draft when imported. Drafts require independent approval and publication.
+See the [catalog workflow](../product/public_assay_catalog.md) for roles,
+previews, notifications, revision history, and publication safeguards.
 
-| YAML path | Required | Allowed value | Use and fallback behavior |
+| JSON path | Required | Allowed value | Use and fallback behavior |
 | --- | --- | --- | --- |
-| `version` | Yes | Text or number | Catalog-content revision. |
-| `last_updated` | Recommended | ISO-style date or text | Public maintenance date. |
+| `version` | System-managed | Positive integer | Public release version, incremented only on publication. |
 | `maintainer` | Recommended | Text | Center team responsible for catalog content. |
 | `header` | Recommended | Text | Catalog landing-page heading. |
-| `description` | Recommended | Text, including multiline YAML text | Catalog landing-page introduction. |
+| `description` | Recommended | Text, including multiline text | Catalog landing-page introduction. |
 | `layout.order` | Recommended | Ordered list of modality keys | Display order. Modalities omitted from the list are appended after configured values. |
-| `modalities.<modality>` | Yes for each modality | Mapping | A public modality, for example `WGS`, `WTS`, or `GenePanels`. Its key is a stable presentation identifier. |
+| `modalities.<modality>` | Yes for each modality | Mapping | A public modality, for example `dna` or `rna`. Its key is a stable presentation identifier. |
 | `modalities.<modality>.label` | Yes | Text | Visible modality label. |
 | `modalities.<modality>.title` | No | Text | Expanded title; falls back to `label`. |
 | `modalities.<modality>.description` | No | Text | Modality explanatory text. |
 | `modalities.<modality>.categories.<category>` | Yes for every catalog section | Mapping | One public assay/category section. |
-| `category.catalog_id` | Recommended | Stable text identifier | Catalog route and presentation identity. |
+| `category.catalog_id` | System-managed | Stable text identifier | Generated presentation identity, separate from the editable display name. |
 | `category.label` | Yes | Text | Visible category heading. |
 | `category.title` | No | Text | Expanded heading; falls back to `label`. |
 | `category.description` | Recommended | Text | Public assay description; falls back to the ASP description where available. |
 | `category.subheading` | No | Text | Supplemental heading. |
 | `category.asp_id` | Recommended | Existing ASP `asp_id` | Links the catalog section to the physical assay definition. |
 | `category.subpanel_id` | No | Existing ASPC subpanel identifier | Narrows the category to a subpanel. Use the configured base subpanel when no specific subpanel applies. |
-| `category.aspc_id` | No | Existing ASPC identifier | Direct configuration reference. |
-| `category.aspc_ids` | No | Mapping of environment label to existing ASPC identifier | Environment-specific catalog context. |
+| `category.aspc_id` | Required before submission unless `aspc_ids.production` is set | Active production ASPC identifier | Direct configuration reference for the selected assay. |
+| `category.aspc_ids` | No | Production reference mapping | Only the `production` key is accepted for publication. |
 | `category.family` / `category.asp_family` | No | Supported ASP family identifier | Optional public family override; normally inherited from the ASP. |
 | `category.assay_group` | No | Existing center assay-group value | Optional public group override; normally inherited from the ASP. |
 | `category.input_material` | No | List of display strings | Public sample/input badges. |
-| `category.tat` | No | Text | Turnaround-time statement, for example `7-14 days`. |
+| `category.tat` | No | Positive integer or ascending range and day/week/month/year unit | Turnaround-time statement, for example `7-14 days`; blank means unspecified. |
 | `category.sample_modes` | No | List of display strings | Sample-mode badges, for example `Tumor-only` or `Tumor-normal`. |
 | `category.analysis` | No | List of display strings | Public analysis summary. If omitted, available analysis is derived from the ASPC. |
 | `category.report_sections` | No | List of display strings | Public report-content summary. |
@@ -782,11 +790,11 @@ requirements, or report behavior.
 > **Info: Use ASP, ASPC, and ISGL for clinical truth**
 >
 >
-> Catalog YAML is appropriate for descriptions, turnaround-time wording,
+> Catalog content is appropriate for descriptions, turnaround-time wording,
 > public input labels, and display order. Use ASP, ASPC, and ISGL records for
 > active assay behavior, required files, analytical settings, and genes.
 > ASPC contributes only `catalog.is_public` to the public catalog. All other
-> public catalog wording and presentation values belong in this YAML file.
+> public catalog wording and presentation values belong in the database catalog.
 >
 
 ## `filter_flag_metadata.yaml`

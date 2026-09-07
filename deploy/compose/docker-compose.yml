@@ -8,7 +8,10 @@ x-runtime-defaults: &runtime-defaults
 
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-  MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
+  COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:-${MONGO_URI:-}}
+  IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
+  KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
+  BAM_MONGO_URI: ${BAM_MONGO_URI:-}
   COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB is required}
   IDENTITY_DB: ${IDENTITY_DB:?IDENTITY_DB is required}
   KNOWLEDGEBASE_DB: ${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB is required}
@@ -23,6 +26,7 @@ x-app-environment: &app-environment
   LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
   TZ: ${LOCAL_TIME_ZONE:-UTC}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
   LOG_FILE_ENABLED: ${LOG_FILE_ENABLED:-1}
   LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
   LOG_GZIP_AFTER_DAYS: ${LOG_GZIP_AFTER_DAYS:-1}
@@ -32,8 +36,8 @@ x-app-environment: &app-environment
   CACHE_REDIS_URL: redis://redis:6379/0
   CACHE_REDIS_CONNECT_TIMEOUT: ${CACHE_REDIS_CONNECT_TIMEOUT:-1.0}
   CACHE_REDIS_SOCKET_TIMEOUT: ${CACHE_REDIS_SOCKET_TIMEOUT:-1.0}
-  CELERY_BROKER_URL: redis://redis:6379/0
-  CELERY_RESULT_BACKEND: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/1
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
   CELERY_LOG_LEVEL: ${CELERY_LOG_LEVEL:-INFO}
   CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
   CELERY_TASK_TIME_LIMIT: ${CELERY_TASK_TIME_LIMIT:-7200}
@@ -120,6 +124,7 @@ services:
         LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
         GENS_URI: ${GENS_URI:-}
         IGV_URI: ${IGV_URI:-}
+        IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
     environment:
       SCRIPT_NAME: ${SCRIPT_NAME:-}
       TZ: ${LOCAL_TIME_ZONE:-UTC}
@@ -155,7 +160,7 @@ services:
       retries: 20
       start_period: 10s
     depends_on:
-      redis: {condition: service_started}
+      redis: {condition: service_healthy}
 
   worker:
     <<: [*runtime-defaults, *api-image]
@@ -164,7 +169,7 @@ services:
     volumes: *app-volumes
     command: celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
-      redis: {condition: service_started}
+      redis: {condition: service_healthy}
 
   beat:
     <<: [*runtime-defaults, *api-image]
@@ -173,11 +178,19 @@ services:
     volumes: *app-volumes
     command: celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     depends_on:
-      redis: {condition: service_started}
+      redis: {condition: service_healthy}
 
   redis:
     <<: *runtime-defaults
     image: redis:7.4.3
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   proxy:
     <<: *runtime-defaults
@@ -189,12 +202,16 @@ services:
       COYOTE3_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
       COYOTE3_NGINX_API_UPSTREAM: http://api:8001
       COYOTE3_NGINX_DOCS_UPSTREAM: http://docs:8080
+      COYOTE3_NGINX_PUBLIC_SCHEME: ${COYOTE3_NGINX_PUBLIC_SCHEME:-http}
     volumes:
       - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
     depends_on:
       frontend: {condition: service_started}
       api: {condition: service_healthy}
       docs: {condition: service_started}
+
+volumes:
+  redis-data:
 
 networks:
   app:

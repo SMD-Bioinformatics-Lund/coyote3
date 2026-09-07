@@ -17,8 +17,12 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.mongo import configured_mongo_uri  # noqa: E402
 from api.config.paths import COLLECTIONS_CONFIG_PATH  # noqa: E402
-from scripts.migrate_knowledgebase_database import migrate_collection  # noqa: E402
+from scripts.migrate_knowledgebase_database import (  # noqa: E402
+    assert_distinct_databases,
+    migrate_collection,
+)
 
 STAGING_PREFIX = "__coyote3_identity_migration__"
 
@@ -35,7 +39,9 @@ def identity_collections(config_path: Path) -> dict[str, str]:
 def parse_args() -> argparse.Namespace:
     """Parse migration arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", ""))
+    parser.add_argument("--mongo-uri", default="", help="Explicit shared URI for both endpoints")
+    parser.add_argument("--source-mongo-uri", default="")
+    parser.add_argument("--target-mongo-uri", default="")
     parser.add_argument("--source-db", default=os.getenv("COYOTE3_DB", ""))
     parser.add_argument("--target-db", default=os.getenv("IDENTITY_DB", ""))
     parser.add_argument("--collections-config", type=Path, default=COLLECTIONS_CONFIG_PATH)
@@ -57,21 +63,30 @@ def parse_args() -> argparse.Namespace:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     """Execute the guarded identity migration and return a non-sensitive report."""
-    if not args.mongo_uri or not args.source_db or not args.target_db:
-        raise ValueError("MONGO_URI, source database, and target database are required")
-    if args.source_db == args.target_db:
-        raise ValueError("Source and target databases must be different")
+    source_uri = (
+        args.source_mongo_uri or args.mongo_uri or configured_mongo_uri(os.environ, "primary")
+    )
+    target_uri = (
+        args.target_mongo_uri or args.mongo_uri or configured_mongo_uri(os.environ, "identity")
+    )
+    if not source_uri or not target_uri or not args.source_db or not args.target_db:
+        raise ValueError("Source/target MongoDB URIs and database names are required")
     if args.drop_source and not args.apply:
         raise ValueError("--drop-source requires --apply")
     if args.drop_source and args.confirm_drop_source != args.source_db:
         raise ValueError("--confirm-drop-source must exactly match --source-db")
 
     mapping = identity_collections(args.collections_config)
-    client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=10_000)
+    client = MongoClient(source_uri, serverSelectionTimeoutMS=10_000)
+    target_client = client
     try:
+        if target_uri != source_uri:
+            target_client = MongoClient(target_uri, serverSelectionTimeoutMS=10_000)
         client.admin.command("ping")
+        target_client.admin.command("ping")
         source_db = client[args.source_db]
-        target_db = client[args.target_db]
+        target_db = target_client[args.target_db]
+        assert_distinct_databases(source_db, target_db)
         results = [
             migrate_collection(
                 source_db,
@@ -106,6 +121,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "collections": results,
         }
     finally:
+        if target_client is not client:
+            target_client.close()
         client.close()
 
 

@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { apiPath } from "@/lib/runtime-paths"
+import { api } from "@/lib/api"
+import { SESSION_CHANGED_EVENT } from "@/lib/session-state"
 import { NotificationContext, type NotificationContextValue } from "./notification-context"
 import {
   type AppNotification,
   type NotificationInput,
-  loadNotifications,
   notify,
-  saveNotifications,
   subscribeNotifications,
 } from "./notification-store"
 
@@ -20,7 +20,7 @@ const toneMeta = {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [username, setUsername] = useState("")
+  const sessionGeneration = useRef(0)
   const usernameRef = useRef("")
   const initializedServerInbox = useRef(false)
   const seenServerIds = useRef(new Set<string>())
@@ -28,8 +28,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [visibleToasts, setVisibleToasts] = useState<AppNotification[]>([])
 
   useEffect(() => {
-    saveNotifications(username, notifications)
-  }, [notifications, username])
+    const reset = () => {
+      sessionGeneration.current += 1
+      usernameRef.current = ""
+      setNotifications([])
+      setVisibleToasts([])
+      initializedServerInbox.current = false
+      seenServerIds.current.clear()
+    }
+    window.addEventListener(SESSION_CHANGED_EVENT, reset)
+    return () => window.removeEventListener(SESSION_CHANGED_EVENT, reset)
+  }, [])
 
   const showToast = useCallback((notification: AppNotification) => {
     setVisibleToasts((current) => [notification, ...current].slice(0, 4))
@@ -39,23 +48,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshServerInbox = useCallback(async () => {
+    const generation = sessionGeneration.current
     try {
       const identityResponse = await fetch(apiPath("/auth/whoami"), { credentials: "same-origin" })
+      if (generation !== sessionGeneration.current) return
       if (!identityResponse.ok) {
         usernameRef.current = ""
-        setUsername("")
         setNotifications([])
+        setVisibleToasts([])
         initializedServerInbox.current = false
         seenServerIds.current.clear()
         return
       }
       const identity = await identityResponse.json() as { username?: string }
+      if (generation !== sessionGeneration.current) return
       const nextUsername = String(identity.username || "").trim().toLowerCase()
       if (!nextUsername) return
       const changedUser = usernameRef.current !== nextUsername
       if (changedUser) {
         usernameRef.current = nextUsername
-        setUsername(nextUsername)
+        setNotifications([])
+        setVisibleToasts([])
         initializedServerInbox.current = false
         seenServerIds.current.clear()
       }
@@ -65,6 +78,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       })
       if (!inboxResponse.ok) return
       const payload = await inboxResponse.json() as { notifications?: ServerNotification[] }
+      if (generation !== sessionGeneration.current || usernameRef.current !== nextUsername) return
       const serverNotifications = (payload.notifications || []).map(mapServerNotification)
 
       if (initializedServerInbox.current) {
@@ -77,7 +91,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       initializedServerInbox.current = true
       setNotifications((current) => {
         const local = changedUser
-          ? loadNotifications(nextUsername)
+          ? []
           : current.filter((item) => !item.persisted)
         return [...serverNotifications, ...local]
           .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
@@ -108,7 +122,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const updateServerState = useCallback(async (path: string, method: "PATCH" | "DELETE") => {
     try {
-      await fetch(apiPath(path), { method, credentials: "same-origin" })
+      if (method === "PATCH") await api.patch(path)
+      else await api.delete(path)
     } catch {
       // The next inbox refresh reconciles state after a transient network error.
     }
@@ -186,6 +201,7 @@ type ServerNotification = {
     name?: string
     sample_name?: string
     finding?: string
+    uri?: string
   }
   created_at: string
   read: boolean
@@ -205,6 +221,7 @@ function mapServerNotification(item: ServerNotification): AppNotification {
       name: item.resource.name,
       sampleName: item.resource.sample_name,
       finding: item.resource.finding,
+      uri: item.resource.uri,
     } : undefined,
     createdAt: item.created_at,
     read: item.read,
@@ -257,6 +274,11 @@ function NotificationToast({
                 </span>
               ))}
             </div>
+          )}
+          {notification.resource?.uri && (
+            <a className="link-text mt-2 inline-flex text-xs font-semibold" href={notification.resource.uri}>
+              Open rule set
+            </a>
           )}
           {notification.source && (
             <p className="mt-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">{notification.source}</p>

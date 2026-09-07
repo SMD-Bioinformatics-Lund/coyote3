@@ -6,6 +6,15 @@ their commands.
 
 ## Required evidence
 
+Repository readiness and target-center production approval are separate decisions.
+A repository audit may defer deployment, recovery, performance, external-provider,
+accessibility, and clinical acceptance work, but must list those exclusions explicitly.
+An engineering score does not replace the evidence below.
+
+Dependency gates must include runtime and frontend build dependencies. The narrowly
+scoped [dependency advisory policy](dependency_advisories.md) records any explicit
+upstream exception and its required mitigation tests.
+
 | Area | Required evidence | Procedure |
 |---|---|---|
 | Automated quality | Backend, frontend, contracts, typing, and strict documentation pass | [Test strategy and quality gates](../testing/testing_and_quality.md) |

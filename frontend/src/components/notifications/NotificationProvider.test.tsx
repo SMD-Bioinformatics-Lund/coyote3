@@ -20,7 +20,7 @@ function Probe() {
 }
 
 function response(data: unknown, ok = true) {
-  return Promise.resolve({ ok, json: () => Promise.resolve(data) } as Response)
+  return Promise.resolve({ ok, text: () => Promise.resolve(JSON.stringify(data)), json: () => Promise.resolve(data) } as Response)
 }
 
 describe("NotificationProvider", () => {

@@ -1,5 +1,24 @@
 # Reporting Workflow And Variant Snapshots
 
+## Save guarantees
+
+Saving requires a transaction-capable MongoDB deployment, including a single-node
+replica set for local use. Report metadata, finding snapshots, and the sample's
+reported status commit in one transaction. A failed snapshot cannot leave a
+successfully reported sample. Concurrent saves for the same report number return
+one success and a conflict; refresh the preview before retrying the conflict.
+
+Artifact identifiers include a random suffix. HTML/PDF files are created exclusively,
+never overwritten, and removed when a confirmed failure aborts the save. If MongoDB
+cannot confirm the commit result, files are retained for reconciliation and the API
+returns a service-unavailable error. Check saved-report metadata before retrying.
+Process crashes can leave unreferenced artifacts; recovery procedures must reconcile
+files with report metadata rather than deleting files based only on an API error.
+
+Report folders must be relative paths within the configured report root. PDF rendering
+accepts embedded PNG/JPEG images only; it cannot fetch remote URLs or local files.
+HTML presentational hints remain disabled.
+
 This document describes the Coyote3 sample-to-report workflow, the rules used
 when building a report, what is persisted in MongoDB, and how persisted report
 snapshots support later search, mapping, dashboards, and cross-sample review.

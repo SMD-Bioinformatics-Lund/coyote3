@@ -1,6 +1,7 @@
 [
   {
     "asp_id": "assay_1",
+    "igv": null,
     "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
@@ -56,6 +57,7 @@
   },
   {
     "asp_id": "assay_rna_1",
+    "igv": null,
     "asp_group": "wts",
     "asp_family": "wts",
     "asp_category": "rna",

@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.application.common.alignment_files import alignment_files_payload
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import paginate_items, request_pagination
 from api.application.common.table_state import (
@@ -360,7 +361,9 @@ class DnaStructuralService:
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-        cosmic = self.cosmic_repository.get_cnv_evidence(cnv)
+        cosmic = self.cosmic_repository.get_cnv_evidence(
+            cnv, genome_build=sample.get("genome_build")
+        )
         return {
             "sample": sample,
             "sample_summary": {
@@ -372,7 +375,12 @@ class DnaStructuralService:
             "cnv": cnv,
             "annotations": self.copy_number_variant_repository.get_cnv_annotations(cnv),
             "sample_ids": sample_ids,
-            "bam_id": self.bam_record_repository.get_bams(sample_ids),
+            **alignment_files_payload(
+                sample,
+                sample_ids,
+                self.bam_record_repository.get_bams,
+                asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+            ),
             "has_hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "assay_group": assay_group,
@@ -555,7 +563,9 @@ class DnaStructuralService:
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-        cosmic = self.cosmic_repository.get_translocation_evidence(transloc)
+        cosmic = self.cosmic_repository.get_translocation_evidence(
+            transloc, genome_build=sample.get("genome_build")
+        )
         return {
             "sample": sample,
             "sample_summary": {
@@ -567,7 +577,12 @@ class DnaStructuralService:
             "translocation": transloc,
             "annotations": self.translocation_repository.get_transloc_annotations(transloc),
             "sample_ids": sample_ids,
-            "bam_id": self.bam_record_repository.get_bams(sample_ids),
+            **alignment_files_payload(
+                sample,
+                sample_ids,
+                self.bam_record_repository.get_bams,
+                asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+            ),
             "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
                 require_sample_vep_version(sample)
             ),

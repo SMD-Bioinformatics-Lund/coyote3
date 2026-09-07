@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Activity, Check, Download, Grid2X2, Info, ListTree, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { downloadText } from "@/lib/browser-download"
+import { rowsToCsv } from "@/lib/chart-export"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -11,8 +12,11 @@ import { ColumnDef } from "@tanstack/react-table"
 import { GeneWithOncoKbBadge, KnowledgebaseGeneTags } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
+import type { Catalog } from "@/pages/admin/catalog-types"
+import { useAnnotationVisibility } from "./annotation-visibility"
 
-export function PublicCatalog() {
+export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?: Catalog; onMatrix?: () => void }) {
+  const annotations = useAnnotationVisibility("catalog")
   const [selection, setSelection] = useState<{ mod?: string; cat?: string; isgl_key?: string }>({})
   const params = new URLSearchParams()
   if (selection.mod) params.set("mod", selection.mod)
@@ -20,12 +24,17 @@ export function PublicCatalog() {
   if (selection.isgl_key) params.set("isgl_key", selection.isgl_key)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["public-catalog", selection],
-    queryFn: () => api.get(`/public/assay-catalog/context?${params.toString()}`).then((res) => res.data),
+    queryKey: previewDocument ? ["catalog-preview", previewDocument, selection] : ["public-catalog", selection],
+    queryFn: () => previewDocument
+      ? api.post(`/admin/assay-catalog/preview?${params.toString()}`, { document: previewDocument }).then((res) => res.data)
+      : api.get(`/public/assay-catalog/context?${params.toString()}`).then((res) => res.data),
   })
 
   const downloadCsv = useMutation({
     mutationFn: () => {
+      if (previewDocument) return Promise.resolve({
+        content: rowsToCsv(data?.genes || []), filename: "assay_catalog_preview_genes.csv",
+      })
       const csvParams = new URLSearchParams()
       if (selection.mod) csvParams.set("mod", selection.mod)
       if (selection.cat) csvParams.set("cat", selection.cat)
@@ -60,7 +69,7 @@ export function PublicCatalog() {
       .filter((key) => availableKeys.has(key))
       .concat(Array.from(availableKeys).filter((key) => !preferredKeys.includes(key)))
       .slice(0, 8)
-    return keys.map((key) => ({
+    const columns: ColumnDef<any, any>[] = keys.map((key) => ({
       id: key,
       header: key.replaceAll("_", " "),
       accessorFn: (row: any) => row[key] ?? "",
@@ -75,14 +84,20 @@ export function PublicCatalog() {
               hgncId={row.original.hgnc_id || row.original._id}
               matchSource={row.original.hgnc_match_source}
               showOncoKbBadge={false}
-              markers={row.original.knowledgebase_markers}
             />
           )
         }
         return <span className="text-xs">{value}</span>
       },
     }))
-  }, [data])
+    if (annotations.visible) columns.splice(1, 0, {
+      id: "annotations",
+      header: "Annotations",
+      enableSorting: false,
+      cell: ({ row }) => <KnowledgebaseGeneTags markers={row.original.knowledgebase_markers} tiny />,
+    })
+    return columns
+  }, [data, annotations.visible])
   const right = data?.right || {}
   const selectedGeneList = useMemo(() => {
     if (!selection.isgl_key) return null
@@ -91,6 +106,7 @@ export function PublicCatalog() {
 
   return (
     <PageShell
+      className="rounded-lg bg-card"
       eyebrow="Public"
       title="Assay Catalog"
       description="Explore assay modalities, categories, gene lists, and covered genes."
@@ -98,16 +114,18 @@ export function PublicCatalog() {
         <>
           <button
             onClick={() => downloadCsv.mutate()}
-            disabled={!selection.mod || downloadCsv.isPending}
+            disabled={!selection.mod || downloadCsv.isPending || isLoading}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
           >
             {downloadCsv.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Catalog CSV
           </button>
-          <Link to="/public/matrix" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+          {onMatrix ? <button onClick={onMatrix} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+            <Grid2X2 className="h-4 w-4" /> Matrix
+          </button> : <Link to="/public/matrix" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
             <Grid2X2 className="h-4 w-4" />
             Matrix
-          </Link>
+          </Link>}
         </>
       }
     >
@@ -118,7 +136,7 @@ export function PublicCatalog() {
           {error instanceof Error ? error.message : "Unable to load catalog"}
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
+        <div className="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
           <div className="surface-panel dashboard-panel dashboard-panel--blue space-y-3 p-3">
             <h2 className="surface-panel-heading mb-0 flex items-center gap-2 text-sm font-semibold uppercase text-foreground">
               <ListTree className="h-4 w-4" />
@@ -173,7 +191,7 @@ export function PublicCatalog() {
             })}
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <section className="surface-panel dashboard-panel dashboard-panel--teal p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -271,6 +289,7 @@ export function PublicCatalog() {
             </section>
 
             <section className="surface-panel dashboard-panel dashboard-panel--rose border-border/50 p-3">
+              <div className="mb-2 flex justify-end">{annotations.toggle}</div>
               <DataTable columns={geneColumns} data={data?.genes || []} filename="assay_catalog_genes.csv" />
             </section>
           </div>
@@ -408,7 +427,7 @@ function BadgeList({
   )
 }
 
-export function PublicCatalogMatrix() {
+export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDocument?: Catalog; onCatalog?: () => void }) {
   const { pageSize: preferredPageSize, setPageSize: persistPageSize } = useTablePreferences()
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(1)
@@ -420,13 +439,16 @@ export function PublicCatalogMatrix() {
     setPage(1)
   }, [preferredPageSize])
   const { data, isLoading, error } = useQuery({
-    queryKey: ["public-catalog-matrix", page, perPage, appliedGeneSearch],
+    queryKey: previewDocument ? ["catalog-preview-matrix", previewDocument, page, perPage, appliedGeneSearch]
+      : ["public-catalog-matrix", page, perPage, appliedGeneSearch],
     queryFn: () => {
       const params = new URLSearchParams()
       params.set("page", String(page))
       params.set("per_page", String(perPage))
       if (appliedGeneSearch.trim()) params.set("gene", appliedGeneSearch.trim())
-      return api.get(`/public/assay-catalog-matrix/context?${params.toString()}`).then((res) => res.data)
+      return previewDocument
+        ? api.post(`/admin/assay-catalog/preview/matrix?${params.toString()}`, { document: previewDocument }).then((res) => res.data)
+        : api.get(`/public/assay-catalog-matrix/context?${params.toString()}`).then((res) => res.data)
     },
   })
 
@@ -489,9 +511,10 @@ export function PublicCatalogMatrix() {
     <PageShell
       eyebrow="Public"
       title="Assay Catalog Matrix"
+      className="rounded-lg bg-card"
       description="Gene coverage matrix across public assay catalog modalities and gene lists."
       actions={
-        <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+        onCatalog ? <button onClick={onCatalog} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Catalog</button> : <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
           Catalog
         </Link>
       }
@@ -585,6 +608,12 @@ function matrixBoundaryStyle(boundary: string) {
   return undefined
 }
 
+function matrixModalityLabel(label: string) {
+  if (/\bWGS\b|whole[ -]genome sequencing/i.test(label)) return "WGS"
+  if (/\bWTS\b|whole[ -]transcriptome sequencing/i.test(label)) return "WTS"
+  return labelText(label)
+}
+
 function matrixColumnWidth(label: unknown) {
   const words = String(label || "-")
     .trim()
@@ -646,6 +675,7 @@ function AssayMatrixTable({
   const updateFilter = (key: string, value: string) => {
     onFilterChange({ ...filters, [key]: value })
   }
+  const annotations = useAnnotationVisibility("matrix")
 
   return (
     <div className="surface-panel dashboard-panel dashboard-panel--blue border-border/50 p-3">
@@ -663,6 +693,7 @@ function AssayMatrixTable({
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {annotations.toggle}
           <label className="flex items-center gap-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Rows
             <PageSizeSelect
@@ -740,6 +771,7 @@ function AssayMatrixTable({
         <table className="type-table-cell w-full min-w-max table-fixed border-separate border-spacing-0 text-left type-numeric">
           <colgroup>
             <col className="w-44" />
+            {annotations.visible && <col className="w-28" />}
             {columns.map((col) => (
               <col
                 key={col.key}
@@ -747,20 +779,26 @@ function AssayMatrixTable({
               />
             ))}
           </colgroup>
-          <thead className="type-table-header sticky top-0 z-20 border-b-2 border-border text-foreground shadow-sm">
+          <thead className="catalog-matrix-header type-table-header sticky top-0 z-20 border-b-2 border-border text-foreground shadow-sm">
             <tr>
               <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-medium uppercase text-foreground">
                 Gene
               </th>
+              {annotations.visible && (
+                <th rowSpan={3} className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle whitespace-normal [overflow-wrap:anywhere]">
+                  Annotations
+                </th>
+              )}
               {headerSpans.mod.map((span, index) => (
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase tracking-wider text-primary last:border-r-0"
+                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase text-primary last:border-r-0"
+                  title={span.label}
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
                 >
-                  <span className="inline-block max-w-full truncate">
-                    {labelText(span.label)}
+                  <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
+                    {matrixModalityLabel(span.label)}
                   </span>
                 </th>
               ))}
@@ -773,7 +811,7 @@ function AssayMatrixTable({
                   className="matrix-head-group border-b border-r border-border px-3 py-2 text-center align-middle text-foreground last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-group") : undefined}
                 >
-                  <span className="inline-block max-w-full truncate">
+                  <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                     {labelText(span.label)}
                   </span>
                 </th>
@@ -789,7 +827,7 @@ function AssayMatrixTable({
                     title={col.isgl_key}
                     style={matrixBoundaryStyle(boundary)}
                   >
-                    <span className="block whitespace-normal break-normal leading-tight [hyphens:none] [overflow-wrap:normal]">
+                    <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                       {col.isgl_label || col.isgl_key}
                     </span>
                   </th>
@@ -808,9 +846,13 @@ function AssayMatrixTable({
                     >
                       {gene}
                     </Link>
-                    <KnowledgebaseGeneTags markers={geneMarkers[gene]} compact />
                   </div>
                 </th>
+                {annotations.visible && (
+                  <td className="border-b border-r border-border/40 px-2 py-1">
+                    <KnowledgebaseGeneTags markers={geneMarkers[gene]} tiny />
+                  </td>
+                )}
                 {columns.map((col) => {
                   const present = Boolean(matrix?.[gene]?.[col.mod]?.[col.cat]?.[col.isgl_key])
                   return (

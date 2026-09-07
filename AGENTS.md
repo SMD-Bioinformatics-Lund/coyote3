@@ -14,8 +14,9 @@ The system consists of:
 - MongoDB with separate application, identity/security, knowledgebase, and BAM-service databases.
 - Celery workers and beat scheduling, with Redis as broker, result backend, and cache.
 - Nginx, API, frontend, documentation, worker, beat, and Redis services managed through
-  Docker Compose. MongoDB is supplied separately through `MONGO_URI`.
-- Static YAML clinical reporting rules and center-configurable TOML files.
+  Docker Compose. MongoDB services have independent URI/name pairs; optional
+  `mongo` and `mongo-kb` profiles provide database containers.
+- MongoDB-backed governed clinical reporting rules and center-configurable TOML files.
 
 ## Repository structure
 
@@ -31,7 +32,7 @@ The system consists of:
 | `api/tasks/` | Celery task entry points. |
 | `frontend/src/` | React pages, reusable components, hooks, libraries, styles, and unit tests. |
 | `frontend/tests/e2e/` | Playwright browser tests. |
-| `clinical_reporting_rules/` | Versioned static report-rule YAML grouped by assay and subpanel. |
+| `api/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
 | `tests/` | Backend unit, API, integration, contract, and fixture coverage. |
 | `deploy/` | Dockerfiles, Compose definitions, proxy configuration, and environment examples. |
 | `scripts/` | Quality, bootstrap, deployment, maintenance, and contract-generation tools. |
@@ -159,7 +160,9 @@ cp deploy/env/example.env .coyote3_dev_env
 ```
 
 The environment file must contain the required deployment-specific values. Do not commit it.
-The base Compose stack expects an external MongoDB URI and a pre-created application network.
+The base Compose stack expects configured MongoDB endpoints and a pre-created application network.
+Reuse `api/config/mongo.py` and `api/infra/mongo/connections.py`; never infer a host
+from a database name or pass a session across different MongoClient instances.
 
 ## Agent working rules
 

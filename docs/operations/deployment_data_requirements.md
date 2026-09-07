@@ -13,8 +13,9 @@ reporting.
 > Public organization, service-hour, and contact-card text is center content
 > in `api/config/center/contact.toml`. Repository links and the product description
 > are application metadata in `api/config/application_metadata.py`.
-> Public assay-catalog narrative text is center content in
-> `api/config/center/assay_catalog.yaml`.
+> Public assay-catalog narrative text is center content in the primary-database
+> `public_assay_catalog` collection. Manage it through the administrative
+> catalog workspace or validated JSON import.
 >
 
 ## Minimum Collections
@@ -30,6 +31,10 @@ login, authorization, assay resolution, sample review, and reporting.
 | Permissions (`IDENTITY_DB`) | `permissions` | Permission vocabulary using `resource:action[:scope]` naming. Routes check these through the authorization service. |
 | Assay panels (ASP) | `assay_specific_panels` | Physical assay definitions: `asp_id`, category, family, group, platform, read mode, expected file keys, covered genes, and germline genes. |
 | Assay configurations (ASPC) | `asp_configs` | Operational rulebooks for `asp_id + subpanel_id + environment`: analysis types, filters, report sections, and default review behavior. |
+| Clinical report rules | `clinical_rule_sets` | Governed versioned report wording. Every active ASPC binds an active published rule set explicitly. |
+| Clinical rule revisions | `clinical_rule_revisions` | Append-only, hash-chained full snapshots for every persisted rule-set revision. Required for exact authoring and workflow history. |
+| Public assay catalog | `public_assay_catalog` | Center-owned public titles, descriptions, turnaround statements, input labels, modality order, and ASP/ASPC/ISGL presentation references. It does not define clinical assay behavior. |
+| Catalog governance | `public_assay_catalog_versions`, `public_assay_catalog_revisions` | Drafts, independent approvals, immutable releases, and full revision snapshots. Publication requires MongoDB replica-set transactions. |
 | In-silico gene lists (ISGL) | `insilico_genelists` | Curated clinical gene lists for SNV, CNV, fusion, expression, PGx, and ad-hoc list types. |
 | Samples | `samples` | Sample metadata, file references, ASPC id, current filter snapshot, ingest status, report status, and data counts. |
 | Findings | `variants`, `cnvs`, `fusions`, `translocations`, `biomarkers`, `panel_coverage` | Analysis-specific records loaded from the sample files. Only collections for enabled analyses need data for a given sample. |
@@ -41,11 +46,34 @@ login, authorization, assay resolution, sample review, and reporting.
 
 > **Tip: Collection names**
 >
->
 > The names above are defaults. The application does not hardcode them in
 > domain services; it resolves them from `api/config/center/collections.toml`
 > for the active database.
->
+
+## Required Creation Sequence
+
+Clinical configuration is not a set of independent collections. Populate and approve it in
+the following order:
+
+```text
+identity permissions and roles
+  -> users
+  -> ASP
+  -> clinical rule draft -> independent review -> published clinical rule set
+  -> optional ISGLs
+  -> ASPC bound to the ASP, published rule set, and selected ISGLs
+  -> sample ingest
+  -> findings, review state, and saved reports
+```
+
+The ASP must exist first because it defines the assay identity and analyte used by clinical
+rules, ISGLs, ASPCs, and samples. A rule set can be authored after the ASP exists, but an ASPC
+with report sections cannot become active until that rule set is published. Create every ISGL
+referenced by ASPC filter defaults before saving the ASPC. Ingest can begin only after an active
+ASPC exists for the requested assay, subpanel, and environment.
+
+See [System relationships](../architecture/system_relationships.md#13-creation-order) for the
+complete prerequisite table, including identity and report entities.
 
 ## Optional Enhancement Collections
 
@@ -160,9 +188,12 @@ This separation lets Coyote3 answer clinical questions after a report is saved:
 
 ## Public And Center-Owned Content
 
-The public assay catalog and matrix use `api/config/center/assay_catalog.yaml` for
-descriptions, sample types, TAT, and navigation labels. The database still
-provides the operational truth for ASP, ASPC, and ISGL objects.
+The public assay catalog and matrix use the primary-database
+`public_assay_catalog` document for descriptions, sample types, turnaround
+statements, and navigation labels. ASP, ASPC, and ISGL documents remain the
+operational truth for active assay behavior and gene content. Administrators can
+export the full catalog or a modality as JSON, then import validated JSON into a
+different center deployment.
 
 The public contact page uses `api/config/center/contact.toml`. A center can
 maintain a dedicated deployment revision of the `center/` directory for each

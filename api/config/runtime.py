@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from api.config.mongo import mongo_endpoints
 from api.config.security import (
     configure_process_env,
     get_api_secret_key,
@@ -29,12 +30,9 @@ __all__ = [
 ]
 
 
-def get_mongo_settings(config: Mapping[str, Any]) -> dict[str, str]:
+def get_mongo_settings(config: Mapping[str, Any]) -> dict[str, dict[str, str]]:
     """Extract the Mongo settings needed by the API runtime."""
     return {
-        "uri": str(config.get("MONGO_URI") or ""),
-        "db_name": str(config.get("COYOTE3_DB") or ""),
-        "identity_db_name": str(config.get("IDENTITY_DB") or ""),
-        "knowledgebase_db_name": str(config.get("KNOWLEDGEBASE_DB") or ""),
-        "bam_db_name": str(config.get("BAM_DB") or ""),
+        service: {"uri": endpoint.uri, "db_name": endpoint.database}
+        for service, endpoint in mongo_endpoints(config).items()
     }

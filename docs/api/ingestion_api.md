@@ -1,5 +1,23 @@
 # Ingestion API
 
+## Authorization and write boundaries
+
+All ingest routes require `internal.ingest:manage`. Sample-bundle operators also
+need `sample:edit:own` for the manifest's assay and environment. Non-superuser
+requests must supply both `asp_id` and `environment`. Ingest updates cannot
+change a sample's assay or environment; use sample administration for scope changes.
+
+Direct identity and clinical collection imports are superuser-only because raw
+inserts and replacements bypass the dedicated account and clinical workflows.
+This restriction applies to synchronous, uploaded, bulk, and queued operations.
+Use account administration to manage users, roles, and permission policies.
+The supported-collections endpoint lists only collections backed by the configured
+ingest gateway and a validation contract. Governed rule/catalog workflows are not
+available through generic collection ingestion.
+
+ZIP bundles are validated before extraction. Duplicate normalized paths, file/directory
+collisions, traversal paths, symlinks, and existing extraction targets are rejected.
+
 ## Purpose
 
 Use the API to load configuration data and sample bundles in a validated, repeatable way.
@@ -13,7 +31,7 @@ All ingest endpoints validate request documents with backend Pydantic contracts 
 
 ![Celery-backed sample ingest flow](../assets/diagrams/celery_ingest_flow.svg)
 
-## Atomicity and rollback guarantees
+## Persistence and recovery boundaries
 
 For fresh sample creation through:
 
@@ -31,13 +49,14 @@ the ingest flow follows this order:
 Failure behavior:
 
 - If validation or file parsing fails, no sample document is inserted.
-- If any write fails after the sample anchor is created, ingest attempts rollback cleanup and deletes the staged sample plus dependent analysis documents.
-- When Mongo sessions/transactions are supported by the runtime, the create flow executes inside a transaction boundary as an additional safeguard.
+- The sample anchor, dependent evidence, and ready state commit in one required MongoDB transaction. A failed transaction exposes none of its writes; there is no unprotected-write fallback or compensating deletion.
+- A replica set or sharded cluster is required, including for local development.
 
 Scope note:
 
-- These guarantees apply to **fresh sample creation**.
-- `update_existing=true` still uses dependent-data replacement with rollback for evidence collections, but sample metadata updates are not yet a full multi-document transaction.
+- `update_existing=true` changes metadata and replaces declared evidence in one transaction. Evidence not declared in the update is retained. A concurrent sample change detected after preparation rejects the update rather than overwriting it.
+- Async ingestion commits its job completion receipt in the same transaction as the data. File parsing occurs before the transaction; cache invalidation and file cleanup occur after commit.
+- See [transactions and ingest recovery](../architecture/transactions_and_ingest_recovery.md) for delivery, retry, file-retention, and deployment requirements.
 
 ## Endpoints
 
@@ -59,8 +78,11 @@ Scope note:
 ## Celery-backed async ingest
 
 The async routes perform the same API authentication and authorization checks as
-the synchronous internal ingest routes, then enqueue work on the Celery `ingest`
-queue. Every Compose environment uses the stable `worker` service key.
+the synchronous internal ingest routes, persist an `ingest_jobs` record, and then
+publish its identifier to the Celery `ingest` queue. Acceptance means the job is
+durably recorded, not that ingestion has completed. Beat redelivers pending jobs
+and expired leases every 30 seconds. Every Compose environment uses the stable
+`worker` service key.
 
 Runtime settings:
 
@@ -89,8 +111,10 @@ curl -sS "${BASE_URL}/api/v1/internal/tasks/${TASK_ID}" \
 ```
 
 The async upload route stores the uploaded YAML and ZIP archive contents in a durable staging
-directory before enqueueing the task. The worker removes that staging directory
-after the ingest task finishes or fails.
+directory before recording the job. The worker removes that staging directory
+only after confirmed success. Failed jobs retain their payload and staged files
+for investigation. Task status is available to its submitter or a superuser and
+does not expose the stored source payload, staging path, or lease token.
 
 ## Admin ingest workspace
 
@@ -203,7 +227,7 @@ directory. After successful ingest, the watcher renames the manifest to
 `coyote3.yaml.done`; failed manifests are renamed to `coyote3.yaml.failed` so
 they do not loop continuously.
 
-The success marker covers the required clinical transaction: the sample and
+The success marker records completion of the required bundle workflow: the sample and
 every declared analysis resource have been validated, persisted, and marked
 `ready`. Optional public knowledgebase enrichment is queued only after that
 marker is written. A slow or unavailable external service cannot hold the
@@ -217,11 +241,12 @@ files.
 
 ## MongoDB dependency
 
-API and worker containers use only the configured `MONGO_URI`. The database is
-provisioned independently of the application stack and must be reachable from
-the API and worker containers.
-See [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
-See [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
+API and workers use independent app, identity, knowledgebase, and BAM endpoints.
+Sample ingestion and its job receipts stay on the primary endpoint. Async raw
+collection ingestion returns HTTP 400 when its target uses a different client;
+use synchronous ingestion or maintenance tooling for that target. Synchronous
+writes use the selected collection's client, never a session from another service.
+See [MongoDB service topology](../architecture/mongodb_topology.md).
 
 ## Route commands (full examples)
 
@@ -246,7 +271,8 @@ application services:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "admin.coyote3" \
@@ -445,7 +471,7 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
-      "general_report_summary": "Prepared in Coyote3",
+      "clinical_rule_set_id": "assay_1__base__sv",
       "plots_path": "reports/plots",
       "report_folder": "reports/output"
     },
@@ -541,7 +567,7 @@ curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
-      "general_report_summary": "Prepared in Coyote3",
+      "clinical_rule_set_id": "assay_1__base__sv",
       "plots_path": "reports/plots",
       "report_folder": "reports/output"
     },

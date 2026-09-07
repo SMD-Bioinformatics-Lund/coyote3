@@ -5,6 +5,11 @@ output_path="${COYOTE3_NGINX_OUTPUT_PATH:-/etc/nginx/conf.d/default.conf}"
 frontend_upstream="${COYOTE3_NGINX_FRONTEND_UPSTREAM:?COYOTE3_NGINX_FRONTEND_UPSTREAM is required}"
 api_upstream="${COYOTE3_NGINX_API_UPSTREAM:?COYOTE3_NGINX_API_UPSTREAM is required}"
 docs_upstream="${COYOTE3_NGINX_DOCS_UPSTREAM:?COYOTE3_NGINX_DOCS_UPSTREAM is required}"
+public_scheme="${COYOTE3_NGINX_PUBLIC_SCHEME:-http}"
+case "$public_scheme" in
+  http|https) ;;
+  *) printf '%s\n' 'COYOTE3_NGINX_PUBLIC_SCHEME must be http or https' >&2; exit 1 ;;
+esac
 
 script_name="${SCRIPT_NAME:-}"
 case "$script_name" in
@@ -47,10 +52,7 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
     add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:" always;
 
-    set \$forwarded_proto \$http_x_forwarded_proto;
-    if (\$forwarded_proto = "") {
-        set \$forwarded_proto \$scheme;
-    }
+    set \$forwarded_proto "${public_scheme}";
     set \$strict_transport_security "";
     if (\$forwarded_proto = "https") {
         set \$strict_transport_security "max-age=31536000; includeSubDomains";
@@ -59,7 +61,7 @@ server {
 
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For \$remote_addr;
     proxy_set_header X-Forwarded-Proto \$forwarded_proto;
     proxy_http_version 1.1;
     proxy_read_timeout 120s;

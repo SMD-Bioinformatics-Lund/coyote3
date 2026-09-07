@@ -11,6 +11,7 @@ from api.application.dna import (
     variant_comments,
     variant_state,
 )
+from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.config.database_versions import sample_vep_version
 from api.contracts.operations import OperationResult
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
@@ -48,6 +49,7 @@ class DnaService:
             hgnc_repository=getattr(store, "hgnc_repository", None),
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
+            clinical_rule_service=ClinicalRuleService.from_store(store),
         )
 
     def __init__(
@@ -75,6 +77,7 @@ class DnaService:
         hgnc_repository: Any | None = None,
         oncokb_public_cache_repository: Any | None = None,
         clinpgx_public_repository: Any | None = None,
+        clinical_rule_service: ClinicalRuleService | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -99,6 +102,7 @@ class DnaService:
         self.iarc_tp53_repository = iarc_tp53_repository
         self.cosmic_repository = cosmic_repository
         self.hgnc_repository = hgnc_repository
+        self.clinical_rule_service = clinical_rule_service
 
     @staticmethod
     def export_rows_to_csv(rows: list[Any]) -> str:
@@ -322,7 +326,6 @@ class DnaService:
         sample: dict,
         util_module,
         add_global_annotations_fn,
-        generate_summary_text_fn,
         build_query_fn,
         get_filter_conseq_terms_fn,
         assay_config_getter,
@@ -335,7 +338,6 @@ class DnaService:
             sample=sample,
             util_module=util_module,
             add_global_annotations_fn=add_global_annotations_fn,
-            generate_summary_text_fn=generate_summary_text_fn,
             build_query_fn=build_query_fn,
             get_filter_conseq_terms_fn=get_filter_conseq_terms_fn,
             assay_config_getter=assay_config_getter,

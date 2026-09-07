@@ -10,6 +10,9 @@ These files are privacy-safe, compact fixtures for sample ingestion flows.
 - `generic_case_control.cnvs.merged.json`: Minimal CNV payload.
 - `generic_case_control.cov.json`: Minimal coverage payload.
 - `generic_case_control.modeled.png`: Placeholder CNV profile image.
+- `generic_rna_expression.json`, `generic_rna_classification.json`, and
+  `generic_rna_qc.json`: Single-object raw RNA inputs, without the array wrapper
+  used by collection seed exports.
 
 The YAML files represent the raw manifests produced by analysis pipelines. Case
 and control metadata therefore use top-level `case_*` and `control_*` keys, and
@@ -18,6 +21,10 @@ analysis resources use top-level keys such as `vcf_files`, `cnv`,
 nested `case`, `control`, and `files` structure stored in the sample document.
 Optional file keys may be omitted, but any declared file must be readable and
 successfully parsed for the sample to become `ready`.
+
+Optional `case_bam`, `case_bai`, `control_bam`, and `control_bai` are IGV file
+references, not analysis resources. They become nested sample metadata and may
+be omitted; ingest does not read or copy their file contents.
 
 The DNA manifest uses paths relative to its own directory. Keep
 `generic_case_control.yaml` and its four `generic_case_control.*` resources

@@ -15,7 +15,7 @@ import {
   clinvarSearchUrl,
   cosmicSearchUrl,
   dbsnpUrl,
-  igvLoadUrl,
+  igvAlignmentLinks,
   litvarSearchUrl,
   oncokbGeneUrl,
   pubmedArticleUrl,
@@ -365,6 +365,12 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
       badges={evidence?.match_count ? <EvidenceBadge tone="info">{evidence.match_count} observations</EvidenceBadge> : null}
     >
       <div className="space-y-3">
+        {Object.values(evidence?.coordinate_matching || {}).some(value => value === false) && (
+          <p role="status" className="rounded-md border border-warn/30 bg-warn/10 p-2 text-sm text-warn">
+            Coordinate matching is unavailable for products without a confirmed matching genome build.
+            Identifier matches and gene-level context remain available.
+          </p>
+        )}
         {rowSearch ? (
           <span className="type-meta text-muted-foreground">
             {visibleResultCount} matching {visibleResultCount === 1 ? "row" : "rows"}
@@ -679,10 +685,9 @@ export function externalVariantLinks(variant: any, csq: any, data: any) {
   const hgvsp = csq?.HGVSp
   const clinvar = variant?.INFO?.CLNACC
   const position = variant?.CHROM && variant?.POS ? `${variant.CHROM}:${variant.POS}` : ""
-  const igvUrl = data?.bam_id && position ? igvLoadUrl(data.bam_id, position) : null
 
   return [
-    igvUrl ? { label: "Open region in IGV", value: position, href: igvUrl } : null,
+    ...igvAlignmentLinks(data?.bam_id, position, data?.bai_id, data?.design_bed_paths),
     clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: clinvarSearchUrl(clinvar) } : null,
     gene ? { label: `cBioPortal ${gene}`, value: gene, href: cbioportalOncoprintUrl(gene) } : null,
     gene ? { label: `OncoKB ${gene}`, value: gene, href: oncokbGeneUrl(gene) } : null,

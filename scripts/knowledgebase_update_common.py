@@ -22,6 +22,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
+from api.config.mongo import configured_mongo_uri
 from api.config.paths import COLLECTIONS_CONFIG_PATH
 
 BATCH_SIZE = 5_000
@@ -45,7 +46,7 @@ class CollectionSpec:
 
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     """Add consistent connection and publication arguments to an updater."""
-    parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", ""))
+    parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "knowledgebase"))
     parser.add_argument("--database", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     parser.add_argument("--release", required=True, help="Upstream release identifier.")
     parser.add_argument(
@@ -78,7 +79,9 @@ def require_apply_settings(args: argparse.Namespace) -> None:
     if args.drop_previous and not args.apply:
         raise ValueError("--drop-previous requires --apply")
     if args.apply and (not args.mongo_uri or not args.database):
-        raise ValueError("--mongo-uri/MONGO_URI and --database/KNOWLEDGEBASE_DB are required")
+        raise ValueError(
+            "--mongo-uri/KNOWLEDGEBASE_MONGO_URI and --database/KNOWLEDGEBASE_DB are required"
+        )
 
 
 def knowledgebase_mapping(path: Path) -> dict[str, str]:

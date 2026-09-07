@@ -20,9 +20,6 @@ def request_ip(request: Request | None) -> str:
     """
     if request is None:
         return "N/A"
-    forwarded_for = (request.headers.get("X-Forwarded-For") or "").strip()
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip() or "N/A"
     if request.client and request.client.host:
         return str(request.client.host)
     return "N/A"

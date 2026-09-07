@@ -363,7 +363,21 @@ class CosmicRepository(BaseRepository):
             collection.find({"genomic_mutation_id": {"$in": mutation_ids}}, projection).limit(25)
         )
 
-    def get_variant_evidence(self, variant: dict[str, Any]) -> dict[str, Any]:
+    def _assembly_matches(self, product: str, genome_build: int | None) -> bool:
+        """Coordinate evidence requires an explicitly matching installed product assembly."""
+        if genome_build not in (37, 38):
+            return False
+        versions = getattr(self.adapter, "knowledgebase_versions_collection", None)
+        if versions is None:
+            return False
+        release = versions.find_one(
+            {"source": f"cosmic_{product}", "status": "active"}, {"assembly": 1}
+        )
+        return bool(release and release.get("assembly") == f"GRCh{genome_build}")
+
+    def get_variant_evidence(
+        self, variant: dict[str, Any], *, genome_build: int | None
+    ) -> dict[str, Any]:
         """Return exact genomic COSMIC matches and gene-level context for an SNV/indel."""
         info = variant.get("INFO") if isinstance(variant.get("INFO"), dict) else {}
         csq = info.get("selected_CSQ") if isinstance(info.get("selected_CSQ"), dict) else {}
@@ -382,6 +396,25 @@ class CosmicRepository(BaseRepository):
             pass
         if identifiers:
             clauses.append({"id": {"$in": identifiers}})
+        coordinate_products = [
+            "coding_variants",
+            "noncoding_variants",
+            "targeted_variants",
+            "census_gene_mutations",
+        ]
+        matching = {
+            product: self._assembly_matches(product, genome_build)
+            for product in coordinate_products
+        }
+
+        def product_clauses(product):
+            return (
+                clauses if matching[product] else [clause for clause in clauses if "id" in clause]
+            )
+
+        genome_clauses = product_clauses("coding_variants")
+        noncoding_clauses = product_clauses("noncoding_variants")
+        targeted_clauses = product_clauses("targeted_variants")
         variant_projection = {
             "_id": 0,
             "id": 1,
@@ -398,26 +431,30 @@ class CosmicRepository(BaseRepository):
         genome = (
             self._rows(
                 self.get_collection()
-                .find({"$or": clauses}, variant_projection)
+                .find({"$or": genome_clauses}, variant_projection)
                 .limit(_RESULT_LIMIT)
             )
-            if clauses
+            if genome_clauses
             else []
         )
         noncoding_collection = getattr(self.adapter, "cosmic_noncoding_collection", None)
         noncoding = (
             self._rows(
-                noncoding_collection.find({"$or": clauses}, variant_projection).limit(_RESULT_LIMIT)
+                noncoding_collection.find({"$or": noncoding_clauses}, variant_projection).limit(
+                    _RESULT_LIMIT
+                )
             )
-            if noncoding_collection is not None and clauses
+            if noncoding_collection is not None and noncoding_clauses
             else []
         )
         targeted_collection = getattr(self.adapter, "cosmic_targeted_collection", None)
         targeted = (
             self._rows(
-                targeted_collection.find({"$or": clauses}, variant_projection).limit(_RESULT_LIMIT)
+                targeted_collection.find({"$or": targeted_clauses}, variant_projection).limit(
+                    _RESULT_LIMIT
+                )
             )
-            if targeted_collection is not None and clauses
+            if targeted_collection is not None and targeted_clauses
             else []
         )
         mutant_census_collection = getattr(self.adapter, "cosmic_mutant_census_collection", None)
@@ -435,6 +472,10 @@ class CosmicRepository(BaseRepository):
             pass
         if identifiers:
             mutant_census_clauses.append({"genomic_mutation_id": {"$in": identifiers}})
+        if not matching["census_gene_mutations"]:
+            mutant_census_clauses = [
+                clause for clause in mutant_census_clauses if "genomic_mutation_id" in clause
+            ]
         mutant_census_projection = {
             "_id": 0,
             "genomic_mutation_id": 1,
@@ -469,14 +510,16 @@ class CosmicRepository(BaseRepository):
         try:
             cmc_clauses.append(
                 {
-                    "chr_grch38": {"$in": chromosome},
-                    "start_grch38": int(position),
+                    f"chr_grch{genome_build}": {"$in": chromosome},
+                    f"start_grch{genome_build}": int(position),
                     "ref": ref,
                     "alt": alt,
                 }
             )
         except (TypeError, ValueError):
             pass
+        if genome_build not in (37, 38):
+            cmc_clauses = []
         if identifiers:
             cmc_clauses.append({"genomic_mutation_id": {"$in": identifiers}})
         cmc_collection = getattr(self.adapter, "cosmic_mutation_census_collection", None)
@@ -532,6 +575,7 @@ class CosmicRepository(BaseRepository):
         genes = _gene_symbols([csq.get("SYMBOL")])
         return {
             "kind": "small_variant",
+            "coordinate_matching": {**matching, "mutation_census": genome_build in (37, 38)},
             "match_count": (
                 len(genome) + len(noncoding) + len(targeted) + len(mutant_census) + len(census)
             ),
@@ -556,7 +600,7 @@ class CosmicRepository(BaseRepository):
             ),
         }
 
-    def get_cnv_evidence(self, cnv: dict[str, Any]) -> dict[str, Any]:
+    def get_cnv_evidence(self, cnv: dict[str, Any], *, genome_build: int | None) -> dict[str, Any]:
         """Return bounded COSMIC CNA summaries overlapping the reported interval."""
         genes = _gene_symbols(cnv.get("genes"))
         collection = getattr(self.adapter, "cosmic_cna_collection", None)
@@ -574,7 +618,8 @@ class CosmicRepository(BaseRepository):
             interval_query = None
         if interval_query is not None and genes:
             interval_query["gene_symbol"] = {"$in": genes}
-        if collection is not None and interval_query is not None:
+        assembly_matches = self._assembly_matches("copy_number", genome_build)
+        if collection is not None and interval_query is not None and assembly_matches:
             pipeline = [
                 {"$match": interval_query},
                 {
@@ -602,6 +647,7 @@ class CosmicRepository(BaseRepository):
             ]
         return {
             "kind": "copy_number",
+            "coordinate_matching": {"copy_number": assembly_matches},
             "match_count": sum(int(row["observations"]) for row in records),
             "records": records,
             "classifications": self._classifications(records),
@@ -665,7 +711,9 @@ class CosmicRepository(BaseRepository):
             ),
         }
 
-    def get_translocation_evidence(self, translocation: dict[str, Any]) -> dict[str, Any]:
+    def get_translocation_evidence(
+        self, translocation: dict[str, Any], *, genome_build: int | None
+    ) -> dict[str, Any]:
         """Return COSMIC breakpoint records overlapping the reported breakends."""
         loci: list[tuple[str, int]] = []
         for value in (
@@ -677,7 +725,8 @@ class CosmicRepository(BaseRepository):
                 loci.append((match.group(1), int(match.group(2))))
         collection = getattr(self.adapter, "cosmic_breakpoints_collection", None)
         records = []
-        if collection is not None and loci:
+        assembly_matches = self._assembly_matches("breakpoints", genome_build)
+        if collection is not None and loci and assembly_matches:
             clauses = []
             for chromosome, position in loci[:2]:
                 chromosomes = _chromosome_values(chromosome)
@@ -733,6 +782,7 @@ class CosmicRepository(BaseRepository):
         genes = _gene_symbols(translocation.get("genes") or [])
         return {
             "kind": "translocation",
+            "coordinate_matching": {"breakpoints": assembly_matches},
             "match_count": len(records),
             "cosmic_ids": list(
                 dict.fromkeys(

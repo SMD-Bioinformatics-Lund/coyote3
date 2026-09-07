@@ -17,7 +17,7 @@ separate deliberate operations.
 ## Before you begin
 
 - Prepare an environment file from `deploy/env/example.env`.
-- Set `MONGO_URI` to the MongoDB service chosen by the center.
+- Set `COYOTE3_MONGO_URI` to the MongoDB service chosen by the center.
 - Create the MongoDB application user with read/write access to the application,
   identity, knowledgebase, and BAM-service databases selected by the environment.
 - Replace every placeholder secret in the environment file.
@@ -41,7 +41,7 @@ standalone MongoDB Compose definition. Confirm that the URI is reachable from
 the future API and worker containers before continuing.
 
 ```bash
-mongosh "$MONGO_URI" --eval 'db.runCommand({ping: 1})'
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.runCommand({ping: 1})'
 ```
 
 See [MongoDB deployment and recovery](mongodb_deployment_and_recovery.md) for
@@ -55,7 +55,8 @@ ingest any sample.
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
   --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
   --username "admin.coyote3" \
@@ -113,11 +114,14 @@ collection-import process. The required active configuration is:
 | Collection | Required purpose |
 | --- | --- |
 | `assay_specific_panels` | Panel metadata, assay group, platform, and covered-gene scope. |
+| `clinical_rule_sets` | Active published clinical report wording for every ASPC binding. |
+| `clinical_rule_revisions` | Immutable baseline and subsequent snapshots for every rule-set version. |
 | `asp_configs` | Active assay, subpanel, environment, analysis, filter, and reporting configuration. |
 | `insilico_genelists` | Optional analysis-specific gene-list selection. |
 
-An active ASPC must contain the appropriate `analysis_types`, `filters`, and
-`reporting` configuration. These documents are center clinical configuration;
+Load and publish rule sets before creating their ASPC bindings. An active ASPC
+must contain the appropriate `analysis_types`, `filters`, and `reporting`
+configuration. These documents are center clinical configuration;
 the demonstration catalog is not suitable for clinical use.
 
 ## 6. Validate and ingest controlled data

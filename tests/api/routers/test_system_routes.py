@@ -171,8 +171,8 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     monkeypatch.setattr(
         auth_router,
         "create_api_session",
-        lambda user_id, **_kwargs: SimpleNamespace(
-            token=f"session-{user_id}", csrf_token="csrf-token"
+        lambda doc, **_kwargs: SimpleNamespace(
+            token=f"session-{doc['username']}", csrf_token="csrf-token"
         ),
     )
     monkeypatch.setattr(
@@ -218,8 +218,8 @@ def test_create_auth_session_returns_201(monkeypatch):
     monkeypatch.setattr(
         auth_router,
         "create_api_session",
-        lambda user_id, **_kwargs: SimpleNamespace(
-            token=f"session-{user_id}", csrf_token="csrf-token"
+        lambda doc, **_kwargs: SimpleNamespace(
+            token=f"session-{doc['username']}", csrf_token="csrf-token"
         ),
     )
     monkeypatch.setattr(
@@ -265,8 +265,8 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     monkeypatch.setattr(
         auth_router,
         "create_api_session",
-        lambda user_id, **_kwargs: SimpleNamespace(
-            token=f"session-{user_id}", csrf_token="csrf-token"
+        lambda doc, **_kwargs: SimpleNamespace(
+            token=f"session-{doc['username']}", csrf_token="csrf-token"
         ),
     )
     monkeypatch.setattr(

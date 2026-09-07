@@ -804,4 +804,17 @@ def render_pdf_bytes(html: str) -> bytes:
     """Render a PDF byte stream from report HTML."""
     from weasyprint import HTML
 
-    return HTML(string=html).write_pdf()
+    return HTML(string=html, url_fetcher=_report_resource_fetcher).write_pdf(
+        presentational_hints=False
+    )
+
+
+def _report_resource_fetcher(url: str, *args, **kwargs):
+    """Allow embedded report plots, never network requests or local-file reads."""
+    from weasyprint import default_url_fetcher
+
+    if not url.startswith(("data:image/png;base64,", "data:image/jpeg;base64,")):
+        raise ValueError("Report resources must be embedded PNG or JPEG images")
+    if len(url) > 20 * 1024 * 1024:
+        raise ValueError("Embedded report image exceeds the size limit")
+    return default_url_fetcher(url, *args, **kwargs)

@@ -71,6 +71,4 @@ class RNAQCRepository(BaseRepository):
 
     def delete_sample_qc(self, sample_oid: str) -> OperationResult:
         """Delete quality-control documents owned by a sample."""
-        return OperationResult.from_delete(
-            self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
-        )
+        return OperationResult.from_delete(self.delete_many_atomic({"SAMPLE_ID": sample_oid}))

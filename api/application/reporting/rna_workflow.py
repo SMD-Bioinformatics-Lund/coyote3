@@ -14,6 +14,7 @@ from api.application.reporting.persistence import (
     prepare_report_output as prepare_shared_report_output,
 )
 from api.application.reporting.snapshot_rows import build_pgx_snapshot_rows, flatten_pgx_records
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.domain.common.assay_filters import (
     format_filters_from_form,
     get_sample_effective_genes,
@@ -333,7 +334,6 @@ class RNAWorkflowService:
             created_by=created_by,
             rule_provenance=rule_provenance,
             sample_repository=self.sample_repository,
-            reported_variant_repository=self.reported_variant_repository,
         )
 
     @staticmethod
@@ -441,6 +441,9 @@ class RNAWorkflowService:
         assay_config: dict,
         save: int,
         include_snapshot: bool,
+        clinical_rule_override: ClinicalRuleSetDoc | None = None,
+        clinical_rule_only: bool = False,
+        clinical_rule_condition_trace: bool = False,
     ):
         """
         Build RNA report template context and optional snapshot rows through cross-domain workflow service.
@@ -450,9 +453,9 @@ class RNAWorkflowService:
             raise ValueError("RNA report input is missing the canonical sample asp_id.")
         reporting_config = assay_config["reporting"]
         fusion_query = {"SAMPLE_ID": str(sample["_id"])}
-        fusions = self.fusion_repository.hydrate_finding_comments_many(
-            list(self.fusion_repository.get_sample_fusions(fusion_query) or [])
-        )
+        fusions = list(self.fusion_repository.get_sample_fusions(fusion_query) or [])
+        if not clinical_rule_only:
+            fusions = self.fusion_repository.hydrate_finding_comments_many(fusions)
 
         for fus_idx, fusion in enumerate(fusions):
             (
@@ -460,12 +463,15 @@ class RNAWorkflowService:
                 fusions[fus_idx]["classification"],
             ) = self.fusion_repository.get_fusion_annotations(fusion)
 
-        report_header = get_report_header(
-            str(assay_config["asp_group"]),
-            sample,
-            reporting_config["report_header"],
+        report_header = (
+            None
+            if clinical_rule_only
+            else get_report_header(
+                str(assay_config["asp_group"]),
+                sample,
+                reporting_config["report_header"],
+            )
         )
-        report_date = datetime.now().date()
         reportable_fusions = [
             fusion
             for fusion in fusions
@@ -502,14 +508,34 @@ class RNAWorkflowService:
             applied_gene_lists=applied_gene_lists,
             report_sections_data={"fusions": reportable_fusions, "pgx": pgx_records},
         )
-        clinical_rule_evaluation = (
-            self.clinical_rule_service.evaluate(
-                aspc=assay_config,
-                context=prepared_rule_context,
+        clinical_rule_evaluation = None
+        if self.clinical_rule_service is not None:
+            clinical_rule_evaluation = (
+                self.clinical_rule_service.evaluate_document(
+                    rule_set=clinical_rule_override,
+                    context=prepared_rule_context,
+                    include_condition_trace=clinical_rule_condition_trace,
+                )
+                if clinical_rule_override is not None
+                else self.clinical_rule_service.evaluate(
+                    aspc=assay_config,
+                    context=prepared_rule_context,
+                )
             )
-            if self.clinical_rule_service is not None
-            else None
-        )
+        if clinical_rule_only:
+            return (
+                "",
+                {
+                    "clinical_rule_evaluation": (
+                        clinical_rule_evaluation.model_dump(mode="json")
+                        if clinical_rule_evaluation
+                        else None
+                    )
+                },
+                [],
+            )
+
+        report_date = datetime.now().date()
         latest_sample_comment = self.sample_repository.get_latest_sample_comment(
             str(sample.get("_id") or "")
         )

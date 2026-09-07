@@ -68,6 +68,11 @@ Unit tests live beside the TypeScript modules they protect as
 module currently has no tests, so the percentage remains an honest expansion
 metric rather than only measuring files that already have coverage.
 
+Vitest runs at most four workers to bound simultaneous jsdom instances and avoid
+CPU contention on shared runners. A developer can override the limit explicitly
+with `npm --prefix frontend run test:coverage -- --maxWorkers=2` on a smaller machine.
+Test timeouts and coverage thresholds remain independent of the worker limit.
+
 Vitest enforces global non-regression floors over the complete declared source
 scope: 75% statements, 60% branches, 65% functions, and 77% lines. These are
 release gates rather than completion targets. New modules included in the
@@ -360,6 +365,8 @@ All permission-gate testing must operate at the logical boundary being enforced:
 - **API Access**: Use the `api_user` mocks to validate FastAPI `Depends` authentication and RBAC logic.
 - **UI visibility**: Verify selective rendering in the React layer with API-shaped fixtures.
 - **Constraint Matching**: Test datasets must define role-derived allow/deny permission arrays to verify both positive and negative authorization outcomes.
+- **Shipped RBAC Matrix**: `tests/api/test_rbac_complete_route_matrix.py` must pass. It covers
+  every active seeded permission, bundled role, and registered `require_access` API endpoint.
 
 ## Performance Checks
 

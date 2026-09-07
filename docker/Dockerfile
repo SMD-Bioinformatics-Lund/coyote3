@@ -35,7 +35,6 @@ FROM coyote3_runtime_base AS coyote3_api
 EXPOSE 8001
 
 COPY --chown=coyote3:coyote3 api/ ./api/
-COPY --chown=coyote3:coyote3 clinical_reporting_rules/ ./clinical_reporting_rules/
 COPY --chown=coyote3:coyote3 scripts/ ./scripts/
 COPY --chown=coyote3:coyote3 demo_data/ ./demo_data/
 COPY --chown=coyote3:coyote3 CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./

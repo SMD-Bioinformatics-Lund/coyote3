@@ -112,17 +112,23 @@ def known_retired_indexes(adapter: Any) -> list[dict[str, str]]:
     return found
 
 
-def retire_index(adapter: Any, *, collection_name: str, index_name: str) -> None:
+def retire_index(
+    adapter: Any, *, collection_name: str, index_name: str, repository_name: str | None = None
+) -> None:
     """Drop one exact non-system index after caller-side confirmation."""
     if index_name == "_id_":
         raise ValueError("The MongoDB _id index cannot be retired")
-    collections = {
-        repository.get_collection().name: repository.get_collection()
-        for _name, repository in adapter.iter_repositories()
-    }
-    collection = collections.get(collection_name)
-    if collection is None:
+    matches = [
+        repository.get_collection()
+        for name, repository in adapter.iter_repositories()
+        if repository.get_collection().name == collection_name
+        and (repository_name is None or name == repository_name)
+    ]
+    if not matches:
         raise ValueError(f"Unknown managed collection: {collection_name}")
+    if len(matches) > 1:
+        raise ValueError("Collection name is ambiguous; specify --repository from the index plan")
+    collection = matches[0]
     existing = {index["name"] for index in collection.list_indexes()}
     if index_name not in existing:
         raise ValueError(f"Index {index_name!r} does not exist on {collection_name!r}")

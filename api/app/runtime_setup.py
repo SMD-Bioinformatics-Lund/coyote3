@@ -13,6 +13,7 @@ from pymongo.errors import AutoReconnect, ConnectionFailure, NetworkTimeout
 from api.app.container import ldap_manager, store, util
 from api.config import app_config
 from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
+from api.config.mongo import mongo_endpoints
 from api.infra.cache import create_cache_backend
 from api.infra.observability.logging import configure_json_logging
 from api.infra.observability.prometheus_metrics import set_startup_phase_duration
@@ -37,19 +38,7 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     startup_started = time.perf_counter()
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
-    for database_key in ("COYOTE3_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"):
-        if not str(conf.get(database_key) or "").strip():
-            raise RuntimeError(
-                f"{database_key} must be configured explicitly in the deployment environment."
-            )
-    if conf["KNOWLEDGEBASE_DB"] in {conf["COYOTE3_DB"], conf["BAM_DB"]}:
-        raise RuntimeError("KNOWLEDGEBASE_DB must be different from COYOTE3_DB and BAM_DB.")
-    if conf["IDENTITY_DB"] in {
-        conf["COYOTE3_DB"],
-        conf["KNOWLEDGEBASE_DB"],
-        conf["BAM_DB"],
-    }:
-        raise RuntimeError("IDENTITY_DB must be different from all other configured databases.")
+    mongo_endpoints(conf)
     configure_json_logging(
         service_name="api",
         level=str(conf.get("LOG_LEVEL") or "INFO"),

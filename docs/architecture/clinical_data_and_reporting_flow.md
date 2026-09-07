@@ -44,7 +44,7 @@ case only: accepted separators retain their meaning, so the display label
 other special characters are rejected rather than silently rewritten.
 
 This convention applies consistently to ASP, ASPC, ISGL, samples, user scope,
-static rule directories, and YAML manifests. It prevents a casing or separator
+clinical rule-set identities, and YAML manifests. It prevents a casing or separator
 variant from making an otherwise valid ASPC or gene list unreachable.
 
 ### 2.1 ASP: physical assay definition
@@ -98,8 +98,8 @@ configuration.
 | `reporting.report_header` | Report heading |
 | `reporting.report_method` | Method description |
 | `reporting.report_description` | Assay description |
-| `reporting.general_report_summary` | Configured introductory text |
-| Static rule source | Repository-owned YAML selected by `asp_id` and `subpanel_id`; the rendered report records the source identity and content hash. |
+| `reporting.clinical_rule_set_id` | Explicit stable identity of the active published clinical rule set |
+| Published rule source | MongoDB `clinical_rule_sets` version resolved by the explicit ASPC binding; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
 | `reporting.plots_path` | Approved source directory for report plots |
 | `reporting.report_folder` | Approved report output directory |
 
@@ -108,12 +108,12 @@ configuration.
 - **Available:** can the analysis be reviewed for this configuration?
 - **Report section:** should this available analysis contribute content to the report?
 
-The saved report records the validated YAML source identity and deterministic
-content hash together with the resolved ASPC and filter snapshot. This makes
-the runtime lineage:
+The saved report records the published rule-set identity, version, and deterministic
+content hash together with the resolved ASPC and filter snapshot. This makes the runtime
+lineage:
 
 ```text
-reviewed repository YAML
+published MongoDB clinical rule set
   -> resolved active ASPC
   -> saved report context and provenance
 ```

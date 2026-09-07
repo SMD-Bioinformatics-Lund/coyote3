@@ -16,9 +16,10 @@ docker compose version
 python3 --version
 ```
 
-Coyote3 uses MongoDB 8.2. The application always connects through `MONGO_URI`.
-That URI may point to a host-installed service, a managed service, or an
-independently deployed Docker service.
+Coyote3 uses MongoDB 8.2. App, identity, knowledgebase, and BAM databases have
+independent URI settings. They may share one instance or use separate services.
+The optional `mongo` and `mongo-kb` Docker profiles are described in
+[MongoDB service topology](../architecture/mongodb_topology.md).
 
 ---
 
@@ -38,7 +39,7 @@ cp deploy/env/example.env .coyote3_dev_env
 >
 >
 > The example values are suitable as a starting point for the development
-> Compose profile. Before starting the stack, review `MONGO_URI`, mounted data
+> Compose profile. Before starting the stack, review `COYOTE3_MONGO_URI`, mounted data
 > paths, and every secret value. Production deployments must provide their own
 > generated secrets.
 >
@@ -47,7 +48,7 @@ cp deploy/env/example.env .coyote3_dev_env
 
 ## Step 3: Initialize the database
 
-Start or select a MongoDB instance first. Set `MONGO_URI` to an endpoint that
+Start or select a MongoDB instance first. Set `COYOTE3_MONGO_URI` to an endpoint that
 will be reachable from the API and worker containers. On Linux, the supplied
 Compose files resolve `host.docker.internal` to the Docker host, so a
 host-installed MongoDB can use that hostname. The supplied MongoDB Compose
@@ -59,7 +60,8 @@ sample.
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
   --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
   --username "<first-superuser-username>" \

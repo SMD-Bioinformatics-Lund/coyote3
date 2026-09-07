@@ -81,5 +81,5 @@ class SampleCommentsRepository(BaseRepository):
     def delete_sample_comments(self, sample_oid: str) -> OperationResult:
         """Delete comments owned by a sample."""
         return OperationResult.from_delete(
-            self.get_collection().delete_many({"sample_oid": self._object_id(sample_oid)})
+            self.delete_many_atomic({"sample_oid": self._object_id(sample_oid)})
         )

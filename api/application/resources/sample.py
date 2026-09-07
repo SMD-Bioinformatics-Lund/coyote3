@@ -13,9 +13,9 @@ from api.application.accounts.common import (
     current_actor,
     utc_now,
 )
-from api.application.admin.sample_deletion import delete_all_sample_traces
 from api.application.resources.helpers import _validated_doc
 from api.domain.common.errors import api_error
+from api.infra.mongo.repositories.sample_deletion import delete_all_sample_traces
 from api.infra.observability.operations import measured_operation
 
 

@@ -35,6 +35,7 @@ and FastAPI `root_path` expose those routes under the public prefix.
 | Public Catalog | Unauthenticated public catalog, matrix, gene, assay reference, and center contact endpoints. |
 | Admin: Operations | Audit events, schema diagnostics, runtime controls, retention maintenance, and explicit public-reference refresh operations. |
 | Admin: Assays & Gene Lists | ASP, ASPC, ISGL, and admin sample resource configuration. |
+| Admin: Clinical Reporting Rules | Governed rule-set authoring, validation, clinical review, publication, retirement, and version history. |
 | Admin: Users | User-account management, invites, provider state, and profile metadata. |
 | Admin: Roles & Permissions | Role and permission policy management. |
 
@@ -79,7 +80,7 @@ The HTTP layer lives in domain-oriented packages under `api/interfaces/http`:
 
 ```text
 api/interfaces/http/
-  admin/          # governance, managed resources, users, roles, permissions
+  admin/          # governance, managed resources, clinical rules, users, roles, permissions
   clinical/
     samples.py    # sample lists, sample context, sample comments, settings
     common/       # shared clinical route helpers
@@ -118,6 +119,12 @@ Clinical routes are grouped by the biological workflow that owns the data.
 | `clinical.rna.fusions` | RNA fusion finding review. | `/api/v1/samples/{sample_id}/fusions` |
 | `clinical.reporting.reports` | Access-scoped saved-report library plus sample-owned preview, save, HTML, and PDF artifacts. | `/api/v1/reports`, `/api/v1/samples/{sample_id}/reports` |
 
+Clinical rule creation and lifecycle operations are administrative rather than report
+execution routes. They live under `/api/v1/admin/clinical-rule-sets` and use separate
+view, draft, test, submit, clinical-review, publish, and retire permissions. Version routes
+also expose read-only immutable revision history; each response includes the exact preserved
+document and its hash-chain metadata.
+
 ### Bulk classification request
 
 `PATCH /api/v1/samples/{sample_id}/classifications/tier` accepts the finding
@@ -139,7 +146,7 @@ When that flag is true, the service stores the Tier III classification and a
 separate annotation produced by `create_annotation_text_from_gene`. Omitting
 the flag or setting it to false stores only the classification. The flag has no
 effect for Tier I, II, or IV, or for a finding type other than `small_variant`.
-The generator does not read ASPC report wording or clinical reporting YAML.
+The generator does not read ASPC report wording or published clinical rule sets.
 
 > **Info: Export route ownership**
 >

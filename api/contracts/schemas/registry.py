@@ -14,6 +14,7 @@ from api.contracts.schemas.assay import (
     BlacklistDoc,
     InsilicoGenelistsDoc,
 )
+from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 from api.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
@@ -25,6 +26,12 @@ from api.contracts.schemas.dna import (
     VariantsDoc,
 )
 from api.contracts.schemas.governance import PermissionsDoc, RolesDoc, UsersDoc
+from api.contracts.schemas.ingest_jobs import IngestJobDoc
+from api.contracts.schemas.public_catalog import (
+    PublicAssayCatalogDoc,
+    PublicAssayCatalogVersionDoc,
+    PublicCatalogRevisionDoc,
+)
 from api.contracts.schemas.reference import (
     AnnotationDoc,
     AnnoVepDoc,
@@ -55,10 +62,16 @@ from api.contracts.schemas.samples import (
 )
 
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
+    "ingest_jobs": TypeAdapter(IngestJobDoc),
     "samples": TypeAdapter(SamplesDoc),
     "sample_comments": TypeAdapter(SampleCommentRecordDoc),
     "finding_comments": TypeAdapter(FindingCommentRecordDoc),
     "reports": TypeAdapter(SampleReportRecordDoc),
+    "clinical_rule_sets": TypeAdapter(ClinicalRuleSetDoc),
+    "clinical_rule_revisions": TypeAdapter(ClinicalRuleRevisionDoc),
+    "public_assay_catalog": TypeAdapter(PublicAssayCatalogDoc),
+    "public_assay_catalog_versions": TypeAdapter(PublicAssayCatalogVersionDoc),
+    "public_assay_catalog_revisions": TypeAdapter(PublicCatalogRevisionDoc),
     "variants": TypeAdapter(VariantsDoc),
     "anno_vep": TypeAdapter(AnnoVepDoc),
     "cnvs": TypeAdapter(CnvsDoc),

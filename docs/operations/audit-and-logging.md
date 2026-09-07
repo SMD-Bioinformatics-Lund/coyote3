@@ -115,11 +115,13 @@ Use Admin -> Application Controls to manage:
 | Retention maintenance | Scheduled and manual maintenance may apply audit and disk-log cleanup. | Maintenance tasks return without cleanup; MongoDB TTL behavior remains independent. |
 | Application modules | Governed navigation, pages, and APIs are available. | Governed navigation is hidden, direct UI routes show an unavailable state, and governed APIs return HTTP `503` with `category: module_disabled`. Stored data is retained. |
 
-The complete sample-ingestion gate intentionally represents one clinical
-transaction. Watch-folder scanning and manual submission are two entry points,
-not different persistence models. Once a manifest is accepted, every declared
-analysis resource is parsed and written through the same bundle service. A
-sample becomes `ready` only after the complete declared bundle succeeds.
+The complete sample-ingestion gate controls one bundle workflow. Watch-folder
+scanning and manual submission are two entry points, not different persistence
+models. Every declared resource is parsed before its evidence and sample readiness
+commit together in a required transaction. Async completion receipts join that
+transaction; disabled task families retain accepted work for later execution.
+Audit delivery and filesystem acknowledgements occur after commit and cannot undo
+it. See [transactions and ingest recovery](../architecture/transactions_and_ingest_recovery.md).
 
 Generic collection writes remain separate because they are administrative,
 schema-registered inserts or upserts and do not implement sample-bundle
@@ -197,7 +199,7 @@ Audit events use explicit retention classes:
 | Retention class | Intended content | Expiry behavior |
 | --- | --- | --- |
 | `operational` | Routine requests, access observations, runtime diagnostics, and other time-bounded operational records | Receives `expires_at`; eligible for MongoDB TTL expiry and manual/nightly cleanup |
-| `traceability` | Clinical-configuration mutations whose history is needed to explain ASP, ASPC, or ISGL lineage | Stores `immutable: true`, omits `expires_at`, and is excluded from application cleanup |
+| `traceability` | Clinical-configuration mutations and clinical rule-set lifecycle operations whose history is needed to explain configuration or reporting lineage | Stores `immutable: true`, omits `expires_at`, and is excluded from application cleanup |
 
 Audit retention is enforced in two layers for `operational` events only:
 
@@ -212,6 +214,14 @@ protects them from routine retention changes, but it cannot prevent a
 privileged database administrator from deleting collection data directly.
 Production deployments must therefore restrict database write access and
 include `audit_events` in protected backup and restore procedures.
+
+Traceability audit events are event records, not automatic resource snapshots. Clinical
+rule-set events contain the rule-set identity, content version, revision, status, actor, and
+operation metadata, but not the complete rule document at that revision. Full, hash-chained rule
+documents are stored separately in `clinical_rule_revisions` in the same transaction as each
+rule mutation. The
+[clinical reporting rules reference](../product/clinical_reporting_rules.md#immutable-revision-history)
+defines the responsibilities and backup requirements of both records.
 
 Disk log retention is handled by the same maintenance task when file logging is enabled. The task:
 

@@ -34,12 +34,10 @@ def build_adapter() -> MongoAdapter:
     config = {name: getattr(configuration, name) for name in dir(configuration) if name.isupper()}
     app = SimpleNamespace(config=config, logger=logging.getLogger("coyote.mongo_capacity"))
     adapter = MongoAdapter()
-    adapter.app = app
-    adapter.client = adapter._get_mongoclient(config["MONGO_URI"])
-    adapter._setup_dbs(adapter.client)
+    adapter.connect(app)
     adapter.setup()
     adapter._setup_repositories(ensure_indexes=False)
-    adapter.client.admin.command("ping")
+    adapter.ping()
     return adapter
 
 
@@ -79,21 +77,24 @@ def snapshot(adapter: Any, requested_collections: set[str]) -> list[dict[str, An
     """Return deterministic snapshots for all configured MongoDB collections."""
     collections: dict[tuple[str, str], Any] = {}
     database_bindings = (
-        (adapter.app.config["COYOTE3_DB"], adapter.coyote_db),
-        (adapter.app.config["IDENTITY_DB"], adapter.identity_db),
-        (adapter.app.config["KNOWLEDGEBASE_DB"], adapter.knowledgebase_db),
-        (adapter.app.config["BAM_DB"], adapter.bam_db),
+        ("primary", adapter.coyote_db),
+        ("identity", adapter.identity_db),
+        ("knowledgebase", adapter.knowledgebase_db),
+        ("bam", adapter.bam_db),
     )
     mappings = adapter.app.config.get("DB_COLLECTIONS_CONFIG", {})
-    for database_name, database in database_bindings:
-        for collection_name in mappings.get(database_name, {}).values():
-            collections[(database_name, collection_name)] = database[collection_name]
+    for service, database in database_bindings:
+        for collection_name in mappings.get(service, {}).values():
+            collections[(service, collection_name)] = database[collection_name]
 
     # Repositories can expose an enabled plugin collection that is not present
     # in the static mapping. Include it while preserving the same read-only flow.
     for _repository_name, repository in adapter.iter_repositories():
         collection = repository.get_collection()
-        collections[(collection.database.name, collection.name)] = collection
+        service = next(
+            name for name, database in database_bindings if collection.database == database
+        )
+        collections[(service, collection.name)] = collection
 
     if requested_collections:
         collections = {
@@ -105,7 +106,10 @@ def snapshot(adapter: Any, requested_collections: set[str]) -> list[dict[str, An
     unknown = requested_collections.difference(known_names)
     if unknown:
         raise ValueError(f"Unknown configured collection(s): {', '.join(sorted(unknown))}")
-    return [collection_snapshot(collection) for _, collection in sorted(collections.items())]
+    return [
+        {"service": identity[0], **collection_snapshot(collection)}
+        for identity, collection in sorted(collections.items())
+    ]
 
 
 def parser() -> argparse.ArgumentParser:

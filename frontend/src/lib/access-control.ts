@@ -9,6 +9,7 @@ export type CurrentUserAccess = {
   role: string
   access_level: number
   permissions: string[]
+  must_change_password?: boolean
   ui_settings?: {
     analysis_layout?: "classic" | "modern"
     sample_list_layout?: "classic" | "modern"
@@ -27,9 +28,12 @@ export const ADMIN_UTILITY_PERMISSIONS = {
   schemasView: "schema:list",
   uiRouteAuditView: "ui.route_audit:view",
   broadcastCreate: "notification.broadcast:create",
+  clinicalRulesView: "clinical_rules:view",
+  clinicalRulesTest: "clinical_rules:test",
 } as const
 
 export const ADMIN_ENTRY_PERMISSIONS = [
+  "catalog:view",
   "user:list",
   "user:view",
   "role:list",

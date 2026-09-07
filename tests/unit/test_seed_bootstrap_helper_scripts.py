@@ -16,9 +16,11 @@ from scripts.bootstrap_database import (
     _deployment_is_initialized,
     _initialize_governance,
     _insert_if_empty,
+    _seed_clinical_rule_revisions,
     _superuser_exists,
 )
 from scripts.sync_rbac_catalog import synchronize_rbac_catalog
+from tests.unit.reporting.test_clinical_rules import _document
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -310,6 +312,35 @@ def test_database_bootstrap_writes_only_empty_baseline_collections():
         )
         == "skipped"
     )
+
+
+def test_database_bootstrap_captures_rule_revision_baselines_once():
+    database = mongomock.MongoClient()["coyote3_test"]
+    database.clinical_rule_sets.insert_one(
+        _document().model_dump(mode="python", by_alias=True, exclude_none=True)
+    )
+
+    assert (
+        _seed_clinical_rule_revisions(
+            database,
+            rules_collection="clinical_rule_sets",
+            revisions_collection="clinical_rule_revisions",
+            actor="bootstrap.test",
+        )
+        == "loaded"
+    )
+    assert (
+        _seed_clinical_rule_revisions(
+            database,
+            rules_collection="clinical_rule_sets",
+            revisions_collection="clinical_rule_revisions",
+            actor="bootstrap.test",
+        )
+        == "skipped"
+    )
+    snapshot = database.clinical_rule_revisions.find_one({})
+    assert snapshot["action"] == "baseline_captured"
+    assert snapshot["document"]["revision"] == 1
 
 
 def test_seed_payload_utils_count_and_payload(tmp_path):

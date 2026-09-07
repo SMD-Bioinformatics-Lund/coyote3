@@ -46,7 +46,7 @@ Work through this list before starting. Do not proceed if any item cannot be sat
 
 ```bash
 bash scripts/mongo_backup_archive.sh \
-  --mongo-uri "${MONGO_URI}" \
+  --mongo-uri "${IDENTITY_MONGO_URI}" \
   --out-dir "/data/coyote3/backups/mongo"
 ```
 
@@ -63,31 +63,30 @@ docker compose -f <your-v3-compose-file> down
 
 ---
 
-## Step 3 — Start the Coyote3 application
+## Step 3 — Verify canonical clinical reporting rules
 
-Build and start the target stack using the centre environment file.
-
-```bash
-./scripts/compose-with-version.sh \
-  --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml \
-  up -d --build
-```
-
-Wait for all services to report healthy:
+Ensure `clinical_rule_sets` is populated in the target database before app startup,
+and verify that each ASPC binding points to an active published rule set:
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).asp_configs.countDocuments({ "reporting.clinical_rule_set_id": { $exists: true, $ne: "" } })'
 ```
 
-> **Note**
->
-> The API performs **read-only index verification** on startup. It does not
-> create or retire indexes automatically. If the startup log reports missing
-> indexes, run `scripts/manage_mongo_indexes.py` as documented in
-> [Maintenance and Quality](maintenance_and_quality.md).
->
+```bash
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).clinical_rule_sets.countDocuments()'
+```
+
+If either value is zero, restore from the canonical rules snapshot source or apply
+your approved migration package before continuing. If any ASPC is not bound to an active
+published rule-set document, stop and repair before deployment.
+
+The previous generator narrative branches (`CNV`, `DNA translocation`, `HRD`, and `MSI`)
+are intentionally explicit `narrative: none` in the canonical workflow until clinically
+approved versions are authored and published.
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+```
 
 ---
 
@@ -107,13 +106,13 @@ Coyote3 field contract. Place the reviewed migration script in
 ```bash
 # Dry run — inspect output before applying
 PYTHONPATH=. python migration_scripts/20260729_normalize_clinical_configuration.py \
-  --uri "${MONGO_URI}" \
+  --uri "${COYOTE3_MONGO_URI}" \
   --database "${COYOTE3_DB}" \
   --dry-run
 
 # Apply — run during the maintenance window only
 PYTHONPATH=. python migration_scripts/20260729_normalize_clinical_configuration.py \
-  --uri "${MONGO_URI}" \
+  --uri "${COYOTE3_MONGO_URI}" \
   --database "${COYOTE3_DB}"
 ```
 
@@ -129,7 +128,7 @@ centre-defined roles:
 
 ```bash
 python scripts/sync_rbac_catalog.py \
-  --mongo-uri "${MONGO_URI}" \
+  --mongo-uri "${COYOTE3_MONGO_URI}" \
   --identity-db "${IDENTITY_DB}"
 ```
 
@@ -151,7 +150,8 @@ local administrator before clinical ingest:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "superuser" \
@@ -165,7 +165,31 @@ RBAC and reference-data maintenance procedures for a populated database.
 
 ---
 
-## Step 7 — Validate
+## Step 7 — Start the Coyote3 application
+
+Build and start the target stack using the centre environment file.
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  up -d --build
+```
+
+Wait for all services to report healthy:
+
+```bash
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
+```
+
+The API performs read-only index verification on startup. If it reports a
+missing `clinical_rule_sets` or other index, run `scripts/manage_mongo_indexes.py`
+as documented in [Maintenance and Quality](maintenance_and_quality.md).
+
+---
+
+## Step 8 — Validate
 
 Run the standard post-deployment checks:
 
@@ -194,7 +218,7 @@ cd frontend && npm run test:e2e:real
 
 ---
 
-## Step 8 — Complete operational validation
+## Step 9 — Complete operational validation
 
 Record the following checks before the target installation is accepted for
 clinical use:
@@ -224,7 +248,7 @@ If the migration must be aborted after step 3:
 
    ```bash
    bash scripts/mongo_restore_archive.sh \
-     --mongo-uri "${MONGO_URI}" \
+     --mongo-uri "${COYOTE3_MONGO_URI}" \
      --archive "/data/coyote3/backups/mongo/backup.archive.gz" \
      --confirm RESTORE_PATIENT_DATA
    ```

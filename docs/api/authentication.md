@@ -75,20 +75,22 @@ center's vocabulary configuration.
 
 ## Calling The API With A Cookie Jar
 
-Cookie-jar based access is the simplest option for shell scripts because the
-client stores and reuses the cookie automatically.
+Cookie authentication requires the login response's `csrf_token` in the
+`X-CSRF-Token` header for mutations, including logout. Protect cookie files
+with restrictive permissions and remove them when the script finishes.
 
 ```bash
 BASE_URL="https://localhost/coyote3_dev"
 COOKIE_JAR=".coyote3-api.cookies"
+umask 077
 
-curl -sS -c "${COOKIE_JAR}" -X POST "${BASE_URL}/api/v1/auth/sessions" \
+CSRF_TOKEN="$(curl -fsS -c "${COOKIE_JAR}" -X POST "${BASE_URL}/api/v1/auth/sessions" \
   -H "Content-Type: application/json" \
   --data '{
     "username": "admin.coyote3",
     "password": "REPLACE_WITH_PASSWORD",
     "provider": "local"
-  }'
+  }' | python3 -c 'import json, sys; print(json.load(sys.stdin)["csrf_token"])')"
 
 curl -sS -b "${COOKIE_JAR}" "${BASE_URL}/api/v1/auth/whoami"
 ```
@@ -96,8 +98,11 @@ curl -sS -b "${COOKIE_JAR}" "${BASE_URL}/api/v1/auth/whoami"
 Delete the current session when the script is finished:
 
 ```bash
-curl -sS -b "${COOKIE_JAR}" -X DELETE \
+curl -fsS -b "${COOKIE_JAR}" -X DELETE \
+  -H "X-CSRF-Token: ${CSRF_TOKEN}" \
   "${BASE_URL}/api/v1/auth/sessions/current"
+rm -f "${COOKIE_JAR}"
+unset CSRF_TOKEN
 ```
 
 ## Calling The API With BearerAuth
@@ -167,6 +172,20 @@ response sets the session cookie for that browser origin.
 >
 
 ## Session Validation And Logout
+
+Password reset tokens are consumed atomically with the password update. A token
+can change the password only once. Changing a password invalidates sessions
+created against an earlier credential state; sign in again after the change.
+Sessions are bound to a fingerprint of the stored password hash, not a timestamp.
+The fingerprint is internal session metadata and is excluded from user responses.
+Sessions without this binding must sign in again when the protection is deployed.
+An account marked `must_change_password` can read its identity/session, change
+its password, and log out, but cannot access protected clinical or administrative
+operations, including when it has the superuser role.
+
+Login and logout clear browser query caches and in-memory notifications. Table
+search text and notification content are not persisted in browser storage.
+Durable approval notifications remain in the authenticated server inbox.
 
 Use these endpoints to validate or remove the active session:
 

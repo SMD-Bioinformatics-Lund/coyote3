@@ -65,20 +65,6 @@ def write_dependents(
     return written
 
 
-def cleanup(service: Any, sample_id: str) -> None:
-    """Roll back a failed ingest by deleting the sample and its dependents."""
-    sid = str(sample_id)
-    for collection in INGEST_DEPENDENT_COLLECTIONS.values():
-        try:
-            service._collection(collection).delete_many({"SAMPLE_ID": sid})
-        except Exception:
-            pass
-    try:
-        service._sample_collection().delete_one({"_id": service._provider_sample_id(sample_id)})
-    except Exception:
-        pass
-
-
 def data_counts(preload: dict[str, Any]) -> dict[str, int | bool]:
     """Count documents in each preload data type."""
     return {
@@ -88,63 +74,18 @@ def data_counts(preload: dict[str, Any]) -> dict[str, int | bool]:
     }
 
 
-def snapshot_dependents(
-    service: Any, *, sample_id: str, keys: set[str]
-) -> dict[str, list[dict[str, Any]]]:
-    """Back up existing dependent documents before a replacement operation."""
-    sid = str(sample_id)
-    backup: dict[str, list[dict[str, Any]]] = {}
-    for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-        if key in keys:
-            backup[key] = list(service._collection(col_name).find({"SAMPLE_ID": sid}))
-    return backup
-
-
-def restore_dependents(
-    service: Any,
-    *,
-    sample_id: str,
-    sample_name: str,
-    backup: dict[str, list[dict[str, Any]]],
-) -> None:
-    """Restore dependent documents from a prior snapshot after a failed replacement."""
-    sid = str(sample_id)
-    for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-        if key not in backup:
-            continue
-        service._collection(col_name).delete_many({"SAMPLE_ID": sid})
-        docs = backup[key]
-        if docs:
-            restored: list[dict[str, Any]] = []
-            for doc in docs:
-                restored_doc = dict(doc)
-                restored_doc.pop("_id", None)
-                if key == "cov":
-                    restored_doc["sample"] = sample_name
-                restored.append(restored_doc)
-            insert_many_documents(service._collection(col_name), restored)
-
-
 def replace_dependents(
-    service: Any, *, preload: dict[str, Any], sample_id: str, sample_name: str
+    service: Any, *, preload: dict[str, Any], sample_id: str, sample_name: str, session: Any
 ) -> dict[str, int]:
-    """Atomically replace dependent data with rollback on failure."""
+    """Replace declared evidence within the caller's required transaction."""
     sid = str(sample_id)
     keys_to_replace = set(preload.keys()) & set(INGEST_DEPENDENT_COLLECTIONS)
-    backup = service._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)
-    try:
-        for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-            if key in keys_to_replace:
-                service._collection(col_name).delete_many({"SAMPLE_ID": sid})
-        return service._write_dependents(
-            preload=preload,
-            sample_id=sample_id,
-            sample_name=sample_name,
-        )
-    except Exception:
-        service._restore_dependents(
-            sample_id=sample_id,
-            sample_name=sample_name,
-            backup=backup,
-        )
-        raise
+    for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
+        if key in keys_to_replace:
+            service._collection(col_name).delete_many({"SAMPLE_ID": sid}, session=session)
+    return service._write_dependents(
+        preload=preload,
+        sample_id=sample_id,
+        sample_name=sample_name,
+        session=session,
+    )

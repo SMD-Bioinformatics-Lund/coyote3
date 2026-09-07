@@ -166,7 +166,7 @@ validation, authorization, and audit recording are applied consistently.
 ASP (asp_id)
   -> ASPC (aspc_id, asp_id, subpanel_id, environment)
       -> enabled analyses and filter profiles
-      -> report configuration and static rules
+      -> report configuration and explicit published rule-set binding
   -> ISGL associations (typed clinical gene scope)
   -> sample (resolved ASPC and applied filters)
       -> saved report (configuration and rule snapshot)

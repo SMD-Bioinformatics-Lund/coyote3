@@ -43,3 +43,21 @@ def test_extract_uploaded_archive_rejects_unsafe_member_path(tmp_path: Path):
 
     with pytest.raises(ValueError, match="unsafe path"):
         extract_uploaded_archive(archive_path=archive_path, destination=tmp_path / "staged")
+
+
+@pytest.mark.parametrize("alias", ["inputs/./case.vcf", "inputs//case.vcf", "inputs\\case.vcf"])
+def test_archive_rejects_path_aliases_before_extracting_any_files(tmp_path, alias):
+    archive_path = _archive(
+        tmp_path / "bundle.zip", ("inputs/case.vcf", b"first"), (alias, b"second")
+    )
+    destination = tmp_path / "staged"
+    with pytest.raises(ValueError, match="duplicate path"):
+        extract_uploaded_archive(archive_path=archive_path, destination=destination)
+    assert list(destination.rglob("*")) == []
+
+
+def test_archive_rejects_file_directory_collision_before_extracting(tmp_path):
+    archive_path = _archive(tmp_path / "bundle.zip", ("inputs", b"file"), ("inputs/a", b"a"))
+    with pytest.raises(ValueError, match="conflicting"):
+        extract_uploaded_archive(archive_path=archive_path, destination=tmp_path / "staged")
+    assert list((tmp_path / "staged").rglob("*")) == []

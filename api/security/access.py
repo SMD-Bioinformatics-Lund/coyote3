@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Generator
 from dataclasses import dataclass, field
+from hashlib import sha256
 
 from fastapi import HTTPException, Request
 
@@ -12,7 +13,6 @@ from api.app.deps.repositories import (
     get_permissions_repository,
     get_roles_repository,
     get_sample_repository,
-    get_user_repository,
 )
 from api.app.deps.services import get_api_session_repository
 from api.app.runtime_state import app as runtime_app
@@ -81,6 +81,7 @@ class ApiUser:
     asp_map: dict
     auth_type: list[str]
     must_change_password: bool = False
+    credential_version: str | None = field(default=None, repr=False)
     firstname: str = ""
     lastname: str = ""
     job_title: str = ""
@@ -237,18 +238,18 @@ def get_api_session_cookie_samesite() -> str:
     return settings_session_cookie_samesite(runtime_app.config)
 
 
-def create_api_session(username: str, *, provider: str | None = None):
+def create_api_session(user_doc: dict, *, provider: str | None = None):
     """Create and return a Mongo-backed API session for a user.
 
     Args:
-        username: Username to embed in the token.
+        user_doc: The credential snapshot returned by successful authentication.
 
     Returns:
         ApiSession: Opaque session credentials and authenticated user.
     """
-    user_doc = get_user_repository().user_with_id(str(username).strip().lower())
     if not user_doc or not user_doc.get("is_active", True):
         raise _api_error(401, "Login required")
+    # Bind to the validated credentials, even if a password changes during login.
     user = api_user_from_user_doc(user_doc)
     session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
     session = get_api_session_repository().create(user, provider=session_provider)
@@ -292,6 +293,7 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
             getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
         ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
+        credential_version=sha256(str(user_doc.get("password") or "").encode()).hexdigest(),
         ui_settings={
             "analysis_layout": "classic",
             "sample_list_layout": "classic",
@@ -423,7 +425,31 @@ def _enforce_access(
 
 def require_authenticated(request: Request) -> ApiUser:
     """Require a valid authenticated session without applying route-level RBAC."""
-    return _decode_session_user(request)
+    user = _decode_session_user(request)
+    _enforce_password_change(user, request)
+    return user
+
+
+def _enforce_password_change(user: ApiUser, request: Request) -> None:
+    """Limit temporary-password sessions to identity, password change, and logout."""
+    if not user.must_change_password:
+        return
+    path = request.scope.get("path", "")
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    if root_path and path.startswith(root_path + "/"):
+        path = path[len(root_path) :]
+    allowed = {
+        ("GET", "/api/v1/auth/whoami"),
+        ("GET", "/api/v1/auth/session"),
+        ("POST", "/api/v1/auth/password/change"),
+        ("DELETE", "/api/v1/auth/sessions/current"),
+    }
+    if (request.method, path.rstrip("/")) not in allowed:
+        raise _api_error(
+            403,
+            "Change your temporary password before continuing.",
+            category="password_change_required",
+        )
 
 
 def resolve_request_user(request: Request) -> ApiUser | None:
@@ -487,6 +513,7 @@ def require_access(permission: str | None = None):
         user: ApiUser | None = None
         try:
             user = _decode_session_user(request)
+            _enforce_password_change(user, request)
             _enforce_access(user, permission=permission)
         except HTTPException as exc:
             _audit_access_event(

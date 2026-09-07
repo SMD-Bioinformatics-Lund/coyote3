@@ -796,6 +796,42 @@ class _AdminRepoStub:
 
 
 def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
+    def active_rule_set(rule_set_id: str):
+        return {
+            "rule_set_id": rule_set_id,
+            "content_version": 1,
+            "revision": 1,
+            "scope": {
+                "asp_id": rule_set_id.split("__", 1)[0],
+                "subpanel_id": "base",
+                "analyte": "dna",
+                "language": "sv",
+            },
+            "name": "Test rules",
+            "status": "published",
+            "active": True,
+            "analysis_declarations": {
+                analysis: {"narrative": "enabled"}
+                for analysis in (
+                    "SNV",
+                    "CNV",
+                    "TRANSLOCATION",
+                    "BIOMARKER",
+                    "COVERAGE",
+                    "TMB",
+                    "PGX",
+                    "CNV_PROFILE",
+                )
+            },
+            "blocks": [],
+            "created_at": "2026-01-01T00:00:00Z",
+            "created_by": "test",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "updated_by": "test",
+            "published_at": "2026-01-01T00:00:00Z",
+            "published_by": "test",
+        }
+
     return SimpleNamespace(
         user_repository=SimpleNamespace(
             search_users=repo.search_users,
@@ -899,6 +935,10 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
         report_repository=SimpleNamespace(),
         reported_variant_repository=SimpleNamespace(),
         oncokb_public_cache_repository=SimpleNamespace(),
+        clinical_rule_set_repository=SimpleNamespace(
+            get_active=active_rule_set,
+            list_active_for_assay=lambda asp_id: [],
+        ),
     )
 
 
@@ -946,6 +986,7 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
         vep_metadata_repository=store.vep_metadata_repository,
+        clinical_rule_set_repository=store.clinical_rule_set_repository,
         common_util=shared_util.common,
     )
 
@@ -1521,7 +1562,7 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     assert "PGX" in report_section_options
     assert "report_sections" in reporting_field_keys
     assert "analysis" not in reporting_field_keys
-    assert "general_report_summary" in reporting_field_keys
+    assert "clinical_rule_set_id" in reporting_field_keys
 
 
 def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():

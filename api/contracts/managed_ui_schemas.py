@@ -100,6 +100,12 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
+        "igv": {
+            "label": "IGV files",
+            "data_type": "json",
+            "display_type": "igv-config",
+            "default": None,
+        },
         "asp_group": {"display_type": "select", "options": list(ASP_GROUP_OPTIONS)},
         "asp_family": {
             "display_type": "select",
@@ -200,7 +206,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "data_type": "json",
             "label": "Public Catalog",
             "display_type": "catalog-structured",
-            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are maintained in the center catalog configuration.",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Public Assay Catalog.",
             "groups": [
                 {
                     "title": "Visibility",
@@ -463,10 +469,10 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "default": "DNA panel summary report",
                         },
                         {
-                            "key": "general_report_summary",
-                            "label": "General Summary",
-                            "type": "textarea",
-                            "default": "Automated summary generated from configured assay filters.",
+                            "key": "clinical_rule_set_id",
+                            "label": "Clinical Rule Set",
+                            "type": "select",
+                            "default": "",
                         },
                     ],
                 },
@@ -540,7 +546,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "data_type": "json",
             "label": "Public Catalog",
             "display_type": "catalog-structured",
-            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are maintained in the center catalog configuration.",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Public Assay Catalog.",
             "groups": [
                 {
                     "title": "Visibility",
@@ -644,10 +650,10 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "default": "RNA fusion summary report",
                         },
                         {
-                            "key": "general_report_summary",
-                            "label": "General Summary",
-                            "type": "textarea",
-                            "default": "Automated summary generated from configured assay filters.",
+                            "key": "clinical_rule_set_id",
+                            "label": "Clinical Rule Set",
+                            "type": "select",
+                            "default": "",
                         },
                     ],
                 },
@@ -820,6 +826,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             ],
         ),
         ("clinical gene scope", ["covered_genes", "germline_genes"]),
+        ("alignment viewer", ["igv"]),
         ("lifecycle", ["system_managed", "is_active"]),
         (
             "system metadata",

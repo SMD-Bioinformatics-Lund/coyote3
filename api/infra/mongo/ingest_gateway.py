@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from contextlib import nullcontext
 from typing import Any
+
+from api.infra.mongo.persistence import insert_many_transaction
+from api.infra.mongo.transactions import run_transaction
 
 
 class IngestCollectionGateway:
@@ -61,7 +63,13 @@ class IngestCollectionGateway:
 
     def collection(self, name: str) -> Any:
         """Return a named ingest collection."""
+        if name not in self._collections:
+            raise ValueError(f"Unsupported ingest collection: {name}")
         return self._collections[name]
+
+    def collection_names(self) -> set[str]:
+        """Return the collections actually configured for this ingest gateway."""
+        return set(self._collections)
 
     def sample_collection(self) -> Any:
         """Return the samples collection."""
@@ -72,18 +80,48 @@ class IngestCollectionGateway:
         database = getattr(self.sample_collection(), "database", None)
         return getattr(database, "client", None)
 
-    def session_scope(self):
-        """Return a best-effort Mongo session context when supported."""
-        client = self.mongo_client()
-        if client is None or not hasattr(client, "start_session"):
-            return nullcontext(None)
-        try:
-            hello = client.admin.command("hello")
-            if not (hello.get("setName") or hello.get("msg") == "isdbgrid"):
-                return nullcontext(None)
-        except Exception:
-            return nullcontext(None)
-        try:
-            return client.start_session()
-        except Exception:
-            return nullcontext(None)
+    def run_transaction(self, operation):
+        """Commit all bundle writes together or propagate the transaction failure."""
+        return run_transaction(self.mongo_client(), operation)
+
+    def validate_completion_target(self, name):
+        """Reject remote writes that cannot share the app's ingest receipt transaction."""
+        if self.collection(name).database.client is not self.mongo_client():
+            raise ValueError(
+                "Async collection ingestion requires the target and job ledger to share "
+                "a MongoDB client. Use synchronous ingestion or a maintenance importer "
+                "for separately configured services."
+            )
+
+    def run_collection_transaction(self, name, operation):
+        return run_transaction(self.collection(name).database.client, operation)
+
+    def insert_documents(self, name, documents, *, ignore_duplicates=False, record_completion=None):
+        """Insert a batch atomically, retrying without explicitly ignored duplicates.
+
+        Duplicate errors abort a MongoDB transaction. Filter only the reported duplicate
+        rows after abort, then retry the entire remaining batch, never a partial commit.
+        """
+
+        if record_completion is not None:
+            self.validate_completion_target(name)
+
+        def payload(ids):
+            result = {
+                "status": "ok",
+                "collection": name,
+                "inserted_count": len(ids),
+            }
+            if len(documents) == 1 and ids:
+                result["inserted_id"] = ids[0]
+            return result
+
+        ids = insert_many_transaction(
+            self.collection(name),
+            documents,
+            ignore_duplicates=ignore_duplicates,
+            on_insert=(lambda ids, session: record_completion(payload(ids), session))
+            if record_completion is not None
+            else None,
+        )
+        return payload(ids)

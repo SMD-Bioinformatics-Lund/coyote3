@@ -759,7 +759,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        result = self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+        result = self.delete_many_atomic({"SAMPLE_ID": sample_oid})
         operation = OperationResult.from_delete(result)
         if operation.deleted_count:
             self.invalidate_dashboard_metrics()

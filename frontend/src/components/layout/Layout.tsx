@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react"
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
-import { useIsFetching, useQuery } from "@tanstack/react-query"
+import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query"
+import { clearSessionState } from "@/lib/session-state"
 import { ThemeToggle } from "./theme-toggle"
 import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,7 @@ type PublicContactPayload = {
 }
 
 export function Layout() {
+  const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -63,13 +65,17 @@ export function Layout() {
     enabled: moduleIsEnabled(modules, "assay_catalog"),
   })
 
+  useEffect(() => {
+    if (user?.must_change_password && location.pathname !== "/profile") navigate("/profile", { replace: true })
+  }, [user?.must_change_password, location.pathname, navigate])
+
   const navigationProfileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const { data: navigationCounts } = useQuery({
     queryKey: ['sample-navigation-counts', navigationProfileScope],
     queryFn: () => api.get<{ counts: Record<string, number> }>(
       `/samples/navigation-counts?profile_scope=${encodeURIComponent(navigationProfileScope)}`,
     ).then(res => res.data),
-    enabled: !isPublicRoute,
+    enabled: !isPublicRoute && Boolean(user) && !user?.must_change_password,
     staleTime: 10 * 1000,
     refetchInterval: 15 * 1000,
     refetchIntervalInBackground: false,
@@ -125,6 +131,7 @@ export function Layout() {
   const handleLogout = async () => {
     try {
       await api.delete('/auth/sessions/current')
+      await clearSessionState(queryClient)
       navigate('/login')
     } catch (e) {
       console.error('Logout failed', e)

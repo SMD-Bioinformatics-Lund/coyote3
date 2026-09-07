@@ -34,8 +34,20 @@ required=(
   INTERNAL_API_TOKEN
   PASSWORD_TOKEN_SALT
   CORS_ORIGINS
-  MONGO_URI
 )
+
+# The explicit app URI supersedes the shared legacy value. Auxiliary URIs may
+# intentionally inherit it, but every supplied URI must be free of placeholders.
+if grep -qE '^COYOTE3_MONGO_URI=.+$' "$ENV_FILE"; then
+  required+=(COYOTE3_MONGO_URI)
+else
+  required+=(MONGO_URI)
+fi
+for key in IDENTITY_MONGO_URI KNOWLEDGEBASE_MONGO_URI BAM_MONGO_URI; do
+  if grep -qE "^${key}=.+$" "$ENV_FILE"; then
+    required+=("$key")
+  fi
+done
 
 errors=0
 for key in "${required[@]}"; do
@@ -49,6 +61,9 @@ for key in "${required[@]}"; do
   value="${value#\"}"; value="${value%\"}"
   value="${value#\'}"; value="${value%\'}"
   if [[ -z "$value" ]]; then
+    if [[ "$key" == "IDENTITY_MONGO_URI" || "$key" == "KNOWLEDGEBASE_MONGO_URI" || "$key" == "BAM_MONGO_URI" ]]; then
+      continue
+    fi
     echo "[error] empty required key: $key"
     errors=1
     continue

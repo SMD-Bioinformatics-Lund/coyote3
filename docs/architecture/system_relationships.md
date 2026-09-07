@@ -27,6 +27,11 @@ This page documents the main runtime relationships in Coyote3, grounded in the c
       |      logical scope: asp_id + subpanel_id + environment
       |      maps to: sample.asp_id + sample.subpanel_id + sample.environment
       |      owns: default filters, reporting, analysis_types, catalog metadata
+      |      binds to: one active published clinical_rule_sets.rule_set_id
+      |
+      +--> [clinical_rule_sets]
+      |      scope: asp_id + subpanel_id + language
+      |      owns: governed report narrative, conditions, tests, and release history
       |
       -?> [ISGL: insilico_genelists]
              key: isgl_id
@@ -49,15 +54,41 @@ One ASP
      one active release per subpanel/environment tuple
 
 One ASP
+  -> zero or many clinical rule-set identities
+     one active published release per identity
+
+One ASP
   -?> zero or many ISGLs
       matched by asp_ids[] and asp_groups[]
 
 One ASPC
-  -?> may suggest or seed defaults
-      but does not own ISGL documents
+  --> exactly one active published clinical rule set when report sections are enabled
+  -?> zero or many selected ISGL documents through its filter defaults
 ```
 
-### 1.3 Sample-to-configuration mapping
+### 1.3 Creation order
+
+Create center configuration in this order. The API enforces these references; an
+administrator cannot compensate for a missing parent by entering an arbitrary identifier.
+
+| Order | Entity | Prerequisites | Required before |
+| --- | --- | --- | --- |
+| 1 | Permission catalog and roles | Identity database and initial administrator | Assigning application access to users. Bundled records are synchronized with `scripts/sync_rbac_catalog.py`. |
+| 2 | User accounts | Required roles and permissions | Clinical authoring, review, publication, configuration, and sample operations. |
+| 3 | ASP | None in clinical configuration | Clinical rule sets, ISGL scope, ASPCs, and sample ingest. The ASP defines analyte, assay family, files, physical gene coverage, and accreditation. |
+| 4 | Clinical rule set draft | Active ASP | Clinical review and publication. The selected analyte must match the ASP. |
+| 5 | Published clinical rule set | Valid draft, independent clinical reviewer, and publisher | Creating an active ASPC with report sections. Draft, submitted, review, approved, and retired versions cannot be bound. |
+| 6 | ISGL | Active ASP directly through `asp_ids`, or an applicable active ASP group | Selecting optional SNV, CNV, fusion, expression, or PGx gene scopes in an ASPC or sample. ISGLs are optional and can be created before or after rule publication. |
+| 7 | ASPC | Active ASP and active published clinical rule set; any referenced ISGLs must already exist and support the selected analysis | Sample ingest for its assay, subpanel, and environment. |
+| 8 | Sample | Resolvable active ASP and ASPC; required files declared by the ASP | Findings, comments, classifications, coverage review, and reports. |
+| 9 | Saved report | Ready sample, prepared findings, report permission, and resolvable published rule release | Historical report review and reported-finding cohort searches. |
+
+Knowledgebase releases are independent of this creation chain. They can be installed before
+or after clinical configuration and enrich supported pages only when configured. VEP metadata
+and HGNC references must be available before workflows that validate their corresponding
+annotations or consequence choices.
+
+### 1.4 Sample-to-configuration mapping
 
 ```text
 [sample]

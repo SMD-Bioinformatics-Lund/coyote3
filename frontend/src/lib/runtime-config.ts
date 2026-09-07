@@ -6,6 +6,7 @@ declare const __COYOTE3_RUNTIME__: {
   appVersion: string
   gensUri: string
   igvUri: string
+  igvDataRoot: string
   localTimeZone: string
   organizationName: string
   scriptName: string

@@ -48,7 +48,7 @@ def _dna_service() -> DnaService:
         brca_repository=store.brca_repository,
         iarc_tp53_repository=store.iarc_tp53_repository,
         cosmic_repository=SimpleNamespace(
-            get_variant_evidence=lambda _variant: {
+            get_variant_evidence=lambda _variant, **_kwargs: {
                 "kind": "small_variant",
                 "match_count": 0,
                 "records": [],
@@ -413,6 +413,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     )
     monkeypatch.setattr(store.vep_metadata_repository, "get_conseq_translations", lambda vep: {})
     monkeypatch.setattr(store.assay_panel_repository, "get_asp_group_mappings", lambda: {})
+    monkeypatch.setattr(store.assay_panel_repository, "get_asp", lambda **kwargs: {})
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)
@@ -495,7 +496,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         store.gene_list_repository, "get_isgl_by_asp", lambda assay, is_active=True: []
     )
     monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
-    monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     req = SimpleNamespace(

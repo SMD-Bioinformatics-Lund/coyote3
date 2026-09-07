@@ -500,7 +500,7 @@ class ClinPgxPublicRepository(BaseRepository):
                     )
         if not operations:
             return {"matched": 0, "modified": 0, "upserted": 0, "total": 0}
-        result = self.get_collection().bulk_write(operations, ordered=False)
+        result = self.bulk_write_atomic(operations)
         return {
             "matched": int(result.matched_count),
             "modified": int(result.modified_count),

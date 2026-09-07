@@ -10,7 +10,6 @@ from api.app.deps.services import get_dna_service, get_dna_structural_service
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.interpretation import annotation_enrichment
-from api.application.interpretation.report_summary import generate_summary_text
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.dna import (
     DnaCsvExportContextPayload,
@@ -106,7 +105,6 @@ def export_transloc_csv_context(
         sample=sample,
         util_module=util,
         add_global_annotations_fn=_add_global_annotations,
-        generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
         get_filter_conseq_terms_fn=lambda values: _get_filter_conseq_terms(
             values, require_sample_vep_version(sample)

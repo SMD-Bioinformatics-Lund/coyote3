@@ -101,6 +101,11 @@ def test_list_rna_fusions_success(monkeypatch):
         lambda assay, is_active=True, list_type=None, adhoc=None: [fx.isgl_doc()],
     )
     monkeypatch.setattr(
+        store.gene_list_repository,
+        "get_isgl_by_ids",
+        lambda identifiers: {"gl1": fx.isgl_doc()},
+    )
+    monkeypatch.setattr(
         rna.util.common,
         "get_case_and_control_sample_ids",
         lambda s: {"case": "C1", "control": "C2"},
@@ -132,8 +137,11 @@ def test_list_rna_fusions_success(monkeypatch):
         "attach_rna_analysis_sections",
         lambda self, s: s,
     )
-    monkeypatch.setattr(
-        rna_service_module, "generate_summary_text", lambda *args, **kwargs: "summary"
+    service.clinical_rule_service = SimpleNamespace(
+        evaluate=lambda **kwargs: SimpleNamespace(
+            sections={"Report summary": ["summary"]},
+            section_headings={"Report summary": False},
+        )
     )
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 

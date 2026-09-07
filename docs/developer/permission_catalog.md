@@ -57,6 +57,11 @@ permission grants no access until it is reactivated.
 | `assay.panel:edit` | Edit ASP | Edit an assay-specific panel and create the next version of its configuration. |
 | `assay.panel:list` | List ASPs | Read assay-specific panel definitions and their configuration metadata. |
 | `assay.panel:view` | View ASP | Read assay-specific panel definitions and their configuration metadata. |
+| `catalog:draft` | Draft public assay catalog | draft governed public catalog content. |
+| `catalog:publish` | Publish public assay catalog | publish governed public catalog content. |
+| `catalog:review` | Review public assay catalog | review governed public catalog content. |
+| `catalog:submit` | Submit public assay catalog | submit governed public catalog content. |
+| `catalog:view` | View public assay catalog | view governed public catalog content. |
 
 ## Audit & Monitoring
 
@@ -66,6 +71,18 @@ permission grants no access until it is reactivated.
 | `dashboard.admin:view` | View administrative dashboard insights | View global operational dashboard metrics that are not limited to the current clinical scope. |
 | `internal.task:view` | View internal task status | View Celery state and result details for internal background tasks. |
 | `ui.route_audit:view` | View UI route audit | Review the frontend route inventory, API dependencies, and consumed response fields. |
+
+## Clinical Reporting Rules
+
+| Permission ID | Label | What it permits |
+| --- | --- | --- |
+| `clinical_rules:clinical_review` | Clinically review reporting rules | Start clinical review and approve or reject submitted clinical reporting content. |
+| `clinical_rules:draft` | Draft clinical reporting rules | Create, edit, validate, and preview draft clinical reporting rule sets. |
+| `clinical_rules:publish` | Publish clinical reporting rules | Publish an independently approved clinical reporting rule-set version. |
+| `clinical_rules:retire` | Retire clinical reporting rules | Retire an active published clinical reporting rule-set version while retaining its history. |
+| `clinical_rules:submit` | Submit clinical reporting rules | Submit a validated clinical reporting rule-set draft for independent review. |
+| `clinical_rules:test` | Test clinical reporting rules | Run a rule-set version against authorized sample data without changing the sample or saving a report. |
+| `clinical_rules:view` | View clinical reporting rules | View published clinical reporting rules, draft work queues, release history, and provenance. |
 
 ## Data Downloads
 

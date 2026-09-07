@@ -16,9 +16,16 @@ from api.infra.knowledgebase.oncokb_public_cache import (
 
 
 @pytest.fixture
-def repository() -> OncoKbPublicCacheRepository:
+def repository(monkeypatch) -> OncoKbPublicCacheRepository:
     """Return a repository backed by isolated in-memory Mongo collections."""
     database = mongomock.MongoClient()["coyote3_test"]
+    monkeypatch.setattr(
+        "api.infra.mongo.persistence.run_transaction", lambda client, operation: operation(None)
+    )
+    monkeypatch.setattr(
+        "api.infra.knowledgebase.oncokb_public_cache.run_transaction",
+        lambda client, operation: operation(None),
+    )
     adapter = SimpleNamespace(
         oncokb_public_collection=database.oncokb_public,
         oncokb_genes_public_collection=database.oncokb_genes_public,

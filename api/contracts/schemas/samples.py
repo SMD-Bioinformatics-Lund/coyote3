@@ -35,6 +35,8 @@ SAMPLE_SOURCE_PATH_KEYS: tuple[str, ...] = ALL_SAMPLE_FILE_KEYS
 
 
 class SampleCaseControlDoc(_DocBase):
+    bam: str = ""
+    bai: str = ""
     id: str | None = None
     clarity_id: str | None = None
     clarity_pool_id: str | None = None
@@ -42,6 +44,13 @@ class SampleCaseControlDoc(_DocBase):
     sequencing_run: str | None = None
     reads: int | None = None
     purity: float | None = None
+
+    @field_validator("bam", "bai", mode="before")
+    @classmethod
+    def _normalize_alignment_paths(cls, value: Any) -> Any:
+        if value is None:
+            return ""
+        return value.strip() if isinstance(value, str) else value
 
 
 class SampleFileDoc(_StrictDocBase):

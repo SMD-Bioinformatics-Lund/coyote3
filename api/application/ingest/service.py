@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any
 
@@ -35,8 +34,6 @@ from api.contracts.schemas.samples import (
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.persistence import (
-    insert_many_documents,
-    insert_one_document,
     new_object_id_str,
     to_provider_id,
 )
@@ -55,7 +52,7 @@ def _new_sample_id() -> str:
 
 
 class InternalIngestService:
-    """API-side service that ingests a fresh sample plus analysis data atomically."""
+    """Validate and persist sample bundles with readiness and recovery handling."""
 
     @classmethod
     def from_store(
@@ -91,19 +88,6 @@ class InternalIngestService:
         """Return the underlying Mongo client when available."""
         return self.collection_gateway.mongo_client()
 
-    def _session_scope(self):
-        """Return a best-effort Mongo session context when supported."""
-        return self.collection_gateway.session_scope()
-
-    def _transaction_scope(self, session: Any):
-        """Return a transaction context for an active session when supported."""
-        if session is None or not hasattr(session, "start_transaction"):
-            return nullcontext()
-        try:
-            return session.start_transaction()
-        except Exception:
-            return nullcontext()
-
     def _collection(self, name: str):
         """Return the collection backing an ingest-dependent document type."""
         return self.collection_gateway.collection(name)
@@ -117,7 +101,10 @@ class InternalIngestService:
 
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
-        return collection_writes.list_supported_collections()
+        return sorted(
+            set(collection_writes.list_supported_collections())
+            & self.collection_gateway.collection_names()
+        )
 
     def parse_yaml_payload(self, yaml_content: str) -> dict[str, Any]:
         """Parse and validate a YAML ingest payload string.
@@ -303,17 +290,6 @@ class InternalIngestService:
             session=session,
         )
 
-    def _cleanup(self, sample_id: str) -> None:
-        """Roll back a failed ingest by deleting the sample and all its dependents.
-
-        All deletions are attempted unconditionally; individual failures are
-        silently swallowed so cleanup proceeds as far as possible.
-
-        Args:
-            sample_id: Sample id of the sample document to remove.
-        """
-        dependent_writes.cleanup(self, sample_id)
-
     def _data_counts(self, preload: dict[str, Any]) -> dict[str, int | bool]:
         """Count documents in each preload data type.
 
@@ -326,64 +302,16 @@ class InternalIngestService:
         """
         return dependent_writes.data_counts(preload)
 
-    def _snapshot_dependents(
-        self, *, sample_id: str, keys: set[str]
-    ) -> dict[str, list[dict[str, Any]]]:
-        """Back up existing dependent documents before a replacement operation.
-
-        Args:
-            sample_id: Sample id of the sample whose dependents to snapshot.
-            keys: Set of data type keys to include in the snapshot.
-
-        Returns:
-            A dict mapping each key to the list of current documents for that type.
-        """
-        return dependent_writes.snapshot_dependents(self, sample_id=sample_id, keys=keys)
-
-    def _restore_dependents(
-        self, *, sample_id: str, sample_name: str, backup: dict[str, list[dict[str, Any]]]
-    ) -> None:
-        """Restore dependent documents from a prior snapshot after a failed replacement.
-
-        Clears the current documents for each backed-up type and re-inserts
-        the snapshot, stripping ``_id`` fields to avoid duplicate-key errors.
-
-        Args:
-            sample_id: Sample id of the sample whose dependents to restore.
-            sample_name: Human-readable name (re-applied to coverage docs).
-            backup: Snapshot produced by ``_snapshot_dependents``.
-        """
-        dependent_writes.restore_dependents(
-            self,
-            sample_id=sample_id,
-            sample_name=sample_name,
-            backup=backup,
-        )
-
     def _replace_dependents(
-        self, *, preload: dict[str, Any], sample_id: str, sample_name: str
+        self, *, preload: dict[str, Any], sample_id: str, sample_name: str, session: Any
     ) -> dict[str, int]:
-        """Atomically replace dependent data with transactional rollback on failure.
-
-        Snapshots the current dependents, deletes them, writes the new preload,
-        and restores the snapshot if any step raises.
-
-        Args:
-            preload: New analysis data to write.
-            sample_id: Sample id of the owning sample.
-            sample_name: Human-readable name (used for coverage docs).
-
-        Returns:
-            A dict mapping data type keys to the count of documents written.
-
-        Raises:
-            Exception: Re-raises any exception after restoring from snapshot.
-        """
+        """Replace declared evidence within the owning sample transaction."""
         return dependent_writes.replace_dependents(
             self,
             preload=preload,
             sample_id=sample_id,
             sample_name=sample_name,
+            session=session,
         )
 
     def _prepare_update_payload(
@@ -413,6 +341,7 @@ class InternalIngestService:
         sample_id: str,
         payload_meta: dict[str, Any],
         block_fields: set[str],
+        session: Any | None = None,
     ) -> None:
         """Update sample metadata fields, blocking changes to protected keys.
 
@@ -432,14 +361,15 @@ class InternalIngestService:
             sample_id=sample_id,
             payload_meta=payload_meta,
             block_fields=block_fields,
+            session=session,
         )
 
-    def _ingest_update(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _ingest_update(self, payload: dict[str, Any], *, record_completion=None) -> dict[str, Any]:
         """Handle the sample update flow: validate payload, update metadata and dependents.
 
         Locates the existing sample by name, validates the update payload against
         the current document's omics layer, updates metadata fields, and replaces
-        dependent analysis data with transactional rollback.
+        dependent analysis data and metadata in one required MongoDB transaction.
 
         Args:
             payload: Update payload dict containing at minimum a ``name`` key.
@@ -459,6 +389,10 @@ class InternalIngestService:
         current_doc = self._sample_collection().find_one({"name": payload["name"]})
         if not current_doc:
             raise ValueError("Sample not found for update")
+
+        for key in ("asp_id", "environment"):
+            if payload.get(key) != current_doc.get(key):
+                raise ValueError(f"Sample ingest cannot change {key}; use sample administration.")
 
         sample_id = str(current_doc["_id"])
         parsed_payload = self._prepare_update_payload(
@@ -509,29 +443,45 @@ class InternalIngestService:
         counts = dict(current_doc.get("data_counts") or {})
         counts.update(self._data_counts(preload))
 
-        written = self._replace_dependents(
-            preload=preload,
-            sample_id=sample_id,
-            sample_name=str(current_doc["name"]),
-        )
-        self._update_meta_fields(
-            sample_id=sample_id,
-            payload_meta=build_sample_meta_dict(validated_merged.to_persistence_document()),
-            block_fields={"asp_id"},
-        )
-        self._sample_collection().update_one(
-            {"_id": self._provider_sample_id(sample_id)},
-            {"$set": {"ingest_status": "ready", "data_counts": counts}},
-            upsert=False,
-        )
+        def update(session):
+            selector = {"_id": self._provider_sample_id(sample_id)}
+            current = self._sample_collection().find_one(selector, session=session)
+            if current != current_doc:
+                raise ValueError("Sample changed while the update was prepared; retry the update")
+            self._sample_collection().update_one(
+                selector, {"$set": {"ingest_status": "loading"}}, session=session
+            )
+            self._update_meta_fields(
+                sample_id=sample_id,
+                payload_meta=build_sample_meta_dict(validated_merged.to_persistence_document()),
+                block_fields={"asp_id", "environment"},
+                session=session,
+            )
+            written = self._replace_dependents(
+                preload=preload,
+                sample_id=sample_id,
+                sample_name=str(current_doc["name"]),
+                session=session,
+            )
+            self._sample_collection().update_one(
+                selector,
+                {"$set": {"ingest_status": "ready", "data_counts": counts}},
+                session=session,
+            )
+            result = {
+                "status": "ok",
+                "sample_id": str(sample_id),
+                "sample_name": str(current_doc["name"]),
+                "written": written,
+                "data_counts": counts,
+            }
+            if record_completion is not None:
+                record_completion(result, session)
+            return result
+
+        result = self.collection_gateway.run_transaction(update)
         self._invalidate_dashboard_metrics_after_ingest()
-        return {
-            "status": "ok",
-            "sample_id": str(sample_id),
-            "sample_name": str(current_doc["name"]),
-            "written": written,
-            "data_counts": counts,
-        }
+        return result
 
     def ingest_sample_bundle(
         self,
@@ -539,12 +489,13 @@ class InternalIngestService:
         *,
         allow_update: bool = False,
         increment: bool = False,
+        record_completion=None,
     ) -> dict[str, Any]:
         """Create a fresh sample with all dependent analysis data, or update an existing one.
 
         When ``allow_update=True`` and a sample with the same name already exists,
         delegates to ``_ingest_update`` instead of creating a new sample.
-        On creation failure, rolls back all written documents via ``_cleanup``.
+        MongoDB aborts every write when creation or update fails.
 
         Args:
             payload: Sample payload dict. Must contain at minimum a ``name`` key.
@@ -575,7 +526,7 @@ class InternalIngestService:
         if not parsed_payload.get("name"):
             raise ValueError("name is required")
         if allow_update:
-            return self._ingest_update(parsed_payload)
+            return self._ingest_update(parsed_payload, record_completion=record_completion)
 
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
@@ -594,72 +545,62 @@ class InternalIngestService:
         sample_id = self._new_sample_id()
         counts = self._data_counts(preload)
 
-        try:
-            meta = build_sample_meta_dict(validated_payload)
-            meta.update(
-                {
-                    "_id": sample_id,
-                    "name": sample_name,
-                    "data_counts": counts,
-                    "time_added": datetime.now(timezone.utc),
-                    "ingest_status": "loading",
-                }
+        meta = build_sample_meta_dict(validated_payload)
+        meta.update(
+            {
+                "_id": sample_id,
+                "name": sample_name,
+                "data_counts": counts,
+                "time_added": datetime.now(timezone.utc),
+                "ingest_status": "loading",
+            }
+        )
+        if uploaded_checksums:
+            meta["uploaded_file_checksums"] = uploaded_checksums
+        document = SamplesDoc.model_validate(meta).to_persistence_document()
+        document["_id"] = self._provider_sample_id(sample_id)
+
+        def create(session):
+            self._sample_collection().insert_one(dict(document), session=session)
+            written = self._write_dependents(
+                preload=preload, sample_id=sample_id, sample_name=sample_name, session=session
             )
-            if uploaded_checksums:
-                meta["uploaded_file_checksums"] = uploaded_checksums
+            self._sample_collection().update_one(
+                {"_id": document["_id"]},
+                {"$set": {"ingest_status": "ready", "data_counts": counts}},
+                session=session,
+            )
+            result = {
+                "status": "ok",
+                "sample_id": str(sample_id),
+                "sample_name": sample_name,
+                "written": written,
+                "data_counts": counts,
+            }
+            if record_completion is not None:
+                record_completion(result, session)
+            return result
 
-            final_sample = SamplesDoc.model_validate(meta)
-            document = final_sample.to_persistence_document()
-            if "_id" in document:
-                document["_id"] = self._provider_sample_id(str(document["_id"]))
-
-            with self._session_scope() as session:
-                with self._transaction_scope(session):
-                    sample_kwargs = {"session": session} if session is not None else {}
-                    self._sample_collection().insert_one(document, **sample_kwargs)
-                    written = self._write_dependents(
-                        preload=preload,
-                        sample_id=sample_id,
-                        sample_name=sample_name,
-                        session=session,
-                    )
-                    self._sample_collection().update_one(
-                        {"_id": self._provider_sample_id(str(sample_id))},
-                        {"$set": {"ingest_status": "ready", "data_counts": counts}},
-                        upsert=False,
-                        **sample_kwargs,
-                    )
-            self._invalidate_dashboard_metrics_after_ingest()
-        except Exception:
-            self._cleanup(sample_id)
-            raise
-
-        return {
-            "status": "ok",
-            "sample_id": str(sample_id),
-            "sample_name": sample_name,
-            "written": written,
-            "data_counts": counts,
-        }
+        result = self.collection_gateway.run_transaction(create)
+        self._invalidate_dashboard_metrics_after_ingest()
+        return result
 
     def insert_collection_document(
-        self, *, collection: str, document: dict[str, Any], ignore_duplicate: bool = False
+        self,
+        *,
+        collection: str,
+        document: dict[str, Any],
+        ignore_duplicate: bool = False,
+        record_completion=None,
     ) -> dict[str, Any]:
         """Validate and insert one document into a supported collection."""
         normalized_doc = normalize_collection_document(collection, document)
-        inserted_id = insert_one_document(
-            self._collection(collection),
-            dict(normalized_doc),
-            ignore_duplicate=ignore_duplicate,
+        return self.collection_gateway.insert_documents(
+            collection,
+            [normalized_doc],
+            ignore_duplicates=ignore_duplicate,
+            record_completion=record_completion,
         )
-        if inserted_id is None:
-            return {"status": "ok", "collection": collection, "inserted_count": 0}
-        return {
-            "status": "ok",
-            "collection": collection,
-            "inserted_count": 1,
-            "inserted_id": inserted_id,
-        }
 
     def collection_document_count(self, collection: str) -> int:
         """Return the current document count for a supported collection."""
@@ -668,22 +609,21 @@ class InternalIngestService:
         return int(self._collection(collection).estimated_document_count() or 0)
 
     def insert_collection_documents(
-        self, *, collection: str, documents: list[dict[str, Any]], ignore_duplicates: bool = False
+        self,
+        *,
+        collection: str,
+        documents: list[dict[str, Any]],
+        ignore_duplicates: bool = False,
+        record_completion=None,
     ) -> dict[str, Any]:
         """Validate and insert many documents into a supported collection."""
-        if not documents:
-            return {"status": "ok", "collection": collection, "inserted_count": 0}
         normalized_docs = self._normalize_collection_docs(collection, documents)
-        inserted_count = insert_many_documents(
-            self._collection(collection),
-            [dict(doc) for doc in normalized_docs],
+        return self.collection_gateway.insert_documents(
+            collection,
+            normalized_docs,
             ignore_duplicates=ignore_duplicates,
+            record_completion=record_completion,
         )
-        return {
-            "status": "ok",
-            "collection": collection,
-            "inserted_count": inserted_count,
-        }
 
     def upsert_collection_document(
         self,
@@ -692,15 +632,30 @@ class InternalIngestService:
         match: dict[str, Any],
         document: dict[str, Any],
         upsert: bool = False,
+        record_completion=None,
     ) -> dict[str, Any]:
         """Validate and replace one document in a supported collection."""
-        return collection_writes.upsert_collection_document(
-            self,
-            collection=collection,
-            match=match,
-            document=document,
-            upsert=upsert,
-        )
+        if record_completion is not None:
+            self.validate_async_collection(collection)
+
+        def replace(session):
+            result = collection_writes.upsert_collection_document(
+                self,
+                collection=collection,
+                match=match,
+                document=document,
+                upsert=upsert,
+                session=session,
+            )
+            if record_completion is not None:
+                record_completion(result, session)
+            return result
+
+        return self.collection_gateway.run_collection_transaction(collection, replace)
+
+    def validate_async_collection(self, collection: str) -> None:
+        """Check whether target data and the job receipt can share one transaction."""
+        self.collection_gateway.validate_completion_target(collection)
 
     def _next_unique_name(self, case_id: str, increment: bool) -> str:
         """Return a unique sample name, optionally auto-suffixing if name already exists."""

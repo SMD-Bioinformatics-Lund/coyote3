@@ -18,6 +18,7 @@ class NotificationResourcePayload(BaseModel):
     name: str | None = None
     sample_name: str | None = None
     finding: str | None = None
+    uri: str | None = None
 
 
 class NotificationItemPayload(BaseModel):

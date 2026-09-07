@@ -38,6 +38,7 @@ nav:
       - Interface visual reference: product/interface_visual_reference.md
   - Administer Coyote3:
       - Management guide: user_guide/management_guide.md
+      - Public assay catalog: product/public_assay_catalog.md
       - Administration UI map: product/ui_map_and_user_flows.md
       - Permissions and access: developer/permissions_naming.md
       - System permission catalog: developer/permission_catalog.md
@@ -69,6 +70,8 @@ nav:
       - System relationships: architecture/system_relationships.md
       - Runtime data contracts: architecture/data_contracts.md
       - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
+      - Transactions and ingest recovery: architecture/transactions_and_ingest_recovery.md
+      - MongoDB service topology: architecture/mongodb_topology.md
       - Configuration identity and audit: architecture/configuration_identity_and_audit.md
       - Security model: architecture/security_model.md
       - API organization: api/api_organization.md
@@ -90,6 +93,7 @@ nav:
           - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
   - Deploy and operate Coyote3:
       - Release readiness: operations/release_readiness.md
+      - Dependency advisories: operations/dependency_advisories.md
       - Target-center acceptance: operations/target_center_acceptance.md
       - Center deployment: operations/center_deployment_guide.md
       - Initial deployment checklist: operations/initial_deployment_checklist.md

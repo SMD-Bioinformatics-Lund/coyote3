@@ -3,6 +3,7 @@ import { Activity, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accentColor } from "@/lib/badge-colors"
 import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
+import { AssayIgvFields } from "@/pages/admin/AssayIgvFields"
 import type { AdminFormMode, AdminResourceSpec, FormField, FormSpec } from "@/pages/admin/resource-specs"
 import {
   coerceFieldValue,
@@ -284,6 +285,8 @@ export function StructuredObjectField({
                     ? "checkbox-group"
                     : nested.type === "checkbox"
                       ? "checkbox"
+                      : nested.type === "select"
+                        ? "select"
                       : nested.type === "textarea" || nested.type === "list"
                         ? "textarea"
                         : "input",
@@ -359,6 +362,13 @@ export function FormControl({
         {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
       </div>
     )
+  }
+
+  if (field.display_type === "igv-config") {
+    return <fieldset className="space-y-2">
+      <legend className="type-label">{label}</legend>
+      <AssayIgvFields value={value} onChange={onChange} disabled={readOnly} />
+    </fieldset>
   }
 
   let control
@@ -503,6 +513,28 @@ export function AdminManagedForm({
       }
       const current = String(updated[dependentName] ?? "")
       updated[dependentName] = allowed.has(current) ? current : ""
+    })
+    Object.entries(form.fields || {}).forEach(([parentName, parentField]) => {
+      for (const group of parentField.groups || []) {
+        for (const nestedField of group.fields || []) {
+          const automatic = nestedField.auto_select
+          const dependency = nestedField.options_by_field
+          if (!automatic || !dependency) continue
+          if (name !== automatic.field && name !== dependency.field) continue
+          const available = optionsForDependency(nestedField, updated) || []
+          const requested = String(updated[automatic.field] || automatic.fallback || "")
+          const selected = available.find(
+            (option) => String(option?.[automatic.option_field] ?? "") === requested,
+          ) || available.find(
+            (option) => String(option?.[automatic.option_field] ?? "") === automatic.fallback,
+          )
+          const parentValue = updated[parentName]
+          updated[parentName] = {
+            ...(parentValue && typeof parentValue === "object" ? parentValue : {}),
+            [nestedField.key]: selected ? optionValue(selected) : "",
+          }
+        }
+      }
     })
     setValues(updated)
   }

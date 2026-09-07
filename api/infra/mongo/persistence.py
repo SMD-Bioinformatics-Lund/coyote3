@@ -7,6 +7,42 @@ from typing import Any
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
+from api.infra.mongo.transactions import run_transaction
+
+
+def insert_many_transaction(collection, documents, *, ignore_duplicates=False, on_insert=None):
+    """Commit an insertion batch, filtering explicitly ignored duplicates only after abort."""
+    pending = [dict(document) for document in documents]
+    for document in pending:
+        document.setdefault("_id", ObjectId())
+
+    def insert(session):
+        if pending:
+            collection.insert_many(
+                [dict(document) for document in pending], ordered=True, session=session
+            )
+        ids = [str(document["_id"]) for document in pending]
+        if on_insert is not None:
+            on_insert(ids, session)
+        return ids
+
+    while True:
+        try:
+            return run_transaction(collection.database.client, insert)
+        except BulkWriteError as exc:
+            errors = (exc.details or {}).get("writeErrors") or []
+            if (
+                not ignore_duplicates
+                or not errors
+                or (exc.details or {}).get("writeConcernErrors")
+                or any(error.get("code") != 11000 for error in errors)
+            ):
+                raise
+            indices = {error["index"] for error in errors}
+            if not indices or not indices.issubset(range(len(pending))):
+                raise
+            pending = [document for index, document in enumerate(pending) if index not in indices]
+
 
 def to_provider_id(value: str) -> Any:
     """Convert an app-layer id into a provider-native id when possible."""

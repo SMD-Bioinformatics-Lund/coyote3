@@ -6,10 +6,14 @@ import re
 from typing import Any
 
 from bson.objectid import ObjectId
+from pymongo.errors import PyMongoError
 
 from api.contracts.operations import OperationResult
+from api.domain.core.exceptions import AppError
+from api.domain.core.reporting.errors import ReportCommitUncertain
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
+from api.infra.mongo.transactions import run_transaction
 from api.infra.request_context import current_username
 from api.infra.samples_cache import invalidate_samples_cache
 
@@ -59,6 +63,8 @@ class ReportRepository(BaseRepository):
         filters_snapshot: dict | None = None,
         aspc_snapshot: dict | None = None,
         rule_provenance: dict | None = None,
+        snapshot_rows: list[dict] | None = None,
+        created_by: str | None = None,
     ) -> ObjectId:
         report_oid = ObjectId()
         now = utc_now()
@@ -87,19 +93,60 @@ class ReportRepository(BaseRepository):
             },
             "clinical_rule_source": rule_provenance,
         }
-        self.get_collection().insert_one(doc)
-        self.adapter.samples_collection.update_one(
-            {"_id": self._object_id(sample.get("_id"))},
-            {
-                "$set": {
-                    "reported": True,
-                    "latest_report_id": report_oid,
-                    "latest_report_on": now,
-                }
-            },
-        )
-        invalidate_samples_cache(self.adapter)
-        self.invalidate_dashboard_metrics()
+
+        def transaction(session):
+            # Writing the owning sample serializes concurrent report saves for that sample.
+            result = self.adapter.samples_collection.update_one(
+                {"_id": doc["sample_oid"]},
+                {
+                    "$set": {
+                        "reported": True,
+                        "latest_report_id": report_oid,
+                        "latest_report_on": now,
+                    }
+                },
+                session=session,
+            )
+            if result.matched_count != 1:
+                raise AppError(404, "Sample no longer exists.")
+            latest = self.get_collection().find_one(
+                {"sample_oid": doc["sample_oid"]},
+                {"report_num": 1},
+                sort=[("report_num", -1)],
+                session=session,
+            )
+            if report_num != int((latest or {}).get("report_num") or 0) + 1:
+                raise AppError(
+                    409, "Another report was saved. Refresh the report preview and retry."
+                )
+            self.get_collection().insert_one(doc, session=session)
+            self.adapter.reported_variant_repository.bulk_upsert_from_snapshot_rows(
+                sample_name=sample.get("name"),
+                sample_oid=doc["sample_oid"],
+                report_oid=report_oid,
+                report_id=report_id,
+                report_num=report_num,
+                assay=sample.get("asp_id"),
+                assay_group=sample.get("asp_group"),
+                subpanel=sample.get("subpanel_id"),
+                environment=sample.get("environment"),
+                snapshot_rows=snapshot_rows or [],
+                created_by=created_by or doc["author"],
+                session=session,
+            )
+
+        try:
+            run_transaction(self.adapter.client, transaction)
+        except PyMongoError as exc:
+            if exc.has_error_label("UnknownTransactionCommitResult"):
+                raise ReportCommitUncertain() from exc
+            raise
+        try:
+            invalidate_samples_cache(self.adapter)
+            self.invalidate_dashboard_metrics()
+            self.adapter.reported_variant_repository.invalidate_dashboard_metrics()
+        except Exception:
+            self.app.logger.exception("Report committed; cache invalidation failed")
         return report_oid
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:
@@ -156,7 +203,7 @@ class ReportRepository(BaseRepository):
     def delete_sample_reports(self, sample_oid: str) -> OperationResult:
         """Delete report metadata owned by a sample."""
         result = OperationResult.from_delete(
-            self.get_collection().delete_many({"sample_oid": self._object_id(sample_oid)})
+            self.delete_many_atomic({"sample_oid": self._object_id(sample_oid)})
         )
         if result.deleted_count:
             self.invalidate_dashboard_metrics()

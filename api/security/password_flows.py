@@ -250,19 +250,15 @@ def consume_password_token_and_set_password(*, token: str, new_password: str) ->
         emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_user")
         return {"status": "error", "error": "Invalid token user"}
 
-    if not user_repository.validate_and_clear_password_action_token(
+    if not user_repository.consume_password_action_token(
         user_id=user_id,
         token_hash=_token_hash(token),
         purpose=purpose,
+        password_hash=util.common.hash_password(new_password),
     ):
         emit_auth_metric("password_token_consume", outcome="failed", reason="reused_or_expired")
         return {"status": "error", "error": "Token already used or expired"}
 
-    user_repository.set_local_password(
-        user_id=user_id,
-        password_hash=util.common.hash_password(new_password),
-        require_password_change=False,
-    )
     notification = notify_user_change(
         user_doc=user_doc,
         event="password_set",

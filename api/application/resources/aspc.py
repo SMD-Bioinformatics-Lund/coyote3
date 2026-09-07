@@ -13,7 +13,6 @@ from api.application.accounts.common import (
     utc_now,
 )
 from api.application.common.protected_records import reject_system_managed_delete
-from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.resources.helpers import (
     _normalize_asp_category,
     _normalize_asp_category_doc,
@@ -22,6 +21,7 @@ from api.application.resources.helpers import (
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.constants import SUBPANEL_BASE_ID, normalize_analysis_type
 from api.contracts.managed_resources import aspc_spec_for_category
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
 from api.domain.core.filter_capabilities import filter_section_for_analysis, select_filter_values
@@ -49,6 +49,7 @@ class AspcService:
             assay_panel_repository=store.assay_panel_repository,
             gene_list_repository=store.gene_list_repository,
             vep_metadata_repository=store.vep_metadata_repository,
+            clinical_rule_set_repository=store.clinical_rule_set_repository,
             common_util=common_util,
         )
 
@@ -59,6 +60,7 @@ class AspcService:
         assay_panel_repository: Any,
         gene_list_repository: Any,
         vep_metadata_repository: Any,
+        clinical_rule_set_repository: Any,
         common_util: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
@@ -66,6 +68,7 @@ class AspcService:
         self.assay_panel_repository = assay_panel_repository
         self.gene_list_repository = gene_list_repository
         self.vep_metadata_repository = vep_metadata_repository
+        self.clinical_rule_set_repository = clinical_rule_set_repository
         self.common_util = common_util
 
     @staticmethod
@@ -87,6 +90,7 @@ class AspcService:
                 form, top_field="filters", subfield_key="vep_consequences", options=conseq_options
             )
         self._set_filter_gene_list_options(form, asp_ids)
+        self._set_clinical_rule_options(form, asp_ids)
 
     def _gene_list_options_for_asp(self, asp_id: str) -> dict[str, list[dict[str, str]]]:
         """Return active non-ad-hoc ISGL choices, grouped by analytical use."""
@@ -203,6 +207,37 @@ class AspcService:
                 asp_id.lower(): self._subpanel_options_for_asp(asp_id) for asp_id in asp_ids
             },
         }
+
+    def _set_clinical_rule_options(self, form: dict[str, Any], asp_ids: list[str]) -> None:
+        """Attach assay-scoped published rule sets to the reporting selector."""
+        choices: dict[str, list[dict[str, str]]] = {}
+        for asp_id in asp_ids:
+            options = []
+            for document in self.clinical_rule_set_repository.list_active_for_assay(asp_id):
+                rule_set = ClinicalRuleSetDoc.model_validate(document)
+                options.append(
+                    {
+                        "value": rule_set.rule_set_id,
+                        "label": (
+                            f"{rule_set.scope.subpanel_id} · {rule_set.name} "
+                            f"(v{rule_set.content_version}, {rule_set.scope.language})"
+                        ),
+                        "subpanel_id": rule_set.scope.subpanel_id,
+                    }
+                )
+            choices[asp_id.lower()] = options
+
+        reporting = form.get("fields", {}).get("reporting", {})
+        for group in reporting.get("groups", []) or []:
+            for field in group.get("fields", []) or []:
+                if field.get("key") != "clinical_rule_set_id":
+                    continue
+                field["options_by_field"] = {"field": "asp_id", "values": choices}
+                field["auto_select"] = {
+                    "field": "subpanel_id",
+                    "option_field": "subpanel_id",
+                    "fallback": SUBPANEL_BASE_ID,
+                }
 
     @staticmethod
     def _build_filter_profiles(config: dict[str, Any], *, category: str) -> None:
@@ -398,9 +433,8 @@ class AspcService:
             "form": form,
         }
 
-    @staticmethod
-    def _validate_static_rule_source(config: dict[str, Any]) -> None:
-        """Require each active reporting ASPC to resolve to a repository YAML file."""
+    def _validate_clinical_rule_binding(self, config: dict[str, Any]) -> None:
+        """Require active reporting ASPCs to bind a compatible published rule set."""
         reporting = config.get("reporting") or {}
         report_sections = {
             normalize_analysis_type(value)
@@ -409,27 +443,18 @@ class AspcService:
         }
         if not config.get("is_active") or not report_sections:
             return
-        context = type(
-            "RuleScope",
-            (),
-            {
-                "asp": type("Asp", (), {"asp_id": config.get("asp_id")})(),
-                "sample": type(
-                    "Sample",
-                    (),
-                    {
-                        "asp_id": config.get("asp_id"),
-                        "omics_layer": str(config.get("asp_category") or "").lower(),
-                    },
-                )(),
-                "aspc": type("Aspc", (), {"subpanel_id": config.get("subpanel_id")})(),
-            },
-        )()
-        try:
-            source, _source_path = ClinicalRuleService().resolve(context=context)
-        except ValueError as exc:
-            raise api_error(409, str(exc)) from exc
-        undeclared = sorted(report_sections - set(source.analyses))
+        rule_set_id = str(reporting.get("clinical_rule_set_id") or "").strip()
+        document = self.clinical_rule_set_repository.get_active(rule_set_id)
+        if document is None:
+            raise api_error(
+                409, f"No active published clinical rule set exists for '{rule_set_id}'"
+            )
+        rule_set = ClinicalRuleSetDoc.model_validate(document)
+        if rule_set.scope.asp_id != str(config.get("asp_id") or ""):
+            raise api_error(409, "Clinical rule-set assay does not match the ASPC")
+        if rule_set.scope.analyte != str(config.get("asp_category") or "").lower():
+            raise api_error(409, "Clinical rule-set analyte does not match the ASPC")
+        undeclared = sorted(report_sections - set(rule_set.analysis_declarations))
         if undeclared:
             raise api_error(
                 409,
@@ -490,7 +515,7 @@ class AspcService:
         config["updated_by"] = actor
         config["updated_on"] = now
         config["version"] = 1
-        self._validate_static_rule_source(config)
+        self._validate_clinical_rule_binding(config)
         config = _validated_doc(spec.collection, config)
         self.assay_configuration_repository.create_assay_config(config)
         return change_payload(
@@ -546,7 +571,7 @@ class AspcService:
         updated_doc.pop("retired_by", None)
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)
-        self._validate_static_rule_source(updated_doc)
+        self._validate_clinical_rule_binding(updated_doc)
         updated_doc = _validated_doc(spec.collection, updated_doc)
         operation = self.assay_configuration_repository.rotate_aspc(
             assay_id,

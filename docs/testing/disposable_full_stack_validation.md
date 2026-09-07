@@ -92,12 +92,9 @@ export VALIDATION_ENV_FILE="$VALIDATION_ROOT/coyote3.env"
 export VALIDATION_OVERRIDE_FILE="$VALIDATION_ROOT/storage.override.yml"
 export VALIDATION_APP_PROJECT="coyote3_testing_app"
 export VALIDATION_MONGO_PROJECT="coyote3_testing_mongo"
-export VALIDATION_MONGO_NETWORK="coyote3-validation-mongo-net"
 export VALIDATION_APP_NETWORK="coyote3-validation-app-net"
 export VALIDATION_APP_SUBNET="172.29.120.0/28"
 export VALIDATION_APP_GATEWAY="172.29.120.1"
-export VALIDATION_MONGO_SUBNET="172.29.120.16/29"
-export VALIDATION_MONGO_GATEWAY="172.29.120.17"
 export VALIDATION_APP_PORT="6816"
 export VALIDATION_MONGO_PORT="27182"
 export COYOTE3_VERSION="$(python3 api/version.py)"
@@ -174,13 +171,12 @@ MONGO_ROOT_USERNAME=coyote3_root
 MONGO_ROOT_PASSWORD=$VALIDATION_MONGO_ROOT_PASSWORD
 MONGO_APP_USER=coyote3_app
 MONGO_APP_PASSWORD=$VALIDATION_MONGO_APP_PASSWORD
-MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@coyote3_mongo:27017/coyote3_validation?authSource=coyote3_validation&replicaSet=coyote3-validation-rs
-COYOTE3_MONGO_NETWORK=$VALIDATION_MONGO_NETWORK
+COYOTE3_MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@mongo-app:27017/coyote3_validation?authSource=admin&replicaSet=coyote3-validation-rs
 COYOTE3_APP_NETWORK=$VALIDATION_APP_NETWORK
 COYOTE3_MONGO_PORT=$VALIDATION_MONGO_PORT
 COYOTE3_MONGO_BIND_ADDRESS=127.0.0.1
 MONGO_REPLICA_SET_NAME=coyote3-validation-rs
-MONGO_REPLICA_MEMBER_HOST=coyote3_mongo:27017
+MONGO_REPLICA_MEMBER_HOST=mongo-app:27017
 
 COYOTE3_DATA_HOST_ROOT=$VALIDATION_ROOT/data
 COYOTE3_LOGS_HOST_ROOT=$VALIDATION_ROOT/logs
@@ -225,19 +221,10 @@ services:
       - $VALIDATION_ROOT/data:/data
       - $VALIDATION_ROOT/data:$VALIDATION_ROOT/data
       - $VALIDATION_ROOT/fs1:/fs1
-    networks: &validation_app_networks
-      - app
-      - validation-mongo
   worker:
     volumes: *validation_app_volumes
-    networks: *validation_app_networks
   beat:
     volumes: *validation_app_volumes
-    networks: *validation_app_networks
-networks:
-  validation-mongo:
-    name: $VALIDATION_MONGO_NETWORK
-    external: true
 EOF
 ```
 
@@ -249,19 +236,12 @@ scripts/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
 
 ## 4. Start the disposable MongoDB replica set
 
-Create the external application and MongoDB networks explicitly. The `down`
+Create the external application network explicitly; the MongoDB profile joins it. The `down`
 command removes stale containers from the named disposable Compose project
 before MongoDB is recreated. It does not remove the bind-mounted database
 directory:
 
 ```bash
-docker network create \
-  --driver bridge \
-  --subnet "$VALIDATION_MONGO_SUBNET" \
-  --ip-range "$VALIDATION_MONGO_SUBNET" \
-  --gateway "$VALIDATION_MONGO_GATEWAY" \
-  "$VALIDATION_MONGO_NETWORK"
-
 docker network create \
   --driver bridge \
   --subnet "$VALIDATION_APP_SUBNET" \
@@ -273,24 +253,24 @@ docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   down --remove-orphans
 
 docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   up -d --force-recreate mongo
 ```
 
-The `/29` MongoDB pool provides approximately five assignable addresses. The
-separate `/28` application pool provides approximately 13 assignable addresses
-for the API, worker, beat, Redis, frontend, documentation, proxy, and temporary
-validation containers. Change both exported ranges before creation if either
-overlaps a host, VPN, center, Kubernetes, or existing Docker network.
+The `/28` validation network provides approximately 13 assignable addresses for
+MongoDB, API, workers, and temporary tools. Choose a larger or different range
+if it overlaps another network or more replicas are needed.
 
 This starts MongoDB 8.2 with its isolated bind-mounted data directory. The
 host port is bound to loopback for optional host-side administration. Coyote3
-containers use the `coyote3_mongo` network alias and do not pass through a
+containers use the `mongo-app` network alias and do not pass through a
 published host port.
 
 Confirm that Compose attached MongoDB to the pre-created external network.
@@ -302,12 +282,13 @@ export VALIDATION_MONGO_CONTAINER_ID="$(docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   ps -q mongo)"
 
 test -n "$VALIDATION_MONGO_CONTAINER_ID"
 docker inspect "$VALIDATION_MONGO_CONTAINER_ID" \
   --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{println}}{{end}}' \
-  | grep -Fx "$VALIDATION_MONGO_NETWORK"
+  | grep -Fx "$VALIDATION_APP_NETWORK"
 ```
 
 Wait for its health check through the Compose service name. This avoids
@@ -319,6 +300,7 @@ for attempt in $(seq 1 60); do
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   exec -T mongo mongosh --quiet \
     --username coyote3_root \
     --password "$VALIDATION_MONGO_ROOT_PASSWORD" \
@@ -338,6 +320,7 @@ docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   run --rm --no-deps mongo_init
 ```
 
@@ -352,10 +335,10 @@ host:
 
 ```bash
 docker run --rm \
-  --network "$VALIDATION_MONGO_NETWORK" \
+  --network "$VALIDATION_APP_NETWORK" \
   mongo:8.2 \
   mongosh --quiet \
-    "mongodb://coyote3_root:$VALIDATION_MONGO_ROOT_PASSWORD@coyote3_mongo:27017/admin?authSource=admin&replicaSet=coyote3-validation-rs" \
+    "mongodb://coyote3_root:$VALIDATION_MONGO_ROOT_PASSWORD@mongo-app:27017/admin?authSource=admin&replicaSet=coyote3-validation-rs" \
     --eval 'const hello=db.hello(); printjson({ping:db.adminCommand({ping:1}).ok, replicaSet:hello.setName, writablePrimary:hello.isWritablePrimary}); quit(hello.isWritablePrimary ? 0 : 1)'
 ```
 
@@ -365,10 +348,8 @@ directory beyond issuing authenticated status commands. A successful result
 prints `ping: 1`, the configured replica-set name, and
 `writablePrimary: true`.
 
-The API, worker, and beat are attached to both isolated validation networks by
-the generated override. They reach the replica-set member at
-`coyote3_mongo:27017`; frontend, documentation, proxy, and Redis remain only on
-the application network. The MongoDB host port stays bound to `127.0.0.1`, so
+The application and MongoDB services share the isolated validation network.
+They reach the replica-set member at `mongo-app:27017`. The MongoDB host port stays bound to `127.0.0.1`, so
 it is not exposed on external host interfaces.
 
 ## 5. Build the immutable application images
@@ -404,7 +385,8 @@ scripts/compose-with-version.sh \
   -f "$VALIDATION_OVERRIDE_FILE" \
   run --rm --no-deps api \
   python scripts/bootstrap_database.py \
-    --mongo-uri "$(grep '^MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
+    --mongo-uri "$(grep '^COYOTE3_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
+    --identity-mongo-uri "$IDENTITY_MONGO_URI" \
     --db coyote3_validation \
     --identity-db coyote3_identity_validation \
     --username coyote3.admin \
@@ -632,6 +614,7 @@ docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   logs --no-color > "$VALIDATION_ROOT/evidence/mongodb.log"
 ```
 
@@ -656,9 +639,9 @@ docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo \
   down --remove-orphans
 
-docker network rm "$VALIDATION_MONGO_NETWORK"
 docker network rm "$VALIDATION_APP_NETWORK"
 ```
 
@@ -677,7 +660,7 @@ esac
 rm -rf -- "$VALIDATION_ROOT"
 unset VALIDATION_ROOT VALIDATION_ENV_FILE VALIDATION_OVERRIDE_FILE
 unset VALIDATION_APP_PROJECT
-unset VALIDATION_MONGO_PROJECT VALIDATION_MONGO_NETWORK
+unset VALIDATION_MONGO_PROJECT
 unset VALIDATION_MONGO_CONTAINER_ID VALIDATION_WORKER_CONTAINER_ID
 unset VALIDATION_APP_PORT VALIDATION_MONGO_PORT VALIDATION_PUBLIC_URL
 unset COYOTE3_VERSION

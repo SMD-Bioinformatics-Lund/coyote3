@@ -24,6 +24,17 @@ export function routeErrorState(route: UiRouteAudit): string {
 
 export const uiRouteRegistry: UiRouteAudit[] = [
   {
+    path: "/admin/assay-catalog",
+    page: "PublicAssayCatalogPage",
+    area: "admin",
+    api: ["GET /admin/assay-catalog", "GET /admin/assay-catalog/versions/{oid}",
+      "GET /admin/assay-catalog/versions/{oid}/revisions", "POST /admin/assay-catalog/drafts",
+      "POST /admin/assay-catalog/imports", "POST /admin/assay-catalog/preview", "POST /admin/assay-catalog/preview/matrix", "PATCH /admin/assay-catalog/drafts/{oid}",
+      "POST /admin/assay-catalog/drafts/{oid}/submit", "POST /admin/assay-catalog/drafts/{oid}/review",
+      "POST /admin/assay-catalog/drafts/{oid}/publish"],
+    dataUsed: ["center-owned public catalog metadata", "modality JSON exports"],
+  },
+  {
     path: "/login",
     page: "Login",
     area: "account",
@@ -295,6 +306,50 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     area: "admin",
     api: ["GET /admin/notifications/recipients", "POST /admin/notifications/broadcast"],
     dataUsed: ["active recipient accounts", "broadcast audience", "message category and severity"],
+  },
+  {
+    path: "/admin/clinical-rules",
+    page: "ClinicalRulesPage",
+    area: "admin",
+    api: [
+      "GET /admin/clinical-rule-sets",
+      "GET /admin/clinical-rule-sets/facts",
+      "GET /admin/clinical-rule-sets/authoring-options",
+      "GET /admin/clinical-rule-sets/versions/:documentId",
+      "GET /admin/clinical-rule-sets/versions/:documentId/export",
+      "GET /admin/clinical-rule-sets/versions/:documentId/revisions",
+      "POST /admin/clinical-rule-sets/drafts",
+      "POST /admin/clinical-rule-sets/imports",
+      "PATCH /admin/clinical-rule-sets/drafts/:documentId",
+      "POST /admin/clinical-rule-sets/drafts/:documentId/validate",
+      "POST /admin/clinical-rule-sets/drafts/:documentId/submit",
+      "POST /admin/clinical-rule-sets/drafts/:documentId/start-clinical-review",
+      "POST /admin/clinical-rule-sets/drafts/:documentId/clinical-review",
+      "POST /admin/clinical-rule-sets/drafts/:documentId/publish",
+      "POST /admin/clinical-rule-sets/versions/:documentId/retire",
+    ],
+    dataUsed: [
+      "clinical rule-set scope and versions",
+      "typed fact catalog",
+      "nested conditions and report output",
+      "review and publication lifecycle",
+      "immutable revision snapshots and hash-chain metadata",
+    ],
+  },
+  {
+    path: "/admin/clinical-rules/testing",
+    page: "ClinicalRuleTestingPage",
+    area: "admin",
+    api: [
+      "GET /admin/clinical-rule-sets",
+      "GET /admin/clinical-rule-sets/versions/:documentId/test-samples",
+      "POST /admin/clinical-rule-sets/versions/:documentId/test-samples/:sampleId/preview",
+    ],
+    dataUsed: [
+      "rule-set versions and lifecycle state",
+      "authorized assay-compatible sample metadata",
+      "non-persisted clinical rule evaluation and report summary",
+    ],
   },
   {
     path: "/admin/:resource/:id/view",

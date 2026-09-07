@@ -17,9 +17,45 @@ export const EXTERNAL_LINK_BASES = {
   clinGenGene: "https://search.clinicalgenome.org/kb/genes",
 } as const
 
-export function igvLoadUrl(file: unknown, locus: unknown) {
-  if (!runtimeConfig.igvUri || !file || !locus) return null
-  return `${runtimeConfig.igvUri}/load?file=${encodeURIComponent(String(file))}&locus=${encodeURIComponent(String(locus))}`
+export function igvLoadUrl(file: unknown, locus: unknown, index?: string) {
+  if (!runtimeConfig.igvUri || typeof file !== "string" || !file.trim() || !locus) return null
+  const indexQuery = index ? `&index=${encodeURIComponent(index)}` : ""
+  return `${runtimeConfig.igvUri}/load?file=${encodeURIComponent(file)}&locus=${encodeURIComponent(String(locus))}${indexQuery}&merge=true`
+}
+
+function igvRelativePath(path: string) {
+  const root = runtimeConfig.igvDataRoot || ""
+  if (root && (path.startsWith(`${root}/`) || (root.endsWith(":") && path.startsWith(root)))) {
+    path = path.slice(root.length)
+  }
+  return path.replace(/^\/+/, "")
+}
+
+export function igvDataPath(path: string) {
+  const root = runtimeConfig.igvDataRoot || ""
+  if (!root) return path
+  return `${root}${root.endsWith(":") ? "" : "/"}${igvRelativePath(path)}`
+}
+
+export function igvAlignmentLinks(files: unknown, locus: string, indexes: Record<string, string> = {}, designBeds: string[] = []) {
+  if (!files || typeof files !== "object" || !locus || locus === "-") return []
+  const links = Object.entries(files).flatMap(([sampleId, paths]) => {
+    if (!Array.isArray(paths)) return []
+    return paths.flatMap((path: unknown, index: number) => {
+      if (typeof path !== "string") return []
+      const href = igvLoadUrl(igvDataPath(path), locus, indexes[path] ? igvDataPath(indexes[path]) : undefined)
+      return href ? [{
+        label: `IGV: ${sampleId}${paths.length > 1 ? ` (${index + 1})` : ""}`,
+        value: locus,
+        href,
+      }] : []
+    })
+  })
+  for (const bed of new Set(designBeds)) {
+    const href = igvLoadUrl(igvDataPath(bed), locus)
+    if (href) links.push({ label: "Design BED", value: locus, href })
+  }
+  return links
 }
 
 export function gensSampleUrl(sampleName: unknown) {

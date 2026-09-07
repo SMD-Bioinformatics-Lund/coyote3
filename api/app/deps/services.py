@@ -22,6 +22,8 @@ from api.application.ingest.service import InternalIngestService
 from api.application.knowledgebase.oncokb_refresh import PublicOncoKbRefreshService
 from api.application.notifications.service import NotificationService
 from api.application.public.catalog import PublicCatalogService
+from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from api.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
 from api.application.reporting.dna_workflow import DNAWorkflowService
 from api.application.reporting.report_builder import ReportService
 from api.application.reporting.report_library import ReportLibraryService
@@ -29,6 +31,7 @@ from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.application.resources.asp import AspService
 from api.application.resources.aspc import AspcService
 from api.application.resources.isgl import IsglService
+from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
 from api.application.resources.sample import ResourceSampleService
 from api.application.rna.expression_analysis import RnaService
 from api.application.sample.catalog import SampleCatalogService
@@ -84,6 +87,14 @@ def get_admin_aspc_service() -> AspcService:
 def get_admin_sample_service() -> ResourceSampleService:
     """Return the admin sample-management service."""
     return ResourceSampleService.from_store(get_store())
+
+
+def get_admin_public_assay_catalog_service() -> PublicAssayCatalogManagementService:
+    """Return the public assay catalog administration service."""
+    service = PublicAssayCatalogManagementService.from_store(get_store())
+    service.notification_service = get_notification_service()
+    service.public_catalog_service = get_public_catalog_service()
+    return service
 
 
 @lru_cache
@@ -149,6 +160,20 @@ def get_report_service() -> ReportService:
 def get_report_library_service() -> ReportLibraryService:
     """Return the read-only saved report library service."""
     return ReportLibraryService.from_store(get_store())
+
+
+def get_clinical_rule_authoring_service() -> ClinicalRuleAuthoringService:
+    """Return the governed clinical rule authoring service."""
+    service = ClinicalRuleAuthoringService.from_store(
+        get_store(), audit_service=get_audit_service()
+    )
+    service.notification_service = get_notification_service()
+    return service
+
+
+def get_clinical_rule_testing_service() -> ClinicalRuleTestingService:
+    """Return the read-only clinical rule sample-testing service."""
+    return ClinicalRuleTestingService.from_store(get_store())
 
 
 def get_user_service() -> UserService:

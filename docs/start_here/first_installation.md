@@ -14,7 +14,7 @@ Copy `deploy/env/example.env` to a file outside version control and set the requ
 
 | Setting | Purpose |
 | --- | --- |
-| `MONGO_URI` | MongoDB connection string reachable from the API and workers. |
+| `COYOTE3_MONGO_URI` | MongoDB connection string reachable from the API and workers. |
 | `COYOTE3_DB` | Coyote3 application database name. It has no application default. |
 | `IDENTITY_DB` | Dedicated identity and security database name. It must differ from every other configured database. |
 | `KNOWLEDGEBASE_DB` | Dedicated external knowledgebase database name. It must differ from `COYOTE3_DB` and `BAM_DB`. |
@@ -32,7 +32,8 @@ Create a Python virtual environment and install the project dependencies, or run
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "<first-superuser-username>" \

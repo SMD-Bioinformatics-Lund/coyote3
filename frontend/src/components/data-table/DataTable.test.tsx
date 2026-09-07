@@ -47,7 +47,7 @@ describe("DataTable", () => {
     await user.type(search, "TP53")
     expect(screen.getByText("TP53")).toBeVisible()
     expect(screen.queryByText("ABL1")).not.toBeInTheDocument()
-    expect(sessionStorage.getItem("coyote3.table.variants.csv.search")).toBe("TP53")
+    expect(sessionStorage.getItem("coyote3.table.variants.csv.search")).toBeNull()
 
     rerender(<DataTable columns={columns} data={data} filename="variants.csv" />)
     expect(search).toHaveValue("TP53")

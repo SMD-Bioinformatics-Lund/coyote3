@@ -18,6 +18,4 @@ class PgxRepository(BaseRepository):
         return list(self.get_collection().find({"SAMPLE_ID": sample_id}))
 
     def delete_sample_pgx(self, sample_id: str) -> OperationResult:
-        return OperationResult.from_delete(
-            self.get_collection().delete_many({"SAMPLE_ID": sample_id})
-        )
+        return OperationResult.from_delete(self.delete_many_atomic({"SAMPLE_ID": sample_id}))

@@ -171,6 +171,10 @@ shape is not an accepted model for authoring a raw pipeline manifest.
 
 | Raw manifest key | Required | Applies to | Stored field | Meaning |
 | --- | --- | --- | --- | --- |
+| `case_bam` | No | DNA, RNA | `samples.case.bam` | BAM filename within the ASP IGV folder; empty string when omitted. |
+| `case_bai` | No | DNA, RNA | `samples.case.bai` | BAM index filename in the same folder; empty string when omitted. |
+| `control_bam` | No, paired only | DNA, RNA | `samples.control.bam` | Control BAM filename; empty string when omitted. |
+| `control_bai` | No, paired only | DNA, RNA | `samples.control.bai` | Control index filename; empty string when omitted. |
 | `clarity_case_id` | Recommended | DNA, RNA | `samples.case.clarity_id` | Clarity/LIMS identifier for the case. |
 | `clarity_control_id` | Paired only | DNA, RNA | `samples.control.clarity_id` | Clarity/LIMS identifier for the control. |
 | `clarity_case_pool_id` | Recommended | DNA, RNA | `samples.case.clarity_pool_id` | Clarity/LIMS pool identifier for the case. |
@@ -183,6 +187,79 @@ shape is not an accepted model for authoring a raw pipeline manifest.
 | `control_reads` | Paired only | DNA, RNA | `samples.control.reads` | Read count for the control. |
 | `case_purity` | No | DNA | `samples.case.purity` | Optional tumor purity estimate. |
 | `control_purity` | No | DNA | `samples.control.purity` | Optional control purity value when supplied by the pipeline. |
+
+### Alignment references for IGV
+
+```yaml
+case_bam: synthetic_case.bam
+case_bai: synthetic_case.bai
+control_bam: synthetic_control.bam
+control_bai: ""
+```
+
+Ingest stores these strings; it does not parse, copy, or require local access to
+the BAM/BAI files. They are not analysis file keys in `expected_files` and are not
+remapped to temporary ZIP extraction paths. Supply filenames. If a producer sends
+a full path, only its basename is used to construct the IGV resource path; its
+directory does not override the configured folder. Omitted, null, and blank references become `""`.
+For an unpaired sample, omit control metadata; `samples.control` remains null.
+Metadata updates preserve existing references when the keys are omitted. Explicit
+null/empty values clear them. Replacing a BAM without supplying a new BAI clears
+the previous index reference so it cannot be applied to a different alignment.
+
+Configure the assay in **Admin > Assay Panels**, under **Alignment viewer**.
+The existing ASP edit permissions and versioned save workflow apply. The editor
+provides separate folder fields, live path validation, and a constructed-path
+preview; no JSON editing is required. The corresponding ASP document is:
+
+```json
+{
+  "igv": {
+    "base_folder": "gmshem",
+    "bam_subfolder": "bam",
+    "design_bed": "BED/design.bed"
+  }
+}
+```
+
+| ASP field | Meaning |
+| --- | --- |
+| `igv.base_folder` | Required when `igv` is configured; assay folder relative to the workstation root. |
+| `igv.bam_subfolder` | BAM/BAI folder relative to `base_folder`; empty uses the base folder itself. |
+| `igv.design_bed` | BED file relative to `base_folder`; empty means no design BED, including for WGS assays that do not have one. |
+
+Paths must be relative and cannot contain drive letters, URLs, traversal (`..`),
+backslashes, or URL/command delimiters. Set `igv` to null, or clear all editor
+fields, to disable ASP path configuration. No assay names or folder names are
+inferred automatically. Existing ASP documents without `igv` remain valid.
+
+For each case/control independently, a configured ASP folder and non-empty `bam`
+resolve directly, without querying the BAM-service database. Missing filenames
+retain the existing catalog path lookup. If the ASP has no IGV settings, catalog
+directories remain the fallback, with explicit filenames replacing only their
+basename. Without either source of directory information, no BAM link is invented.
+
+The frontend prefixes resolved paths with workstation-visible `IGV_DATA_ROOT`,
+not the API's filesystem mount. The example ASP, `case_bam: synthetic_case.bam`,
+and `IGV_DATA_ROOT=/R:` produce `/R:gmshem/bam/synthetic_case.bam` and
+`/R:gmshem/BED/design.bed`. A POSIX root such as `/mnt/alignments` instead produces
+`/mnt/alignments/gmshem/bam/synthetic_case.bam`.
+
+Finding responses expose `bam_id` (sample ID to resolved path list), `bai_id`
+(BAM path to resolved index path), and `design_bed_paths`. Changes to ASP settings
+take effect when finding data is refreshed, without rebuilding the frontend.
+Changing deployment `IGV_URI` or `IGV_DATA_ROOT` requires a frontend rebuild or
+Vite dev-server restart. BED configuration belongs only to ASP, not environment variables.
+
+IGV links are separate per alignment, use `merge=true`, and pass `index` only when
+an index is supplied. This keeps automatic index discovery for the other alignment.
+If a BAI is supplied without a BAM, it is applied only when the fallback resolves
+exactly one BAM for that role; multiple fallback matches cannot safely share an
+unidentified index. The planned retirement of catalog-derived filenames is
+tracked in `scripts/TODO.md`; existing lookup remains supported for older samples.
+
+See [IGV external control](https://igv.org/doc/desktop/UserGuide/advanced/external_control/)
+and its [HTTP command implementation](https://github.com/igvteam/igv/blob/main/src/main/java/org/igv/batch/CommandListener.java).
 
 ## Pipeline file declaration format
 

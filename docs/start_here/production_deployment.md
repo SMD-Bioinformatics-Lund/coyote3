@@ -81,7 +81,7 @@ COYOTE3_PORT=5815
 ORGANIZATION_NAME=Example molecular diagnostics center
 LOCAL_TIME_ZONE=Europe/Stockholm
 
-MONGO_URI=mongodb://<APP_USER>:<PASSWORD>@<MONGO_HOST>:27017/<DATABASE>?authSource=<AUTH_DATABASE>&replicaSet=<REPLICA_SET>
+COYOTE3_MONGO_URI=mongodb://<APP_USER>:<PASSWORD>@<MONGO_HOST>:27017/<DATABASE>?authSource=<AUTH_DATABASE>&replicaSet=<REPLICA_SET>
 COYOTE3_DB=<COYOTE3_DATABASE>
 IDENTITY_DB=<IDENTITY_DATABASE>
 KNOWLEDGEBASE_DB=<KNOWLEDGEBASE_DATABASE>
@@ -146,57 +146,20 @@ and symbolic-link rules.
 
 ### 4. Provision MongoDB independently
 
-Use an existing managed MongoDB service or deploy the supplied independent
-MongoDB stack. The application environment always selects MongoDB through
-`MONGO_URI`.
+Use configured external MongoDB endpoints or initialize the optional
+`mongo` and `mongo-kb` profiles. Each service has its own URI/name pair;
+knowledgebases can use a separate replica set. The app and identity namespaces
+must be environment-specific.
 
-For the supplied single-member replica set:
+The supplied MongoDB profiles join `COYOTE3_APP_NETWORK`, created in the
+preceding step. They do not require a separate database-specific network.
+Follow [MongoDB service topology](../architecture/mongodb_topology.md#optional-docker-mongodb)
+for keyfiles, profile commands, independent project ownership, and reader versus
+maintenance credentials. Complete replica initialization and index provisioning
+before starting API/workers.
 
-```bash
-sudo install -d -o 999 -g 999 -m 0700 "$COYOTE3_MONGO_DATA_HOST_ROOT"
-sudo install -d -o 999 -g 999 -m 0700 "$COYOTE3_MONGO_BACKUP_HOST_ROOT"
-sudo install -d -o 999 -g 999 -m 0700 "$(dirname "$COYOTE3_MONGO_KEYFILE_HOST_PATH")"
-
-openssl rand -base64 756 | sudo tee "$COYOTE3_MONGO_KEYFILE_HOST_PATH" >/dev/null
-sudo chown 999:999 "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-sudo chmod 0400 "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-
-docker network create \
-  --driver bridge \
-  --subnet "$COYOTE3_MONGO_NETWORK_SUBNET" \
-  --ip-range "$COYOTE3_MONGO_NETWORK_SUBNET" \
-  --gateway "$COYOTE3_MONGO_NETWORK_GATEWAY" \
-  "$COYOTE3_MONGO_NETWORK"
-docker compose \
-  --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.mongo.yml \
-  up -d
-```
-
-The `/29` MongoDB pool reserves eight addresses and provides approximately five
-assignable container addresses. It accommodates the MongoDB member, the
-one-shot replica-set initializer, and temporary backup or restore containers.
-Use a larger dedicated pool before adding multiple replica-set members.
-
-Set the MongoDB root credentials, host paths, network, replica-set name, and
-application `MONGO_URI` in `.coyote3_env` before running this command. The
-database container remains online when the Coyote3 application is rebuilt or
-stopped.
-
-Confirm the replica set and connectivity before continuing:
-
-```bash
-docker compose \
-  --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.mongo.yml \
-  ps
-
-mongosh "$MONGO_URI" --eval 'db.runCommand({ping: 1})'
-```
-
-For managed or center-operated MongoDB, perform the equivalent connectivity,
-replica-set, authentication, and backup checks. The complete procedure is in
-[MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
+For externally managed MongoDB, omit the Mongo overlay and profiles. Verify
+each endpoint's reachable replica-set members, authentication, and backup policy.
 
 ### 5. Validate and build the application
 
@@ -237,7 +200,8 @@ scripts/compose-with-version.sh \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
   python scripts/bootstrap_database.py \
-    --mongo-uri "$MONGO_URI" \
+    --mongo-uri "$COYOTE3_MONGO_URI" \
+    --identity-mongo-uri "$IDENTITY_MONGO_URI" \
     --db "$COYOTE3_DB" \
     --identity-db "$IDENTITY_DB" \
     --username "admin.coyote3" \
@@ -369,7 +333,7 @@ scripts/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
   --label first-production-release \
-  --docker-network "$COYOTE3_MONGO_NETWORK"
+  --docker-network "$COYOTE3_APP_NETWORK"
 ```
 
 Copy the archive off-host and test restoration into an isolated database. A
@@ -412,7 +376,7 @@ scripts/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
   --label pre-deployment \
-  --docker-network "$COYOTE3_MONGO_NETWORK"
+  --docker-network "$COYOTE3_APP_NETWORK"
 ```
 
 ### 3. Check out and validate the new release
@@ -461,7 +425,7 @@ scripts/compose-with-version.sh \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
   python scripts/sync_rbac_catalog.py \
-    --mongo-uri "$MONGO_URI" \
+    --mongo-uri "$IDENTITY_MONGO_URI" \
     --identity-db "$IDENTITY_DB"
 ```
 

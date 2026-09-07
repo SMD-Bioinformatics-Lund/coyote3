@@ -1,12 +1,12 @@
-"""Clinical reporting rule compilation and evaluation."""
+"""Clinical reporting rule authoring, publication, and evaluation."""
 
-from api.application.reporting.clinical_rules.compiler import ClinicalRuleCompiler
+from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 
 __all__ = [
-    "ClinicalRuleCompiler",
+    "ClinicalRuleAuthoringService",
     "ClinicalRuleEvaluator",
     "ClinicalRuleService",
     "PreparedReportContext",

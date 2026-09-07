@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from pymongo.errors import BulkWriteError, DuplicateKeyError
-
+from api.infra.mongo.persistence import insert_many_transaction
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.transactions import run_transaction
 
 
 def _utc_now() -> datetime:
@@ -219,17 +219,15 @@ class OncoKbPublicCacheRepository(BaseRepository):
             record.setdefault("created_on", now)
             record.setdefault("queried_at", now)
             prepared.append(record)
-        try:
-            result = self.get_collection().insert_many(prepared, ordered=False)
-            return len(result.inserted_ids)
-        except BulkWriteError as exc:
-            write_errors = exc.details.get("writeErrors", []) if exc.details else []
-            duplicate_errors = [err for err in write_errors if err.get("code") == 11000]
-            if len(duplicate_errors) != len(write_errors):
-                raise
-            return max(0, len(prepared) - len(duplicate_errors))
+        return len(insert_many_transaction(self.get_collection(), prepared, ignore_duplicates=True))
 
     def upsert_gene_markers(self, docs: list[dict[str, Any]]) -> int:
+        return run_transaction(
+            self.gene_collection.database.client,
+            lambda session: self._upsert_gene_markers(docs, session),
+        )
+
+    def _upsert_gene_markers(self, docs, session):
         """Create or refresh public OncoKB gene marker records."""
         changed = 0
         now = _utc_now()
@@ -268,35 +266,42 @@ class OncoKbPublicCacheRepository(BaseRepository):
             existing = self.gene_collection.find_one(
                 {"gene": gene},
                 {field: 1 for field in update_fields if field != "last_seen_at"},
+                session=session,
             )
             content_changed = existing is None or any(
                 existing.get(field) != value
                 for field, value in update_fields.items()
                 if field != "last_seen_at"
             )
-            try:
-                result = self.gene_collection.update_one(
-                    {"gene": gene},
-                    {
-                        "$set": update_fields,
-                        "$setOnInsert": {
-                            "gene": gene,
-                            "created_on": payload["created_on"],
-                        },
-                    },
-                    upsert=True,
-                )
-            except DuplicateKeyError:
-                continue
+            result = self.gene_collection.update_one(
+                {"gene": gene},
+                {
+                    "$set": update_fields,
+                    "$setOnInsert": {"gene": gene, "created_on": payload["created_on"]},
+                },
+                upsert=True,
+                session=session,
+            )
             changed += int(result.upserted_id is not None or content_changed)
         return changed
 
     def remove_gene_markers_not_in(self, genes: set[str]) -> int:
         """Remove stale curated-gene records after a successful full refresh."""
-        result = self.gene_collection.delete_many({"gene": {"$nin": sorted(genes)}})
+        result = run_transaction(
+            self.gene_collection.database.client,
+            lambda session: self.gene_collection.delete_many(
+                {"gene": {"$nin": sorted(genes)}}, session=session
+            ),
+        )
         return int(result.deleted_count or 0)
 
     def upsert_cancer_gene_markers(self, docs: list[dict[str, Any]]) -> int:
+        return run_transaction(
+            self.cancer_gene_collection.database.client,
+            lambda session: self._upsert_cancer_gene_markers(docs, session),
+        )
+
+    def _upsert_cancer_gene_markers(self, docs, session):
         """Create or refresh public OncoKB cancer-gene list marker records."""
         changed = 0
         now = _utc_now()
@@ -337,33 +342,55 @@ class OncoKbPublicCacheRepository(BaseRepository):
             existing = self.cancer_gene_collection.find_one(
                 {"gene": gene},
                 {field: 1 for field in update_fields if field != "last_seen_at"},
+                session=session,
             )
             content_changed = existing is None or any(
                 existing.get(field) != value
                 for field, value in update_fields.items()
                 if field != "last_seen_at"
             )
-            try:
-                result = self.cancer_gene_collection.update_one(
-                    {"gene": gene},
-                    {
-                        "$set": update_fields,
-                        "$setOnInsert": {
-                            "gene": gene,
-                            "created_on": payload["created_on"],
-                        },
-                    },
-                    upsert=True,
-                )
-            except DuplicateKeyError:
-                continue
+            result = self.cancer_gene_collection.update_one(
+                {"gene": gene},
+                {
+                    "$set": update_fields,
+                    "$setOnInsert": {"gene": gene, "created_on": payload["created_on"]},
+                },
+                upsert=True,
+                session=session,
+            )
             changed += int(result.upserted_id is not None or content_changed)
         return changed
 
     def remove_cancer_gene_markers_not_in(self, genes: set[str]) -> int:
         """Remove stale cancer-gene records after a successful full refresh."""
-        result = self.cancer_gene_collection.delete_many({"gene": {"$nin": sorted(genes)}})
+        result = run_transaction(
+            self.cancer_gene_collection.database.client,
+            lambda session: self.cancer_gene_collection.delete_many(
+                {"gene": {"$nin": sorted(genes)}}, session=session
+            ),
+        )
         return int(result.deleted_count or 0)
+
+    def refresh_gene_markers(self, cancer_docs, curated_docs):
+        """Publish both normalized public catalogues and prune stale rows in one commit."""
+
+        def refresh(session):
+            cancer_count = self._upsert_cancer_gene_markers(cancer_docs, session)
+            curated_count = self._upsert_gene_markers(curated_docs, session)
+            cancer_deleted = self.cancer_gene_collection.delete_many(
+                {"gene": {"$nin": [doc["gene"] for doc in cancer_docs]}}, session=session
+            )
+            curated_deleted = self.gene_collection.delete_many(
+                {"gene": {"$nin": [doc["gene"] for doc in curated_docs]}}, session=session
+            )
+            return {
+                "cancer_genes_upserted": cancer_count,
+                "curated_genes_upserted": curated_count,
+                "cancer_genes_removed": cancer_deleted.deleted_count,
+                "curated_genes_removed": curated_deleted.deleted_count,
+            }
+
+        return run_transaction(self.gene_collection.database.client, refresh)
 
     def get_gene_record(self, gene: str | None) -> dict[str, Any] | None:
         """Return one UI-facing public OncoKB gene record by symbol."""

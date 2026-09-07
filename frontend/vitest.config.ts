@@ -10,6 +10,7 @@ export default defineConfig({
       appVersion: "test",
       gensUri: "",
       igvUri: "",
+      igvDataRoot: "",
       localTimeZone: "UTC",
       organizationName: "Coyote3 Test",
       scriptName: "",
@@ -22,6 +23,7 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    maxWorkers: 4,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {

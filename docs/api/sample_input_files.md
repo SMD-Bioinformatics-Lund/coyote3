@@ -18,7 +18,7 @@ sample YAML manifest
   -> normalized from pipeline names to the canonical ingest contract
   -> validated as a SamplesDoc
   -> points to raw file paths
-  -> resolves assay/profile/omics metadata
+  -> resolves assay/environment/omics metadata
 
 raw input files
   -> parsed by DnaIngestParser or RnaIngestParser
@@ -36,9 +36,9 @@ These repo fixtures are the best concrete reference for expected input shapes:
 - `demo_data/ingest/generic_case_control.cov.json`
 - `demo_data/ingest/generic_rna_sample.yaml`
 - `demo_data/collections/all_collections_dummy/fusions.json`
-- `demo_data/collections/all_collections_dummy/rna_expression.json`
-- `demo_data/collections/all_collections_dummy/rna_classification.json`
-- `demo_data/collections/all_collections_dummy/rna_qc.json`
+- `demo_data/ingest/generic_rna_expression.json`
+- `demo_data/ingest/generic_rna_classification.json`
+- `demo_data/ingest/generic_rna_qc.json`
 
 ## Manifest Layer
 
@@ -64,7 +64,8 @@ Important behavior:
 - ASP file policy rejects manifest file keys that are not listed in `assay_specific_panels.expected_files`; declared resources are never silently discarded.
 - Required ASP files must be present and readable before parsing starts.
 - Optional expected files may be omitted. If an optional expected file path is present, Coyote3 treats it as declared data and the sample will not be marked ready unless that file is parsed and written successfully.
-- If `filters` is missing, ingest may seed `samples.filters` from ASPC defaults.
+- Pipeline-authored `filters` and `analysis_intents` are replaced by the resolved
+  ASPC configuration, not used to override clinical review defaults.
 
 Pipeline manifests declare file paths as flat top-level keys, as documented in
 [API / Sample YAML Guide](sample_yaml.md#pipeline-file-declaration-format).
@@ -73,6 +74,71 @@ stored record contains the source `path` and any available checksum or file-size
 metadata.
 
 See [API / Sample YAML Guide](sample_yaml.md) for the full manifest contract.
+
+## Raw file contract summary
+
+Keys are case-sensitive. The names below are the configured defaults in
+`api/config/center/clinical_vocabulary.toml`. Each manifest file key contains one
+path string, even names such as `vcf_files` and `fusion_files`. JSON files are
+UTF-8 JSON, not JSONL or arbitrary CSV/TSV exports. Ingest attaches `SAMPLE_ID`
+from the parent sample; producers do not need to generate MongoDB identifiers.
+Validation of all declared evidence must succeed before the bundle commits.
+
+| Manifest key | Raw format/root | Fields consumed | Stored destination |
+| --- | --- | --- | --- |
+| `vcf_files` | VEP-annotated VCF | Standard columns, `INFO/CSQ`, `INFO/variant_callers`, `FORMAT/GT`, `DP`, `VAF`, `VD`; see table below | `variants`, versioned `anno_vep` |
+| `cnv` | JSON array of objects or object keyed by region | `chr`, `start`, `end`, `size`; optional `ratio`, `type`, `nprobes`, `genes`, `callers` | `cnvs` |
+| `cnvprofile` | Image resource, normally PNG | No JSON or VCF fields; not parsed as finding rows | `samples.files.cnvprofile` |
+| `cov` | JSON object | `genes` keyed by gene symbol; each gene has `covered_by_panel`, `transcript`, optional `exons`, `CDS`, `probes` | `panel_coverage`; parent sample supplies `sample` |
+| `biomarkers` | JSON object | `name`; optional `MSIS`, `MSIP`, `HRD` objects | `biomarkers` |
+| `transloc` | SnpEff-annotated breakend VCF | Standard columns, `INFO/ANN`, genotype fields; see table below | `translocations` |
+| `fusion_files` | JSON array of fusion objects | `gene1`, `gene2`, `genes`, non-empty `calls` | `fusions` |
+| `expression_path` | JSON object | `expression_version`, `sample`, `reference` | `rna_expression` |
+| `classification_path` | JSON object | `classifier_version`, `classifier_results` | `rna_classification` |
+| `qc` | JSON object | Read, splice, gene-body, genotype, and fragment metrics listed below | `rna_qc` |
+| `pgx` | JSON object or array of objects; DNA or RNA | Object keys preserved; arrays wrapped as `records` | `pgx`; storage does not imply PharmCAT interpretation or recommendations |
+| `case_bam`, `control_bam` | BAM filename string in YAML | Metadata only; resolved within the ASP IGV folder, with catalog fallback for unconfigured assays | `samples.case.bam`, `samples.control.bam` |
+| `case_bai`, `control_bai` | BAI filename string in YAML | Metadata only; resolved within the same BAM directory | `samples.case.bai`, `samples.control.bai` |
+
+### VCF columns and annotations
+
+| Raw column/key | Raw representation | Ingest handling |
+| --- | --- | --- |
+| `#CHROM`, `POS`, `ID`, `REF`, `ALT`, `QUAL` | Tab-separated VCF columns; `POS` is a 1-based integer | Parsed through pysam; use normalized, biallelic SNV/indel records rather than relying on ingest to split multiallelic sites |
+| `FILTER` | `PASS`, `.`, or semicolon-separated filter IDs declared in the header | Stored as `FILTER` list; SNV exclusions include `FAIL_NVAF`, `FAIL_LONGDEL`, and `FAIL_PON_*` |
+| `INFO` | Semicolon-separated key/value entries and flags, with VCF header declarations | Decoded into an object; not a JSON column |
+| `INFO/variant_callers` | Pipe-separated caller names | Required by SNV parser; stored as a list |
+| `INFO/CSQ` | Comma-separated transcripts, pipe-separated fields | Required for SNVs; header description must end in the matching pipe-separated field list, normally `Format: Allele\|Consequence\|...` |
+| CSQ fields | `Feature`, `SYMBOL`, `HGNC_ID`, `IMPACT`, `BIOTYPE`, `CANONICAL`, `Consequence`, `HGVSc`, `HGVSp`, `VARIANT_CLASS`, plus annotations available from the pipeline | Provide usable transcripts and impact values for selection; identifiers, HGVS, consequences and annotation-vault rows are derived from them |
+| `FORMAT` | Colon-separated keys such as `GT:DP:VAF:VD` | Describes each sample column; SNVs retain normalized genotype objects and discard the standalone FORMAT list; translocations retain it |
+| `FORMAT/GT` | Genotype, for example `0/1` | Genotype string in stored `GT[]` |
+| `FORMAT/DP`, `FORMAT/VD` | Integer total and alternate depth | Required SNV genotype fields; missing clinical values must not be supplied as invented zeros |
+| `FORMAT/VAF` | Numeric allele fraction, for example `0.12`, not `12` | Required by the SNV parser; renamed to `GT[].AF`. `AF` alone is not a substitute for raw `VAF` |
+| Sample columns | First case, second control for paired input | Column names become `GT[].sample`; order determines SNV case/control role, not name matching |
+| `INFO/ANN` | Comma-separated annotations, pipe-separated fields with SnpEff header field names | Required for translocations; includes `Annotation`, `Gene_ID`, `HGVS.p` and other SnpEff fields; retains gene-fusion annotations |
+| Translocation `FORMAT/PR`, `SR`, `UR` | Read-support fields when supplied | PR/SR preserved as strings; UR converted to number or null; missing PR/SR become empty strings |
+| `##VEP=` | VEP/database version header | Metadata extraction reads the first 500 text header lines. Supply `database_versions` explicitly when the header is unavailable, including compressed inputs |
+| YAML `filters` | Clinical filter profile object, not a VCF field | Pipeline values are ignored; ASPC supplies somatic/germline profiles. Do not rename VCF `FILTER` to `filters` |
+
+### JSON evidence fields
+
+Required fields below exclude the parent linkage injected by ingest. Extra
+pipeline fields may be retained where the collection contract permits them;
+they are not substitutes for required fields. See the generated collection
+contracts for exhaustive types and defaults.
+
+| Input | Raw keys and types | Validation/normalization |
+| --- | --- | --- |
+| CNV row | `chr`: string; `start`, `end`, `size`: integers; `genes[]`: objects with `gene` and optional `class`, `cnv_type` | `callers` accepts list or delimited string; `ratio` accepts numeric or supported event labels; omitted `nprobes` currently normalizes to zero |
+| Coverage gene | `covered_by_panel`: boolean; `transcript`: object with `chr`, `start`, `end`, `transcript_id` | `exons`, `CDS`, `probes` are keyed objects, not arrays |
+| Coverage region | `chr`: string; `start`, `end`: integers; optional `cov`: number/null; exon/CDS may include `nbr` | Missing coverage remains null; it is not measured zero coverage |
+| Biomarker | `name`: string; optional `MSIS`/`MSIP`: `{tot: int, som: int, per: number}`; optional `HRD`: `{tai: int, hrd: int, lst: int, sum: int}` | JSON object, not an array; pass only measurements that exist |
+| Fusion call | `caller`, `breakpoint1`, `breakpoint2`: strings; `spanpairs`, `spanreads`: integers; `longestanchor`: integer or string; `selected`: 0/1 | Exactly one selected call; omitted selection becomes 0; omitted `effect`, `desc` become empty strings, `commonreads` becomes 0 |
+| Expression `sample[]` | `hgnc_symbol`, `ensembl_gene_id`: strings; `sample_expression`, `reference_sd`, `reference_mean`, `reference_median`, `reference_mean_mod`, `sample_mod`, `z`: numbers | All listed fields required for each sample expression row |
+| Expression `reference[]` | `hgnc_symbol`, `ensembl_gene_id`; numeric `reference_sd`, `reference_mean`, `reference_median`; numeric `quant_values` map | Additional dynamic numeric reference values are collected into `quant_values` |
+| Classification row | `class`: string; `score`: number; `true`, `total`: integers | `true` cannot exceed `total` |
+| QC object | `sample_id`: string; `tot_reads`, `canon_splice`, `non_canon_splice`, `splice_ratio`, `provider_called_genotypes`, `flendist`: integers; `genebody_cov`: integer array; `genebody_cov_slope`: number; `provider_genotypes`: string map | All listed fields required |
+| QC percentages | `mapped_pct`, `multimap_pct`, `mismatch_pct`: numbers | Required; range 0 to 100, unlike SNV VAF fractions |
 
 ## DNA Raw Input Files
 
@@ -84,6 +150,7 @@ The DNA parser reads file paths from these manifest keys:
 - `cov`
 - `biomarkers`
 - `transloc`
+- `pgx`
 
 `cnvprofile` is a sample image resource. It is retained under `samples.files.cnvprofile`
 and shown in the CNV review tab, but it does not create a dependent database
@@ -200,9 +267,9 @@ Observed demo object shape:
     "chr": "17",
     "start": 42337980,
     "end": 42338541,
-    "genes": [...],
+    "genes": [{"gene": "BRCA1"}],
     "nprobes": 0,
-    "NORMAL": ...
+    "NORMAL": false
   }
 }
 ```
@@ -242,10 +309,10 @@ Observed demo shape:
   "genes": {
     "UBA1": {
       "covered_by_panel": true,
-      "transcript": {...},
-      "exons": {...},
-      "CDS": {...},
-      "probes": {...}
+      "transcript": {"chr": "X", "start": 100, "end": 200, "transcript_id": "synthetic"},
+      "exons": {"1": {"chr": "X", "start": 100, "end": 200, "cov": 120}},
+      "CDS": {},
+      "probes": {}
     }
   }
 }
@@ -260,7 +327,7 @@ Recommended raw structure:
 
 - top-level `genes` object
 - one entry per gene
-- each gene entry may contain:
+- each gene entry requires `covered_by_panel` and `transcript`; the region maps are optional:
   - `covered_by_panel`
   - `transcript`
   - `exons`
@@ -294,7 +361,7 @@ Parser behavior:
 
 - ALT values containing symbolic `<...>` alleles are skipped
 - only gene-fusion style records are retained
-- `MANE_ANN` is added when the MANE summary file can resolve the selected annotation
+- this parser does not read a MANE summary file or currently resolve `MANE_ANN`
 
 Stored translocation documents use one object-shaped `INFO` field. `INFO.ANN`
 contains all retained fusion annotations and `INFO.MANE_ANN` contains the selected
@@ -310,6 +377,7 @@ The RNA parser reads file paths from these manifest keys:
 - `expression_path`
 - `classification_path`
 - `qc`
+- `pgx`
 
 The RNA parser validates each declared file, loads the JSON payload, normalizes
 sparse caller fields to the canonical collection contract, attaches the parent
@@ -338,6 +406,7 @@ Observed fixture shape:
         "caller": "arriba",
         "spanpairs": 20,
         "spanreads": 42,
+        "longestanchor": 30,
         "breakpoint1": "22:23632600",
         "breakpoint2": "9:133589000",
         "effect": "gene_fusion",
@@ -396,24 +465,21 @@ single filter expression.
 
 Fixture:
 
-- `demo_data/collections/all_collections_dummy/rna_expression.json`
+- `demo_data/ingest/generic_rna_expression.json`
 
 Observed fixture shape:
 
 ```json
-[
   {
-    "SAMPLE_ID": "...",
     "expression_version": "1.0.0",
-    "sample": [...],
-    "reference": [...]
+    "sample": [],
+    "reference": []
   }
-]
 ```
 
 Recommended raw structure:
 
-- list of expression documents
+- one expression object (not the array wrapper used by collection seed exports)
 - each document usually includes:
   - `expression_version`
   - `sample`
@@ -423,25 +489,22 @@ Recommended raw structure:
 
 Fixture:
 
-- `demo_data/collections/all_collections_dummy/rna_classification.json`
+- `demo_data/ingest/generic_rna_classification.json`
 
 Observed fixture shape:
 
 ```json
-[
   {
-    "SAMPLE_ID": "...",
     "classifier_version": "1.0.0",
     "classifier_results": [
       {"class": "DEMO_CLASS", "score": 0.98, "true": 98, "total": 100}
     ]
   }
-]
 ```
 
 Recommended raw structure:
 
-- list of classification documents
+- one classification object
 - each document usually includes:
   - `classifier_version`
   - `classifier_results`
@@ -450,28 +513,31 @@ Recommended raw structure:
 
 Fixture:
 
-- `demo_data/collections/all_collections_dummy/rna_qc.json`
+- `demo_data/ingest/generic_rna_qc.json`
 
 Observed fixture shape:
 
 ```json
-[
   {
-    "SAMPLE_ID": "...",
     "sample_id": "seed_sample",
     "tot_reads": 1000000,
     "mapped_pct": 95.0,
     "multimap_pct": 3.0,
     "mismatch_pct": 0.5,
     "canon_splice": 12000,
-    "non_canon_splice": 200
+    "non_canon_splice": 200,
+    "splice_ratio": 60,
+    "genebody_cov": [100, 102, 99],
+    "genebody_cov_slope": -0.5,
+    "provider_genotypes": {},
+    "provider_called_genotypes": 0,
+    "flendist": 150
   }
-]
 ```
 
 Recommended raw structure:
 
-- list of QC documents
+- one QC object
 - each document usually includes:
   - read totals
   - mapped / multimap / mismatch percentages

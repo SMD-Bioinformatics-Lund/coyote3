@@ -22,6 +22,6 @@ case_sequencing_run: demo_rna_run
 case_reads: 1000000
 case_purity: null
 fusion_files: ../collections/all_collections_dummy/fusions.json
-expression_path: ../collections/all_collections_dummy/rna_expression.json
-classification_path: ../collections/all_collections_dummy/rna_classification.json
-qc: ../collections/all_collections_dummy/rna_qc.json
+expression_path: generic_rna_expression.json
+classification_path: generic_rna_classification.json
+qc: generic_rna_qc.json

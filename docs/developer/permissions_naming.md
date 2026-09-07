@@ -95,6 +95,12 @@ The registry documents and tests the frontend contract. It does not grant access
 6. Update the UI route registry when a page or API dependency changes.
 7. Regenerate the permission reference and run RBAC, route-contract, and frontend tests.
 
+`tests/api/test_rbac_complete_route_matrix.py` is the complete shipped RBAC contract. It loads
+the permission and role seed catalogs, verifies every role against every active permission, and
+executes every registered `require_access` dependency for every bundled role. Adding a protected
+endpoint, permission, or bundled role automatically expands that matrix; do not replace it with a
+manually curated list of high-risk endpoints.
+
 A permission inserted only into MongoDB has no effect until application code requires that identifier. Conversely, code must not require an identifier that is absent from the shipped catalog.
 
 Generate the reference after changing the catalog:

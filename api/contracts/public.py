@@ -4,7 +4,49 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+
+from api.contracts.schemas.public_catalog import (
+    PublicAssayCatalogDoc,
+    PublicCatalogRevisionDoc,
+)
+
+
+class PublicAssayCatalogImportRequest(BaseModel):
+    """JSON document uploaded into the center public assay catalog."""
+
+    model_config = ConfigDict(extra="forbid")
+    document: dict[str, Any]
+
+
+class PublicAssayCatalogUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: int = Field(ge=1)
+    catalog: dict[str, Any]
+
+
+class PublicAssayCatalogTransitionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: int = Field(ge=1)
+    assignee: str = ""
+    approve: bool = True
+    reason: str = ""
+
+
+class PublicAssayCatalogAdminPayload(BaseModel):
+    """Admin response containing the canonical catalog document."""
+
+    catalog: PublicAssayCatalogDoc
+    sources: dict[str, list[dict[str, Any]]]
+    has_published: bool
+    items: list[dict[str, Any]]
+    reviewers: list[dict[str, str]]
+    publishers: list[dict[str, str]]
+    presets: dict[str, list[str]]
+
+
+class PublicAssayCatalogRevisionsPayload(BaseModel):
+    items: list[PublicCatalogRevisionDoc]
 
 
 class PublicGenelistViewPayload(BaseModel):

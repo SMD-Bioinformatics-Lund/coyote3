@@ -7,6 +7,74 @@ from types import SimpleNamespace
 import pytest
 
 
+def _clinical_rule_repository(
+    *, rule_set_id: str = "hema_gmsv1__base__sv", analyte: str = "dna"
+) -> SimpleNamespace:
+    def get_active(requested_id: str):
+        if requested_id != rule_set_id:
+            return None
+        return {
+            "rule_set_id": rule_set_id,
+            "content_version": 1,
+            "revision": 1,
+            "scope": {
+                "asp_id": rule_set_id.split("__", 1)[0],
+                "subpanel_id": "base",
+                "analyte": analyte,
+                "language": "sv",
+            },
+            "name": "Test rules",
+            "status": "published",
+            "active": True,
+            "analysis_declarations": {"SNV": {"narrative": "enabled"}},
+            "blocks": [],
+            "created_at": "2026-01-01T00:00:00Z",
+            "created_by": "test",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "updated_by": "test",
+            "published_at": "2026-01-01T00:00:00Z",
+            "published_by": "test",
+        }
+
+    def list_active_for_assay(asp_id: str):
+        document = get_active(rule_set_id)
+        return [document] if document and document["scope"]["asp_id"] == asp_id else []
+
+    return SimpleNamespace(
+        get_active=get_active,
+        list_active_for_assay=list_active_for_assay,
+    )
+
+
+def test_aspc_form_lists_published_rules_for_selected_assay() -> None:
+    """The managed ASPC form exposes assay-scoped rule releases as a selector."""
+    from api.application.accounts.common import build_managed_form
+    from api.application.resources.aspc import AspcService
+    from api.contracts.managed_resources import aspc_spec_for_category
+
+    service = AspcService(
+        assay_configuration_repository=SimpleNamespace(),
+        assay_panel_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(),
+        vep_metadata_repository=SimpleNamespace(),
+        clinical_rule_set_repository=_clinical_rule_repository(),
+        common_util=SimpleNamespace(),
+    )
+    form = build_managed_form(aspc_spec_for_category("DNA"))
+
+    service._set_clinical_rule_options(form, ["hema_gmsv1"])
+
+    reporting_fields = [
+        field for group in form["fields"]["reporting"]["groups"] for field in group["fields"]
+    ]
+    selector = next(field for field in reporting_fields if field["key"] == "clinical_rule_set_id")
+    options = selector["options_by_field"]["values"]["hema_gmsv1"]
+    assert selector["type"] == "select"
+    assert options[0]["value"] == "hema_gmsv1__base__sv"
+    assert options[0]["subpanel_id"] == "base"
+    assert selector["auto_select"]["field"] == "subpanel_id"
+
+
 def test_business_identifiers_allow_clinical_subpanel_hyphens() -> None:
     """Clinical subpanel identifiers may contain hyphens, e.g. hem-snabb."""
     from api.config.constants import validate_identifier
@@ -38,6 +106,7 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
         ),
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda *a, **k: []),
+        clinical_rule_set_repository=_clinical_rule_repository(),
         common_util=SimpleNamespace(),
     )
 
@@ -53,7 +122,10 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
                 "environment": "production",
                 "display_name": "Demo ASPC",
                 "analysis_types": ["SNV"],
-                "reporting": {"report_sections": ["SNV"]},
+                "reporting": {
+                    "report_sections": ["SNV"],
+                    "clinical_rule_set_id": "hema_gmsv1__base__sv",
+                },
                 "filters": {"somatic": {"snv": {"min_alt_reads": 5}}},
                 "asp_group": "wrong",
                 "asp_category": "rna",
@@ -72,8 +144,8 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
     assert "version_history" not in created[0]
 
 
-def test_aspc_service_uses_static_yaml_scope_validation(monkeypatch) -> None:
-    """ASPC validation resolves a matching static ASP/subpanel rule source."""
+def test_aspc_service_requires_compatible_published_rule_binding() -> None:
+    """ASPC validation resolves the explicitly bound published rule set."""
     from api.application.resources.aspc import AspcService
 
     service = AspcService(
@@ -81,28 +153,50 @@ def test_aspc_service_uses_static_yaml_scope_validation(monkeypatch) -> None:
         assay_panel_repository=SimpleNamespace(),
         gene_list_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(),
+        clinical_rule_set_repository=_clinical_rule_repository(),
         common_util=SimpleNamespace(),
     )
-
-    monkeypatch.setattr(
-        "api.application.resources.aspc.ClinicalRuleService.resolve",
-        lambda _self, *, context: (
-            SimpleNamespace(
-                rule_set=SimpleNamespace(rule_set_id="hema_gmsv1__base"),
-                analyses={"SNV": SimpleNamespace(enabled=True)},
-            ),
-            None,
-        ),
-    )
-    service._validate_static_rule_source(
+    service._validate_clinical_rule_binding(
         {
             "is_active": True,
             "asp_id": "hema_gmsv1",
             "asp_category": "dna",
             "subpanel_id": "base",
-            "reporting": {"report_sections": ["SNV"]},
+            "reporting": {
+                "report_sections": ["SNV"],
+                "clinical_rule_set_id": "hema_gmsv1__base__sv",
+            },
         }
     )
+
+
+def test_aspc_service_rejects_rule_binding_from_another_assay() -> None:
+    """Direct API writes cannot bypass the assay-scoped rule selector."""
+    from api.application.resources.aspc import AspcService
+    from api.domain.common.errors import AppError
+
+    service = AspcService(
+        assay_configuration_repository=SimpleNamespace(),
+        assay_panel_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(),
+        vep_metadata_repository=SimpleNamespace(),
+        clinical_rule_set_repository=_clinical_rule_repository(),
+        common_util=SimpleNamespace(),
+    )
+
+    with pytest.raises(AppError, match="rule-set assay does not match"):
+        service._validate_clinical_rule_binding(
+            {
+                "is_active": True,
+                "asp_id": "solid_gmsv3",
+                "asp_category": "dna",
+                "subpanel_id": "base",
+                "reporting": {
+                    "report_sections": ["SNV"],
+                    "clinical_rule_set_id": "hema_gmsv1__base__sv",
+                },
+            }
+        )
 
 
 def test_aspc_service_allows_empty_gene_list_selection(monkeypatch) -> None:
@@ -128,12 +222,13 @@ def test_aspc_service_allows_empty_gene_list_selection(monkeypatch) -> None:
         assay_panel_repository=SimpleNamespace(get_asp=lambda _asp_id: panel),
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
+        clinical_rule_set_repository=_clinical_rule_repository(),
         common_util=SimpleNamespace(),
     )
     monkeypatch.setattr(aspc_module, "current_actor", lambda username="admin-ui": username)
     monkeypatch.setattr(aspc_module, "utc_now", lambda: "now")
     monkeypatch.setattr(aspc_module, "_validated_doc", lambda _collection, payload: payload)
-    monkeypatch.setattr(service, "_validate_static_rule_source", lambda _config: None)
+    monkeypatch.setattr(service, "_validate_clinical_rule_binding", lambda _config: None)
 
     service.create(
         payload={
@@ -175,12 +270,13 @@ def test_aspc_service_materializes_translocation_filters_when_enabled(monkeypatc
         assay_panel_repository=SimpleNamespace(get_asp=lambda _asp_id: panel),
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
+        clinical_rule_set_repository=_clinical_rule_repository(rule_set_id="solid_gmsv3__base__sv"),
         common_util=SimpleNamespace(),
     )
     monkeypatch.setattr(aspc_module, "current_actor", lambda username="admin-ui": username)
     monkeypatch.setattr(aspc_module, "utc_now", lambda: "now")
     monkeypatch.setattr(aspc_module, "_validated_doc", lambda _collection, payload: payload)
-    monkeypatch.setattr(service, "_validate_static_rule_source", lambda _config: None)
+    monkeypatch.setattr(service, "_validate_clinical_rule_binding", lambda _config: None)
 
     service.create(
         payload={
@@ -222,6 +318,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
         ),
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
+        clinical_rule_set_repository=_clinical_rule_repository(),
         common_util=SimpleNamespace(),
     )
 
@@ -248,6 +345,7 @@ def test_aspc_service_rejects_gene_lists_outside_asp_scope() -> None:
             ]
         ),
         vep_metadata_repository=SimpleNamespace(),
+        clinical_rule_set_repository=_clinical_rule_repository(),
         common_util=SimpleNamespace(),
     )
 

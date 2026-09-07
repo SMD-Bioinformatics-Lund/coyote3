@@ -6,8 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
 import { PublicCatalog, PublicCatalogMatrix } from "./PublicCatalog"
 
+beforeEach(() => localStorage.clear())
+
 vi.mock("@/lib/api", () => ({
-  api: { get: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn() },
 }))
 
 vi.mock("@/components/data-table/DataTable", () => ({
@@ -82,6 +84,21 @@ const catalogPayload = {
   ],
 }
 
+it("renders draft preview with the public catalog navigation, details, and gene table", async () => {
+  const document = { header: "Draft catalog", description: "", layout: { order: [] }, modalities: {} }
+  vi.mocked(api.post).mockResolvedValue({ data: catalogPayload, status: 200 })
+  renderPage(<PublicCatalog previewDocument={document} />)
+  expect(await screen.findByText("Hematology GMSv1")).toBeVisible()
+  expect(screen.getByText("21 days")).toBeVisible()
+  expect(screen.getByTestId("gene-table")).toHaveTextContent("2 genes")
+  fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
+  await screen.findByRole("button", { name: "Hematology" })
+  fireEvent.click(screen.getByRole("button", { name: "Hematology" }))
+  await waitFor(() => expect(api.post).toHaveBeenLastCalledWith(
+    "/admin/assay-catalog/preview?mod=dna&cat=hematology", { document },
+  ))
+})
+
 const matrixPayload = {
   columns: [
     {
@@ -124,7 +141,7 @@ describe("PublicCatalog", () => {
     renderPage(<PublicCatalog />)
 
     expect(await screen.findByText("Hematology GMSv1")).toBeVisible()
-    expect(screen.getByTestId("gene-table")).toHaveTextContent("2 genes, 3 columns")
+    expect(screen.getByTestId("gene-table")).toHaveTextContent("2 genes, 4 columns")
     expect(screen.getByText("Public note")).toBeVisible()
     expect(screen.getByText("Center detail")).toBeVisible()
 
@@ -153,6 +170,7 @@ describe("PublicCatalog", () => {
     renderPage(<PublicCatalog />)
 
     fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
+    await waitFor(() => expect(screen.getByRole("button", { name: "Catalog CSV" })).toBeEnabled())
     fireEvent.click(screen.getByRole("button", { name: "Catalog CSV" }))
 
     await waitFor(() => expect(api.get).toHaveBeenCalledWith("/public/assay-catalog/genes.csv/context?mod=dna"))
@@ -181,6 +199,47 @@ describe("PublicCatalogMatrix", () => {
     expect(screen.getByRole("columnheader", { name: "hematology" })).toBeVisible()
     expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/public/gene/TP53/info")
     expect(screen.getByText("Showing 2 of 125 gene(s) across 2 visible catalog column(s)")).toBeVisible()
+  })
+
+  it("keeps annotation visibility separate and remembers the matrix preference", async () => {
+    localStorage.setItem("coyote3:catalog:annotations", "false")
+    const view = renderPage(<PublicCatalogMatrix />)
+    const toggle = await screen.findByRole("checkbox", { name: "Annotations" })
+    expect(toggle).not.toBeChecked()
+    expect(screen.queryByRole("columnheader", { name: "Annotations" })).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(screen.getByRole("columnheader", { name: "Annotations" })).toBeVisible()
+    expect(localStorage.getItem("coyote3:matrix:annotations")).toBe("true")
+    expect(localStorage.getItem("coyote3:catalog:annotations")).toBe("false")
+    view.unmount()
+    renderPage(<PublicCatalogMatrix />)
+    expect(await screen.findByRole("checkbox", { name: "Annotations" })).toBeChecked()
+  })
+
+  it("abbreviates sequencing headers and wraps all header labels without truncation", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: {
+      ...matrixPayload,
+      columns: matrixPayload.columns.map((column, index) => ({
+        ...column,
+        mod: index === 0 ? "wgs" : "wts",
+        modality_label: index === 0
+          ? "Whole Genome Sequencing (WGS)"
+          : "Whole Transcriptome Sequencing (WTS)",
+        assay_group: "Hematology and Solid Tumors",
+        isgl_label: "LongUnbrokenGeneListName",
+      })),
+    } } as never)
+    renderPage(<PublicCatalogMatrix />)
+
+    const wgs = await screen.findByRole("columnheader", { name: "WGS" })
+    expect(wgs).toHaveAttribute("title", "Whole Genome Sequencing (WGS)")
+    expect(screen.getByRole("columnheader", { name: "WTS" })).toBeVisible()
+    for (const header of screen.getAllByRole("columnheader")) {
+      const label = header.querySelector("span")
+      if (!label) continue
+      expect(label).toHaveClass("whitespace-normal", "[overflow-wrap:anywhere]")
+      expect(label).not.toHaveClass("truncate")
+    }
   })
 
   it("filters visible columns without another server request", async () => {

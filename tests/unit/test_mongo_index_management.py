@@ -92,3 +92,22 @@ def test_retire_index_requires_a_known_collection_and_exact_existing_name():
         retire_index(adapter, collection_name="other", index_name="legacy_1")
     with pytest.raises(ValueError, match="does not exist"):
         retire_index(adapter, collection_name="samples", index_name="missing_1")
+
+
+def test_index_retirement_rejects_ambiguous_cross_service_collection_names():
+    app = FakeCollection("samples", [{"name": "legacy_1", "key": {"legacy": 1}}])
+    bam = FakeCollection("samples", [{"name": "legacy_1", "key": {"legacy": 1}}])
+    adapter = SimpleNamespace(
+        iter_repositories=lambda: iter(
+            [
+                ("samples", FakeRepository(app)),
+                ("bam", FakeRepository(bam)),
+            ]
+        )
+    )
+    with pytest.raises(ValueError, match="ambiguous"):
+        retire_index(adapter, collection_name="samples", index_name="legacy_1")
+    assert app.dropped == bam.dropped == []
+    retire_index(adapter, collection_name="samples", index_name="legacy_1", repository_name="bam")
+    assert app.dropped == []
+    assert bam.dropped == ["legacy_1"]

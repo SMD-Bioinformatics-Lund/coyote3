@@ -47,6 +47,9 @@ const SavedReportPage = lazy(() => import("./pages/reports/SavedReportPage").the
 const NotificationHistoryPage = lazy(() => import("./pages/account/NotificationHistoryPage").then((module) => ({ default: module.NotificationHistoryPage })))
 const UiRouteAuditPage = lazy(() => import("./pages/admin/UiRouteAuditPage").then((module) => ({ default: module.UiRouteAuditPage })))
 const AdminNotificationBroadcastPage = lazy(() => import("./pages/admin/AdminNotificationBroadcastPage").then((module) => ({ default: module.AdminNotificationBroadcastPage })))
+const ClinicalRulesPage = lazy(() => import("./pages/admin/ClinicalRulesPage").then((module) => ({ default: module.ClinicalRulesPage })))
+const ClinicalRuleTestingPage = lazy(() => import("./pages/admin/ClinicalRuleTestingPage").then((module) => ({ default: module.ClinicalRuleTestingPage })))
+const PublicAssayCatalogPage = lazy(() => import("./pages/admin/PublicAssayCatalogPage").then((module) => ({ default: module.PublicAssayCatalogPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -143,6 +146,9 @@ export default function App() {
             <Route path="/admin/schemas" element={withAdminPermission(<AdminSchemasPage />, ADMIN_UTILITY_PERMISSIONS.schemasView)} />
             <Route path="/admin/ui-routes" element={withAdminPermission(<UiRouteAuditPage />, ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView)} />
             <Route path="/admin/notifications" element={withAdminPermission(<AdminNotificationBroadcastPage />, ADMIN_UTILITY_PERMISSIONS.broadcastCreate)} />
+            <Route path="/admin/clinical-rules" element={withAdminPermission(<ClinicalRulesPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesView)} />
+            <Route path="/admin/clinical-rules/testing" element={withAdminPermission(<ClinicalRuleTestingPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest)} />
+            <Route path="/admin/assay-catalog" element={withAdminPermission(<PublicAssayCatalogPage />, "catalog:view")} />
             <Route path="/admin/:resource/create" element={withRouteLoader(<AdminResourceEditorPage mode="create" />)} />
             <Route path="/admin/:resource/:id/view" element={withRouteLoader(<AdminResourceEditorPage mode="view" />)} />
             <Route path="/admin/:resource/:id/edit" element={withRouteLoader(<AdminResourceEditorPage mode="edit" />)} />

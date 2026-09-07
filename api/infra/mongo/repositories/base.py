@@ -18,6 +18,7 @@ from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_metric_cache import invalidate_dashboard_metrics
+from api.infra.mongo.transactions import run_transaction
 
 
 # -------------------------------------------------------------------------
@@ -46,6 +47,41 @@ class BaseRepository:
         if self.repository_collection is not None:
             return self.repository_collection
         raise NotImplementedError("get_collection or set_collection must be implemented")
+
+    def update_many_atomic(self, selector, update):
+        """Apply a bulk update as one commit, not one independent write per document."""
+        return run_transaction(
+            self.get_collection().database.client,
+            lambda session: self.get_collection().update_many(selector, update, session=session),
+        )
+
+    def delete_many_atomic(self, selector):
+        """Delete matching documents as one commit."""
+        return run_transaction(
+            self.get_collection().database.client,
+            lambda session: self.get_collection().delete_many(selector, session=session),
+        )
+
+    def insert_many_atomic(self, documents):
+        """Insert all documents together or abort the entire batch."""
+        return run_transaction(
+            self.get_collection().database.client,
+            lambda session: self.get_collection().insert_many(
+                [dict(doc) for doc in documents], session=session
+            ),
+        )
+
+    def bulk_write_atomic(self, operations, *, session=None):
+        """Join an owning transaction, or start a required transaction for the batch."""
+
+        def write(active_session):
+            return self.get_collection().bulk_write(
+                operations, ordered=False, session=active_session
+            )
+
+        if session is not None:
+            return write(session)
+        return run_transaction(self.get_collection().database.client, write)
 
     def invalidate_dashboard_metrics(self) -> None:
         """Invalidate dashboard metrics that depend on this collection."""
@@ -108,7 +144,7 @@ class BaseRepository:
         try:
             return self._invalidate_dashboard_on_change(
                 OperationResult.from_update(
-                    self.get_collection().update_many(
+                    self.update_many_atomic(
                         {"_id": {"$in": object_ids}},
                         {"$set": {"fp": fp}},
                     ),
@@ -191,7 +227,7 @@ class BaseRepository:
         try:
             return self._invalidate_dashboard_on_change(
                 OperationResult.from_update(
-                    self.get_collection().update_many(
+                    self.update_many_atomic(
                         {"_id": {"$in": object_ids}},
                         {"$set": {"irrelevant": irrelevant}},
                     ),
@@ -229,7 +265,7 @@ class BaseRepository:
         try:
             return self._invalidate_dashboard_on_change(
                 OperationResult.from_update(
-                    self.get_collection().update_many(
+                    self.update_many_atomic(
                         {"_id": {"$in": object_ids}},
                         {"$set": {"blacklisted": blacklisted}},
                     ),

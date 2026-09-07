@@ -25,7 +25,7 @@ def test_vep_evidence_is_immutable_per_variant_and_release(
         operations.extend(values)
         return SimpleNamespace(upserted_count=2)
 
-    monkeypatch.setattr(repository.get_collection(), "bulk_write", capture_bulk_write)
+    monkeypatch.setattr(repository, "bulk_write_atomic", capture_bulk_write)
 
     initial = {
         "simple_id_hash": "variant-one",

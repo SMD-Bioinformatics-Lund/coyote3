@@ -37,6 +37,7 @@ class MongoApiSessionRepository:
                 "_id": token_hash(token),
                 "user_id": user.username,
                 "provider": provider,
+                "credential_version": getattr(user, "credential_version", None),
                 "csrf_token": csrf_token,
                 "created_at": now,
                 "last_seen_at": now,
@@ -52,6 +53,9 @@ class MongoApiSessionRepository:
             return None
         user = self.user_loader(str(document.get("user_id") or ""))
         if user is None:
+            return None
+        if document.get("credential_version") != getattr(user, "credential_version", None):
+            self.delete(token)
             return None
         self.collection.update_one(
             {"_id": document["_id"]},

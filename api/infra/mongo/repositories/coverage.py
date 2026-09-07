@@ -72,6 +72,4 @@ class CoverageRepository(BaseRepository):
         Returns:
          Structured write result for the delete.
         """
-        return OperationResult.from_delete(
-            self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
-        )
+        return OperationResult.from_delete(self.delete_many_atomic({"SAMPLE_ID": sample_oid}))

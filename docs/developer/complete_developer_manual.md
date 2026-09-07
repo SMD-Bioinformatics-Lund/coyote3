@@ -203,10 +203,17 @@ and [query strategy](../product/aspc_driven_query_strategy.md).
 
 ![Sample ingest workflow](../assets/diagrams/celery_ingest_flow.svg)
 
-Ingest is atomic at the sample-bundle level: every declared file must be read
+Ingest readiness is checked at the sample-bundle level: every declared file must be read
 and its dependent documents must pass their collection contracts before the
 sample is committed as ready. Optional files may be absent only when they were
 not declared.
+
+Fresh creation and updates use required MongoDB transactions for the sample and
+its declared evidence. Async completion receipts join those transactions. Parsing,
+filesystem operations, and cache invalidation remain outside the transaction.
+See the [persistence and recovery boundaries](../api/ingestion_api.md#persistence-and-recovery-boundaries)
+and [transaction rules](../architecture/transactions_and_ingest_recovery.md)
+before changing write ordering or defining recovery procedures.
 
 ### Manifest processing
 
@@ -215,10 +222,10 @@ not declared.
 | Parse | Read YAML and normalize supported top-level pipeline keys. | Manifest rejected. |
 | Resolve | Find ASP and subpanel/base ASPC for the environment. | No sample committed. |
 | Validate files | Check declared paths, mounts, readability, and required-file policy. | No sample committed. |
-| Parse analysis | Convert VCF, CNV, coverage, fusion, expression, classification, QC, and biomarkers. | Dependent writes rolled back. |
+| Parse analysis | Convert VCF, CNV, coverage, fusion, expression, classification, QC, and biomarkers. | No clinical writes started. |
 | Normalize | Apply collection-specific field and identity rules. | Contract error recorded. |
-| Persist | Write dependent collections and final sample. | Bundle restored or removed. |
-| Complete | Mark watched manifest done and write audit outcome. | Failed suffix and audit event on error. |
+| Persist | Commit sample, dependent collections, and async completion receipt together. | Transaction aborts; previous clinical state remains unchanged. |
+| Complete | Remove successful upload staging, acknowledge watched manifest, and deliver audit outcome. | Retain committed result; a marker or audit failure cannot undo it. |
 
 When adding an input:
 
@@ -267,19 +274,17 @@ release and a rule-set version change.
 | Stage | Input | Output |
 | --- | --- | --- |
 | Fact preparation | Sample, ASP, ASPC, applied gene lists, filtered findings, biomarkers, and comments. | Typed report facts and aggregates. |
-| Rule evaluation | Static rule set and prepared facts. | Ordered report sections and text. |
+| Rule evaluation | Explicitly bound active published rule set and prepared facts. | Ordered report sections, text, and evaluation trace. |
 | Preview | Current state, without persistence. | Temporary HTML/PDF context and finding rows. |
 | Save | Confirmed preview context. | Report, artifacts, filter/config snapshots, rule-set identity/version, and typed reported findings. |
 
-Templates run in a restricted Jinja environment. Only documented variables,
-filters, and helpers may be used. Rule conditions within one `when` list are
-combined with AND; OR is represented as separate rules. This keeps each rule
-testable and avoids ambiguous nested condition trees.
+Rules use a typed condition tree and typed output nodes. They cannot execute
+templates, Python, database queries, filesystem access, or network calls.
 
 The report summary comes from the latest visible sample comment. Preview and
 save do not generate a replacement comment. See
-[clinical reporting rules](../product/clinical_reporting_rules.md) for the YAML
-schema, priority protocol, available facts/helpers, and complete examples.
+[clinical reporting rules](../product/clinical_reporting_rules.md) for the
+document contract, authoring workflow, available facts, and release controls.
 
 ## Authentication, authorization, and audit
 

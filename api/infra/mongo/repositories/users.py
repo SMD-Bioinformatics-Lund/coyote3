@@ -472,7 +472,6 @@ class UsersRepository(BaseRepository):
             "password_action_purpose": str(purpose),
             "password_action_expires_at": expires_at,
             "password_action_issued_at": datetime.now(timezone.utc),
-            "must_change_password": True,
         }
         if issued_by:
             payload["password_action_issued_by"] = str(issued_by)
@@ -481,42 +480,37 @@ class UsersRepository(BaseRepository):
             {"$set": payload},
         )
 
-    def validate_and_clear_password_action_token(
-        self, *, user_id: str, token_hash: str, purpose: str
+    def consume_password_action_token(
+        self, *, user_id: str, token_hash: str, purpose: str, password_hash: str
     ) -> bool:
-        """Validate token metadata and clear it when valid."""
+        """Consume a valid token and replace the password in one atomic update."""
         normalized = self._normalize_user_id(user_id)
         now = datetime.now(timezone.utc)
-        user = self.get_collection().find_one(self._identity_query(normalized))
-        if not user:
-            return False
-
-        expected_hash = str(user.get("password_action_token_hash") or "")
-        expected_purpose = str(user.get("password_action_purpose") or "")
-        expires_at = user.get("password_action_expires_at")
-        if isinstance(expires_at, datetime) and expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if (
-            expected_hash != str(token_hash)
-            or expected_purpose != str(purpose)
-            or not expires_at
-            or now > expires_at
-        ):
-            return False
-
-        self.get_collection().update_one(
-            self._identity_query(normalized),
+        result = self.get_collection().update_one(
             {
+                **self._identity_query(normalized),
+                "password_action_token_hash": str(token_hash),
+                "password_action_purpose": str(purpose),
+                "password_action_expires_at": {"$gt": now},
+                "is_active": True,
+                "auth_type": AUTH_PROVIDER_LOCAL,
+            },
+            {
+                "$set": {
+                    "password": str(password_hash),
+                    "must_change_password": False,
+                    "password_updated_on": now,
+                },
                 "$unset": {
                     "password_action_token_hash": "",
                     "password_action_purpose": "",
                     "password_action_expires_at": "",
                     "password_action_issued_at": "",
                     "password_action_issued_by": "",
-                }
+                },
             },
         )
-        return True
+        return result.modified_count == 1
 
     def set_local_password(
         self, *, user_id: str, password_hash: str, require_password_change: bool = False

@@ -218,6 +218,50 @@ def test_search_samples_for_admin_can_include_non_ready_docs() -> None:
     assert [row["name"] for row in rows] == ["ready-report", "loading-report"]
 
 
+def test_search_samples_for_admin_filters_environment_and_subpanel_scope() -> None:
+    handler = _handler_with_docs(
+        {
+            "name": "base-explicit",
+            "asp_id": "ASP1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "ingest_status": "ready",
+        },
+        {
+            "name": "base-legacy",
+            "asp_id": "ASP1",
+            "environment": "production",
+            "ingest_status": "ready",
+        },
+        {
+            "name": "other-subpanel",
+            "asp_id": "ASP1",
+            "subpanel_id": "myeloid",
+            "environment": "production",
+            "ingest_status": "ready",
+        },
+        {
+            "name": "other-environment",
+            "asp_id": "ASP1",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "ingest_status": "ready",
+        },
+    )
+
+    rows, total = handler.search_samples_for_admin(
+        asp_ids=["ASP1"],
+        environments=["production"],
+        subpanel_id="base",
+        search_str="base",
+        page=1,
+        per_page=30,
+    )
+
+    assert total == 2
+    assert {row["name"] for row in rows} == {"base-explicit", "base-legacy"}
+
+
 def test_search_samples_for_admin_with_empty_assay_scope_returns_no_documents() -> None:
     handler = _handler_with_docs(
         {

@@ -702,7 +702,7 @@ generation is performed while viewing it.
 
 Route: `/public/catalog`
 
-The assay catalog combines center-maintained catalog content with ASP, ASPC, ISGL, and gene metadata from the database. ASPC controls only whether an active configuration is public; titles, descriptions, turnaround times, input material, indications, and other presentation content are maintained in the center catalog configuration.
+The assay catalog combines center-owned `public_assay_catalog` content with ASP, ASPC, ISGL, and gene metadata from the database. ASPC controls only whether an active configuration is public; titles, descriptions, turnaround times, input material, indications, and other presentation content are managed in **Admin > Public Assay Catalog**.
 
 | Area | Information shown |
 | --- | --- |

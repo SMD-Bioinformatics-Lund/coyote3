@@ -9,6 +9,7 @@ import shutil
 import tempfile
 from hashlib import sha256
 from pathlib import Path
+from types import SimpleNamespace
 
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
@@ -16,8 +17,13 @@ from fastapi.responses import PlainTextResponse
 from pydantic import ValidationError
 
 from api.app.container import util
-from api.app.deps.repositories import get_gene_list_repository, get_roles_repository
+from api.app.deps.repositories import (
+    get_gene_list_repository,
+    get_ingest_jobs_repository,
+    get_roles_repository,
+)
 from api.app.deps.services import get_internal_ingest_service
+from api.application.ingest.jobs import job_status_payload, submit_ingest_job
 from api.application.ingest.parsers import runtime_file_path
 from api.application.ingest.service import InternalIngestService
 from api.application.ingest.upload_archive import UploadedFileIndex, extract_uploaded_archive
@@ -65,8 +71,13 @@ def _task_submit_payload(task, *, task_name: str, queue: str) -> dict:
     return {"status": "accepted", "task_id": str(task.id), "task_name": task_name, "queue": queue}
 
 
-def _task_status_payload(task_id: str) -> dict:
+def _task_status_payload(task_id: str, user: ApiUser) -> dict:
     """Return serializable Celery task state and result/error when available."""
+    job = get_ingest_jobs_repository().get(task_id)
+    if job is not None:
+        if not user.is_superuser and job["submitted_by"] != user.username:
+            raise HTTPException(status_code=403, detail="This ingest job belongs to another user")
+        return job_status_payload(job)
     result = AsyncResult(task_id, app=celery_app)
     payload: dict = {
         "status": "ok",
@@ -146,6 +157,15 @@ def _enforce_collection_permission(*, user: ApiUser, collection: str, action: st
     """Enforce collection-level action permissions for non-superuser operators."""
     if _is_superuser(user):
         return
+    if (
+        collection in {"users", "roles", "permissions"}
+        or collection in _SAMPLE_LINKED_COLLECTIONS
+        or collection == "annotation"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Direct identity or clinical collection ingest requires a superuser; use the dedicated workflow.",
+        )
     if action == "create":
         permission = _COLLECTION_CREATE_PERMISSION_MAP.get(collection)
     elif action == "update":
@@ -158,11 +178,21 @@ def _enforce_collection_permission(*, user: ApiUser, collection: str, action: st
         _enforce_access(user, permission=permission)
 
 
-def _enforce_sample_ingest_permission(user: ApiUser) -> None:
+def _enforce_sample_ingest_permission(user: ApiUser, payload: dict | None = None) -> None:
     """Require sample:edit:own for non-superuser operators."""
     if _is_superuser(user):
         return
-    _enforce_access(user, permission="sample:edit:own")
+    if payload is not None and (not payload.get("asp_id") or not payload.get("environment")):
+        raise HTTPException(400, "Scoped sample ingest requires asp_id and environment.")
+    context = (
+        None
+        if payload is None
+        else {
+            "asp_id": payload.get("asp_id"),
+            "environment": payload.get("environment"),
+        }
+    )
+    _enforce_access(user, permission="sample:edit:own", context=context)
 
 
 @router.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
@@ -246,8 +276,7 @@ def ingest_sample_bundle_internal(
             if payload.yaml_content
             else payload.sample.model_dump(exclude_none=True)
         )
-        if payload.update_existing:
-            _enforce_sample_ingest_permission(user)
+        _enforce_sample_ingest_permission(user, source_payload)
         result = ingest_service.ingest_sample_bundle(
             source_payload,
             allow_update=payload.update_existing,
@@ -408,8 +437,7 @@ def ingest_sample_bundle_upload_internal(
             staging_dir=staging_dir,
             ingest_service=ingest_service,
         )
-        if update_existing:
-            _enforce_sample_ingest_permission(user)
+        _enforce_sample_ingest_permission(user, source_payload)
         result = ingest_service.ingest_sample_bundle(
             source_payload,
             allow_update=update_existing,
@@ -468,16 +496,19 @@ def enqueue_ingest_sample_bundle_internal(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     queue = DefaultConfig.CELERY_INGEST_QUEUE
-    task = ingest_sample_bundle_task.apply_async(
-        kwargs={
-            "source_payload": source_payload,
-            "update_existing": payload.update_existing,
-            "increment": payload.increment,
-        },
-        queue=queue,
+    _enforce_sample_ingest_permission(user, source_payload)
+    job_id = submit_ingest_job(
+        get_ingest_jobs_repository(),
+        lambda identity: ingest_sample_bundle_task.apply_async(
+            kwargs={"job_id": identity}, task_id=identity, queue=queue
+        ),
+        submitted_by=user.username,
+        source_payload=source_payload,
+        update_existing=payload.update_existing,
+        increment=payload.increment,
     )
     return _task_submit_payload(
-        task, task_name="api.tasks.ingest.ingest_sample_bundle", queue=queue
+        SimpleNamespace(id=job_id), task_name="api.tasks.ingest.ingest_sample_bundle", queue=queue
     )
 
 
@@ -516,18 +547,23 @@ def enqueue_ingest_sample_bundle_upload_internal(
         )
 
         queue = DefaultConfig.CELERY_INGEST_QUEUE
-        task = ingest_sample_bundle_task.apply_async(
-            kwargs={
-                "source_payload": source_payload,
-                "update_existing": update_existing,
-                "increment": increment,
-                "staging_dir": str(staging_dir),
-            },
-            queue=queue,
+        _enforce_sample_ingest_permission(user, source_payload)
+        job_id = submit_ingest_job(
+            get_ingest_jobs_repository(),
+            lambda identity: ingest_sample_bundle_task.apply_async(
+                kwargs={"job_id": identity}, task_id=identity, queue=queue
+            ),
+            submitted_by=user.username,
+            source_payload=source_payload,
+            update_existing=update_existing,
+            increment=increment,
+            staging_dir=str(staging_dir),
         )
         task_enqueued = True
         return _task_submit_payload(
-            task, task_name="api.tasks.ingest.ingest_sample_bundle", queue=queue
+            SimpleNamespace(id=job_id),
+            task_name="api.tasks.ingest.ingest_sample_bundle",
+            queue=queue,
         )
     except HTTPException:
         raise
@@ -573,20 +609,32 @@ def ingest_collection_document_internal(
 def enqueue_ingest_collection_document_internal(
     payload: InternalCollectionInsertRequest,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Enqueue insertion of one validated collection document."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="create")
+    try:
+        ingest_service.validate_async_collection(payload.collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     queue = DefaultConfig.CELERY_INGEST_QUEUE
-    task = insert_collection_document_task.apply_async(
-        kwargs={
+    job_id = submit_ingest_job(
+        get_ingest_jobs_repository(),
+        lambda identity: insert_collection_document_task.apply_async(
+            kwargs={"job_id": identity}, task_id=identity, queue=queue
+        ),
+        submitted_by=user.username,
+        kind="insert_document",
+        source_payload={
             "collection": payload.collection,
             "document": payload.document,
             "ignore_duplicate": payload.ignore_duplicate,
         },
-        queue=queue,
     )
     return _task_submit_payload(
-        task, task_name="api.tasks.ingest.insert_collection_document", queue=queue
+        SimpleNamespace(id=job_id),
+        task_name="api.tasks.ingest.insert_collection_document",
+        queue=queue,
     )
 
 
@@ -620,20 +668,32 @@ def ingest_collection_documents_internal(
 def enqueue_ingest_collection_documents_internal(
     payload: InternalCollectionBulkInsertRequest,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Enqueue insertion of many validated collection documents."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="create")
+    try:
+        ingest_service.validate_async_collection(payload.collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     queue = DefaultConfig.CELERY_INGEST_QUEUE
-    task = insert_collection_documents_task.apply_async(
-        kwargs={
+    job_id = submit_ingest_job(
+        get_ingest_jobs_repository(),
+        lambda identity: insert_collection_documents_task.apply_async(
+            kwargs={"job_id": identity}, task_id=identity, queue=queue
+        ),
+        submitted_by=user.username,
+        kind="insert_documents",
+        source_payload={
             "collection": payload.collection,
             "documents": payload.documents,
             "ignore_duplicates": payload.ignore_duplicates,
         },
-        queue=queue,
     )
     return _task_submit_payload(
-        task, task_name="api.tasks.ingest.insert_collection_documents", queue=queue
+        SimpleNamespace(id=job_id),
+        task_name="api.tasks.ingest.insert_collection_documents",
+        queue=queue,
     )
 
 
@@ -668,21 +728,33 @@ def upsert_collection_document_internal(
 def enqueue_upsert_collection_document_internal(
     payload: InternalCollectionUpsertRequest,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Enqueue replacement/update of one validated collection document."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="update")
+    try:
+        ingest_service.validate_async_collection(payload.collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     queue = DefaultConfig.CELERY_INGEST_QUEUE
-    task = upsert_collection_document_task.apply_async(
-        kwargs={
+    job_id = submit_ingest_job(
+        get_ingest_jobs_repository(),
+        lambda identity: upsert_collection_document_task.apply_async(
+            kwargs={"job_id": identity}, task_id=identity, queue=queue
+        ),
+        submitted_by=user.username,
+        kind="upsert_document",
+        source_payload={
             "collection": payload.collection,
             "match": payload.match,
             "document": payload.document,
             "upsert": payload.upsert,
         },
-        queue=queue,
     )
     return _task_submit_payload(
-        task, task_name="api.tasks.ingest.upsert_collection_document", queue=queue
+        SimpleNamespace(id=job_id),
+        task_name="api.tasks.ingest.upsert_collection_document",
+        queue=queue,
     )
 
 
@@ -794,7 +866,7 @@ def get_internal_task_status(
     _user: ApiUser = Depends(require_access(permission="internal.task:view")),
 ):
     """Return Celery task state and result/error when complete."""
-    return _task_status_payload(task_id)
+    return _task_status_payload(task_id, _user)
 
 
 @router.get("/api/v1/internal/metrics", response_class=PlainTextResponse)

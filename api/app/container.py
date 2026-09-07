@@ -60,9 +60,15 @@ class MongoStore:
     bam_record_repository: Any
     biomarker_repository: Any
     pgx_repository: Any
+    ingest_jobs_repository: Any
+    public_assay_catalog_repository: Any
+    public_assay_catalog_version_repository: Any
+    public_assay_catalog_revision_repository: Any
     blacklist_repository: Any
     brca_repository: Any
     clinpgx_public_repository: Any
+    clinical_rule_revision_repository: Any
+    clinical_rule_set_repository: Any
     civic_repository: Any
     copy_number_variant_repository: Any
     cosmic_repository: Any
@@ -98,9 +104,14 @@ class MongoStore:
         "bam_record_repository",
         "biomarker_repository",
         "pgx_repository",
+        "public_assay_catalog_repository",
+        "public_assay_catalog_version_repository",
+        "public_assay_catalog_revision_repository",
         "blacklist_repository",
         "brca_repository",
         "clinpgx_public_repository",
+        "clinical_rule_revision_repository",
+        "clinical_rule_set_repository",
         "civic_repository",
         "copy_number_variant_repository",
         "cosmic_repository",
@@ -135,6 +146,9 @@ class MongoStore:
 
     def reset(self) -> None:
         """Reset to pre-initialization state."""
+        previous = getattr(self, "_adapter", None)
+        if previous is not None:
+            previous.close()
         self._adapter: Any | None = None
         self.client = None
         self.coyote_db = None
@@ -147,9 +161,14 @@ class MongoStore:
         self.bam_record_repository = _LazyRepositoryProxy()
         self.biomarker_repository = _LazyRepositoryProxy()
         self.pgx_repository = _LazyRepositoryProxy()
+        self.public_assay_catalog_repository = _LazyRepositoryProxy()
+        self.public_assay_catalog_version_repository = _LazyRepositoryProxy()
+        self.public_assay_catalog_revision_repository = _LazyRepositoryProxy()
         self.blacklist_repository = _LazyRepositoryProxy()
         self.brca_repository = _LazyRepositoryProxy()
         self.clinpgx_public_repository = _LazyRepositoryProxy()
+        self.clinical_rule_revision_repository = _LazyRepositoryProxy()
+        self.clinical_rule_set_repository = _LazyRepositoryProxy()
         self.civic_repository = _LazyRepositoryProxy()
         self.copy_number_variant_repository = _LazyRepositoryProxy()
         self.cosmic_repository = _LazyRepositoryProxy()
@@ -187,8 +206,9 @@ class MongoStore:
         adapter = MongoAdapter()
         adapter.init_from_app(runtime)
         try:
-            adapter.client.admin.command("ping")
+            adapter.ping()
         except ConnectionFailure as exc:
+            adapter.close()
             runtime.logger.error("MongoDB connection failed: %s", exc)
             raise RuntimeError("Could not connect to MongoDB.") from exc
         self._adapter = adapter

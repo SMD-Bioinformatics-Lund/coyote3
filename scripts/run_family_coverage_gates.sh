@@ -34,6 +34,7 @@ CORE_MIN="${CORE_MIN:-75}"
 SERVICES_MIN="${SERVICES_MIN:-55}"
 ROUTERS_MIN="${ROUTERS_MIN:-60}"
 CLINICAL_QUERY_MIN="${CLINICAL_QUERY_MIN:-75}"
+CLINICAL_RULES_MIN="${CLINICAL_RULES_MIN:-100}"
 UNIFORM_MIN="${UNIFORM_MIN:-}"
 
 if [[ -n "${UNIFORM_MIN}" ]]; then
@@ -41,6 +42,7 @@ if [[ -n "${UNIFORM_MIN}" ]]; then
   SERVICES_MIN="${UNIFORM_MIN}"
   ROUTERS_MIN="${UNIFORM_MIN}"
   CLINICAL_QUERY_MIN="${UNIFORM_MIN}"
+  CLINICAL_RULES_MIN="${UNIFORM_MIN}"
 fi
 
 run_family_gate() {
@@ -78,5 +80,9 @@ run_family_gate "clinical query policy" "api/domain/core/dna/varqueries.py,api/d
   tests/unit/test_query_strategy_builders.py \
   tests/unit/test_dna_structural_service.py \
   tests/unit/workflows/test_workflow_services.py
+run_family_gate "clinical reporting rules" "api/application/reporting/clinical_rules/*" "${CLINICAL_RULES_MIN}" \
+  tests/unit/reporting \
+  tests/unit/test_report_summary.py \
+  tests/unit/test_report_summary_extended.py
 
 echo "[coverage-gates] All family gates passed."

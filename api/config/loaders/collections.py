@@ -28,20 +28,10 @@ def load_collection_section(
 
 def load_collection_mapping(
     *,
-    primary_database: str,
-    identity_database: str,
-    knowledgebase_database: str,
-    bam_database: str,
     config_path: str | Path = COLLECTIONS_CONFIG_PATH,
 ) -> dict[str, dict[str, str]]:
-    """Bind primary, identity, knowledgebase, and BAM mappings to database names."""
-    logical_sections = {
-        "primary": primary_database,
-        "identity": identity_database,
-        "knowledgebase": knowledgebase_database,
-        "bam": bam_database,
-    }
+    """Keep collection ownership independent of physical database names."""
     return {
-        database: load_collection_section(section, config_path=config_path)
-        for section, database in logical_sections.items()
+        section: load_collection_section(section, config_path=config_path)
+        for section in ("primary", "identity", "knowledgebase", "bam")
     }

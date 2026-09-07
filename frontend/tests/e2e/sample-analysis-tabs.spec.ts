@@ -129,14 +129,14 @@ test("DNA sample tabs and requests are limited to its ASPC analysis selection", 
   await expect(page.getByRole("tab", { name: "Germline SNVs" })).toHaveCount(0)
   await expect(page.getByRole("tab", { name: "Fusions" })).toHaveCount(0)
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
-  expect(requests.some((path) => path.endsWith("/small-variants"))).toBe(false)
+  await expect(page.getByRole("tab", { name: "Somatic SNVs" })).toHaveAttribute("aria-selected", "true")
 
   await page.getByRole("tab", { name: "Somatic SNVs" }).click()
   await expect.poll(() => requests.some((path) => path.endsWith("/small-variants"))).toBe(true)
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
 })
 
-test("RNA sample requests the fusion endpoint only after the configured fusion tab is opened", async ({ page }) => {
+test("RNA sample opens the configured fusion analysis by default", async ({ page }) => {
   await installApiFixtures(page, rnaContext)
   const requests = sampleAnalysisRequests(page, "RNA_001")
 
@@ -146,9 +146,7 @@ test("RNA sample requests the fusion endpoint only after the configured fusion t
   await expect(page.getByRole("tab", { name: "CNVs" })).toHaveCount(0)
   await expect(page.getByRole("tab", { name: "Translocations" })).toHaveCount(0)
   await expect(page.getByRole("tab", { name: "Coverage" })).toHaveCount(0)
-  expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
-
-  await page.getByRole("tab", { name: "Fusions" }).click()
+  await expect(page.getByRole("tab", { name: "Fusions" })).toHaveAttribute("aria-selected", "true")
   await expect.poll(() => requests.some((path) => path.endsWith("/fusions"))).toBe(true)
   expect(requests.some((path) => path.endsWith("/small-variants"))).toBe(false)
 })
@@ -223,15 +221,11 @@ test("combined layout presents enabled finding sections on one page", async ({ p
   await expect.poll(() => requests.some((path) => path.endsWith("/cnvs"))).toBe(true)
   await expect.poll(() => requests.some((path) => path.endsWith("/translocations"))).toBe(true)
 
-  const cnvSectionHeader = page.getByRole("heading", { name: "CNVs" }).locator("xpath=..")
-  await cnvSectionHeader.getByRole("button", { name: "Filters" }).click()
+  await page.getByRole("button", { name: "Expand finding filters" }).click()
   await expect(page.getByText("CNV Thresholds")).toBeVisible()
-  await cnvSectionHeader.getByRole("button", { name: "Filters" }).click()
+  await expect(page.getByText("Fusion/Translocation Gene Lists")).toBeVisible()
+  await page.getByRole("button", { name: "Collapse finding filters" }).click()
   await expect(page.getByText("CNV Thresholds")).toHaveCount(0)
-  await expect(page.getByRole("button", { name: "Show Somatic SNVs filters" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Show CNVs filters" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Show Translocations filters" })).toBeVisible()
-
-  await page.getByRole("button", { name: "Show Translocations filters" }).click()
+  await page.getByRole("button", { name: "Expand finding filters" }).click()
   await expect(page.getByText("Fusion/Translocation Gene Lists")).toBeVisible()
 })

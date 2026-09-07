@@ -1,69 +1,241 @@
-"""Allowlisted clinical reporting facts."""
+"""Typed, allowlisted facts exposed to clinical reporting rules."""
 
 from __future__ import annotations
 
-ALLOWED_FACT_PATHS: frozenset[str] = frozenset(
-    {
-        "sample.name",
-        "sample.asp_id",
-        "sample.subpanel_id",
-        "sample.environment",
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
+
+FactKind = Literal["boolean", "integer", "number", "string", "string_list", "object_list"]
+
+
+class ClinicalFactDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    label: str
+    group: str
+    kind: FactKind
+    operators: tuple[str, ...]
+    scopes: tuple[str, ...] = ("once", "each_finding", "each_item")
+    unit: str | None = None
+    description: str = ""
+    value_options: tuple[str, ...] = ()
+    value_format: Literal["gene", "integer", "number", "text"] = "text"
+
+
+def _fact(
+    path: str,
+    label: str,
+    group: str,
+    kind: FactKind,
+    operators: tuple[str, ...],
+    scopes: tuple[str, ...] = ("once", "each_finding", "each_item"),
+    unit: str | None = None,
+    value_options: tuple[str, ...] = (),
+    value_format: Literal["gene", "integer", "number", "text"] = "text",
+) -> ClinicalFactDefinition:
+    return ClinicalFactDefinition(
+        path=path,
+        label=label,
+        group=group,
+        kind=kind,
+        operators=operators,
+        scopes=scopes,
+        unit=unit,
+        value_options=value_options,
+        value_format=value_format,
+    )
+
+
+_EQUALITY = ("eq", "ne", "in", "not_in", "exists", "is_unknown")
+_NUMBER = (
+    "eq",
+    "ne",
+    "in",
+    "not_in",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "between",
+    "exists",
+    "is_unknown",
+)
+_LIST = ("contains", "overlaps", "is_empty", "exists", "is_unknown")
+
+
+FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
+    _fact("sample.asp_id", "Assay", "Sample", "string", _EQUALITY),
+    _fact("sample.subpanel_id", "Subpanel", "Sample", "string", _EQUALITY),
+    _fact("sample.environment", "Environment", "Sample", "string", _EQUALITY),
+    _fact(
         "sample.omics_layer",
+        "Omics layer",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("dna", "rna"),
+    ),
+    _fact(
         "sample.analysis_intent",
-        "sample.paired",
+        "Analysis intent",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("somatic", "germline"),
+    ),
+    _fact("sample.paired", "Paired analysis", "Sample", "boolean", _EQUALITY),
+    _fact(
         "sample.genome_build",
-        "asp.asp_id",
-        "asp.asp_group",
+        "Genome build",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("GRCh37", "GRCh38"),
+    ),
+    _fact("asp.asp_group", "Assay group", "Assay", "string", _EQUALITY),
+    _fact(
         "asp.asp_category",
-        "asp.accredited",
-        "asp.germline_genes",
-        "aspc.aspc_id",
-        "aspc.asp_id",
-        "aspc.asp_group",
-        "aspc.asp_category",
-        "aspc.subpanel_id",
-        "aspc.environment",
-        "aspc.reporting.report_sections",
-        "aspc.reporting.general_report_summary",
-        "applied_gene_lists",
+        "Assay category",
+        "Assay",
+        "string",
+        _EQUALITY,
+        value_options=("dna", "rna"),
+    ),
+    _fact("asp.accredited", "Accredited", "Assay", "boolean", _EQUALITY),
+    _fact("asp.germline_genes", "Germline genes", "Assay", "string_list", _LIST),
+    _fact(
+        "aspc.reporting.report_sections", "Report analyses", "Configuration", "string_list", _LIST
+    ),
+    _fact(
         "finding.kind",
+        "Finding type",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_options=("snv", "cnv", "fusion", "translocation", "biomarker"),
+    ),
+    _fact(
         "finding.gene",
+        "Gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
         "finding.genes",
-        "finding.tier",
-        "finding.exon",
-        "finding.intron",
-        "finding.case_vaf",
+        "Genes",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact("finding.tier", "Tier", "Finding", "integer", _NUMBER, ("each_finding",)),
+    _fact("finding.exon", "Exon", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact("finding.intron", "Intron", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact(
         "finding.case_vaf_percent",
-        "finding.control_vaf",
+        "Case VAF",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact(
         "finding.control_vaf_percent",
-        "finding.consequence",
-        "finding.hgvsc",
-        "finding.hgvsp",
-        "finding.variant_type",
+        "Control VAF",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact("finding.consequence", "Consequence", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact("finding.hgvsc", "HGVS.c", "Finding", "string", _EQUALITY, ("each_finding",)),
+    _fact("finding.hgvsp", "HGVS.p", "Finding", "string", _EQUALITY, ("each_finding",)),
+    _fact(
         "finding.cnv_effect",
+        "Copy-number effect",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_options=("gain", "loss"),
+    ),
+    _fact(
         "finding.fusion_gene_1",
+        "First fusion gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
         "finding.fusion_gene_2",
-        "biomarkers",
-        "aggregates.finding_count",
-        "aggregates.snv_count",
-        "aggregates.cnv_count",
-        "aggregates.fusion_count",
-        "aggregates.translocation_count",
-        "aggregates.biomarker_count",
-        "aggregates.tier_1_count",
-        "aggregates.tier_2_count",
-        "aggregates.tier_3_count",
-        "aggregates.tier_summaries",
-        "aggregates.has_tiered_snvs",
+        "Second fusion gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact("aggregates.finding_count", "Finding count", "Result", "integer", _NUMBER),
+    _fact("aggregates.snv_count", "SNV count", "Result", "integer", _NUMBER),
+    _fact("aggregates.cnv_count", "CNV count", "Result", "integer", _NUMBER),
+    _fact("aggregates.fusion_count", "Fusion count", "Result", "integer", _NUMBER),
+    _fact("aggregates.translocation_count", "Translocation count", "Result", "integer", _NUMBER),
+    _fact("aggregates.biomarker_count", "Biomarker count", "Result", "integer", _NUMBER),
+    _fact("aggregates.has_tiered_snvs", "Has tiered SNVs", "Result", "boolean", _EQUALITY),
+    _fact(
         "aggregates.has_reportable_findings",
-    }
+        "Has reportable findings",
+        "Result",
+        "boolean",
+        _EQUALITY,
+    ),
+    _fact("item.kind", "Item type", "Current item", "string", _EQUALITY, ("each_item",)),
+    _fact(
+        "item.gene",
+        "Item gene",
+        "Current item",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_format="gene",
+    ),
+    _fact(
+        "item.genes",
+        "Item genes",
+        "Current item",
+        "string_list",
+        _LIST,
+        ("each_item",),
+        value_format="gene",
+    ),
+    _fact("item.tier", "Item tier", "Current item", "integer", _NUMBER, ("each_item",)),
 )
 
+FACTS_BY_PATH = {definition.path: definition for definition in FACT_CATALOG}
 
-def validate_fact_path(path: str) -> None:
-    """Reject facts that the prepared-context contract does not define."""
-    if path not in ALLOWED_FACT_PATHS:
+
+def validate_fact_path(path: str, *, scope: str | None = None) -> ClinicalFactDefinition:
+    definition = FACTS_BY_PATH.get(path)
+    if definition is None:
         raise ValueError(
-            f"Unsupported clinical rule fact '{path}'. Add a typed prepared-context "
-            "fact and tests before using it in a rule."
+            f"Unsupported clinical rule fact '{path}'. Add a typed prepared-context fact "
+            "and tests before using it in a rule."
         )
+    if scope and scope not in definition.scopes:
+        raise ValueError(f"Fact '{path}' is unavailable in {scope} evaluation")
+    return definition
+
+
+def fact_catalog_payload() -> list[dict[str, object]]:
+    return [definition.model_dump(mode="json") for definition in FACT_CATALOG]

@@ -8,7 +8,6 @@ center content is loaded by ``api.config.center``; repository metadata lives in
 import os
 from os import path
 from typing import Any
-from urllib.parse import urlparse, urlunparse
 
 from dotenv import load_dotenv
 
@@ -157,10 +156,14 @@ class MailSettings:
 class PersistenceSettings:
     """MongoDB connection and configured collection-mapping settings."""
 
-    _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
+    MONGO_URI = os.getenv("MONGO_URI", "").strip()
+    COYOTE3_MONGO_URI = os.getenv("COYOTE3_MONGO_URI", "").strip()
+    IDENTITY_MONGO_URI = os.getenv("IDENTITY_MONGO_URI", "").strip()
+    KNOWLEDGEBASE_MONGO_URI = os.getenv("KNOWLEDGEBASE_MONGO_URI", "").strip()
+    BAM_MONGO_URI = os.getenv("BAM_MONGO_URI", "").strip()
     COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
     IDENTITY_DB = os.getenv("IDENTITY_DB", "").strip()
-    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "").strip()
+    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "coyote3_knowledgebases").strip()
     BAM_DB = os.getenv("BAM_DB", "").strip()
     MONGO_MAX_POOL_SIZE = int(os.getenv("MONGO_MAX_POOL_SIZE", "100"))
     MONGO_MIN_POOL_SIZE = int(os.getenv("MONGO_MIN_POOL_SIZE", "0"))
@@ -173,25 +176,9 @@ class PersistenceSettings:
     _PATH_DB_COLLECTIONS_CONFIG = COLLECTIONS_CONFIG_PATH
 
     @property
-    def MONGO_URI(self) -> str:
-        """Return the configured Mongo URI, appending the primary DB when absent."""
-        if not self._MONGO_URI_ENV:
-            raise ValueError("MONGO_URI must be set.")
-        parsed = urlparse(self._MONGO_URI_ENV)
-        if (parsed.path or "").strip("/"):
-            return self._MONGO_URI_ENV
-        return urlunparse(parsed._replace(path=f"/{self.COYOTE3_DB}"))
-
-    @property
     def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
         """Return mappings for the application, identity, knowledgebase, and BAM databases."""
-        return load_collection_mapping(
-            primary_database=self.COYOTE3_DB,
-            identity_database=self.IDENTITY_DB,
-            knowledgebase_database=self.KNOWLEDGEBASE_DB,
-            bam_database=self.BAM_DB,
-            config_path=self._PATH_DB_COLLECTIONS_CONFIG,
-        )
+        return load_collection_mapping(config_path=self._PATH_DB_COLLECTIONS_CONFIG)
 
 
 class DirectoryAndReportSettings:
@@ -326,10 +313,10 @@ class DevelopmentConfig(DefaultConfig):
     the development setup.
     """
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
-    IDENTITY_DB = os.getenv("IDENTITY_DB", "").strip()
-    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "").strip()
-    BAM_DB = os.getenv("BAM_DB", "").strip()
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_dev").strip()
+    IDENTITY_DB = os.getenv("IDENTITY_DB", "coyote3_identity").strip()
+    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "coyote3_knowledgebases").strip()
+    BAM_DB = os.getenv("BAM_DB", "bam_dev").strip()
 
     CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
@@ -351,10 +338,10 @@ class TestConfig(DefaultConfig):
     in the future.
     """
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
-    IDENTITY_DB = os.getenv("IDENTITY_DB", "").strip()
-    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "").strip()
-    BAM_DB = os.getenv("BAM_DB", "").strip()
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_test").strip()
+    IDENTITY_DB = os.getenv("IDENTITY_DB", "coyote3_identity_test").strip()
+    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "coyote3_knowledgebases").strip()
+    BAM_DB = os.getenv("BAM_DB", "bam_test").strip()
 
     LOGS = "logs/test"
     PRODUCTION = False
@@ -378,10 +365,10 @@ class TestConfig(DefaultConfig):
 class StageConfig(DefaultConfig):
     """Staging configuration."""
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
-    IDENTITY_DB = os.getenv("IDENTITY_DB", "").strip()
-    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "").strip()
-    BAM_DB = os.getenv("BAM_DB", "").strip()
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_stage").strip()
+    IDENTITY_DB = os.getenv("IDENTITY_DB", "coyote3_identity_stage").strip()
+    KNOWLEDGEBASE_DB = os.getenv("KNOWLEDGEBASE_DB", "coyote3_knowledgebases").strip()
+    BAM_DB = os.getenv("BAM_DB", "bam_stage").strip()
 
     LOGS = "logs/stage"
     PRODUCTION = True
