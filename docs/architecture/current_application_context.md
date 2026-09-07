@@ -128,11 +128,11 @@ same key.
 > Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
 >
 
-Public content is controlled through explicit files under
-`api/config/center/` instead of scattered UI copy. `contact.toml` drives the
-Contact page and `assay_catalog.yaml` drives the public assay catalog narrative.
-This allows each center or section to deploy the same application image with
-local service names, support contacts, sample-type descriptions, and TAT values.
+Public contact content is controlled through `api/config/center/contact.toml`.
+Public assay-catalog content is a validated primary-database document managed
+through the administrative catalog workspace. This allows each center or section
+to deploy the same application image with local service names, support contacts,
+sample-type descriptions, turnaround statements, and portable catalog JSON.
 
 ## Collection Mapping
 

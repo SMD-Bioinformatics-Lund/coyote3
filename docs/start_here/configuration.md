@@ -55,14 +55,18 @@ as a clinical/configuration change rather than hidden in application code.
 | `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups and sequencing-platform capabilities are fixed software workflow identifiers. |
 | `center/clinical_query_policy.toml` | TOML | [Query-policy table](../operations/center_configuration_files.md#clinical_query_policytoml) | Released SNV evidence models plus independent typed CNV, translocation, fusion, and PGX exception scopes. |
 | `center/collections.toml` | TOML | [Collection table](../operations/center_configuration_files.md#collectionstoml) | Database and collection names used by the persistence adapter. |
-| `center/assay_catalog.yaml` | YAML | [Catalog table](../operations/center_configuration_files.md#assay_catalogyaml) | Public assay-catalog narrative fields that do not belong in clinical records. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../operations/center_configuration_files.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |
 
 See [Center Configuration Reference](../operations/center_configuration_files.md)
-for every center-owned TOML/YAML file, its fields, allowed values, owning
+for every file-backed center configuration, its fields, allowed values, owning
 workflow, and change protocol. See
 [Clinical Vocabulary Configuration](../operations/clinical_vocabulary.md) for
 the detailed manifest-key and analysis-binding contract.
+
+Public assay catalog wording and display structure are database-backed center
+content. Use the structured **Admin > Public Assay Catalog** builder to edit
+it; JSON is available only for portable import and export. It is not a file in
+`center/`.
 
 > **Info: One environment selector**
 >
