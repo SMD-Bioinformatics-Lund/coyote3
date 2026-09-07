@@ -124,6 +124,7 @@ services:
         LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
         GENS_URI: ${GENS_URI:-}
         IGV_URI: ${IGV_URI:-}
+        IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
     environment:
       SCRIPT_NAME: ${SCRIPT_NAME:-}
       TZ: ${LOCAL_TIME_ZONE:-UTC}

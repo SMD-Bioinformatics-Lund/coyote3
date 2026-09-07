@@ -27,6 +27,7 @@ class DnaVariantsListPayload(BaseModel):
     sample_ids: dict[str, str]
     bam_id: Any
     bai_id: dict[str, str] = Field(default_factory=dict)
+    design_bed_paths: list[str] = Field(default_factory=list)
     hidden_comments: bool
     vep_var_class_translations: dict[str, Any]
     vep_conseq_translations: dict[str, Any]
@@ -91,6 +92,7 @@ class DnaVariantContextPayload(BaseModel):
     sample_ids: dict[str, str]
     bam_id: Any
     bai_id: dict[str, str] = Field(default_factory=dict)
+    design_bed_paths: list[str] = Field(default_factory=list)
     vep_var_class_translations: dict[str, Any]
     vep_conseq_translations: dict[str, Any]
     assay_group_mappings: dict[str, Any]
@@ -116,6 +118,7 @@ class DnaCnvContextPayload(BaseModel):
     sample_ids: dict[str, str]
     bam_id: Any
     bai_id: dict[str, str] = Field(default_factory=dict)
+    design_bed_paths: list[str] = Field(default_factory=list)
     has_hidden_comments: bool
     hidden_comments: bool
     assay_group: str
@@ -143,6 +146,7 @@ class DnaTranslocationContextPayload(BaseModel):
     sample_ids: dict[str, str]
     bam_id: Any
     bai_id: dict[str, str] = Field(default_factory=dict)
+    design_bed_paths: list[str] = Field(default_factory=list)
     vep_conseq_translations: dict[str, Any]
     has_hidden_comments: bool
     hidden_comments: bool

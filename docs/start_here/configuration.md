@@ -269,6 +269,7 @@ registration is not configurable through an environment variable.
 | `LDAP_USER_DN` | LDAP deployments | Relative distinguished name | User subtree below base DN. |
 | `GENS_URI` | No | URL | Optional Gens integration. |
 | `IGV_URI` | No | URL | Optional IGV integration. |
+| `IGV_DATA_ROOT` | No | Workstation path prefix | Root prepended to ASP-resolved relative paths, for example `/R:` or `/mnt/alignments`; independent of API mounts. Assay folders and BED files are configured in ASP `igv`. |
 | `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables public OncoKB detail lookups and the administrator-triggered HGNC-backed reference refresh. |
 | `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | Timeout for all public OncoKB requests, including the reference refresh. |
 | `CLINPGX_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables ClinPGx lookup buttons. |

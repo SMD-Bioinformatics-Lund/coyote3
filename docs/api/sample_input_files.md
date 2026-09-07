@@ -97,8 +97,8 @@ Validation of all declared evidence must succeed before the bundle commits.
 | `classification_path` | JSON object | `classifier_version`, `classifier_results` | `rna_classification` |
 | `qc` | JSON object | Read, splice, gene-body, genotype, and fragment metrics listed below | `rna_qc` |
 | `pgx` | JSON object or array of objects; DNA or RNA | Object keys preserved; arrays wrapped as `records` | `pgx`; storage does not imply PharmCAT interpretation or recommendations |
-| `case_bam`, `control_bam` | BAM path/URL string in YAML | Metadata only; BAM bytes are not read by ingest | `samples.case.bam`, `samples.control.bam` |
-| `case_bai`, `control_bai` | BAI path/URL string in YAML | Metadata only; index bytes are not read by ingest | `samples.case.bai`, `samples.control.bai` |
+| `case_bam`, `control_bam` | BAM filename string in YAML | Metadata only; resolved within the ASP IGV folder, with catalog fallback for unconfigured assays | `samples.case.bam`, `samples.control.bam` |
+| `case_bai`, `control_bai` | BAI filename string in YAML | Metadata only; resolved within the same BAM directory | `samples.case.bai`, `samples.control.bai` |
 
 ### VCF columns and annotations
 

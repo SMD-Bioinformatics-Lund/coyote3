@@ -10,6 +10,7 @@ export default defineConfig({
       appVersion: "test",
       gensUri: "",
       igvUri: "",
+      igvDataRoot: "",
       localTimeZone: "UTC",
       organizationName: "Coyote3 Test",
       scriptName: "",

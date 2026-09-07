@@ -537,7 +537,7 @@ def list_variants_payload(
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     alignment_files = alignment_files_payload(
-        sample, sample_ids, service.bam_record_repository.get_bams
+        sample, sample_ids, service.bam_record_repository.get_bams, asp=assay_panel_doc
     )
     vep_version = require_sample_vep_version(sample)
     vep_variant_class_meta = service.vep_metadata_repository.get_variant_class_translations(
@@ -925,7 +925,12 @@ def variant_context_payload(
         "subpanel": subpanel,
         "pon": format_pon(variant),
         "sample_ids": sample_ids,
-        **alignment_files_payload(sample, sample_ids, service.bam_record_repository.get_bams),
+        **alignment_files_payload(
+            sample,
+            sample_ids,
+            service.bam_record_repository.get_bams,
+            asp=service.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+        ),
         "vep_var_class_translations": service.vep_metadata_repository.get_variant_class_translations(
             vep_version
         ),

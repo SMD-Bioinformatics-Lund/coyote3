@@ -15,7 +15,7 @@ import { useBulkFindingAction } from "@/hooks/useFindingActions";
 import { findingBulkActionOptions } from "@/lib/finding-actions";
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge";
-import { igvAlignmentLinks, igvLoadUrl } from "@/lib/external-links";
+import { igvAlignmentLinks } from "@/lib/external-links";
 import { tieredVariantSearchPath } from "@/lib/variant-routing";
 import {
   CLINICAL_TABLE_CACHE_MS,
@@ -331,9 +331,7 @@ export function VariantsTab({
       cell: ({ row }) => {
         const v = row.original;
         const loc = `${v.CHROM}:${v.POS}`;
-        const links = igvAlignmentLinks(data?.bam_id, loc, data?.bai_id);
-        const fallback = links.length ? null : igvLoadUrl(sampleId, loc);
-        const igvLinks = fallback ? [{ href: fallback, label: "Open in IGV" }] : links;
+        const igvLinks = igvAlignmentLinks(data?.bam_id, loc, data?.bai_id, data?.design_bed_paths);
         return igvLinks.length ? (
           <span className="inline-flex flex-wrap gap-1">
             {igvLinks.map((link) => (

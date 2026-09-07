@@ -269,6 +269,33 @@ class AspConfigDoc(_StrictCollectionDocBase):
         return self
 
 
+class AspIgvDoc(_StrictDocBase):
+    """Assay-relative IGV resources under the deployment's workstation root."""
+
+    base_folder: str = Field(min_length=1)
+    bam_subfolder: str = ""
+    design_bed: str = ""
+
+    @field_validator("base_folder", "bam_subfolder", "design_bed")
+    @classmethod
+    def _validate_relative_path(cls, value: str) -> str:
+        value = value.strip()
+        if value and (
+            value.startswith("/")
+            or any(part in {".", "..", ""} for part in value.split("/"))
+            or any(char in value for char in "\\:%?#,\"'")
+            or any(ord(char) < 32 for char in value)
+        ):
+            raise ValueError("Use a relative path without traversal, URLs, or drive letters")
+        return value
+
+    @model_validator(mode="after")
+    def _require_base_folder(self) -> "AspIgvDoc":
+        if not self.base_folder:
+            raise ValueError("base_folder is required when IGV settings are provided")
+        return self
+
+
 class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     asp_id: str
     asp_group: str
@@ -276,6 +303,7 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     asp_category: str
     display_name: str
     description: str | None = None
+    igv: AspIgvDoc | None = None
     expected_files: list[str] = Field(default_factory=list)
     required_files: list[str] = Field(default_factory=list)
     covered_genes: list[str] = Field(default_factory=list)

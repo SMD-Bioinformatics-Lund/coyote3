@@ -100,6 +100,12 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
+        "igv": {
+            "label": "IGV files",
+            "data_type": "json",
+            "display_type": "igv-config",
+            "default": None,
+        },
         "asp_group": {"display_type": "select", "options": list(ASP_GROUP_OPTIONS)},
         "asp_family": {
             "display_type": "select",
@@ -820,6 +826,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             ],
         ),
         ("clinical gene scope", ["covered_genes", "germline_genes"]),
+        ("alignment viewer", ["igv"]),
         ("lifecycle", ["system_managed", "is_active"]),
         (
             "system metadata",

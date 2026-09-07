@@ -205,7 +205,7 @@ export function CNVDetail() {
 
             <ExternalLinksCard
               links={[
-                ...igvAlignmentLinks(data.bam_id, region, data.bai_id),
+                ...igvAlignmentLinks(data.bam_id, region, data.bai_id, data.design_bed_paths),
                 primaryGenes[0]
                   ? { label: `cBioPortal ${primaryGenes[0]}`, value: primaryGenes[0], href: cbioportalOncoprintUrl(primaryGenes[0]) }
                   : null,

@@ -413,6 +413,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     )
     monkeypatch.setattr(store.vep_metadata_repository, "get_conseq_translations", lambda vep: {})
     monkeypatch.setattr(store.assay_panel_repository, "get_asp_group_mappings", lambda: {})
+    monkeypatch.setattr(store.assay_panel_repository, "get_asp", lambda **kwargs: {})
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)

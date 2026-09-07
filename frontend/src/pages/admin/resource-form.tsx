@@ -3,6 +3,7 @@ import { Activity, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accentColor } from "@/lib/badge-colors"
 import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
+import { AssayIgvFields } from "@/pages/admin/AssayIgvFields"
 import type { AdminFormMode, AdminResourceSpec, FormField, FormSpec } from "@/pages/admin/resource-specs"
 import {
   coerceFieldValue,
@@ -361,6 +362,13 @@ export function FormControl({
         {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
       </div>
     )
+  }
+
+  if (field.display_type === "igv-config") {
+    return <fieldset className="space-y-2">
+      <legend className="type-label">{label}</legend>
+      <AssayIgvFields value={value} onChange={onChange} disabled={readOnly} />
+    </fieldset>
   }
 
   let control

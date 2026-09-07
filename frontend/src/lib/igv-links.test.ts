@@ -1,10 +1,43 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@/lib/runtime-config", () => ({ runtimeConfig: { igvUri: "http://localhost:60151" } }))
+vi.mock("@/lib/runtime-config", () => ({ runtimeConfig: {
+  igvUri: "http://localhost:60151", igvDataRoot: "",
+} }))
 
 import { igvAlignmentLinks, igvLoadUrl } from "./external-links"
+import { runtimeConfig } from "./runtime-config"
 
 describe("sample alignment links", () => {
+  beforeEach(() => {
+    runtimeConfig.igvDataRoot = ""
+  })
+
+  it("uses the workstation root for BAM, BAI and the assay design BED", () => {
+    runtimeConfig.igvDataRoot = "/R:"
+    const links = igvAlignmentLinks(
+      { case: ["panel/BAM/custom.bam"], control: ["panel/BAM/control.bam"] }, "17:1-2",
+      { "panel/BAM/custom.bam": "panel/BAM/custom.bai" },
+      ["panel/BED/design.bed"],
+    )
+    expect(links).toHaveLength(3)
+    expect(new URL(links[0].href).searchParams.get("file")).toBe("/R:panel/BAM/custom.bam")
+    expect(new URL(links[0].href).searchParams.get("index")).toBe("/R:panel/BAM/custom.bai")
+    expect(new URL(links[2].href).searchParams.get("file")).toBe("/R:panel/BED/design.bed")
+  })
+
+  it("omits unconfigured design BED and avoids adding the root twice", () => {
+    runtimeConfig.igvDataRoot = "/R:"
+    const links = igvAlignmentLinks({ case: ["/R:tumwgs/BAM/custom.bam"] }, "17:1-2")
+    expect(links).toHaveLength(1)
+    expect(new URL(links[0].href).searchParams.get("file")).toBe("/R:tumwgs/BAM/custom.bam")
+  })
+
+  it("supports a configured POSIX root without inventing a drive letter", () => {
+    runtimeConfig.igvDataRoot = "/mnt/alignments"
+    const links = igvAlignmentLinks({ case: ["panel/BAM/custom.bam"] }, "17:1-2")
+    expect(new URL(links[0].href).searchParams.get("file")).toBe("/mnt/alignments/panel/BAM/custom.bam")
+  })
+
   it("encodes explicit paths and indexes without losing spaces or query characters", () => {
     const url = new URL(igvLoadUrl("/case reads.bam", "17:1-2", "/index & reads.bai")!)
     expect(url.searchParams.get("file")).toBe("/case reads.bam")

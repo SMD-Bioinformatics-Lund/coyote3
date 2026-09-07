@@ -375,7 +375,12 @@ class DnaStructuralService:
             "cnv": cnv,
             "annotations": self.copy_number_variant_repository.get_cnv_annotations(cnv),
             "sample_ids": sample_ids,
-            **alignment_files_payload(sample, sample_ids, self.bam_record_repository.get_bams),
+            **alignment_files_payload(
+                sample,
+                sample_ids,
+                self.bam_record_repository.get_bams,
+                asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+            ),
             "has_hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "assay_group": assay_group,
@@ -572,7 +577,12 @@ class DnaStructuralService:
             "translocation": transloc,
             "annotations": self.translocation_repository.get_transloc_annotations(transloc),
             "sample_ids": sample_ids,
-            **alignment_files_payload(sample, sample_ids, self.bam_record_repository.get_bams),
+            **alignment_files_payload(
+                sample,
+                sample_ids,
+                self.bam_record_repository.get_bams,
+                asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+            ),
             "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
                 require_sample_vep_version(sample)
             ),

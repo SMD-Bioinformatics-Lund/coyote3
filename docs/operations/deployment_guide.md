@@ -74,7 +74,7 @@ are compiled as part of the Vite bundle; there is no separate Tailwind process.
   `npm run build`.
 
 `SCRIPT_NAME`, `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE`, `GENS_URI`, and
-`IGV_URI` are public Vite build inputs. Changing one requires a new frontend
+`IGV_URI` and `IGV_DATA_ROOT` are public Vite build inputs. Changing one requires a new frontend
 image because it changes the generated browser bundle. Do not place secrets in
 these values.
 

@@ -320,10 +320,11 @@ def _context_service(variant):
             get_conseq_translations=lambda version: {"version": version},
         ),
         assay_panel_repository=SimpleNamespace(
+            get_asp=lambda **kwargs: {},
             get_asp_group_mappings=lambda: {
                 "solid_gmsv3": "solid",
                 "hema_gmsv1": "hematology",
-            }
+            },
         ),
     )
 

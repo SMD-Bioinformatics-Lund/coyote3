@@ -236,7 +236,7 @@ export function TranslocationDetail() {
 
             <ExternalLinksCard
               links={[
-                ...igvAlignmentLinks(data.bam_id, position, data.bai_id),
+                ...igvAlignmentLinks(data.bam_id, position, data.bai_id, data.design_bed_paths),
                 genes[0]
                   ? { label: `cBioPortal ${genes[0]}`, value: genes[0], href: cbioportalOncoprintUrl(genes) }
                   : null,

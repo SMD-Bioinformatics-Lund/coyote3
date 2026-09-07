@@ -127,6 +127,7 @@ Required keys:
 Optional keys:
 - `id_` (Any | None)
 - `description` (str | None)
+- `igv` (api.contracts.schemas.assay.AspIgvDoc | None)
 - `expected_files` (list[str])
 - `required_files` (list[str])
 - `covered_genes` (list[str])

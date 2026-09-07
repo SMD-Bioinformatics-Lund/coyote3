@@ -38,6 +38,7 @@ export default defineConfig({
       appVersion,
       gensUri: String(process.env.GENS_URI || '').trim().replace(/\/+$/, ''),
       igvUri: String(process.env.IGV_URI || '').trim().replace(/\/+$/, ''),
+      igvDataRoot: String(process.env.IGV_DATA_ROOT || '').trim().replace(/\/+$/, ''),
       localTimeZone,
       organizationName,
       scriptName,
