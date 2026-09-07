@@ -180,14 +180,7 @@ def refresh_public_oncokb_gene_cache(
     ]
 
     # Fetch and normalize both public catalogues before mutating either local cache.
-    result["cancer_genes_upserted"] = cache_repository.upsert_cancer_gene_markers(cancer_docs)
-    result["cancer_genes_removed"] = cache_repository.remove_cancer_gene_markers_not_in(
-        {str(document["gene"]) for document in cancer_docs}
-    )
-    result["curated_genes_upserted"] = cache_repository.upsert_gene_markers(curated_docs)
-    result["curated_genes_removed"] = cache_repository.remove_gene_markers_not_in(
-        {str(document["gene"]) for document in curated_docs}
-    )
+    result.update(cache_repository.refresh_gene_markers(cancer_docs, curated_docs))
     return result
 
 

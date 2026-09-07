@@ -6,7 +6,7 @@ import pytest
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
 
-def test_revision_rotation_restores_active_document_when_successor_insert_fails(
+def test_revision_rotation_fails_closed_without_transaction_support(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     collection = mongomock.MongoClient()["revision_rotation"]["asp"]
@@ -19,7 +19,7 @@ def test_revision_rotation_restores_active_document_when_successor_insert_fails(
 
     monkeypatch.setattr(collection, "insert_one", fail_insert)
 
-    with pytest.raises(RuntimeError, match="successor insert failed"):
+    with pytest.raises(NotImplementedError):
         rotate_active_revision(
             collection,
             selector={"asp_id": "hema_gmsv1"},

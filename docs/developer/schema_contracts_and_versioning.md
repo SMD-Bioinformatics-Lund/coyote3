@@ -111,9 +111,9 @@ The lifecycle is:
 
 MongoDB partial unique indexes enforce one active revision per business
 identifier. Unique compound indexes prevent reuse of a revision number. A
-replica-set deployment rotates the two documents in a transaction. Standalone
-development deployments use a guarded retire-and-insert operation and restore
-the previous active document if successor insertion fails.
+replica-set deployment rotates the two documents in a required transaction.
+Standalone deployments cannot perform these writes. Failure preserves the previous
+active revision; no compensating restoration or non-transactional fallback is used.
 
 Content edits never overwrite a retired revision. Activation state is lifecycle
 metadata: deactivation or reactivation can change the latest revision's active

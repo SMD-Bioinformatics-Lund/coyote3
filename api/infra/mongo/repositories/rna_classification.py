@@ -67,6 +67,4 @@ class RNAClassificationRepository(BaseRepository):
 
     def delete_sample_classification(self, sample_oid: str) -> OperationResult:
         """Delete classification documents owned by a sample."""
-        return OperationResult.from_delete(
-            self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
-        )
+        return OperationResult.from_delete(self.delete_many_atomic({"SAMPLE_ID": sample_oid}))

@@ -239,9 +239,7 @@ class ReportedVariantsRepository(BaseRepository):
         if not ops:
             return 0
 
-        res = self.get_collection().bulk_write(
-            ops, ordered=False, **({"session": session} if session is not None else {})
-        )
+        res = self.bulk_write_atomic(ops, session=session)
         if session is None and (res.upserted_count or res.modified_count):
             self.invalidate_dashboard_metrics()
         return int(res.upserted_count or 0)
@@ -281,9 +279,7 @@ class ReportedVariantsRepository(BaseRepository):
 
     def delete_sample_reported_variants(self, sample_oid) -> OperationResult:
         """Delete immutable report snapshots owned by a deleted sample."""
-        result = OperationResult.from_delete(
-            self.get_collection().delete_many({"sample_oid": sample_oid})
-        )
+        result = OperationResult.from_delete(self.delete_many_atomic({"sample_oid": sample_oid}))
         if result.deleted_count:
             self.invalidate_dashboard_metrics()
         return result

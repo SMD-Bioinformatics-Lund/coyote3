@@ -353,6 +353,18 @@ def test_refresh_public_oncokb_gene_cache_matches_the_complete_hgnc_catalogue():
             self.cancer_genes_retained = genes
             return 0
 
+        def refresh_gene_markers(self, cancer_docs, curated_docs):
+            return {
+                "cancer_genes_upserted": self.upsert_cancer_gene_markers(cancer_docs),
+                "curated_genes_upserted": self.upsert_gene_markers(curated_docs),
+                "cancer_genes_removed": self.remove_cancer_gene_markers_not_in(
+                    {doc["gene"] for doc in cancer_docs}
+                ),
+                "curated_genes_removed": self.remove_gene_markers_not_in(
+                    {doc["gene"] for doc in curated_docs}
+                ),
+            }
+
     class _Hgnc:
         def iter_gene_metadata(self):
             return [

@@ -13,6 +13,7 @@ from api.domain.core.exceptions import AppError
 from api.domain.core.reporting.errors import ReportCommitUncertain
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
+from api.infra.mongo.transactions import run_transaction
 from api.infra.request_context import current_username
 from api.infra.samples_cache import invalidate_samples_cache
 
@@ -135,8 +136,7 @@ class ReportRepository(BaseRepository):
             )
 
         try:
-            with self.adapter.client.start_session() as session:
-                session.with_transaction(transaction)
+            run_transaction(self.adapter.client, transaction)
         except PyMongoError as exc:
             if exc.has_error_label("UnknownTransactionCommitResult"):
                 raise ReportCommitUncertain() from exc
@@ -203,7 +203,7 @@ class ReportRepository(BaseRepository):
     def delete_sample_reports(self, sample_oid: str) -> OperationResult:
         """Delete report metadata owned by a sample."""
         result = OperationResult.from_delete(
-            self.get_collection().delete_many({"sample_oid": self._object_id(sample_oid)})
+            self.delete_many_atomic({"sample_oid": self._object_id(sample_oid)})
         )
         if result.deleted_count:
             self.invalidate_dashboard_metrics()

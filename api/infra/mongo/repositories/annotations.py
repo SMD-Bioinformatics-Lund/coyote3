@@ -317,7 +317,7 @@ class AnnotationsRepository(BaseRepository):
             for annotation in deepcopy(annotations)
         ]
         result = OperationResult.from_insert_many(
-            self.get_collection().insert_many(annotations_copy),
+            self.insert_many_atomic(annotations_copy),
             requested_count=len(annotations_copy),
         )
         if any(_annotation_class_value(item.get("class")) is not None for item in annotations_copy):
@@ -633,7 +633,7 @@ class AnnotationsRepository(BaseRepository):
             delete_clause.append({"text": annotation_text})
 
         scoped_query = {**query, "$or": delete_clause}
-        result = OperationResult.from_delete(self.get_collection().delete_many(scoped_query))
+        result = OperationResult.from_delete(self.delete_many_atomic(scoped_query))
         if result.deleted_count:
             self.invalidate_dashboard_metrics()
         return result

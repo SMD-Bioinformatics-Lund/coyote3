@@ -10,6 +10,7 @@ from bson.errors import InvalidId
 
 from api.contracts.schemas.public_catalog import PublicAssayCatalogVersionDoc
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.transactions import run_transaction
 
 
 class PublicAssayCatalogVersionRepository(BaseRepository):
@@ -66,8 +67,7 @@ class PublicAssayCatalogVersionRepository(BaseRepository):
             self._snapshot(payload, session)
             return payload
 
-        with self.adapter.client.start_session() as session:
-            return session.with_transaction(transaction)
+        return run_transaction(self.adapter.client, transaction)
 
     def replace(
         self, previous: dict[str, Any], candidate: dict[str, Any], *, publish: bool = False
@@ -129,8 +129,7 @@ class PublicAssayCatalogVersionRepository(BaseRepository):
             self._snapshot(payload, session)
             return payload
 
-        with self.adapter.client.start_session() as session:
-            return session.with_transaction(transaction)
+        return run_transaction(self.adapter.client, transaction)
 
 
 class PublicAssayCatalogRevisionRepository(BaseRepository):

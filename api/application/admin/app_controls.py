@@ -443,11 +443,14 @@ class AppControlsService:
         """Delete audit events older than the configured retention horizon."""
         retention_days = self.get_controls().retention.audit_events_days
         cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-        result = self.audit_collection.delete_many(
-            {
-                "retention_class": "operational",
-                "occurred_at": {"$lt": cutoff},
-            }
+        from api.infra.mongo.transactions import run_transaction
+
+        result = run_transaction(
+            self.audit_collection.database.client,
+            lambda session: self.audit_collection.delete_many(
+                {"retention_class": "operational", "occurred_at": {"$lt": cutoff}},
+                session=session,
+            ),
         )
         return {
             "retention_days": retention_days,

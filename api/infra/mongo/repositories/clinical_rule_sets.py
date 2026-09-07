@@ -15,6 +15,7 @@ from pymongo import ReturnDocument
 
 from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.transactions import run_transaction
 
 
 def _object_id(value: Any) -> ObjectId | None:
@@ -279,8 +280,7 @@ class ClinicalRuleSetRepository(BaseRepository):
             )
             return payload
 
-        with self.adapter.client.start_session() as session:
-            return session.with_transaction(_transaction)
+        return run_transaction(self.adapter.client, _transaction)
 
     def update_draft(
         self,
@@ -312,8 +312,7 @@ class ClinicalRuleSetRepository(BaseRepository):
                 )
             return updated
 
-        with self.adapter.client.start_session() as session:
-            return session.with_transaction(_transaction)
+        return run_transaction(self.adapter.client, _transaction)
 
     def delete_draft(self, document_id: Any, *, expected_revision: int) -> dict[str, Any] | None:
         """Delete one editable draft and its private revision snapshots together."""
@@ -332,8 +331,7 @@ class ClinicalRuleSetRepository(BaseRepository):
                 )
             return deleted
 
-        with self.adapter.client.start_session() as session:
-            return session.with_transaction(_transaction)
+        return run_transaction(self.adapter.client, _transaction)
 
     def transition(
         self,
@@ -365,8 +363,7 @@ class ClinicalRuleSetRepository(BaseRepository):
                 )
             return updated
 
-        with self.adapter.client.start_session() as session:
-            return session.with_transaction(_transaction)
+        return run_transaction(self.adapter.client, _transaction)
 
     def publish(
         self,
@@ -444,8 +441,7 @@ class ClinicalRuleSetRepository(BaseRepository):
                     session=session,
                 )
 
-        with self.adapter.client.start_session() as session:
-            session.with_transaction(_transaction)
+        run_transaction(self.adapter.client, _transaction)
         return result
 
     def capture_baseline(

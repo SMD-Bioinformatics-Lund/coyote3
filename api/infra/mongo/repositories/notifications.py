@@ -67,7 +67,7 @@ class NotificationsRepository(BaseRepository):
 
     def mark_all_read(self, username: str) -> int:
         normalized = str(username or "").strip().lower()
-        result = self.get_collection().update_many(
+        result = self.update_many_atomic(
             self._visible_query(normalized),
             {
                 "$addToSet": {"read_by": normalized},
@@ -93,7 +93,7 @@ class NotificationsRepository(BaseRepository):
 
     def dismiss_all(self, username: str) -> int:
         normalized = str(username or "").strip().lower()
-        result = self.get_collection().update_many(
+        result = self.update_many_atomic(
             self._visible_query(normalized),
             {
                 "$addToSet": {"dismissed_by": normalized},

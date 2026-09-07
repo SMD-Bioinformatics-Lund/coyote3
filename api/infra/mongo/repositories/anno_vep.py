@@ -50,8 +50,7 @@ class AnnoVepRepository(BaseRepository):
             )
         if not operations:
             return 0
-        kwargs = {"session": session} if session is not None else {}
-        result = self.get_collection().bulk_write(operations, ordered=False, **kwargs)
+        result = self.bulk_write_atomic(operations, session=session)
         return int(result.upserted_count or 0)
 
     def get_for_variant(self, *, simple_id_hash: str, vep_version: str) -> dict[str, Any] | None:

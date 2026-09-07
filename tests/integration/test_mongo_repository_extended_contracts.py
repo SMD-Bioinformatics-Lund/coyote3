@@ -42,6 +42,17 @@ class _Cache:
         self.values.clear()
 
 
+@pytest.fixture(autouse=True)
+def emulated_repository_transactions(monkeypatch):
+    """Keep shape tests in mongomock; real rollback is tested by lifecycle tests."""
+
+    def execute(client, operation):
+        return operation(None)
+
+    monkeypatch.setattr("api.infra.mongo.repositories.base.run_transaction", execute)
+    monkeypatch.setattr("api.infra.mongo.repositories.revision_rotation.run_transaction", execute)
+
+
 def _adapter():
     database = mongomock.MongoClient()["coyote3_repository_contracts"]
     app = SimpleNamespace(
@@ -438,12 +449,14 @@ def test_fusion_repository_selection_annotations_matching_and_mutations(monkeypa
         def find(self, query, _projection=None):
             return adapter.fusions_collection.find(query)
 
-    monkeypatch.setattr(repository, "get_collection", lambda: _ProjectionCompatibleCollection())
-    assert (
-        len(repository.find_fusions_with_matching_breakpoints(str(sample_a), "1:10:+", "2:20:-"))
-        == 1
-    )
-    monkeypatch.undo()
+    with monkeypatch.context() as patch:
+        patch.setattr(repository, "get_collection", lambda: _ProjectionCompatibleCollection())
+        assert (
+            len(
+                repository.find_fusions_with_matching_breakpoints(str(sample_a), "1:10:+", "2:20:-")
+            )
+            == 1
+        )
     matching = list(adapter.fusions_collection.find({"SAMPLE_ID": str(sample_b)}))
     monkeypatch.setattr(
         repository, "find_fusions_with_matching_breakpoints", lambda **_kwargs: matching

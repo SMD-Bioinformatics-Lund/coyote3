@@ -40,13 +40,14 @@ class _AppControlsCollection:
         self.doc.update(update.get("$set", {}))
         return dict(self.doc)
 
-    def delete_many(self, query):
+    def delete_many(self, query, session=None):
         self.last_delete_query = query
         return SimpleNamespace(deleted_count=3)
 
 
 class _Db:
     def __init__(self, collection: _AppControlsCollection) -> None:
+        self.client = None
         self.collection = collection
         self.collection.database = self
 
@@ -289,7 +290,10 @@ def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
     assert recent.exists()
 
 
-def test_cleanup_audit_events_only_deletes_expired_operational_events():
+def test_cleanup_audit_events_only_deletes_expired_operational_events(monkeypatch):
+    monkeypatch.setattr(
+        "api.infra.mongo.transactions.run_transaction", lambda client, operation: operation(None)
+    )
     collection = _AppControlsCollection()
     collection.doc = {
         "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
