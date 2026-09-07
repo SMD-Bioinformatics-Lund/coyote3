@@ -121,7 +121,7 @@ Create the development environment file:
 cp deploy/env/example.env .coyote3_dev_env
 ```
 
-Review the copied file and replace every `CHANGE_ME` value. Set `MONGO_URI` to
+Review the copied file and replace every `CHANGE_ME` value. Set `COYOTE3_MONGO_URI` to
 the MongoDB instance the containers should use, and configure the host data and
 log roots for the local machine.
 
@@ -134,10 +134,10 @@ Start the development stack:
   up -d --build
 ```
 
-The application always uses the MongoDB endpoint in `MONGO_URI`. It does not
-start MongoDB, create a network, or join a database-specific Docker network.
-The database may be host-installed, center-managed, or deployed independently
-with Docker, provided that the URI is reachable from the application containers.
+App, identity, knowledgebase, and BAM services have independent MongoDB URI/name
+pairs. The base stack starts no MongoDB. Include the optional Mongo overlay and
+enable `mongo` and/or `mongo-kb` only for repository-managed database containers.
+See [service topology](docs/architecture/mongodb_topology.md) for local and split deployments.
 
 See [MongoDB deployment and recovery](docs/operations/mongodb_deployment_and_recovery.md)
 for replica-set initialization, backups, and recovery testing.

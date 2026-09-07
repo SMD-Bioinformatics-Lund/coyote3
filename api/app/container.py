@@ -146,6 +146,9 @@ class MongoStore:
 
     def reset(self) -> None:
         """Reset to pre-initialization state."""
+        previous = getattr(self, "_adapter", None)
+        if previous is not None:
+            previous.close()
         self._adapter: Any | None = None
         self.client = None
         self.coyote_db = None
@@ -203,8 +206,9 @@ class MongoStore:
         adapter = MongoAdapter()
         adapter.init_from_app(runtime)
         try:
-            adapter.client.admin.command("ping")
+            adapter.ping()
         except ConnectionFailure as exc:
+            adapter.close()
             runtime.logger.error("MongoDB connection failed: %s", exc)
             raise RuntimeError("Could not connect to MongoDB.") from exc
         self._adapter = adapter

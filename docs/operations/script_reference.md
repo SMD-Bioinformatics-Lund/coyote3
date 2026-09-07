@@ -34,7 +34,7 @@ execution classes below.
 The application does not provide an all-in-one first-run orchestrator. Database
 provisioning, direct bootstrap, application startup, and sample ingest are
 separate operational steps. The application stack always uses the configured
-`MONGO_URI`; the first local Coyote3 account is created before the API is
+`COYOTE3_MONGO_URI`; the first local Coyote3 account is created before the API is
 started through `bootstrap_database.py`.
 
 ## Quality and generated contracts

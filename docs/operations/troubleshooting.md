@@ -16,7 +16,7 @@ This section outlines standard diagnostic signatures and remediation protocols f
 
 **Remediation Protocol:**
 
-1. Validate the local `.coyote3_env` file to ensure the configured `MONGO_URI` connection string contains the correct authentication payload (username and password).
+1. Validate the local `.coyote3_env` file to ensure the configured `COYOTE3_MONGO_URI` connection string contains the correct authentication payload (username and password).
 2. Confirm the runtime account can list collection indexes. Run `apply` with a
    separately controlled maintenance identity that can create indexes.
 3. If connecting to a historical volume bootstrapped before authentication was

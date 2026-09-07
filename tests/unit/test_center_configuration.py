@@ -30,21 +30,13 @@ def test_center_contact_and_collection_configuration_loads():
         public_base_url="https://example.test",
         script_name="/coyote3",
     )
-    collections = load_collection_mapping(
-        primary_database="arbitrary_center_database",
-        identity_database="arbitrary_identity_database",
-        knowledgebase_database="arbitrary_knowledgebase_database",
-        bam_database="arbitrary_bam_database",
-    )
+    collections = load_collection_mapping()
 
     assert contact["organization"]["name"] == "Test center"
     assert contact["contacts"]
-    assert collections["arbitrary_center_database"]["samples_collection"] == "samples"
-    assert collections["arbitrary_identity_database"]["users_collection"] == "users"
-    assert "users_collection" not in collections["arbitrary_center_database"]
-    assert (
-        collections["arbitrary_knowledgebase_database"]["civic_variants_collection"]
-        == "civic_variants"
-    )
-    assert "civic_variants_collection" not in collections["arbitrary_center_database"]
-    assert collections["arbitrary_bam_database"]["bam_samples"] == "samples"
+    assert collections["primary"]["samples_collection"] == "samples"
+    assert collections["identity"]["users_collection"] == "users"
+    assert "users_collection" not in collections["primary"]
+    assert collections["knowledgebase"]["civic_variants_collection"] == "civic_variants"
+    assert "civic_variants_collection" not in collections["primary"]
+    assert collections["bam"]["bam_samples"] == "samples"

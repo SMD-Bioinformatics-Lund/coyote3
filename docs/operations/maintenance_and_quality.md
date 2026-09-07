@@ -50,7 +50,8 @@ Example staging command:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "admin.coyote3" \

@@ -76,7 +76,8 @@ Standard command shape:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "admin.coyote3" \
@@ -84,7 +85,7 @@ Standard command shape:
   --password "<ADMIN_PASSWORD>"
 ```
 
-Configure `MONGO_URI` for the independently operated database before this
+Configure `COYOTE3_MONGO_URI` for the independently operated database before this
 command. If the supplied MongoDB Compose definition is used, its persistent
 host resources are `COYOTE3_MONGO_DATA_HOST_ROOT`,
 `COYOTE3_MONGO_BACKUP_HOST_ROOT`, and `COYOTE3_MONGO_KEYFILE_HOST_PATH`.

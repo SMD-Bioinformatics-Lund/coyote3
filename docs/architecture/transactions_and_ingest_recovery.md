@@ -110,7 +110,7 @@ PYTHONPATH=. .venv/bin/python scripts/inspect_report_artifacts.py \
   --database "$APPLICATION_DATABASE" --reports-root "$REPORTS_ROOT"
 ```
 
-The script reads `MONGO_URI` from the environment, supports
+The script reads `COYOTE3_MONGO_URI` from the environment, supports
 `--reports-collection`, and prints counts by default. `--details` includes local
 report identifiers and relative paths and must be handled as sensitive output.
 Use the same report root mount/path representation as the report-writing service.

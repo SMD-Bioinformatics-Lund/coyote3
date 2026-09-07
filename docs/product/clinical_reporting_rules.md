@@ -499,7 +499,7 @@ Existing deployments install the rule permissions and bundled duty-separated rol
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/sync_rbac_catalog.py \
-  --mongo-uri "${MONGO_URI}" \
+  --mongo-uri "${IDENTITY_MONGO_URI}" \
   --identity-db "${IDENTITY_DB}"
 ```
 
@@ -507,7 +507,7 @@ Before the first clinical-rule edit, capture one immutable baseline of every cur
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/backfill_clinical_rule_revisions.py \
-  --mongo-uri "${MONGO_URI}" \
+  --mongo-uri "${COYOTE3_MONGO_URI}" \
   --db coyote3_new \
   --actor reporting.migration \
   --dry-run

@@ -22,12 +22,45 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from api.config.mongo import configured_mongo_uri  # noqa: E402
 from api.config.paths import COLLECTIONS_CONFIG_PATH  # noqa: E402
 
 ONCOKB_PUBLIC_COLLECTION_KEY = "oncokb_public_collection"
 FORBIDDEN_ONCOKB_FIELDS = ("sample_ids", "sample_names")
 STAGING_PREFIX = "__coyote3_knowledgebase_migration__"
 COPY_BATCH_SIZE = 1_000
+
+
+def assert_distinct_databases(source: Database, target: Database) -> None:
+    """Prevent self-copy through different credentials or aliases of one deployment."""
+    if source.name != target.name:
+        return
+    if source.client is target.client:
+        raise ValueError("Source and target must be different database namespaces")
+
+    def deployment(client):
+        hello = client.admin.command("hello")
+        if hello.get("setName") and hello.get("hosts"):
+            members = set(hello["hosts"])
+            members.update(hello.get("passives", []))
+            members.update(hello.get("arbiters", []))
+            return "replica", hello["setName"], frozenset(members)
+        if hello.get("msg") != "isdbgrid":
+            process_id = (hello.get("topologyVersion") or {}).get("processId")
+            if process_id is not None:
+                return "standalone", process_id
+        raise ValueError(
+            "Cannot prove source and target deployments differ for identical database names; "
+            "use distinct destination names or a cluster-aware migration procedure"
+        )
+
+    source_deployment = deployment(source.client)
+    target_deployment = deployment(target.client)
+    same_replica_members = source_deployment[0] == target_deployment[0] == "replica" and bool(
+        source_deployment[2] & target_deployment[2]
+    )
+    if source_deployment == target_deployment or same_replica_members:
+        raise ValueError("Source and target must be different database namespaces")
 
 
 def knowledgebase_collections(config_path: Path) -> dict[str, str]:
@@ -212,7 +245,9 @@ def migrate_collection(
 def parse_args() -> argparse.Namespace:
     """Parse migration arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", ""))
+    parser.add_argument("--mongo-uri", default="", help="Explicit shared URI for both endpoints")
+    parser.add_argument("--source-mongo-uri", default="")
+    parser.add_argument("--target-mongo-uri", default="")
     parser.add_argument("--source-db", default=os.getenv("COYOTE3_DB", ""))
     parser.add_argument("--target-db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     parser.add_argument("--collections-config", type=Path, default=COLLECTIONS_CONFIG_PATH)
@@ -234,21 +269,30 @@ def parse_args() -> argparse.Namespace:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     """Execute the guarded migration and return its non-sensitive report."""
-    if not args.mongo_uri or not args.source_db or not args.target_db:
-        raise ValueError("MONGO_URI, source database, and target database are required")
-    if args.source_db == args.target_db:
-        raise ValueError("Source and target databases must be different")
+    source_uri = (
+        args.source_mongo_uri or args.mongo_uri or configured_mongo_uri(os.environ, "primary")
+    )
+    target_uri = (
+        args.target_mongo_uri or args.mongo_uri or configured_mongo_uri(os.environ, "knowledgebase")
+    )
+    if not source_uri or not target_uri or not args.source_db or not args.target_db:
+        raise ValueError("Source/target MongoDB URIs and database names are required")
     if args.drop_source and not args.apply:
         raise ValueError("--drop-source requires --apply")
     if args.drop_source and args.confirm_drop_source != args.source_db:
         raise ValueError("--confirm-drop-source must exactly match --source-db")
 
     mapping = knowledgebase_collections(args.collections_config)
-    client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=10_000)
+    client = MongoClient(source_uri, serverSelectionTimeoutMS=10_000)
+    target_client = client
     try:
+        if target_uri != source_uri:
+            target_client = MongoClient(target_uri, serverSelectionTimeoutMS=10_000)
         client.admin.command("ping")
+        target_client.admin.command("ping")
         source_db = client[args.source_db]
-        target_db = client[args.target_db]
+        target_db = target_client[args.target_db]
+        assert_distinct_databases(source_db, target_db)
         results = [
             migrate_collection(source_db, target_db, key, name, apply=args.apply)
             for key, name in mapping.items()
@@ -278,6 +322,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "collections": results,
         }
     finally:
+        if target_client is not client:
+            target_client.close()
         client.close()
 
 

@@ -635,6 +635,8 @@ class InternalIngestService:
         record_completion=None,
     ) -> dict[str, Any]:
         """Validate and replace one document in a supported collection."""
+        if record_completion is not None:
+            self.validate_async_collection(collection)
 
         def replace(session):
             result = collection_writes.upsert_collection_document(
@@ -649,7 +651,11 @@ class InternalIngestService:
                 record_completion(result, session)
             return result
 
-        return self.collection_gateway.run_transaction(replace)
+        return self.collection_gateway.run_collection_transaction(collection, replace)
+
+    def validate_async_collection(self, collection: str) -> None:
+        """Check whether target data and the job receipt can share one transaction."""
+        self.collection_gateway.validate_completion_target(collection)
 
     def _next_unique_name(self, case_id: str, increment: bool) -> str:
         """Return a unique sample name, optionally auto-suffixing if name already exists."""

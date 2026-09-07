@@ -46,7 +46,7 @@ Work through this list before starting. Do not proceed if any item cannot be sat
 
 ```bash
 bash scripts/mongo_backup_archive.sh \
-  --mongo-uri "${MONGO_URI}" \
+  --mongo-uri "${IDENTITY_MONGO_URI}" \
   --out-dir "/data/coyote3/backups/mongo"
 ```
 
@@ -69,11 +69,11 @@ Ensure `clinical_rule_sets` is populated in the target database before app start
 and verify that each ASPC binding points to an active published rule set:
 
 ```bash
-mongosh "${MONGO_URI}/${COYOTE3_DB}" --eval 'db.asp_configs.countDocuments({ "reporting.clinical_rule_set_id": { $exists: true, $ne: "" } })'
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).asp_configs.countDocuments({ "reporting.clinical_rule_set_id": { $exists: true, $ne: "" } })'
 ```
 
 ```bash
-mongosh "${MONGO_URI}/${COYOTE3_DB}" --eval 'db.clinical_rule_sets.countDocuments()'
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).clinical_rule_sets.countDocuments()'
 ```
 
 If either value is zero, restore from the canonical rules snapshot source or apply
@@ -106,13 +106,13 @@ Coyote3 field contract. Place the reviewed migration script in
 ```bash
 # Dry run — inspect output before applying
 PYTHONPATH=. python migration_scripts/20260729_normalize_clinical_configuration.py \
-  --uri "${MONGO_URI}" \
+  --uri "${COYOTE3_MONGO_URI}" \
   --database "${COYOTE3_DB}" \
   --dry-run
 
 # Apply — run during the maintenance window only
 PYTHONPATH=. python migration_scripts/20260729_normalize_clinical_configuration.py \
-  --uri "${MONGO_URI}" \
+  --uri "${COYOTE3_MONGO_URI}" \
   --database "${COYOTE3_DB}"
 ```
 
@@ -128,7 +128,7 @@ centre-defined roles:
 
 ```bash
 python scripts/sync_rbac_catalog.py \
-  --mongo-uri "${MONGO_URI}" \
+  --mongo-uri "${COYOTE3_MONGO_URI}" \
   --identity-db "${IDENTITY_DB}"
 ```
 
@@ -150,7 +150,8 @@ local administrator before clinical ingest:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "superuser" \
@@ -247,7 +248,7 @@ If the migration must be aborted after step 3:
 
    ```bash
    bash scripts/mongo_restore_archive.sh \
-     --mongo-uri "${MONGO_URI}" \
+     --mongo-uri "${COYOTE3_MONGO_URI}" \
      --archive "/data/coyote3/backups/mongo/backup.archive.gz" \
      --confirm RESTORE_PATIENT_DATA
    ```

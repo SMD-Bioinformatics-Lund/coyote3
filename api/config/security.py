@@ -195,9 +195,8 @@ def get_api_session_cookie_samesite(config: Mapping[str, Any]) -> str:
 
 def get_api_sessions_collection_name(config: Mapping[str, Any]) -> str:
     """Return the MongoDB collection used for API sessions."""
-    identity_db = str(config.get("IDENTITY_DB") or "")
     mappings = config.get("DB_COLLECTIONS_CONFIG") or {}
-    identity_mapping = mappings.get(identity_db) if isinstance(mappings, Mapping) else None
+    identity_mapping = mappings.get("identity") if isinstance(mappings, Mapping) else None
     if isinstance(identity_mapping, Mapping):
         return str(
             identity_mapping.get("api_sessions_collection") or OPERATIONAL_COLLECTIONS.api_sessions
@@ -207,9 +206,8 @@ def get_api_sessions_collection_name(config: Mapping[str, Any]) -> str:
 
 def get_audit_events_collection_name(config: Mapping[str, Any]) -> str:
     """Return the MongoDB collection used for durable audit events."""
-    identity_db = str(config.get("IDENTITY_DB") or "")
     mappings = config.get("DB_COLLECTIONS_CONFIG") or {}
-    identity_mapping = mappings.get(identity_db) if isinstance(mappings, Mapping) else None
+    identity_mapping = mappings.get("identity") if isinstance(mappings, Mapping) else None
     if isinstance(identity_mapping, Mapping):
         return str(
             identity_mapping.get("audit_events_collection") or OPERATIONAL_COLLECTIONS.audit_events

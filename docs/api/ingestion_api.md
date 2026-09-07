@@ -241,11 +241,12 @@ files.
 
 ## MongoDB dependency
 
-API and worker containers use only the configured `MONGO_URI`. The database is
-provisioned independently of the application stack and must be reachable from
-the API and worker containers.
-See [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
-See [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
+API and workers use independent app, identity, knowledgebase, and BAM endpoints.
+Sample ingestion and its job receipts stay on the primary endpoint. Async raw
+collection ingestion returns HTTP 400 when its target uses a different client;
+use synchronous ingestion or maintenance tooling for that target. Synchronous
+writes use the selected collection's client, never a session from another service.
+See [MongoDB service topology](../architecture/mongodb_topology.md).
 
 ## Route commands (full examples)
 
@@ -270,7 +271,8 @@ application services:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
   --username "admin.coyote3" \

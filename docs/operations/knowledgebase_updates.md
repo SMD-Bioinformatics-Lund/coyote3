@@ -61,7 +61,7 @@ and the MongoDB insertion stage. It does not bypass full validation, count
 verification, or staged publication.
 
 ```bash
-export MONGO_URI='mongodb://...'
+export KNOWLEDGEBASE_MONGO_URI='mongodb://...'
 export KNOWLEDGEBASE_DB='coyote3_knowledgebase'
 ```
 

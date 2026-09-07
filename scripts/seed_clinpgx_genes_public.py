@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pymongo import MongoClient
 
+from api.config.mongo import configured_mongo_uri
 from api.config.paths import COLLECTIONS_CONFIG_PATH
 from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
 
@@ -34,9 +35,11 @@ def main() -> int:
         required=True,
         help="Path to ClinPGx genes zip export.",
     )
-    parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+    parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "knowledgebase"))
     parser.add_argument("--db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     args = parser.parse_args()
+    if not args.mongo_uri:
+        parser.error("--mongo-uri or KNOWLEDGEBASE_MONGO_URI is required")
     if not args.db:
         parser.error("--db or KNOWLEDGEBASE_DB is required")
 

@@ -14,14 +14,12 @@ It is part of the MongoDB infrastructure layer.
 import time
 from typing import Any
 
-import pymongo
 from pymongo.errors import OperationFailure
-from pymongo.read_concern import ReadConcern
-from pymongo.write_concern import WriteConcern
 
 from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.knowledgebase.plugins import BUILTIN_KNOWLEDGEBASE_REPOSITORIES
+from api.infra.mongo.connections import MongoConnections
 from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
@@ -128,145 +126,54 @@ class MongoAdapter:
     different database collections.
     """
 
-    def __init__(self, client: pymongo.MongoClient = None):
-        """__init__.
+    def __init__(self):
+        self.client = None
+        self._connections = None
 
-        Args:
-                client: Client. Optional argument.
-        """
-        self.client = client
-        if self.client:
-            self._setup_dbs(self.client)
-            self._setup_repositories()  # Initialize repositories here only if client is provided
+    def connect(self, app):
+        """Bind logical databases without creating indexes or repositories."""
+        self.app = app
+        self._connections = MongoConnections(app.config)
+        self.coyote_db = self._connections.databases["primary"]
+        self.identity_db = self._connections.databases["identity"]
+        self.knowledgebase_db = self._connections.databases["knowledgebase"]
+        self.bam_db = self._connections.databases["bam"]
+        # Existing app-owned transactions use the primary client only.
+        self.client = self.coyote_db.client
+
+    def close(self):
+        if self._connections is not None:
+            self._connections.close()
+
+    def ping(self):
+        self._connections.ping()
 
     def init_from_app(self, app) -> None:
-        """
-        Initialize the adapter using the application configuration.
-
-        This method retrieves the MongoDB client using the `MONGO_URI` from the app's configuration,
-        sets up the databases, and initializes the necessary repositories for database operations.
-
-        Args:
-            app: Runtime object containing the API configuration.
-        """
-        self.app = app
-        self.client = self._get_mongoclient(app.config["MONGO_URI"])
-        self._setup_dbs(self.client)
-        self.setup()
-        self._setup_repositories(ensure_indexes=False)
-        self.verify_index_contracts()
+        """Initialize repositories using independently configured MongoDB services."""
+        try:
+            self.connect(app)
+            self.setup()
+            self._setup_repositories(ensure_indexes=False)
+            self.verify_index_contracts()
+        except Exception:
+            self.close()
+            raise
 
     def get_db_name(self) -> str:
-        """
-        Get the name of the primary database.
-
-        Returns:
-         str: The name of the primary database as specified in the application's configuration.
-        """
         return self.app.config["COYOTE3_DB"]
 
-    def _get_mongoclient(self, mongo_uri: str) -> pymongo.MongoClient:
-        """
-        Retrieve a MongoDB client instance.
-
-        Args:
-         mongo_uri (str): The MongoDB connection URI.
-
-        Returns:
-         pymongo.MongoClient: A MongoDB client instance connected to the specified URI.
-        """
-        return pymongo.MongoClient(
-            mongo_uri,
-            maxPoolSize=int(self.app.config.get("MONGO_MAX_POOL_SIZE", 100)),
-            minPoolSize=int(self.app.config.get("MONGO_MIN_POOL_SIZE", 0)),
-            connectTimeoutMS=int(self.app.config.get("MONGO_CONNECT_TIMEOUT_MS", 10_000)),
-            serverSelectionTimeoutMS=int(
-                self.app.config.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", 30_000)
-            ),
-            waitQueueTimeoutMS=int(self.app.config.get("MONGO_WAIT_QUEUE_TIMEOUT_MS", 10_000)),
-        )
-
-    def _setup_dbs(self, client: pymongo.MongoClient) -> None:
-        """
-        Setup databases
-
-        This method configures application, identity, knowledgebase, and BAM-service
-        databases using names from the application's configuration.
-
-        Attributes:
-            coyote_db: The primary database for the application, initialized using the `COYOTE3_DB` from the app's config.
-            bam_db: The BAM service database, initialized using the `BAM_DB` from the app's config.
-        """
-        # No, set the db names from config:
-        read_concern = ReadConcern(
-            level=str(self.app.config.get("MONGO_READ_CONCERN_LEVEL", "majority"))
-        )
-        configured_w = self.app.config.get("MONGO_WRITE_CONCERN_W", "majority")
-        write_w = int(configured_w) if str(configured_w).isdigit() else configured_w
-        write_concern = WriteConcern(
-            w=write_w,
-            j=bool(self.app.config.get("MONGO_WRITE_CONCERN_JOURNAL", True)),
-        )
-        self.coyote_db = client.get_database(self.app.config["COYOTE3_DB"]).with_options(
-            read_concern=read_concern, write_concern=write_concern
-        )
-        self.identity_db = client.get_database(self.app.config["IDENTITY_DB"]).with_options(
-            read_concern=read_concern, write_concern=write_concern
-        )
-        self.knowledgebase_db = client.get_database(
-            self.app.config["KNOWLEDGEBASE_DB"]
-        ).with_options(read_concern=read_concern, write_concern=write_concern)
-        self.bam_db = client.get_database(self.app.config["BAM_DB"]).with_options(
-            read_concern=read_concern, write_concern=write_concern
-        )
-
     def setup(self) -> None:
-        """
-        Setup collections
-
-        This method initializes collections for application, identity, knowledgebase, and
-        BAM databases. It retrieves collection configuration and exposes each collection
-        as an attribute on the `MongoAdapter` instance.
-
-        Collection mappings are selected by their configured physical database names.
-
-        Attributes:
-            coyote_db: The primary database for the application.
-            identity_db: User accounts, authorization policy, sessions, and audit events.
-            knowledgebase_db: External knowledgebase datasets and API caches.
-            bam_db: The BAM service database.
-        """
-        # Coyote DB
-        for collection_name, collection_value in (
-            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
-            .get(self.app.config["COYOTE3_DB"], {})
-            .items()
+        """Bind configured collections by logical ownership, not physical DB name."""
+        for service, database in (
+            ("primary", self.coyote_db),
+            ("identity", self.identity_db),
+            ("knowledgebase", self.knowledgebase_db),
+            ("bam", self.bam_db),
         ):
-            setattr(self, collection_name, self.coyote_db[collection_value])
-
-        # Identity and security DB
-        for collection_name, collection_value in (
-            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
-            .get(self.app.config["IDENTITY_DB"], {})
-            .items()
-        ):
-            setattr(self, collection_name, self.identity_db[collection_value])
-
-        # External knowledgebase DB
-        for collection_name, collection_value in (
-            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
-            .get(self.app.config["KNOWLEDGEBASE_DB"], {})
-            .items()
-        ):
-            setattr(self, collection_name, self.knowledgebase_db[collection_value])
-
-        # BAM Service DB
-        for bam_collection_name, bam_collection_value in (
-            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
-            .get(self.app.config["BAM_DB"], {})
-            .items()
-        ):
-            setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
+            for attribute, collection in (
+                self.app.config.get("DB_COLLECTIONS_CONFIG", {}).get(service, {}).items()
+            ):
+                setattr(self, attribute, database[collection])
 
     def _setup_repositories(self, *, ensure_indexes: bool = True):
         """

@@ -18,6 +18,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.mongo import configured_mongo_uri  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 
 DEFAULT_SEED_DATA_DIR = ROOT_DIR / "api" / "config" / "bootstrap" / "rbac"
@@ -164,7 +165,7 @@ def parse_args() -> argparse.Namespace:
             "custom roles, role metadata, and extra grants are preserved."
         )
     )
-    parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", ""))
+    parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "identity"))
     parser.add_argument("--identity-db", default=os.getenv("IDENTITY_DB", ""))
     parser.add_argument("--seed-data-dir", default=str(DEFAULT_SEED_DATA_DIR))
     return parser.parse_args()
@@ -174,7 +175,9 @@ def main() -> int:
     """Run the RBAC catalog synchronization command."""
     args = parse_args()
     if not args.mongo_uri or not args.identity_db:
-        raise SystemExit("--mongo-uri/MONGO_URI and --identity-db/IDENTITY_DB are required")
+        raise SystemExit(
+            "--mongo-uri/IDENTITY_MONGO_URI and --identity-db/IDENTITY_DB are required"
+        )
 
     seed_dir = Path(args.seed_data_dir).expanduser().resolve()
     permission_docs = _load_ndjson(seed_dir / "permissions.seed.ndjson")

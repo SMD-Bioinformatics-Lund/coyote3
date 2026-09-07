@@ -166,6 +166,7 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
         LOG_FILE_ENABLED=False,
         LOG_LEVEL="INFO",
         LOGS="logs/api",
+        COYOTE3_MONGO_URI="mongodb://configured-mongo:27017",
         COYOTE3_DB="coyote3_test",
         IDENTITY_DB="identity_test",
         KNOWLEDGEBASE_DB="knowledgebase_test",
@@ -196,6 +197,7 @@ def test_create_runtime_context_requires_explicit_database_names(
 ) -> None:
     config_values = {
         "ENV_NAME": "testing",
+        "COYOTE3_MONGO_URI": "mongodb://configured-mongo:27017",
         "COYOTE3_DB": "coyote3_test",
         "IDENTITY_DB": "identity_test",
         "KNOWLEDGEBASE_DB": "knowledgebase_test",
@@ -220,6 +222,7 @@ def test_create_runtime_context_requires_separate_knowledgebase_database(
         "_select_config",
         lambda **_kwargs: SimpleNamespace(
             ENV_NAME="testing",
+            COYOTE3_MONGO_URI="mongodb://configured-mongo:27017",
             COYOTE3_DB="same_database",
             IDENTITY_DB="identity_test",
             KNOWLEDGEBASE_DB="same_database",
@@ -239,6 +242,7 @@ def test_create_runtime_context_requires_separate_identity_database(
         "_select_config",
         lambda **_kwargs: SimpleNamespace(
             ENV_NAME="testing",
+            COYOTE3_MONGO_URI="mongodb://configured-mongo:27017",
             COYOTE3_DB="application",
             IDENTITY_DB="application",
             KNOWLEDGEBASE_DB="knowledgebase",
@@ -246,7 +250,7 @@ def test_create_runtime_context_requires_separate_identity_database(
         ),
     )
 
-    with pytest.raises(RuntimeError, match="IDENTITY_DB must be different"):
+    with pytest.raises(RuntimeError, match="must be different.*same MongoDB endpoint"):
         runtime_setup.create_runtime_context(testing=True)
 
 
@@ -266,7 +270,7 @@ def test_mongo_adapter_binds_knowledgebase_collections_to_dedicated_database() -
             "KNOWLEDGEBASE_DB": "knowledgebase",
             "BAM_DB": "bam",
             "DB_COLLECTIONS_CONFIG": {
-                "application": {"samples_collection": "samples"},
+                "primary": {"samples_collection": "samples"},
                 "identity": {"users_collection": "users"},
                 "knowledgebase": {"civic_variants_collection": "civic_variants"},
                 "bam": {"bam_samples": "samples"},

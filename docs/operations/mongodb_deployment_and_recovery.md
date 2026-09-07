@@ -1,131 +1,82 @@
 # MongoDB deployment and recovery
 
-MongoDB is deployed independently from the Coyote3 API, UI, documentation,
-workers, and proxy. The application uses only `MONGO_URI`; stopping,
-rebuilding, or updating the application stack does not stop, configure, or
-remove the database stack.
-
-The URI may target a host-installed MongoDB, a managed database platform, or
-the optional MongoDB Compose definition in this repository. The database
-administrator owns availability, backups, upgrades, replica-set membership,
-networking, and application-user provisioning. In Docker-based local
-development, use `host.docker.internal` in `MONGO_URI` to reach a MongoDB
-server installed on the host.
+Coyote3 selects app, identity, knowledgebase, and BAM databases through separate
+URI/name pairs. MongoDB can be host-installed, managed externally, or enabled
+through the optional Docker profiles. See [MongoDB service topology](../architecture/mongodb_topology.md)
+for the connection contract, local/split examples, environment isolation, and
+profile commands.
 
 ## Replica-set requirement
 
-Coyote3 requires a MongoDB replica set or sharded cluster. A standalone `mongod` cannot run
-MongoDB transactions and therefore cannot support related-document writes: sample ingestion,
-evidence replacement, sample deletion, report persistence, revision rotation, governed clinical
-rules, and catalog publication. This requirement applies even when all services and data are on
-one development machine. See [transaction boundaries and recovery](../architecture/transactions_and_ingest_recovery.md).
+Related-document writes require a MongoDB replica set or sharded cluster.
+A single-member replica set is supported for local development, but has no
+failover protection. Every endpoint can use its own replica-set name. Connection
+strings and advertised member addresses must be reachable from API and workers.
+See [transaction boundaries](../architecture/transactions_and_ingest_recovery.md).
 
-A one-member replica set is supported for local development and single-host deployments. It is a
-normal writable primary and provides the transaction semantics Coyote3 needs. It is not a
-high-availability configuration: the database is unavailable while that one server is unavailable.
-The application `MONGO_URI` must target the member through an address reachable from API, worker,
-and beat containers and include its `replicaSet` query parameter.
+Each mongod uses one dbPath for all its logical databases. Never mount the same
+data directory into two running mongod processes.
 
 ## Docker deployment model
 
-The repository provides `deploy/compose/docker-compose.mongo.yml` for a
-self-hosted MongoDB 8.2 instance. It joins an operator-created dedicated
-Docker network and starts a single-member replica set.
-
-The first member is a normal MongoDB primary, not a high-availability cluster. It provides the
-transaction semantics Coyote3 requires, supports consistent oplog backups, and gives a controlled
-path to add secondaries later.
-
-> **Warning**
->
-> A one-member replica set has no failover protection. If its server is unavailable, Coyote3 cannot read or write clinical data. Use tested backups and add two separate-host secondary members when availability requirements justify the operational cost.
->
+The base Compose stack starts no MongoDB. The optional
+`deploy/compose/docker-compose.mongo.yml` overlay selects app MongoDB with
+`--profile mongo` and knowledgebase MongoDB with `--profile mongo-kb`.
+Both use the operator-created `COYOTE3_APP_NETWORK`.
+For independently operated infrastructure, use an explicit Compose project name
+and keep its lifecycle separate from application updates.
 
 ## First-time setup
 
-1. Copy `deploy/env/example.env` to the environment file for the target deployment.
-2. Set all `CHANGE_ME` values and choose persistent host directories for MongoDB data and backups.
-3. Create the replica-set keyfile once. It is a secret used only by MongoDB members, not an application setting.
+1. Complete the environment file and select the URI for every logical service.
+   Use separate app/identity names for each environment and a shared knowledgebase.
+2. Prepare persistent directories and keyfiles for each physical instance:
 
 ```bash
-sudo install -d -m 0700 /srv/coyote3/mongo/data /srv/coyote3/mongo/backups
+sudo install -d -o 999 -g 999 -m 0700 /srv/coyote3/mongo/data /srv/coyote3/mongo/backups
 sudo sh -c 'openssl rand -base64 756 > /srv/coyote3/mongo/keyfile'
 sudo chmod 0400 /srv/coyote3/mongo/keyfile
 sudo chown 999:999 /srv/coyote3/mongo/keyfile
 ```
 
-The official MongoDB image runs its database process as UID `999`. Confirm the runtime UID if a custom image is used.
+For split knowledgebase MongoDB, prepare its separately configured data directory
+and keyfile too. Confirm the runtime UID if using a custom MongoDB image. Do not
+regenerate an existing replica-set keyfile during an ordinary upgrade.
 
-4. Keep these values aligned in the environment file:
+3. Create the configured application network if absent. Start the selected MongoDB
+   profiles and run their replica initializers using the
+   [profile commands](../architecture/mongodb_topology.md#optional-docker-mongodb).
+4. Provision maintenance credentials. The first-initialization app users authenticate
+   against `admin` and have only read access to knowledgebases. Index creation and
+   imports require a separately authorized maintenance user.
+5. Bootstrap app/identity data, apply the index plan, then start API/workers/beat.
+   Preserve existing database names, user authentication settings, replica sets,
+   and persistent directories when upgrading a nonempty deployment.
 
-| Key | Meaning | Self-hosted value |
-| --- | --- | --- |
-| `COYOTE3_MONGO_NETWORK` | Dedicated Docker network for the independent MongoDB stack only. | `coyote3-mongo-net` |
-| `COYOTE3_MONGO_NETWORK_SUBNET` | Private CIDR used when provisioning the MongoDB network. | `172.29.100.0/29`, or another non-overlapping `/29` or larger pool. |
-| `COYOTE3_MONGO_NETWORK_GATEWAY` | Gateway address inside the MongoDB network. | `172.29.100.1`, or the first host address in the selected subnet. |
-| `MONGO_REPLICA_SET_NAME` | Immutable name of the replica set. | `coyote3-rs` |
-| `MONGO_REPLICA_MEMBER_HOST` | Member address published in replica-set metadata. | A stable hostname and port reachable from both MongoDB and application containers, such as `mongo.example.internal:27017`. |
-| `MONGO_URI` | Application connection string. | Uses the same reachable host, database name, `authSource`, and `replicaSet`. |
-| `COYOTE3_MONGO_BIND_ADDRESS` | Host interface used for the optional Docker MongoDB port. | `127.0.0.1` when only the host needs access; an operator-approved host interface when application containers connect through the host. |
-| `COYOTE3_MONGO_DATA_HOST_ROOT` | Persistent host directory for `/data/db`. | Center-controlled absolute path. |
-| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Persistent host directory for archive output. | Center-controlled absolute path. |
-| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Persistent replica-set secret file. | Center-controlled absolute path. |
+A profile is service selection, not high availability, TLS, or backup policy.
+Infrastructure operators remain responsible for those controls. For host-run
+clients use a reachable published endpoint; Docker service names are resolved
+only on their configured networks.
 
-5. Start the MongoDB stack as an independent infrastructure deployment. Create
-the network named by `COYOTE3_MONGO_NETWORK` beforehand if it does not already
-exist; this Compose file deliberately uses an externally supplied network and
-does not create one. The application stack does not join that network.
+## Connectivity checks
 
-```bash
-set -a
-. ./.coyote3_env
-set +a
-docker network create \
-  --driver bridge \
-  --subnet "$COYOTE3_MONGO_NETWORK_SUBNET" \
-  --ip-range "$COYOTE3_MONGO_NETWORK_SUBNET" \
-  --gateway "$COYOTE3_MONGO_NETWORK_GATEWAY" \
-  "$COYOTE3_MONGO_NETWORK"
-docker compose --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.mongo.yml \
-  up -d
-```
-
-A `/29` network provides enough addresses for the MongoDB member, replica-set
-initializer, and short-lived backup or restore tools. Choose a non-overlapping
-private subnet approved for the deployment host. Additional replica-set members
-may require a larger pool.
-
-6. Set `MONGO_URI` to a URI reachable from the application containers, then
-start the application stack. For a database on the same Docker host, use an
-operator-approved published MongoDB port and `host.docker.internal`; for a
-production deployment, prefer a stable center DNS name. Do not use the
-internal `coyote3_mongo` service alias in `MONGO_URI`, because application
-services do not join the MongoDB network.
+Check each configured endpoint without assuming a common replica-set name:
 
 ```bash
-./scripts/compose-with-version.sh \
-  --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml \
-  up -d --build
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.hello().isWritablePrimary'
+mongosh "$IDENTITY_MONGO_URI" --eval 'db.hello().isWritablePrimary'
+mongosh "$KNOWLEDGEBASE_MONGO_URI" --eval 'db.hello().isWritablePrimary'
 ```
 
-7. Confirm that initialization completed and the member is primary.
-
-```bash
-set -a
-. ./.coyote3_env
-set +a
-docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.yml logs mongo_init
-docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.yml exec mongo \
-  mongosh --username "$MONGO_ROOT_USERNAME" --password "$MONGO_ROOT_PASSWORD" \
-  --authenticationDatabase admin --quiet --eval 'rs.status().members.map(m => ({host: m.name, state: m.stateStr}))'
-```
+These shell variables must be loaded from the completed environment file.
+Configure authentication and TLS according to center policy; do not expose
+unauthenticated MongoDB to an external network.
 
 ## Knowledgebase database migration
 
 Coyote3 stores external knowledgebase datasets in the database selected by
-`KNOWLEDGEBASE_DB`. It must differ from `COYOTE3_DB` and `BAM_DB`. HGNC, VEP metadata,
+`KNOWLEDGEBASE_DB` on `KNOWLEDGEBASE_MONGO_URI`. Its namespace must not overlap an
+app/identity/BAM namespace on the same deployment. HGNC, VEP metadata,
 clinical annotations, samples, findings, comments, and reports remain in the
 primary application database.
 
@@ -134,13 +85,15 @@ Upgrade an installation that still has knowledgebase collections in
 empty destination collections and correctly block migration into them.
 
 1. Stop application writers and take a logical backup.
-2. Grant the application and migration identity read/write access to the
-   database named by `KNOWLEDGEBASE_DB`.
+2. Give the application read access and the migration operator the source-read,
+   destination-write/index/rename privileges needed for the copy. The URI variables
+   below must contain maintenance credentials, not the runtime reader account.
 3. Run the read-only inspection:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
   --target-db "$KNOWLEDGEBASE_DB" \
   --report knowledgebase-migration-dry-run.json
@@ -151,7 +104,8 @@ PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
   --target-db "$KNOWLEDGEBASE_DB" \
   --apply \
@@ -170,7 +124,8 @@ does not modify any source collection during the normal apply operation.
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
   --target-db "$KNOWLEDGEBASE_DB" \
   --apply \
@@ -198,7 +153,8 @@ to `IDENTITY_DB`, then inspect the source without writing:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --target-mongo-uri "$IDENTITY_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
   --target-db "$IDENTITY_DB" \
   --report identity-migration-dry-run.json
@@ -208,7 +164,8 @@ Copy documents and indexes through verified staging collections:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --target-mongo-uri "$IDENTITY_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
   --target-db "$IDENTITY_DB" \
   --apply \
@@ -222,7 +179,8 @@ remove only the verified source copies:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
-  --mongo-uri "$MONGO_URI" \
+  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --target-mongo-uri "$IDENTITY_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
   --target-db "$IDENTITY_DB" \
   --apply \
@@ -269,7 +227,7 @@ bash scripts/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
   --label nightly \
-  --docker-network "$COYOTE3_MONGO_NETWORK"
+  --docker-network "$COYOTE3_APP_NETWORK"
 ```
 
 Schedule `mongo_backup_archive.sh` through the centre's approved backup platform. This may be an enterprise scheduler, infrastructure automation, or an existing operations service; scheduling configuration is intentionally not part of the application repository.

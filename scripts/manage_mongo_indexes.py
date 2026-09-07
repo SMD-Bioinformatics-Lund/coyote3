@@ -31,12 +31,10 @@ def _adapter() -> MongoAdapter:
     config = {name: getattr(config_obj, name) for name in dir(config_obj) if name.isupper()}
     app = SimpleNamespace(config=config, logger=logging.getLogger("coyote.mongo_indexes"))
     adapter = MongoAdapter()
-    adapter.app = app
-    adapter.client = adapter._get_mongoclient(config["MONGO_URI"])
-    adapter._setup_dbs(adapter.client)
+    adapter.connect(app)
     adapter.setup()
     adapter._setup_repositories(ensure_indexes=False)
-    adapter.client.admin.command("ping")
+    adapter.ping()
     return adapter
 
 
@@ -48,6 +46,7 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("apply", help="Create missing compatible indexes; never drops indexes")
     retire = sub.add_parser("retire", help="Drop one exact index during a maintenance window")
     retire.add_argument("--collection", required=True)
+    retire.add_argument("--repository", help="Disambiguate equal collection names across services")
     retire.add_argument("--index", required=True)
     retire.add_argument("--confirm-index-name", required=True)
     return parser
@@ -68,7 +67,12 @@ def main() -> int:
     elif args.command == "retire":
         if args.confirm_index_name != args.index:
             raise SystemExit("--confirm-index-name must exactly match --index")
-        retire_index(adapter, collection_name=args.collection, index_name=args.index)
+        retire_index(
+            adapter,
+            collection_name=args.collection,
+            index_name=args.index,
+            repository_name=args.repository,
+        )
     plan = build_index_plan(adapter)
     if args.command == "plan":
         plan = [item for item in plan if item["state"] != "present"]

@@ -52,13 +52,13 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
                 "KNOWLEDGEBASE_DB": "knowledgebase_test",
                 "BAM_DB": "bam_test",
                 "DB_COLLECTIONS_CONFIG": {
-                    "coyote3_test": {
+                    "primary": {
                         "variants_collection": "variants",
                         "samples_collection": "samples",
                     },
-                    "identity_test": {"users_collection": "users"},
-                    "knowledgebase_test": {},
-                    "bam_test": {},
+                    "identity": {"users_collection": "users"},
+                    "knowledgebase": {},
+                    "bam": {},
                 },
             }
         ),
@@ -86,11 +86,13 @@ def test_snapshot_filters_and_sorts_managed_collections() -> None:
     adapter = fake_adapter(
         repositories=[("variants", SimpleNamespace(get_collection=lambda: variants))]
     )
+    variants.database = adapter.coyote_db
+    adapter.coyote_db.command = FakeDatabase().command
 
     assert [item["collection"] for item in snapshot(adapter, set())] == [
+        "users",
         "samples",
         "variants",
-        "users",
     ]
     assert [item["collection"] for item in snapshot(adapter, {"variants"})] == ["variants"]
 
@@ -100,6 +102,7 @@ def test_snapshot_rejects_unknown_collection() -> None:
     adapter = fake_adapter(
         repositories=[("variants", SimpleNamespace(get_collection=lambda: variants))]
     )
+    variants.database = adapter.coyote_db
 
     try:
         snapshot(adapter, {"not_a_managed_collection"})

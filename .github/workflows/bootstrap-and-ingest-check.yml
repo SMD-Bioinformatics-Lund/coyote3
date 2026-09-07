@@ -29,8 +29,8 @@ jobs:
       MONGO_APP_USER: coyote3_app
       MONGO_APP_PASSWORD: ci-app-password
       COYOTE3_MONGO_NETWORK: coyote3-ci-mongo-net
-      MONGO_URI: "mongodb://coyote3_app:ci-app-password@host.docker.internal:27017/coyote3_ci?authSource=coyote3_ci&replicaSet=coyote3-rs"
-      MONGO_BACKUP_URI: "mongodb://coyote3_root:ci-root-password@coyote3_mongo:27017/admin?authSource=admin&replicaSet=coyote3-rs"
+      COYOTE3_MONGO_URI: "mongodb://coyote3_app:ci-app-password@host.docker.internal:27017/coyote3_ci?authSource=admin&replicaSet=coyote3-rs"
+      MONGO_BACKUP_URI: "mongodb://coyote3_root:ci-root-password@mongo-app:27017/admin?authSource=admin&replicaSet=coyote3-rs"
       COYOTE3_PORT: "8005"
       SCRIPT_NAME: /coyote3_ci
       ADMIN_USERNAME: coyote3.admin
@@ -73,13 +73,14 @@ jobs:
           MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
           MONGO_APP_USER=${MONGO_APP_USER}
           MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
-          MONGO_URI=${MONGO_URI}
+          COYOTE3_MONGO_URI=${COYOTE3_MONGO_URI}
           COYOTE3_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/data
           COYOTE3_LOGS_HOST_ROOT=${RUNNER_TEMP}/coyote3/logs
           COYOTE3_MONGO_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-data
           COYOTE3_MONGO_BACKUP_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-backups
           COYOTE3_MONGO_KEYFILE_HOST_PATH=${RUNNER_TEMP}/coyote3/mongo-keyfile
           COYOTE3_MONGO_NETWORK=${COYOTE3_MONGO_NETWORK}
+          COYOTE3_APP_NETWORK=${COYOTE3_MONGO_NETWORK}
           COYOTE3_MONGO_PORT=27017
           COYOTE3_MONGO_BIND_ADDRESS=0.0.0.0
           MONGO_REPLICA_SET_NAME=coyote3-rs
@@ -98,7 +99,11 @@ jobs:
           docker compose \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
-            up -d
+            --profile mongo -p coyote3_mongodb_ci \
+            up -d mongo
+          docker compose --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.mongo.yml \
+            --profile mongo -p coyote3_mongodb_ci run --rm mongo_init
 
       - name: Initialize empty application database
         run: |
@@ -111,7 +116,7 @@ jobs:
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             run --rm --no-deps api \
             python scripts/bootstrap_database.py \
-              --mongo-uri "${MONGO_URI}" \
+              --mongo-uri "${COYOTE3_MONGO_URI}" \
               --db "${COYOTE3_DB}" \
               --identity-db "${IDENTITY_DB}" \
               --username "${ADMIN_USERNAME}" \
@@ -119,6 +124,14 @@ jobs:
               --password "${ADMIN_PASSWORD}" \
               --role-id superuser \
               --with-demo-center
+
+      - name: Apply indexes with disposable maintenance credentials
+        run: |
+          docker compose --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            run --rm --no-deps \
+            -e KNOWLEDGEBASE_MONGO_URI="${MONGO_BACKUP_URI}" \
+            api python scripts/manage_mongo_indexes.py apply
 
       - name: Start stage application stack
         run: |
@@ -215,6 +228,7 @@ jobs:
           docker compose \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
+            --profile mongo -p coyote3_mongodb_ci \
             logs --no-color >> bootstrap_and_ingest_logs.txt 2>&1 || true
           docker compose \
             --env-file .coyote3_stage_env \
@@ -223,6 +237,7 @@ jobs:
           docker compose \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
+            --profile mongo -p coyote3_mongodb_ci \
             down || true
 
       - name: Upload failure logs

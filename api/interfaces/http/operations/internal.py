@@ -609,9 +609,14 @@ def ingest_collection_document_internal(
 def enqueue_ingest_collection_document_internal(
     payload: InternalCollectionInsertRequest,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Enqueue insertion of one validated collection document."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="create")
+    try:
+        ingest_service.validate_async_collection(payload.collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     queue = DefaultConfig.CELERY_INGEST_QUEUE
     job_id = submit_ingest_job(
         get_ingest_jobs_repository(),
@@ -663,9 +668,14 @@ def ingest_collection_documents_internal(
 def enqueue_ingest_collection_documents_internal(
     payload: InternalCollectionBulkInsertRequest,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Enqueue insertion of many validated collection documents."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="create")
+    try:
+        ingest_service.validate_async_collection(payload.collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     queue = DefaultConfig.CELERY_INGEST_QUEUE
     job_id = submit_ingest_job(
         get_ingest_jobs_repository(),
@@ -718,9 +728,14 @@ def upsert_collection_document_internal(
 def enqueue_upsert_collection_document_internal(
     payload: InternalCollectionUpsertRequest,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Enqueue replacement/update of one validated collection document."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="update")
+    try:
+        ingest_service.validate_async_collection(payload.collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     queue = DefaultConfig.CELERY_INGEST_QUEUE
     job_id = submit_ingest_job(
         get_ingest_jobs_repository(),

@@ -26,7 +26,7 @@ Every center must review and set only this core deployment contract:
 
 | Variable | Why it must be supplied |
 | --- | --- |
-| `MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
+| `COYOTE3_MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
 | `COYOTE3_DB` | Selects the primary application database explicitly. |
 | `IDENTITY_DB` | Selects the dedicated identity and security database explicitly. |
 | `KNOWLEDGEBASE_DB` | Selects the dedicated external knowledgebase database explicitly. |
@@ -179,9 +179,9 @@ registration is not configurable through an environment variable.
 | Variable | Required | Expected Value | Purpose |
 | --- | --- | --- | --- |
 | `ENV_NAME` | No; default `production` at runtime | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
-| `COYOTE3_DB` | Yes | MongoDB database name | Primary application database. The database in `MONGO_URI` must match this value. |
-| `IDENTITY_DB` | Yes | MongoDB database name different from every other configured database | User accounts, RBAC policy, API sessions, and durable security/audit events. |
-| `KNOWLEDGEBASE_DB` | Yes | MongoDB database name different from `COYOTE3_DB` and `BAM_DB` | External knowledgebase datasets and public API caches. It must be on the MongoDB deployment addressed by `MONGO_URI`. |
+| `COYOTE3_DB` | Deployed environments; local default `coyote3_dev` | MongoDB database name | Environment-specific primary database, independent of the URI path and authSource. |
+| `IDENTITY_DB` | Explicit per environment | MongoDB database name | Users, RBAC, sessions, and audit. Never share this namespace between environments on the same deployment; notifications remain in the primary database. |
+| `KNOWLEDGEBASE_DB` | Default `coyote3_knowledgebases` | MongoDB database name | Shared platform datasets on `KNOWLEDGEBASE_MONGO_URI`; no per-environment copy unless explicitly configured. |
 | `BAM_DB` | Yes | MongoDB database name | BAM-service database used for sample BAM lookups. |
 | `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | Used on login, public, contact, and support pages. |
 | `LOCAL_TIME_ZONE` | No; default `UTC` | IANA timezone such as `Europe/Stockholm` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
@@ -199,7 +199,11 @@ registration is not configurable through an environment variable.
 | `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | MongoDB administrative password. |
 | `MONGO_APP_USER` | Self-hosted MongoDB | Username | Application MongoDB username created during first database initialization. |
 | `MONGO_APP_PASSWORD` | Self-hosted MongoDB | Secret password | Application MongoDB password. |
-| `MONGO_URI` | Yes | MongoDB URI | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
+| `COYOTE3_MONGO_URI` | Yes | MongoDB URI | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
+| `IDENTITY_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent identity endpoint, with its own authentication and replica-set options. |
+| `KNOWLEDGEBASE_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent shared knowledgebase endpoint. Prefer a reader account for normal application access. |
+| `BAM_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent BAM-service endpoint. |
+| `MONGO_URI` | Legacy input only | MongoDB URI | Fallback when the explicit app URI is absent; explicit logical-service URIs take precedence. |
 | `MONGO_MAX_POOL_SIZE` | No | Positive integer; default `100` | Maximum PyMongo connections per application process. Size this with `API_WORKERS` and MongoDB capacity. |
 | `MONGO_MIN_POOL_SIZE` | No | Non-negative integer; default `0` | Minimum idle PyMongo connections retained per process. |
 | `MONGO_CONNECT_TIMEOUT_MS` | No | Milliseconds; default `10000` | Maximum time allowed to establish a MongoDB socket. |
@@ -211,13 +215,16 @@ registration is not configurable through an environment variable.
 | `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Persistent host directory bind-mounted at `/data/db`. |
 | `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Host backup directory bind-mounted at `/backup`. |
 | `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
-| `COYOTE3_MONGO_NETWORK` | Optional Docker MongoDB | Docker network name | Network owned by the independently deployed MongoDB stack. Application services do not join it. |
-| `COYOTE3_MONGO_NETWORK_SUBNET` | Optional Docker MongoDB | Non-overlapping private CIDR; recommended `/29` | Address pool used to provision the independent MongoDB network. A `/29` normally provides five assignable container addresses. |
-| `COYOTE3_MONGO_NETWORK_GATEWAY` | Optional Docker MongoDB | Address inside `COYOTE3_MONGO_NETWORK_SUBNET` | Gateway passed to `docker network create` for the independent MongoDB network. |
+| `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | Independent KB replica-set name, default `coyote3-kb-rs`. |
+| `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | Advertised KB member address, default `mongo-kb:27017`. |
+| `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
+| `KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH` | Optional `mongo-kb` profile | Secret file path | Member authentication keyfile for the KB replica set. |
+| `KNOWLEDGEBASE_MONGO_ROOT_USERNAME`, `KNOWLEDGEBASE_MONGO_ROOT_PASSWORD` | Optional `mongo-kb` profile | Administrative credentials | First-time database provisioning only. |
+| `KNOWLEDGEBASE_MONGO_APP_USER`, `KNOWLEDGEBASE_MONGO_APP_PASSWORD` | Optional `mongo-kb` profile | Reader credentials | Normal KB application user, created in admin on first initialization. |
 | `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | Persistent MongoDB replica-set name, normally `coyote3-rs`. |
 | `MONGO_REPLICA_MEMBER_HOST` | Self-hosted MongoDB | `host:port` | Stable member address stored in replica-set metadata. It must resolve from both MongoDB and application containers. |
-| `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | Host port published by the independently deployed MongoDB container. It is not used by the application when `MONGO_URI` targets another MongoDB service. |
-| `COYOTE3_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | Host interface used when publishing MongoDB's port. The application still connects only through `MONGO_URI`. |
+| `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | Host port published by the independently deployed MongoDB container. It is not used by the application when `COYOTE3_MONGO_URI` targets another MongoDB service. |
+| `COYOTE3_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | Interface used to publish app MongoDB's port; service URIs remain independently configured. |
 | `CACHE_REQUIRED` | No | `1` or `0` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | Redis socket timeout. |

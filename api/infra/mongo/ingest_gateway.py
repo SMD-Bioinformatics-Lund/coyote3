@@ -84,12 +84,27 @@ class IngestCollectionGateway:
         """Commit all bundle writes together or propagate the transaction failure."""
         return run_transaction(self.mongo_client(), operation)
 
+    def validate_completion_target(self, name):
+        """Reject remote writes that cannot share the app's ingest receipt transaction."""
+        if self.collection(name).database.client is not self.mongo_client():
+            raise ValueError(
+                "Async collection ingestion requires the target and job ledger to share "
+                "a MongoDB client. Use synchronous ingestion or a maintenance importer "
+                "for separately configured services."
+            )
+
+    def run_collection_transaction(self, name, operation):
+        return run_transaction(self.collection(name).database.client, operation)
+
     def insert_documents(self, name, documents, *, ignore_duplicates=False, record_completion=None):
         """Insert a batch atomically, retrying without explicitly ignored duplicates.
 
         Duplicate errors abort a MongoDB transaction. Filter only the reported duplicate
         rows after abort, then retry the entire remaining batch, never a partial commit.
         """
+
+        if record_completion is not None:
+            self.validate_completion_target(name)
 
         def payload(ids):
             result = {

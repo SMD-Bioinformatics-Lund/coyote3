@@ -42,10 +42,10 @@ Compose variables for image names and build metadata. Do not store
 
 ## Deployment Commands
 
-These commands use the MongoDB instance specified by `MONGO_URI`. The
-self-hosted MongoDB stack is started independently before the application
-stack; managed MongoDB services remain supported through their own connection
-string. See [MongoDB deployment and recovery](mongodb_deployment_and_recovery.md).
+These commands use the independently configured MongoDB service endpoints.
+Initialize self-hosted databases before starting the application; managed
+services require no MongoDB Compose profile. See
+[MongoDB service topology](../architecture/mongodb_topology.md).
 
 ## MongoDB baseline
 

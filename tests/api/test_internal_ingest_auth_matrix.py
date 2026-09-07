@@ -45,6 +45,48 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
     )
 
 
+@pytest.mark.parametrize(
+    "route,request_type",
+    [
+        (
+            internal_router.enqueue_ingest_collection_document_internal,
+            internal_router.InternalCollectionInsertRequest,
+        ),
+        (
+            internal_router.enqueue_ingest_collection_documents_internal,
+            internal_router.InternalCollectionBulkInsertRequest,
+        ),
+        (
+            internal_router.enqueue_upsert_collection_document_internal,
+            internal_router.InternalCollectionUpsertRequest,
+        ),
+    ],
+)
+def test_remote_async_collection_rejected_before_acceptance(
+    monkeypatch, ingest_jobs, route, request_type
+):
+    monkeypatch.setattr(internal_router, "_enforce_collection_permission", lambda **kwargs: None)
+
+    def reject_target(name):
+        raise ValueError("Target requires synchronous ingestion")
+
+    values = {"collection": "users"}
+    if request_type is internal_router.InternalCollectionBulkInsertRequest:
+        values["documents"] = [{"username": "synthetic"}]
+    else:
+        values["document"] = {"username": "synthetic"}
+    if request_type is internal_router.InternalCollectionUpsertRequest:
+        values["match"] = {"username": "synthetic"}
+    with pytest.raises(HTTPException) as exc:
+        route(
+            payload=request_type(**values),
+            user=_user(role="superuser", level=100),
+            ingest_service=SimpleNamespace(validate_async_collection=reject_target),
+        )
+    assert exc.value.status_code == 400
+    assert ingest_jobs.get_collection().count_documents({}) == 0
+
+
 def _resolve_access_dependency(method: str, path: str):
     route = next(
         (
@@ -268,6 +310,7 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
     response = internal_router.enqueue_ingest_collection_document_internal(
         payload=payload,
         user=operator,
+        ingest_service=SimpleNamespace(validate_async_collection=lambda name: None),
     )
 
     assert response == {

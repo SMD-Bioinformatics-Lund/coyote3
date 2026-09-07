@@ -8,6 +8,7 @@ never starts Compose services, calls the Coyote3 API, or queues ingest work.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +21,7 @@ from pymongo import MongoClient  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.mongo import configured_mongo_uri  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
@@ -31,6 +33,7 @@ from scripts.build_seed_bundle import (  # noqa: E402
     lower_business_keys,
     stamp_docs,
 )
+from scripts.migrate_knowledgebase_database import assert_distinct_databases  # noqa: E402
 
 BOOTSTRAP_ROOT = ROOT_DIR / "api" / "config" / "bootstrap"
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
@@ -40,7 +43,8 @@ DEFAULT_DEMO_CENTER_DIR = BOOTSTRAP_ROOT / "demo_center"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", required=True, help="MongoDB URI with readWrite access")
+    parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
+    parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
     parser.add_argument("--db", required=True, help="Application database name")
     parser.add_argument("--identity-db", required=True, help="Identity database name")
     parser.add_argument("--username", required=True, help="First local superuser login name")
@@ -228,8 +232,8 @@ def _initialize_governance(
 def main() -> int:
     args = parse_args()
     _fail_if_placeholder_values(args)
-    if args.db == args.identity_db:
-        raise SystemExit("--identity-db must be different from --db")
+    if not args.mongo_uri:
+        raise SystemExit("--mongo-uri or COYOTE3_MONGO_URI is required")
     rbac_dir = _resolve_directory(args.rbac_dir, label="RBAC seed")
     reference_dir = _resolve_directory(args.reference_dir, label="Reference seed")
     demo_center_dir = (
@@ -252,10 +256,16 @@ def main() -> int:
     identity_mapping = load_collection_section("identity")
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
+    identity_client = client
     try:
+        identity_uri = args.identity_mongo_uri or args.mongo_uri
+        if identity_uri != args.mongo_uri:
+            identity_client = MongoClient(identity_uri, serverSelectionTimeoutMS=7000)
         client.admin.command("ping")
+        identity_client.admin.command("ping")
         db = client[args.db]
-        identity_db = client[args.identity_db]
+        identity_db = identity_client[args.identity_db]
+        assert_distinct_databases(db, identity_db)
         governance = _initialize_governance(
             identity_db,
             seed=seed,
@@ -295,6 +305,8 @@ def main() -> int:
             )
             print(f"[{result}] clinical_rule_revisions")
     finally:
+        if identity_client is not client:
+            identity_client.close()
         client.close()
 
     print("[ok] database bootstrap completed; start the Coyote3 application stack next")

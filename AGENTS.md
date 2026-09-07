@@ -14,7 +14,8 @@ The system consists of:
 - MongoDB with separate application, identity/security, knowledgebase, and BAM-service databases.
 - Celery workers and beat scheduling, with Redis as broker, result backend, and cache.
 - Nginx, API, frontend, documentation, worker, beat, and Redis services managed through
-  Docker Compose. MongoDB is supplied separately through `MONGO_URI`.
+  Docker Compose. MongoDB services have independent URI/name pairs; optional
+  `mongo` and `mongo-kb` profiles provide database containers.
 - MongoDB-backed governed clinical reporting rules and center-configurable TOML files.
 
 ## Repository structure
@@ -159,7 +160,9 @@ cp deploy/env/example.env .coyote3_dev_env
 ```
 
 The environment file must contain the required deployment-specific values. Do not commit it.
-The base Compose stack expects an external MongoDB URI and a pre-created application network.
+The base Compose stack expects configured MongoDB endpoints and a pre-created application network.
+Reuse `api/config/mongo.py` and `api/infra/mongo/connections.py`; never infer a host
+from a database name or pass a session across different MongoClient instances.
 
 ## Agent working rules
 

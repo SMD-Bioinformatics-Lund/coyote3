@@ -8,11 +8,12 @@ import os
 from pymongo import MongoClient
 
 from api.application.reporting.artifact_inventory import inspect_report_artifacts
+from api.config.mongo import configured_mongo_uri
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+    parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument("--database", required=True)
     parser.add_argument("--reports-collection", default="reports")
     parser.add_argument("--reports-root", required=True)
@@ -21,6 +22,8 @@ def main():
         "--details", action="store_true", help="Include local report identifiers and relative paths"
     )
     args = parser.parse_args()
+    if not args.mongo_uri:
+        parser.error("--mongo-uri or COYOTE3_MONGO_URI is required")
     if args.minimum_age_hours < 0:
         parser.error("--minimum-age-hours must be nonnegative")
     with MongoClient(args.mongo_uri, serverSelectionTimeoutMS=5000) as client:

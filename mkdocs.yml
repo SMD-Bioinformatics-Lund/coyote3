@@ -71,6 +71,7 @@ nav:
       - Runtime data contracts: architecture/data_contracts.md
       - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
       - Transactions and ingest recovery: architecture/transactions_and_ingest_recovery.md
+      - MongoDB service topology: architecture/mongodb_topology.md
       - Configuration identity and audit: architecture/configuration_identity_and_audit.md
       - Security model: architecture/security_model.md
       - API organization: api/api_organization.md
