@@ -1,0 +1,11 @@
+[
+  {
+    "id": "COSV-DEMO-TARGETED",
+    "chr": "17",
+    "start": 7676154,
+    "end": 7676154,
+    "cnt": {"targeted_screen_sample_count": 1},
+    "ref": "G",
+    "alt": "A"
+  }
+]

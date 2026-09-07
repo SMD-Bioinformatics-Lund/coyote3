@@ -1,0 +1,10 @@
+[
+  {
+    "record_key": "demo-cosmic-methylation",
+    "source_row": 1,
+    "gene_symbol": "GENE1",
+    "chromosome": "1",
+    "position": 1000,
+    "beta_value": 0.4
+  }
+]

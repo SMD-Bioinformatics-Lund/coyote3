@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="280" viewBox="0 0 1100 280" role="img" aria-labelledby="title desc">
+  <title id="title">Collection Relationship Chain</title>
+  <desc id="desc">Operational chain from asp to aspc to isgl to samples then variants and cnvs.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="280" class="canvas"/>
+  <rect x="20" y="16" width="1060" height="36" rx="10" class="title-band"/>
+  <text x="30" y="40" class="title">Core Collection Relationship Chain</text>
+
+  <rect x="30" y="104" width="130" height="70" class="box" fill="#dbeafe"/>
+  <text x="95" y="130" text-anchor="middle" class="label">asp</text>
+  <text x="95" y="148" text-anchor="middle" class="sub">profile defs</text>
+
+  <rect x="210" y="104" width="130" height="70" class="box" fill="#e0f2fe"/>
+  <text x="275" y="130" text-anchor="middle" class="label">aspc</text>
+  <text x="275" y="148" text-anchor="middle" class="sub">assay config</text>
+
+  <rect x="390" y="104" width="130" height="70" class="box" fill="#dcfce7"/>
+  <text x="455" y="130" text-anchor="middle" class="label">isgl</text>
+  <text x="455" y="148" text-anchor="middle" class="sub">guidelines</text>
+
+  <rect x="570" y="104" width="150" height="70" class="box" fill="#fef3c7"/>
+  <text x="645" y="130" text-anchor="middle" class="label">samples</text>
+  <text x="645" y="148" text-anchor="middle" class="sub">sample lifecycle</text>
+
+  <rect x="780" y="74" width="150" height="70" class="box" fill="#fde68a"/>
+  <text x="855" y="100" text-anchor="middle" class="label">variants</text>
+  <text x="855" y="118" text-anchor="middle" class="sub">variant findings</text>
+
+  <rect x="780" y="174" width="150" height="70" class="box" fill="#fbcfe8"/>
+  <text x="855" y="200" text-anchor="middle" class="label">cnvs</text>
+  <text x="855" y="218" text-anchor="middle" class="sub">copy-number findings</text>
+
+  <path d="M160 139 L210 139" class="arrow"/>
+  <path d="M340 139 L390 139" class="arrow"/>
+  <path d="M520 139 L570 139" class="arrow"/>
+  <path d="M720 139 L780 109" class="arrow"/>
+  <path d="M720 139 L780 209" class="arrow"/>
+</svg>

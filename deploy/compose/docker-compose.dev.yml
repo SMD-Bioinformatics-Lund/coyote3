@@ -1,0 +1,63 @@
+name: coyote3_dev
+
+services:
+  frontend:
+    image: node:22-alpine
+    build: !reset null
+    pull_policy: always
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --port 3000 --host 0.0.0.0"
+    environment:
+      SCRIPT_NAME: ${SCRIPT_NAME:-}
+      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+      LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
+      TZ: ${LOCAL_TIME_ZONE:-UTC}
+      GENS_URI: ${GENS_URI:-}
+      IGV_URI: ${IGV_URI:-}
+      IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
+      COYOTE3_API_INTERNAL_URL: http://api:8001
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ../../frontend:/app
+      - frontend_node_modules:/app/node_modules
+
+  docs:
+    image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
+    volumes:
+      - ../../site:/usr/share/nginx/html:ro
+
+  api:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    build:
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
+    volumes: &dev-app-volumes
+      - ../../.git:/app/.git:ro
+      - ../../api:/app/api
+      - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
+      - ../../docs:/app/docs
+      - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
+      - ../../README.md:/app/README.md:ro
+      - ../../LICENSE.txt:/app/LICENSE.txt:ro
+      - ../../NOTICE.txt:/app/NOTICE.txt:ro
+      - /access:/access
+      - /media:/media
+      - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
+      - ${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}
+      - /fs1:/fs1
+    command: python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
+
+  worker:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    volumes: *dev-app-volumes
+
+  beat:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    volumes: *dev-app-volumes
+
+  proxy:
+    ports: ["${COYOTE3_PORT:-6801}:8088"]
+
+volumes:
+  frontend_node_modules:

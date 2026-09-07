@@ -1,0 +1,311 @@
+"""Canonical public router module."""
+
+from __future__ import annotations
+
+import csv
+import datetime
+import io
+from typing import Any
+
+import yaml
+from fastapi import APIRouter, Query
+
+from api.app import http
+from api.app.container import util
+from api.app.deps.services import get_app_controls_service, get_public_catalog_service
+from api.app.runtime_state import app as runtime_app
+from api.application.public.catalog import PublicCatalogService
+from api.config.application_metadata import APPLICATION_DESCRIPTION
+from api.config.constants import DEFAULT_ENVIRONMENT
+from api.config.loaders.contact import application_integration_links
+from api.config.paths import FILTER_FLAG_METADATA_PATH
+from api.config.security import get_runtime_environment
+from api.contracts.public import (
+    PublicAboutPayload,
+    PublicAspGenesPayload,
+    PublicAssayCatalogGenesCsvPayload,
+    PublicAssayCatalogMatrixPayload,
+    PublicAssayCatalogPayload,
+    PublicContactPayload,
+    PublicFilterFlagMetadataPayload,
+    PublicGenelistViewPayload,
+    PublicGeneSymbolsPayload,
+    PublicKnowledgebaseStatusPayload,
+    PublicModulesPayload,
+)
+from api.interfaces.http.tags import TAG_PUBLIC
+
+router = APIRouter(tags=[TAG_PUBLIC])
+__all__ = ["router", "PublicCatalogService"]
+
+
+def _load_filter_flag_metadata() -> dict:
+    metadata_path = FILTER_FLAG_METADATA_PATH
+    if not metadata_path.exists():
+        return {"exact": {}, "prefixes": {}, "terms": {}}
+    with metadata_path.open("r", encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+    return {
+        "exact": raw.get("exact") or {},
+        "prefixes": raw.get("prefixes") or {},
+        "terms": raw.get("terms") or {},
+    }
+
+
+@router.get("/api/v1/public/contact", response_model=PublicContactPayload)
+def public_contact_read():
+    """Return center-owned public contact and support metadata."""
+    return _public_contact_payload()
+
+
+@router.get("/api/v1/public/modules", response_model=PublicModulesPayload)
+def public_modules_read():
+    """Return effective availability for software-defined application modules."""
+    return get_app_controls_service().public_module_payload()
+
+
+@router.get("/api/v1/public/about", response_model=PublicAboutPayload)
+def public_about_read():
+    """Return public application, support, and reference-version metadata."""
+    payload = _public_contact_payload()
+    payload.update(
+        {
+            "application": {
+                "name": "Coyote3",
+                "version": runtime_app.config.get("APP_VERSION"),
+                "environment": get_runtime_environment(runtime_app.config),
+                "script_name": runtime_app.config.get("SCRIPT_NAME"),
+                "description": APPLICATION_DESCRIPTION,
+            },
+            "software": _public_software_versions(),
+            "references": _public_reference_versions(),
+            "databases": {
+                "primary": runtime_app.config.get("COYOTE3_DB"),
+                "identity": runtime_app.config.get("IDENTITY_DB"),
+                "knowledgebase": runtime_app.config.get("KNOWLEDGEBASE_DB"),
+                "bam_service": runtime_app.config.get("BAM_DB"),
+                "knowledgebases": {
+                    "oncokb_public": runtime_app.config.get("ONCOKB_BASE_URL"),
+                    "clinpgx_public": runtime_app.config.get("CLINPGX_BASE_URL"),
+                },
+            },
+            "software_links": application_integration_links(runtime_app.config),
+            "knowledgebase_status": _public_knowledgebase_status(),
+        }
+    )
+    return util.common.convert_to_serializable(payload)
+
+
+@router.get(
+    "/api/v1/public/knowledgebases/status",
+    response_model=PublicKnowledgebaseStatusPayload,
+)
+def public_knowledgebase_status_read() -> dict[str, Any]:
+    """Return installed knowledgebase products, releases, and record counts."""
+    return util.common.convert_to_serializable(_public_knowledgebase_status())
+
+
+def _public_knowledgebase_status() -> dict[str, Any]:
+    """Build public release metadata without source files or operational paths."""
+    try:
+        payload = get_public_catalog_service().knowledgebase_status()
+        releases = list(payload.get("releases") or [])
+        installed_sources = {str(item.get("source") or "") for item in releases}
+        configured_services = {
+            "oncokb_public": runtime_app.config.get("ONCOKB_BASE_URL"),
+            "clinpgx_public": runtime_app.config.get("CLINPGX_BASE_URL"),
+        }
+        for source, endpoint in configured_services.items():
+            if endpoint and source not in installed_sources:
+                releases.append(
+                    {
+                        "source": source,
+                        "release": "Remote service",
+                        "status": "configured",
+                        "records": 0,
+                        "collections": [],
+                    }
+                )
+        payload["releases"] = sorted(releases, key=lambda item: str(item.get("source") or ""))
+        payload["summary"]["configured_services"] = sum(
+            bool(endpoint) for endpoint in configured_services.values()
+        )
+        payload["summary"]["available_products"] = len(releases)
+        return payload
+    except Exception as exc:  # pragma: no cover - defensive public metadata path
+        runtime_app.logger.warning("Could not build knowledgebase status: %s", exc)
+        return {"releases": [], "summary": {"installed_products": 0, "total_records": 0}}
+
+
+def _public_contact_payload() -> dict:
+    """Build center-owned public contact and support metadata."""
+    contact = runtime_app.config.get("CONTACT") or {}
+    organization = dict(contact.get("organization") or {})
+    organization.setdefault("name", runtime_app.config.get("ORGANIZATION_NAME") or "Coyote3")
+    payload = {
+        "organization": organization,
+        "support": dict(contact.get("support") or {}),
+        "codebase": dict(contact.get("codebase") or {}),
+        "contacts": list(contact.get("contacts") or []),
+        "links": list(contact.get("links") or []),
+        "hours": list(contact.get("hours") or []),
+        "meta": dict(contact.get("meta") or {}),
+    }
+    return util.common.convert_to_serializable(payload)
+
+
+def _public_software_versions() -> dict:
+    """Return software versions observed in stored sample metadata."""
+    try:
+        return get_public_catalog_service().observed_software_versions()
+    except Exception as exc:  # pragma: no cover - defensive public metadata path
+        runtime_app.logger.warning("Could not build public software versions: %s", exc)
+        return {"pipelines": {}}
+
+
+def _public_reference_versions() -> dict:
+    """Return reference database versions observed in samples and VEP metadata."""
+    try:
+        return get_public_catalog_service().observed_reference_versions()
+    except Exception as exc:  # pragma: no cover - defensive public metadata path
+        runtime_app.logger.warning("Could not build public reference versions: %s", exc)
+        return {"sample_database_versions": {}, "vep_metadata": []}
+
+
+@router.get("/api/v1/public/filter-flags/metadata", response_model=PublicFilterFlagMetadataPayload)
+def public_filter_flag_metadata_read():
+    """Return center-configurable VCF filter flag metadata."""
+    return util.common.convert_to_serializable(_load_filter_flag_metadata())
+
+
+@router.get(
+    "/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload
+)
+def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
+    """Return public view context for a genelist.
+
+    Args:
+        genelist_id: Genelist identifier to inspect.
+        assay: Optional assay used to scope visible genes.
+
+    Returns:
+        dict: Public genelist view payload.
+    """
+    service = get_public_catalog_service()
+    payload = service.genelist_view_context(genelist_id, assay)
+    if not payload:
+        raise http.api_error(404, "Genelist not found")
+    return util.common.convert_to_serializable(payload)
+
+
+@router.get("/api/v1/public/asp/{asp_id}/genes", response_model=PublicAspGenesPayload)
+def public_asp_genes_read(asp_id: str):
+    """Return public genes for an assay panel.
+
+    Args:
+        asp_id: Assay-panel identifier to inspect.
+
+    Returns:
+        dict: Public assay-panel gene payload.
+    """
+    service = get_public_catalog_service()
+    return util.common.convert_to_serializable(service.asp_genes_payload(asp_id))
+
+
+@router.get(
+    "/api/v1/public/assay-catalog/genes/{isgl_key}/view_context",
+    response_model=PublicGeneSymbolsPayload,
+)
+def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
+    """Return public catalog genes for a catalog genelist.
+
+    Args:
+        isgl_key: Catalog genelist identifier to inspect.
+
+    Returns:
+        dict: Public gene-symbol payload.
+    """
+    service = get_public_catalog_service()
+    return util.common.convert_to_serializable(service.assay_catalog_gene_symbols_payload(isgl_key))
+
+
+@router.get(
+    "/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload
+)
+def public_assay_catalog_matrix_context_read(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=100, ge=1, le=500),
+    gene: str | None = None,
+):
+    """Return the public assay-catalog matrix payload.
+
+    Returns:
+        dict: Assay-catalog matrix payload.
+    """
+    service = get_public_catalog_service()
+    vm = service.assay_catalog_matrix_payload(page=page, per_page=per_page, gene=gene)
+    return util.common.convert_to_serializable(vm)
+
+
+@router.get("/api/v1/public/assay-catalog/context", response_model=PublicAssayCatalogPayload)
+def public_assay_catalog_context_read(
+    mod: str | None = None,
+    cat: str | None = None,
+    isgl_key: str | None = None,
+):
+    """Return public assay-catalog context for the selected modality/category."""
+    return util.common.convert_to_serializable(
+        get_public_catalog_service().catalog_context(mod, cat, isgl_key)
+    )
+
+
+@router.get(
+    "/api/v1/public/assay-catalog/genes.csv/context",
+    response_model=PublicAssayCatalogGenesCsvPayload,
+)
+def public_assay_catalog_genes_csv_context_read(
+    mod: str,
+    cat: str | None = None,
+    isgl_key: str | None = None,
+):
+    """Return a CSV export payload for public assay-catalog genes."""
+    service = get_public_catalog_service()
+    selected_mod = service.normalize_mod(mod)
+    if not selected_mod:
+        raise http.api_error(404, "Modality not found")
+
+    if not cat:
+        right = service.hydrate_modality(selected_mod)
+        asp_id = right.get("asp_id")
+    else:
+        hydrated_cat = service.hydrate_category(selected_mod, cat, env=DEFAULT_ENVIRONMENT)
+        if not hydrated_cat:
+            raise http.api_error(404, "Category not found")
+        asp_id = hydrated_cat.get("asp_id")
+
+    mode, rows, _stats = service.resolve_gene_table(asp_id, isgl_key)
+
+    sio = io.StringIO()
+    writer = csv.writer(sio, lineterminator="\n")
+    writer.writerow(
+        ["HGNC_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Gene_Type", "Drug Target"]
+    )
+    for gene in rows:
+        writer.writerow(
+            [
+                (gene.get("hgnc_id") or "").replace("HGNC:", "HGNC:"),
+                gene.get("hgnc_symbol") or gene.get("symbol") or "",
+                gene.get("chromosome") or "",
+                gene.get("start") or "",
+                gene.get("end") or "",
+                ",".join(gene.get("gene_type") or []),
+                gene.get("drug_target") or "",
+            ]
+        )
+    dt = datetime.date.today().isoformat()
+    if not cat:
+        label = f"{selected_mod}.{mode if not isgl_key else f'isgl-{isgl_key}'}"
+    else:
+        label = f"{selected_mod}.{cat}.{mode if not isgl_key else f'isgl-{isgl_key}'}"
+    fname = f"{label}.{dt}.genes.csv"
+    return {"filename": fname, "content": sio.getvalue()}

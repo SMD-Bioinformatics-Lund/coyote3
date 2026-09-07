@@ -1,0 +1,224 @@
+"""Access-check audit event emitters."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from fastapi import Request
+
+from api.app.runtime_state import current_request_id
+
+
+def request_ip(request: Request | None) -> str:
+    """Resolve the best-effort client IP address for a request.
+
+    Args:
+        request: Active request, when available.
+
+    Returns:
+        str: Client IP or ``"N/A"`` when unavailable.
+    """
+    if request is None:
+        return "N/A"
+    if request.client and request.client.host:
+        return str(request.client.host)
+    return "N/A"
+
+
+def request_id(request: Request | None) -> str:
+    """Resolve the current request identifier.
+
+    Args:
+        request: Active request, when available.
+
+    Returns:
+        str: Request identifier from the request or runtime context.
+    """
+    if request is not None:
+        rid = (request.headers.get("X-Request-ID") or "").strip()
+        if rid:
+            return rid
+    return current_request_id()
+
+
+def emit_access_event(
+    *,
+    status: str,
+    reason: str,
+    request: Request | None = None,
+    username: str | None = None,
+    roles: list[str] | None = None,
+    role: str | None = None,
+    permission: str | None = None,
+    sample_id: str | None = None,
+    extra: dict | None = None,
+) -> None:
+    """Emit an audit event for an access-control decision.
+
+    Args:
+        status: Result of the access decision.
+        reason: Human-readable explanation for the decision.
+        request: Active request, when available.
+        username: Authenticated username.
+        roles: Authenticated role identifiers.
+        role: Effective user role.
+        permission: Required permission, when applicable.
+        sample_id: Sample identifier associated with the check.
+        extra: Additional structured metadata to emit.
+    """
+    normalized_status = (
+        "failed" if status == "denied" else ("success" if status in {"allowed", "ok"} else status)
+    )
+    if normalized_status != "failed":
+        return
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "reason": reason,
+        "method": request.method if request else None,
+        "path": str(request.url.path) if request else None,
+        "ip": request_ip(request),
+        "request_id": request_id(request),
+        "user": username,
+        "username": username,
+        "roles": list(roles or []),
+        "role": role,
+        "sample_id": str(sample_id) if sample_id is not None else None,
+        "required": {
+            "permission": permission,
+        },
+        "extra": extra or {},
+    }
+    from api.app.deps.services import get_audit_service
+
+    audit = get_audit_service()
+    if audit is not None:
+        audit.record(
+            "security.access.denied",
+            reason,
+            severity="warning",
+            category="security",
+            outcome="denied",
+            actor=username or "anonymous",
+            resource_type="sample" if sample_id else None,
+            resource_id=str(sample_id) if sample_id is not None else None,
+            tags=["authorization", "access-check"],
+            metadata={
+                "required": event["required"],
+                "roles": list(roles or []),
+                "role": role,
+                **(extra or {}),
+            },
+        )
+
+
+def emit_mutation_event(
+    *,
+    request: Request,
+    username: str,
+    status_code: int,
+    action: str,
+    target: str,
+    extra: dict | None = None,
+) -> None:
+    """Emit an audit event for a mutating API request.
+
+    Args:
+        request: Active request.
+        username: Authenticated username.
+        status_code: Final response status code.
+        action: Mutation verb being recorded.
+        target: Resource target for the mutation.
+        extra: Additional structured metadata to emit.
+    """
+    derived_status = (
+        "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
+    )
+    from api.app.deps.services import get_audit_service
+
+    audit = get_audit_service()
+    if audit is not None:
+        audit_resource = getattr(request.state, "audit_resource", {}) or {}
+        resource_type = audit_resource.get("type") or "api_route"
+        resource_id = audit_resource.get("id") or target
+        resource_name = audit_resource.get("name")
+        resource_metadata = audit_resource.get("metadata") or {}
+        audit.record(
+            "api.mutation.succeeded" if derived_status == "success" else "api.mutation.failed",
+            str(audit_resource.get("message") or f"{action} {target}"),
+            severity=(
+                "error"
+                if derived_status == "error"
+                else ("warning" if derived_status == "failed" else "info")
+            ),
+            category="activity",
+            outcome="success" if derived_status == "success" else "failure",
+            actor=username or "anonymous",
+            resource_type=resource_type,
+            resource_id=resource_id,
+            resource_name=resource_name,
+            tags=["api", "mutation", action.lower()],
+            metadata={
+                "status_code": int(status_code),
+                "method": request.method,
+                "path": str(request.url.path),
+                "ip": request_ip(request),
+                "request_id": request_id(request),
+                **resource_metadata,
+                **(extra or {}),
+            },
+            retention_class=(
+                "traceability"
+                if audit_resource.get("retention_class") == "traceability"
+                else "operational"
+            ),
+        )
+
+
+def emit_request_event(
+    *,
+    request: Request,
+    username: str,
+    status_code: int,
+    duration_ms: float,
+    extra: dict | None = None,
+) -> None:
+    """Emit an audit event for a completed API request.
+
+    Args:
+        request: Active request.
+        username: Authenticated username.
+        status_code: Final response status code.
+        duration_ms: End-to-end request duration in milliseconds.
+        extra: Additional structured metadata to emit.
+    """
+    derived_status = (
+        "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
+    )
+    from api.app.deps.services import get_audit_service
+
+    audit = get_audit_service()
+    if audit is not None:
+        audit.record(
+            "api.request.completed",
+            f"{request.method} {request.url.path}",
+            severity=(
+                "error"
+                if derived_status == "error"
+                else ("warning" if derived_status == "failed" else "info")
+            ),
+            category="request",
+            outcome="success" if derived_status == "success" else "failure",
+            actor=username or "anonymous",
+            resource_type="api_route",
+            resource_id=str(request.url.path),
+            tags=["api", "request", request.method.lower()],
+            metadata={
+                "status_code": int(status_code),
+                "duration_ms": round(float(duration_ms), 2),
+                "method": request.method,
+                "path": str(request.url.path),
+                "ip": request_ip(request),
+                "request_id": request_id(request),
+                **(extra or {}),
+            },
+        )

@@ -1,0 +1,134 @@
+# Center-configurable VCF filter flag metadata.
+#
+# Matching order:
+#   1. `exact` key match
+#   2. first matching `prefix`
+#   3. frontend/backend fallback prefix rules
+#
+# Centers may edit labels/descriptions without changing application code.
+exact:
+  PASS:
+    label: PASS
+    severity: pass
+    description: Variant passed all active caller and quality filters.
+  GERMLINE:
+    label: GERM
+    severity: info
+    description: Variant is marked as germline or likely germline in the configured germline evidence track.
+  GERMLINE_RISK:
+    label: GERM
+    severity: info
+    description: Variant is marked as a germline-risk observation that may require clinical review in the configured workflow.
+
+prefixes:
+  FAIL:
+    label: FAIL
+    severity: fail
+    description: Variant failed a hard quality filter and should generally be excluded unless reviewed.
+  WARN:
+    label: WARN
+    severity: warn
+    description: Variant triggered a warning filter. Review the specific flag and supporting evidence before reporting.
+  T_LOD:
+    label: Tumor LOD
+    severity: info
+    description: Tumor log-odds support is below or near the caller threshold.
+  LOD:
+    label: LOD
+    severity: info
+    description: Log-odds support is below or near the caller threshold.
+  PON:
+    label: Panel of normals
+    severity: warn
+    description: Variant is observed in the panel of normals and may represent recurrent technical noise.
+
+terms:
+  WARN_HOMOPOLYMER:
+    label: HP
+    severity: warn
+    description: Variant occurs in or near a homopolymer region.
+  WARN_STRANDBIAS:
+    label: SB
+    severity: warn
+    description: Alternate evidence shows strand bias.
+  WARN_LOW_TVAF:
+    label: LO
+    severity: warn
+    description: Tumor variant allele fraction is low.
+  WARN_VERYLOW_TVAF:
+    label: XLO
+    severity: warn
+    description: Tumor variant allele fraction is very low.
+  FAIL_STRANDBIAS:
+    label: SB
+    severity: fail
+    description: Alternate evidence is strongly biased by sequencing strand.
+  WARN_NOVAR:
+    hidden: true
+    label: NOVAR
+    severity: neutral
+    description: One caller or evidence track did not support this variant call.
+  WARN_PON_FREEBAYES:
+    label: PON
+    severity: warn
+    description: FreeBayes evidence overlaps the panel of normals.
+  WARN_PON_VARDICT:
+    label: PON
+    severity: warn
+    description: VarDict evidence overlaps the panel of normals.
+  WARN_PON_TNSCOPE:
+    label: PON
+    severity: warn
+    description: TNscope evidence overlaps the panel of normals.
+  WARN_FFPE_PON_FREEBAYES:
+    label: FFPE
+    severity: warn
+    description: FreeBayes evidence overlaps the FFPE panel of normals.
+  WARN_FFPE_PON_VARDICT:
+    label: FFPE
+    severity: warn
+    description: VarDict evidence overlaps the FFPE panel of normals.
+  WARN_FFPE_PON_TNSCOPE:
+    label: FFPE
+    severity: warn
+    description: TNscope evidence overlaps the FFPE panel of normals.
+  FAIL_NVAF:
+    label: N
+    severity: fail
+    description: Normal/control variant allele fraction is too high for the configured filter.
+  FAIL_PVALUE:
+    label: P
+    severity: fail
+    description: Variant failed the configured p-value support filter.
+  FAIL_LONGDEL:
+    label: LD
+    severity: fail
+    description: Variant failed the configured long-deletion filter.
+  FAIL_PON_FREEBAYES:
+    label: PON
+    severity: fail
+    description: FreeBayes evidence failed due to panel-of-normals overlap.
+  FAIL_PON_VARDICT:
+    label: PON
+    severity: fail
+    description: VarDict evidence failed due to panel-of-normals overlap.
+  FAIL_PON_TNSCOPE:
+    label: PON
+    severity: fail
+    description: TNscope evidence failed due to panel-of-normals overlap.
+  FAIL_FFPE_PON_FREEBAYES:
+    label: FFPE
+    severity: fail
+    description: FreeBayes evidence failed due to FFPE panel-of-normals overlap.
+  FAIL_FFPE_PON_VARDICT:
+    label: FFPE
+    severity: fail
+    description: VarDict evidence failed due to FFPE panel-of-normals overlap.
+  FAIL_FFPE_PON_TNSCOPE:
+    label: FFPE
+    severity: fail
+    description: TNscope evidence failed due to FFPE panel-of-normals overlap.
+  T_LOD_FSTAR:
+    label: LOD FSTAR
+    severity: info
+    description: FSTAR tumor log-odds support is below or near the configured threshold.

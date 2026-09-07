@@ -1,0 +1,22 @@
+[
+  {
+    "SAMPLE_ID": "sample_oid_seed",
+    "name": "demo-biomarker",
+    "MSIS": {
+      "tot": 120,
+      "som": 6,
+      "per": 5.0
+    },
+    "MSIP": {
+      "tot": 80,
+      "som": 2,
+      "per": 2.5
+    },
+    "HRD": {
+      "tai": 10,
+      "hrd": 12,
+      "lst": 8,
+      "sum": 30
+    }
+  }
+]

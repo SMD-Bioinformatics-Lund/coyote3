@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 1000 500" role="img" aria-labelledby="title desc">
+  <title id="title">First-deployment bootstrap data flow</title>
+  <desc id="desc">Application RBAC, reference snapshots, and optional demo configuration are validated and inserted only into empty MongoDB collections.</desc>
+  <defs>
+    <style>
+      .canvas{fill:#f8fafc}.band{fill:#e2e8f0}.title{font:700 22px 'Segoe UI',Arial,sans-serif;fill:#0f172a}.label{font:700 14px 'Segoe UI',Arial,sans-serif;fill:#0f172a}.sub{font:12px 'Segoe UI',Arial,sans-serif;fill:#334155}.box{stroke:#475569;stroke-width:1.6}.arrow{stroke:#475569;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#475569"/></marker>
+  </defs>
+  <rect width="1000" height="500" class="canvas"/>
+  <rect x="20" y="18" width="960" height="42" rx="10" class="band"/>
+  <text x="38" y="46" class="title">First-deployment bootstrap</text>
+  <rect x="40" y="92" width="250" height="76" rx="12" class="box" fill="#e0e7ff"/>
+  <text x="165" y="120" text-anchor="middle" class="label">Application RBAC</text><text x="165" y="142" text-anchor="middle" class="sub">permissions + built-in roles</text>
+  <rect x="40" y="202" width="250" height="76" rx="12" class="box" fill="#dbeafe"/>
+  <text x="165" y="230" text-anchor="middle" class="label">Reference snapshots</text><text x="165" y="252" text-anchor="middle" class="sub">HGNC genes + VEP metadata</text>
+  <rect x="40" y="312" width="250" height="76" rx="12" class="box" fill="#dcfce7"/>
+  <text x="165" y="340" text-anchor="middle" class="label">Demo center (optional)</text><text x="165" y="362" text-anchor="middle" class="sub">ASP + ASPC + ISGL</text>
+  <rect x="375" y="175" width="250" height="130" rx="12" class="box" fill="#fef3c7"/>
+  <text x="500" y="210" text-anchor="middle" class="label">Normalize and validate</text><text x="500" y="236" text-anchor="middle" class="sub">Pydantic contracts</text><text x="500" y="258" text-anchor="middle" class="sub">cross-resource identities</text><text x="500" y="280" text-anchor="middle" class="sub">audit metadata</text>
+  <rect x="710" y="175" width="250" height="130" rx="12" class="box" fill="#fce7f3"/>
+  <text x="835" y="208" text-anchor="middle" class="label">Collection occupancy gate</text><text x="835" y="234" text-anchor="middle" class="sub">empty: insert validated documents</text><text x="835" y="258" text-anchor="middle" class="sub">nonempty: skip without mutation</text><text x="835" y="282" text-anchor="middle" class="sub">MongoDB remains authoritative</text>
+  <path d="M290 130 L375 205" class="arrow"/><path d="M290 240 L375 240" class="arrow"/><path d="M290 350 L375 275" class="arrow"/><path d="M625 240 L710 240" class="arrow"/>
+  <text x="500" y="440" text-anchor="middle" class="sub">Samples, annotations, reports, credentials, and patient identifiers are never application bootstrap data.</text>
+</svg>

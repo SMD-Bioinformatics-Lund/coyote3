@@ -1,0 +1,41 @@
+FROM python:3.12-slim-bookworm AS coyote3_dev_runtime_base
+
+LABEL base_image="python:3.12-slim"
+LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ARG GIT_COMMIT="unknown"
+ARG BUILD_TIME="unknown"
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV BUILD_TIME=${BUILD_TIME}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libxml2-dev libxslt1-dev zlib1g-dev libsasl2-dev libldap2-dev \
+    build-essential libssl-dev libffi-dev libjpeg-dev libpq-dev \
+    liblcms2-dev libblas-dev libatlas-base-dev libglib2.0-dev \
+    libpango-1.0-0 less vim && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+
+RUN mkdir -p ./logs ./redis_data
+
+FROM coyote3_dev_runtime_base AS coyote3_dev_api
+
+EXPOSE 8001
+
+COPY api/ ./api/
+COPY scripts/ ./scripts/
+COPY tests/ ./tests/
+COPY demo_data/ ./demo_data/
+COPY CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./
+
+CMD python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers 2
+
+FROM coyote3_dev_api AS coyote3_dev_all

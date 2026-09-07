@@ -1,0 +1,312 @@
+"""Password lifecycle helpers for local-auth users."""
+
+from __future__ import annotations
+
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
+from api.app.container import util
+from api.app.deps.repositories import get_user_repository
+from api.app.runtime_state import app as runtime_app
+from api.config.constants import AUTH_PROVIDER_LOCAL, DEFAULT_AUTH_PROVIDER, normalize_auth_types
+from api.config.security import get_api_secret_key
+from api.infra.notifications.email import send_email, smtp_configured
+from api.infra.observability.auth_metrics import emit_auth_metric
+from api.security.auth_service import _lookup_user_doc, resolve_user_identity
+
+_TOKEN_PURPOSE_INVITE = "invite"
+_TOKEN_PURPOSE_RESET = "reset"
+_TOKEN_PURPOSES = {_TOKEN_PURPOSE_INVITE, _TOKEN_PURPOSE_RESET}
+
+
+def _password_token_ttl_seconds() -> int:
+    try:
+        return int(runtime_app.config.get("PASSWORD_TOKEN_TTL_SECONDS", 60 * 60))
+    except Exception:
+        return 60 * 60
+
+
+def _password_token_serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(
+        secret_key=get_api_secret_key(runtime_app.config),
+        salt=str(runtime_app.config.get("PASSWORD_TOKEN_SALT", "coyote3-password-token-v1")),
+    )
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(str(token).encode("utf-8")).hexdigest()
+
+
+def _is_local_user(user_doc: dict[str, Any]) -> bool:
+    return AUTH_PROVIDER_LOCAL in normalize_auth_types(
+        user_doc.get("auth_type") or [DEFAULT_AUTH_PROVIDER]
+    )
+
+
+def notify_user_change(
+    *,
+    user_doc: dict[str, Any],
+    event: str,
+    actor_username: str | None = None,
+    changed_fields: list[str] | None = None,
+) -> dict[str, Any]:
+    """Send a best-effort account-change notification email."""
+    to_email = str(user_doc.get("email") or "").strip()
+    username = str(user_doc.get("username") or user_doc.get("_id") or "").strip() or "user"
+    actor = str(actor_username or "system").strip() or "system"
+    fields = [str(item).strip() for item in (changed_fields or []) if str(item).strip()]
+    fields_text = ", ".join(fields) if fields else "account settings"
+
+    subject_map = {
+        "password_changed": "Coyote3 password updated",
+        "password_set": "Coyote3 password set",
+        "profile_updated": "Coyote3 account updated",
+        "account_status_changed": "Coyote3 account status updated",
+    }
+    subject = subject_map.get(str(event).strip().lower(), "Coyote3 account change")
+    text_body = (
+        f"Hello {username},\n\n"
+        f"Your Coyote3 account was updated ({fields_text}).\n"
+        f"Changed by: {actor}\n\n"
+        "If you did not expect this, contact your administrator."
+    )
+    mail_ready = bool(smtp_configured(runtime_app.config))
+    email_sent = (
+        send_email(
+            config=runtime_app.config,
+            to_email=to_email,
+            subject=subject,
+            text_body=text_body,
+            log=runtime_app.logger,
+        )
+        if to_email
+        else False
+    )
+    warning: str | None = None
+    if not to_email:
+        warning = "User email is missing."
+    elif not mail_ready:
+        warning = "Mail is not configured."
+    elif not email_sent:
+        warning = "Mail send failed."
+    emit_auth_metric(
+        "user_change_notification",
+        change_event=event,
+        mail_configured=mail_ready,
+        email_sent=bool(email_sent),
+    )
+    return {"email_sent": bool(email_sent), "mail_configured": mail_ready, "warning": warning}
+
+
+def _build_set_password_url(token: str) -> str:
+    public_base = str(runtime_app.config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    script_name = str(runtime_app.config.get("SCRIPT_NAME") or "").strip().rstrip("/")
+    base = f"{public_base}{script_name}" if public_base else ""
+    path = f"/reset-password?token={token}"
+    return f"{base}{path}" if base else path
+
+
+def _issue_token(*, user_id: str, purpose: str) -> str:
+    return str(
+        _password_token_serializer().dumps(
+            {"uid": user_id, "purpose": purpose, "nonce": secrets.token_urlsafe(16)}
+        )
+    )
+
+
+def issue_password_token_for_user(
+    *, login_identifier: str, purpose: str, actor_username: str | None = None
+) -> dict[str, Any]:
+    """Issue a password action token for a local user.
+
+    Returns a neutral response for unsupported/missing users to avoid account
+    enumeration behavior on public flows.
+    """
+    if purpose not in _TOKEN_PURPOSES:
+        raise ValueError(f"Unsupported password token purpose: {purpose}")
+
+    user_doc = _lookup_user_doc(login_identifier, provider=AUTH_PROVIDER_LOCAL)
+    if not user_doc or not user_doc.get("is_active", True) or not _is_local_user(user_doc):
+        emit_auth_metric(
+            "password_token_issue", outcome="skipped", reason="user_unavailable_or_nonlocal"
+        )
+        return {
+            "status": "ok",
+            "email_sent": False,
+            "mail_configured": bool(smtp_configured(runtime_app.config)),
+        }
+
+    user_id = resolve_user_identity(user_doc)
+    if not user_id:
+        emit_auth_metric("password_token_issue", outcome="skipped", reason="missing_user_id")
+        return {
+            "status": "ok",
+            "email_sent": False,
+            "mail_configured": bool(smtp_configured(runtime_app.config)),
+        }
+
+    user_repository = get_user_repository()
+    token = _issue_token(user_id=user_id, purpose=purpose)
+    expiry = datetime.now(timezone.utc) + timedelta(seconds=_password_token_ttl_seconds())
+    user_repository.set_password_action_token(
+        user_id=user_id,
+        token_hash=_token_hash(token),
+        purpose=purpose,
+        expires_at=expiry,
+        issued_by=actor_username,
+    )
+
+    if purpose == _TOKEN_PURPOSE_RESET:
+        try:
+            # Imported locally to avoid coupling password-flow module initialization
+            # to the application service dependency graph.
+            from api.app.deps.services import get_notification_service
+
+            get_notification_service().notify_password_reset_request(
+                account_username=user_id,
+            )
+        except Exception:
+            runtime_app.logger.exception(
+                "Unable to publish the administrative password-reset notification"
+            )
+
+    to_email = str(user_doc.get("email") or "").strip()
+    setup_url = _build_set_password_url(token)
+    ttl_minutes = max(1, int(_password_token_ttl_seconds() / 60))
+    subject = (
+        "Coyote3 account setup" if purpose == _TOKEN_PURPOSE_INVITE else "Coyote3 password reset"
+    )
+    text_body = (
+        "A password action was requested for your Coyote3 account.\n\n"
+        f"Use this link: {setup_url}\n"
+        f"This link expires in {ttl_minutes} minutes.\n\n"
+        "If you did not expect this, contact your administrator."
+    )
+    mail_ready = bool(smtp_configured(runtime_app.config))
+    email_sent = (
+        send_email(
+            config=runtime_app.config,
+            to_email=to_email,
+            subject=subject,
+            text_body=text_body,
+            log=runtime_app.logger,
+        )
+        if to_email
+        else False
+    )
+    warning: str | None = None
+    if not mail_ready:
+        warning = "Mail is not configured. Share the setup URL manually."
+    elif not email_sent:
+        warning = "Mail send failed. Share the setup URL manually."
+    emit_auth_metric(
+        "password_token_issue",
+        outcome="success",
+        purpose=purpose,
+        mail_configured=mail_ready,
+        email_sent=bool(email_sent),
+    )
+    return {
+        "status": "ok",
+        "email_sent": bool(email_sent),
+        "mail_configured": mail_ready,
+        "setup_url": setup_url,
+        "expires_in_seconds": _password_token_ttl_seconds(),
+        "warning": warning,
+    }
+
+
+def _decode_password_token(token: str) -> dict[str, Any] | None:
+    try:
+        payload = _password_token_serializer().loads(
+            token,
+            max_age=_password_token_ttl_seconds(),
+        )
+        return dict(payload) if isinstance(payload, dict) else None
+    except (BadSignature, SignatureExpired):
+        return None
+
+
+def consume_password_token_and_set_password(*, token: str, new_password: str) -> dict[str, Any]:
+    """Validate/consume one-time token and set local password."""
+    token_data = _decode_password_token(str(token or "").strip())
+    if not token_data:
+        emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_or_expired")
+        return {"status": "error", "error": "Invalid or expired token"}
+
+    user_repository = get_user_repository()
+    user_id = str(token_data.get("uid") or "").strip().lower()
+    purpose = str(token_data.get("purpose") or "").strip().lower()
+    if not user_id or purpose not in _TOKEN_PURPOSES:
+        emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_payload")
+        return {"status": "error", "error": "Invalid token payload"}
+
+    user_doc = user_repository.user_with_id(user_id)
+    if not user_doc or not user_doc.get("is_active", True) or not _is_local_user(user_doc):
+        emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_user")
+        return {"status": "error", "error": "Invalid token user"}
+
+    if not user_repository.consume_password_action_token(
+        user_id=user_id,
+        token_hash=_token_hash(token),
+        purpose=purpose,
+        password_hash=util.common.hash_password(new_password),
+    ):
+        emit_auth_metric("password_token_consume", outcome="failed", reason="reused_or_expired")
+        return {"status": "error", "error": "Token already used or expired"}
+
+    notification = notify_user_change(
+        user_doc=user_doc,
+        event="password_set",
+        actor_username="self-service-token",
+        changed_fields=["password"],
+    )
+    emit_auth_metric("password_token_consume", outcome="success", purpose=purpose)
+    return {
+        "status": "ok",
+        "username": user_id,
+        "notification_email_sent": bool(notification.get("email_sent", False)),
+    }
+
+
+def change_local_password(
+    *, user_id: str, current_password: str, new_password: str
+) -> dict[str, Any]:
+    """Change password for an already authenticated local user."""
+    user_repository = get_user_repository()
+    user_doc = user_repository.user_with_id(user_id)
+    if not user_doc or not user_doc.get("is_active", True):
+        emit_auth_metric("password_change", outcome="failed", reason="user_not_found")
+        return {"status": "error", "error": "User not found"}
+
+    if not _is_local_user(user_doc):
+        emit_auth_metric("password_change", outcome="failed", reason="nonlocal_user")
+        return {"status": "error", "error": "Password is managed by external identity provider"}
+
+    from api.domain.core.models.user import UserModel
+
+    if not UserModel.validate_login(str(user_doc.get("password") or ""), current_password):
+        emit_auth_metric("password_change", outcome="failed", reason="invalid_current_password")
+        return {"status": "error", "error": "Current password is incorrect"}
+
+    user_repository.set_local_password(
+        user_id=user_id,
+        password_hash=util.common.hash_password(new_password),
+        require_password_change=False,
+    )
+    notification = notify_user_change(
+        user_doc=user_doc,
+        event="password_changed",
+        actor_username=user_id,
+        changed_fields=["password"],
+    )
+    emit_auth_metric("password_change", outcome="success")
+    return {
+        "status": "ok",
+        "username": user_id,
+        "notification_email_sent": bool(notification.get("email_sent", False)),
+    }

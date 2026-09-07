@@ -1,0 +1,62 @@
+[
+  {
+    "asp_id": "assay_1",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Hema GMS v1",
+    "description": "Demo DNA assay panel for first-run validation",
+    "covered_genes": [
+      "UBA1",
+      "APOB",
+      "EGFR",
+      "PHIP",
+      "ASXL2",
+      "ASXL1",
+      "FLT3",
+      "KMT2D",
+      "GNB1",
+      "TP53"
+    ],
+    "germline_genes": [
+      "BRCA1"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers"
+    ],
+    "required_files": [
+      "vcf_files"
+    ]
+  },
+  {
+    "asp_id": "assay_rna_1",
+    "asp_group": "wts",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "display_name": "Demo RNA WTS",
+    "description": "Demo RNA WTS assay panel for first-run validation",
+    "covered_genes": [
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [],
+    "is_active": true,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ]
+  }
+]

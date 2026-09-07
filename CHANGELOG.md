@@ -1,12 +1,33 @@
 # Changelog
 
+## v4.0.0 - 2026-08-10
+
+Version 4 replaces the Flask/Jinja application with a production-oriented
+FastAPI and React platform while preserving its supported clinical workflows.
+
+- Added typed DNA and RNA ingestion, analysis, reporting, administration, public
+  catalog, and cohort-review workflows.
+- Added versioned data contracts, ASPC-driven filtering, reference annotations,
+  YAML reporting rules, and immutable report snapshots.
+- Added database-backed access control, authentication, auditing, notifications,
+  background processing, and operational controls.
+- Added secure container deployment, backup and restore tooling, automated tests,
+  and complete operator and clinical documentation.
+- Removed the legacy Flask application, compatibility paths, and automatic
+  first-run orchestration.
+
+## v3.1.23
+- Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.
+- Switched DNA list-page CSV downloads to backend-generated files via Flask proxy routes instead of DOM-derived table exports.
+- Extended backend-generated CSV downloads to translocations with typed export rows and API/UI wiring.
+
 ## v3.1.22
 - Variant search gene mode will match exact gene search string, not substring match.
 - Added CNV to the Solid CRC avaiable analysis options in the assay catalog.
 
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
-- Replaced legacy custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
+- Replaced historical custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
 - Removed deprecated DNA gene view routes/templates (`/gene_simple/<gene_name>`, `/gene/<gene_name>`).
 
 ## v3.1.20
@@ -14,7 +35,7 @@
 
 ## v3.1.19
 - Fixed Tailwind v4 dynamic class generation gaps by expanding template scan coverage (`.jinja/.jinja2`) and explicit inline source classes for semantic/admin color tokens.
-- Added Tailwind v4 border compatibility base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
+- Added Tailwind v4 border base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
 - Restored same-line live validation feedback in schema creation editor (inline line highlight + inline error widget).
 - Updated admin audit logs view to sort entries by parsed log timestamp in descending order (latest first).
 - Fixed subpath static asset behavior for containerized deployment under `SCRIPT_NAME` (e.g., `/coyote3`) by adding prefix-aware WSGI middleware and normalizing compose env formatting.
@@ -27,10 +48,10 @@
 - Updated dev container flow to build/watch Tailwind only in the dedicated dev Tailwind service, avoiding npm install dependency during `coyote3_dev_app` image build.
 - Added version-aware compose workflow:
   - `docker-compose*.yml` now use `COYOTE3_VERSION` image tags instead of hardcoded app versions.
-  - Added `scripts/compose-with-version.sh` to export version from `coyote/__version__.py` and run `docker compose`.
+  - Added `scripts/compose-with-version.sh` to export version from `api/version.py` and run `docker compose`.
 - Added npm package version sync from Python version source:
   - Added `scripts/sync-package-version.js`.
-  - Wired `postinstall`, `prebuild:css`, and `predev:css` to sync `package.json` version from `coyote/__version__.py`.
+  - Wired package version sync from `api/version.py`.
 - Reworked installation/deployment documentation to production-first, step-by-step runbooks in README and handbook.
 
 ## v3.1.17
@@ -59,17 +80,13 @@
 ## v3.1.10
 - Added documentation pages (About, Changelog, License) and exposed basic version and build information in the UI.
 
-## v3.1.9
-- Kept the old Gens URI until the complete migration.
+## v3.1.9- Kept the old Gens URI until the complete migration.
 
-## v3.1.8
-- Added FL, DLBCL and Breast Cancer analysis/Genelists in the assay catalog
+## v3.1.8- Added FL, DLBCL and Breast Cancer analysis/Genelists in the assay catalog
 
-## v3.1.7
-- Add New GENS Link
+## v3.1.7- Add New GENS Link
 
-## v3.1.6
-- Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
+## v3.1.6- Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
 - Linked variant tiers to the reports in which they are clinically reported.
 - Added `TieredVariantSearchForm` and new `/search/tiered_variants` view to search annotations by gene, variant, transcript, author, assay, and subpanel.
 - Connected annotation search results to samples and reports via the `reported_variants` collection, including per-sample report references.
@@ -77,11 +94,9 @@
 - Improved HGVS protein normalization to support complex clinical variants and enhanced backfill reliability using JSONL-based dry-run and bulk insert workflows.
 - Fixed gene links to correctly deep-link into tiered variant search with proper query parameters and assay filtering.
 
-## v3.1.5
-- Added CNV aftefct column from the legacy coyote
+## v3.1.5- Added CNV aftefct column from the historical coyote
 
-## v3.1.4
-- Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
+## v3.1.4- Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
 - Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.
 - Removed Exon/Intron Info from the variant table in the report.
 - Fix: Replaced naive datetime usage with a centralized `utc_now()` helper to ensure all newly stored timestamps are timezone-aware and consistently recorded in UTC.
@@ -90,14 +105,11 @@
 - Fix: Prevent previously tiered variants marked as false positives from appearing in the “Suggest” summary text (they were only removable by marking as irrelevant), while still keeping them out of the final summary table.
 - Fix: Reduced the default font size of markdown headings inside the summary editor (EasyMDE/CodeMirror) so section headers appear more compact while typing, matching the final report style.
 
-## v3.1.3
-- Fixed missing ISGL routes in production by standardizing Flask blueprint route definitions.
+## v3.1.3- Fixed missing ISGL routes in production by standardizing Flask blueprint route definitions.
 
-## v3.1.2
-- Admin: Fixed JSON sample editor to safely serialize and restore MongoDB ObjectIds during full document updates.
+## v3.1.2- Admin: Fixed JSON sample editor to safely serialize and restore MongoDB ObjectIds during full document updates.
 
-## v3.1.1
-- Reports: HTML reports now use compact UTC timestamps in filenames to avoid collisions on re-runs.
+## v3.1.1- Reports: HTML reports now use compact UTC timestamps in filenames to avoid collisions on re-runs.
 - New format <TUMOR_NAME>_<TUMOR_CLARITY_ID>-<NORMAL_NAME>_<NORMAL_CLARITY_ID>.<YYDDMMHHSS>.html for tumor-normal analysis.  <TUMOR_NAME>_<TUMOR_CLARITY_ID>.<YYDDMMHHSS>.html for tumor only analysis.
 
 ## v3.1.0
@@ -106,7 +118,7 @@
 - Sample landing (settings/edit) page will now show the list of files associated with the sample and if they exist on the drive.
 - Added support for AdHoc Gene lists
 - Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
-- Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
+- Added a public facing assay catalog page to view assay related metadata, gene lists, and configurations. Catalog presentation is controlled by center configuration together with ASP and ASPC records.
 - Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loading time.
 - Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
 - Public “Assay Coverage Matrix” page with full modality → category → genelist grouping, ASP-aware gene override, and placeholder column support for empty services.
@@ -119,12 +131,12 @@
 - Updated report terminology: replaced “variant” with “mutation” in summary text, variant summary table, detailed table headers, and Tier 3 naming.
 
 
-# v3.0.9
+## v3.0.9
 ### BugFix #119
 - Fixed carry-over of protein changes between variants.
   The protein_changes list is now reinitialized inside the variant processing loop, ensuring each variant has its own independent protein change data.
   Previously, variants without explicit protein changes could inherit those from prior variants, causing incorrect annotations.
-- Added Config/coyote3_collections.toml file to repository for easier configuration management.
+- Added a repository collection-mapping configuration for easier deployment management.
 
 ## v3.0.8
 ### HotFix #117
@@ -134,11 +146,9 @@
 ### BugFix
 - Fixed full gene view to get all the tiered variants along with the samples. #115
 
-## v3.0.6
-- SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.
+## v3.0.6- SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.
 
-## v3.0.5
-- Download of csv file from Coyot3 #109
+## v3.0.5- Download of csv file from Coyot3 #109
 - Sort Variants in Report Table by Tier and VAF #107
 ### BugFix
 - Filter button increments incorrectly #102

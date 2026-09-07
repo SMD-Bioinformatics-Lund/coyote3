@@ -1,0 +1,13 @@
+[
+  {
+    "SAMPLE_ID": "sample_oid_demo_001",
+    "records": [
+      {
+        "id": "pgx_demo_001",
+        "gene": "CYP2C19",
+        "diplotype": "*1/*2",
+        "phenotype": "Intermediate metabolizer"
+      }
+    ]
+  }
+]

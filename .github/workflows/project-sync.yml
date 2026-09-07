@@ -1,0 +1,196 @@
+name: Coyote3 project sync
+
+on:
+  issues:
+    types: [opened, reopened, closed, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to add or resynchronize
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: coyote3-project-sync-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PROJECT_ORG: SMD-Bioinformatics-Lund
+      PROJECT_NUMBER: "22"
+
+    steps:
+      - name: Synchronize issue with the Coyote3 project
+        uses: actions/github-script@v7
+        with:
+          # Store a classic PAT with `project` and `repo` scopes, or a fine-grained
+          # token with organization Projects write and repository Issues read access,
+          # as the organization/repository secret COYOTE3_PROJECT_TOKEN.
+          github-token: ${{ secrets.COYOTE3_PROJECT_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = Number(
+              context.payload.issue?.number || context.payload.inputs?.issue_number,
+            );
+            const projectOrg = process.env.PROJECT_ORG;
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+
+            if (!issueNumber) {
+              core.setFailed("An issue number is required.");
+              return;
+            }
+
+            const query = `
+              query ProjectSync(
+                $owner: String!
+                $repo: String!
+                $issueNumber: Int!
+                $projectOrg: String!
+                $projectNumber: Int!
+              ) {
+                repository(owner: $owner, name: $repo) {
+                  issue(number: $issueNumber) {
+                    id
+                    number
+                    state
+                    labels(first: 100) { nodes { name } }
+                    projectItems(first: 50) {
+                      nodes { id project { id number } }
+                    }
+                  }
+                }
+                organization(login: $projectOrg) {
+                  projectV2(number: $projectNumber) {
+                    id
+                    title
+                    fields(first: 100) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const variables = { owner, repo, issueNumber, projectOrg, projectNumber };
+            const data = await github.graphql(query, variables);
+            const issue = data.repository.issue;
+            const project = data.organization.projectV2;
+
+            if (!issue || !project) {
+              core.setFailed(`Could not resolve issue #${issueNumber} or project ${projectNumber}.`);
+              return;
+            }
+
+            let item = issue.projectItems.nodes.find(node => node.project.id === project.id);
+            if (!item) {
+              const added = await github.graphql(`
+                mutation AddProjectItem($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {
+                    projectId: $projectId
+                    contentId: $contentId
+                  }) { item { id } }
+                }
+              `, { projectId: project.id, contentId: issue.id });
+              item = added.addProjectV2ItemById.item;
+              core.info(`Added issue #${issueNumber} to ${project.title}.`);
+            }
+
+            const labels = new Set(issue.labels.nodes.map(label => label.name.toLowerCase()));
+            const fields = new Map(
+              project.fields.nodes
+                .filter(field => field?.id && field?.name && field?.options)
+                .map(field => [field.name.toLowerCase(), field]),
+            );
+
+            async function setSingleSelect(fieldName, optionName) {
+              if (!optionName) return;
+              const field = fields.get(fieldName.toLowerCase());
+              const option = field?.options.find(
+                candidate => candidate.name.toLowerCase() === optionName.toLowerCase(),
+              );
+              if (!field || !option) {
+                core.warning(
+                  `Project field value unavailable: ${fieldName}=${optionName}.`,
+                );
+                return;
+              }
+              await github.graphql(`
+                mutation SetProjectField(
+                  $projectId: ID!
+                  $itemId: ID!
+                  $fieldId: ID!
+                  $optionId: String!
+                ) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optionId }
+                  }) { projectV2Item { id } }
+                }
+              `, {
+                projectId: project.id,
+                itemId: item.id,
+                fieldId: field.id,
+                optionId: option.id,
+              });
+              core.info(`Set ${fieldName}=${optionName} for issue #${issueNumber}.`);
+            }
+
+            function firstMappedLabel(mapping) {
+              for (const [label, option] of mapping) {
+                if (labels.has(label)) return option;
+              }
+              return null;
+            }
+
+            const status = issue.state === "CLOSED"
+              ? "Done"
+              : firstMappedLabel([
+                  ["blocked", "Blocked"],
+                  ["status/in-review", "In review"],
+                  ["status/in-progress", "In progress"],
+                  ["status/ready", "Ready"],
+                  ["status/planned", "Backlog"],
+                ]);
+            const priority = firstMappedLabel([
+              ["priority/p0", "Critical"],
+              ["priority/p1", "High"],
+              ["priority/p2", "Medium"],
+              ["priority/p3", "Low"],
+              ["priority/p4", "Optional"],
+            ]);
+            const effort = firstMappedLabel([
+              ["effort/xl", "XL"],
+              ["effort/l", "L"],
+              ["effort/m", "M"],
+              ["effort/s", "S"],
+              ["effort/xs", "XS"],
+            ]);
+            const area = firstMappedLabel([
+              ["area/rna", "RNA"],
+              ["area/clinical", "Clinical Interpretation"],
+              ["area/security", "Auth & Security"],
+              ["area/operations", "DevOps & Deploy"],
+              ["area/quality", "Testing & Quality"],
+              ["documentation", "Documentation"],
+            ]);
+
+            await setSingleSelect("Status", status);
+            await setSingleSelect("Priority", priority);
+            await setSingleSelect("Effort", effort);
+            await setSingleSelect("Area", area);

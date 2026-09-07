@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-classification",
+    "source_row": 1,
+    "cosmic_phenotype_id": "COSO-DEMO",
+    "primary_site": "synthetic_site",
+    "primary_histology": "synthetic_histology"
+  }
+]

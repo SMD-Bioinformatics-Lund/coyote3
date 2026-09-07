@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-expression",
+    "source_row": 1,
+    "gene_symbol": "GENE1",
+    "regulation": "over",
+    "z_score": 2.1
+  }
+]

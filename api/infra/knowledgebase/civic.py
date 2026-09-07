@@ -1,0 +1,128 @@
+"""
+CivicRepository module for Coyote3
+===============================
+
+This module defines the `CivicRepository` class used for accessing and managing
+CIViC variant and gene data in MongoDB.
+
+It is part of the MongoDB infrastructure layer.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
+from api.infra.mongo.repositories.base import BaseRepository
+
+
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
+class CivicRepository(BaseRepository):
+    """
+    CivicRepository class for managing CIViC variant and gene data.
+
+    This class provides methods to interact with the CIViC data stored in MongoDB,
+    including retrieving variant and gene information from the dedicated
+    knowledgebase database.
+    """
+
+    def __init__(self, adapter):
+        """
+        Initialize the repository with a given adapter and bind the collection.
+        """
+        super().__init__(adapter)
+        self.set_collection(self.adapter.civic_variants_collection)
+
+    def ensure_indexes(self) -> None:
+        """Create indexes used by CIViC variant lookups in variant detail view."""
+        col = self.get_collection()
+        col.create_index(
+            [("chromosome", 1), ("start", 1), ("variant_bases", 1)],
+            name="chromosome_start_variant_bases",
+            background=True,
+        )
+        col.create_index(
+            [("gene", 1), ("hgvs_expressions", 1)],
+            name="gene_hgvs_expressions",
+            background=True,
+        )
+        col.create_index(
+            [("gene", 1), ("variant", 1)],
+            name="gene_variant",
+            background=True,
+        )
+
+    def get_civic_data(self, variant: dict, variant_desc: str) -> list[dict]:
+        """
+        Retrieve CIViC variant data for a given variant or gene.
+
+        This method queries the CIViC variants collection in MongoDB to find
+        variant data that matches the provided variant details or gene information.
+
+        Args:
+            variant (dict): A dictionary containing variant details, including
+                            chromosome (`CHROM`), position (`POS`), alternate
+                            allele (`ALT`), and gene information in the `INFO` field.
+            variant_desc (str): A string describing the variant.
+
+        Returns:
+            list[dict]: CIViC variant documents matching the query criteria.
+        """
+        return list(
+            self.get_collection().find(
+                {
+                    "$or": [
+                        {
+                            "chromosome": str(variant["CHROM"]),
+                            "start": int(variant["POS"]),
+                            "variant_bases": variant["ALT"],
+                        },
+                        {
+                            "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                            "hgvs_expressions": variant["INFO"]["selected_CSQ"]["HGVSc"],
+                        },
+                        {
+                            "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                            "variant": variant_desc,
+                        },
+                    ]
+                }
+            )
+        )
+
+    def get_civic_gene_info(self, gene_smbl: str) -> dict:
+        """
+        Retrieve CIViC gene data for a specific gene.
+
+        This method queries the `civic_genes` collection in MongoDB to find
+        gene data that matches the provided gene symbol.
+
+        Args:
+            gene_smbl (str): The symbol of the gene to retrieve data for.
+
+        Returns:
+            dict: A dictionary containing the CIViC gene data if found, or None if no match is found.
+        """
+        return self.adapter.civic_gene_collection.find_one({"name": gene_smbl})
+
+    def get_gene_records(self, genes: list[str]) -> dict[str, dict]:
+        """Return CIViC gene records keyed by requested symbols."""
+        symbols = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not symbols:
+            return {}
+        return {
+            str(row["name"]): row
+            for row in self.adapter.civic_gene_collection.find({"name": {"$in": symbols}})
+            if row.get("name")
+        }
+
+    def get_summary(self) -> dict:
+        """Return aggregate CIViC gene and variant counts."""
+        genes = int(self.adapter.civic_gene_collection.estimated_document_count() or 0)
+        variants = int(self.get_collection().estimated_document_count() or 0)
+        return {
+            "available": bool(genes or variants),
+            "total": genes,
+            "distribution": [],
+            "metrics": [{"name": "Variants", "value": variants}],
+        }
