@@ -5,17 +5,19 @@ from __future__ import annotations
 import shutil
 import stat
 import zipfile
-from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict
 
 MAX_ARCHIVE_FILES = 1_000
 MAX_ARCHIVE_UNCOMPRESSED_BYTES = 20 * 1024 * 1024 * 1024
 
 
-@dataclass(frozen=True)
-class UploadedFileIndex:
+class UploadedFileIndex(BaseModel):
     """Index staged files by archive name and basename."""
+
+    model_config = ConfigDict(frozen=True)
 
     exact: dict[str, str]
     basename: dict[str, str | None]

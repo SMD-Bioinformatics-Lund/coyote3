@@ -218,7 +218,8 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         )
         assert False, "Expected HTTPException for empty payload"
     except HTTPException as exc:
-        assert "spec" in str(exc)
+        assert "sample" in str(exc)
+        assert "yaml_content" in str(exc)
 
     dual_payload = internal.InternalIngestSampleBundleRequest(
         sample={
