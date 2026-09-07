@@ -57,6 +57,11 @@ permission grants no access until it is reactivated.
 | `assay.panel:edit` | Edit ASP | Edit an assay-specific panel and create the next version of its configuration. |
 | `assay.panel:list` | List ASPs | Read assay-specific panel definitions and their configuration metadata. |
 | `assay.panel:view` | View ASP | Read assay-specific panel definitions and their configuration metadata. |
+| `catalog:draft` | Draft public assay catalog | draft governed public catalog content. |
+| `catalog:publish` | Publish public assay catalog | publish governed public catalog content. |
+| `catalog:review` | Review public assay catalog | review governed public catalog content. |
+| `catalog:submit` | Submit public assay catalog | submit governed public catalog content. |
+| `catalog:view` | View public assay catalog | view governed public catalog content. |
 
 ## Audit & Monitoring
 

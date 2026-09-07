@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import datetime
 import io
-from copy import deepcopy
 from typing import Any
 
 import yaml
@@ -255,104 +254,9 @@ def public_assay_catalog_context_read(
     isgl_key: str | None = None,
 ):
     """Return public assay-catalog context for the selected modality/category."""
-    service = get_public_catalog_service()
-    catalog = service.load_catalog()
-    order = service.modalities_order()
-    if not order:
-        raise http.api_error(404, "Catalog not found")
-
-    selected_mod = service.normalize_mod(mod) if mod else None
-    selected_cat = cat if cat else None
-    selected_isgl = isgl_key if isgl_key else None
-    mods = catalog.get("modalities") or {}
-
-    if not selected_mod:
-        right = {
-            "title": catalog.get("header") or "Assay Catalog",
-            "description": catalog.get("description")
-            or "Select a modality to explore available assays.",
-            "input_material": None,
-            "tat": None,
-            "sample_modes": [],
-            "analysis": [],
-            "report_sections": [],
-            "asp_id": None,
-            "aspc_id": None,
-            "aspc_ids": {},
-            "subpanel_id": None,
-            "asp": None,
-            "clinical_indications": [],
-            "limitations": None,
-            "public_notes": None,
-            "gene_lists": [],
-        }
-        gene_mode, genes, stats = (
-            "covered",
-            [],
-            {"total": 0, "covered_total": 0, "germline_total": 0},
-        )
-    elif selected_mod and not selected_cat:
-        right = service.hydrate_modality(selected_mod)
-        gene_mode, genes, stats = service.resolve_gene_table(right.get("asp_id"), None)
-    else:
-        if selected_isgl:
-            hydrated_cat = service.hydrate_category(
-                selected_mod, selected_cat, selected_isgl, env=DEFAULT_ENVIRONMENT
-            )
-        else:
-            hydrated_cat = service.hydrate_category(
-                selected_mod, selected_cat, env=DEFAULT_ENVIRONMENT
-            )
-        if not hydrated_cat:
-            raise http.api_error(404, "Category not found")
-        right = {
-            "title": hydrated_cat.get("title") or hydrated_cat.get("label"),
-            "catalog_id": hydrated_cat.get("catalog_id"),
-            "subheading": hydrated_cat.get("subheading"),
-            "description": hydrated_cat.get("description"),
-            "input_material": hydrated_cat.get("input_material"),
-            "tat": hydrated_cat.get("tat"),
-            "sample_modes": hydrated_cat.get("sample_modes") or [],
-            "analysis": hydrated_cat.get("analysis") or [],
-            "report_sections": hydrated_cat.get("report_sections") or [],
-            "asp_id": hydrated_cat.get("asp_id"),
-            "aspc_id": hydrated_cat.get("aspc_id"),
-            "aspc_ids": hydrated_cat.get("aspc_ids") or {},
-            "subpanel_id": hydrated_cat.get("subpanel_id"),
-            "asp": hydrated_cat.get("asp"),
-            "clinical_indications": hydrated_cat.get("clinical_indications") or [],
-            "limitations": hydrated_cat.get("limitations"),
-            "public_notes": hydrated_cat.get("public_notes"),
-            "gene_lists": hydrated_cat.get("gene_lists") or [],
-            "sample_query": hydrated_cat.get("sample_query"),
-        }
-        gene_mode, genes, stats = service.resolve_gene_table(
-            hydrated_cat.get("asp_id"), selected_isgl
-        )
-
-    genes = service.apply_drug_info(genes=deepcopy(genes), druglist_name="drug_addon")
-    genes = service.apply_knowledgebase_gene_markers(genes)
-    vm = {
-        "meta": {
-            "version": catalog.get("version"),
-            "last_updated": catalog.get("last_updated"),
-            "maintainer": catalog.get("maintainer"),
-            "header": catalog.get("header"),
-            "description": catalog.get("description"),
-            "nav_groups": catalog.get("nav_groups") or [],
-        },
-        "order": order,
-        "modalities": mods,
-        "selected_mod": selected_mod,
-        "categories": service.categories_for(selected_mod) if selected_mod else [],
-        "selected_cat": selected_cat,
-        "selected_isgl": selected_isgl,
-        "right": right,
-        "gene_mode": gene_mode,
-        "genes": genes,
-        "stats": stats,
-    }
-    return util.common.convert_to_serializable(vm)
+    return util.common.convert_to_serializable(
+        get_public_catalog_service().catalog_context(mod, cat, isgl_key)
+    )
 
 
 @router.get(

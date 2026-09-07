@@ -31,6 +31,7 @@ from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.application.resources.asp import AspService
 from api.application.resources.aspc import AspcService
 from api.application.resources.isgl import IsglService
+from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
 from api.application.resources.sample import ResourceSampleService
 from api.application.rna.expression_analysis import RnaService
 from api.application.sample.catalog import SampleCatalogService
@@ -86,6 +87,14 @@ def get_admin_aspc_service() -> AspcService:
 def get_admin_sample_service() -> ResourceSampleService:
     """Return the admin sample-management service."""
     return ResourceSampleService.from_store(get_store())
+
+
+def get_admin_public_assay_catalog_service() -> PublicAssayCatalogManagementService:
+    """Return the public assay catalog administration service."""
+    service = PublicAssayCatalogManagementService.from_store(get_store())
+    service.notification_service = get_notification_service()
+    service.public_catalog_service = get_public_catalog_service()
+    return service
 
 
 @lru_cache

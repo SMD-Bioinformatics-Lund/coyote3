@@ -97,7 +97,7 @@ class AspcCatalogDoc(_StrictDocBase):
     def _retain_visibility_only(cls, value: Any) -> dict[str, Any]:
         """Discard retired catalog presentation fields from older ASPC revisions.
 
-        Public presentation is owned by the center catalog YAML. ASPC only decides
+        Public presentation is owned by the database-backed center catalog. ASPC only decides
         whether an otherwise active configuration can be exposed publicly.
         """
         if isinstance(value, dict):

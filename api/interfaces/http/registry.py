@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from api.interfaces.http.admin.clinical_rules import router as clinical_rules_router
 from api.interfaces.http.admin.operations import router as admin_operations_router
 from api.interfaces.http.admin.permissions import router as permissions_router
+from api.interfaces.http.admin.public_assay_catalog import router as public_assay_catalog_router
 from api.interfaces.http.admin.resources.asp import router as resource_asp_router
 from api.interfaces.http.admin.resources.aspc import router as resource_aspc_router
 from api.interfaces.http.admin.resources.genelists import router as resource_genelists_router
@@ -65,6 +66,7 @@ ROUTERS = (
     RouterRegistration(notifications_router),
     RouterRegistration(roles_router),
     RouterRegistration(permissions_router),
+    RouterRegistration(public_assay_catalog_router),
     RouterRegistration(public_router),
     RouterRegistration(reports_router),
     RouterRegistration(clinical_rules_router),

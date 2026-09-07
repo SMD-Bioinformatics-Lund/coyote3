@@ -60,6 +60,9 @@ class MongoStore:
     bam_record_repository: Any
     biomarker_repository: Any
     pgx_repository: Any
+    public_assay_catalog_repository: Any
+    public_assay_catalog_version_repository: Any
+    public_assay_catalog_revision_repository: Any
     blacklist_repository: Any
     brca_repository: Any
     clinpgx_public_repository: Any
@@ -100,6 +103,9 @@ class MongoStore:
         "bam_record_repository",
         "biomarker_repository",
         "pgx_repository",
+        "public_assay_catalog_repository",
+        "public_assay_catalog_version_repository",
+        "public_assay_catalog_revision_repository",
         "blacklist_repository",
         "brca_repository",
         "clinpgx_public_repository",
@@ -151,6 +157,9 @@ class MongoStore:
         self.bam_record_repository = _LazyRepositoryProxy()
         self.biomarker_repository = _LazyRepositoryProxy()
         self.pgx_repository = _LazyRepositoryProxy()
+        self.public_assay_catalog_repository = _LazyRepositoryProxy()
+        self.public_assay_catalog_version_repository = _LazyRepositoryProxy()
+        self.public_assay_catalog_revision_repository = _LazyRepositoryProxy()
         self.blacklist_repository = _LazyRepositoryProxy()
         self.brca_repository = _LazyRepositoryProxy()
         self.clinpgx_public_repository = _LazyRepositoryProxy()

@@ -870,6 +870,60 @@ Required keys:
 Optional keys:
 - None
 
+## `public_assay_catalog`
+
+Required keys:
+- None
+
+Optional keys:
+- `id_` (Any | None)
+- `catalog_id` (Literal['default'])
+- `schema_version` (Literal[1])
+- `version` (int)
+- `header` (str)
+- `description` (str)
+- `maintainer` (str | None)
+- `layout` (PublicCatalogLayoutDoc)
+- `modalities` (dict[str, api.contracts.schemas.public_catalog.PublicCatalogModalityDoc])
+- `created_at` (datetime)
+- `created_by` (str)
+- `updated_at` (datetime)
+- `updated_by` (str)
+
+## `public_assay_catalog_revisions`
+
+Required keys:
+- `version_id` (str)
+- `revision` (int)
+- `document` (PublicAssayCatalogVersionDoc)
+
+Optional keys:
+- `id_` (Any | None)
+
+## `public_assay_catalog_versions`
+
+Required keys:
+- `revision` (int)
+- `status` (PublicCatalogStatus)
+- `catalog` (PublicAssayCatalogDoc)
+- `created_at` (datetime)
+- `created_by` (str)
+- `updated_at` (datetime)
+- `updated_by` (str)
+
+Optional keys:
+- `id_` (Any | None)
+- `catalog_key` (Literal['default'])
+- `schema_version` (Literal[1])
+- `content_version` (int | None)
+- `base_version` (int)
+- `content_editors` (list[str])
+- `review` (PublicCatalogReviewDoc)
+- `lifecycle` (list[api.contracts.schemas.public_catalog.PublicCatalogLifecycleEvent])
+- `change_summary` (str)
+- `published_at` (datetime.datetime | None)
+- `published_by` (str | None)
+
 ## `reported_variants`
 
 Required keys:

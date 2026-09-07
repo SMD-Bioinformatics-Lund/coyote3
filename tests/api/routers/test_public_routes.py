@@ -90,8 +90,7 @@ def test_public_assay_catalog_context_missing_catalog_raises_404(monkeypatch):
     Returns:
         The function result.
     """
-    monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda self: {})
-    monkeypatch.setattr(public.PublicCatalogService, "modalities_order", lambda self: [])
+    monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda self, **kwargs: {})
 
     with pytest.raises(AppError) as exc:
         public.public_assay_catalog_context_read()

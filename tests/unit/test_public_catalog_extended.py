@@ -123,6 +123,14 @@ class _VepRepository:
         return ["110"]
 
 
+class _PublicCatalogRepository:
+    def __init__(self, document=None) -> None:
+        self.document = document
+
+    def get_default(self):
+        return self.document
+
+
 class _KnowledgebaseVersionRepository:
     def list_active_releases(self):
         return [
@@ -143,7 +151,88 @@ def _service() -> PublicCatalogService:
         gene_list_repository=_IsglRepository(),
         sample_repository=_SampleRepository(),
         vep_metadata_repository=_VepRepository(),
+        public_assay_catalog_repository=_PublicCatalogRepository(),
     )
+
+
+def test_draft_context_matches_public_view_without_reading_the_published_document(monkeypatch):
+    service = _service()
+    catalog = service.load_catalog()
+    monkeypatch.setattr(service, "load_catalog", lambda **kwargs: catalog)
+    key = next(iter(catalog["modalities"]))
+    category = next(iter(catalog["modalities"][key]["categories"]))
+    public = service.catalog_context(key, category)
+    preview = service.catalog_context(key, category, preview_document=catalog)
+    assert preview == public
+    assert preview["genes"]
+    assert preview["stats"]["total"] > 0
+
+
+def test_context_uses_preview_content_for_navigation_and_heading():
+    service = _service()
+    preview = {
+        "header": "Draft introduction",
+        "description": "Draft description",
+        "layout": {"order": ["draft_section"]},
+        "modalities": {
+            "draft_section": {
+                "label": "Draft section",
+                "categories": {
+                    "solid": {
+                        "label": "Draft solid",
+                        "asp_id": "panel_a",
+                        "aspc_id": "panel_a_base_production",
+                    },
+                },
+            }
+        },
+    }
+    original = service.public_assay_catalog_repository.get_default()
+    landing = service.catalog_context(preview_document=preview)
+    detail = service.catalog_context("draft_section", "solid", preview_document=preview)
+    assert landing["right"]["title"] == "Draft introduction"
+    assert detail["right"]["title"] == "Draft solid"
+    assert detail["stats"]["total"] == 2
+    assert service.public_assay_catalog_repository.get_default() == original
+
+
+def test_empty_draft_does_not_show_generated_live_assays():
+    service = _service()
+    empty = {"header": "Empty draft", "modalities": {}, "layout": {"order": []}}
+    catalog = service.load_catalog(preview_document=empty)
+    assert catalog["modalities"] == {}
+    assert catalog["layout"]["order"] == []
+    matrix = service.assay_catalog_matrix_payload(preview_document=empty)
+    assert matrix["columns"] == []
+    assert matrix["genes"] == []
+
+
+def test_preview_matrix_uses_selected_catalog_labels_and_covered_genes():
+    service = _service()
+    draft = {
+        "layout": {"order": ["custom"]},
+        "modalities": {
+            "custom": {
+                "label": "Whole Genome Sequencing",
+                "categories": {
+                    "entry": {"label": "Draft Solid", "asp_id": "panel_a", "gene_lists": []},
+                },
+            }
+        },
+    }
+    result = service.assay_catalog_matrix_payload(preview_document=draft, per_page=1)
+    assert result["order"] == ["custom"]
+    assert result["total"] == 2
+    assert result["has_next"] is True
+    column = result["columns"][0]
+    assert column["assay"] == "Draft Solid"
+    assert column["modality_label"] == "Whole Genome Sequencing"
+    assert column["isgl_label"] == "Covered genes"
+    assert column["placeholder"] is False
+    searched = service.assay_catalog_matrix_payload(preview_document=draft, gene="TP53")
+    assert searched["genes"] == ["TP53"]
+    assert searched["matrix"]["TP53"]["custom"]["entry"]["panel_a"] is True
+    assert service.public_assay_catalog_repository.get_default() is None
 
 
 def test_catalog_service_from_store_and_observed_versions():
@@ -155,6 +244,7 @@ def test_catalog_service_from_store_and_observed_versions():
         gene_list_repository=service.gene_list_repository,
         sample_repository=service.sample_repository,
         vep_metadata_repository=service.vep_metadata_repository,
+        public_assay_catalog_repository=service.public_assay_catalog_repository,
     )
     built = PublicCatalogService.from_store(store)
     assert built.observed_software_versions() == {"pipelines": {"SomaticPanelPipeline": ["1.0"]}}
@@ -269,7 +359,7 @@ def test_overlay_parsing_helpers_cover_list_dict_and_precedence():
 
 def test_collection_catalog_builds_public_aspc_and_genelists(monkeypatch):
     service = _service()
-    monkeypatch.setattr(service, "_load_catalog_overlay", lambda: {})
+    monkeypatch.setattr(service, "_load_catalog_document", lambda: {})
 
     catalog = service.load_catalog()
 
@@ -310,7 +400,7 @@ def test_overlay_catalog_uses_center_metadata_and_active_documents(monkeypatch):
             "invalid": "skip",
         },
     }
-    monkeypatch.setattr(service, "_load_catalog_overlay", lambda: overlay)
+    monkeypatch.setattr(service, "_load_catalog_document", lambda: overlay)
 
     catalog = service.load_catalog()
 
@@ -346,7 +436,7 @@ def test_catalog_navigation_and_hydration(monkeypatch):
             }
         },
     }
-    monkeypatch.setattr(service, "load_catalog", lambda: catalog)
+    monkeypatch.setattr(service, "load_catalog", lambda **kwargs: catalog)
 
     assert service.modalities_order() == ["dna"]
     assert service.normalize_mod("DNA") == "dna"
@@ -436,7 +526,7 @@ def test_matrix_payload_supports_placeholders_search_and_paging(monkeypatch):
             "empty": {},
         },
     }
-    monkeypatch.setattr(service, "load_catalog", lambda: catalog)
+    monkeypatch.setattr(service, "load_catalog", lambda **kwargs: catalog)
 
     payload = service.assay_catalog_matrix_payload(page=1, per_page=1)
     assert payload["total"] == 3

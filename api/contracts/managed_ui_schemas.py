@@ -200,7 +200,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "data_type": "json",
             "label": "Public Catalog",
             "display_type": "catalog-structured",
-            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are maintained in the center catalog configuration.",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Public Assay Catalog.",
             "groups": [
                 {
                     "title": "Visibility",
@@ -540,7 +540,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "data_type": "json",
             "label": "Public Catalog",
             "display_type": "catalog-structured",
-            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are maintained in the center catalog configuration.",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Public Assay Catalog.",
             "groups": [
                 {
                     "title": "Visibility",

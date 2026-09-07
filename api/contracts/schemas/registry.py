@@ -26,6 +26,11 @@ from api.contracts.schemas.dna import (
     VariantsDoc,
 )
 from api.contracts.schemas.governance import PermissionsDoc, RolesDoc, UsersDoc
+from api.contracts.schemas.public_catalog import (
+    PublicAssayCatalogDoc,
+    PublicAssayCatalogVersionDoc,
+    PublicCatalogRevisionDoc,
+)
 from api.contracts.schemas.reference import (
     AnnotationDoc,
     AnnoVepDoc,
@@ -62,6 +67,9 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "reports": TypeAdapter(SampleReportRecordDoc),
     "clinical_rule_sets": TypeAdapter(ClinicalRuleSetDoc),
     "clinical_rule_revisions": TypeAdapter(ClinicalRuleRevisionDoc),
+    "public_assay_catalog": TypeAdapter(PublicAssayCatalogDoc),
+    "public_assay_catalog_versions": TypeAdapter(PublicAssayCatalogVersionDoc),
+    "public_assay_catalog_revisions": TypeAdapter(PublicCatalogRevisionDoc),
     "variants": TypeAdapter(VariantsDoc),
     "anno_vep": TypeAdapter(AnnoVepDoc),
     "cnvs": TypeAdapter(CnvsDoc),

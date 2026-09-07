@@ -380,11 +380,12 @@ class PublicCatalogGeneViewsMixin:
         page: int = 1,
         per_page: int = 100,
         gene: str | None = None,
+        preview_document: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Return a paged public assay-catalog matrix payload."""
-        catalog = self.load_catalog()
+        catalog = self.load_catalog(preview_document=preview_document)
         modalities = catalog.get("modalities") or {}
-        order = self.modalities_order() or list(modalities.keys())
+        order = (catalog.get("layout") or {}).get("order") or list(modalities)
         page = max(int(page or 1), 1)
         per_page = min(max(int(per_page or 100), 1), 500)
         gene_query = str(gene or "").strip()
@@ -405,26 +406,29 @@ class PublicCatalogGeneViewsMixin:
                 gene_lists = cat_data.get("gene_lists") or []
                 real_lists = [gl for gl in gene_lists if gl.get("key")]
                 cat_label = cat_data.get("label") or cat_data.get("title") or cat_key
-                assay_label = cat_data.get("asp_id") or cat_data.get("catalog_id") or cat_label
+                assay_label = cat_label
                 subpanel_label = cat_data.get("subpanel_id") or SUBPANEL_BASE_ID
 
                 if not real_lists:
                     cat_spans[f"{mod_key}::{cat_key}"] = 1
                     modality_total += 1
+                    genes_here = set(self._covered_genes(asp_id)[0]) if asp_id else set()
                     col = {
                         "mod": mod_key,
                         "cat": cat_key,
                         "family": str(cat_data.get("family") or cat_data.get("asp_family") or ""),
-                        "assay_group": str(cat_data.get("assay_group") or cat_label),
+                        "assay_group": str(cat_label),
                         "assay": str(assay_label),
                         "subpanel": str(subpanel_label),
                         "cat_label": str(cat_label),
-                        "isgl_key": f"__none__::{mod_key}::{cat_key}",
-                        "isgl_label": "-",
-                        "placeholder": True,
+                        "isgl_key": asp_id or f"__none__::{mod_key}::{cat_key}",
+                        "isgl_label": "Covered genes" if asp_id else "-",
+                        "placeholder": not bool(asp_id),
+                        "modality_label": mod_data.get("label") or mod_key,
                     }
                     columns.append(col)
-                    column_genes.append((col, set()))
+                    column_genes.append((col, genes_here))
+                    all_genes |= genes_here
                     continue
 
                 cat_spans[f"{mod_key}::{cat_key}"] = len(real_lists)
@@ -441,13 +445,14 @@ class PublicCatalogGeneViewsMixin:
                         "mod": mod_key,
                         "cat": cat_key,
                         "family": str(cat_data.get("family") or cat_data.get("asp_family") or ""),
-                        "assay_group": str(cat_data.get("assay_group") or cat_label),
+                        "assay_group": str(cat_label),
                         "assay": str(assay_label),
                         "subpanel": str(subpanel_label),
                         "cat_label": str(cat_label),
                         "isgl_key": isgl_key,
                         "isgl_label": isgl_label,
                         "placeholder": False,
+                        "modality_label": mod_data.get("label") or mod_key,
                     }
                     columns.append(col)
                     column_genes.append((col, genes_here))

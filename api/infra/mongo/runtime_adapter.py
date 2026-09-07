@@ -43,6 +43,11 @@ from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepositor
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
 from api.infra.mongo.repositories.pgx import PgxRepository
+from api.infra.mongo.repositories.public_assay_catalog import PublicAssayCatalogRepository
+from api.infra.mongo.repositories.public_assay_catalog_versions import (
+    PublicAssayCatalogRevisionRepository,
+    PublicAssayCatalogVersionRepository,
+)
 from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
 from api.infra.mongo.repositories.reports import ReportRepository
 from api.infra.mongo.repositories.rna_classification import RNAClassificationRepository
@@ -92,6 +97,17 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
         "clinical_rule_revision_repository",
         ClinicalRuleRevisionRepository,
         "clinical_rule_revisions",
+    ),
+    ("public_assay_catalog_repository", PublicAssayCatalogRepository, "public_assay_catalog"),
+    (
+        "public_assay_catalog_revision_repository",
+        PublicAssayCatalogRevisionRepository,
+        "public_assay_catalog_revisions",
+    ),
+    (
+        "public_assay_catalog_version_repository",
+        PublicAssayCatalogVersionRepository,
+        "public_assay_catalog_versions",
     ),
     ("oncokb_public_cache_repository", OncoKbPublicCacheRepository, "oncokb_public_cache"),
     ("clinpgx_public_repository", ClinPgxPublicRepository, "clinpgx_public"),
