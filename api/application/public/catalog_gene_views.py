@@ -5,11 +5,42 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 
 from api.config.constants import SUBPANEL_BASE_ID
+from api.contracts.schemas.public_catalog import clean_catalog_html
 from api.infra.observability.operations import measured_operation
 
 
 class PublicCatalogGeneViewsMixin:
     """Compose gene detail, list, and matrix projections for a public catalog service."""
+
+    def _public_genelist(self, key: str) -> dict[str, Any]:
+        """Resolve only explicitly public, active, non-case-specific gene lists."""
+        document = self.gene_list_repository.get_isgl(key, is_active=True, is_public=True)
+        if (
+            not document
+            or document.get("is_public") is not True
+            or document.get("is_active") is not True
+            or document.get("adhoc")
+        ):
+            return {}
+        return {
+            key: clean_catalog_html(value)
+            if key == "description" and isinstance(value, str)
+            else value
+            for key, value in document.items()
+            if key
+            in {
+                "isgl_id",
+                "name",
+                "display_name",
+                "description",
+                "genes",
+                "asp_ids",
+                "diagnosis",
+                "list_type",
+                "is_public",
+                "is_active",
+            }
+        }
 
     def _covered_genes(self, asp_id: Optional[str]) -> Tuple[List[str], List[str]]:
         """Return covered and germline genes for an assay panel.
@@ -57,7 +88,7 @@ class PublicCatalogGeneViewsMixin:
             )
 
         if isgl_key:
-            isgl = self.gene_list_repository.get_isgl(isgl_key) or {}
+            isgl = self._public_genelist(isgl_key)
             isgl_genes = list(isgl.get("genes", []) or [])
             if covered:
                 show = sorted(set(isgl_genes).intersection(set(covered)))
@@ -287,7 +318,7 @@ class PublicCatalogGeneViewsMixin:
         self, genelist_id: str, assay: str | None = None
     ) -> dict[str, Any] | None:
         """Return public view context for a genelist."""
-        genelist = self.gene_list_repository.get_isgl(genelist_id, is_active=True)
+        genelist = self._public_genelist(genelist_id)
         if not genelist:
             return None
 
@@ -323,6 +354,7 @@ class PublicCatalogGeneViewsMixin:
             self.hgnc_repository.get_metadata_by_symbols(list(gene_symbols or [])) or []
         )
         asp = self.assay_panel_repository.get_asp(asp_id) or {}
+        asp = {**asp, "description": clean_catalog_html(str(asp.get("description") or ""))}
         catalog = self._catalog_category_for_asp(asp_id)
         return {
             "asp_id": asp_id,
@@ -362,15 +394,13 @@ class PublicCatalogGeneViewsMixin:
 
     def assay_catalog_gene_symbols_payload(self, isgl_key: str) -> dict[str, Any]:
         """Return gene symbols for a public assay-catalog genelist."""
-        isgl = self.gene_list_repository.get_isgl(isgl_key) or {}
+        isgl = self._public_genelist(isgl_key)
         gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
         return {"gene_symbols": sorted(gene_symbols)}
 
     def isgl_genes_for_matrix(self, isgl_key: str) -> set[str]:
         """Return active public genelist genes for the assay matrix."""
-        isgl_doc = (
-            self.gene_list_repository.get_isgl(isgl_key, is_active=True, is_public=True) or {}
-        )
+        isgl_doc = self._public_genelist(isgl_key)
         return set(isgl_doc.get("genes") or [])
 
     @measured_operation("query.assay_catalog_matrix")

@@ -37,6 +37,7 @@ class MongoApiSessionRepository:
                 "_id": token_hash(token),
                 "user_id": user.username,
                 "provider": provider,
+                "password_updated_on": getattr(user, "password_updated_on", None),
                 "csrf_token": csrf_token,
                 "created_at": now,
                 "last_seen_at": now,
@@ -53,6 +54,11 @@ class MongoApiSessionRepository:
         user = self.user_loader(str(document.get("user_id") or ""))
         if user is None:
             return None
+        if _credential_timestamp(document.get("password_updated_on")) != _credential_timestamp(
+            getattr(user, "password_updated_on", None)
+        ):
+            self.delete(token)
+            return None
         self.collection.update_one(
             {"_id": document["_id"]},
             {"$set": {"last_seen_at": now}},
@@ -66,3 +72,12 @@ class MongoApiSessionRepository:
 
     def delete(self, token: str) -> None:
         self.collection.delete_one({"_id": token_hash(token)})
+
+
+def _credential_timestamp(value: datetime | None) -> datetime | None:
+    """Normalize MongoDB's millisecond precision and timezone representation."""
+    if value is None:
+        return None
+    return value.replace(
+        tzinfo=value.tzinfo or timezone.utc, microsecond=value.microsecond // 1000 * 1000
+    )

@@ -117,7 +117,10 @@ class InternalIngestService:
 
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
-        return collection_writes.list_supported_collections()
+        return sorted(
+            set(collection_writes.list_supported_collections())
+            & self.collection_gateway.collection_names()
+        )
 
     def parse_yaml_payload(self, yaml_content: str) -> dict[str, Any]:
         """Parse and validate a YAML ingest payload string.
@@ -459,6 +462,10 @@ class InternalIngestService:
         current_doc = self._sample_collection().find_one({"name": payload["name"]})
         if not current_doc:
             raise ValueError("Sample not found for update")
+
+        for key in ("asp_id", "environment"):
+            if payload.get(key) != current_doc.get(key):
+                raise ValueError(f"Sample ingest cannot change {key}; use sample administration.")
 
         sample_id = str(current_doc["_id"])
         parsed_payload = self._prepare_update_payload(

@@ -360,15 +360,16 @@ roles after initialization.
   - authenticated password change
   - reset/set-password one-time token flows
   - admin invite flow for new local users
-  - when SMTP is unavailable, invite/reset still issue one-time setup links and API/UI return warnings so admins can share links manually
+  - authorized administrators can obtain invitation links for manual delivery when SMTP is unavailable
+  - public reset requests return a neutral acknowledgement, never a reset URL
 - LDAP users authenticate against LDAP and should normally change passwords in the identity provider.
 
 ### Auth and password lifecycle flow
 
 ```text
-login(identifier, password)
-  -> identifier contains "@": load by email and require auth_type contains ldap
-  -> otherwise: load by username and require auth_type contains local
+login(identifier, password, provider)
+  -> provider=ldap: load by email and require auth_type contains ldap
+  -> provider=local: load by username and require auth_type contains local
      -> local: verify local password hash
      -> ldap:  verify via LDAP bind/auth using email
   -> on success: issue session (includes auth_type, must_change_password)
@@ -381,7 +382,9 @@ admin creates local user
 
 forgot password (local user)
   -> issue one-time reset token
-  -> same SMTP/fallback behavior as invite
+  -> attempt SMTP delivery
+  -> return the same neutral acknowledgement regardless of account availability
+  -> never disclose the token or setup URL to an anonymous caller
 ```
 
 ## API session transport

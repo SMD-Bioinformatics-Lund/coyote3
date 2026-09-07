@@ -61,7 +61,13 @@ class IngestCollectionGateway:
 
     def collection(self, name: str) -> Any:
         """Return a named ingest collection."""
+        if name not in self._collections:
+            raise ValueError(f"Unsupported ingest collection: {name}")
         return self._collections[name]
+
+    def collection_names(self) -> set[str]:
+        """Return the collections actually configured for this ingest gateway."""
+        return set(self._collections)
 
     def sample_collection(self) -> Any:
         """Return the samples collection."""

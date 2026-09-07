@@ -1,6 +1,18 @@
 # Deployment Guide
 
-**Procedure verified:** 6 August 2026.
+## Trusted proxy configuration
+
+Set `FORWARDED_ALLOW_IPS` to the ingress proxy's IP or a dedicated trusted proxy
+network CIDR. The loopback-only default does not trust arbitrary container clients.
+Never use `*` on a shared network. The API uses the ASGI-resolved client address for
+audit and rate limiting; it does not parse untrusted forwarded headers itself.
+
+The supplied Nginx gateway replaces `X-Forwarded-For` with its peer address. If an
+external center proxy is in front, this is the center proxy's address unless the
+center configures trusted real-IP handling at that edge. Set
+`COYOTE3_NGINX_PUBLIC_SCHEME=https` only when the public entry point enforces TLS;
+the gateway does not trust an incoming `X-Forwarded-Proto` value. Restrict direct
+API and gateway exposure according to this trust boundary.
 
 This guide is the deployment command and runtime reference for an installed
 Coyote3 environment. It covers normal release deployment and maintenance.

@@ -59,6 +59,10 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   const data = text ? safeJson(text) : {}
 
   if (!response.ok) {
+    if (response.status === 403 && (data?.category || data?.detail?.category) === "password_change_required") {
+      if (window.location.pathname !== appPath("/profile")) window.location.href = appPath("/profile")
+      throw new ApiClientError("Change your temporary password before continuing.", 403, endpoint)
+    }
     const errorMessage = userFacingApiError(response.status, data, response.statusText)
     notify({
       tone: response.status >= 500 ? "error" : "warning",

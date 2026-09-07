@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { clearSessionState } from "@/lib/session-state"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +14,7 @@ import { runtimeConfig } from "@/lib/runtime-config"
 import { setCsrfToken } from "@/lib/api"
 
 export function Login() {
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [providers, setProviders] = useState<string[]>([])
   const [provider, setProvider] = useState("")
@@ -66,6 +69,7 @@ export function Login() {
       }
 
       const data = await res.json().catch(() => ({})) as { csrf_token?: string }
+      await clearSessionState(queryClient)
       setCsrfToken(data.csrf_token)
       navigate("/")
     } catch (err: any) {

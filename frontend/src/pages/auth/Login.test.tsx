@@ -3,6 +3,13 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { renderWithRouter } from "@/test/render"
 import { Login } from "./Login"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+
+function renderLogin(initialEntry = "/login") {
+  return renderWithRouter(
+    <QueryClientProvider client={new QueryClient()}><Login /></QueryClientProvider>, initialEntry,
+  )
+}
 
 const navigate = vi.hoisted(() => vi.fn())
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -26,7 +33,7 @@ describe("Login page", () => {
       .mockResolvedValueOnce(response({ status: "ok", csrf_token: "csrf-token" }))
     vi.stubGlobal("fetch", fetchMock)
     const user = userEvent.setup()
-    renderWithRouter(<Login />, "/login")
+    renderLogin()
 
     expect(await screen.findByRole("button", { name: "Local Account" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "LDAP Login" }))
@@ -48,7 +55,7 @@ describe("Login page", () => {
       .mockResolvedValueOnce(response({ providers: ["local"] }))
       .mockResolvedValueOnce(response({ detail: { error: "Invalid credentials" } }, false)))
     const user = userEvent.setup()
-    renderWithRouter(<Login />)
+    renderLogin()
 
     await screen.findByLabelText("Username")
     const password = screen.getByLabelText("Password")
@@ -63,7 +70,7 @@ describe("Login page", () => {
 
   it("reports unavailable providers and network failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({}, false)))
-    const unavailable = renderWithRouter(<Login />)
+    const unavailable = renderLogin()
     expect(await screen.findByText("Login providers are unavailable")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Sign in" })).toBeDisabled()
     unavailable.unmount()
@@ -72,7 +79,7 @@ describe("Login page", () => {
       .mockResolvedValueOnce(response({ providers: ["local"] }))
       .mockRejectedValueOnce(new Error("Network disconnected")))
     const user = userEvent.setup()
-    renderWithRouter(<Login />)
+    renderLogin()
     await user.type(await screen.findByLabelText("Username"), "tester")
     await user.type(screen.getByLabelText("Password"), "secret")
     await user.click(screen.getByRole("button", { name: "Sign in" }))

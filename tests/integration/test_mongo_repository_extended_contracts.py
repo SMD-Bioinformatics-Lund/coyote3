@@ -812,6 +812,9 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
     adapter.users_collection.update_one({"username": "curator"}, {"$set": {"is_active": True}})
 
     expires = datetime.now(timezone.utc) + timedelta(minutes=5)
+    adapter.users_collection.update_one(
+        {"username": "curator"}, {"$set": {"auth_type": ["ldap", "local"]}}
+    )
     repository.set_password_action_token(
         user_id="curator",
         token_hash="token",
@@ -820,20 +823,20 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
         issued_by="admin",
     )
     assert (
-        repository.validate_and_clear_password_action_token(
-            user_id="curator", token_hash="wrong", purpose="reset"
+        repository.consume_password_action_token(
+            user_id="curator", token_hash="wrong", purpose="reset", password_hash="new"
         )
         is False
     )
     assert (
-        repository.validate_and_clear_password_action_token(
-            user_id="curator", token_hash="token", purpose="reset"
+        repository.consume_password_action_token(
+            user_id="curator", token_hash="token", purpose="reset", password_hash="new"
         )
         is True
     )
     assert (
-        repository.validate_and_clear_password_action_token(
-            user_id="missing", token_hash="token", purpose="reset"
+        repository.consume_password_action_token(
+            user_id="missing", token_hash="token", purpose="reset", password_hash="new"
         )
         is False
     )
@@ -844,8 +847,8 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
     )
     assert (
-        repository.validate_and_clear_password_action_token(
-            user_id="curator", token_hash="expired", purpose="reset"
+        repository.consume_password_action_token(
+            user_id="curator", token_hash="expired", purpose="reset", password_hash="new"
         )
         is False
     )

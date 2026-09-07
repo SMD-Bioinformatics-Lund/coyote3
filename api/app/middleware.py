@@ -323,8 +323,7 @@ def build_security_headers_middleware():
             else _API_CONTENT_SECURITY_POLICY
         )
         response.headers.setdefault("Content-Security-Policy", content_security_policy)
-        forwarded = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip()
-        if forwarded == "https" or request.url.scheme == "https":
+        if request.url.scheme == "https":
             response.headers.setdefault(
                 "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
             )

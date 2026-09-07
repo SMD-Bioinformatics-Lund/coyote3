@@ -1468,7 +1468,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     monkeypatch.setattr(ingest, "build_sample_meta_dict", lambda _: {"name": "S1"})
     monkeypatch.setattr(service, "_update_meta_fields", lambda **_: None)
 
-    out = service._ingest_update({"name": "S1"})
+    out = service._ingest_update({"name": "S1", "asp_id": "assay_1", "environment": "production"})
     assert out["status"] == "ok"
 
     with pytest.raises(ValueError):

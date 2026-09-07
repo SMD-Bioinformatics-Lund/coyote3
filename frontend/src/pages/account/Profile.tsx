@@ -193,6 +193,9 @@ export function Profile() {
               <h2 className="font-semibold">Change Password</h2>
             </div>
             <div className="space-y-3">
+              {user.must_change_password && (
+                <p role="status" className="text-sm font-semibold text-warn">Change your temporary password before accessing clinical data.</p>
+              )}
               {!canChangePassword && (
                 <div className="rounded-lg border border-warn/35 bg-warn/10 p-3 text-xs font-semibold text-warn">
                   This account is not configured for local password changes. LDAP-only accounts are managed by the center identity provider.

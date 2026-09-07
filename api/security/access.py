@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Generator
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from fastapi import HTTPException, Request
 
@@ -81,6 +82,7 @@ class ApiUser:
     asp_map: dict
     auth_type: list[str]
     must_change_password: bool = False
+    password_updated_on: datetime | None = None
     firstname: str = ""
     lastname: str = ""
     job_title: str = ""
@@ -292,6 +294,7 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
             getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
         ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
+        password_updated_on=user_doc.get("password_updated_on"),
         ui_settings={
             "analysis_layout": "classic",
             "sample_list_layout": "classic",
@@ -423,7 +426,31 @@ def _enforce_access(
 
 def require_authenticated(request: Request) -> ApiUser:
     """Require a valid authenticated session without applying route-level RBAC."""
-    return _decode_session_user(request)
+    user = _decode_session_user(request)
+    _enforce_password_change(user, request)
+    return user
+
+
+def _enforce_password_change(user: ApiUser, request: Request) -> None:
+    """Limit temporary-password sessions to identity, password change, and logout."""
+    if not user.must_change_password:
+        return
+    path = request.scope.get("path", "")
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    if root_path and path.startswith(root_path + "/"):
+        path = path[len(root_path) :]
+    allowed = {
+        ("GET", "/api/v1/auth/whoami"),
+        ("GET", "/api/v1/auth/session"),
+        ("POST", "/api/v1/auth/password/change"),
+        ("DELETE", "/api/v1/auth/sessions/current"),
+    }
+    if (request.method, path.rstrip("/")) not in allowed:
+        raise _api_error(
+            403,
+            "Change your temporary password before continuing.",
+            category="password_change_required",
+        )
 
 
 def resolve_request_user(request: Request) -> ApiUser | None:
@@ -487,6 +514,7 @@ def require_access(permission: str | None = None):
         user: ApiUser | None = None
         try:
             user = _decode_session_user(request)
+            _enforce_password_change(user, request)
             _enforce_access(user, permission=permission)
         except HTTPException as exc:
             _audit_access_event(

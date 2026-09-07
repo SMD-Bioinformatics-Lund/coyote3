@@ -23,6 +23,7 @@ x-app-environment: &app-environment
   LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
   TZ: ${LOCAL_TIME_ZONE:-UTC}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
   LOG_FILE_ENABLED: ${LOG_FILE_ENABLED:-1}
   LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
   LOG_GZIP_AFTER_DAYS: ${LOG_GZIP_AFTER_DAYS:-1}
@@ -189,6 +190,7 @@ services:
       COYOTE3_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
       COYOTE3_NGINX_API_UPSTREAM: http://api:8001
       COYOTE3_NGINX_DOCS_UPSTREAM: http://docs:8080
+      COYOTE3_NGINX_PUBLIC_SCHEME: ${COYOTE3_NGINX_PUBLIC_SCHEME:-http}
     volumes:
       - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
     depends_on:

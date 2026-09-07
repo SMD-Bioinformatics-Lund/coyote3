@@ -132,12 +132,13 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
             "inserted_count": 1,
         }
     )
-    result = internal_router.ingest_collection_document_internal(
-        payload=payload,
-        user=user,
-        ingest_service=ingest_service,
-    )
-    assert result["status"] == "ok"
+    with pytest.raises(HTTPException) as identity_error:
+        internal_router.ingest_collection_document_internal(
+            payload=payload,
+            user=user,
+            ingest_service=ingest_service,
+        )
+    assert identity_error.value.status_code == 403
 
 
 def test_internal_ingest_collection_status_reports_empty_and_rejects_unknown_collection():
@@ -252,9 +253,10 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
         document={"username": "new.user", "email": "new.user@example.org"},
         ignore_duplicate=True,
     )
+    operator = _user(role="superuser", level=100, permissions=["user:create"])
     response = internal_router.enqueue_ingest_collection_document_internal(
         payload=payload,
-        user=_user(role="admin", level=100, permissions=["user:create"]),
+        user=operator,
     )
 
     assert response == {
@@ -290,14 +292,20 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch):
     response = internal_router.enqueue_ingest_sample_bundle_internal(
         payload=payload,
         user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
-        ingest_service=SimpleNamespace(parse_yaml_payload=lambda raw: {"name": "SAMPLE_1"}),
+        ingest_service=SimpleNamespace(
+            parse_yaml_payload=lambda raw: {
+                "name": "SAMPLE_1",
+                "asp_id": "assay_1",
+                "environment": "production",
+            }
+        ),
     )
 
     assert response["status"] == "accepted"
     assert response["task_id"] == "task-sample"
     assert captured["queue"] == "ingest"
     assert captured["kwargs"] == {
-        "source_payload": {"name": "SAMPLE_1"},
+        "source_payload": {"name": "SAMPLE_1", "asp_id": "assay_1", "environment": "production"},
         "update_existing": True,
         "increment": True,
     }
@@ -324,6 +332,7 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tm
         parse_yaml_payload=lambda _raw: {
             "name": "SAMPLE_1",
             "asp_id": "assay_1",
+            "environment": "production",
             "omics_layer": "dna",
             "vcf_files": "case.vcf",
         },

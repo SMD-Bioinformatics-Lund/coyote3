@@ -7,6 +7,11 @@ clinical filters, reporting rules, or existing samples.
 
 ## Create the dependent records first
 
+Anonymous gene-list endpoints, catalog gene tables, exports, and the matrix expose
+only explicitly public, active, non-adhoc gene lists. Gene-list descriptions are
+sanitized and the public response excludes private administrative fields. ASP
+descriptions use the same restricted public HTML formatting policy.
+
 1. Create and activate the ASP in **Assay Panels**.
 2. Create the relevant public ISGLs, linked to their assays and subpanels.
 3. Create and activate the production ASPCs for those assays and subpanels.

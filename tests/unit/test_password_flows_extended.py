@@ -20,7 +20,9 @@ class _UserRepository:
     def set_password_action_token(self, **kwargs):
         self.issued = kwargs
 
-    def validate_and_clear_password_action_token(self, **_kwargs):
+    def consume_password_action_token(self, **kwargs):
+        if self.token_valid:
+            self.password_update = kwargs
         return self.token_valid
 
     def set_local_password(self, **kwargs):

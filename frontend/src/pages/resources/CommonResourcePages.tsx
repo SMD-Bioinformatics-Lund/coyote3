@@ -382,7 +382,7 @@ export function PublicGenelistPage() {
   const columns = useMemo(() => columnsFor(rows, ["hgnc_symbol", "symbol", "gene"]), [rows])
 
   return (
-    <PageShell eyebrow="Public" title={data?.genelist?.name || data?.title || genelistId} description="Public gene list view migrated from the historical catalog.">
+    <PageShell eyebrow="Public" title={data?.genelist?.name || data?.title || genelistId}>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <section className="surface-panel p-3">
           <DataTable columns={columns} data={rows} filename={`${genelistId}_genes.csv`} />
@@ -586,7 +586,6 @@ export function CoverageBlacklistPage() {
     <PageShell
       eyebrow="Coverage"
       title={`Blacklisted Regions: ${group}`}
-      description="Coverage blacklist overview and removal workflow migrated from the historical coverage page."
       actions={<Link to="/samples" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" /> Samples</Link>}
     >
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (

@@ -146,6 +146,15 @@ def _enforce_collection_permission(*, user: ApiUser, collection: str, action: st
     """Enforce collection-level action permissions for non-superuser operators."""
     if _is_superuser(user):
         return
+    if (
+        collection in {"users", "roles", "permissions"}
+        or collection in _SAMPLE_LINKED_COLLECTIONS
+        or collection == "annotation"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Direct identity or clinical collection ingest requires a superuser; use the dedicated workflow.",
+        )
     if action == "create":
         permission = _COLLECTION_CREATE_PERMISSION_MAP.get(collection)
     elif action == "update":
@@ -158,11 +167,21 @@ def _enforce_collection_permission(*, user: ApiUser, collection: str, action: st
         _enforce_access(user, permission=permission)
 
 
-def _enforce_sample_ingest_permission(user: ApiUser) -> None:
+def _enforce_sample_ingest_permission(user: ApiUser, payload: dict | None = None) -> None:
     """Require sample:edit:own for non-superuser operators."""
     if _is_superuser(user):
         return
-    _enforce_access(user, permission="sample:edit:own")
+    if payload is not None and (not payload.get("asp_id") or not payload.get("environment")):
+        raise HTTPException(400, "Scoped sample ingest requires asp_id and environment.")
+    context = (
+        None
+        if payload is None
+        else {
+            "asp_id": payload.get("asp_id"),
+            "environment": payload.get("environment"),
+        }
+    )
+    _enforce_access(user, permission="sample:edit:own", context=context)
 
 
 @router.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
@@ -246,8 +265,7 @@ def ingest_sample_bundle_internal(
             if payload.yaml_content
             else payload.sample.model_dump(exclude_none=True)
         )
-        if payload.update_existing:
-            _enforce_sample_ingest_permission(user)
+        _enforce_sample_ingest_permission(user, source_payload)
         result = ingest_service.ingest_sample_bundle(
             source_payload,
             allow_update=payload.update_existing,
@@ -408,8 +426,7 @@ def ingest_sample_bundle_upload_internal(
             staging_dir=staging_dir,
             ingest_service=ingest_service,
         )
-        if update_existing:
-            _enforce_sample_ingest_permission(user)
+        _enforce_sample_ingest_permission(user, source_payload)
         result = ingest_service.ingest_sample_bundle(
             source_payload,
             allow_update=update_existing,
@@ -468,6 +485,7 @@ def enqueue_ingest_sample_bundle_internal(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     queue = DefaultConfig.CELERY_INGEST_QUEUE
+    _enforce_sample_ingest_permission(user, source_payload)
     task = ingest_sample_bundle_task.apply_async(
         kwargs={
             "source_payload": source_payload,
@@ -516,6 +534,7 @@ def enqueue_ingest_sample_bundle_upload_internal(
         )
 
         queue = DefaultConfig.CELERY_INGEST_QUEUE
+        _enforce_sample_ingest_permission(user, source_payload)
         task = ingest_sample_bundle_task.apply_async(
             kwargs={
                 "source_payload": source_payload,

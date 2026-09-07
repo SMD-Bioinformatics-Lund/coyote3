@@ -106,10 +106,7 @@ export function DataTable<TData, TValue>({
       return [];
     }
   });
-  const [globalFilter, setGlobalFilter] = useState(() => {
-    if (typeof window === "undefined" || typeof onSearchChange === "function") return "";
-    return window.sessionStorage.getItem(`${tableStateKey}.search`) || "";
-  });
+  const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
   const [clientPagination, setClientPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -260,14 +257,12 @@ export function DataTable<TData, TValue>({
 
   useEffect(() => {
     if (typeof window === "undefined" || sortingState) return;
-    window.sessionStorage.setItem(`${tableStateKey}.sorting`, JSON.stringify(internalSorting));
+    try {
+      window.sessionStorage.setItem(`${tableStateKey}.sorting`, JSON.stringify(internalSorting));
+    } catch {
+      // Sorting remains usable when browser storage is disabled.
+    }
   }, [internalSorting, sortingState, tableStateKey]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || controlledSearch) return;
-    if (globalFilter) window.sessionStorage.setItem(`${tableStateKey}.search`, globalFilter);
-    else window.sessionStorage.removeItem(`${tableStateKey}.search`);
-  }, [controlledSearch, globalFilter, tableStateKey]);
 
   return (
     <div

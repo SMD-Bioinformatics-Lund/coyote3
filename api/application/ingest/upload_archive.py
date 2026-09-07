@@ -46,18 +46,32 @@ def extract_uploaded_archive(*, archive_path: Path, destination: Path) -> Upload
             raise ValueError(
                 f"data_archive contains too many files ({len(members)}; maximum {MAX_ARCHIVE_FILES})"
             )
+        paths: dict[Path, zipfile.ZipInfo] = {}
         for member in members:
             relative_path = _validated_member_path(member)
+            if relative_path in paths:
+                raise ValueError(f"data_archive contains a duplicate path: {member.filename!r}")
+            paths[relative_path] = member
             total_bytes += member.file_size
             if total_bytes > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
                 raise ValueError(
                     "data_archive exceeds the maximum uncompressed size "
                     f"({MAX_ARCHIVE_UNCOMPRESSED_BYTES} bytes)"
                 )
+        for relative_path in paths:
+            if any(parent in paths for parent in relative_path.parents):
+                raise ValueError("data_archive contains conflicting file and directory paths")
+            target = destination / relative_path
+            if not target.resolve().is_relative_to(destination.resolve()):
+                raise ValueError("data_archive extraction target escapes destination")
+            if target.exists():
+                raise ValueError("data_archive extraction target already exists")
+
+        for relative_path, member in paths.items():
             target = destination / relative_path
             target.parent.mkdir(parents=True, exist_ok=True)
             digest = sha256()
-            with archive.open(member) as source, target.open("wb") as output:
+            with archive.open(member) as source, target.open("xb") as output:
                 shutil.copyfileobj(_DigestingReader(source, digest), output)
 
             resolved = str(target)

@@ -30,7 +30,6 @@ export type NotificationInput = {
   resource?: NotificationResource
 }
 
-const STORAGE_KEY_PREFIX = "coyote3.notifications"
 const listeners = new Set<(notification: AppNotification) => void>()
 const recentNotificationKeys = new Map<string, number>()
 const DEDUPE_WINDOW_MS = 10_000
@@ -50,28 +49,6 @@ export function createNotification(input: NotificationInput): AppNotification {
     createdAt: new Date().toISOString(),
     read: false,
   }
-}
-
-function storageKey(username: string) {
-  return `${STORAGE_KEY_PREFIX}:${username.trim().toLowerCase()}`
-}
-
-export function loadNotifications(username: string): AppNotification[] {
-  if (!username.trim()) return []
-  try {
-    const raw = window.localStorage.getItem(storageKey(username))
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-export function saveNotifications(username: string, notifications: AppNotification[]) {
-  if (!username.trim()) return
-  const localNotifications = notifications.filter((item) => !item.persisted).slice(0, 200)
-  window.localStorage.setItem(storageKey(username), JSON.stringify(localNotifications))
 }
 
 export function notify(input: NotificationInput) {

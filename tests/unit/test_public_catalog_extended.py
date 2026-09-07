@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from api.application.public.catalog import PublicCatalogService
 
 
@@ -78,6 +80,9 @@ class _IsglRepository:
         self.docs = {
             "solid_list": {
                 "isgl_id": "solid_list",
+                "is_public": True,
+                "is_active": True,
+                "adhoc": False,
                 "name": "Solid list",
                 "description": "Selected solid genes",
                 "genes": ["TP53", "EGFR"],
@@ -454,6 +459,29 @@ def test_catalog_navigation_and_hydration(monkeypatch):
     assert hydrated["report_sections"] == ["SNV", "CNV"]
     assert service.hydrate_category("dna", "missing") is None
     assert service.hydrate_modality("dna")["title"] == "DNA assays"
+
+
+@pytest.mark.parametrize(
+    "visibility", [{"is_public": False}, {"is_active": False}, {"adhoc": True}]
+)
+def test_all_public_gene_views_exclude_private_inactive_and_adhoc_lists(visibility):
+    service = _service()
+    service.gene_list_repository.docs["solid_list"].update(visibility)
+    assert service.genelist_view_context("solid_list") is None
+    assert service.assay_catalog_gene_symbols_payload("solid_list") == {"gene_symbols": []}
+    assert service.isgl_genes_for_matrix("solid_list") == set()
+    assert service.resolve_gene_table("panel_a", "solid_list")[1] == []
+
+
+def test_public_gene_list_projects_only_public_fields_and_sanitizes_html():
+    service = _service()
+    service.gene_list_repository.docs["solid_list"].update(
+        private_context="synthetic private context",
+        description='<p onclick="alert(1)">Public description</p><img src=x onerror="alert(2)">',
+    )
+    document = service.genelist_view_context("solid_list")["genelist"]
+    assert "private_context" not in document
+    assert document["description"] == "<p>Public description</p>"
 
 
 def test_gene_table_resolution_and_public_gene_payloads(monkeypatch):

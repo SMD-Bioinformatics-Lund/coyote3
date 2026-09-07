@@ -1,5 +1,23 @@
 # Ingestion API
 
+## Authorization and write boundaries
+
+All ingest routes require `internal.ingest:manage`. Sample-bundle operators also
+need `sample:edit:own` for the manifest's assay and environment. Non-superuser
+requests must supply both `asp_id` and `environment`. Ingest updates cannot
+change a sample's assay or environment; use sample administration for scope changes.
+
+Direct identity and clinical collection imports are superuser-only because raw
+inserts and replacements bypass the dedicated account and clinical workflows.
+This restriction applies to synchronous, uploaded, bulk, and queued operations.
+Use account administration to manage users, roles, and permission policies.
+The supported-collections endpoint lists only collections backed by the configured
+ingest gateway and a validation contract. Governed rule/catalog workflows are not
+available through generic collection ingestion.
+
+ZIP bundles are validated before extraction. Duplicate normalized paths, file/directory
+collisions, traversal paths, symlinks, and existing extraction targets are rejected.
+
 ## Purpose
 
 Use the API to load configuration data and sample bundles in a validated, repeatable way.
