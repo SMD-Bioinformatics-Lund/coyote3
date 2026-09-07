@@ -22,9 +22,11 @@ const markerStyles = {
 export function KnowledgebaseGeneTags({
   markers,
   compact = false,
+  tiny = false,
 }: {
   markers?: KnowledgebaseGeneMarkers | null
   compact?: boolean
+  tiny?: boolean
 }) {
   const tags = [
     ["oncokb", "OncoKB", "OncoKB public cancer gene"],
@@ -35,13 +37,13 @@ export function KnowledgebaseGeneTags({
   const visible = tags.filter(([key]) => markers?.[key])
   if (!visible.length) return null
   return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-1" aria-label="Knowledgebase sources">
+    <span className={cn("inline-flex min-w-0 flex-wrap items-center", tiny ? "gap-0.5" : "gap-1")} aria-label="Knowledgebase sources">
       {visible.map(([key, label, title]) => (
         <span
           key={key}
           className={cn(
             "inline-flex items-center rounded-full border font-semibold leading-none",
-            compact ? "h-4 px-1 type-label" : "h-5 px-1.5 type-label",
+            tiny ? "catalog-annotation-tag" : compact ? "h-4 px-1 type-label" : "h-5 px-1.5 type-label",
             markerStyles[key],
           )}
           title={title}

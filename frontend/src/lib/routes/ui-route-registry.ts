@@ -24,6 +24,17 @@ export function routeErrorState(route: UiRouteAudit): string {
 
 export const uiRouteRegistry: UiRouteAudit[] = [
   {
+    path: "/admin/assay-catalog",
+    page: "PublicAssayCatalogPage",
+    area: "admin",
+    api: ["GET /admin/assay-catalog", "GET /admin/assay-catalog/versions/{oid}",
+      "GET /admin/assay-catalog/versions/{oid}/revisions", "POST /admin/assay-catalog/drafts",
+      "POST /admin/assay-catalog/imports", "POST /admin/assay-catalog/preview", "POST /admin/assay-catalog/preview/matrix", "PATCH /admin/assay-catalog/drafts/{oid}",
+      "POST /admin/assay-catalog/drafts/{oid}/submit", "POST /admin/assay-catalog/drafts/{oid}/review",
+      "POST /admin/assay-catalog/drafts/{oid}/publish"],
+    dataUsed: ["center-owned public catalog metadata", "modality JSON exports"],
+  },
+  {
     path: "/login",
     page: "Login",
     area: "account",

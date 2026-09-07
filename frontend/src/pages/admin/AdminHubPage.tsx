@@ -5,6 +5,7 @@ import {
   BookOpenCheck,
   Database,
   Dna,
+  FilePenLine,
   FileUp,
   KeyRound,
   ListTree,
@@ -37,6 +38,13 @@ const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
 }
 
 const utilityModules = [
+  {
+    title: "Public Assay Catalog",
+    description: "Manage public assay narrative, modality structure, and portable JSON imports and exports.",
+    href: "/admin/assay-catalog",
+    icon: FilePenLine,
+    permission: "catalog:view",
+  },
   {
     title: "Clinical Report Rules",
     description: "Author, review, validate, and publish governed clinical report wording.",

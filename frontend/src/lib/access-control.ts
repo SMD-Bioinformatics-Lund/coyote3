@@ -32,6 +32,7 @@ export const ADMIN_UTILITY_PERMISSIONS = {
 } as const
 
 export const ADMIN_ENTRY_PERMISSIONS = [
+  "catalog:view",
   "user:list",
   "user:view",
   "role:list",
