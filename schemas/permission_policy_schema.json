@@ -1,0 +1,111 @@
+{
+  "_id": "Permission-Policy-Schema",
+  "schema_name": "Permission-Policy-Schema",
+  "schema_type": "acl_config",
+  "schema_category": "RBAC",
+  "description": "Schema for managing assignable permission policies in the system.",
+  "version": 1,
+  "is_active": true,
+  "sections": {
+    "meta": [
+      "permission_name",
+      "label",
+      "category",
+      "description",
+      "version",
+      "is_active",
+      "tags"
+    ],
+    "audit": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ]
+  },
+  "fields": {
+    "permission_name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Permission Name",
+      "required": true,
+      "placeholder": "e.g. edit_sample_global",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "label": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Display Label",
+      "required": true,
+      "placeholder": "e.g. Edit All Samples"
+    },
+    "category": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Category",
+      "required": true,
+      "placeholder": "e.g. Sample Management, DNA Analysis"
+    },
+    "description": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Description",
+      "required": true,
+      "placeholder": "Describe what this permission allows the user to do"
+    },
+    "tags": {
+      "data_type": "list",
+      "display_type": "jsoneditor",
+      "label": "Tags",
+      "required": false,
+      "placeholder": "e.g. ['edit', 'global', 'sample']"
+    },
+    "version": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Version",
+      "required": true,
+      "default": 1,
+      "placeholder": "e.g. 1",
+      "readonly": true
+    },
+    "is_active": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Is Active",
+      "required": true,
+      "default": true
+    },
+    "created_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Created By",
+      "readonly": true
+    },
+    "created_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Created On",
+      "readonly": true
+    },
+    "updated_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Updated By",
+      "readonly": true
+    },
+    "updated_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Updated On",
+      "readonly": true
+    }
+  },
+  "subschemas": {},
+  "created_on": "2025-05-19T12:24:10.361000",
+  "created_by": "ram.nanduri@skane.se",
+  "updated_on": "2025-05-19T12:24:10.361000",
+  "updated_by": "ram.nanduri@skane.se"
+}

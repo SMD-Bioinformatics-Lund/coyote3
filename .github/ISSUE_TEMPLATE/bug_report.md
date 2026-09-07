@@ -1,35 +1,59 @@
 ---
-name: Bug report
-about: Report reproducible behavior that is not working as expected
+name: "Bug Report"
+about: "Report something in Coyote3 that is not working as expected"
 title: "[Bug]: "
 labels: ["bug"]
 assignees: ""
+projects: ["SMD-Bioinformatics-Lund/22"]
+type: "bug"
 ---
 
-## Problem
+## Summary
+A clear and concise description of the problem.
 
-Describe what failed and the impact on the workflow.
+---
 
-## Reproduction
+## Steps to Reproduce
+1. Go to `...`
+2. Click on `...`
+3. Perform `...`
+4. See the issue
 
-1. Open or call `...`
-2. Perform `...`
-3. Observe `...`
+---
 
-## Expected behavior
+## Expected Behavior
+What should have happened?
 
-Describe the expected result.
+---
+
+## Actual Behavior
+What actually happened?
+
+---
+
+## Screenshots / Logs (if available)
+> **Important:** Ensure no patient-identifiable information (PHI) is included.
+
+Attach screenshots, error messages, or logs if helpful.
+
+---
 
 ## Environment
-
 - Coyote3 version:
-- Deployment environment:
-- Browser or API client:
-- Relevant role or permission:
+- Browser (Chrome, Firefox, Safari):
+- Operating System:
+- User role (Admin, Analyst, etc.):
+- Sample type (if relevant, but **no IDs**):
 
-## Diagnostics
+---
 
-Add the error message, request path, logs, or a screenshot when useful.
+## Reproducibility
+- [ ] Always
+- [ ] Sometimes
+- [ ] Rarely
 
-> Do not include credentials, sample identifiers, patient information, or clinical
-> production data. Redact sensitive values before submitting.
+---
+
+## Additional Context
+Add any extra context that might help diagnose the issue.
+

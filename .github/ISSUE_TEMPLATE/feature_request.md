@@ -1,26 +1,45 @@
 ---
-name: Feature request
-about: Propose a focused improvement to a Coyote3 workflow
+name: "Feature Request"
+about: "Suggest a new feature or improvement for Coyote3"
 title: "[Feature]: "
 labels: ["enhancement"]
 assignees: ""
+projects: ["SMD-Bioinformatics-Lund/22"]   # Auto-add to Project 22
+type: "feature"                             # Custom field (for grouping)
 ---
 
-## Workflow problem
 
-Describe the current workflow and the problem that should be solved.
+## Description
+Brief explanation of the feature or enhancement you are proposing.
 
-## Proposed outcome
+---
 
-Describe the desired behavior from the user's perspective. Avoid prescribing an
-implementation unless it is required by a clinical or technical constraint.
+## Why is this needed?
+Explain the problem it solves or how it improves workflow.
 
-## Acceptance criteria
+Examples:
+- Reduces manual steps
+- Improves clarity for analysts
+- Aligns with reporting standards
+- Increases performance or accuracy
 
-- [ ] Other
+---
 
-## Additional context
+## Example Use Case
+Provide a concrete workflow showing *when and how* this feature would be used.
 
-Add relevant standards, mockups, constraints, or alternatives considered.
+---
 
-> Do not include patient information or clinical production data.
+## Expected Impact
+- [ ] Improves speed
+- [ ] Simplifies workflow
+- [ ] Adds new functionality
+- [ ] Reduces errors
+- [ ] Improves usability
+- [ ] Other:
+
+---
+
+## Additional Notes
+Add sketches, mockups, or references if helpful.
+

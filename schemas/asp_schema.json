@@ -1,0 +1,267 @@
+{
+  "_id": "ASP-Schema",
+  "schema_name": "ASP-Schema",
+  "schema_type": "asp_schema",
+  "schema_category": "ASP",
+  "version": 1,
+  "is_active": true,
+  "description": "Schema for managing assay panels with full technical and clinical metadata.",
+  "sections": {
+    "meta": [
+      "assay_name",
+      "display_name",
+      "type",
+      "asp_group",
+      "asp_category",
+      "description",
+      "version",
+      "accredited",
+      "is_active"
+    ],
+    "technical_details": [
+      "platform",
+      "read_length",
+      "read_mode",
+      "asp_family",
+      "kit_name",
+      "kit_type",
+      "kit_version",
+      "target_region_size",
+      "capture_method"
+    ],
+    "genes": [
+      "covered_genes",
+      "germline_genes"
+    ],
+    "audit": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ]
+  },
+  "fields": {
+    "assay_name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Assay Panel Name",
+      "required": true,
+      "placeholder": "e.g., hema_GMSv1",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "display_name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Panel Display Name",
+      "required": true,
+      "placeholder": "e.g., Hematological Malignancies GMS Panel"
+    },
+    "type": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Panel Type",
+      "required": true,
+      "options": [
+        "ASP"
+      ],
+      "default": "ASP",
+      "placeholder": "Select panel type",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "asp_group": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "ASP Group",
+      "required": true,
+      "placeholder": "e.g., hematology, solid",
+      "options": [
+        "hematology",
+        "myeloid",
+        "lymphoid",
+        "solid",
+        "pgx",
+        "tumwgs",
+        "wts"
+      ],
+      "dynamic_options": true,
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "asp_category": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "ASP Category",
+      "required": true,
+      "options": [
+        "DNA",
+        "RNA"
+      ]
+    },
+    "description": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Description",
+      "required": true,
+      "placeholder": "e.g., Panel for hematological malignancies",
+      "default": ""
+    },
+    "version": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Version",
+      "default": 1.0,
+      "readonly": true
+    },
+    "is_active": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Is Active",
+      "default": true
+    },
+    "accredited": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Accredited",
+      "default": false
+    },
+    "asp_family": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "ASP Family",
+      "required": true,
+      "options": [
+        "Panel-DNA",
+        "Panel-RNA",
+        "WES",
+        "WGS",
+        "WTS"
+      ],
+      "placeholder": "Select technology"
+    },
+    "platform": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Platform",
+      "required": true,
+      "options": [
+        "Illumina",
+        "Ion Torrent",
+        "Nanopore",
+        "PacBio"
+      ],
+      "placeholder": "Select platform"
+    },
+    "read_length": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Read Length",
+      "required": true,
+      "default": 150,
+      "placeholder": "e.g., 100, 150, 250"
+    },
+    "read_mode": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Read Mode",
+      "required": true,
+      "options": [
+        "SE",
+        "PE"
+      ],
+      "default": "PE"
+    },
+    "kit_name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Kit Name",
+      "placeholder": "e.g., Agilent SureSelect",
+      "default": ""
+    },
+    "kit_type": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Kit Type",
+      "placeholder": "e.g., Agilent, Illumina",
+      "default": ""
+    },
+    "kit_version": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Kit Version",
+      "placeholder": "e.g., V7, V8",
+      "default": ""
+    },
+    "target_region_size": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Target Region Size (Mb)",
+      "placeholder": "e.g., 3.5",
+      "default": 0.0
+    },
+    "capture_method": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Capture Method",
+      "placeholder": "e.g., Hybrid capture, Amplicon",
+      "default": ""
+    },
+    "covered_genes": {
+      "data_type": "list",
+      "display_type": "jsoneditor-or-upload",
+      "label": "Covered Genes",
+      "placeholder": "Paste or upload covered genes",
+      "required": true,
+      "default": [],
+      "accept": [
+        ".csv",
+        ".tsv"
+      ]
+    },
+    "germline_genes": {
+      "data_type": "list",
+      "display_type": "jsoneditor-or-upload",
+      "label": "Germline Genes",
+      "placeholder": "Paste or upload germline genes",
+      "required": true,
+      "default": [],
+      "accept": [
+        ".csv",
+        ".tsv"
+      ]
+    },
+    "created_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Created By",
+      "readonly": true
+    },
+    "created_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Created On",
+      "readonly": true
+    },
+    "updated_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Updated By",
+      "readonly": true
+    },
+    "updated_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Updated On",
+      "readonly": true
+    }
+  },
+  "subschemas": {},
+  "created_on": "2025-05-30T12:55:04.285000",
+  "created_by": "ram.nanduri@skane.se",
+  "updated_on": "2025-05-30T12:55:04.285000",
+  "updated_by": "ram.nanduri@skane.se"
+}

@@ -43,24 +43,9 @@ At minimum, validate:
 
 Automated test coverage is evolving in this repository. Treat manual validation quality as a release-critical responsibility.
 
-## Commit gate requirement
-
-This repository uses a tracked Git pre-commit hook under `.githooks/` to block commits when checks fail.
-
-Run once per clone:
-
-```bash
-git config core.hooksPath .githooks
-chmod +x .githooks/pre-commit
-```
-
-After this, `git commit` is blocked unless pre-commit checks pass.
-Do not run `pre-commit install`: this repository uses the tracked
-`.githooks/pre-commit` wrapper so that every clone runs the same hook chain.
-
 ## Documentation requirements
 
-For behavior changes, update the relevant chapters under `docs/` (for example `docs/product/`, `docs/developer/`, `docs/architecture/`, `docs/operations/`):
+For behavior changes, update relevant handbook chapters under `docs/handbook/`:
 
 - user-facing chapters for workflow or UI changes
 - developer-facing chapters for architecture, route, or data model changes
@@ -79,14 +64,6 @@ A PR should include:
 
 Use the repository PR template and link related issues.
 
-## PR CI gates
-
-Every PR runs GitHub Actions formatting and test gates via:
-
-- `.github/workflows/pr-format-tests.yml`
-
-To enforce merge blocking, configure branch protection on your main integration branch and mark this workflow check as required.
-
 ## Change types with extra care
 
 Apply heightened review discipline for:
@@ -101,13 +78,6 @@ Apply heightened review discipline for:
 
 - Never commit secrets, credentials, tokens, or private keys.
 - Never commit patient-identifiable data or sensitive production datasets.
-- The staged-content guard blocks common credentials, private environment files,
-  local paths, clinical sample identifiers, Swedish personal identity numbers,
-  and non-synthetic sample metadata under `tests/`. Run it against the current
-  tree with `python3 scripts/check_staged_sensitive_data.py --all-files`.
-- The guard cannot establish that a de-identified genomic fixture is synthetic.
-  Keep provenance evidence outside the repository and require reviewer approval
-  for every fixture change.
 - Use sanitized or synthetic data for examples and debugging artifacts.
 - Report security concerns through the process in `SECURITY.md`.
 

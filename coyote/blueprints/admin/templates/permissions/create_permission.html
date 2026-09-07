@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}Create Permission{% endblock %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide flex gap-2 items-center">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/shield-check.svg') }}" class="h-6 w-6">
+            Create New Permission
+          </h1>
+          <form method="GET" action="{{ url_for('admin_bp.create_user') }}">
+            <label class="text-sm font-semibold text-gray-800">Schema:</label>
+            <select name="schema_id" onchange="this.form.submit()" class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
+              {% for s in schemas %}
+                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+
+        <form method="POST" id="permissionForm" class="space-y-6 text-sm text-gray-700">
+          {% for section, keys in schema.sections.items() %}
+          <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl shadow-lg p-4">
+            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {% for key in keys %}
+                {% set field = schema.fields[key] %}
+                {% set value = field.default %}
+                {% set is_readonly = field.readonly or ('readonly_mode' in field and 'create' in field.readonly_mode) %}
+
+                {% if field.display_type == "checkbox" %}
+                  <div class="flex items-center space-x-2">
+                    <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}>
+                    <label class="text-xs font-semibold">{{ field.label }}</label>
+                  </div>
+
+                {% elif field.display_type == "select" %}
+                  <div>
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm" {% if is_readonly %}disabled{% endif %}>
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if value == opt %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                {% else %}
+                  <div>
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <input type="text" name="{{ key }}" placeholder="{{ field.placeholder }}"
+                      value="{% if value is iterable and value is not string %}{{ value | join(', ') }}{% else %}{{ value }}{% endif %}"
+                      {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <!-- Submit Button -->
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
+              Save Permission
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

@@ -1,121 +1,42 @@
 site_name: Coyote3 Documentation
-site_description: Coyote3 system, engineering, operations, and user documentation
+site_description: Coyote3 user and developer handbook
+repo_name: Coyote3
 docs_dir: docs
 site_dir: site
-repo_name: Coyote3
-
 theme:
   name: readthedocs
-
-extra_css:
-  - stylesheets/callouts.css
-
 markdown_extensions:
   - toc:
       permalink: true
   - fenced_code
   - tables
   - sane_lists
-  - attr_list
-
 nav:
   - Home: index.md
-  - Start here:
-      - Quickstart: start_here/quickstart.md
-      - Local development: start_here/local_development.md
-      - First installation: start_here/first_installation.md
-      - Center configuration: start_here/configuration.md
-      - Production deployment: start_here/production_deployment.md
-  - Use Coyote3:
-      - Complete user manual: user_guide/complete_user_manual.md
-      - Clinical workflow: user_guide/clinical_workflow_guide.md
-      - Sample management: user_guide/sample_management.md
-      - DNA clinical review: user_guide/clinical_review_dna.md
-      - RNA clinical review: user_guide/clinical_review_rna.md
-      - Coverage review: user_guide/coverage_analytics.md
-      - Operational dashboard: user_guide/operational_dashboard.md
-      - Pages and table columns: product/ui_page_table_reference.md
-      - Interface visual reference: product/interface_visual_reference.md
-  - Administer Coyote3:
-      - Management guide: user_guide/management_guide.md
-      - Public assay catalog: product/public_assay_catalog.md
-      - Administration UI map: product/ui_map_and_user_flows.md
-      - Permissions and access: developer/permissions_naming.md
-      - System permission catalog: developer/permission_catalog.md
-      - Audit and logging: operations/audit-and-logging.md
-      - Backup and recovery: operations/backup_restore_and_snapshots.md
-      - Operational troubleshooting: operations/troubleshooting.md
-  - Reference:
-      - Reference guide: reference/index.md
-      - System overview: product/complete_application_manual.md
-      - Core concepts: product/core_concepts.md
-      - DNA and RNA workflow: product/workflow_dna_rna.md
-      - Clinical data and reporting flow: architecture/clinical_data_and_reporting_flow.md
-      - Query and filter strategy: product/aspc_driven_query_strategy.md
-      - Clinical reporting rules: product/clinical_reporting_rules.md
-      - Reporting and snapshots: product/reporting_workflow_and_variant_snapshots.md
-      - Domain reference: product/application_reference_by_domain.md
-      - UI actions and effects: product/ui_action_effects_reference.md
-      - Functional matrix: product/ui_functionality_matrix.md
-      - Clinical vocabulary: operations/clinical_vocabulary.md
-      - Knowledgebase evidence: product/knowledgebase_evidence.md
-      - OncoKB integration: product/oncokb_integration.md
-      - ClinPGx integration: product/clinpgx_integration.md
-      - Sample YAML manifest: api/sample_yaml.md
-      - Sample input files: api/sample_input_files.md
-      - Collection contracts: api/collection_contracts.md
-  - Develop Coyote3:
-      - Complete developer manual: developer/complete_developer_manual.md
-      - Application architecture: architecture/current_application_context.md
-      - System relationships: architecture/system_relationships.md
-      - Runtime data contracts: architecture/data_contracts.md
-      - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
-      - Transactions and ingest recovery: architecture/transactions_and_ingest_recovery.md
-      - MongoDB service topology: architecture/mongodb_topology.md
-      - Configuration identity and audit: architecture/configuration_identity_and_audit.md
-      - Security model: architecture/security_model.md
-      - API organization: api/api_organization.md
-      - Authentication: api/authentication.md
-      - Versioning and compatibility: api/versioning_and_compatibility.md
-      - Routes and workflows: api/reference_and_workflows.md
-      - Ingestion API: api/ingestion_api.md
-      - Collection permissions: api/collection_operations_and_permissions.md
-      - Engineering commands: maintainers/developer_guide.md
-      - Add a domain or collection: developer/adding_a_domain.md
-      - Schema contracts and versioning: developer/schema_contracts_and_versioning.md
-      - Plotting and chart export: frontend/plotting.md
-      - Action dialogs: developer/ui_modals.md
-      - Refactoring standards: maintainers/refactor_guidelines.md
-      - Developer troubleshooting: developer/troubleshooting_guide.md
-      - Architecture decisions:
-          - Authentication provider resolution: architecture/adr_0001_auth_provider_resolution.md
-          - Local password lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
-          - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
-  - Deploy and operate Coyote3:
-      - Release readiness: operations/release_readiness.md
-      - Dependency advisories: operations/dependency_advisories.md
-      - Target-center acceptance: operations/target_center_acceptance.md
-      - Center deployment: operations/center_deployment_guide.md
-      - Initial deployment checklist: operations/initial_deployment_checklist.md
-      - Migrate an existing Coyote v3 installation: operations/upgrade_from_v3.md
-      - Center configuration files: operations/center_configuration_files.md
-      - Environment and secrets: operations/environments_and_secrets.md
-      - Data requirements: operations/deployment_data_requirements.md
-      - Deployment reference: operations/deployment_guide.md
-      - Minimum production baseline: operations/minimum_production_baseline.md
-      - Observability and alerts: operations/observability_slos_and_alerts.md
-      - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
-      - Knowledgebase snapshot updates: operations/knowledgebase_updates.md
-      - Maintenance and quality: operations/maintenance_and_quality.md
-      - Repository scripts: operations/script_reference.md
-  - Test and validate Coyote3:
-      - Test strategy and quality gates: testing/testing_and_quality.md
-      - Local disposable full-stack validation: testing/disposable_full_stack_validation.md
-      - Browser and release validation: testing/browser_and_release_validation.md
-      - Test data and fixtures: testing/test_data_and_fixtures.md
-  - Project:
-      - Governance: project/governance.md
-      - Contributing: project/contributing.md
-      - Code of conduct: project/code_of_conduct.md
-      - License: project/license.md
-      - Maintainer guide: maintainers/maintainer_guide.md
+  - Handbook:
+    - Overview: handbook/index.md
+    - User Handbook:
+      - Product Overview: handbook/user/01-product-overview.md
+      - Installation and Access: handbook/user/02-installation-and-access.md
+      - Navigation and Pages: handbook/user/03-navigation-and-pages.md
+      - DNA Workflow: handbook/user/04-dna-workflow.md
+      - RNA Workflow: handbook/user/05-rna-workflow.md
+      - Reporting and History: handbook/user/06-reporting-and-history.md
+      - Administration and Governance: handbook/user/07-admin-and-governance.md
+      - Best Practices: handbook/user/08-best-practices.md
+      - Troubleshooting: handbook/user/09-troubleshooting.md
+      - Behind the Scenes: handbook/user/10-behind-the-scenes.md
+      - Complete Click Paths: handbook/user/11-complete-click-paths.md
+    - Developer Handbook:
+      - Architecture: handbook/developer/01-architecture.md
+      - Runtime and Configuration: handbook/developer/02-runtime-and-configuration.md
+      - Data Model and Collections: handbook/developer/03-data-model-and-collections.md
+      - Auth and RBAC: handbook/developer/04-auth-rbac-and-request-lifecycle.md
+      - Blueprints, Routes, and UI: handbook/developer/05-blueprints-routes-and-ui.md
+      - How to Add Features: handbook/developer/06-how-to-add-features.md
+      - Debugging Playbook: handbook/developer/07-debugging-playbook.md
+      - Testing and Quality Gates: handbook/developer/08-testing-and-quality-gates.md
+      - Deployment and Operations: handbook/developer/09-deployment-and-operations.md
+      - Technical Debt and Roadmap: handbook/developer/10-technical-debt-and-roadmap.md
+      - End-to-End Process Flows: handbook/developer/11-end-to-end-process-flows.md
+      - Collection Reference and Schemas: handbook/developer/12-collection-reference-and-schemas.md

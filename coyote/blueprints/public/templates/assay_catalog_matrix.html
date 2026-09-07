@@ -1,0 +1,173 @@
+{% extends "layout.html" %}
+{% block title %}Gene Coverage Matrix{% endblock %}
+
+{% block body %}
+<div class="w-full h-full overflow-y-auto bg-purple-50">
+  <div class="mx-auto px-6 pb-10">
+
+    <section class="p-2 mt-4">
+      <div class="bg-blue-50 rounded-2xl shadow-xl p-4 border">
+
+        <div class="px-4 flex flex-wrap items-start gap-3">
+          <h1 class="text-xl font-semibold mb-4 tracking-tight">
+            Assay Catalog - Gene Coverage Matrix
+          </h1>
+
+          <div class="relative ml-auto">
+            <input id="search-genes" name="genes_search" type="text" placeholder="Search genes..."
+              class="w-full border rounded-xl py-2 pl-4 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}"
+                  alt="Search" class="h-5 w-5 text-slate-500 pointer-events-none" onclick="document.getElementById('search-genes').focus()">
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl shadow-md pagination" id="genes-list" data-rows-per-page="50" pagination-button-color="blue" pagination-button-text-color="black">
+
+          <table class="min-w-full table-fixed border-collapse text-xs bg-transparent rounded-2xl" id="genes-table">
+            <!-- fixed widths: 1 col for gene, 1 per leaf column -->
+            <colgroup>
+              <col class="w-44">
+              {% for _ in columns %}
+                <col class="w-32">
+              {% endfor %}
+            </colgroup>
+
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              {# ───────────────────────────── #}
+              {# LEVEL 1: MODALITY HEADERS    #}
+              {# ───────────────────────────── #}
+              <tr class="border-b border-gray-800 bg-blue-300 tracking-wider shadow-xl">
+                <th class="p-2 font-normal sticky left-0 z-30 text-left">
+                  Gene
+                </th>
+
+                {% for mod in order %}
+                  {% set span = mod_spans.get(mod, 0) %}
+                  {% if span <= 0 %}
+                    {% set span = 1 %}
+                  {% endif %}
+                  <th class="p-2 font-semibold border-l border-gray-400 text-center text-gray-900"
+                      colspan="{{ span }}">
+                    {{ (modalities[mod].label or mod) if modalities[mod] else mod }}
+                  </th>
+                {% endfor %}
+              </tr>
+
+              {# ───────────────────────────── #}
+              {# LEVEL 2: CATEGORY HEADERS    #}
+              {# ───────────────────────────── #}
+              <tr class="border-b border-gray-800 bg-blue-200 tracking-wider shadow-2xl">
+                <th class="p-2 font-normal sticky left-0 z-30"></th>
+
+                {% for mod in order %}
+                  {% set mblock = modalities.get(mod) or {} %}
+                  {% set catmap = mblock.get('categories') or {} %}
+
+                  {% if catmap %}
+                    {% for cat_key, c in catmap.items() %}
+                      {% set cspan = cat_spans.get(mod ~ '::' ~ cat_key, 0) %}
+                      {% if cspan <= 0 %}
+                        {% set cspan = 1 %}
+                      {% endif %}
+                      <th class="p-2 font-semibold border-l border-gray-400 text-center text-gray-800 whitespace-normal leading-tight"
+                          colspan="{{ cspan }}">
+                        {{ c.label or cat_key }}
+                      </th>
+                    {% endfor %}
+                  {% else %}
+                    {# modality with no categories but still 1 placeholder column #}
+                    <th class="p-2 font-semibold border-l border-gray-400 text-center text-gray-800 whitespace-normal leading-tight"
+                        colspan="1">
+                      —
+                    </th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+
+              {# ───────────────────────────── #}
+              {# LEVEL 3: GENELIST (ISGL)     #}
+              {# ───────────────────────────── #}
+              <tr class="border-b border-gray-800 bg-blue-100 tracking-wider shadow-md">
+                <th class="p-2 font-normal sticky left-0 z-30"></th>
+
+                {% for col in columns %}
+                  <th class="p-2 font-normal border-l border-gray-400 text-center text-gray-700 whitespace-normal leading-tight">
+                    {{ col.isgl_label }}
+                  </th>
+                {% endfor %}
+              </tr>
+            </thead>
+
+            <tbody id="genes-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for gene in genes %}
+                <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl last:mb-5 transition">
+                  <td class="p-2 font-medium bg-indigo-100 sticky left-0 z-20 border-r border-gray-600">
+                    <a href="{{ url_for('common_bp.public_gene_info', id=gene)  }}" class="hover:underline">{{ gene }}</a>
+                  </td>
+
+                  {% for col in columns %}
+                    {% set present = matrix.get(gene, {}).get(col.mod, {}).get(col.cat, {}).get(col.isgl_key, False) %}
+                    <td class="px-2 py-1 text-center border-l border-gray-300">
+                      {% if col.placeholder %}
+                        <span class="text-gray-400">–</span>
+                      {% else %}
+                        {% if present %}
+                          <div class="flex justify-center items-center">
+                            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}"
+                                 alt="Present"
+                                 class="h-5 w-5 text-green-600 cursor-pointer transition transform hover:scale-110">
+                          </div>
+                        {% else %}
+                          <span class="text-gray-400">–</span>
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+
+  const input = document.getElementById('search-genes');
+  const body = document.getElementById('genes-list-body');
+  const container = document.getElementById('genes-list');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 15;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+{% endblock %}

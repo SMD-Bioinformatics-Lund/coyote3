@@ -1,0 +1,140 @@
+{
+  "_id": "Role-Schema",
+  "schema_name": "Role-Schema",
+  "schema_type": "rbac_role",
+  "schema_category": "RBAC_role",
+  "description": "Schema to define application roles and their default permissions.",
+  "version": 1,
+  "is_active": true,
+  "sections": {
+    "meta": [
+      "name",
+      "label",
+      "level",
+      "color",
+      "description",
+      "version",
+      "is_active"
+    ],
+    "permissions": [
+      "permissions",
+      "deny_permissions"
+    ],
+    "audit": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ]
+  },
+  "fields": {
+    "name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Role ID",
+      "required": true,
+      "placeholder": "e.g. admin, group_manager",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "label": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Display Label",
+      "required": true,
+      "placeholder": "e.g. Administrator, Developer"
+    },
+    "level": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Hierarchy Level",
+      "required": true,
+      "default": 0,
+      "placeholder": "e.g. 5",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "color": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Badge Color",
+      "required": false,
+      "default": "gray",
+      "placeholder": "e.g. blue, red"
+    },
+    "description": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Role Description",
+      "required": true,
+      "placeholder": "Description of what this role can do"
+    },
+    "version": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Version",
+      "default": 1,
+      "required": true,
+      "placeholder": "e.g. 1",
+      "readonly": true
+    },
+    "is_active": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Is Active",
+      "required": true,
+      "default": true
+    },
+    "permissions": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Default Permissions",
+      "required": true,
+      "dynamic_options": true,
+      "description": "Permissions granted to users assigned this role.",
+      "options": [],
+      "default": []
+    },
+    "deny_permissions": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Denied Permissions",
+      "required": true,
+      "dynamic_options": true,
+      "description": "Permissions denied to users assigned this role.",
+      "options": [],
+      "default": []
+    },
+    "created_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Created By",
+      "readonly": true
+    },
+    "created_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Created On",
+      "readonly": true
+    },
+    "updated_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Updated By",
+      "readonly": true
+    },
+    "updated_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Updated On",
+      "readonly": true
+    }
+  },
+  "subschemas": {},
+  "created_on": "2025-05-19T09:59:17.723000",
+  "created_by": "ram.nanduri@skane.se",
+  "updated_on": "2025-05-19T09:59:17.723000",
+  "updated_by": "ram.nanduri@skane.se"
+}

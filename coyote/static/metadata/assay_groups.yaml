@@ -1,0 +1,195 @@
+DNA:
+  groups:
+    hematology:
+      ssays:
+        hema_GMSv1:
+          type: ASP
+          description: GMSv1 Hematology Assay
+          panel_type: Panel-DNA
+          display_name: Hematology GMSv1
+          genelists:
+            - H-MGP
+            - H-LGP
+          subpanels:
+            H-MGP:
+              description: Hematology Myeloid
+              display_name: H-MGP
+            H-LGP:
+              description: Hematology Lymphoid
+              display_name: H-LGP
+    solid:
+      assays:
+        solid_GMSv3:
+          type: ASP
+          description: GMSv3 Solid Tumor Assay 560 Genes
+          panel_type: Panel-DNA
+          display_name: Solid DNA GMSv3
+          genelists:
+            - Breast
+            - CNS
+            - COLON
+            - GIST
+            - LUNG
+            - Melanoma
+            - Ovarian
+            - Solid
+            - Thyroid
+          subpanels:
+            Breast:
+              description: Breast Cancer
+              display_name: Breast
+            CNS:
+              description: CNS Tumors
+              display_name: CNS
+            Colon:
+              description: Colon Cancer
+              display_name: COLON
+            GIST:
+              description: GIST Tumors
+              display_name: GIST
+            Lung:
+              description: Lung Cancer
+              display_name: LUNG
+            Melanoma:
+              description: Melanoma Cancer
+              display_name: Melanoma
+            Ovarian:
+              description: Ovarian Cancer
+              display_name: Ovarian
+            Solid:
+              description: Solid Tumors
+              display_name: Solid
+            Thyroid:
+              description: Thyroid Cancer
+              display_name: Thyroid
+    myeloid:
+      assays:
+        myeloid_GMSv1:
+          type: ASP
+          description: GMSv1 Myeloid Assay
+          panel_type: Panel-DNA
+          display_name: Myeloid GMSv1
+          genelists:
+            - Hem-Snabb
+            - MPN
+          subpanels:
+            Hem-Snabb:
+              description: Hematology Snabb
+              display_name: Hem-Snabb
+            MPN:
+              description: Myeloproliferative Neoplasms
+              display_name: MPN
+    lymphoid:
+      assays:
+        lymph_GMSv3:
+          type: ASP
+          description: GMSv3 Lymphoid Assay
+          panel_type: Panel-DNA
+          display_name: Lymphoid GMSv3
+          genelists:
+            - CLL
+          subpanels:
+            CLL:
+              description: Chronic Lymphocytic Leukemia
+              display_name: CLL
+    pharmacogenomics:
+      assays:
+        PGxv1:
+          type: ASP
+          description: Pharmacogenomics v1
+          panel_type: Panel-DNA
+          display_name: PGx v1
+    tumwgs:
+      assays:
+        tumwgs-hema:
+          type: ASP
+          description: Tumor WGS Hematology Track
+          panel_type: WGS
+          display_name: Tumor WGS Hematology Track
+          genelists:
+            - H-MGP
+            - H-LGP
+            - hema_GMSv1
+            - myeloid_GMSv1
+            - lymph_GMSv3
+          subpanels:
+            H-MGP:
+              description: Hematology Myeloid
+              display_name: H-MGP
+            H-LGP:
+              description: Hematology Lymphoid
+              display_name: H-LGP
+            hema_GMSv1:
+              description: GMSv1 Hematology Assay
+              display_name: hema_GMSv1
+            myeloid_GMSv1:
+              description: GMSv1 Myeloid Assay
+              display_name: myeloid_GMSv1
+            lymph_GMSv3:
+              description: GMSv3 Lymphoid Assay
+              display_name: lymph_GMSv3
+        tumwgs-solid:
+          type: ASP
+          description: Tumor WGS Solid Track
+          panel_type: WGS
+          display_name: Tumor WGS Solid Track
+          genelists:
+            - Breast
+            - CNS
+            - COLON
+            - GIST
+            - LUNG
+            - Melanoma
+            - Ovarian
+            - Solid
+            - Thyroid
+            - solid_GMSv3
+          subpanels:
+            Breast:
+              description: Breast Cancer
+              display_name: Breast
+            CNS:
+              description: CNS Tumors
+              display_name: CNS
+            COLON:
+              description: Colon Cancer
+              display_name: COLON
+            GIST:
+              description: GIST Tumors
+              display_name: GIST
+            LUNG:
+              description: Lung Cancer
+              display_name: LUNG
+            Melanoma:
+              description: Melanoma Cancer
+              display_name: Melanoma
+            Ovarian:
+              description: Ovarian Cancer
+              display_name: Ovarian
+            Solid:
+              description: Solid Tumors
+              display_name: Solid
+            Thyroid:
+              description: Thyroid Cancer
+              display_name: Thyroid
+RNA:
+  groups:
+    solid:
+      assays:
+        solidRNA_GMSv5:
+          type: ASP
+          description: GMSv5 solid tumor RNA assay 50 genes
+          panel_type: Panel-RNA
+          display_name: Solid RNA GMSv5
+        RNA-fusion:
+          type: ASP
+          description: Solid RNA fusion 150 genes
+          panel_type: Panel-RNA
+          display_name: Solid RNA Fusion
+    WTS:
+      assays:
+        fusion:
+          type: ASP
+          description: WTS Fusion
+          panel_type: WTS
+          display_name: WTS Fusion

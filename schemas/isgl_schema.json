@@ -1,0 +1,142 @@
+{
+  "_id": "ISGL-Config",
+  "schema_name": "ISGL-Config",
+  "schema_type": "isgl_config",
+  "schema_category": "ISGL",
+  "description": "Schema for managing in-silico and standard genelists with assay and group linkage.",
+  "version": 1,
+  "is_active": true,
+  "sections": {
+    "meta": [
+      "name",
+      "displayname",
+      "list_type",
+      "version",
+      "is_active"
+    ],
+    "association": [
+      "diagnosis",
+      "assay_groups",
+      "assays"
+    ],
+    "gene_content": [
+      "genes"
+    ],
+    "audit": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ]
+  },
+  "fields": {
+    "name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "List Name",
+      "required": true,
+      "placeholder": "e.g., breast",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "displayname": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Display Name",
+      "required": true,
+      "placeholder": "e.g., Breast In Silico Genelist"
+    },
+    "list_type": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "List Type",
+      "required": true,
+      "options": [
+        "genelist",
+        "fusionlist",
+        "cnvlist"
+      ],
+      "default": "genelist"
+    },
+    "is_active": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Is Active",
+      "default": true
+    },
+    "version": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Version",
+      "default": 1,
+      "readonly": true
+    },
+    "diagnosis": {
+      "data_type": "list",
+      "display_type": "jsoneditor",
+      "label": "Diagnosis (Subpanels)",
+      "default": [],
+      "placeholder": "e.g., Breast, Lung, CNS"
+    },
+    "assay_groups": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Assay Groups",
+      "dynamic_options": true,
+      "required": true,
+      "default": [],
+      "options": []
+    },
+    "assays": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Associated Assays",
+      "dynamic_options": true,
+      "required": true,
+      "default": [],
+      "options": []
+    },
+    "genes": {
+      "data_type": "list",
+      "display_type": "jsoneditor-or-upload",
+      "label": "Genes",
+      "required": true,
+      "default": [],
+      "placeholder": "Paste or upload genes for this list",
+      "accept": [
+        ".tsv",
+        ".csv"
+      ]
+    },
+    "created_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Created By",
+      "readonly": true
+    },
+    "created_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Created On",
+      "readonly": true
+    },
+    "updated_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Updated By",
+      "readonly": true
+    },
+    "updated_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Updated On",
+      "readonly": true
+    }
+  },
+  "subschemas": {},
+  "created_on": "2025-05-19T13:44:40.092000",
+  "created_by": "ram.nanduri@skane.se",
+  "updated_on": "2025-05-19T13:44:40.092000",
+  "updated_by": "ram.nanduri@skane.se"
+}

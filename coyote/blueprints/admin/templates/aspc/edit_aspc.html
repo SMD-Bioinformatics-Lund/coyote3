@@ -1,0 +1,151 @@
+{% extends "layout.html" %}
+{% block title %}Edit ASPC {% endblock %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-6">
+          <!-- Left: Title and version dropdown -->
+          <div class="flex flex-col gap-1">
+            <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 items-center">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Schema Edit Icon" class="h-6 w-6">
+              Edit ASPC – <i>{{ assay_config.assay_name }} ({{ assay_config.environment }})</i>
+            </h1>
+            {% if assay_config.version_history %}
+              <div class="flex items-center gap-2 mt-2">
+                <label class="text-xs font-semibold text-gray-800">Version:</label>
+                <form method="GET">
+                  <select name="version" onchange="this.form.submit()" class="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white">
+                    {% for v in assay_config.version_history|reverse %}
+                      <option value="{{ v.version }}" {% if selected_version == v.version %}selected{% endif %}>
+                        v{{ v.version }} ({{ v.timestamp|human_date }})
+                      </option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        
+          <!-- Right: Schema info -->
+          <div class="text-sm text-gray-700 flex items-center">
+            <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
+              {{ assay_config.schema_name }}
+            </span>
+            <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full">
+              v{{ assay_config.schema_version }}
+            </span>
+          </div>
+        </div>
+        
+
+        {% if selected_version and selected_version != assay_config.version and delta %}
+        <div class="mb-4 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded-md p-3">
+          <p>You are editing a previous version <strong>v{{ selected_version }}</strong>. Saving will create a new version from this state. All changes compared to current version <strong>v{{ assay_config.version }}</strong> are highlighted.</p>
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
+          {% for section, keys in schema.sections.items() %}
+            <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
+              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
+              <div class="grid grid-cols-3 gap-4">
+                {% for key in keys %}
+                  {% set field = schema.fields[key] %}
+                  {% set value = assay_config.get(key) %}
+                  {% if value is none %}
+                    {% set value = '' %}
+                  {% endif %}
+                  
+                  {% set is_changed = delta and key in delta.changed %}
+                  {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
+
+                  <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %}">
+                    <label class="text-xs font-semibold block mb-1">
+                      {{ field.label }}{% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                      <span class="text-gray-400">({{ field.data_type }})</span>
+                    </label>
+
+                    {% if field.readonly or 'edit' in field.readonly_mode or key in ['assay_name', 'type'] %}
+                      <input type="text" name="{{ key }}" value="{{ value }}" readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+
+                    {% elif field.display_type == 'select' %}
+                      <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'multi-select' %}
+                      <select name="{{ key }}" multiple class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if value and opt in value %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'checkbox' %}
+                      <input type="checkbox" name="{{ key }}" value="true" {% if value %}checked{% endif %} class="accent-blue-600 rounded">
+
+                    {% elif field.display_type == 'checkbox-group' %}
+                      <div class="flex flex-col gap-1">
+                        {% for opt in field.options %}
+                          <label class="inline-flex items-center gap-2">
+                            <input type="checkbox" name="{{ key }}" value="{{ opt }}" {% if value and opt in value %}checked{% endif %} class="accent-blue-600 rounded">
+                            <span class="text-xs">{{ opt }}</span>
+                          </label>
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.display_type == 'radio' %}
+                      <div class="flex flex-col gap-1">
+                        {% for opt in field.options %}
+                          <label class="inline-flex items-center gap-2">
+                            <input type="radio" name="{{ key }}" value="{{ opt }}" {% if opt == value %}checked{% endif %} class="accent-blue-600">
+                            <span class="text-xs">{{ opt }}</span>
+                          </label>
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.display_type == 'textarea' %}
+                      <textarea name="{{ key }}" rows="4" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">{{ value }}</textarea>
+                    
+                    {% elif field.display_type in ['json', 'jsoneditor'] %}
+                      <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '' }}
+                      </textarea>
+
+                    {% elif field.display_type == 'jsoneditor-or-upload' %}
+                      <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | join(',') }}</textarea>
+                      <div class="flex flex-col items-start mt-2">
+                        <span class="text-xs font-semibold mb-1">OR Upload File</span>
+                        <input type="file" name="genes_file" accept=".txt,.csv,.json" class="text-xs">
+                      </div>
+
+                    {% else %}
+                      <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}" name="{{ key }}" value="{{ value }}" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+
+          <!-- Submit -->
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
+              Update Panel
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

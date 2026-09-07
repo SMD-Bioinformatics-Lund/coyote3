@@ -20,8 +20,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-/lib/
-/lib64/
+lib/
+lib64/
 parts/
 sdist/
 var/
@@ -52,7 +52,6 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-frontend/coverage/
 *.cover
 *.py,cover
 .hypothesis/
@@ -110,10 +109,6 @@ celerybeat.pid
 
 # Environments
 .*env
-.coyote3_dev_env
-.coyote3_stage_env
-.coyote3_test_env
-.coyote3_env
 .venv
 env/
 venv/
@@ -121,8 +116,6 @@ venv*
 ENV/
 env.bak/
 venv.bak/
-!deploy/env/
-!deploy/env/example*.env
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -149,17 +142,14 @@ run_dev.py
 *.backup*
 *.backup_default
 app.log*
-/test/
+test
 logs/
 example_dev*
-/migration_scripts/*
-!/migration_scripts/README.md
-/reports/
+migration_scripts
+reports
+tests
 ./bugs
-.ruff_cache
-node_modules/
-.clinerules.local
-.codex
+*dummy*
 
 # coyote
 redis_data
@@ -167,50 +157,12 @@ redis_data
 # idea
 .idea/
 
+# Docker compose
+docker-compose.dev.yml
+
+api
 coyote3-core
 .internal
 
 # CSS
 coyote/static/css/tailwind.css
-tests_internal
-tests/api/fixtures/db_snapshots/
-coyote3_dir_structure.txt
-MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
-
-# Private refactor tracker and scratch files
-.internal/
-
-# Coverage HTML artifact folder used by local scripts
-.coverage_html/
-.design/
-.claude
-.agents
-
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-test-results/
-playwright-report/
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?

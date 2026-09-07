@@ -1,0 +1,429 @@
+{
+  "_id": "DNA-ASP-Config",
+  "schema_name": "DNA-ASP-Config",
+  "schema_type": "asp_config",
+  "schema_category": "DNA",
+  "schema_version": 1,
+  "is_active": true,
+  "version": 1,
+  "description": "Schema for configuring DNA-based assays, including filter settings, reporting templates, query presets, and verification metadata.",
+  "sections": {
+    "meta": [
+      "assay_name",
+      "display_name",
+      "asp_group",
+      "asp_category",
+      "platform",
+      "environment",
+      "version"
+    ],
+    "general": [
+      "description",
+      "reference_genome",
+      "use_diagnosis_genelist",
+      "is_active"
+    ],
+    "filters": [
+      "max_freq",
+      "min_freq",
+      "min_depth",
+      "min_alt_reads",
+      "max_control_freq",
+      "max_popfreq",
+      "min_cnv_size",
+      "max_cnv_size",
+      "cnv_loss_cutoff",
+      "cnv_gain_cutoff",
+      "warn_cov",
+      "error_cov",
+      "vep_consequences",
+      "cnveffects",
+      "genelists"
+    ],
+    "analysis": [
+      "analysis_types"
+    ],
+    "reporting": [
+      "report_header",
+      "report_method",
+      "plots_path",
+      "report_folder",
+      "general_report_summary",
+      "report_description",
+      "report_sections"
+    ],
+    "query": [
+      "query"
+    ],
+    "verification": [
+      "verification_samples"
+    ],
+    "audit": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ]
+  },
+  "fields": {
+    "assay_name": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Assay Panel Name",
+      "required": true,
+      "options": [],
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "display_name": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Panel Display Name",
+      "required": true,
+      "placeholder": "e.g., Hematological Panel",
+      "readonly": true
+    },
+    "asp_group": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "ASP Group",
+      "required": true,
+      "dynamic_options": true,
+      "placeholder": "e.g., hematology, solid",
+      "readonly": true
+    },
+    "asp_category": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "ASP Category",
+      "required": true,
+      "options": [
+        "DNA",
+        "RNA"
+      ],
+      "readonly": true
+    },
+    "description": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Description",
+      "required": true,
+      "placeholder": "e.g., Panel for hematological malignancies"
+    },
+    "reference_genome": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Reference Genome",
+      "required": true,
+      "options": [
+        "GRCh38",
+        "GRCh37",
+        "hg19",
+        "hg38"
+      ]
+    },
+    "platform": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Platform",
+      "required": true,
+      "readonly": true
+    },
+    "environment": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Environment",
+      "required": true,
+      "options": [
+        "production",
+        "development",
+        "testing",
+        "validation"
+      ],
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "use_diagnosis_genelist": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Use Diagnosis Genelist",
+      "required": true,
+      "default": false
+    },
+    "version": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Version",
+      "default": 1,
+      "readonly": true
+    },
+    "is_active": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Is Active",
+      "default": true
+    },
+    "max_freq": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Max Allele Frequency",
+      "default": 0.05,
+      "placeholder": "e.g., 0.05"
+    },
+    "min_freq": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Min Allele Frequency",
+      "required": true,
+      "default": 0.01
+    },
+    "max_control_freq": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Max Control Frequency",
+      "required": true,
+      "default": 0.05
+    },
+    "max_popfreq": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Max Population Frequency",
+      "required": true,
+      "default": 0.01
+    },
+    "min_depth": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Min Total Depth",
+      "required": true,
+      "default": 100
+    },
+    "min_alt_reads": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Min Alt Reads",
+      "required": true,
+      "default": 5
+    },
+    "min_cnv_size": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Min CNV Size",
+      "required": true,
+      "default": 1000
+    },
+    "max_cnv_size": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Max CNV Size",
+      "required": true,
+      "default": 50000000
+    },
+    "cnv_loss_cutoff": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Loss CNV Ratio",
+      "required": true,
+      "default": -0.3
+    },
+    "cnv_gain_cutoff": {
+      "data_type": "float",
+      "display_type": "text",
+      "label": "Gain CNV Ratio",
+      "required": true,
+      "default": 0.3
+    },
+    "warn_cov": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Coverage Warning Threshold",
+      "required": true,
+      "default": 20
+    },
+    "error_cov": {
+      "data_type": "int",
+      "display_type": "text",
+      "label": "Coverage Error Threshold",
+      "required": true,
+      "default": 10
+    },
+    "vep_consequences": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "VEP Consequences",
+      "required": true,
+      "default": [
+        "splicing",
+        "stop_gained",
+        "frameshift",
+        "stop_lost",
+        "start_lost",
+        "inframe_indel",
+        "missense",
+        "other_coding"
+      ],
+      "options": [
+        "splicing",
+        "stop_gained",
+        "frameshift",
+        "stop_lost",
+        "start_lost",
+        "inframe_indel",
+        "missense",
+        "other_coding"
+      ]
+    },
+    "cnveffects": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "CNV Effects",
+      "required": true,
+      "default": [
+        "gain",
+        "loss"
+      ],
+      "options": [
+        "gain",
+        "loss"
+      ]
+    },
+    "genelists": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Gene Lists",
+      "required": true,
+      "default": [],
+      "options": []
+    },
+    "analysis_types": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Analysis Types",
+      "required": true,
+      "options": [
+        "SNV",
+        "CNV",
+        "BIOMARKER",
+        "PGX",
+        "TMB",
+        "TRANSLOCATION",
+        "METHYLATION",
+        "QC",
+        "GERMLINE"
+      ],
+      "default": [
+        "SNV"
+      ]
+    },
+    "report_sections": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Report Sections",
+      "required": true,
+      "options": [
+        "SNV",
+        "CNV",
+        "CNV_PROFILE",
+        "BIOMARKER",
+        "PGX",
+        "TMB",
+        "TRANSLOCATION",
+        "METHYLATION",
+        "QC",
+        "GERMLINE"
+      ],
+      "default": [
+        "SNV"
+      ]
+    },
+    "report_header": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Report Header",
+      "required": true,
+      "placeholder": "e.g., Analysrapport, myeloisk genpanel (NGS)"
+    },
+    "report_method": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Report Method",
+      "required": true,
+      "placeholder": "e.g., NGS-/MPS-analys med panelen GMS-myeloid v1.0 (191 gener)"
+    },
+    "report_description": {
+      "data_type": "string",
+      "display_type": "textarea",
+      "label": "Report Description",
+      "required": true,
+      "placeholder": "e.g., DNA har extraherats från insänt prov (vanligtvis färskt benmärgsprov, blodprov samt odlad hudbiopsi) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 191 gener som inkluderas i GMS-myeloid v1.0 sekvenseringspanelen (Tabell 1). Analysen kan även innefatta regioner över utvalda SNPs som möjliggör en lågupplöst detektion av stora (>10 Mb) genomiska obalanser såsom -5 eller del(5q), -7 samt -17/del(17p).<br><p> Analysen avser somatiska detektion av varianter i samtliga 191 gener (en korresponderande hudbiopsi används som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter. Vid avsaknad av kontrollmaterial undersöks endast ett begränsat antal gener enligt fördefinierade genlistor för AML (NPM1, CEBPA, FLT3), MPN (JAK2, CALR, MPL) samt KLL (TP53, NOTCH1, SF3B1). Analysen avser detektion av SNVs som förändrar aminosyrasekvensen i exon samt i regioner som påverkar splicing, små insertioner/deletioner (upp till runt 20-50 bp) samt FLT3-ITD. Som krav för godkänd sekvens krävs generellt en medeltäckning på 1000x (1000 läsningar över en position i genomet). Då kraven på godkänd sekvens uppfylls ligger metodens känslighet på en variantallelfrekvens (VAF) på ≥ 3 %. Proverna är sekvenserade på Illumina-instrument. Somatiskt detekterade varianter klassas som Tier I, II, III eller IV enligt riktlinjer för tolkning och rapportering av sekvens varianter inom cancer (Tabell 2). [1] Tier IV varianter rapporteras inte ut.</p>"
+    },
+    "general_report_summary": {
+      "data_type": "string",
+      "display_type": "textarea",
+      "label": "Genral Report Summary",
+      "required": true,
+      "placeholder": "e.g., Something general about the report"
+    },
+    "plots_path": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Plots Path",
+      "required": true,
+      "placeholder": "e.g., /access/myeloid38/plots"
+    },
+    "report_folder": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Report Folder",
+      "required": true,
+      "placeholder": "e.g., myeloid"
+    },
+    "query": {
+      "data_type": "dict",
+      "display_type": "jsoneditor",
+      "label": "Query Presets",
+      "required": true,
+      "default": {},
+      "placeholder": "e.g., { 'query1': 'value1', 'query2': 'value2'}"
+    },
+    "verification_samples": {
+      "data_type": "dict",
+      "display_type": "jsoneditor",
+      "label": "Verification Metadata",
+      "required": true,
+      "default": {},
+      "placeholder": "e.g., { 'HD829': [133748283, 31022441}"
+    },
+    "created_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Created By",
+      "readonly": true
+    },
+    "created_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Created On",
+      "readonly": true
+    },
+    "updated_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Updated By",
+      "readonly": true
+    },
+    "updated_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Updated On",
+      "readonly": true
+    }
+  },
+  "subschemas": {},
+  "created_on": "2025-06-11T13:14:51.123000",
+  "created_by": "ram.nanduri@skane.se",
+  "updated_on": "2025-06-11T13:14:51.123000",
+  "updated_by": "ram.nanduri@skane.se"
+}
