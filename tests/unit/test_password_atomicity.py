@@ -40,14 +40,14 @@ def test_reset_token_can_replace_password_only_once():
     assert document["must_change_password"] is False
 
 
-@pytest.mark.parametrize("previous", [None, datetime(2025, 1, 1, tzinfo=timezone.utc)])
+@pytest.mark.parametrize("previous", [None, "old-credential-fingerprint"])
 def test_password_change_revokes_sessions_and_allows_fresh_login(previous):
     collection = mongomock.MongoClient().test.sessions
-    user = SimpleNamespace(username="synthetic", password_updated_on=previous)
+    user = SimpleNamespace(username="synthetic", credential_version=previous)
     repository = MongoApiSessionRepository(collection, user_loader=lambda _: user, ttl_seconds=60)
     session = repository.create(user)
     assert repository.get(session.token) is not None
-    user.password_updated_on = datetime.now(timezone.utc)
+    user.credential_version = "new-credential-fingerprint"
     assert repository.get(session.token) is None
     fresh = repository.create(user)
     assert repository.get(fresh.token) is not None

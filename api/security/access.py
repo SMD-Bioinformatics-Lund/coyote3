@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from datetime import datetime
+from hashlib import sha256
 
 from fastapi import HTTPException, Request
 
@@ -82,7 +82,7 @@ class ApiUser:
     asp_map: dict
     auth_type: list[str]
     must_change_password: bool = False
-    password_updated_on: datetime | None = None
+    credential_version: str | None = field(default=None, repr=False)
     firstname: str = ""
     lastname: str = ""
     job_title: str = ""
@@ -294,7 +294,7 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
             getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
         ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
-        password_updated_on=user_doc.get("password_updated_on"),
+        credential_version=sha256(str(user_doc.get("password") or "").encode()).hexdigest(),
         ui_settings={
             "analysis_layout": "classic",
             "sample_list_layout": "classic",

@@ -176,6 +176,9 @@ response sets the session cookie for that browser origin.
 Password reset tokens are consumed atomically with the password update. A token
 can change the password only once. Changing a password invalidates sessions
 created against an earlier credential state; sign in again after the change.
+Sessions are bound to a fingerprint of the stored password hash, not a timestamp.
+The fingerprint is internal session metadata and is excluded from user responses.
+Sessions without this binding must sign in again when the protection is deployed.
 An account marked `must_change_password` can read its identity/session, change
 its password, and log out, but cannot access protected clinical or administrative
 operations, including when it has the superuser role.
