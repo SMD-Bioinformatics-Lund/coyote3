@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from api.app.documentation import API_DESCRIPTION, register_api_documentation
 from api.app.http import api_error, get_formatted_assay_config
 from api.app.lifecycle import create_lifespan, register_route_modules
 from api.app.middleware import build_authentication_middleware, build_security_headers_middleware
@@ -13,6 +16,7 @@ from api.app.openapi import apply_openapi_security_schema
 from api.app.runtime_state import app as runtime_app
 from api.config import configure_process_env, get_runtime_mode_flags
 from api.config.runtime_settings import DefaultConfig
+from api.config.security import get_runtime_environment
 from api.contracts.http import ApiValidationIssue
 from api.domain.core.exceptions import AppError
 from api.interfaces.http.registry import ROUTERS, auth_http_exception_handler
@@ -128,18 +132,34 @@ def create_api_app() -> FastAPI:
     configure_process_env()
     mode_flags = get_runtime_mode_flags()
     script_name = _script_name()
+    default_environment = (
+        "test"
+        if mode_flags["testing"]
+        else "development"
+        if mode_flags["development"]
+        else "production"
+    )
+    environment = get_runtime_environment({"ENV_NAME": os.getenv("ENV_NAME", default_environment)})
+    description = API_DESCRIPTION
+    if environment not in {"production", "prod"}:
+        description = (
+            f"> **WARNING: {environment.upper()} environment.** "
+            "Not for production clinical use.\n\n" + description
+        )
 
     from api import version
 
     app = FastAPI(
         title="Coyote3 API",
+        description=description,
         version=version.__version__,
         root_path=script_name,
         root_path_in_servers=bool(script_name),
-        docs_url="/api/v1/docs",
-        redoc_url="/api/v1/redoc",
+        docs_url=None,
+        redoc_url=None,
         openapi_url="/api/v1/openapi.json",
         openapi_tags=OPENAPI_TAGS,
+        servers=[{"url": script_name or "/"}],
         lifespan=create_lifespan(
             testing=mode_flags["testing"],
             development=mode_flags["development"],
@@ -158,6 +178,7 @@ def create_api_app() -> FastAPI:
     app.middleware("http")(build_security_headers_middleware())
     app.add_exception_handler(Exception, unhandled_exception_handler)
     app.openapi = lambda: apply_openapi_security_schema(app)
+    register_api_documentation(app, environment=environment)
     for registration in ROUTERS:
         app.include_router(
             registration.router,

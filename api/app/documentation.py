@@ -1,0 +1,89 @@
+"""Branded documentation views for the canonical OpenAPI contract."""
+
+from base64 import b64encode
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from starlette.responses import HTMLResponse
+
+API_DESCRIPTION = """Coyote3 is a clinical genomics application for reviewing sample
+findings, recording interpretations and preparing reports. The API provides access
+to the sample data, annotations and assay configuration used in the application.
+
+## Working with Coyote3
+
+Start with a sample to review its small variants, copy-number changes, fusions,
+biomarkers and coverage. Finding endpoints provide the annotations and knowledgebase
+evidence used during review. Reporting endpoints let you preview the report before
+creating a saved report with its finding snapshots.
+
+For assay setup, use the administration endpoints for panels (ASP), analysis
+configuration (ASPC) and gene lists (ISGL). Clinical reporting rules have their own
+draft, review and publication workflow. The API applies the same permissions and
+sample access checks as the Coyote3 interface.
+
+## Authentication
+
+| Client | Sign in with | When changing data |
+| --- | --- | --- |
+| Browser | Your Coyote3 session cookie | Send the session's `X-CSRF-Token`. |
+| Script or integration | `Authorization: Bearer <session-token>` | No CSRF header is needed with a bearer token. |
+| Public assay catalog | No sign-in required | Editing the catalog requires an account with the appropriate permissions. |
+
+Sign in through the **Authentication** endpoints using a login provider enabled
+by your center. Browser cookies and bearer tokens use the same session. The token
+is opaque, not a JWT; treat it like a password.
+
+## Requests and errors
+
+- Use the same application URL prefix as your Coyote3 installation.
+- Check the operation's parameters for filters and pagination. A missing
+  measurement is not the same as zero.
+- `401`: sign in again. `403`: check your access and, for cookie-based changes,
+  your CSRF token. `422`: correct the fields listed in the response.
+- Errors include `status`, `error` and `details`. Include the response's
+  `X-Request-ID` when asking your support team to investigate a failed request.
+
+## Testing safely
+
+The API explorer connects to this Coyote3 installation. Saving a comment, changing
+a tier or creating a report here changes the same records you see in the application.
+Use a non-production environment and synthetic samples when testing. Keep patient
+data and session tokens out of shared examples, tickets and screenshots.
+"""
+
+_TEMPLATES = Path(__file__).with_name("templates")
+_ENVIRONMENT = Environment(
+    loader=FileSystemLoader(_TEMPLATES), autoescape=select_autoescape(["html", "xml"])
+)
+
+
+def register_api_documentation(app: FastAPI, *, environment: str) -> None:
+    """Serve reference and explorer pages without adding operations to the schema."""
+    template = _ENVIRONMENT.get_template("api_reference.html")
+    logo = "data:image/png;base64," + b64encode((_TEMPLATES / "logo.png").read_bytes()).decode()
+
+    def render(request: Request, view: str) -> HTMLResponse:
+        prefix = request.scope.get("root_path", "").rstrip("/")
+        return HTMLResponse(
+            template.render(
+                view=view,
+                version=app.version,
+                environment=environment,
+                nonproduction=environment not in {"production", "prod"},
+                prefix=prefix,
+                schema_url=f"{prefix}{app.openapi_url}",
+                logo=logo,
+            ),
+            headers={"Cache-Control": "no-store"},
+        )
+
+    async def reference(request: Request) -> HTMLResponse:
+        return render(request, "reference")
+
+    async def explorer(request: Request) -> HTMLResponse:
+        return render(request, "explorer")
+
+    app.add_route("/api/v1/redoc", reference, methods=["GET"], include_in_schema=False)
+    app.add_route("/api/v1/docs", explorer, methods=["GET"], include_in_schema=False)

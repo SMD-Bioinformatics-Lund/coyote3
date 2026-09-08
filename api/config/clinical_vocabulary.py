@@ -49,6 +49,7 @@ class ClinicalVocabulary:
     genelist_standard_types: tuple[str, ...]
     genelist_adhoc_types: tuple[str, ...]
     required_aspc_reporting_fields: tuple[str, ...]
+    annotation_tumor_types: dict[str, str]
     transcript_selection_order: tuple[str, ...]
     fusion_callers: tuple[str, ...]
     fusion_description_important_terms: tuple[str, ...]
@@ -338,6 +339,13 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     required_aspc_reporting_fields = _identifier_tuple(
         reporting.get("required_aspc_fields"), key="reporting.required_aspc_fields"
     )
+    annotation_tumor_types = reporting.get("annotation_tumor_types")
+    if not isinstance(annotation_tumor_types, dict) or any(
+        not isinstance(value, str) or not value.strip() for value in annotation_tumor_types.values()
+    ):
+        raise RuntimeError(
+            "reporting.annotation_tumor_types must map assay groups to non-empty text"
+        )
     transcript_selection_order = _identifier_tuple(
         reporting.get("transcript_selection_order"),
         key="reporting.transcript_selection_order",
@@ -393,6 +401,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         genelist_standard_types=genelist_standard_types,
         genelist_adhoc_types=genelist_adhoc_types,
         required_aspc_reporting_fields=required_aspc_reporting_fields,
+        annotation_tumor_types=dict(annotation_tumor_types),
         transcript_selection_order=transcript_selection_order,
         fusion_callers=fusion_callers,
         fusion_description_important_terms=fusion_description_important_terms,

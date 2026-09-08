@@ -272,7 +272,12 @@ def preview_report(
     save: bool = Query(default=False),
     user: ApiUser = Depends(require_access(permission="report:preview")),
 ):
-    """Render a report preview for a sample."""
+    """Render report HTML and its review context for an accessible sample.
+
+    Requires `report:preview`. `include_snapshot` includes finding snapshot rows.
+    The `save` flag selects rendering context; it does not create a saved report.
+    Use the separate create-report operation to persist a report.
+    """
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs(report_type, sample, assay_config)
 
@@ -314,7 +319,11 @@ def preview_report_pdf(
     include_snapshot: bool = Query(default=True),
     user: ApiUser = Depends(require_access(permission="report:preview")),
 ):
-    """Render the current temporary report preview as a PDF download."""
+    """Download the current report preview as an application/pdf attachment.
+
+    Requires `report:preview` and sample access. The PDF is generated from the
+    current review state and is not a persisted report artifact.
+    """
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs(report_type, sample, assay_config)
     template_name, template_context, snapshot_rows = _build_preview_report(
@@ -350,7 +359,12 @@ def save_report(
     report_type: ReportAnalyte,
     user: ApiUser = Depends(require_access(permission="report:create")),
 ):
-    """Persist a rendered sample report."""
+    """Create a saved report from the current sample review state.
+
+    Requires `report:create` and sample access. Persists the report record,
+    rendered artifacts and finding snapshots. The returned payload identifies
+    the created report; preview the report before submitting this operation.
+    """
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs(report_type, sample, assay_config)
 

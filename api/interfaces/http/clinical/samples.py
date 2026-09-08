@@ -61,7 +61,6 @@ def list_samples_read(
     search_mode: str = "live",
     live_sort: str = Query(default=""),
     reported_sort: str = Query(default=""),
-    sample_view: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     live_page: int = Query(default=1, ge=1),
@@ -78,7 +77,6 @@ def list_samples_read(
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return the sample catalog for the current user."""
-    _ = sample_view
     live_per_page = live_per_page or per_page
     done_per_page = done_per_page or per_page
     if added_from and added_until and added_until <= added_from:

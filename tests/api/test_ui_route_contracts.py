@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 
 from api.app.main import app
 
@@ -42,8 +42,8 @@ def _path_shape(path: str) -> str:
 
 def _api_route_shapes() -> set[tuple[str, str]]:
     shapes: set[tuple[str, str]] = set()
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
+    for route in iter_route_contexts(app.routes):
+        if not isinstance(route.original_route, APIRoute):
             continue
         if not route.path.startswith("/api/v1/"):
             continue

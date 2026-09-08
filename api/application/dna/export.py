@@ -129,7 +129,7 @@ def build_snv_export_rows(variants: list[dict[str, Any]]) -> list[DnaSnvExportRo
                     f"{100 * float(gt.get('AF', 0)):0.1f}% "
                     f"({int(gt.get('VD', 0))} / {int(gt.get('DP', 0))})"
                 )
-            except Exception:
+            except (ValueError, TypeError, OverflowError):
                 gt_text = safe_text(gt)
             if gt.get("type") == "case":
                 case_gt.append(gt_text)
@@ -228,7 +228,7 @@ def build_cnv_export_rows(
                     purity_cn_value = safe_text(round((2 * (2**ratio_num)) * 1 / purity_float, 2))
                 else:
                     purity_cn_value = safe_text(round((2 * (2**ratio_num)) * purity_float, 2))
-        except Exception:
+        except (ValueError, TypeError, OverflowError, ZeroDivisionError):
             copy_number_value = safe_text(ratio)
 
         ref_alt_reads = safe_text(cnv.get("SR") or cnv.get("sr") or cnv.get("PR") or "-")
@@ -253,7 +253,7 @@ def build_cnv_export_rows(
                     artefact_items.append(f"{label}:{percent}% ({count_value})")
                 else:
                     artefact_items.append(f"{label}:{percent}%")
-            except Exception:
+            except (ValueError, TypeError, OverflowError):
                 continue
 
         row = DnaCnvExportRow(

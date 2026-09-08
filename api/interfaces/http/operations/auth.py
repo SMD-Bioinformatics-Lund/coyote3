@@ -70,20 +70,15 @@ def _available_auth_providers() -> list[str]:
     return list(AUTH_TYPE_OPTIONS)
 
 
-@router.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
+@router.get(
+    "/api/v1/auth/whoami", response_model=WhoamiPayload, summary="Get your current user and access"
+)
 def whoami(request: Request, user: ApiUser = Depends(require_access())):
-    """Retrieve the current authenticated user's identity payload.
+    """Check which Coyote3 account is signed in and what access it has.
 
-    Provides the active session's identity context, including username, assigned role,
-    access level, and effective role-granted permissions. This
-    endpoint is used by the client application to initialize user-specific contexts
-    and enforce role-based UI boundaries.
-
-    Args:
-        user (ApiUser): The authenticated API user automatically resolved from the session context.
-
-    Returns:
-        WhoamiPayload: A structured payload containing the current user's identity and permission metadata.
+    Returns your name, roles, permissions, interface settings and session CSRF token.
+    Use the CSRF token when making changes with a browser session cookie. The
+    response describes the current session; it does not change your account.
     """
     return {
         "username": user.username,

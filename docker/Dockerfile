@@ -1,6 +1,6 @@
-FROM python:3.12-slim-bookworm AS coyote3_runtime_base
+FROM python:3.14.7-slim-bookworm AS coyote3_runtime_base
 
-LABEL base_image="python:3.12-slim"
+LABEL base_image="python:3.14.7-slim-bookworm"
 LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
 
 WORKDIR /app
@@ -24,7 +24,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpangoft2-1.0-0 fonts-dejavu-core && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --gid "${COYOTE3_GID}" coyote3 && \
     useradd --uid "${COYOTE3_UID}" --gid coyote3 --create-home coyote3 && \
@@ -41,4 +45,4 @@ COPY --chown=coyote3:coyote3 CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./
 
 USER coyote3:coyote3
 
-CMD python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers 1
+CMD ["python3", "-m", "uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
+from api.interfaces.http.tags import OPENAPI_TAG_GROUPS
 from api.security.access import get_api_session_cookie_name, is_public_api_path
 
 _PROTECTED_OPENAPI_EXACT = {
@@ -29,21 +30,25 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
     schema = get_openapi(
         title=app.title,
         version=app.version,
-        description="Coyote3 API",
+        description=app.description,
         routes=app.routes,
         tags=app.openapi_tags,
+        servers=app.servers,
     )
+    schema["x-tagGroups"] = OPENAPI_TAG_GROUPS
     components = schema.setdefault("components", {})
     security_schemes = components.setdefault("securitySchemes", {})
     security_schemes["ApiSessionCookie"] = {
         "type": "apiKey",
         "in": "cookie",
         "name": get_api_session_cookie_name(),
+        "description": "Browser-managed session cookie. Mutations require X-CSRF-Token.",
     }
     security_schemes["BearerAuth"] = {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "opaque",
+        "description": "Opaque API session token. Access is limited by the user's permissions.",
     }
 
     for path, operations in schema.get("paths", {}).items():

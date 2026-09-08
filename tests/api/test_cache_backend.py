@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 import pytest
+from bson import ObjectId
 
 from api.infra.cache import DisabledCacheBackend, RedisCacheBackend, create_cache_backend
 
@@ -209,3 +211,41 @@ def test_disabled_cache_rejects_distributed_counters():
     """Rate limiting must fail closed when no distributed backend exists."""
     with pytest.raises(RuntimeError, match="Redis is required"):
         DisabledCacheBackend().increment_window("quota", window_seconds=60)
+
+
+def test_cache_extended_json_preserves_mongo_values_and_rejects_pickle():
+    fake = _FakeRedis()
+    backend = RedisCacheBackend(
+        client=fake, key_prefix="test", default_timeout=60, logger=logging.getLogger("test.cache")
+    )
+    value = {
+        "_id": ObjectId(),
+        "created": datetime(2026, 1, 1),
+        "missing": None,
+        "items": [0, False, "text"],
+    }
+    assert backend.set("document", value)
+    assert backend.get("document") == value
+    assert fake._values["test:document"].startswith(b"{")
+    fake._values["test:old"] = b"\x80\x04N."
+    assert backend.get("old") is None
+    fake._values["test:broken"] = b"{invalid"
+    assert backend.get("broken") is None
+
+
+def test_cache_connection_logs_do_not_expose_credentials(monkeypatch, caplog):
+    def fail(*args, **kwargs):
+        raise RuntimeError("redis://:private-password@cache:6379/0")
+
+    monkeypatch.setattr("api.infra.cache.redis.Redis.from_url", fail)
+    with caplog.at_level(logging.WARNING):
+        create_cache_backend(
+            config={
+                "CACHE_REQUIRED": False,
+                "CACHE_REDIS_URL": "redis://:private-password@cache:6379/0",
+            },
+            logger=logging.getLogger("test.cache"),
+            namespace="test",
+        )
+    assert "private-password" not in caplog.text
+    assert "RuntimeError" in caplog.text

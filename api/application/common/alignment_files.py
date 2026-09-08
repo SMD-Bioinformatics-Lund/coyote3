@@ -1,9 +1,12 @@
 """Resolve alignment filenames using ASP folders or the BAM catalog."""
 
+import logging
 from collections.abc import Callable
 from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit
+
+logger = logging.getLogger(__name__)
 
 
 def _filename(value: Any) -> str:
@@ -44,6 +47,8 @@ def alignment_files_payload(
             if bai:
                 indexes[path] = str(folder / bai)
             continue
+        if bai and not bam and len(catalog.get(sample_id) or []) > 1:
+            logger.warning("igv_index_ambiguous role=%s; explicit BAM filename required", role)
         for catalog_path in catalog.get(sample_id) or []:
             original = PurePosixPath(catalog_path.replace("\\", "/"))
             path = str(original.with_name(bam)) if bam else str(original)

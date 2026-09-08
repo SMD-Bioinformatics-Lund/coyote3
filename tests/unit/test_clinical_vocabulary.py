@@ -146,6 +146,7 @@ adhoc_types = ["adhoc_snv"]
 
 [reporting]
 required_aspc_fields = ["report_header"]
+annotation_tumor_types = { hematology = "hematologic" }
 transcript_selection_order = [
   "ncbi_mane_plus_clinical",
   "ensembl_mane_plus_clinical",

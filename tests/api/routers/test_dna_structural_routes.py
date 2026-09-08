@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fastapi.routing import iter_route_contexts
+
 from api.app.main import app as api_app
 
 
@@ -11,7 +13,7 @@ def test_restful_dna_structural_mutation_routes_are_registered():
     Returns:
         The function result.
     """
-    paths = {route.path for route in api_app.routes}
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/samples/{sample_id}/cnvs/exports/context" in paths
     assert "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting" in paths
     assert "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive" in paths

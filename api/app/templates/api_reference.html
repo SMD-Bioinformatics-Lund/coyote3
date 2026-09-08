@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="same-origin">
+  <title>Coyote3 API {{ 'Reference' if view == 'reference' else 'Explorer' }}</title>
+  <link rel="icon" href="{{ logo }}">
+  {% if view == 'explorer' %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui.css">
+  {% endif %}
+  <style>{% include 'api_reference.css' %}</style>
+</head>
+<body>
+  <a class="skip-link" href="#api-content">Skip to API documentation</a>
+  <header class="portal-header">
+    <div class="portal-brand">
+      <a class="brand" href="{{ prefix }}/"><img src="{{ logo }}" alt="" width="40" height="30">Coyote3</a>
+      <span class="product-label">API documentation</span>
+    </div>
+    <nav class="portal-links" aria-label="Resources">
+      <a href="{{ prefix }}/docs-site/">Coyote3 guides</a>
+      <a href="{{ schema_url }}" download="coyote3-openapi.json">OpenAPI JSON <span aria-hidden="true">&#8595;</span></a>
+    </nav>
+  </header>
+  {% if nonproduction %}
+  <div class="environment-warning" role="status"><strong>{{ environment | upper }}</strong> environment. Not for production clinical use.</div>
+  {% endif %}
+  <section class="portal-heading" aria-labelledby="page-title">
+    <div>
+      <div class="heading-title"><h1 id="page-title">Coyote3 API</h1><span class="badge">v{{ version }}</span><span class="badge">API v1</span><span class="badge">{{ environment | capitalize }}</span></div>
+      <p>Review findings, record interpretations and prepare sample reports.</p>
+    </div>
+    <nav class="view-tabs" aria-label="API documentation views">
+      <a href="{{ prefix }}/api/v1/redoc" {% if view == 'reference' %}aria-current="page"{% endif %}>Reference</a>
+      <a href="{{ prefix }}/api/v1/docs" {% if view == 'explorer' %}aria-current="page"{% endif %}>API explorer</a>
+    </nav>
+  </section>
+  {% if view == 'explorer' %}
+  <aside class="request-notice"><span class="badge access-badge">Connected to Coyote3</span> Requests here use the same records as the application. Changes are not a simulation.</aside>
+  <details class="session-settings">
+    <summary>Using your browser session</summary>
+    <label for="csrf-token">Session CSRF token</label>
+    <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
+    <p id="csrf-help">Enter the CSRF token returned at sign-in to make changes using your session cookie. It stays in this page and is cleared on reload. For a bearer token, use Authorize.</p>
+  </details>
+  {% endif %}
+  <main id="api-content" tabindex="-1">
+    <div id="docs-loading" role="status">Loading API {{ view }}...</div>
+    <div id="docs-error" role="alert" hidden>The API documentation could not load. Reload this page or <a href="{{ schema_url }}">open the OpenAPI schema</a>.</div>
+    <div id="api-renderer"></div>
+    <noscript>JavaScript is required for the interactive reference. <a href="{{ schema_url }}">Open the OpenAPI schema</a>.</noscript>
+  </main>
+  <script>
+    const schemaUrl = {{ schema_url | tojson }};
+    const view = {{ view | tojson }};
+    {% include 'api_reference.js' %}
+  </script>
+</body>
+</html>

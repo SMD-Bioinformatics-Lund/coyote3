@@ -94,6 +94,7 @@ def search_clinical_rule_test_samples(
 @router.post(
     "/versions/{document_id}/test-samples/{sample_id}/preview",
     response_model=ClinicalRuleSamplePreviewPayload,
+    summary="Test a rule-set version against a sample",
 )
 def preview_clinical_rule_with_sample(
     document_id: str,
@@ -102,6 +103,12 @@ def preview_clinical_rule_with_sample(
     user: ApiUser = Depends(require_access(permission="clinical_rules:test")),
     service: ClinicalRuleTestingService = Depends(get_clinical_rule_testing_service),
 ):
+    """Evaluate report rules with live sample context without modifying the sample.
+
+    Requires `clinical_rules:test` and access to the selected sample. Enable
+    `include_condition_trace` to inspect how individual conditions were evaluated.
+    The result is a testing preview, not a saved clinical report.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return _serializable(
         service.preview(
@@ -171,6 +178,11 @@ def create_rule_set_draft(
     user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Create an editable rule-set draft for subsequent validation and review.
+
+    Requires `clinical_rules:draft`. Creating a draft does not publish its wording
+    or replace the currently published rule-set version.
+    """
     return _serializable(service.create_draft(payload, actor=user.username))
 
 

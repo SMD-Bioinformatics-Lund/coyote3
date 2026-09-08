@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 
 from api.app.main import app
 from api.interfaces.http.registry import ROUTERS
@@ -22,8 +22,8 @@ def test_api_routes_use_only_registered_openapi_tags():
     """Route modules should not introduce ad-hoc OpenAPI tag names."""
     allowed = set(OPENAPI_TAG_NAMES)
     unexpected: list[str] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
+    for route in iter_route_contexts(app.routes):
+        if not isinstance(route.original_route, APIRoute):
             continue
         if not route.path.startswith("/api/v1/") or not route.include_in_schema:
             continue
@@ -57,7 +57,7 @@ def test_hidden_routers_remain_registered_at_runtime():
         if not registration.include_in_schema
         for route in registration.router.routes
     }
-    runtime_paths = {getattr(route, "path", "") for route in app.router.routes}
+    runtime_paths = {getattr(route, "path", "") for route in iter_route_contexts(app.router.routes)}
 
     assert "/api/v1/health" in hidden_paths
     assert "/api/v1/internal/metrics" in hidden_paths

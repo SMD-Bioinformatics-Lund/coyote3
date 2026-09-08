@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from fastapi.routing import iter_route_contexts
 from starlette.requests import Request
 
 from api.app.container import store
@@ -792,7 +793,7 @@ def test_bulk_flag_routes_use_non_colliding_paths():
     Returns:
         The function result.
     """
-    paths = {route.path for route in api_app.routes}
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/samples/{sample_id}/small-variants/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant" in paths
     assert "/api/v1/samples/{sample_id}/classifications/tier" in paths

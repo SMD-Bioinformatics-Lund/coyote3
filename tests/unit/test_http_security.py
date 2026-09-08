@@ -16,6 +16,7 @@ def _request(
     *,
     method: str = "GET",
     path: str = "/api/v1/samples",
+    root_path: str = "",
     headers: list[tuple[bytes, bytes]] | None = None,
 ) -> Request:
     return Request(
@@ -24,6 +25,7 @@ def _request(
             "method": method,
             "scheme": "https",
             "path": path,
+            "root_path": root_path,
             "raw_path": path.encode(),
             "query_string": b"",
             "headers": headers or [],
@@ -49,17 +51,36 @@ async def test_security_headers_cover_browser_and_swagger_assets():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/api/v1/docs", "/api/v1/redoc"])
-async def test_openapi_ui_security_policy_allows_its_inline_bootstrap(path: str):
+@pytest.mark.parametrize("root_path", ["", "/center"])
+async def test_openapi_ui_security_policy_allows_its_inline_bootstrap(path: str, root_path: str):
     middleware = build_security_headers_middleware()
 
     async def downstream(_request: Request) -> Response:
         return Response()
 
-    response = await middleware(_request(path=path), downstream)
+    response = await middleware(
+        _request(path=f"{root_path}{path}", root_path=root_path), downstream
+    )
 
     policy = response.headers["Content-Security-Policy"]
     assert "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net" in policy
     assert "font-src 'self' data: https://cdn.jsdelivr.net" in policy
+    assert "worker-src 'self' blob:" in policy
+
+
+@pytest.mark.asyncio
+async def test_mounted_api_routes_keep_the_strict_security_policy():
+    middleware = build_security_headers_middleware()
+
+    async def downstream(_request: Request) -> Response:
+        return Response()
+
+    response = await middleware(
+        _request(path="/center/api/v1/samples", root_path="/center"), downstream
+    )
+    policy = response.headers["Content-Security-Policy"]
+    assert "script-src 'self' 'unsafe-inline'" not in policy
+    assert "worker-src 'self' blob:" not in policy
 
 
 def test_csrf_accepts_bearer_and_matches_cookie_session(monkeypatch: pytest.MonkeyPatch):

@@ -64,7 +64,8 @@ _OPENAPI_UI_CONTENT_SECURITY_POLICY = (
     "form-action 'self'; img-src 'self' data: blob: https:; "
     "font-src 'self' data: https://cdn.jsdelivr.net; "
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'"
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "worker-src 'self' blob:; connect-src 'self'"
 )
 _OPENAPI_UI_PATHS = frozenset({"/api/v1/docs", "/api/v1/redoc"})
 
@@ -317,9 +318,10 @@ def build_security_headers_middleware():
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()"
         )
+        route_path = request.url.path.removeprefix(request.scope.get("root_path", "").rstrip("/"))
         content_security_policy = (
             _OPENAPI_UI_CONTENT_SECURITY_POLICY
-            if request.url.path in _OPENAPI_UI_PATHS
+            if route_path in _OPENAPI_UI_PATHS
             else _API_CONTENT_SECURITY_POLICY
         )
         response.headers.setdefault("Content-Security-Policy", content_security_policy)

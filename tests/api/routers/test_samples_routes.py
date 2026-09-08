@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from fastapi.routing import iter_route_contexts
 from pydantic import ValidationError
 
 from api.app.main import app as api_app
@@ -57,10 +58,92 @@ def test_update_sample_filters_rejects_invalid_filters_payload():
 
 def test_bam_service_lookup_is_sample_scoped():
     """BAM-service lookup should be owned by the clinical sample API."""
-    paths = {route.path for route in api_app.routes}
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
 
     assert "/api/v1/samples/{sample_name}/bam-files" in paths
     assert "/api/v1/knowledgebases/bam-files" not in paths
+
+
+def test_coverage_mutation_rejects_out_of_scope_before_writing():
+    user = SimpleNamespace(is_superuser=False, asp_groups=["allowed"], username="reviewer")
+    with pytest.raises(AppError) as exc:
+        samples.create_coverage_blacklist_entry(
+            payload=samples.CoverageBlacklistUpdateRequest(
+                gene="TP53", smp_grp="other", region="gene"
+            ),
+            user=user,
+            service=SimpleNamespace(),
+        )
+    assert exc.value.status_code == 403
+
+
+def test_coverage_delete_missing_entry_is_not_written():
+    with pytest.raises(AppError) as exc:
+        samples.delete_coverage_blacklist_entry(
+            "missing",
+            user=fx.api_user(),
+            service=SimpleNamespace(get_coverage_blacklist_entry=lambda **kwargs: None),
+        )
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.parametrize("file_type,attachment", [("html", False), ("html", True), ("pdf", True)])
+def test_saved_report_files_are_served_with_correct_disposition(
+    monkeypatch, tmp_path, file_type, attachment
+):
+    path = tmp_path / f"synthetic.{file_type}"
+    path.write_bytes(b"synthetic report")
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda *args: {"name": "synthetic"})
+    context = {"filepath": str(path), "pdf_filepath": str(path)}
+    response = samples._sample_report_file_response(
+        sample_id="synthetic",
+        report_id="r1",
+        user=fx.api_user(),
+        service=SimpleNamespace(report_context_payload=lambda **kwargs: context),
+        as_attachment=attachment,
+        file_type=file_type,
+    )
+    assert response.media_type == ("application/pdf" if file_type == "pdf" else "text/html")
+    if attachment:
+        assert "attachment" in response.headers["content-disposition"]
+    else:
+        assert response.body == b"synthetic report"
+
+
+@pytest.mark.parametrize("missing_path", [True, False])
+def test_missing_saved_report_files_return_not_found(monkeypatch, tmp_path, missing_path):
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda *args: {"name": "synthetic"})
+    context = {} if missing_path else {"filepath": str(tmp_path / "absent.html")}
+    with pytest.raises(AppError) as exc:
+        samples._sample_report_file_response(
+            sample_id="synthetic",
+            report_id="r1",
+            user=fx.api_user(),
+            service=SimpleNamespace(report_context_payload=lambda **kwargs: context),
+            as_attachment=False,
+        )
+    assert exc.value.status_code == 404
+
+
+def test_plot_file_resolution_rejects_symlink_escape(tmp_path):
+    base = tmp_path / "plots"
+    base.mkdir()
+    private = tmp_path / "outside.txt"
+    private.write_text("synthetic", encoding="utf-8")
+    (base / "plot.txt").symlink_to(private)
+    with pytest.raises(AppError) as exc:
+        samples._safe_file_under(str(base), "plot.txt")
+    assert exc.value.status_code == 400
+
+
+def test_plot_file_resolution_requires_existing_configured_file(tmp_path):
+    for base in (None, str(tmp_path)):
+        with pytest.raises(AppError) as exc:
+            samples._safe_file_under(base, "absent.txt")
+        assert exc.value.status_code == 404
+    file = tmp_path / "plot.txt"
+    file.write_text("synthetic", encoding="utf-8")
+    assert samples._safe_file_under(str(tmp_path), "plot.txt") == file
 
 
 def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):

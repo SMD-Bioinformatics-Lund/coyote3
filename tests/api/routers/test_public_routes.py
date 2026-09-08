@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from api.domain.core.exceptions import AppError
@@ -97,3 +99,58 @@ def test_public_assay_catalog_context_missing_catalog_raises_404(monkeypatch):
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Catalog not found"
+
+
+def test_catalog_matrix_passes_pagination_and_gene_filter(monkeypatch):
+    calls = {}
+
+    def matrix(**kwargs):
+        calls.update(kwargs)
+        return {"genes": []}
+
+    monkeypatch.setattr(
+        public,
+        "get_public_catalog_service",
+        lambda: SimpleNamespace(assay_catalog_matrix_payload=matrix),
+    )
+    assert public.public_assay_catalog_matrix_context_read(page=2, per_page=20, gene="TP53") == {
+        "genes": []
+    }
+    assert calls == {"page": 2, "per_page": 20, "gene": "TP53"}
+
+
+@pytest.mark.parametrize("category", [None, "solid"])
+def test_catalog_csv_exports_selected_genes(monkeypatch, category):
+    service = SimpleNamespace(
+        normalize_mod=lambda mod: mod,
+        hydrate_modality=lambda mod: {"asp_id": "panel"},
+        hydrate_category=lambda *args, **kwargs: {"asp_id": "panel"},
+        resolve_gene_table=lambda *args: (
+            "asp",
+            [{"hgnc_id": "HGNC:11998", "symbol": "TP53", "gene_type": ["protein-coding"]}],
+            {},
+        ),
+    )
+    monkeypatch.setattr(public, "get_public_catalog_service", lambda: service)
+    payload = public.public_assay_catalog_genes_csv_context_read("wgs", cat=category)
+    assert "HGNC:11998,TP53" in payload["content"]
+    assert payload["filename"].endswith(".genes.csv")
+
+
+@pytest.mark.parametrize(
+    "valid_mod,category,error",
+    [(False, None, "Modality not found"), (True, "missing", "Category not found")],
+)
+def test_catalog_csv_rejects_unknown_selection(monkeypatch, valid_mod, category, error):
+    monkeypatch.setattr(
+        public,
+        "get_public_catalog_service",
+        lambda: SimpleNamespace(
+            normalize_mod=lambda mod: mod if valid_mod else None,
+            hydrate_category=lambda *args, **kwargs: None,
+        ),
+    )
+    with pytest.raises(AppError) as exc:
+        public.public_assay_catalog_genes_csv_context_read("wgs", cat=category)
+    assert exc.value.status_code == 404
+    assert exc.value.detail["error"] == error

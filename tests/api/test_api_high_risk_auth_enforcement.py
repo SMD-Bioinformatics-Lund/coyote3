@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
+from fastapi.routing import iter_route_contexts
 from starlette.requests import Request
 
 from api.app.main import app
@@ -35,7 +36,7 @@ def _resolve_access_dependency(method: str, path: str):
     route = next(
         (
             entry
-            for entry in app.router.routes
+            for entry in iter_route_contexts(app.router.routes)
             if getattr(entry, "path", "") == path and method in getattr(entry, "methods", set())
         ),
         None,

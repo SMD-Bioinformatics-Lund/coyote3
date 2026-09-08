@@ -69,6 +69,11 @@ transcript_selection_order = [
   "first_available",
 ]
 
+[reporting.annotation_tumor_types]
+hematology = "hematologiska"
+myeloid = "hematologiska"
+solid = "solida"
+
 [files.dna]
 keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
 

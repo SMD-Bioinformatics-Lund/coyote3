@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 
 from api.app.main import app
 
@@ -40,7 +40,11 @@ def _declared_page_api_contracts() -> list[tuple[str, str]]:
 
 def test_each_literal_page_api_contract_has_a_backend_route() -> None:
     """Prevent UI registry entries from drifting away from documented FastAPI routes."""
-    api_routes = [route for route in app.routes if isinstance(route, APIRoute)]
+    api_routes = [
+        route
+        for route in iter_route_contexts(app.routes)
+        if isinstance(route.original_route, APIRoute)
+    ]
     missing: list[str] = []
 
     for method, ui_path in _declared_page_api_contracts():

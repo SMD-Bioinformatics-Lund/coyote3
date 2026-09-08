@@ -106,7 +106,37 @@ OPENAPI_TAGS = [
 
 OPENAPI_TAG_NAMES = tuple(tag["name"] for tag in OPENAPI_TAGS)
 
+OPENAPI_TAG_GROUPS = [
+    {"name": "Access & discovery", "tags": [TAG_AUTH, TAG_PUBLIC]},
+    {
+        "name": "Clinical review",
+        "tags": [
+            TAG_CLINICAL_SAMPLES,
+            TAG_DNA_VARIANTS,
+            TAG_DNA_CNV,
+            TAG_RNA_FUSIONS,
+            TAG_STRUCTURAL_VARIANTS,
+            TAG_COVERAGE,
+            TAG_BIOMARKERS,
+            TAG_KNOWLEDGEBASE,
+        ],
+    },
+    {"name": "Reporting", "tags": [TAG_REPORTING, TAG_CLINICAL_RULES]},
+    {
+        "name": "Administration & operations",
+        "tags": [
+            TAG_DASHBOARD,
+            TAG_NOTIFICATIONS,
+            TAG_ADMIN_OPERATIONS,
+            TAG_ADMIN_ASSAYS,
+            TAG_ADMIN_USERS,
+            TAG_ADMIN_ACCESS,
+        ],
+    },
+]
+
 __all__ = [
+    "OPENAPI_TAG_GROUPS",
     "OPENAPI_TAGS",
     "OPENAPI_TAG_NAMES",
     "TAG_ADMIN_ACCESS",

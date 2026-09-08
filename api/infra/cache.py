@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-import pickle
 from typing import Any
 
 import redis
+from bson import json_util
 
 from api.config.security import to_bool
 
@@ -35,7 +35,7 @@ class DisabledCacheBackend:
 
 
 class RedisCacheBackend:
-    """Redis-backed cache with pickle payload serialization."""
+    """Redis-backed cache with non-executable MongoDB Extended JSON payloads."""
 
     def __init__(
         self,
@@ -66,7 +66,7 @@ class RedisCacheBackend:
             return None
 
         try:
-            value = pickle.loads(raw)
+            value = json_util.loads(raw)
         except Exception as exc:
             self._logger.warning("cache_deserialize_error key=%s error=%s", cache_key, exc)
             return None
@@ -79,7 +79,7 @@ class RedisCacheBackend:
         ttl = self._default_timeout if timeout is None else int(timeout)
 
         try:
-            payload = pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
+            payload = json_util.dumps(value).encode("utf-8")
             if ttl > 0:
                 self._client.setex(cache_key, ttl, payload)
             else:
@@ -104,7 +104,7 @@ class RedisCacheBackend:
         cache_key = self._key(key)
         ttl = self._default_timeout if timeout is None else int(timeout)
         try:
-            payload = pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
+            payload = json_util.dumps(value).encode("utf-8")
             return bool(self._client.set(cache_key, payload, nx=True, ex=max(ttl, 1)))
         except Exception as exc:
             self._logger.warning("cache_add_error key=%s error=%s", cache_key, exc)
@@ -160,17 +160,16 @@ def create_cache_backend(
     except Exception as exc:
         if cache_required:
             raise RuntimeError(
-                f"cache_backend_unavailable namespace={namespace} redis_url={redis_url}"
+                f"cache_backend_unavailable namespace={namespace} reason=connection_failed"
             ) from exc
         logger.warning(
-            "cache_backend_unavailable namespace=%s redis_url=%s error=%s",
+            "cache_backend_unavailable namespace=%s error_type=%s",
             namespace,
-            redis_url,
-            exc,
+            type(exc).__name__,
         )
         return DisabledCacheBackend(reason="unreachable")
 
-    logger.info("cache_backend_ready namespace=%s redis_url=%s", namespace, redis_url)
+    logger.info("cache_backend_ready namespace=%s", namespace)
     return RedisCacheBackend(
         client=client,
         key_prefix=full_prefix,

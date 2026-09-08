@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from fastapi.routing import iter_route_contexts
 
 from api.app.main import app as api_app
 from api.domain.core.exceptions import AppError
@@ -328,7 +329,7 @@ def test_restful_report_routes_are_registered():
     Returns:
         The function result.
     """
-    paths = {route.path for route in api_app.routes}
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/reports" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf" in paths

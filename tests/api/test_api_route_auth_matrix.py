@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 
 from api.app.main import app
 
@@ -34,8 +34,8 @@ def _iter_api_routes() -> Iterable[tuple[str, str]]:
     Returns:
             The  iter api routes result.
     """
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
+    for route in iter_route_contexts(app.routes):
+        if not isinstance(route.original_route, APIRoute):
             continue
         path = route.path
         if not path.startswith("/api/v1/"):
@@ -65,16 +65,18 @@ def test_protected_routes_fail_closed_without_auth():
         The function result.
     """
     unexpected: list[str] = []
+    routes = list(_iter_api_routes())
+    assert routes, "No API routes discovered for authorization verification"
 
-    for method, route_path in _iter_api_routes():
+    for method, route_path in routes:
         if _is_open(route_path):
             continue
 
         route = next(
             (
                 entry
-                for entry in app.routes
-                if isinstance(entry, APIRoute)
+                for entry in iter_route_contexts(app.routes)
+                if isinstance(entry.original_route, APIRoute)
                 and entry.path == route_path
                 and method in (entry.methods or set())
             ),

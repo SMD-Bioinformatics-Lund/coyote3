@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import casbin
+
+logger = logging.getLogger(__name__)
 
 POLICY_MODEL = """
 [request_definition]
@@ -105,7 +108,8 @@ def _active_permission_ids(permissions_repository: Any | None) -> set[str]:
         return set()
     try:
         docs = permissions_repository.get_all_permissions(is_active=True) or []
-    except Exception:
+    except Exception as exc:
+        logger.error("authorization_permissions_load_failed error_type=%s", type(exc).__name__)
         return set()
     active: set[str] = set()
     for doc in docs:
@@ -122,7 +126,8 @@ def _role_docs_by_id(roles_repository: Any | None) -> dict[str, dict[str, Any]]:
         return {}
     try:
         docs = roles_repository.get_all_roles() or []
-    except Exception:
+    except Exception as exc:
+        logger.error("authorization_roles_load_failed error_type=%s", type(exc).__name__)
         return {}
     roles: dict[str, dict[str, Any]] = {}
     for doc in docs:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
+from fastapi.routing import iter_route_contexts
 
 from api.app.main import app as api_app
 from api.interfaces.http.admin.resources import asp, genelists
@@ -65,7 +66,7 @@ def test_restful_admin_resource_routes_are_registered():
     Returns:
         The function result.
     """
-    paths = {route.path for route in api_app.routes}
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/resources/asp" in paths
     assert "/api/v1/resources/asp/{assay_panel_id}" in paths
     assert "/api/v1/resources/asp/{assay_panel_id}/status" in paths

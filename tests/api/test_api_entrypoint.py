@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fastapi.routing import iter_route_contexts
+
 from api.app.main import app
 
 
@@ -14,7 +16,7 @@ def test_canonical_api_entrypoint_serves_health():
     route = next(
         (
             entry
-            for entry in app.router.routes
+            for entry in iter_route_contexts(app.router.routes)
             if getattr(entry, "path", "") == "/api/v1/health"
             and "GET" in getattr(entry, "methods", set())
         ),

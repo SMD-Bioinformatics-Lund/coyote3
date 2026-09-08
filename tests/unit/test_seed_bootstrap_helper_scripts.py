@@ -563,6 +563,7 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
                 "SECRET_KEY=secret-value",
                 "INTERNAL_API_TOKEN=internal-token",
                 "PASSWORD_TOKEN_SALT=password-salt",
+                "REDIS_PASSWORD=" + "a" * 64,
                 "CORS_ORIGINS=https://coyote3.example.org",
                 "MONGO_URI=mongodb://mongo:27017/coyote3",
                 "AUTHENTICATION_PROVIDERS=local,ldap",

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from api.config.application_metadata import oncokb_gene_url
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.domain.common.reporting import utc_now
 from api.domain.core.annotation_identity import (
     annotation_context_fields,
@@ -29,11 +30,7 @@ def process_gene_annotations(annotations: dict) -> dict:
 def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **kwargs) -> str:
     """Build the established automatic Tier III small-variant annotation."""
     consequence = str(csq[0]).replace("_", " ")
-    tumor_type = ""
-    if assay_group in {"hematology", "myeloid"}:
-        tumor_type = "hematologiska"
-    elif assay_group == "solid":
-        tumor_type = "solida"
+    tumor_type = CLINICAL_VOCABULARY.annotation_tumor_types.get(assay_group, "")
 
     text = (
         f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då "

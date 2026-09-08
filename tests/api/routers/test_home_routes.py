@@ -75,7 +75,6 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     payload = samples.list_samples_read(
         status="live",
         search_mode="both",
-        sample_view=None,
         page=2,
         per_page=1,
         live_page=2,
@@ -140,7 +139,6 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     payload = samples.list_samples_read(
         status="live",
         search_mode="live",
-        sample_view="reported",
         page=1,
         per_page=30,
         live_page=1,
@@ -182,7 +180,6 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
     payload = samples.list_samples_read(
         status="live",
         search_mode="both",
-        sample_view=None,
         page=1,
         per_page=30,
         live_page=1,

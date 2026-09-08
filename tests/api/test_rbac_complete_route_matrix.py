@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 from fastapi import HTTPException
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from starlette.requests import Request
 
 from api.app.main import app
@@ -61,7 +61,9 @@ def _user(role: dict[str, Any]) -> ApiUser:
     )
 
 
-def _require_access_dependencies(route: APIRoute) -> list[tuple[Callable[..., Any], str | None]]:
+def _require_access_dependencies(
+    route: RouteContext,
+) -> list[tuple[Callable[..., Any], str | None]]:
     """Return the exact ``require_access`` dependencies installed on one route."""
     dependencies = list(route.dependant.dependencies)
     found: list[tuple[Callable[..., Any], str | None]] = []
@@ -77,10 +79,10 @@ def _require_access_dependencies(route: APIRoute) -> list[tuple[Callable[..., An
     return found
 
 
-def _protected_routes() -> list[tuple[APIRoute, list[tuple[Callable[..., Any], str | None]]]]:
+def _protected_routes() -> list[tuple[RouteContext, list[tuple[Callable[..., Any], str | None]]]]:
     routes = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.path.startswith("/api/"):
+    for route in iter_route_contexts(app.routes):
+        if not isinstance(route.original_route, APIRoute) or not route.path.startswith("/api/"):
             continue
         dependencies = _require_access_dependencies(route)
         if dependencies:
@@ -88,7 +90,7 @@ def _protected_routes() -> list[tuple[APIRoute, list[tuple[Callable[..., Any], s
     return routes
 
 
-def _request(route: APIRoute) -> Request:
+def _request(route: RouteContext) -> Request:
     return Request(
         {
             "type": "http",

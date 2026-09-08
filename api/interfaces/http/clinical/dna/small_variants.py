@@ -77,23 +77,22 @@ def add_alt_class(
     )
 
 
-@router.get("/api/v1/samples/{sample_id}/small-variants", response_model=DnaVariantsListPayload)
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants",
+    response_model=DnaVariantsListPayload,
+    summary="List sample small variants",
+)
 def list_dna_variants(
     request: Request,
     sample_id: str,
     user: ApiUser = Depends(require_access()),
     service: DnaService = Depends(get_dna_service),
 ):
-    """List dna variants.
+    """Retrieve SNVs and small indels for an accessible sample.
 
-    Args:
-        request (Request): Normalized ``request``.
-        sample_id (str): Normalized ``sample_id``.
-        user (ApiUser): Normalized ``user``.
-        service (DnaService): Normalized ``service``.
-
-    Returns:
-        Normalized return value.
+    Results apply the sample's assay configuration and the active request filters,
+    with interpretation annotations attached for review. Access to the sample is
+    checked before findings are returned.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -157,12 +156,12 @@ def dna_plot_context(
     """Return plot context for DNA variant visualizations.
 
     Args:
-        sample_id (str): Normalized ``sample_id``.
-        user (ApiUser): Normalized ``user``.
-        service (DnaService): Normalized ``service``.
+        sample_id: Sample identifier used to load the plot's assay context.
+        user: Authenticated user whose sample access is checked before loading data.
+        service: Injected DNA service that assembles the plot payload.
 
     Returns:
-        Normalized return value.
+        JSON-serializable plot data conforming to DnaPlotContextPayload.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -181,16 +180,16 @@ def show_dna_variant(
     user: ApiUser = Depends(require_access()),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Show dna variant.
+    """Return a small variant's detail context within an accessible sample.
 
     Args:
-        sample_id (str): Normalized ``sample_id``.
-        var_id (str): Normalized ``var_id``.
-        user (ApiUser): Normalized ``user``.
-        service (DnaService): Normalized ``service``.
+        sample_id: Sample identifier used for access checks and assay configuration.
+        var_id: Identifier of the variant to display.
+        user: Authenticated user whose sample access is checked.
+        service: Injected DNA service that assembles the variant detail payload.
 
     Returns:
-        Normalized return value.
+        JSON-serializable detail data conforming to DnaVariantContextPayload.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -679,18 +678,18 @@ def set_variant_false_positive_bulk(
     user: ApiUser = Depends(require_access(permission="snv:manage")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Set variant false positive bulk.
+    """Apply or remove the false-positive flag on selected small variants.
 
     Args:
-        sample_id (str): Normalized ``sample_id``.
-        apply (bool): Normalized ``apply``.
-        resource_ids (list[str]): Normalized ``resource_ids``.
-        payload (dict): Normalized ``payload``.
-        user (ApiUser): Normalized ``user``.
-        service (DnaService): Normalized ``service``.
+        sample_id: Sample identifier used for access checks and the change response.
+        apply: Whether to set the flag; defaults to True unless overridden in the body.
+        resource_ids: Query-supplied variant identifiers when the body supplies no list.
+        payload: Optional body with resource_ids (preferred), variant_ids, and apply.
+        user: Authenticated user with snv:manage permission and sample access.
+        service: Injected DNA service that updates variant flags.
 
     Returns:
-        Normalized return value.
+        SampleChangePayload-compatible data describing the bulk flag operation.
     """
     _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
@@ -729,18 +728,18 @@ def set_variant_irrelevant_bulk(
     user: ApiUser = Depends(require_access(permission="snv:manage")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Set variant irrelevant bulk.
+    """Apply or remove the irrelevant flag on selected small variants.
 
     Args:
-        sample_id (str): Normalized ``sample_id``.
-        apply (bool): Normalized ``apply``.
-        resource_ids (list[str]): Normalized ``resource_ids``.
-        payload (dict): Normalized ``payload``.
-        user (ApiUser): Normalized ``user``.
-        service (DnaService): Normalized ``service``.
+        sample_id: Sample identifier used for access checks and the change response.
+        apply: Whether to set the flag; defaults to True unless overridden in the body.
+        resource_ids: Query-supplied variant identifiers when the body supplies no list.
+        payload: Optional body with resource_ids (preferred), variant_ids, and apply.
+        user: Authenticated user with snv:manage permission and sample access.
+        service: Injected DNA service that updates variant flags.
 
     Returns:
-        Normalized return value.
+        SampleChangePayload-compatible data describing the bulk flag operation.
     """
     _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
@@ -781,13 +780,13 @@ def add_variant_comment_change(
     """Create a sample annotation on a variant-like resource.
 
     Args:
-        sample_id (str): Normalized ``sample_id``.
-        payload (dict): Normalized ``payload``.
-        user (ApiUser): Normalized ``user``.
-        service (ResourceAnnotationService): Normalized ``service``.
+        sample_id: Sample identifier used for access checks and the change response.
+        payload: Annotation target in id and comment fields in form_data.
+        user: Authenticated user with variant.comment:add:own permission.
+        service: Injected service responsible for creating the annotation.
 
     Returns:
-        Normalized return value.
+        SampleChangePayload-compatible data identifying the annotated resource.
     """
     _get_sample_for_api(sample_id, user)
     target_id = str(payload.get("id", "unknown"))

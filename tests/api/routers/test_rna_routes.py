@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from fastapi.routing import iter_route_contexts
 
 from api.app.container import store
 from api.app.main import app as api_app
@@ -217,7 +218,7 @@ def test_restful_rna_mutation_routes_are_registered():
     Returns:
         The function result.
     """
-    paths = {route.path for route in api_app.routes}
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive" in paths
     assert (
         "/api/v1/samples/{sample_id}/fusions/{fusion_id}/selection/{callidx}/{num_calls}" in paths

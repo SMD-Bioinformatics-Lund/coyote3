@@ -16,6 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  python-runtime:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      TESTING: "1"
+      DEVELOPMENT: "0"
+      SECRET_KEY: ci-test-secret-key
+      INTERNAL_API_TOKEN: ci-test-internal-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.7"
+      - name: Install native reporting libraries
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
+      - name: Install runtime test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Test API runtime
+        run: PYTHONPATH=. python -m pytest -q tests/unit tests/api tests/integration --no-cov
+
   lint-and-test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -150,8 +171,8 @@ jobs:
 
       - name: Audit Python runtime dependencies
         if: steps.scope.outputs.backend == 'true'
-        # Scoped mitigation and review date: docs/operations/dependency_advisories.md
-        run: pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-3412
+        # Dependency policy: docs/operations/dependency_advisories.md
+        run: pip-audit -r requirements.txt
 
       - name: Full backend tests and unified coverage
         if: steps.scope.outputs.backend == 'true'
