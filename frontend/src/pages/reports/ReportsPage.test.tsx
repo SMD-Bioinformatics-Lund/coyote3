@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -72,5 +72,16 @@ describe("ReportsPage", () => {
 
     expect(await screen.findByText("Reports unavailable")).toBeVisible()
     await waitFor(() => expect(screen.queryByTestId("reports-table")).not.toBeInTheDocument())
+  })
+
+  it("requests pages and resets pagination when searching", async () => {
+    mount()
+    await screen.findByTestId("reports-table")
+    let props = mocks.table.mock.calls.at(-1)![0]
+    act(() => props.onPageChange(3))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/reports?page=3&per_page=50"))
+    props = mocks.table.mock.calls.at(-1)![0]
+    act(() => props.onSearchChange(" TP53 "))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=50&search=TP53"))
   })
 })

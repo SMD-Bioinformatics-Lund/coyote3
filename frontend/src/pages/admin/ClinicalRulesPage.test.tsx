@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
+  permissions: ["clinical_rules:draft", "clinical_rules:view"],
 }))
 
 vi.mock("@/lib/api", () => ({
@@ -24,7 +25,7 @@ vi.mock("@/lib/access-control", async (importOriginal) => {
         username: "admin",
         roles: ["admin"],
         role: "admin",
-        permissions: ["clinical_rules:draft", "clinical_rules:view"],
+        permissions: mocks.permissions,
       },
       isLoading: false,
     }),
@@ -71,6 +72,7 @@ function renderPage() {
 describe("ClinicalRulesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.permissions = ["clinical_rules:draft", "clinical_rules:view"]
     mocks.patch.mockImplementation((_path: string, body: Record<string, unknown>) =>
       Promise.resolve({ data: { ...existingDraft, ...body, revision: 2 } }),
     )
@@ -88,6 +90,36 @@ describe("ClinicalRulesPage", () => {
       }
       return Promise.resolve({ data: { items: [], page: 1, per_page: 30, total: 0 } })
     })
+  })
+
+  it.each([
+    ["submitted", "clinical_rules:clinical_review", "Start review", "start-clinical-review"],
+    ["approved", "clinical_rules:publish", "Publish", "publish"],
+    ["in_clinical_review", "clinical_rules:clinical_review", "Approve", "clinical-review"],
+    ["in_clinical_review", "clinical_rules:clinical_review", "Reject", "clinical-review"],
+  ])("executes the authorized %s transition", async (status, permission, button, action) => {
+    mocks.permissions = ["clinical_rules:view", permission]
+    const version = { ...existingDraft, status }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [], publishers: [{ username: "publisher", name: "Publisher" }] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: version })
+      return Promise.resolve({ data: { items: [version], total: 1 } })
+    })
+    mocks.post.mockResolvedValue({ data: version })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    if (button === "Approve") {
+      expect(await screen.findByRole("button", { name: button })).toBeDisabled()
+      await userEvent.selectOptions(screen.getByLabelText("Assign publisher"), "publisher")
+    }
+    await userEvent.click(await screen.findByRole("button", { name: button }))
+    expect(mocks.post).toHaveBeenCalledWith(
+      `/admin/clinical-rule-sets/drafts/rule-version-1/${action}`,
+      button === "Approve" ? { approve: true, reason: "Clinical content approved", publisher: "publisher" }
+        : button === "Reject" ? { approve: false, reason: "Clinical changes required" }
+          : { reason: "Workflow transition" },
+    )
   })
 
   it("selects an installed assay and derives its analyte", async () => {

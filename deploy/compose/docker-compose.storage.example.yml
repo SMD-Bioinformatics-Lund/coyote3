@@ -1,0 +1,17 @@
+# Copy to .coyote3_storage.yml and adapt the list for the center's storage layout.
+# Neither the host source nor the container target is fixed by the application.
+x-center-inputs: &center-inputs
+  - type: bind
+    source: ${CENTER_INPUT_SOURCE:?Set an absolute host input directory}
+    target: ${CENTER_INPUT_TARGET:?Set an absolute container input directory}
+    read_only: true
+    bind:
+      create_host_path: false
+
+services:
+  api:
+    volumes: *center-inputs
+  worker:
+    volumes: *center-inputs
+  beat:
+    volumes: *center-inputs

@@ -33,11 +33,11 @@ x-app-environment: &app-environment
   AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-730}
   NOTIFICATION_RETENTION_DAYS: ${NOTIFICATION_RETENTION_DAYS:-180}
   CACHE_REQUIRED: ${CACHE_REQUIRED:-1}
-  CACHE_REDIS_URL: redis://redis:6379/0
+  CACHE_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
   CACHE_REDIS_CONNECT_TIMEOUT: ${CACHE_REDIS_CONNECT_TIMEOUT:-1.0}
   CACHE_REDIS_SOCKET_TIMEOUT: ${CACHE_REDIS_SOCKET_TIMEOUT:-1.0}
-  CELERY_BROKER_URL: redis://redis:6379/1
-  CELERY_RESULT_BACKEND: redis://redis:6379/2
+  CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/1
+  CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/2
   CELERY_LOG_LEVEL: ${CELERY_LOG_LEVEL:-INFO}
   CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
   CELERY_TASK_TIME_LIMIT: ${CELERY_TASK_TIME_LIMIT:-7200}
@@ -105,11 +105,7 @@ x-api-image: &api-image
 
 x-app-volumes: &app-volumes
   - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
-  - /access:/access
-  - /media:/media
   - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
-  - ${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}
-  - /fs1:/fs1
 
 services:
   frontend:
@@ -120,6 +116,7 @@ services:
       dockerfile: docker/Dockerfile.frontend
       args:
         SCRIPT_NAME: ${SCRIPT_NAME:-}
+        ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
         ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
         LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
         GENS_URI: ${GENS_URI:-}
@@ -137,6 +134,8 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
+      args:
+        ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
 
   api:
     <<: [*runtime-defaults, *api-image]
@@ -183,7 +182,10 @@ services:
   redis:
     <<: *runtime-defaults
     image: redis:7.4.3
-    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always", "--maxmemory-policy", "noeviction"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --appendfsync always --maxmemory-policy noeviction"]
     volumes:
       - redis-data:/data
     healthcheck:

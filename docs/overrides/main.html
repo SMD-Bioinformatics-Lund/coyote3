@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+{% set environment = config.extra.environment | trim | lower %}
+{% if environment and environment not in ["production", "prod"] %}
+<div class="admonition warning" role="status">
+  <p class="admonition-title">{{ environment | upper | e }} environment</p>
+  <p>Not for production clinical use.</p>
+</div>
+{% endif %}
+{{ super() }}
+{% endblock %}

@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-r
 import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query"
 import { clearSessionState } from "@/lib/session-state"
 import { ThemeToggle } from "./theme-toggle"
+import { EnvironmentBanner } from "./EnvironmentBanner"
 import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -281,6 +282,7 @@ export function Layout() {
 
   return (
     <div className="relative isolate flex h-screen flex-col overflow-hidden bg-transparent font-sans antialiased">
+      <EnvironmentBanner />
       {backgroundFetches > 0 && <GlobalLoadingIndicator />}
       <div className="app-chrome-bg pointer-events-none absolute inset-0 z-0" />
       <header className="z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0 border-b border-[var(--chrome-border)] [background:var(--chrome-top)] text-chrome-foreground shadow-sm">

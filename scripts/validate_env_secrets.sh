@@ -33,6 +33,7 @@ required=(
   SECRET_KEY
   INTERNAL_API_TOKEN
   PASSWORD_TOKEN_SALT
+  REDIS_PASSWORD
   CORS_ORIGINS
 )
 
@@ -70,6 +71,10 @@ for key in "${required[@]}"; do
   fi
   if [[ "$value" == *"CHANGE_ME"* ]]; then
     echo "[error] placeholder detected for $key"
+    errors=1
+  fi
+  if [[ "$key" == "REDIS_PASSWORD" && ! "$value" =~ ^[a-fA-F0-9]{64,}$ ]]; then
+    echo "[error] REDIS_PASSWORD must contain at least 64 hexadecimal characters"
     errors=1
   fi
 done

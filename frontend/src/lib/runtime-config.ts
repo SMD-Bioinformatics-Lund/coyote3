@@ -4,6 +4,7 @@
  */
 declare const __COYOTE3_RUNTIME__: {
   appVersion: string
+  environment: string
   gensUri: string
   igvUri: string
   igvDataRoot: string

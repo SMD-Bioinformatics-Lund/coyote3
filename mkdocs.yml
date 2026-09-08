@@ -6,6 +6,10 @@ repo_name: Coyote3
 
 theme:
   name: readthedocs
+  custom_dir: docs/overrides
+
+extra:
+  environment: !ENV [ENV_NAME, ""]
 
 extra_css:
   - stylesheets/callouts.css

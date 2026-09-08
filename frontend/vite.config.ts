@@ -36,6 +36,7 @@ export default defineConfig({
   define: {
     __COYOTE3_RUNTIME__: JSON.stringify({
       appVersion,
+      environment: String(process.env.ENV_NAME || 'development').trim().toLowerCase(),
       gensUri: String(process.env.GENS_URI || '').trim().replace(/\/+$/, ''),
       igvUri: String(process.env.IGV_URI || '').trim().replace(/\/+$/, ''),
       igvDataRoot: String(process.env.IGV_DATA_ROOT || '').trim().replace(/\/+$/, ''),

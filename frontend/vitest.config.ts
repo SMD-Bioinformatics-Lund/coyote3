@@ -8,6 +8,7 @@ export default defineConfig({
   define: {
     __COYOTE3_RUNTIME__: JSON.stringify({
       appVersion: "test",
+      environment: "test",
       gensUri: "",
       igvUri: "",
       igvDataRoot: "",
