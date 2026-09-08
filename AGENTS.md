@@ -9,7 +9,7 @@ changes it, and cover clinical logic with focused tests.
 
 The system consists of:
 
-- A Python 3.12 FastAPI API using Pydantic contracts and PyMongo repositories.
+- A Python 3.14.7 FastAPI API using Pydantic contracts and PyMongo repositories.
 - A React 19 and TypeScript frontend built with Vite and Tailwind CSS.
 - MongoDB with separate application, identity/security, knowledgebase, and BAM-service databases.
 - Celery workers and beat scheduling, with Redis as broker, result backend, and cache.
@@ -56,10 +56,30 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 
 ### Python
 
-- Target Python 3.12 and use type annotations for public interfaces and nontrivial logic.
+- API images target Python 3.14.7; retain Python 3.12-compatible syntax for shared
+  scripts and security tooling. Use type annotations for public interfaces and nontrivial logic.
 - Use Ruff for linting/import ordering and Ruff format with double-quoted strings. Black
   compatibility is configured at a 100-character line length.
-- Use Google-style docstrings where a public or complex API needs explanation.
+- Use Google-style docstrings for Python modules, classes, public functions and
+  nontrivial private helpers. When changing a callable, review its docstring against
+  the implementation; do not generate descriptions from its name alone.
+- Start with a short sentence describing the behavior. Use `Args:` for parameters
+  other than `self`/`cls`, `Returns:` for a returned value, or `Yields:` for a
+  generator. Explain meaning, units, accepted values, defaults and null behavior
+  where relevant; type annotations do not replace this information.
+- Document expected failures under `Raises:`. Use `Notes:` only for details such
+  as side effects, transaction boundaries, access checks, ordering, or external
+  services. Include short synthetic `Examples:` when they clarify a non-obvious API.
+- Do not add empty sections or filler such as "Normalized return value", "The
+  function result", or parameter descriptions that repeat the parameter name.
+  Simple properties and test functions may use a precise one-line docstring; a
+  procedure returning only `None` does not need a meaningless `Returns:` section.
+- For FastAPI handlers, put client-facing behavior and permission requirements
+  first. A docstring form-feed (`\f`) may separate that text from internal Google
+  sections so injected Python dependencies do not clutter Swagger/ReDoc.
+- Ruff's Google-style configuration is a formatting check, not proof of complete
+  or accurate documentation. Existing missing-docstring exclusions are not an
+  exemption for new or substantially changed code.
 - Prefer Pydantic models at contracts and validation boundaries. Preserve meaningful
   `None` values when the contract distinguishes null from a missing field.
 - Raise established application/domain errors and let the centralized HTTP exception
@@ -165,6 +185,13 @@ Reuse `api/config/mongo.py` and `api/infra/mongo/connections.py`; never infer a 
 from a database name or pass a session across different MongoClient instances.
 
 ## Agent working rules
+
+- Write documentation as a current reference for users and developers. Name the
+  actual operation, resource, condition and result. Avoid promotional claims,
+  generic introductions, unsupported guarantees, and accounts of how an agent
+  changed the implementation. Keep upgrade instructions only where operators need
+  them to deploy safely. Do not remove precise technical terms merely because they
+  also occur in generated prose.
 
 - Inspect nearby code, tests, contracts, and documentation before editing.
 - Make the smallest coherent change and leave unrelated code and user changes untouched.

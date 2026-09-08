@@ -58,7 +58,118 @@ than a floating image tag, apply the vendor's documented upgrade path for an
 existing deployment, and validate a backup restore before changing the server
 major version.
 
-## Frontend Asset Lifecycle
+## Redis authentication and storage
+
+Compose requires `REDIS_PASSWORD` for Redis, the cache, workers, and beat.
+Generate it with `openssl rand -hex 32` and store it in the untracked deployment
+environment file. Use at least 64 hexadecimal characters for URL-safe credentials.
+Recreate Redis and API/worker/beat containers together when rotating credentials.
+Do not remove the Redis volume or flush broker databases. Redis has no published
+host port and must remain private to the application network.
+
+Cache values use MongoDB Extended JSON, never Python pickle. Older or unreadable
+values are cache misses and are recomputed. Cache entries are not durable clinical
+records. No legacy deserializer is retained.
+
+## Center storage mounts
+
+The base and development stacks mount no clinical input storage. There are no
+assumed `/access`, `/media`, or `/fs1` directories, and the host data root is not
+automatically mirrored at the same path inside a container. Only application-owned
+data (`/data`) and logs (`/app/logs`) have standard container locations; their host
+roots remain configurable.
+
+Each center defines its own number of input mounts, host locations, container
+locations, and access modes in a private Compose override:
+
+```bash
+cp deploy/compose/docker-compose.storage.example.yml .coyote3_storage.yml
+```
+
+For the example's single mount, add `CENTER_INPUT_SOURCE` (an absolute host
+directory) and `CENTER_INPUT_TARGET` (an absolute container directory) to your
+untracked environment file. Edit the override to add any additional mounts or use
+center-specific environment variable names. These two example variables are not
+application configuration keys or a limit on storage locations.
+
+Pass the override last on every deployment command:
+
+```bash
+./scripts/compose-with-version.sh --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml -f .coyote3_storage.yml up -d --build
+```
+
+For development, include `-f deploy/compose/docker-compose.dev.yml` before the
+storage override and use the development environment file. Compose merges mounts
+by container target. Do not shadow `/app`, `/data`, or `/app/logs` unintentionally.
+Include the same override for config validation, recreation, and maintenance.
+
+API, worker, and beat need consistent paths for shared inputs. Paths in ingest
+manifests and file-reading configuration must refer to the chosen **container**
+locations, not inaccessible host paths. Existing deployments must explicitly add
+their previous input mounts before recreating containers. IGV workstation paths
+are independent and remain configured through `IGV_DATA_ROOT` and ASP settings.
+
+The example uses read-only mounts and refuses to create missing host directories.
+Prepare storage and container UID/GID permissions before deployment. Use response
+acknowledgements for read-only ingestion; file-based acknowledgements require
+explicit write access to their directory. NFS/SMB storage can be mounted by the host
+or supplied through center-owned Compose volumes. Do not commit operational paths,
+mount credentials, or the private override.
+
+## Environment warnings
+
+Set `ENV_NAME` consistently for the API, frontend and documentation builds. Compose
+passes it to all three. Non-production deployments display a warning in the login
+page, application header, Swagger UI, ReDoc and the deployed documentation pages.
+`production` and `prod` suppress the warning. The label is independent of database
+names and storage paths; never use a sample's analysis environment for this banner.
+
+Frontend and documentation labels are compiled into their assets. Rebuild them
+when changing `ENV_NAME`; for the development stack's mounted `site/` directory run
+`ENV_NAME=development .venv/bin/python -m mkdocs build --strict`. Standalone public
+documentation builds without `ENV_NAME` have no deployment label. Direct Vite
+development defaults to `development`.
+
+## Multiple input directories
+
+An override can contain any number of mounts. For example, a center using `/fs1`
+and `/access` can replace the example's mount list with:
+
+```yaml
+x-center-inputs: &center-inputs
+  - type: bind
+    source: ${CENTER_FS1_SOURCE:?Set the host input directory}
+    target: /fs1
+    read_only: true
+    bind:
+      create_host_path: false
+  - type: bind
+    source: ${CENTER_ACCESS_SOURCE:?Set the host input directory}
+    target: /access
+    read_only: true
+    bind:
+      create_host_path: false
+
+services:
+  api:
+    volumes: *center-inputs
+  worker:
+    volumes: *center-inputs
+  beat:
+    volumes: *center-inputs
+```
+
+Set the two source variables in the private environment file. `/data` is already
+mounted writable from `COYOTE3_DATA_HOST_ROOT`; setting that variable to `/data`
+mounts the host `/data` there. Do not replace it with a read-only input mount:
+ingest staging and application output need write access. To expose a separate
+read-only input tree from host `/data`, mount that tree at another container target
+such as `/inputs/data`, then use that target in manifests. These example paths are
+not required center locations. Validate the merged stack with `docker compose`
+using the same `--env-file` and `-f` arguments followed by `config --quiet`.
+
+## Frontend builds
 
 The frontend uses Vite with the Tailwind Vite plugin. Tailwind classes and CSS
 are compiled as part of the Vite bundle; there is no separate Tailwind process.

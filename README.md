@@ -8,7 +8,7 @@
 
 ### Core Stack
 
-![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Python 3.14.7](https://img.shields.io/badge/Python-3.14.7-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Pydantic 2](https://img.shields.io/badge/Contracts-Pydantic%202-E92063?logo=pydantic&logoColor=white)
 ![React 19](https://img.shields.io/badge/UI-React%2019-087EA4?logo=react&logoColor=white)
@@ -33,33 +33,36 @@
 
 ## Overview
 
-Coyote3 was built by the bioinformatics team at the **Section for Molecular Diagnostics (SMD), Lund** - part of Region Skåne's clinical laboratory service - to address a recurring problem in routine molecular diagnostics: clinical genomics workflows had outgrown the fragmented tooling that preceded them.
+Coyote3 is a clinical genomics application developed by the bioinformatics team at
+the **Section for Molecular Diagnostics (SMD), Lund**, within Region Skåne's
+clinical laboratory service.
 
-As sequencing panels expanded and variant types multiplied, the need grew for a single governed workspace where **clinical geneticists, bioinformaticians, and laboratory personnel** could ingest, filter, review, annotate, classify, and report genomic findings in a reproducible, auditable way - without stitching together disconnected scripts and spreadsheets.
-
-Coyote3 is that platform. It brings **sample ingestion, assay-aware filtering, finding review, clinical annotation, and immutable report snapshots** into one traceable workspace, purpose-built for laboratories that operate under strict clinical governance requirements. Every significant action - from variant classification to report sign-off - is typed, access-controlled, and auditable by design.
+Clinical geneticists, bioinformaticians and laboratory staff use it to ingest
+samples, review genomic findings, record classifications and comments, and prepare
+reports. Assay configuration determines the available analyses and filters. Saved
+reports retain finding snapshots and the reporting context used to produce them.
 
 ## Key Capabilities
 
-Coyote3 is designed for molecular diagnostics laboratories that need clinical-grade guarantees across the full variant review lifecycle:
+Coyote3 supports the following laboratory tasks:
 
-* **Unified clinical workspace** - sample ingestion through to signed, immutable report snapshots, all in one platform
-* **Assay-aware filtering** - reproducible, explicitly configured filter rules per assay, not ad-hoc per-analyst choices
-* **Collaborative review** - findings, classifications, and comments are shared across the team with full history
+* **Sample review and reporting** - ingest samples, review findings and save report snapshots
+* **Assay-aware filtering** - configure filter defaults for each assay and analysis intent
+* **Team review** - share findings, classifications and comments with authorized colleagues
 * **Role- and scope-based access control** - powered by Casbin RBAC, with fine-grained permissions per user group and operational scope
 * **Audit trail** - clinically and administratively significant actions are logged and retained
 * **LDAP and local authentication** - integrates with existing directory infrastructure
-* **Contract-validated ingestion** - sample manifests are validated against typed Pydantic contracts before any data is written
-* **Extensible architecture** - new assays, variant types, integrations, and workflows can be added without reworking core platform behaviour
+* **Validated ingestion** - validate sample manifests and parsed records against Pydantic contracts
+* **Center configuration** - configure assays, gene lists, report rules and storage for the installation
 
 ## Supported Workflows
 
-Coyote3 covers the full lifecycle of a clinical genomics case, from raw input to signed report:
+Coyote3 provides these sample analysis and reporting workflows:
 
 * **Sample types** - DNA and RNA workflows, somatic and germline
 * **Variant review** - SNV, CNV, translocation, fusion, biomarker, and coverage findings, gated by assay configuration
 * **Filtering** - intent-specific somatic and germline SNV filter rules, reproducibly applied per assay
-* **Clinical configuration** - ASP (assay-sample profiles), ASPC (assay-sample profile configurations), and ISGL (in-silico gene lists) administration
+* **Clinical configuration** - assay-specific panels (ASP), assay configurations (ASPC), and in-silico gene lists (ISGL)
 * **Finding actions** - classifications, comments, cross-sample search, and finding-level decisions
 * **Annotation** - clinical knowledgebase integrations (OncoKB, ClinPGx) with configurable timeouts and fallbacks
 * **Reporting** - live report preview and immutable saved snapshots for governance and reproducibility
@@ -69,14 +72,14 @@ Coyote3 covers the full lifecycle of a clinical genomics case, from raw input to
 
 ## Design Principles
 
-Coyote3 is built around the non-negotiable requirements of clinical laboratory operation:
+Coyote3 separates clinical review, configuration and deployment responsibilities:
 
-* **Traceability** - clinically significant actions and administrative changes are logged with context, so the history of every finding and report is recoverable
-* **Reproducibility** - assay configuration and filter behaviour are explicitly declared and version-controlled, eliminating analyst-to-analyst variation
-* **Access control** - permissions are enforced by role and operational scope at every layer, from API routes to data repositories
-* **Data integrity** - all ingestion and application workflows use typed, validated Pydantic contracts; malformed or incomplete data is rejected at the boundary
+* **Traceability** - audit events record clinical and administrative changes; retention is configured by the center
+* **Reporting context** - saved reports preserve findings and the configuration used for reporting
+* **Access control** - API operations check user permissions and sample access
+* **Data validation** - Pydantic contracts validate API requests and collection documents
 * **Separation of concerns** - deployment configuration, center-configurable clinical content, and fixed product behaviour are kept in distinct, independently owned layers
-* **Extensibility** - the platform is designed to grow alongside diagnostic pipelines: new assays, variant types, integrations, and workflows are added without reworking core behaviour
+* **Deployment flexibility** - logical databases and storage mounts can be configured independently
 
 ## Architecture
 
@@ -86,7 +89,7 @@ Coyote3 is built around the non-negotiable requirements of clinical laboratory o
 | `api/` | FastAPI routes, application services, domain rules, contracts, authorization, and repositories. |
 | Celery worker and Beat | Sample ingestion and scheduled maintenance. |
 | MongoDB | Clinical findings, configuration, identity, audit, and operational records. |
-| Redis | Task delivery, sessions, and non-clinical caches. |
+| Redis | Task delivery, task results, rate limits and caches; API sessions are stored in MongoDB. |
 | Reverse proxy | One public origin for the UI, API, public pages, and documentation. |
 
 For the complete component and request flow, see

@@ -1,5 +1,18 @@
 # Configuration And Environments
 
+## Annotation vocabulary and sample profiles
+
+`reporting.annotation_tumor_types` in `api/config/center/clinical_vocabulary.toml`
+maps assay-group identifiers to non-empty tumor descriptors used by the automatic
+Tier III annotation generator. Unlisted groups contribute an empty descriptor.
+Changes require clinical review and an API/worker restart.
+
+Sample catalog requests default to the deployed environment. The frontend explicitly
+sends `profile_scope`; `all` selects all authorized profiles, never bypassing user
+scope. The unused `sample_view` query parameter is not part of the request contract.
+
+## Environment files
+
 Coyote3 uses one copied environment file per deployment environment and keeps
 runtime wiring inside the application and Compose stacks. The environment file is
 for center-owned values only: identity, public mount details, secrets, database

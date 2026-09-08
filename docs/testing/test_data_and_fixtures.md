@@ -1,23 +1,23 @@
 # Validation Datasets and Test Fixtures
 
-This document defines how validation datasets and test fixtures are organized and maintained.
+Use synthetic fixtures to test ingestion, API responses and collection contracts.
 
 ## Fixture Infrastructure
 
-Validation assets are organized into standardized repositories to support isolated testing requirements:
+Test data lives in these directories:
 
-- `demo_data/ingest/`: Optimized clinical artifacts for end-to-end ingestion validation.
-- `demo_data/collections/`: Canonical document templates for all persistent collection contracts.
-- `tests/fixtures/api/`: Programmatic fixture orchestrators and API payload snapshots.
+- `demo_data/ingest/`: Synthetic input files for ingest tests.
+- `demo_data/collections/`: Example documents for collection contract tests.
+- `tests/fixtures/api/`: API fixtures and payload snapshots.
 
 ## Canonical Ingestion Datasets
 
-The `demo_data/ingest` repository contains strictly sanitized genomic artifacts used for validating analytic ingestion pipelines. These datasets consist of:
+The `demo_data/ingest` directory contains synthetic ingest inputs:
 
-- Standardized VCF (Variant) structures.
-- Structural JSON definitions for CNV and Coverage segments.
-- Modeled visual assets (PNG) for reporting verification.
-- Validated YAML ingestion manifests.
+- VCF files for small variants.
+- JSON files for copy-number and coverage data.
+- PNG images for report tests.
+- YAML ingest manifests.
 
 **Repository rule**: Public test data must be synthetic or fully de-identified.
 It must not contain protected health information (PHI) or clinical patient
@@ -58,35 +58,39 @@ The first-deployment flow and empty-collection protection are described in
 
 ### Validation Commands
 
-To verify the integrity of the database seeding templates, execute the following diagnostic command:
+Validate the example collection documents with:
 
 ```bash
 PYTHONPATH=. python -m pytest -q tests/unit/test_db_dummy_fixture.py
 ```
 
-## Contractual Consistency Gates
+## Contract checks
 
-To prevent schema drift between code models and persistent database records, the platform enforces an automated integrity gate:
+Run the repository's contract checks after changing schemas or fixtures:
 
 ```bash
 # Execute contract consistency validation
 PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
-This protocol programmatically verifies:
+The script checks:
 
-- Synchronization between Pydantic models and seeded document structures.
-- Relational consistency across Assay, ASP, and configuration resource sets.
-- Automatic regeneration of the standard Collection Contract documentation from the active backend logic.
+- Runtime dependency exports against `pyproject.toml`.
+- Prohibited imports, debug output and transitional code markers.
+- Shell scripts and internal documentation links.
+- Generated collection contracts and the permission catalog against their sources.
 
-## Maintenance Requirements for Validation Assets
+It does not connect to MongoDB or inspect samples. Fixture validity and relationships
+between assay records are covered by the relevant tests and seed validation tools.
 
-Submissions to the fixture repository must adhere to the following engineering constraints:
+## Maintaining fixtures
 
-1. **Minimize Footprint**: Limit fixture datasets to the smallest volume necessary to satisfy the specific test requirement.
-2. **Clinical Anonymization**: Absolute removal of all clinical identifiers is non-negotiable.
-3. **Structural Fidelity**: Preserve realistic data shapes, specifically within complex nested fields, to ensure valid contract testing.
-4. **Contract Verification**: All fixture updates must pass the full `check_contract_integrity.sh` protocol before being merged into the default integration branch.
+When adding or changing fixtures:
+
+1. Include only the records needed for the test.
+2. Use synthetic data, not copied or renamed patient records.
+3. Keep nested fields consistent with the current contracts.
+4. Run the relevant fixture tests and `check_contract_integrity.sh` before merging.
 
 ## Browser Validation Fixtures
 

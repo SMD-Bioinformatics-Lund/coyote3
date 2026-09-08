@@ -7,6 +7,48 @@ coupling the documentation to Python file names.
 
 ## Public Route Prefix
 
+### Reference and API explorer
+
+| View | Path | Purpose |
+| --- | --- | --- |
+| API reference | `/api/v1/redoc` | Searchable, workflow-grouped endpoint and schema reference. |
+| API explorer | `/api/v1/docs` | Inspect operations, authenticate, and explicitly execute requests. |
+| OpenAPI JSON | `/api/v1/openapi.json` | Machine-readable contract for client tooling. |
+
+Both views use the Coyote3 product header and display the application version,
+API major version and deployment environment. Non-production warnings remain
+visible. Version badges describe the deployed contract, not clinical approval.
+Reference navigation groups access/discovery, clinical review, reporting, and
+administration/operations without changing endpoint paths or permissions.
+
+Explorer requests are live calls against the displayed deployment. Authorization
+credentials are not persisted by Swagger UI. For cookie-backed mutations, expand
+**Using your browser session** and enter the session's CSRF token; the explorer adds
+`X-CSRF-Token` only to same-origin mutation requests. Bearer clients use **Authorize**.
+The token field is page-local and cleared on reload.
+
+Renderer scripts and Swagger styles use pinned versions from jsDelivr, as allowed
+by the documentation Content Security Policy. ReDoc's browser-local search worker
+uses a blob URL; this allowance applies only to the two documentation routes,
+including mounted deployments. The schema is fetched from the same
+deployment. External schema validation and Google Fonts are disabled. The header
+logo is embedded, so it does not depend on a frontend asset route. A visible error
+and direct schema link remain available when the renderer or schema cannot load.
+
+Presentation templates live in `api/app/templates/`; page registration and the API
+introduction live in `api/app/documentation.py`. Tag descriptions and reference
+groups are defined in `api/interfaces/http/tags.py`. Update endpoint summaries and
+descriptions at their route declarations; do not replace Pydantic contracts with
+handwritten schema copies or include real clinical payloads in examples.
+
+The reference uses the application's light-theme brand colors, including the
+plum/copper header, purple links and neutral surfaces. The standalone API package
+contains the required tokens; a parity test checks them against
+`frontend/src/styles/tailwind-theme.css`. Update both when changing the brand.
+Response examples use the application's dark-gray surface with light field names
+and purple string values. HTTP method colors retain their meaning and are not
+used as decorative badges.
+
 All browser-facing API URLs are mounted below the configured `SCRIPT_NAME`.
 For example, with `SCRIPT_NAME=/coyote3_dev`, Swagger is available at:
 
