@@ -239,7 +239,7 @@ registration is not configurable through an environment variable.
 | `MONGO_WRITE_CONCERN_W` | No | `majority` or an acknowledgement count; default `majority` | Replica acknowledgement required for application writes. |
 | `MONGO_WRITE_CONCERN_JOURNAL` | No | `1` or `0`; default `1` | Requires acknowledged writes to reach the journal. |
 | `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Persistent host directory bind-mounted at `/data/db`. |
-| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Host backup directory bind-mounted at `/backup`. |
+| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
 | `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
 | `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | Independent KB replica-set name, default `coyote3-kb-rs`. |
 | `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | Advertised KB member address, default `mongo-kb:27017`. |

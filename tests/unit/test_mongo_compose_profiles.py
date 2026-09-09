@@ -11,7 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def render(*profiles):
+def render(*profiles, backup_mount=False, backup_root=None):
     if not shutil.which("docker"):
         pytest.skip("Docker Compose is required for offline profile rendering")
     command = [
@@ -26,12 +26,17 @@ def render(*profiles):
         "-f",
         "deploy/compose/docker-compose.mongo.yml",
     ]
+    if backup_mount:
+        command.extend(["-f", "deploy/compose/docker-compose.mongo-backup.yml"])
+    environment = {**os.environ, "COYOTE3_VERSION": "4.0.0"}
+    if backup_root is not None:
+        environment["COYOTE3_MONGO_BACKUP_HOST_ROOT"] = backup_root
     for profile in profiles:
         command.extend(["--profile", profile])
     result = subprocess.run(
         command + ["config", "--format", "json"],
         cwd=ROOT,
-        env={**os.environ, "COYOTE3_VERSION": "4.0.0"},
+        env=environment,
         text=True,
         capture_output=True,
         check=True,
@@ -67,3 +72,30 @@ def test_split_profile_has_independent_replica_sets_and_one_dbpath_per_instance(
         env = services[name]["environment"]
         assert "mongo-app:27017" in env["COYOTE3_MONGO_URI"]
         assert "mongo-kb:27017" in env["KNOWLEDGEBASE_MONGO_URI"]
+
+
+@pytest.mark.parametrize("backup_root", ["", "/synthetic/backups"])
+def test_backup_mount_is_absent_without_overlay(backup_root):
+    services = render("mongo", "mongo-kb", backup_root=backup_root)["services"]
+    for name in ("mongo", "mongo-kb"):
+        assert all(volume["target"] != "/backup" for volume in services[name]["volumes"])
+
+
+def test_backup_overlay_preserves_other_mounts_and_knowledgebase_service():
+    baseline = render("mongo", "mongo-kb")["services"]
+    services = render("mongo", "mongo-kb", backup_mount=True, backup_root="/synthetic/backups")[
+        "services"
+    ]
+    mounts = services["mongo"]["volumes"]
+    assert [v for v in mounts if v["target"] != "/backup"] == baseline["mongo"]["volumes"]
+    backup = [v for v in mounts if v["target"] == "/backup"]
+    assert len(backup) == 1
+    assert backup[0]["source"] == "/synthetic/backups"
+    assert backup[0]["bind"]["create_host_path"] is False
+    assert services["mongo-kb"] == baseline["mongo-kb"]
+
+
+def test_backup_overlay_requires_explicit_directory():
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("mongo", backup_mount=True, backup_root="")
+    assert "COYOTE3_MONGO_BACKUP_HOST_ROOT" in error.value.stderr

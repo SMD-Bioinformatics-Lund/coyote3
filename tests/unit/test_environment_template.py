@@ -14,6 +14,7 @@ TEMPLATES = sorted((ROOT / "deploy/env").glob("example*.env"))
 COMPOSE_FILES = (
     ROOT / "deploy/compose/docker-compose.yml",
     ROOT / "deploy/compose/docker-compose.mongo.yml",
+    ROOT / "deploy/compose/docker-compose.mongo-backup.yml",
     ROOT / "deploy/compose/docker-compose.loadtest.yml",
 )
 

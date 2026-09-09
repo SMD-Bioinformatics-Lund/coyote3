@@ -90,8 +90,9 @@ Standard command shape:
 
 Configure `COYOTE3_MONGO_URI` for the independently operated database before this
 command. If the supplied MongoDB Compose definition is used, its persistent
-host resources are `COYOTE3_MONGO_DATA_HOST_ROOT`,
-`COYOTE3_MONGO_BACKUP_HOST_ROOT`, and `COYOTE3_MONGO_KEYFILE_HOST_PATH`.
+host resources are `COYOTE3_MONGO_DATA_HOST_ROOT` and `COYOTE3_MONGO_KEYFILE_HOST_PATH`.
+`COYOTE3_MONGO_BACKUP_HOST_ROOT` is optional and mounts a directory only with
+`docker-compose.mongo-backup.yml`. Omit both when backups are managed externally.
 Set `COYOTE3_LOGS_HOST_ROOT` for every deployment; it is mounted at `/app/logs`
 in the API, worker, and Beat containers.
 

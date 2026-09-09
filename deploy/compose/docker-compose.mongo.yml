@@ -20,7 +20,6 @@ services:
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes:
       - "${COYOTE3_MONGO_DATA_HOST_ROOT:-/srv/coyote3/mongo/data}:/data/db"
-      - "${COYOTE3_MONGO_BACKUP_HOST_ROOT:-/srv/coyote3/mongo/backups}:/backup"
       - "${COYOTE3_MONGO_KEYFILE_HOST_PATH:-/srv/coyote3/mongo/keyfile}:/etc/mongo-keyfile/keyfile:ro"
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck: &mongo-health

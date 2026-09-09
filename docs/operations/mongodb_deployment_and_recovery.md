@@ -33,7 +33,7 @@ and keep its lifecycle separate from application updates.
 2. Prepare persistent directories and keyfiles for each physical instance:
 
 ```bash
-sudo install -d -o 999 -g 999 -m 0700 /srv/coyote3/mongo/data /srv/coyote3/mongo/backups
+sudo install -d -o 999 -g 999 -m 0700 /srv/coyote3/mongo/data
 sudo sh -c 'openssl rand -base64 756 > /srv/coyote3/mongo/keyfile'
 sudo chmod 0400 /srv/coyote3/mongo/keyfile
 sudo chown 999:999 /srv/coyote3/mongo/keyfile
@@ -216,6 +216,33 @@ chosen address becomes persisted MongoDB metadata and must remain resolvable
 after restarts and upgrades.
 
 ## Logical backups
+
+The MongoDB server has no `/backup` mount by default. If an internal process
+handles backups, omit `COYOTE3_MONGO_BACKUP_HOST_ROOT` and the backup overlay.
+The archive tool below mounts its own output directory and does not require a
+backup mount on the server. Set `COYOTE3_MONGO_BACKUP_HOST_ROOT` to the desired
+output directory before running this example, or pass a directory directly to
+`--out-dir`.
+
+For commands that need `/backup` inside the MongoDB server container, create the
+host directory, grant the container user appropriate access, and set
+`COYOTE3_MONGO_BACKUP_HOST_ROOT`. Include the optional overlay after the MongoDB
+definition:
+
+```bash
+./scripts/compose-with-version.sh --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.mongo.yml \
+  -f deploy/compose/docker-compose.mongo-backup.yml \
+  --profile mongo up -d mongo
+```
+
+Use the same Compose project and environment file as the existing deployment.
+The overlay requires an explicitly configured, existing directory; it does not
+create the directory or schedule backups. Setting the variable alone does not
+mount anything. Removing the overlay and reapplying Compose recreates the
+container without `/backup`; it does not delete files in the host directory.
+Plan for a brief interruption when changing mounts on a single-member replica set.
 
 Use the archive script with a MongoDB user permitted to run backup operations.
 For the optional Docker MongoDB deployment, pass the dedicated network. For a

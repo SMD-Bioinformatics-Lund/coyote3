@@ -9,6 +9,10 @@ The supported logical archive process is documented together with database setup
 
 ## Logical archives
 
+The server-side `/backup` mount is optional and is not required by the archive
+script. Centers with an external backup process can omit
+`COYOTE3_MONGO_BACKUP_HOST_ROOT` and `docker-compose.mongo-backup.yml` entirely.
+
 `scripts/mongo_backup_archive.sh` runs `mongodump` in a short-lived `mongo:8.2` tools container. The container has no MongoDB data volume and does not run a database server. It mounts only the backup destination, creates one compressed archive, verifies it, writes metadata with a SHA-256 checksum, and exits. Docker removes the tools container after the command finishes. For Docker-managed MongoDB, pass `--docker-network`; omit it for an externally reachable MongoDB host.
 
 For the supported one-member replica set, the script uses `--oplog`. This records writes that occur during the dump so that `mongorestore --oplogReplay` can restore a consistent point-in-time state. A backup command that uses `--oplog` must archive the complete MongoDB deployment; it must not select an individual database or collection.
