@@ -42,6 +42,10 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    "coyote3-notification-email-delivery": {
+        "task": "api.tasks.maintenance.deliver_notification_emails",
+        "schedule": 30,
+    },
     "coyote3-ingest-job-dispatch": {
         "task": "api.tasks.ingest.dispatch_pending_jobs",
         "schedule": 30,

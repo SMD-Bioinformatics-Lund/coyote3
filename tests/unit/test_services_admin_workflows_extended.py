@@ -475,7 +475,7 @@ def test_system_managed_permissions_reject_mutation(monkeypatch, operation):
     assert "cannot be" in error.value.message
 
 
-def test_system_managed_permissions_can_be_deactivated(monkeypatch):
+def test_system_managed_permissions_cannot_be_deactivated(monkeypatch):
     repo = _Repo()
     repo.get_permission = lambda permission_id: {
         "permission_id": permission_id,
@@ -484,10 +484,8 @@ def test_system_managed_permissions_can_be_deactivated(monkeypatch):
     }
     service = _permission_service(repo)
 
-    payload = service.toggle_permission(permission_id="sample:view")
-
-    assert payload["meta"]["is_active"] is False
-    assert repo.updated_permission == ("sample:view", False)
+    with pytest.raises(Exception, match="cannot be deactivated"):
+        service.toggle_permission(permission_id="sample:view")
 
 
 def test_username_and_email_exists(monkeypatch):

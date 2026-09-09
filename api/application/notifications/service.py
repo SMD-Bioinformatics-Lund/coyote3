@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -19,6 +20,8 @@ class NotificationService:
         *,
         retention_days: int,
         audit_service: Any | None = None,
+        email_sender: Callable[..., bool] | None = None,
+        inbox_url: str = "",
     ) -> "NotificationService":
         """Bind notification workflows to the store's notification and user repositories.
 
@@ -26,6 +29,8 @@ class NotificationService:
             store: Provider of notification_repository and user_repository.
             retention_days: Expiry interval in days, clamped by the constructor.
             audit_service: Optional recorder for broadcast and reset events.
+            email_sender: Configured SMTP sender, or None to disable broadcast email.
+            inbox_url: Absolute URL to the authenticated notification inbox.
 
         Returns:
             Service using the supplied repositories and retention policy.
@@ -35,6 +40,8 @@ class NotificationService:
             user_repository=store.user_repository,
             retention_days=retention_days,
             audit_service=audit_service,
+            email_sender=email_sender,
+            inbox_url=inbox_url,
         )
 
     def __init__(
@@ -44,6 +51,8 @@ class NotificationService:
         user_repository: Any,
         retention_days: int,
         audit_service: Any | None = None,
+        email_sender: Callable[..., bool] | None = None,
+        inbox_url: str = "",
     ) -> None:
         """Configure notification persistence, recipient lookup, and expiry.
 
@@ -52,11 +61,15 @@ class NotificationService:
             user_repository: Looks up active recipients and role membership.
             retention_days: Days until expiry; falsey values use 180, with a minimum of 7.
             audit_service: Optional event recorder; None disables audit recording here.
+            email_sender: Configured SMTP sender, or None to disable broadcast email.
+            inbox_url: Absolute URL included in broadcast emails.
         """
         self.notification_repository = notification_repository
         self.user_repository = user_repository
         self.retention_days = max(7, int(retention_days or 180))
         self.audit_service = audit_service
+        self.email_sender = email_sender
+        self.inbox_url = inbox_url
 
     def inbox(self, *, username: str, limit: int = 200) -> dict[str, Any]:
         """List notifications visible to a recipient with per-recipient read state.
@@ -107,19 +120,37 @@ class NotificationService:
         return {"status": "ok", "changed": changed}
 
     def dismiss(self, *, notification_id: str, username: str) -> dict[str, Any]:
-        """Dismiss one notification for the specified recipient.
+        """Clear a personal message or withdraw a sender-owned broadcast for all recipients.
 
         Args:
             notification_id: Notification identifier to update.
             username: Recipient login, normalized before the repository call.
 
         Returns:
-            Success status with changed set to one.
+            Success status and the changed count; repeated withdrawal returns zero.
 
         Raises:
-            AppError: With status 404 when the repository reports no change.
+            AppError: With status 403 for recipient broadcast withdrawal, or 404
+                when a personal message is not visible to the caller.
         """
-        changed = self.notification_repository.dismiss(notification_id, self._username(username))
+        username = self._username(username)
+        document = self.notification_repository.get_notification(notification_id)
+        if document and document.get("is_broadcast") is True:
+            if document.get("created_by") != username:
+                raise api_error(403, "Only the sender can withdraw a broadcast")
+            changed = self.notification_repository.withdraw(notification_id, username)
+            if changed and self.audit_service:
+                self.audit_service.record(
+                    "notification.broadcast.withdrawn",
+                    "Broadcast withdrawn by its sender",
+                    category="administration",
+                    actor=username,
+                    resource_type="notification",
+                    resource_id=notification_id,
+                    metadata={"sender": username},
+                )
+            return {"status": "ok", "changed": int(changed)}
+        changed = self.notification_repository.dismiss(notification_id, username)
         if not changed:
             raise api_error(404, "Notification not found")
         return {"status": "ok", "changed": 1}
@@ -167,6 +198,25 @@ class NotificationService:
                 }
                 for role_id, count in sorted(role_counts.items())
             ],
+        }
+
+    def sent(self, *, username: str) -> dict[str, Any]:
+        """Return sender-owned broadcasts for review and withdrawal.
+
+        Args:
+            username: Authenticated sender, normalized to a canonical login.
+
+        Returns:
+            Serialized sent messages and an unread count of zero; this list is a
+            sender archive, not the recipient inbox.
+        """
+        username = self._username(username)
+        return {
+            "notifications": [
+                self._serialize(row, username=username)
+                for row in self.notification_repository.list_sent(username)
+            ],
+            "unread_count": 0,
         }
 
     def broadcast(self, *, payload: dict[str, Any], actor: Any) -> dict[str, Any]:
@@ -222,14 +272,18 @@ class NotificationService:
             raise api_error(400, "The broadcast has no active recipients")
 
         notification_id = self.create_notification(
-            audience="all" if audience == "all" else "users",
-            recipients=[] if audience == "all" else recipients,
+            audience="users",
+            recipients=recipients,
             tone=str(payload.get("tone") or "info"),
             category=str(payload.get("category") or "application"),
             title=str(payload.get("title") or "").strip(),
             message=str(payload.get("message") or "").strip(),
             source="Administrative broadcast",
             created_by=getattr(actor, "username", None) or "system",
+            email_recipients=recipients if self.email_sender else [],
+            is_broadcast=True,
+            severity=payload.get("severity") or "info",
+            expires_at=payload.get("expires_at"),
         )
         if self.audit_service:
             self.audit_service.record(
@@ -252,12 +306,69 @@ class NotificationService:
             "notification_id": notification_id,
             "audience": audience,
             "recipient_count": len(recipients),
+            "email_state": "pending" if self.email_sender else "not_configured",
         }
+
+    def deliver_emails(self, *, limit: int = 10) -> dict[str, Any]:
+        """Deliver a bounded batch of persisted broadcast emails.
+
+        Args:
+            limit: Maximum recipients per worker invocation, bounded to 1 through 50.
+
+        Returns:
+            Delivery counts, or not_configured when SMTP was not supplied.
+
+        Notes:
+            Rechecks account activation and address at send time. Email contains an inbox
+            link, not clinical details or the notification body. Failed sends are retained
+            as failed; only abandoned worker leases can be retried automatically.
+        """
+        if self.email_sender is None:
+            return {"status": "not_configured", "sent": 0}
+        counts = {"sent": 0, "failed": 0, "skipped": 0, "unknown": 0}
+        for _ in range(max(1, min(limit, 50))):
+            claimed = self.notification_repository.claim_email()
+            if claimed is None:
+                break
+            notification, delivery = claimed
+            if delivery["attempts"] > 3:
+                self.notification_repository.finish_email(
+                    notification["_id"],
+                    delivery["lease_id"],
+                    state="unknown",
+                )
+                counts["unknown"] += 1
+                continue
+            user = self.user_repository.user_with_id(delivery["username"])
+            address = str((user or {}).get("email") or "").strip()
+            state = "skipped"
+            if user and user.get("is_active", True) and address:
+                sent = self.email_sender(
+                    to_email=address,
+                    subject="Coyote3 administrative notification",
+                    text_body=(
+                        "A new administrative message is available in your Coyote3 inbox.\n\n"
+                        f"Open notifications: {self.inbox_url}\n\n"
+                        "Sign in to read the message. This email contains no clinical information."
+                    ),
+                    purpose="broadcast",
+                    severity=notification.get("severity") or "info",
+                    action_url=self.inbox_url,
+                    action_label="Open notifications",
+                )
+                state = "sent" if sent else "failed"
+            self.notification_repository.finish_email(
+                notification["_id"],
+                delivery["lease_id"],
+                state=state,
+            )
+            counts[state] += 1
+        return {"status": "ok", **counts}
 
     def notify_password_reset_request(self, *, account_username: str) -> str | None:
         """Notify active administrators about a valid self-service reset request."""
         admin_users = self.user_repository.list_active_users_for_notifications(
-            role_ids=["admin", "superuser"]
+            role_ids=["sys_admin", "superuser"]
         )
         recipients = sorted(
             {
@@ -305,6 +416,10 @@ class NotificationService:
         source: str,
         created_by: str,
         resource: dict[str, Any] | None = None,
+        email_recipients: list[str] | None = None,
+        is_broadcast: bool = False,
+        severity: str = "info",
+        expires_at: datetime | None = None,
     ) -> str:
         """Persist a notification with expiry and initially empty recipient states.
 
@@ -318,6 +433,10 @@ class NotificationService:
             source: Origin label, truncated to 160 characters.
             created_by: Creator login; blank values become system.
             resource: Optional resource reference; empty mappings are stored as None.
+            email_recipients: Resolved recipient usernames for an atomic broadcast outbox.
+            is_broadcast: Whether only the sender may withdraw the message.
+            severity: Semantic message importance shown independently of category.
+            expires_at: Optional UTC-aware broadcast visibility deadline; None means no expiry.
 
         Returns:
             Identifier returned by the notification repository.
@@ -334,6 +453,10 @@ class NotificationService:
         if not title or not message:
             raise api_error(400, "Notification title and message are required")
         now = datetime.now(timezone.utc)
+        if severity not in {"info", "important", "warning", "critical", "success"}:
+            raise api_error(400, "Unsupported notification severity")
+        if expires_at is not None and (expires_at.tzinfo is None or expires_at <= now):
+            raise api_error(400, "Expiry must be a future timezone-aware date")
         return self.notification_repository.create(
             {
                 "audience": audience,
@@ -347,9 +470,17 @@ class NotificationService:
                 "created_by": self._username(created_by) or "system",
                 "created_on": now,
                 "updated_on": now,
-                "expires_on": now + timedelta(days=self.retention_days),
+                "expires_on": expires_at
+                if is_broadcast
+                else now + timedelta(days=self.retention_days),
+                "is_broadcast": is_broadcast,
+                "severity": severity,
                 "read_by": [],
                 "dismissed_by": [],
+                "email_deliveries": [
+                    {"username": username, "state": "pending", "attempts": 0}
+                    for username in dict.fromkeys(email_recipients or [])
+                ],
             }
         )
 
@@ -408,9 +539,29 @@ class NotificationService:
             "message": document.get("message") or "",
             "source": document.get("source") or "",
             "resource": document.get("resource"),
-            "created_at": created_on.isoformat()
-            if hasattr(created_on, "isoformat")
-            else str(created_on or ""),
+            "created_at": NotificationService._timestamp(created_on) or "",
             "created_by": document.get("created_by") or "system",
             "read": username in set(document.get("read_by") or []),
+            "is_broadcast": bool(document.get("is_broadcast")),
+            "severity": document.get("severity")
+            or {"error": "critical", "warning": "warning", "success": "success"}.get(
+                document.get("tone"), "info"
+            ),
+            "can_clear": not document.get("is_broadcast") or document.get("created_by") == username,
+            "expires_at": NotificationService._timestamp(document.get("expires_on")),
+            "withdrawn_at": NotificationService._timestamp(document.get("withdrawn_on")),
         }
+
+    @staticmethod
+    def _timestamp(value: datetime | None) -> str | None:
+        """Serialize MongoDB UTC timestamps with an explicit browser-readable offset.
+
+        Args:
+            value: Stored datetime; MongoDB's timezone-naive values represent UTC.
+
+        Returns:
+            ISO timestamp with an offset, or None when no timestamp is stored.
+        """
+        if value is None:
+            return None
+        return (value if value.tzinfo else value.replace(tzinfo=timezone.utc)).isoformat()

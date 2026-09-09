@@ -10,6 +10,7 @@ from filelock import FileLock, Timeout
 from api.app.deps.services import (
     get_app_controls_service,
     get_dashboard_service,
+    get_notification_service,
     get_public_oncokb_refresh_service,
 )
 from api.celery_app import celery_app
@@ -20,6 +21,17 @@ from api.tasks.ingest import _ensure_worker_runtime, _serializable
 
 logger = get_task_logger(__name__)
 DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote3-dashboard-metrics-refresh.lock"
+
+
+@celery_app.task(name="api.tasks.maintenance.deliver_notification_emails")
+def deliver_notification_emails() -> dict[str, Any]:
+    """Deliver at most ten leased broadcast emails without blocking HTTP requests.
+
+    Returns:
+        Counts by terminal outcome, or not_configured when SMTP is unavailable.
+    """
+    _ensure_worker_runtime()
+    return get_notification_service().deliver_emails(limit=10)
 
 
 @celery_app.task(name="api.tasks.maintenance.run_retention_maintenance", bind=True)

@@ -28,6 +28,9 @@ class _NotificationRepository:
         self.documents.append(document)
         return document["_id"]
 
+    def get_notification(self, notification_id):
+        return next((row for row in self.documents if row["_id"] == notification_id), None)
+
     def list_for_user(self, username, *, limit):
         return [
             row
@@ -67,7 +70,7 @@ def _service():
     notifications = _NotificationRepository()
     users = _UserRepository(
         [
-            {"username": "admin", "roles": ["admin"], "is_active": True},
+            {"username": "admin", "roles": ["sys_admin"], "is_active": True},
             {"username": "user.one", "roles": ["user"], "is_active": True},
             {"username": "user.two", "roles": ["user"], "is_active": True},
             {"username": "disabled", "roles": ["admin"], "is_active": False},
@@ -143,7 +146,7 @@ def test_recipient_options_include_active_role_counts():
     options = service.recipient_options()
 
     assert options["roles"] == [
-        {"role_id": "admin", "label": "Admin", "user_count": 1},
+        {"role_id": "sys_admin", "label": "Sys Admin", "user_count": 1},
         {"role_id": "user", "label": "User", "user_count": 2},
     ]
 

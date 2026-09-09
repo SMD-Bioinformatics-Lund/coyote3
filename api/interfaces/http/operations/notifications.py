@@ -83,8 +83,17 @@ def notification_dismiss(
     user: ApiUser = Depends(require_access()),
     service: NotificationService = Depends(get_notification_service),
 ):
-    """Dismiss one notification for the authenticated user only."""
+    """Clear a personal notification, or withdraw a sender-owned broadcast for everyone."""
     return service.dismiss(notification_id=notification_id, username=user.username)
+
+
+@router.get("/api/v1/admin/notifications/sent", response_model=NotificationListPayload)
+def notification_sent(
+    user: ApiUser = Depends(require_access(permission="notification.broadcast:create")),
+    service: NotificationService = Depends(get_notification_service),
+):
+    """List the authenticated sender's broadcasts, including their expiry and withdrawal state."""
+    return service.sent(username=user.username)
 
 
 @router.get(

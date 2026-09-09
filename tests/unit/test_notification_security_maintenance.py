@@ -9,6 +9,8 @@ import mongomock
 from pymongo.errors import OperationFailure
 
 from api.config.security import get_api_sessions_collection_name, get_audit_events_collection_name
+from api.infra.mongo.index_management import _ContractCollection
+from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.notifications import email
 from api.infra.security.indexes import _create_index, ensure_security_indexes
 from api.tasks import maintenance
@@ -26,7 +28,8 @@ class _SmtpServer:
     def __exit__(self, *_args) -> None:
         return None
 
-    def starttls(self) -> None:
+    def starttls(self, *, context) -> None:
+        assert context.check_hostname
         self.started_tls = True
 
     def login(self, username: str, password: str) -> None:
@@ -34,6 +37,14 @@ class _SmtpServer:
 
     def send_message(self, message) -> None:
         self.message = message
+
+
+def test_notification_indexes_support_read_only_startup_contract_inspection():
+    collection = mongomock.MongoClient().test.notifications
+    recorder = _ContractCollection(collection, "notifications")
+    repo = NotificationsRepository(SimpleNamespace(notifications_collection=recorder))
+    repo.ensure_indexes()
+    assert len(recorder.contracts) == 4
 
 
 def test_identity_collection_names_follow_the_identity_mapping() -> None:

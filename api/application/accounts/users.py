@@ -16,7 +16,10 @@ from api.application.accounts.common import (
     normalize_permission_ids,
     utc_now,
 )
-from api.application.common.protected_records import reject_system_managed_delete
+from api.application.common.protected_records import (
+    reject_system_managed_change,
+    reject_system_managed_delete,
+)
 from api.config.constants import (
     AUTH_PROVIDER_LOCAL,
     DEFAULT_AUTH_PROVIDER,
@@ -351,6 +354,7 @@ class UserManagementService:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
+        reject_system_managed_change(user_doc, resource="user")
         form_data = dict(payload.get("form_data", {}) or {})
         if form_data.get("password"):
             raise api_error(
@@ -369,6 +373,9 @@ class UserManagementService:
         if "superuser" in old_roles.symmetric_difference(new_roles) and not actor_is_superuser:
             raise api_error(403, "Only a superuser may assign or remove the superuser role")
         updated_user = normalize_managed_form_payload(self._spec, form_data)
+        for scope_field in ("asp_ids", "asp_groups", "environments"):
+            if scope_field not in form_data:
+                updated_user[scope_field] = list(user_doc.get(scope_field) or [])
         actor = current_actor(actor_username)
         updated_user["updated_on"] = utc_now()
         updated_user["updated_by"] = actor
@@ -408,6 +415,7 @@ class UserManagementService:
         user_doc = self.user_repository.user_with_id(username)
         if not user_doc:
             raise api_error(404, "User not found")
+        reject_system_managed_change(user_doc, resource="user")
         allowed = {"firstname", "lastname", "fullname", "job_title"}
         unexpected = sorted(set(payload) - allowed)
         if unexpected:
@@ -545,6 +553,7 @@ class UserManagementService:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
+        reject_system_managed_change(user_doc, resource="user")
         if "superuser" in _normalize_role_ids(user_doc.get("roles")) and not actor_is_superuser:
             raise api_error(403, "Only a superuser may change a superuser account status")
         new_status = not bool(user_doc.get("is_active"))

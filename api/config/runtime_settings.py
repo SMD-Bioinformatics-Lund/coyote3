@@ -149,7 +149,9 @@ class MailSettings:
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "1") == "1"
     SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "0") == "1"
-    SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@coyote3.local")
+    SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "no-reply@coyote3.local")
+    SMTP_INFO_FROM_EMAIL = os.getenv("SMTP_INFO_FROM_EMAIL", "info@coyote3.local")
+    SMTP_SECURITY_FROM_EMAIL = os.getenv("SMTP_SECURITY_FROM_EMAIL", "security@coyote3.local")
     SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", DEFAULT_ORGANIZATION_NAME)
 
 

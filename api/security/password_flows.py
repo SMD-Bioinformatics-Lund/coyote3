@@ -108,6 +108,8 @@ def notify_user_change(
             subject=subject,
             text_body=text_body,
             log=runtime_app.logger,
+            purpose="security",
+            severity="important",
         )
         if to_email
         else False
@@ -238,6 +240,10 @@ def issue_password_token_for_user(
             subject=subject,
             text_body=text_body,
             log=runtime_app.logger,
+            purpose="account" if purpose == _TOKEN_PURPOSE_INVITE else "security",
+            severity="important",
+            action_url=setup_url if setup_url.startswith(("https://", "http://")) else "",
+            action_label="Set password",
         )
         if to_email
         else False
@@ -345,6 +351,9 @@ def change_local_password(
     if not UserModel.validate_login(str(user_doc.get("password") or ""), current_password):
         emit_auth_metric("password_change", outcome="failed", reason="invalid_current_password")
         return {"status": "error", "error": "Current password is incorrect"}
+
+    if new_password == current_password:
+        return {"status": "error", "error": "Choose a password different from the current password"}
 
     user_repository.set_local_password(
         user_id=user_id,

@@ -6,6 +6,7 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 
+from api.application.common.protected_records import reject_system_managed_change
 from api.application.ingest.helpers import (
     _validate_yaml_manifest_minimum_fields,
     normalize_null_placeholders,
@@ -83,6 +84,10 @@ def upsert_collection_document(
     """Validate and replace one document in a supported collection."""
     if not isinstance(match, dict) or not match:
         raise ValueError("match must be a non-empty object")
+    if collection in {"users", "roles", "permissions"}:
+        existing = service._collection(collection).find_one(match, session=session)
+        if isinstance(existing, dict):
+            reject_system_managed_change(existing, resource=collection)
     normalized_doc = normalize_collection_document(collection, document)
     result = service._collection(collection).replace_one(
         filter=match,

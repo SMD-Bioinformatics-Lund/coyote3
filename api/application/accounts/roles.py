@@ -14,7 +14,10 @@ from api.application.accounts.common import (
     normalize_permission_ids,
     utc_now,
 )
-from api.application.common.protected_records import reject_system_managed_delete
+from api.application.common.protected_records import (
+    reject_system_managed_change,
+    reject_system_managed_delete,
+)
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
@@ -172,6 +175,7 @@ class RoleManagementService:
         role = self.roles_repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
+        reject_system_managed_change(role, resource="role")
         updated_role = normalize_managed_form_payload(
             self._spec, payload.get("form_data", {}) or {}
         )
@@ -208,6 +212,7 @@ class RoleManagementService:
         role = self.roles_repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
+        reject_system_managed_change(role, resource="role")
         new_status = not bool(role.get("is_active"))
         self.roles_repository.toggle_role_active(role_id, new_status)
         payload = change_payload(resource="role", resource_id=role_id, action="toggle")

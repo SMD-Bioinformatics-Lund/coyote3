@@ -20,6 +20,7 @@ if str(ROOT_DIR) not in sys.path:
 from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
+from api.infra.mongo.transactions import run_transaction  # noqa: E402
 
 DEFAULT_SEED_DATA_DIR = ROOT_DIR / "api" / "config" / "bootstrap" / "rbac"
 
@@ -47,8 +48,24 @@ def synchronize_rbac_catalog(
     permission_docs: list[dict[str, Any]],
     role_docs: list[dict[str, Any]],
     actor: str = "sync_rbac_catalog",
+    session: Any = None,
+    dry_run: bool = False,
 ) -> dict[str, int]:
-    """Union bundled policies and roles into the existing database catalog."""
+    """Union bundled policies and roles without changing passwords or user memberships.
+
+    Args:
+        database: Explicitly selected identity database.
+        permissions_collection: Physical permission collection name.
+        roles_collection: Physical role collection name.
+        permission_docs: Bundled policy definitions.
+        role_docs: Bundled role definitions and grants.
+        actor: Operator recorded on changed definitions.
+        session: Optional owning transaction session.
+        dry_run: Report planned changes without issuing writes.
+
+    Returns:
+        Counts of inserted and protected definitions and updated roles.
+    """
     now = datetime.now(timezone.utc)
     inserted_permissions = 0
     locked_permissions = 0
@@ -63,9 +80,13 @@ def synchronize_rbac_catalog(
         existing = permissions.find_one(
             {"permission_id": permission_id},
             {"_id": 1, "system_managed": 1, "is_active": 1},
+            session=session,
         )
         if existing is not None:
             if not bool(existing.get("system_managed", False)):
+                if dry_run:
+                    locked_permissions += 1
+                    continue
                 result = permissions.update_one(
                     {"_id": existing["_id"]},
                     {
@@ -75,6 +96,7 @@ def synchronize_rbac_catalog(
                             "updated_on": now,
                         }
                     },
+                    session=session,
                 )
                 locked_permissions += int(result.modified_count or 0)
             continue
@@ -90,7 +112,8 @@ def synchronize_rbac_catalog(
                 "updated_on": now,
             },
         )
-        permissions.insert_one(document)
+        if not dry_run:
+            permissions.insert_one(document, session=session)
         inserted_permissions += 1
 
     roles = database[roles_collection]
@@ -108,6 +131,7 @@ def synchronize_rbac_catalog(
         existing_role = roles.find_one(
             {"role_id": role_id},
             {"_id": 1, "permissions": 1, "system_managed": 1},
+            session=session,
         )
         if not existing_role:
             document = normalize_collection_document(
@@ -123,7 +147,8 @@ def synchronize_rbac_catalog(
                     "updated_on": now,
                 },
             )
-            roles.insert_one(document)
+            if not dry_run:
+                roles.insert_one(document, session=session)
             inserted_roles += 1
             continue
         existing_grants = {
@@ -137,6 +162,9 @@ def synchronize_rbac_catalog(
             role_updates["system_managed"] = True
         if not missing_grants and not role_updates:
             continue
+        if dry_run:
+            updated_roles += 1
+            continue
         role_updates.update({"updated_by": actor, "updated_on": now})
         update: dict[str, Any] = {"$set": role_updates}
         if missing_grants:
@@ -145,6 +173,7 @@ def synchronize_rbac_catalog(
             {"_id": existing_role["_id"]},
             update,
             upsert=False,
+            session=session,
         )
         if result.modified_count:
             updated_roles += 1
@@ -168,6 +197,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "identity"))
     parser.add_argument("--identity-db", default=os.getenv("IDENTITY_DB", ""))
     parser.add_argument("--seed-data-dir", default=str(DEFAULT_SEED_DATA_DIR))
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print planned counts without writes"
+    )
     return parser.parse_args()
 
 
@@ -185,16 +217,26 @@ def main() -> int:
     identity_mapping = load_collection_section("identity")
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
-    client.admin.command("ping")
-    result = synchronize_rbac_catalog(
-        client[args.identity_db],
-        permissions_collection=identity_mapping["permissions_collection"],
-        roles_collection=identity_mapping["roles_collection"],
-        permission_docs=permission_docs,
-        role_docs=role_docs,
-    )
+
+    def synchronize(session):
+        """Apply the catalog within the supplied identity transaction."""
+        return synchronize_rbac_catalog(
+            client[args.identity_db],
+            permissions_collection=identity_mapping["permissions_collection"],
+            roles_collection=identity_mapping["roles_collection"],
+            permission_docs=permission_docs,
+            role_docs=role_docs,
+            session=session,
+            dry_run=args.dry_run,
+        )
+
+    try:
+        client.admin.command("ping")
+        result = synchronize(None) if args.dry_run else run_transaction(client, synchronize)
+    finally:
+        client.close()
     print(
-        "[ok] RBAC catalog synchronized: "
+        ("[dry-run] " if args.dry_run else "[ok] ") + "RBAC catalog: "
         f"inserted_permissions={result['inserted_permissions']} "
         f"locked_permissions={result['locked_permissions']} "
         f"inserted_roles={result['inserted_roles']} "

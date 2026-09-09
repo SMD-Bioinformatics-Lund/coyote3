@@ -1,6 +1,7 @@
 """Service dependency factories."""
 
-from functools import lru_cache
+from functools import lru_cache, partial
+from urllib.parse import urlsplit
 
 from api.app.container import util
 from api.app.deps.repositories import get_store
@@ -44,6 +45,7 @@ from api.config.security import (
     get_runtime_environment,
 )
 from api.infra.dashboard_metric_cache import invalidate_dashboard_metrics
+from api.infra.notifications.email import send_email, smtp_configured
 from api.infra.security.sessions import MongoApiSessionRepository
 
 
@@ -258,10 +260,17 @@ def get_audit_service() -> AuditService | None:
 
 def get_notification_service() -> NotificationService:
     """Return the recipient-scoped notification service."""
+    config = runtime_app.config
+    base = str(config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    prefix = str(config.get("SCRIPT_NAME") or "").strip().rstrip("/")
+    url = urlsplit(base)
+    email_ready = smtp_configured(config) and url.scheme in {"http", "https"} and bool(url.netloc)
     return NotificationService.from_store(
         get_store(),
         retention_days=int(runtime_app.config.get("NOTIFICATION_RETENTION_DAYS", 180)),
         audit_service=get_audit_service(),
+        email_sender=partial(send_email, config=config) if email_ready else None,
+        inbox_url=f"{base}{prefix}/notifications" if email_ready else "",
     )
 
 

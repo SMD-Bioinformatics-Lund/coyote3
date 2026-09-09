@@ -30,8 +30,8 @@ def _require_center_managed(permission: dict[str, Any], *, action: str) -> None:
             f"System permission policies cannot be {action}",
             (
                 f"Permission '{permission.get('permission_id')}' is supplied by Coyote3 and is "
-                "required by application authorization checks. Its active state may be changed, "
-                "but its identifier and definition cannot be changed or deleted."
+                "required by application authorization checks. Its active state, identifier, "
+                "and definition cannot be changed or deleted through administration."
             ),
             category="conflict",
         )
@@ -206,6 +206,7 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
+        _require_center_managed(permission, action="deactivated")
         new_status = not bool(permission.get("is_active", True))
         self.permissions_repository.toggle_policy_active(permission_id, new_status)
         payload = change_payload(resource="permission", resource_id=permission_id, action="toggle")

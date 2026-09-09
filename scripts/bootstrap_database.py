@@ -8,10 +8,12 @@ never starts Compose services, calls the Coyote3 API, or queues ingest work.
 from __future__ import annotations
 
 import argparse
+import getpass
 import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -57,8 +59,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--identity-db", required=True, help="Identity database name")
     parser.add_argument("--username", required=True, help="First local superuser login name")
     parser.add_argument("--email", required=True, help="First local superuser email address")
-    parser.add_argument("--password", required=True, help="First local superuser password")
-    parser.add_argument("--role-id", default="superuser", help="Bundled role assigned to the user")
+    parser.add_argument("--password", help="Temporary superuser password; omit for a hidden prompt")
+    parser.add_argument("--role-id", default="superuser", choices=["superuser"])
+    parser.add_argument(
+        "--sys-admin-username", required=True, help="Named initial system administrator"
+    )
+    parser.add_argument("--sys-admin-email", required=True, help="System administrator email")
+    parser.add_argument(
+        "--sys-admin-password", help="Temporary system-admin password; omit for a hidden prompt"
+    )
     parser.add_argument(
         "--rbac-dir", default=str(DEFAULT_RBAC_DIR), help="Bundled RBAC seed directory"
     )
@@ -162,7 +171,7 @@ def _build_seed_documents(
     return normalized
 
 
-def _make_superuser_document(args: argparse.Namespace, *, actor: str) -> dict:
+def _make_bootstrap_user(args: argparse.Namespace, *, actor: str) -> dict:
     """Build a validated local bootstrap user with a hashed password.
 
     Args:
@@ -280,23 +289,25 @@ def _initialize_governance(
     *,
     seed: dict[str, list[dict]],
     user_document: dict,
+    system_admin_document: dict,
     users_collection: str,
     roles_collection: str,
     permissions_collection: str,
 ) -> str:
-    """Populate empty governance collections with bundled RBAC and the first user.
+    """Populate empty governance collections with RBAC and two distinct initial accounts.
 
     Args:
         db: Identity MongoDB database receiving governance records.
         seed: Seed mapping containing permissions and roles document lists.
         user_document: Validated first-user document with at least one assigned role.
+        system_admin_document: Validated named system-administrator document.
         users_collection: Physical user collection name.
         roles_collection: Physical role collection name.
         permissions_collection: Physical permission collection name.
 
     Returns:
         ``skipped`` when governance data and a superuser already exist, or ``loaded``
-        after inserting permissions, roles, and the user.
+        after inserting permissions, roles, and both initial accounts.
 
     Raises:
         SystemExit: Governance is partially populated without a superuser, or the
@@ -304,8 +315,9 @@ def _initialize_governance(
         pymongo.errors.PyMongoError: Governance reads or writes fail.
 
     Notes:
-        Writes permissions, then roles, then the user without a transaction.
-        Failure can leave partially initialized governance collections.
+        Creates declared indexes, then commits permissions, roles, and both accounts
+        in one identity-database transaction. Concurrent initialization cannot create
+        duplicate role or user identifiers.
     """
     collection_names = (users_collection, roles_collection, permissions_collection)
     if _deployment_is_initialized(db, collection_names):
@@ -316,16 +328,45 @@ def _initialize_governance(
             "Inspect the database before retrying; bootstrap will not overwrite it."
         )
 
+    if user_document["username"] == system_admin_document["username"]:
+        raise SystemExit("Superuser and system administrator must be different accounts")
+    if user_document["roles"] != ["superuser"] or system_admin_document["roles"] != ["sys_admin"]:
+        raise SystemExit("Bootstrap requires exactly one superuser and one system administrator")
     role_ids = {str(document.get("role_id") or "").lower() for document in seed["roles"]}
+    if "sys_admin" not in role_ids:
+        raise SystemExit("The bundled system administrator role is missing")
     assigned_role = str(user_document["roles"][0]).lower()
     if assigned_role not in role_ids:
         raise SystemExit(
             f"Bootstrap role '{assigned_role}' is not present in the bundled RBAC catalog."
         )
 
-    db[permissions_collection].insert_many(seed["permissions"], ordered=True)
-    db[roles_collection].insert_many(seed["roles"], ordered=True)
-    db[users_collection].insert_one(user_document)
+    from api.infra.mongo.transactions import run_transaction
+
+    def initialize(session):
+        """Commit both accounts and their permission definitions together."""
+        if any(db[name].count_documents({}, limit=1, session=session) for name in collection_names):
+            raise SystemExit("Governance changed during bootstrap; no records were overwritten")
+        db[permissions_collection].insert_many(seed["permissions"], ordered=True, session=session)
+        db[roles_collection].insert_many(seed["roles"], ordered=True, session=session)
+        db[users_collection].insert_many([user_document, system_admin_document], session=session)
+
+    from api.infra.mongo.repositories.permissions import PermissionsRepository
+    from api.infra.mongo.repositories.roles import RolesRepository
+    from api.infra.mongo.repositories.users import UsersRepository
+
+    adapter = SimpleNamespace(
+        users_collection=db[users_collection],
+        roles_collection=db[roles_collection],
+        permissions_collection=db[permissions_collection],
+    )
+    for repository in (
+        UsersRepository(adapter),
+        RolesRepository(adapter),
+        PermissionsRepository(adapter),
+    ):
+        repository.ensure_indexes()
+    run_transaction(db.client, initialize)
     return "loaded"
 
 
@@ -344,10 +385,25 @@ def main() -> int:
         pymongo.errors.PyMongoError: Database checks or bootstrap operations fail.
 
     Notes:
-        Loads demonstration data only when requested. Writes are not transactional
-        across collections or databases; both MongoDB clients are closed on exit.
+        Identity governance is committed in one transaction. Reference and optional
+        demonstration data are loaded separately; clients are closed on exit.
     """
     args = parse_args()
+    _fail_if_placeholder_values(args)
+    if args.username.strip().lower() == args.sys_admin_username.strip().lower():
+        raise SystemExit("Superuser and system administrator logins must be different")
+    if args.email.strip().lower() == args.sys_admin_email.strip().lower():
+        raise SystemExit("Use distinct email addresses for the two bootstrap accounts")
+    for field, label in (("password", "Superuser"), ("sys_admin_password", "System administrator")):
+        if not getattr(args, field):
+            value = getpass.getpass(f"{label} temporary password: ")
+            if value != getpass.getpass(f"Confirm {label.lower()} temporary password: "):
+                raise SystemExit("Password confirmation does not match")
+            setattr(args, field, value)
+        if len(getattr(args, field)) < 12:
+            raise SystemExit("Temporary passwords must contain at least 12 characters")
+    if args.password == args.sys_admin_password:
+        raise SystemExit("Use different temporary passwords for the two bootstrap accounts")
     _fail_if_placeholder_values(args)
     if not args.mongo_uri:
         raise SystemExit("--mongo-uri or COYOTE3_MONGO_URI is required")
@@ -386,12 +442,21 @@ def main() -> int:
         governance = _initialize_governance(
             identity_db,
             seed=seed,
-            user_document=_make_superuser_document(args, actor=actor),
+            user_document=_make_bootstrap_user(args, actor=actor),
+            system_admin_document=_make_bootstrap_user(
+                argparse.Namespace(
+                    username=args.sys_admin_username,
+                    email=args.sys_admin_email,
+                    password=args.sys_admin_password,
+                    role_id="sys_admin",
+                ),
+                actor=actor,
+            ),
             users_collection=identity_mapping["users_collection"],
             roles_collection=identity_mapping["roles_collection"],
             permissions_collection=identity_mapping["permissions_collection"],
         )
-        print(f"[{governance}] governance: permissions, roles, first superuser")
+        print(f"[{governance}] governance: permissions, roles, superuser and system administrator")
         primary_collections = {
             "hgnc_genes": primary_mapping["hgnc_collection"],
             "vep_metadata": primary_mapping["vep_metadata_collection"],

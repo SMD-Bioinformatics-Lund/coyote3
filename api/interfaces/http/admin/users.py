@@ -15,9 +15,32 @@ from api.contracts.admin import (
     AdminUsersListPayload,
 )
 from api.interfaces.http.tags import TAG_ADMIN_USERS
-from api.security.access import ApiUser, require_access
+from api.security.access import ApiUser, _enforce_access, require_access
 
 router = APIRouter(tags=[TAG_ADMIN_USERS])
+
+
+def _enforce_assignment_permissions(user: ApiUser, payload: dict) -> None:
+    """Require dedicated grants when an account request supplies access assignments.
+
+    Args:
+        user: Authenticated administrator.
+        payload: Account form submitted by the caller.
+
+    Raises:
+        HTTPException: With status 403 when a required assignment permission is absent.
+
+    Notes:
+        Checking submitted fields, including empty lists, prevents clearing assignments
+        through the broader user-edit permission. The service still protects superusers.
+    """
+    form = payload.get("form_data") or {}
+    if not isinstance(form, dict):
+        return
+    if "roles" in form:
+        _enforce_access(user, permission="user:role:edit")
+    if {"asp_ids", "asp_groups", "environments"} & form.keys():
+        _enforce_access(user, permission="user:group:edit")
 
 
 @router.get("/api/v1/users", response_model=AdminUsersListPayload)
@@ -66,6 +89,7 @@ def create_user(
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Create an admin user."""
+    _enforce_assignment_permissions(user, payload)
     return util.common.convert_to_serializable(
         service.create_user(
             payload=payload,
@@ -83,6 +107,7 @@ def update_user(
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Update an admin user."""
+    _enforce_assignment_permissions(user, payload)
     return util.common.convert_to_serializable(
         service.update_user(
             user_id=user_id,

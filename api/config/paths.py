@@ -6,6 +6,7 @@ from pathlib import Path
 
 API_CONFIG_DIR = Path(__file__).resolve().parent
 REPO_ROOT = API_CONFIG_DIR.parents[1]
+EMAIL_LOGO_PATH = REPO_ROOT / "api" / "app" / "templates" / "logo.png"
 CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
 
 # Container filesystem contract. Compose mounts the center-owned host data root

@@ -238,6 +238,8 @@ def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles(
     } <= set(roles)
     assert set(roles["superuser"]["permissions"]) == permission_ids
     assert set(roles["user_account_manager"]["permissions"]) == {
+        "user:role:edit",
+        "user:group:edit",
         "user:list",
         "user:view",
         "user:create",
@@ -278,11 +280,17 @@ def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center
     assert len(payload["vep_metadata"]) > 0
 
 
-def test_database_bootstrap_writes_only_empty_baseline_collections():
+def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
+    monkeypatch.setattr(
+        "api.infra.mongo.transactions.run_transaction", lambda client, operation: operation(None)
+    )
     database = mongomock.MongoClient()["coyote3_test"]
     seed = {
         "permissions": [{"permission_id": "sample:view"}],
-        "roles": [{"role_id": "superuser", "permissions": ["sample:view"]}],
+        "roles": [
+            {"role_id": "superuser", "permissions": ["sample:view"]},
+            {"role_id": "sys_admin", "permissions": ["user:view"]},
+        ],
         "hgnc_genes": [{"hgnc_id": "HGNC:1"}],
     }
     user_document = {"username": "admin", "roles": ["superuser"]}
@@ -292,6 +300,7 @@ def test_database_bootstrap_writes_only_empty_baseline_collections():
             database,
             seed=seed,
             user_document=user_document,
+            system_admin_document={"username": "operator", "roles": ["sys_admin"]},
             users_collection="users",
             roles_collection="roles",
             permissions_collection="permissions",
@@ -306,6 +315,7 @@ def test_database_bootstrap_writes_only_empty_baseline_collections():
             database,
             seed=seed,
             user_document=user_document,
+            system_admin_document={"username": "operator", "roles": ["sys_admin"]},
             users_collection="users",
             roles_collection="roles",
             permissions_collection="permissions",

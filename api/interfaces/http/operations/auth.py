@@ -401,8 +401,9 @@ def update_current_ui_settings(
 def change_password(payload: ApiPasswordChangeRequest, user: ApiUser = Depends(require_access())):
     """Change the local password for the active authenticated user.
 
-    Enforces commercial-security password complexity constraints. Requires valid
-    verification of the current password before adopting the new password vector.
+    Verify the current password and validate the new password before replacing it.
+    First-login changes also require matching confirmation. Existing sessions become
+    invalid when the stored password changes.
 
     \u000c
 
@@ -416,6 +417,10 @@ def change_password(payload: ApiPasswordChangeRequest, user: ApiUser = Depends(r
     Raises:
         HTTPException: Raises 400 Bad Request if standard complexity checks or current password verification fails.
     """
+    if (
+        user.must_change_password or payload.confirm_password is not None
+    ) and payload.confirm_password != payload.new_password:
+        raise HTTPException(status_code=400, detail="New password and confirmation must match")
     _validate_new_password(payload.new_password)
     out = change_local_password(
         user_id=user.username,

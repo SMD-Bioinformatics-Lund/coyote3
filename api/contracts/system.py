@@ -23,6 +23,7 @@ class WhoamiPayload(BaseModel):
     permissions: list[str]
     ui_settings: dict[str, str | bool | int]
     csrf_token: str
+    must_change_password: bool = False
 
 
 class AuthUserEnvelope(BaseModel):

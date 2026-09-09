@@ -54,8 +54,8 @@ def main() -> int:
         "    `scripts/export_permissions_reference.py`. Edit the bootstrap catalog and regenerate this page.",
         "",
         "Coyote3 installs these permissions into an empty database. They are application contracts:",
-        "administrators can assign them through roles, but cannot rename or delete them. A disabled",
-        "permission grants no access until it is reactivated.",
+        "administrators can assign them through center-owned roles, but cannot edit, deactivate,",
+        "or delete installed definitions. Catalog updates use the controlled installation tools.",
         "",
     ]
     for category in sorted(grouped):

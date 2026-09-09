@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
 
 NotificationTone = Literal["success", "info", "warning", "error"]
 NotificationCategory = Literal["application", "feature", "maintenance", "security", "warning"]
+NotificationSeverity = Literal["info", "important", "warning", "critical", "success"]
 
 
 class NotificationResourcePayload(BaseModel):
@@ -34,6 +36,11 @@ class NotificationItemPayload(BaseModel):
     created_at: str
     created_by: str
     read: bool
+    severity: NotificationSeverity = "info"
+    is_broadcast: bool = False
+    can_clear: bool = True
+    expires_at: str | None = None
+    withdrawn_at: str | None = None
 
 
 class NotificationListPayload(BaseModel):
@@ -83,6 +90,16 @@ class NotificationBroadcastRequest(BaseModel):
     category: NotificationCategory = "application"
     title: str = Field(min_length=3, max_length=160)
     message: str = Field(min_length=1, max_length=5000)
+    severity: NotificationSeverity = "info"
+    expires_at: AwareDatetime | None = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def future_expiry(cls, value: datetime | None) -> datetime | None:
+        """Require a future, timezone-aware visibility deadline when supplied."""
+        if value is not None and value <= datetime.now(timezone.utc):
+            raise ValueError("Expiry must be in the future")
+        return value
 
     @field_validator("recipients")
     @classmethod
@@ -113,3 +130,4 @@ class NotificationBroadcastResponse(BaseModel):
     notification_id: str
     audience: str
     recipient_count: int
+    email_state: Literal["pending", "not_configured"] = "not_configured"

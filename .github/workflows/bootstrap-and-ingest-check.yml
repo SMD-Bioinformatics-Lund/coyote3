@@ -107,6 +107,8 @@ jobs:
 
       - name: Initialize empty application database
         run: |
+          SYS_ADMIN_PASSWORD="$(openssl rand -base64 32)"
+          echo "::add-mask::$SYS_ADMIN_PASSWORD"
           docker compose \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
@@ -120,6 +122,9 @@ jobs:
               --db "${COYOTE3_DB}" \
               --identity-db "${IDENTITY_DB}" \
               --username "${ADMIN_USERNAME}" \
+              --sys-admin-username "ci.system.admin" \
+              --sys-admin-email "ci.system.admin@example.test" \
+              --sys-admin-password "$SYS_ADMIN_PASSWORD" \
               --email "${ADMIN_EMAIL}" \
               --password "${ADMIN_PASSWORD}" \
               --role-id superuser \
