@@ -75,20 +75,20 @@ def _load_user_access_context(
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:
-    """Ldap authenticate.
+    """Verify a directory password using the center's search base and attribute.
 
     Args:
-            username: Username.
-            password: Password.
+        username: Submitted LDAP login identifier, normally the account email.
+        password: Submitted password, never persisted by this flow.
 
     Returns:
-            The  ldap authenticate result.
+        True when directory lookup and user bind succeed; otherwise False.
     """
     return bool(
         ldap_manager.authenticate(
             username=username,
             password=password,
-            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
+            base_dn=app.config.get("LDAP_BASE_DN"),
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     )
