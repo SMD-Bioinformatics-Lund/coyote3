@@ -22,6 +22,20 @@ router = APIRouter(tags=[TAG_DASHBOARD])
 
 
 def _metric_response(metric: str, *, user: ApiUser, service: DashboardService):
+    """Return a scoped metric payload and queue a refresh when stale and unlocked.
+
+    Args:
+        metric: Dashboard metric key to retrieve and potentially refresh.
+        user: User whose access scope selects the metric payload and refresh lock.
+        service: Dashboard service supplying cached metrics and refresh locking.
+
+    Returns:
+        The serialized metric payload retrieved before any queued refresh.
+
+    Notes:
+        Queues a Celery refresh only when metadata marks the payload stale and
+        the service acquires its refresh lock; does not wait for completion.
+    """
     payload = service.metric_payload(metric, user=user)
     if payload.get("metric_meta", {}).get("stale") and service.acquire_metric_refresh(
         metric, user=user
@@ -35,6 +49,20 @@ def dashboard_sample_metrics(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
+    """Read sample metrics for the authenticated user's scope.
+
+    \u000c
+
+    Args:
+        user: Authenticated user whose access scope selects the metrics.
+        service: Dashboard service supplying cached sample metrics.
+
+    Returns:
+        Serialized sample metrics and cache metadata.
+
+    Notes:
+        A stale payload queues a background refresh if its refresh lock is acquired.
+    """
     return _metric_response("samples", user=user, service=service)
 
 
@@ -43,6 +71,20 @@ def dashboard_finding_metrics(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
+    """Read finding metrics for the authenticated user's scope.
+
+    \u000c
+
+    Args:
+        user: Authenticated user whose access scope selects the metrics.
+        service: Dashboard service supplying cached finding metrics.
+
+    Returns:
+        Serialized finding metrics and cache metadata.
+
+    Notes:
+        A stale payload queues a background refresh if its refresh lock is acquired.
+    """
     return _metric_response("findings", user=user, service=service)
 
 
@@ -51,6 +93,20 @@ def dashboard_top_tiered_gene_metrics(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
+    """Read top-tiered-gene metrics for the authenticated user's scope.
+
+    \u000c
+
+    Args:
+        user: Authenticated user whose access scope selects the metrics.
+        service: Dashboard service supplying cached top-tiered-gene metrics.
+
+    Returns:
+        Serialized top-tiered-gene metrics and cache metadata.
+
+    Notes:
+        A stale payload queues a background refresh if its refresh lock is acquired.
+    """
     return _metric_response("top_tiered_genes", user=user, service=service)
 
 
@@ -59,6 +115,20 @@ def dashboard_panel_metrics(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
+    """Read panel metrics for the authenticated user's scope.
+
+    \u000c
+
+    Args:
+        user: Authenticated user whose access scope selects the metrics.
+        service: Dashboard service supplying cached panel metrics.
+
+    Returns:
+        Serialized panel metrics and cache metadata.
+
+    Notes:
+        A stale payload queues a background refresh if its refresh lock is acquired.
+    """
     return _metric_response("panels", user=user, service=service)
 
 
@@ -70,6 +140,20 @@ def dashboard_clinical_configuration_metrics(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
+    """Read clinical-configuration metrics for the authenticated user's scope.
+
+    \u000c
+
+    Args:
+        user: Authenticated user whose access scope selects the metrics.
+        service: Dashboard service supplying cached clinical-configuration metrics.
+
+    Returns:
+        Serialized clinical-configuration metrics and cache metadata.
+
+    Notes:
+        A stale payload queues a background refresh if its refresh lock is acquired.
+    """
     return _metric_response("clinical_configuration", user=user, service=service)
 
 
@@ -78,6 +162,20 @@ def dashboard_resource_metrics(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
+    """Read resource metrics for the authenticated user's scope.
+
+    \u000c
+
+    Args:
+        user: Authenticated user whose access scope selects the metrics.
+        service: Dashboard service supplying cached resource metrics.
+
+    Returns:
+        Serialized resource metrics and cache metadata.
+
+    Notes:
+        A stale payload queues a background refresh if its refresh lock is acquired.
+    """
     return _metric_response("resources", user=user, service=service)
 
 
@@ -107,6 +205,8 @@ def dashboard_admin_insights(
     service: DashboardService = Depends(get_dashboard_service),
 ):
     """Return administrative dashboard insights.
+
+    \u000c
 
     Args:
         user: Authenticated admin user.

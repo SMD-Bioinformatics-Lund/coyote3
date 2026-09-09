@@ -60,11 +60,33 @@ _ENVIRONMENT = Environment(
 
 
 def register_api_documentation(app: FastAPI, *, environment: str) -> None:
-    """Serve reference and explorer pages without adding operations to the schema."""
+    """Register reference and explorer pages without adding schema operations.
+
+    Args:
+        app: Application receiving GET routes at /api/v1/redoc and /api/v1/docs.
+        environment: Display label; values other than production/prod enable
+            the nonproduction warning.
+
+    Raises:
+        OSError: The bundled logo cannot be read.
+        jinja2.TemplateNotFound: The bundled reference template is unavailable.
+
+    Notes:
+        Loads the template and logo immediately; rendered pages disable caching.
+    """
     template = _ENVIRONMENT.get_template("api_reference.html")
     logo = "data:image/png;base64," + b64encode((_TEMPLATES / "logo.png").read_bytes()).decode()
 
     def render(request: Request, view: str) -> HTMLResponse:
+        """Render a documentation view with deployment-prefixed schema links.
+
+        Args:
+            request: Request whose ASGI root_path supplies the external prefix.
+            view: Template mode, reference or explorer.
+
+        Returns:
+            HTML with application version, environment, logo, and no-store headers.
+        """
         prefix = request.scope.get("root_path", "").rstrip("/")
         return HTMLResponse(
             template.render(
@@ -80,9 +102,25 @@ def register_api_documentation(app: FastAPI, *, environment: str) -> None:
         )
 
     async def reference(request: Request) -> HTMLResponse:
+        """Serve the API reference page without requiring authentication.
+
+        Args:
+            request: Incoming request supplying the deployment prefix.
+
+        Returns:
+            The rendered, non-cacheable reference page.
+        """
         return render(request, "reference")
 
     async def explorer(request: Request) -> HTMLResponse:
+        """Serve the API explorer page without requiring authentication.
+
+        Args:
+            request: Incoming request supplying the deployment prefix.
+
+        Returns:
+            The rendered, non-cacheable explorer page.
+        """
         return render(request, "explorer")
 
     app.add_route("/api/v1/redoc", reference, methods=["GET"], include_in_schema=False)

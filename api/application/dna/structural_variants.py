@@ -38,6 +38,17 @@ from api.domain.core.dna.translocqueries import (
 
 
 def _cnv_copy_number(cnv: dict[str, Any]) -> float | None:
+    """Convert the CNV ratio to the copy-number value used for table sorting.
+
+    Args:
+        cnv: CNV row with a ratio interpreted as a log2 value.
+
+    Returns:
+        Twice two raised to the ratio, or None when the ratio is absent or nonnumeric.
+
+    Raises:
+        OverflowError: The exponent exceeds floating-point range.
+    """
     ratio = numeric_value(cnv.get("ratio"))
     if ratio is None:
         return None
@@ -45,6 +56,14 @@ def _cnv_copy_number(cnv: dict[str, Any]) -> float | None:
 
 
 def _cnv_gene_text(cnv: dict[str, Any]) -> str:
+    """Join gene names from dictionary entries in a CNV's gene list.
+
+    Args:
+        cnv: CNV row with optional list-shaped genes.
+
+    Returns:
+        Space-separated gene text, or an empty string without a gene list.
+    """
     genes = cnv.get("genes") or []
     if not isinstance(genes, list):
         return ""
@@ -52,6 +71,20 @@ def _cnv_gene_text(cnv: dict[str, Any]) -> str:
 
 
 def _cnv_sort_value(cnv: dict[str, Any], sort_by: str) -> Any:
+    """Build the requested CNV table sort key.
+
+    Args:
+        cnv: CNV row with genomic, caller, status, and frequency fields.
+        sort_by: genes, region, callers, copy_number, purity, sr, status, or artefact.
+
+    Returns:
+        Lowercase text, numeric value, or region tuple; None for an unsupported key.
+        Both purity and copy_number use the ratio-derived copy number. Artefact uses
+        the largest AFRQ_ value, defaulting to zero.
+
+    Raises:
+        OverflowError: Copy-number conversion exceeds floating-point range.
+    """
     sort_map = {
         "genes": lambda: sortable_text(_cnv_gene_text(cnv)),
         "region": lambda: (
@@ -92,6 +125,14 @@ def _cnv_sort_value(cnv: dict[str, Any], sort_by: str) -> Any:
 
 
 def _cnv_search_text(cnv: dict[str, Any]) -> str:
+    """Join CNV identity, coordinates, ratio, callers, and genes for text search.
+
+    Args:
+        cnv: CNV table row to index.
+
+    Returns:
+        Space-separated field text with None and empty strings omitted; case is preserved.
+    """
     values = [
         cnv.get("_id"),
         cnv.get("chr"),
@@ -105,6 +146,16 @@ def _cnv_search_text(cnv: dict[str, Any]) -> str:
 
 
 def _translocation_sort_value(translocation: dict[str, Any], sort_by: str) -> Any:
+    """Build a text or numeric sort key for a translocation table column.
+
+    Args:
+        translocation: Structural finding with genes, annotations, and display fields.
+        sort_by: badges, gene1, gene2, positions, type, hgvs, panel, or tier.
+
+    Returns:
+        Lowercase text or numeric tier, with None for unsupported or unavailable values.
+        Tier conversion uses classification directly when truthy, otherwise tier.
+    """
     genes = translocation_genes(translocation)
     annotations = translocation.get("annotations") or []
     annotation_text = (
@@ -137,6 +188,14 @@ def _translocation_sort_value(translocation: dict[str, Any], sort_by: str) -> An
 
 
 def _translocation_search_text(translocation: dict[str, Any]) -> str:
+    """Join structural finding identity, type, positions, HGVS, and genes for search.
+
+    Args:
+        translocation: Translocation table row to index.
+
+    Returns:
+        Space-separated field text with None and empty strings omitted; case is preserved.
+    """
     values = [
         translocation.get("_id"),
         translocation.get("type"),

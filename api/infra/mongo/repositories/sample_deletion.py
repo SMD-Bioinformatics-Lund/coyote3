@@ -52,6 +52,17 @@ def delete_all_sample_traces(
     ]
 
     def delete(session):
+        """Delete the sample anchor and captured sample-owned collection records.
+
+        Args:
+            session: Transaction session shared by the anchor and dependent deletes.
+
+        Returns:
+            Deleted sample name and per-collection operation counts.
+
+        Raises:
+            AppError: With status 404 if the sample anchor no longer exists.
+        """
         sample = sample_repository.get_collection().find_one_and_delete(
             {"_id": oid}, session=session
         )

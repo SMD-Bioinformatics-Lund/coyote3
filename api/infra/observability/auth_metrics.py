@@ -13,6 +13,15 @@ logger = logging.getLogger("api.infra.observability.auth_metrics")
 
 
 def _normalize_label(value: Any) -> str:
+    """Normalize an auth or mail log label for compact key-value output.
+
+    Args:
+        value: Label value to stringify and strip; falsey values are treated as empty.
+
+    Returns:
+        ``unknown`` for empty text, otherwise at most 64 characters with spaces
+        changed to underscores and equals signs changed to colons.
+    """
     text = str(value or "").strip()
     if not text:
         return "unknown"

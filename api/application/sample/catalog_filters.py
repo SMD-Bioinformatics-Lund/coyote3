@@ -319,6 +319,11 @@ class SampleCatalogFiltersMixin:
         genes: set[str] = set()
 
         def _add(value: Any) -> None:
+            """Add nonblank uppercase text to the enclosing gene-name set.
+
+            Args:
+                value: Gene-like value to stringify; falsey values contribute nothing.
+            """
             text = str(value or "").strip().upper()
             if text:
                 genes.add(text)

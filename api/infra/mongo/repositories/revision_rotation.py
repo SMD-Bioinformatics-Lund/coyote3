@@ -24,6 +24,17 @@ def rotate_active_revision(
     }
 
     def rotate(session):
+        """Retire the captured active revision and insert its successor.
+
+        Args:
+            session: Transaction session shared by both writes.
+
+        Returns:
+            Counts for the retirement and insertion, including the successor's ID.
+
+        Raises:
+            RuntimeError: If exactly one expected active revision was not matched.
+        """
         retired = collection.update_one(
             active_selector,
             {"$set": {"is_active": False, **retire_fields}},

@@ -425,14 +425,19 @@ def create_sample_comment(
 def _hide_sample_comment(
     sample_id: str, comment_id: str, user: ApiUser, service: SampleCatalogService
 ):
-    """Hide sample comment.
+    """Check sample access, hide a comment, and return the change payload.
 
     Args:
-            sample_id: Sample id.
-            comment_id: Comment id.
-            user: User.
+        sample_id: Sample identifier used for access validation and mutation.
+        comment_id: Identifier of the sample comment to hide.
+        user: User whose access to the sample is checked before mutation.
+        service: Sample catalog service that sets the comment's hidden flag.
+
     Returns:
-            The  hide sample comment result.
+        Serialized sample-comment change payload with the sample's omics layer.
+
+    Raises:
+        AppError: If sample lookup or access validation fails before mutation.
     """
     sample = _get_sample_for_api(sample_id, user)
     service.set_sample_comment_hidden(sample_id=sample_id, comment_id=comment_id, hidden=True)

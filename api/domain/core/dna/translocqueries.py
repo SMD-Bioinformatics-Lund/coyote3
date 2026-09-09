@@ -13,6 +13,15 @@ from api.config.clinical_query_policy import (
 
 
 def _gene_token_clause(gene: str) -> dict[str, Any]:
+    """Build a case-insensitive exact gene-token predicate for structural annotations.
+
+    Args:
+        gene: Literal gene symbol to match within ampersand-delimited gene names.
+
+    Returns:
+        An OR predicate over INFO.MANE_ANN.Gene_Name and INFO.ANN.Gene_Name,
+        with regex metacharacters in the gene escaped.
+    """
     token = re.escape(gene)
     predicate = {"$regex": rf"(?:^|&){token}(?:&|$)", "$options": "i"}
     return {
@@ -24,6 +33,16 @@ def _gene_token_clause(gene: str) -> dict[str, Any]:
 
 
 def _translocation_exception_clause(exception: FindingQueryException) -> dict[str, Any]:
+    """Translate translocation exception criteria into stored-field predicates.
+
+    Args:
+        exception: Validated policy exception with chromosome, SV type, gene,
+            and/or gene-pair criteria.
+
+    Returns:
+        The sole predicate or an AND of predicates. Gene pairs include both
+        orientations; entries without the double-hyphen separator are ignored.
+    """
     criteria = exception.criteria
     clauses: list[dict[str, Any]] = []
     if criteria.get("chromosomes"):
@@ -129,6 +148,16 @@ def filter_translocations_by_genes(
     allowed = {str(gene).strip().upper() for gene in filter_genes if str(gene).strip()}
 
     def matches_exception(translocation: dict[str, Any], exception: FindingQueryException) -> bool:
+        """Check a translocation against every populated exception criterion.
+
+        Args:
+            translocation: Finding with gene annotations, CHROM, and optional INFO.
+            exception: Policy exception with normalized gene, pair, SV type, or chromosome criteria.
+
+        Returns:
+            True when every populated criterion matches. Gene-pair matching requires
+            exactly two distinct observed genes and ignores their order.
+        """
         criteria = exception.criteria
         genes = set(translocation_genes(translocation))
         if criteria.get("genes") and not genes.intersection(criteria["genes"]):

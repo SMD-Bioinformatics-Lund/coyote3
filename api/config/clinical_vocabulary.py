@@ -107,10 +107,12 @@ class CenterClinicalContract:
 
     @property
     def sequencing_scope_options(self) -> tuple[str, ...]:
+        """Return distinct configured sequencing scopes in first-encounter order."""
         return tuple(dict.fromkeys(self.vocabulary.assay_family_scopes.values()))
 
     @property
     def targeted_panel_asp_families(self) -> frozenset[str]:
+        """Return assay families configured with the panel sequencing scope."""
         return frozenset(
             family
             for family, scope in self.vocabulary.assay_family_scopes.items()
@@ -132,6 +134,21 @@ def _string_tuple(
     uppercase: bool = False,
     lowercase: bool = True,
 ) -> tuple[str, ...]:
+    """Validate and normalize a required vocabulary array.
+
+    Args:
+        raw: Nonempty list of values to stringify and trim.
+        key: Configuration path included in validation errors.
+        uppercase: Uppercase values; takes precedence over lowercase.
+        lowercase: Lowercase values unless uppercase is enabled.
+
+    Returns:
+        Normalized values in input order.
+
+    Raises:
+        RuntimeError: Input is not a nonempty list, or normalized values are
+            blank or repeated.
+    """
     if not isinstance(raw, list) or not raw:
         raise RuntimeError(f"clinical vocabulary key '{key}' must be a non-empty array")
     values = tuple(
@@ -148,6 +165,20 @@ def _string_tuple(
 
 
 def _identifier_tuple(raw: Any, *, key: str) -> tuple[str, ...]:
+    """Validate a required list of vocabulary identifiers.
+
+    Args:
+        raw: Nonempty list of identifiers to normalize to lowercase.
+        key: Configuration path included in validation errors.
+
+    Returns:
+        Distinct identifiers in input order, containing only letters, digits,
+        underscores and hyphens.
+
+    Raises:
+        RuntimeError: The list is empty or malformed, or an identifier is blank,
+            repeated, or contains unsupported characters.
+    """
     values = _string_tuple(raw, key=key)
     invalid = [value for value in values if not _IDENTIFIER_RE.fullmatch(value)]
     if invalid:

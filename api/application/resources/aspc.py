@@ -75,6 +75,14 @@ class AspcService:
     def _set_group_field_options(
         schema: dict[str, Any], *, top_field: str, subfield_key: str, options: list[str]
     ) -> None:
+        """Replace matching grouped form-field options in place.
+
+        Args:
+            schema: Mutable managed-form schema containing fields and groups.
+            top_field: Top-level field whose groups are searched.
+            subfield_key: Final dotted-key component identifying matching subfields.
+            options: Values stringified and deduplicated in order; empty strings are dropped.
+        """
         top = schema.get("fields", {}).get(top_field, {})
         for group in top.get("groups", []) or []:
             for subfield in group.get("fields", []) or []:
@@ -84,6 +92,13 @@ class AspcService:
     def _decorate_form_options(
         self, *, form: dict[str, Any], form_category: str, asp_ids: list[str]
     ) -> None:
+        """Populate assay-scoped gene-list, rule-set, and DNA consequence choices.
+
+        Args:
+            form: Mutable managed form receiving repository-backed options.
+            form_category: Exact DNA enables consequence choices; other values skip them.
+            asp_ids: Assay IDs used to resolve gene-list and clinical-rule choices.
+        """
         if form_category == "DNA":
             conseq_options = list(self.vep_metadata_repository.get_consequence_group_options())
             self._set_group_field_options(

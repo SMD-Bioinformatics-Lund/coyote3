@@ -114,6 +114,9 @@ def _api_error(
     Args:
         status_code: HTTP status code to return.
         message: User-facing error message.
+        details: Optional explanation for the error response.
+        category: Optional machine-readable error category.
+        hint: Optional corrective action for the caller.
 
     Returns:
         HTTPException: Normalized error payload.
@@ -243,6 +246,9 @@ def create_api_session(user_doc: dict, *, provider: str | None = None):
 
     Args:
         user_doc: The credential snapshot returned by successful authentication.
+        provider: Authentication provider to record in the session. When omitted,
+            uses the user's first normalized provider. Missing provider lists are
+            populated from DEFAULT_AUTH_PROVIDER during user normalization.
 
     Returns:
         ApiSession: Opaque session credentials and authenticated user.
@@ -453,11 +459,14 @@ def _enforce_password_change(user: ApiUser, request: Request) -> None:
 
 
 def resolve_request_user(request: Request) -> ApiUser | None:
-    """
-    Best-effort request user resolver.
+    """Resolve session identity while suppressing HTTP authentication failures.
 
-    Returns the authenticated user for valid session context, otherwise None.
-    Unlike `require_authenticated`, this helper never raises.
+    Args:
+        request: Incoming request containing session credentials.
+
+    Returns:
+        Authenticated user, or None when session resolution raises HTTPException.
+        Unexpected non-HTTP exceptions are not suppressed.
     """
     try:
         return _decode_session_user(request)

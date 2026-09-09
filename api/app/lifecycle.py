@@ -25,8 +25,10 @@ def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
         testing: Whether the application is running under the test runtime.
         development: Whether development-mode runtime settings should be used.
 
-    Returns:
-        ``None``. Runtime state is bound as a process-wide side effect.
+    Notes:
+        Serializes first initialization with a lock. Bootstrap failures normally
+        propagate; during PYTEST_CURRENT_TEST they are logged, the store's prior
+        attribute mapping is restored, and initialization is still marked complete.
     """
     global _runtime_initialized
     if _runtime_initialized:
@@ -54,8 +56,9 @@ def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
 def register_route_modules() -> None:
     """Import route modules for side-effect registration with FastAPI.
 
-    Returns:
-        ``None``. Import side effects register route modules with the app.
+    Notes:
+        Imports each configured ROUTE_MODULE_PATHS entry for its side effects.
+        The empty default registry performs no imports.
     """
     for module_path in ROUTE_MODULE_PATHS:
         import_module(module_path)
@@ -74,7 +77,17 @@ def create_lifespan(*, testing: bool, development: bool):
 
     @asynccontextmanager
     async def _lifespan(_app):
-        """Initialize process-wide runtime dependencies on application startup."""
+        """Initialize runtime dependencies before serving requests.
+
+        Args:
+            _app: FastAPI application supplied by the lifespan protocol, unused.
+
+        Yields:
+            None after bootstrap, allowing the application to serve requests.
+
+        Notes:
+            Uses the factory's testing/development flags and performs no teardown.
+        """
         ensure_runtime_initialized(testing=testing, development=development)
         yield
 

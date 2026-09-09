@@ -423,6 +423,19 @@ class DashboardService:
         return payload
 
     def _build_metric(self, metric: str, *, user) -> dict[str, Any]:
+        """Dispatch a dashboard metric to its builder without reading the metric cache.
+
+        Args:
+            metric: samples, findings, top_tiered_genes, panels,
+                clinical_configuration, or resources.
+            user: Actor passed to the samples and resources builders.
+
+        Returns:
+            Builder payload before metric cache metadata is added.
+
+        Raises:
+            ValueError: The metric has no registered builder.
+        """
         builders = {
             "samples": lambda: self.build_samples_metric(user=user),
             "findings": self.build_findings_metric,
@@ -473,6 +486,12 @@ class DashboardService:
         )
 
     def release_metric_refresh(self, metric: str, *, user) -> None:
+        """Release a metric refresh lock when a metric cache is configured.
+
+        Args:
+            metric: Metric name identifying the refresh lock.
+            user: Actor used to derive the metric's cache scope key.
+        """
         if self.metric_cache:
             self.metric_cache.release_refresh(
                 metric, scope_key=self.metric_scope_key(metric, user=user)

@@ -31,7 +31,13 @@ def list_aspc_read(
 ):
     """Return the assay-config admin list.
 
+    \u000c
+
     Args:
+        q: Case-insensitive text search across configuration identifiers and
+            metadata; blank text omits the search filter.
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 200; defaults to 30.
         user: Authenticated user requesting the list.
         service: Assay-config workflow service.
 
@@ -51,6 +57,8 @@ def create_aspc_context_read(
     service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Return create-form context for an assay config.
+
+    \u000c
 
     Args:
         category: Requested assay category.
@@ -72,6 +80,8 @@ def aspc_context_read(
     service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Return edit-form context for an assay config.
+
+    \u000c
 
     Args:
         assay_id: Assay-config identifier to load.
@@ -99,7 +109,10 @@ def create_aspc_change(
 ):
     """Create an assay config.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the created configuration.
         payload: Submitted assay-config payload.
         user: Authenticated user performing the mutation.
         service: Assay-config workflow service.
@@ -128,7 +141,10 @@ def update_aspc_change(
 ):
     """Update an assay config.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the updated configuration.
         assay_id: Assay-config identifier to update.
         payload: Submitted assay-config payload.
         user: Authenticated user performing the mutation.
@@ -157,7 +173,10 @@ def toggle_aspc_change(
 ):
     """Toggle assay-config active status.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the configuration status change.
         assay_id: Assay-config identifier to toggle.
         user: Authenticated user performing the mutation.
         service: Assay-config workflow service.
@@ -186,7 +205,10 @@ def delete_aspc_change(
 ):
     """Delete an assay config.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the deleted configuration.
         assay_id: Assay-config identifier to delete.
         user: Authenticated user performing the mutation.
         service: Assay-config workflow service.

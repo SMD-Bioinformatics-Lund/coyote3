@@ -150,6 +150,14 @@ _SAMPLE_LINKED_COLLECTIONS: frozenset[str] = frozenset(
 
 
 def _is_superuser(user: ApiUser) -> bool:
+    """Read superuser status, defaulting to False when the attribute is absent.
+
+    Args:
+        user: User object whose is_superuser attribute is inspected.
+
+    Returns:
+        The attribute's truth value, or False if it is missing.
+    """
     return bool(getattr(user, "is_superuser", False))
 
 
@@ -294,6 +302,22 @@ def ingest_sample_bundle_internal(
 
 
 def _save_upload(upload: UploadFile, destination: Path) -> str:
+    """Copy the remaining upload bytes to disk and compute their SHA-256 digest.
+
+    Args:
+        upload: Upload read from its current file position in one-mebibyte chunks.
+        destination: File to create or truncate; its parent directory must exist.
+
+    Returns:
+        Hexadecimal SHA-256 digest of the bytes copied.
+
+    Raises:
+        OSError: If opening, reading, writing, or closing a file fails.
+
+    Notes:
+        Consumes the upload stream without closing it. A failed copy may leave
+        a truncated or partially written destination file.
+    """
     digest = sha256()
     with destination.open("wb") as handle:
         while True:

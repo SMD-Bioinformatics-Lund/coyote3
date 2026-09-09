@@ -135,6 +135,14 @@ def validate_declared_file_resources(
 
 
 def _configured_keys(value: Any) -> set[str]:
+    """Collect distinct nonblank file-resource keys from list-shaped configuration.
+
+    Args:
+        value: Configured key list; other shapes are ignored.
+
+    Returns:
+        Stripped string keys excluding falsey entries, or an empty set for non-lists.
+    """
     if not isinstance(value, list):
         return set()
     return {str(item or "").strip() for item in value if str(item or "").strip()}

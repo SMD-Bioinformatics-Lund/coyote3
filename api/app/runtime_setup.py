@@ -34,7 +34,26 @@ class ApiRuntimeContext:
 
 
 def create_runtime_context(testing: bool = False, development: bool = False) -> ApiRuntimeContext:
-    """Build runtime configuration and initialize API dependencies."""
+    """Build runtime configuration and initialize shared API dependencies.
+
+    Args:
+        testing: Use test configuration when True; defaults to False and takes
+            precedence over development.
+        development: Use development configuration when True and not testing;
+            otherwise ENV_NAME selects staging or production. Defaults to False.
+
+    Returns:
+        A context containing settings, the configured API logger, and cache backend.
+
+    Raises:
+        RuntimeError: Required environment or MongoDB configuration is invalid,
+            or the store's initial database ping fails.
+
+    Notes:
+        Configures process logging, initializes cache and MongoDB, optionally
+        initializes LDAP, and initializes shared utilities. Records startup timings.
+        Dependency setup errors propagate; partial initialization is not rolled back.
+    """
     startup_started = time.perf_counter()
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
@@ -122,7 +141,21 @@ def _config_dict(config_obj) -> dict[str, Any]:
 
 
 def _init_store(runtime: ApiRuntimeContext) -> None:
-    """Initialize MongoDB and bind the runtime store."""
+    """Reset and initialize the store, retrying selected MongoDB connection errors.
+
+    Args:
+        runtime: Configuration and logger supplied to the shared store.
+
+    Raises:
+        AutoReconnect: Reconnection still fails on the fifth attempt.
+        ConnectionFailure: An unwrapped connection failure persists for five attempts.
+        NetworkTimeout: Network timeouts persist for five attempts.
+        RuntimeError: Store initialization wraps a failed ping; this is not retried.
+
+    Notes:
+        Resets the store on each attempt and sleeps two seconds between retries.
+        Errors outside the three retried PyMongo types propagate immediately.
+    """
     max_retries = 5
     retry_delay = 2.0
     for attempt in range(1, max_retries + 1):
@@ -148,7 +181,12 @@ def _init_store(runtime: ApiRuntimeContext) -> None:
 
 
 def _init_cache(runtime: ApiRuntimeContext) -> None:
-    """Initialize API cache backend."""
+    """Create the API cache backend and bind it to the runtime context.
+
+    Args:
+        runtime: Context whose config/logger configure the backend and whose cache
+            attribute is replaced. The cache namespace is "api".
+    """
     runtime.cache = create_cache_backend(
         config=runtime.config,
         logger=runtime.logger,

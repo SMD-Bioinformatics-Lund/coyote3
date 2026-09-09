@@ -62,6 +62,15 @@ logger = logging.getLogger(__name__)
 
 
 def _provider_from_login_identifier(login_identifier: str) -> str:
+    """Choose LDAP for identifiers containing an at sign, otherwise local login.
+
+    Args:
+        login_identifier: Submitted login identifier; an empty or false value
+            selects local authentication.
+
+    Returns:
+        AUTH_PROVIDER_LDAP when the string contains @, otherwise AUTH_PROVIDER_LOCAL.
+    """
     return AUTH_PROVIDER_LDAP if "@" in str(login_identifier or "") else AUTH_PROVIDER_LOCAL
 
 
@@ -103,6 +112,8 @@ def _login_response(payload: ApiAuthLoginRequest, request: Request | None = None
 
     Args:
         payload (ApiAuthLoginRequest): The login request payload containing username and password.
+        request: Request supplying the forwarded protocol or URL scheme for
+            cookie security; None leaves scheme selection to session configuration.
 
     Returns:
         JSONResponse: The HTTP response containing the user session payload and the required `Set-Cookie` header.
@@ -204,6 +215,17 @@ def auth_providers_read():
 
 
 def _validate_new_password(new_password: str) -> None:
+    """Require ten characters and lowercase, uppercase, numeric, and symbol matches.
+
+    Args:
+        new_password: Proposed password, checked without trimming whitespace.
+            Empty or false values are treated as an empty password.
+
+    Raises:
+        HTTPException: With status 400 for the first failed requirement: length,
+            ASCII lowercase, ASCII uppercase, a regex digit, or a non-word
+            character or underscore, in that order.
+    """
     password = str(new_password or "")
     if len(password) < 10:
         raise HTTPException(
@@ -245,8 +267,11 @@ def create_auth_session(payload: ApiAuthLoginRequest, request: Request):
     verification and session establishment to internal authentication handlers,
     resulting in a secure cookie payload returned to the client.
 
+    \u000c
+
     Args:
         payload (ApiAuthLoginRequest): The data transfer object containing the user's login credentials.
+        request: Request forwarded to the login helper to determine cookie security.
 
     Returns:
         Response: The HTTP 201 response containing the created session data and secure cookie headers.
@@ -322,7 +347,10 @@ def auth_session(request: Request, user: ApiUser = Depends(require_access())):
     Validates the requester's active session token and exposes the parsed
     ApiUser profile natively.
 
+    \u000c
+
     Args:
+        request: Request whose session cookie resolves the session and CSRF token.
         user (ApiUser): The active user automatically resolved through the session token.
 
     Returns:
@@ -376,6 +404,8 @@ def change_password(payload: ApiPasswordChangeRequest, user: ApiUser = Depends(r
     Enforces commercial-security password complexity constraints. Requires valid
     verification of the current password before adopting the new password vector.
 
+    \u000c
+
     Args:
         payload (ApiPasswordChangeRequest): The payload containing current and requested new password.
         user (ApiUser): The active context user requesting the mutation.
@@ -408,6 +438,8 @@ def request_password_reset(payload: ApiPasswordResetRequest):
     one-time cryptographic reset token. Note that to prevent system account enumeration,
     this endpoint deliberately returns a positive status regardless of target existence.
 
+    \u000c
+
     Args:
         payload (ApiPasswordResetRequest): The identifier payload targeting the intended account.
 
@@ -429,6 +461,8 @@ def confirm_password_reset(payload: ApiPasswordResetConfirmRequest):
     Validates the supplied reset token for proper signatures and expiration.
     If recognized and active, it modifies the targeted user record's authentication hash.
     This enforces the same password complexity standard applied to direct changes.
+
+    \u000c
 
     Args:
         payload (ApiPasswordResetConfirmRequest): The token and new password combination.

@@ -22,10 +22,17 @@ class ReportRepository(BaseRepository):
     """Persist report metadata outside the sample document."""
 
     def __init__(self, adapter):
+        """Bind report metadata and retain the adapter for related sample writes.
+
+        Args:
+            adapter: Mongo adapter exposing reports, samples, and reported-variant
+                persistence on the client used for report transactions.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.reports_collection)
 
     def ensure_indexes(self) -> None:
+        """Create report ID, sample chronology, and assay/environment lookup indexes."""
         col = self.get_collection()
         col.create_index([("report_id", 1)], name="report_id_1", background=True)
         col.create_index(
@@ -42,9 +49,31 @@ class ReportRepository(BaseRepository):
 
     @staticmethod
     def _object_id(value: Any) -> ObjectId:
+        """Parse a stored sample or report identifier as an ObjectId.
+
+        Args:
+            value: ObjectId or value whose string form is a valid ObjectId.
+
+        Returns:
+            Existing or parsed ObjectId.
+
+        Raises:
+            InvalidId: If the string representation is not a valid ObjectId.
+        """
         return value if isinstance(value, ObjectId) else ObjectId(str(value))
 
     def next_report_num(self, sample_oid: str) -> int:
+        """Read the next report number for a sample without reserving it.
+
+        Args:
+            sample_oid: Serialized sample ObjectId.
+
+        Returns:
+            Highest stored report number plus one, or one when no report exists.
+
+        Raises:
+            InvalidId: If the sample identifier cannot be parsed.
+        """
         latest = self.get_collection().find_one(
             {"sample_oid": self._object_id(sample_oid)},
             {"report_num": 1},
@@ -66,6 +95,36 @@ class ReportRepository(BaseRepository):
         snapshot_rows: list[dict] | None = None,
         created_by: str | None = None,
     ) -> ObjectId:
+        """Commit report metadata, sample report state, and finding snapshots together.
+
+        Args:
+            sample: Sample document supplying its ID, name, assay, and configuration context.
+            report_num: Expected next report number, checked again inside the transaction.
+            report_id: Report identifier used in metadata and HTML/PDF filenames.
+            filepath: HTML artifact path to record; this method does not write the file.
+            pdf_filepath: Optional PDF artifact path; falsey values omit its report name.
+            filters_snapshot: Filter snapshot; falsey values use sample filters or an empty dict.
+            aspc_snapshot: Assay configuration snapshot; falsey values use the sample's
+                current configuration ID, key, and version.
+            rule_provenance: Clinical rule source metadata, retained as ``None`` when absent.
+            snapshot_rows: Finding snapshot rows; ``None`` is treated as an empty list.
+            created_by: Finding-snapshot author; falsey values use the current username.
+                The report metadata author always uses the current username.
+
+        Returns:
+            ObjectId of the committed report metadata.
+
+        Raises:
+            InvalidId: If the sample identifier cannot be parsed.
+            AppError: With status 404 if the sample is missing, or 409 if the report
+                number is no longer the next number for that sample.
+            ReportCommitUncertain: If MongoDB reports an unknown transaction commit result.
+            PyMongoError: For other database failures.
+
+        Notes:
+            Updating the sample serializes concurrent saves for the same owner.
+            Cache invalidation follows commit; its failures are logged and suppressed.
+        """
         report_oid = ObjectId()
         now = utc_now()
         doc = {
@@ -95,6 +154,18 @@ class ReportRepository(BaseRepository):
         }
 
         def transaction(session):
+            """Write the captured report and snapshots after checking sample and sequence.
+
+            Args:
+                session: Session shared by sample, report, and reported-variant writes.
+
+            Raises:
+                AppError: With status 404 for a missing sample or 409 for a stale report number.
+
+            Notes:
+                Marks the sample reported and updates its latest-report reference within
+                the same transaction as report metadata and finding snapshot persistence.
+            """
             # Writing the owning sample serializes concurrent report saves for that sample.
             result = self.adapter.samples_collection.update_one(
                 {"_id": doc["sample_oid"]},
@@ -150,6 +221,18 @@ class ReportRepository(BaseRepository):
         return report_oid
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:
+        """Resolve a sample and read its report with the supplied report identifier.
+
+        Args:
+            sample_id: Sample name or serialized ID, resolved by name first.
+            report_id: Exact report identifier scoped to the resolved sample.
+
+        Returns:
+            Report metadata, or ``None`` when the sample or report is absent.
+
+        Raises:
+            InvalidId: If the resolved sample document contains an invalid ObjectId.
+        """
         sample = self.adapter.sample_repository.get_sample(sample_id)
         if not sample:
             return None

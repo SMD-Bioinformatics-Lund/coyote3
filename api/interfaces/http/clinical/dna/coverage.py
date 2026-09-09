@@ -23,6 +23,8 @@ def coverage_sample_read(
 ):
     """Return coverage data for a sample.
 
+    \u000c
+
     Args:
         sample_id: Sample identifier to inspect.
         cov_cutoff: Coverage threshold for low-coverage detection.
@@ -48,6 +50,8 @@ def coverage_blacklisted_read(
     service: CoverageService = Depends(get_coverage_service),
 ):
     """Return blacklisted coverage regions for an assay group.
+
+    \u000c
 
     Args:
         group: Assay group to inspect.

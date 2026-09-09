@@ -32,16 +32,40 @@ logger = logging.getLogger(__name__)
 
 
 def _fusion_calls(fusion: dict[str, Any]) -> list[dict[str, Any]]:
+    """Read list-shaped fusion call data without filtering its elements.
+
+    Args:
+        fusion: Display row storing calls under fusion.
+
+    Returns:
+        Stored list unchanged, or an empty list for an absent or non-list field.
+    """
     calls = fusion.get("fusion")
     return calls if isinstance(calls, list) else []
 
 
 def _selected_fusion_call(fusion: dict[str, Any]) -> dict[str, Any]:
+    """Use the first stored fusion call for table display and sorting.
+
+    Args:
+        fusion: Display row whose fusion list is already ordered by the caller.
+
+    Returns:
+        First list entry, or an empty dictionary without calls; no selected flag is checked.
+    """
     calls = _fusion_calls(fusion)
     return calls[0] if calls else {}
 
 
 def _fusion_genes(fusion: dict[str, Any]) -> list[str]:
+    """Collect gene labels from the first fusion call and top-level row.
+
+    Args:
+        fusion: Display row with optional gene1/gene2 on the first call and row.
+
+    Returns:
+        Nonempty labels as strings in call-first order, retaining duplicates.
+    """
     call = _selected_fusion_call(fusion)
     values = [
         call.get("gene1"),
@@ -53,6 +77,14 @@ def _fusion_genes(fusion: dict[str, Any]) -> list[str]:
 
 
 def _fusion_callers(fusion: dict[str, Any]) -> str:
+    """Format caller names as comma-separated text.
+
+    Args:
+        fusion: Display row whose callers may be a list or scalar.
+
+    Returns:
+        Joined list values, stringified scalar, or empty text for a falsey scalar.
+    """
     callers = fusion.get("callers")
     if isinstance(callers, list):
         return ", ".join(str(caller) for caller in callers)
@@ -60,6 +92,14 @@ def _fusion_callers(fusion: dict[str, Any]) -> str:
 
 
 def _fusion_tier_value(fusion: dict[str, Any]) -> float | None:
+    """Find the first numerically convertible classification, class, or tier value.
+
+    Args:
+        fusion: Display row; dictionary values select class, tier, then value by truthiness.
+
+    Returns:
+        Numeric value without tier-range validation, or None if none can be converted.
+    """
     for key in ("classification", "class", "tier"):
         value = fusion.get(key)
         if isinstance(value, dict):
@@ -71,11 +111,30 @@ def _fusion_tier_value(fusion: dict[str, Any]) -> float | None:
 
 
 def _fusion_supporting_reads(fusion: dict[str, Any]) -> dict[str, Any]:
+    """Read dictionary-shaped fallback supporting-read counts.
+
+    Args:
+        fusion: Display row with optional supporting_reads.
+
+    Returns:
+        Stored mapping unchanged, or an empty mapping for absent or non-dictionary data.
+    """
     reads = fusion.get("supporting_reads")
     return reads if isinstance(reads, dict) else {}
 
 
 def _fusion_sort_value(fusion: dict[str, Any], sort_by: str) -> Any:
+    """Build the requested fusion table sort key from call and row fields.
+
+    Args:
+        fusion: Display row whose first call supplies preferred values.
+        sort_by: badges, gene1, gene2, effect, spanpairs, unique_spanpairs,
+            fusion_points, tier, description, or callers.
+
+    Returns:
+        Lowercase text or a numeric value; None for unsupported or unavailable values.
+        Falsey call counts fall back to supporting_reads span/split counts.
+    """
     call = _selected_fusion_call(fusion)
     genes = _fusion_genes(fusion)
     supporting_reads = _fusion_supporting_reads(fusion)
@@ -117,6 +176,14 @@ def _fusion_sort_value(fusion: dict[str, Any], sort_by: str) -> Any:
 
 
 def _fusion_search_text(fusion: dict[str, Any]) -> str:
+    """Join fusion identity, genes, callers, effects, descriptions, and breakpoints.
+
+    Args:
+        fusion: Display row whose first call and top-level fields supply search text.
+
+    Returns:
+        Space-separated text with None and empty strings omitted; case is preserved.
+    """
     call = _selected_fusion_call(fusion)
     values = [
         fusion.get("_id"),

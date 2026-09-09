@@ -979,6 +979,11 @@ class AnnotationsRepository(BaseRepository):
         }
 
         def tier_fields() -> dict[str, Any]:
+            """Build aggregation accumulators counting each class from one through four.
+
+            Returns:
+                Tier-named ``$sum`` expressions contributing one for a matching class.
+            """
             return {
                 f"tier{tier}": {"$sum": {"$cond": [{"$eq": ["$class", tier]}, 1, 0]}}
                 for tier in range(1, 5)
@@ -1026,6 +1031,16 @@ class AnnotationsRepository(BaseRepository):
         }
 
         def gene_facet(field: str, *, exclude_matching_gene1: bool = False) -> list[dict[str, Any]]:
+            """Build stages counting tiered findings for one nonempty gene field.
+
+            Args:
+                field: Gene field to filter and group by.
+                exclude_matching_gene1: Exclude rows equal to gene1 to avoid counting
+                    the same partner twice; defaults to false.
+
+            Returns:
+                Match and group stages collecting totals, tier counts, and nomenclature sets.
+            """
             match: dict[str, Any] = {field: {"$nin": [None, ""]}}
             if exclude_matching_gene1:
                 match["$expr"] = {"$ne": [f"${field}", "$gene1"]}

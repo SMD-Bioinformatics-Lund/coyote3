@@ -43,6 +43,15 @@ def paginate_items(
 
 
 def _positive_int(value: Any, fallback: int) -> int:
+    """Coerce a pagination value to an integer greater than zero.
+
+    Args:
+        value: Value accepted by int, or an invalid value to replace.
+        fallback: Returned unchanged for conversion failure or nonpositive integers.
+
+    Returns:
+        Positive parsed integer or the supplied fallback.
+    """
     try:
         parsed = int(value)
     except (TypeError, ValueError):

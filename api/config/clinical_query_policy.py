@@ -191,6 +191,18 @@ class FindingQueryException:
     criteria: dict[str, Any]
 
     def applies_to(self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str) -> bool:
+        """Match the request scope against this exception's configured restrictions.
+
+        Args:
+            assay_group: Normalized assay group of the request.
+            asp_id: Normalized assay-specific panel identifier.
+            subpanel_id: Normalized subpanel identifier.
+            intent: Analysis intent, such as somatic or germline.
+
+        Returns:
+            True when every nonempty restriction contains its request value.
+            Empty restriction lists match any value.
+        """
         return (
             (not self.intents or intent in self.intents)
             and (not self.assay_groups or assay_group in self.assay_groups)
@@ -208,6 +220,18 @@ class FindingQueryPolicy:
     def exceptions_for(
         self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str, mode: str
     ) -> tuple[FindingQueryException, ...]:
+        """Select exceptions with the requested mode and matching scope.
+
+        Args:
+            assay_group: Normalized assay group to match.
+            asp_id: Normalized assay-specific panel identifier to match.
+            subpanel_id: Normalized subpanel identifier to match.
+            intent: Analysis intent to match.
+            mode: Exception mode, such as admit or exclude.
+
+        Returns:
+            Matching exceptions in their configured order, or an empty tuple.
+        """
         return tuple(
             exception
             for exception in self.exceptions
@@ -233,6 +257,18 @@ class ClinicalQueryPolicy:
 
 
 def _policy_mode(value: Any, *, key: str) -> str:
+    """Validate the baseline evidence policy mode.
+
+    Args:
+        value: Mode name to trim and lowercase.
+        key: Configuration path included in validation errors.
+
+    Returns:
+        One of paired, case_only, or exception_only.
+
+    Raises:
+        RuntimeError: The normalized mode is not supported.
+    """
     mode = str(value or "").strip().lower()
     if mode not in _POLICY_MODES:
         raise RuntimeError(
@@ -409,6 +445,20 @@ def _finding_exception(
 
 
 def _finding_policy(raw: Any, *, analysis: str, allowed_keys: frozenset[str]) -> FindingQueryPolicy:
+    """Parse a non-SNV analysis policy and validate its exception identifiers.
+
+    Args:
+        raw: Analysis table containing an optional exceptions array.
+        analysis: Analysis name used to identify invalid configuration fields.
+        allowed_keys: Fields permitted in each analysis-specific exception.
+
+    Returns:
+        Policy containing validated exceptions in configuration order.
+
+    Raises:
+        RuntimeError: The table, exception criteria, or identifiers are invalid,
+            or two exceptions use the same identifier.
+    """
     if not isinstance(raw, dict):
         raise RuntimeError(f"clinical query policy requires a [{analysis}] table")
     unexpected = set(raw) - _ANALYSIS_POLICY_KEYS
@@ -434,6 +484,19 @@ def _finding_policy(raw: Any, *, analysis: str, allowed_keys: frozenset[str]) ->
 
 
 def _parse_snv_policy(snv: Any) -> SnvQueryPolicy:
+    """Parse baseline SNV evidence modes and scoped clinical exceptions.
+
+    Args:
+        snv: SNV configuration table with default modes, optional assay-group
+            overrides, population-frequency fields and exceptions.
+
+    Returns:
+        Validated SNV policy with normalized identifiers and configured order.
+
+    Raises:
+        RuntimeError: A table, mode, identifier, exception criterion or field
+            list is invalid, or exception identifiers are repeated.
+    """
     if not isinstance(snv, dict):
         raise RuntimeError("clinical query policy requires an [snv] table")
     unexpected = set(snv) - _SNV_POLICY_KEYS

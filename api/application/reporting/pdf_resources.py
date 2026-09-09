@@ -7,6 +7,7 @@ class ReportResourceFetcher(URLFetcher):
     """Allow embedded raster plots, never network requests or local-file reads."""
 
     def __init__(self):
+        """Restrict the parent fetcher to data URLs and disable redirects."""
         super().__init__(allowed_protocols={"data"}, allow_redirects=False)
 
     def fetch(self, url: str, headers: dict | None = None):

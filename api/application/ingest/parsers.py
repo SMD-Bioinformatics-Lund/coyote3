@@ -625,6 +625,18 @@ def _select_csq(
 
 
 def _split_string_list(value: Any, separator: str = ";") -> list[str]:
+    """Convert VCF field values into nonempty string tokens.
+
+    Args:
+        value: None, a list whose elements are stringified, or scalar text to split.
+        separator: Scalar-text delimiter, defaulting to semicolon; unused for lists.
+
+    Returns:
+        Tokens with empty strings removed but whitespace retained; None yields no tokens.
+
+    Raises:
+        ValueError: Scalar splitting is requested with an empty separator.
+    """
     if value is None:
         return []
     if isinstance(value, list):

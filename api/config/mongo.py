@@ -15,6 +15,14 @@ MONGO_SERVICES = {
 
 @dataclass(frozen=True)
 class MongoEndpoint:
+    """Connection URI and logical database for one MongoDB service.
+
+    Attributes:
+        uri: Connection string including topology and authentication options;
+            excluded from repr to avoid exposing credentials.
+        database: Logical database name, independent of the URI's path or host.
+    """
+
     uri: str = field(repr=False)
     database: str
 

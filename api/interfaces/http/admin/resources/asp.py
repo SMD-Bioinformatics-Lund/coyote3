@@ -35,7 +35,10 @@ def create_asp_change(
 ):
     """Create an assay panel.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the created panel.
         payload: Submitted assay-panel payload.
         user: Authenticated user performing the mutation.
         service: Assay-panel workflow service.
@@ -60,7 +63,13 @@ def list_asp_read(
 ):
     """Return the assay-panel admin list.
 
+    \u000c
+
     Args:
+        q: Case-insensitive text search across panel identifiers and metadata;
+            blank text omits the search filter.
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 200; defaults to 30.
         user: Authenticated user requesting the list.
         service: Assay-panel workflow service.
 
@@ -79,6 +88,8 @@ def create_asp_context_read(
     service: AspService = Depends(get_admin_panel_service),
 ):
     """Return create-form context for an assay panel.
+
+    \u000c
 
     Args:
         user: Authenticated user requesting create context.
@@ -101,6 +112,8 @@ def asp_context_read(
     service: AspService = Depends(get_admin_panel_service),
 ):
     """Return edit-form context for an assay panel.
+
+    \u000c
 
     Args:
         assay_panel_id: Assay-panel identifier to load.
@@ -128,7 +141,10 @@ def update_asp_change(
 ):
     """Update an assay panel.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the updated panel.
         assay_panel_id: Assay-panel identifier to update.
         payload: Submitted assay-panel payload.
         user: Authenticated user performing the mutation.
@@ -157,7 +173,10 @@ def toggle_asp_change(
 ):
     """Toggle assay-panel active status.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the panel status change.
         assay_panel_id: Assay-panel identifier to toggle.
         user: Authenticated user performing the mutation.
         service: Assay-panel workflow service.
@@ -186,7 +205,10 @@ def delete_asp_change(
 ):
     """Delete an assay panel.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the deleted panel.
         assay_panel_id: Assay-panel identifier to delete.
         user: Authenticated user performing the mutation.
         service: Assay-panel workflow service.

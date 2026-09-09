@@ -222,6 +222,18 @@ class OncoKbPublicCacheRepository(BaseRepository):
         return len(insert_many_transaction(self.get_collection(), prepared, ignore_duplicates=True))
 
     def upsert_gene_markers(self, docs: list[dict[str, Any]]) -> int:
+        """Refresh curated gene markers in one transaction on their owning client.
+
+        Args:
+            docs: Marker documents; blank gene symbols are skipped and only supported
+                fields present in each payload are updated.
+
+        Returns:
+            Number of inserts or content changes, excluding last-seen-only updates.
+
+        Notes:
+            Existing creation timestamps are retained; last_seen_at is refreshed.
+        """
         return run_transaction(
             self.gene_collection.database.client,
             lambda session: self._upsert_gene_markers(docs, session),
@@ -296,6 +308,18 @@ class OncoKbPublicCacheRepository(BaseRepository):
         return int(result.deleted_count or 0)
 
     def upsert_cancer_gene_markers(self, docs: list[dict[str, Any]]) -> int:
+        """Refresh cancer-gene markers in one transaction on their owning client.
+
+        Args:
+            docs: Cancer-gene documents; blank gene symbols are skipped and only
+                supported fields present in each payload are updated.
+
+        Returns:
+            Number of inserts or content changes, excluding last-seen-only updates.
+
+        Notes:
+            Existing creation timestamps are retained; last_seen_at is refreshed.
+        """
         return run_transaction(
             self.cancer_gene_collection.database.client,
             lambda session: self._upsert_cancer_gene_markers(docs, session),
@@ -375,6 +399,17 @@ class OncoKbPublicCacheRepository(BaseRepository):
         """Publish both normalized public catalogues and prune stale rows in one commit."""
 
         def refresh(session):
+            """Upsert both captured gene catalogues and delete rows absent from them.
+
+            Args:
+                session: Transaction session shared by both catalogue collections.
+
+            Returns:
+                Separate changed-content and deletion counts for cancer and curated genes.
+
+            Notes:
+                Empty input for a catalogue deletes all its existing marker rows.
+            """
             cancer_count = self._upsert_cancer_gene_markers(cancer_docs, session)
             curated_count = self._upsert_gene_markers(curated_docs, session)
             cancer_deleted = self.cancer_gene_collection.delete_many(

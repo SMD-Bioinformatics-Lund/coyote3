@@ -24,6 +24,11 @@ _TOKEN_PURPOSES = {_TOKEN_PURPOSE_INVITE, _TOKEN_PURPOSE_RESET}
 
 
 def _password_token_ttl_seconds() -> int:
+    """Read the configured lifetime for password-action tokens.
+
+    Returns:
+        Lifetime in seconds, or 3600 when configuration lookup or conversion fails.
+    """
     try:
         return int(runtime_app.config.get("PASSWORD_TOKEN_TTL_SECONDS", 60 * 60))
     except Exception:
@@ -31,6 +36,11 @@ def _password_token_ttl_seconds() -> int:
 
 
 def _password_token_serializer() -> URLSafeTimedSerializer:
+    """Create the signer used for password invitations and resets.
+
+    Returns:
+        Timed serializer using the API secret and configured password-token salt.
+    """
     return URLSafeTimedSerializer(
         secret_key=get_api_secret_key(runtime_app.config),
         salt=str(runtime_app.config.get("PASSWORD_TOKEN_SALT", "coyote3-password-token-v1")),
@@ -38,10 +48,26 @@ def _password_token_serializer() -> URLSafeTimedSerializer:
 
 
 def _token_hash(token: str) -> str:
+    """Hash a token for comparison with its stored password-action record.
+
+    Args:
+        token: Signed token supplied to the password workflow.
+
+    Returns:
+        SHA-256 hexadecimal digest of the UTF-8 token, not the token itself.
+    """
     return hashlib.sha256(str(token).encode("utf-8")).hexdigest()
 
 
 def _is_local_user(user_doc: dict[str, Any]) -> bool:
+    """Check whether an account supports local password authentication.
+
+    Args:
+        user_doc: Account record; missing auth_type uses DEFAULT_AUTH_PROVIDER.
+
+    Returns:
+        True when the normalized providers include local authentication.
+    """
     return AUTH_PROVIDER_LOCAL in normalize_auth_types(
         user_doc.get("auth_type") or [DEFAULT_AUTH_PROVIDER]
     )
@@ -103,6 +129,15 @@ def notify_user_change(
 
 
 def _build_set_password_url(token: str) -> str:
+    """Build the browser URL for completing a password action.
+
+    Args:
+        token: Signed URL-safe password invitation or reset token.
+
+    Returns:
+        URL under PUBLIC_BASE_URL and SCRIPT_NAME, or a relative reset-password
+        path when no public base URL is configured.
+    """
     public_base = str(runtime_app.config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
     script_name = str(runtime_app.config.get("SCRIPT_NAME") or "").strip().rstrip("/")
     base = f"{public_base}{script_name}" if public_base else ""
@@ -111,6 +146,15 @@ def _build_set_password_url(token: str) -> str:
 
 
 def _issue_token(*, user_id: str, purpose: str) -> str:
+    """Sign a password-action payload with a fresh random nonce.
+
+    Args:
+        user_id: Account identifier to embed in the signed payload.
+        purpose: Action purpose, validated by the calling workflow.
+
+    Returns:
+        Signed, timestamped token. This helper does not persist or email it.
+    """
     return str(
         _password_token_serializer().dumps(
             {"uid": user_id, "purpose": purpose, "nonce": secrets.token_urlsafe(16)}
@@ -221,6 +265,15 @@ def issue_password_token_for_user(
 
 
 def _decode_password_token(token: str) -> dict[str, Any] | None:
+    """Verify a password token's signature and configured maximum age.
+
+    Args:
+        token: Signed token received from the password-action request.
+
+    Returns:
+        Decoded mapping, or None for an invalid signature, expired token, or
+        non-mapping payload. Database consumption is checked separately.
+    """
     try:
         payload = _password_token_serializer().loads(
             token,

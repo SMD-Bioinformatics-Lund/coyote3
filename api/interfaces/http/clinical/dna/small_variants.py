@@ -155,6 +155,8 @@ def dna_plot_context(
 ):
     """Return plot context for DNA variant visualizations.
 
+    \u000c
+
     Args:
         sample_id: Sample identifier used to load the plot's assay context.
         user: Authenticated user whose sample access is checked before loading data.
@@ -181,6 +183,8 @@ def show_dna_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Return a small variant's detail context within an accessible sample.
+
+    \u000c
 
     Args:
         sample_id: Sample identifier used for access checks and assay configuration.
@@ -680,6 +684,8 @@ def set_variant_false_positive_bulk(
 ):
     """Apply or remove the false-positive flag on selected small variants.
 
+    \u000c
+
     Args:
         sample_id: Sample identifier used for access checks and the change response.
         apply: Whether to set the flag; defaults to True unless overridden in the body.
@@ -730,6 +736,8 @@ def set_variant_irrelevant_bulk(
 ):
     """Apply or remove the irrelevant flag on selected small variants.
 
+    \u000c
+
     Args:
         sample_id: Sample identifier used for access checks and the change response.
         apply: Whether to set the flag; defaults to True unless overridden in the body.
@@ -778,6 +786,8 @@ def add_variant_comment_change(
     service: ResourceAnnotationService = Depends(get_resource_annotation_service),
 ):
     """Create a sample annotation on a variant-like resource.
+
+    \u000c
 
     Args:
         sample_id: Sample identifier used for access checks and the change response.

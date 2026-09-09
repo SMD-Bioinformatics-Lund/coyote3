@@ -22,6 +22,8 @@ def list_dna_biomarkers(
 ):
     """Return biomarker data for a sample.
 
+    \u000c
+
     Args:
         sample_id: Sample identifier to inspect.
         user: Authenticated user requesting biomarker data.

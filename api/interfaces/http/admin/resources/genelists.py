@@ -36,7 +36,10 @@ def create_genelist_change(
 ):
     """Create a genelist.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the created genelist.
         payload: Submitted genelist payload.
         user: Authenticated user performing the mutation.
         service: Genelist workflow service.
@@ -61,7 +64,13 @@ def list_genelists_read(
 ):
     """Return the genelist admin list.
 
+    \u000c
+
     Args:
+        q: Case-insensitive text search across genelist identifiers and metadata;
+            blank text omits the search filter.
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 200; defaults to 30.
         user: Authenticated user requesting the list.
         service: Genelist workflow service.
 
@@ -82,6 +91,8 @@ def create_genelist_context_read(
     service: IsglService = Depends(get_admin_genelist_service),
 ):
     """Return create-form context for a genelist.
+
+    \u000c
 
     Args:
         user: Authenticated user requesting create context.
@@ -104,6 +115,8 @@ def genelist_context_read(
     service: IsglService = Depends(get_admin_genelist_service),
 ):
     """Return edit-form context for a genelist.
+
+    \u000c
 
     Args:
         genelist_id: Genelist identifier to load.
@@ -128,6 +141,8 @@ def genelist_view_context_read(
     service: IsglService = Depends(get_admin_genelist_service),
 ):
     """Return read-only context for a genelist.
+
+    \u000c
 
     Args:
         genelist_id: Genelist identifier to load.
@@ -158,7 +173,10 @@ def update_genelist_change(
 ):
     """Update a genelist.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the updated genelist.
         genelist_id: Genelist identifier to update.
         payload: Submitted genelist payload.
         user: Authenticated user performing the mutation.
@@ -191,7 +209,10 @@ def toggle_genelist_change(
 ):
     """Toggle genelist active status.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the genelist status change.
         genelist_id: Genelist identifier to toggle.
         user: Authenticated user performing the mutation.
         service: Genelist workflow service.
@@ -220,7 +241,10 @@ def delete_genelist_change(
 ):
     """Delete a genelist.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the deleted genelist.
         genelist_id: Genelist identifier to delete.
         user: Authenticated user performing the mutation.
         service: Genelist workflow service.

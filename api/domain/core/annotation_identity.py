@@ -73,6 +73,14 @@ def _text(value: Any) -> str | None:
 
 
 def _selected_csq(source: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Read the selected consequence only when INFO and selected_CSQ are mappings.
+
+    Args:
+        source: Finding payload that may contain INFO.selected_CSQ.
+
+    Returns:
+        The selected mapping without copying, or an empty dictionary if absent or malformed.
+    """
     info = source.get("INFO")
     if not isinstance(info, Mapping):
         return {}
@@ -81,6 +89,19 @@ def _selected_csq(source: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def _candidate(source: Mapping[str, Any], field: str) -> str | None:
+    """Find the first nonblank scalar identity across aliases and selected consequence.
+
+    Args:
+        source: Finding or annotation payload with optional selected consequence.
+        field: Identity key in _SOURCE_KEYS: hgvsp, hgvsc, or genomic.
+
+    Returns:
+        The first nonblank text candidate, or None. Alias order takes precedence;
+        within each alias, the top-level field precedes the selected consequence.
+
+    Raises:
+        KeyError: If field is not supported by _SOURCE_KEYS.
+    """
     selected_csq = _selected_csq(source)
     for key in _SOURCE_KEYS[field]:
         for container in (source, selected_csq):
@@ -91,6 +112,19 @@ def _candidate(source: Mapping[str, Any], field: str) -> str | None:
 
 
 def _canonical_genomic(source: Mapping[str, Any], fallback: str | None) -> str | None:
+    """Resolve genomic identity from aliases, fallback text, or variant coordinates.
+
+    Args:
+        source: Payload with simple_id/genomic aliases or CHROM, POS, REF, and ALT.
+        fallback: Identity text used only when no alias candidate is available.
+
+    Returns:
+        Canonical underscore-delimited identity when recognizable, preserved
+        text otherwise, or None when neither identity nor complete coordinates exist.
+
+    Notes:
+        Colon-delimited chromosome:position:reference/alternate text is also converted.
+    """
     simple_id = _candidate(source, "genomic") or fallback
     if not simple_id:
         chromosome = source.get("CHROM")

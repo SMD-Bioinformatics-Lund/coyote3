@@ -110,6 +110,12 @@ class ClinPgxPublicClient:
     """Small synchronous client for explicit ClinPGx public API lookups."""
 
     def __init__(self, *, base_url: str, timeout: float = 3.0) -> None:
+        """Configure synchronous ClinPGx requests without making a network call.
+
+        Args:
+            base_url: API URL with trailing slashes removed before endpoint concatenation.
+            timeout: HTTP request timeout in seconds, defaulting to three.
+        """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
@@ -300,6 +306,15 @@ def _top_chemicals(rows: list[dict[str, Any]], *, max_items: int) -> list[dict[s
     }
 
     def score(row: dict[str, Any]) -> tuple[int, str]:
+        """Rank a chemical by its strongest connection type and lowercase name.
+
+        Args:
+            row: Chemical record with optional connectionTypes and object name fields.
+
+        Returns:
+            Highest recognized annotation priority, defaulting to zero, and a lowercase
+            name tie-breaker. The caller sorts both tuple components in reverse order.
+        """
         types = list(row.get("connectionTypes") or [])
         return (max([priority.get(item, 0) for item in types] or [0]), _object_name(row).lower())
 

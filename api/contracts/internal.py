@@ -26,6 +26,8 @@ class IsglMetaPayload(BaseModel):
 
 
 class InternalIngestSampleBundleRequest(BaseModel):
+    """Sample document or YAML input with update and increment ingest options."""
+
     sample: SamplesDoc | None = None
     yaml_content: str | None = None
     update_existing: bool = False

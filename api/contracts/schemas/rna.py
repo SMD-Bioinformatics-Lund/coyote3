@@ -16,6 +16,8 @@ from api.contracts.schemas.base import (
 
 
 class RnaFiltersDoc(_StrictDocBase):
+    """Flat RNA fusion filters with caller selections and read-support thresholds."""
+
     fusion_callers: list[str] = Field(default_factory=list)
     fusion_descriptions: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
@@ -26,6 +28,17 @@ class RnaFiltersDoc(_StrictDocBase):
     @field_validator("fusion_callers", mode="before")
     @classmethod
     def normalize_fusion_callers(cls, value):
+        """Resolve fusion caller names through the clinical vocabulary.
+
+        Args:
+            value: Caller selection; falsey input produces an empty list.
+
+        Returns:
+            Canonical caller IDs in first-occurrence order without duplicates.
+
+        Raises:
+            ValueError: If any nonblank caller is unknown.
+        """
         return CLINICAL_VOCABULARY.normalize_fusion_callers(value or [])
 
     @model_validator(mode="before")
@@ -49,6 +62,8 @@ class RnaFiltersDoc(_StrictDocBase):
 
 
 class FusionCallDoc(_DocBase):
+    """One caller's fusion annotation, breakpoints, and supporting read counts."""
+
     selected: int
     longestanchor: int | str
     caller: str
@@ -63,6 +78,18 @@ class FusionCallDoc(_DocBase):
     @field_validator("caller", mode="before")
     @classmethod
     def normalize_caller(cls, value):
+        """Resolve one fusion caller alias to its configured identifier.
+
+        Args:
+            value: Required nonblank caller name.
+
+        Returns:
+            The canonical caller ID.
+
+        Raises:
+            ValueError: If the caller is unknown.
+            IndexError: If null or blank input normalizes to no caller.
+        """
         callers = CLINICAL_VOCABULARY.normalize_fusion_callers([value])
         return callers[0]
 
@@ -77,12 +104,25 @@ class FusionCallDoc(_DocBase):
     @field_validator("commonreads", mode="before")
     @classmethod
     def convert_common_reads_to_int(cls, v):
+        """Parse common-read counts supplied as strings.
+
+        Args:
+            v: Integer count or its string representation.
+
+        Returns:
+            The parsed integer for strings; other input is unchanged.
+
+        Raises:
+            ValueError: If a string cannot be parsed as an integer.
+        """
         if isinstance(v, str):
             return int(v)
         return v
 
 
 class FusionsDoc(_FindingDocBase):
+    """Sample-scoped gene-pair fusion with caller evidence and review flags."""
+
     SAMPLE_ID: str
 
     gene1: str
@@ -97,6 +137,8 @@ class FusionsDoc(_FindingDocBase):
 
 
 class ExpressionSampleEntryDoc(_DocBase):
+    """Gene expression measurement with reference statistics and transformed scores."""
+
     hgnc_symbol: str
     ensembl_gene_id: str
     sample_expression: float
@@ -109,6 +151,8 @@ class ExpressionSampleEntryDoc(_DocBase):
 
 
 class ExpressionReferenceEntryDoc(_DocBase):
+    """Reference gene-expression statistics with named quantification values."""
+
     hgnc_symbol: str
     ensembl_gene_id: str
     reference_sd: float
@@ -119,6 +163,20 @@ class ExpressionReferenceEntryDoc(_DocBase):
     @model_validator(mode="before")
     @classmethod
     def _split_dynamic_quant_values(cls, data: dict) -> dict:
+        """Collect non-statistic expression fields into quant_values.
+
+        Args:
+            data: Input mapping with fixed reference fields and optional quant_values.
+
+        Returns:
+            A new mapping of fixed fields and float-valued quantifications. Dynamic
+            top-level keys override matching explicit quant_values entries.
+
+        Raises:
+            ValueError: If quant_values is nonnull and not a dictionary or text
+                quantification values cannot be converted to floats.
+            TypeError: If a quantification value does not support float conversion.
+        """
         fixed_fields = {
             "hgnc_symbol",
             "ensembl_gene_id",
@@ -148,6 +206,8 @@ class ExpressionReferenceEntryDoc(_DocBase):
 
 
 class RnaExpressionDoc(_DocBase):
+    """Sample and reference gene-expression entries tied to an expression version."""
+
     sample: list[ExpressionSampleEntryDoc]
     reference: list[ExpressionReferenceEntryDoc]
     expression_version: str
@@ -155,6 +215,8 @@ class RnaExpressionDoc(_DocBase):
 
 
 class ClassifierResultDoc(_DocBase):
+    """Classification label and score with true and total observation counts."""
+
     class_: str = Field(alias="class")
     score: float
     true: int
@@ -162,18 +224,30 @@ class ClassifierResultDoc(_DocBase):
 
     @model_validator(mode="after")
     def _validate_counts(self) -> "ClassifierResultDoc":
+        """Check that true observations do not exceed total observations.
+
+        Returns:
+            This classifier result unchanged.
+
+        Raises:
+            ValueError: If true exceeds total.
+        """
         if self.true > self.total:
             raise ValueError("true cannot be greater than total")
         return self
 
 
 class RnaClassificationDoc(_DocBase):
+    """Sample classifier results tied to the classifier version."""
+
     classifier_results: list[ClassifierResultDoc]
     classifier_version: str
     SAMPLE_ID: str
 
 
 class RnaQcDoc(_DocBase):
+    """RNA alignment, splicing, gene-body coverage, and provider-genotype metrics."""
+
     tot_reads: int
     mapped_pct: float
     multimap_pct: float
@@ -197,6 +271,17 @@ class RnaQcDoc(_DocBase):
     @field_validator("mapped_pct", "multimap_pct", "mismatch_pct")
     @classmethod
     def validate_percentage(cls, v):
+        """Require a percentage in the inclusive range zero to one hundred.
+
+        Args:
+            v: Parsed alignment percentage, in percent rather than a fraction.
+
+        Returns:
+            The percentage unchanged.
+
+        Raises:
+            ValueError: If the percentage is outside the range or NaN.
+        """
         if not (0 <= v <= 100):
             raise ValueError("Percentage must be between 0 and 100")
         return v
@@ -204,6 +289,17 @@ class RnaQcDoc(_DocBase):
     @field_validator("provider_genotypes")
     @classmethod
     def validate_genotypes(cls, v):
+        """Check that all provider genotype values are strings.
+
+        Args:
+            v: Provider marker names mapped to genotype values.
+
+        Returns:
+            The genotype mapping unchanged.
+
+        Raises:
+            ValueError: If any genotype value is not a string.
+        """
         for k, val in v.items():
             if not isinstance(val, str):
                 raise ValueError(f"Invalid genotype for {k}")

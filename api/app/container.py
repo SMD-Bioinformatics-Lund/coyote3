@@ -28,7 +28,17 @@ class Utility:
         self._initialized = True
 
     def __getattr__(self, name: str) -> Any:
-        """Lazy-initialize utility groups on first access."""
+        """Initialize and return a supported utility group on first access.
+
+        Args:
+            name: Requested attribute; only common and dashboard are supported.
+
+        Returns:
+            The shared utility instance, initializing both groups if necessary.
+
+        Raises:
+            AttributeError: The requested attribute is not a utility group.
+        """
         if name in {"common", "dashboard"}:
             self.init_util()
             return object.__getattribute__(self, name)
@@ -39,7 +49,25 @@ class _LazyRepositoryProxy:
     """Placeholder object used until runtime initializes the store."""
 
     def __getattr__(self, _name: str) -> Any:
+        """Return a callable that rejects repository use before initialization.
+
+        Args:
+            _name: Requested repository member, ignored by this placeholder.
+
+        Returns:
+            A callable that raises RuntimeError when invoked, not on lookup.
+        """
+
         def _missing(*_args, **_kwargs):
+            """Reject calls to an uninitialized repository.
+
+            Args:
+                *_args: Positional repository arguments, ignored.
+                **_kwargs: Keyword repository arguments, ignored.
+
+            Raises:
+                RuntimeError: Always, because persistence has not been initialized.
+            """
             raise RuntimeError("Persistence repository used before API runtime initialization")
 
         return _missing
@@ -142,10 +170,11 @@ class MongoStore:
     )
 
     def __init__(self) -> None:
+        """Initialize empty database handles and deferred-failure repository proxies."""
         self.reset()
 
     def reset(self) -> None:
-        """Reset to pre-initialization state."""
+        """Close any bound adapter and replace database handles and repository proxies."""
         previous = getattr(self, "_adapter", None)
         if previous is not None:
             previous.close()
@@ -198,7 +227,19 @@ class MongoStore:
         self.vep_metadata_repository = _LazyRepositoryProxy()
 
     def init_from_app(self, runtime: Any) -> None:
-        """Create and initialize the MongoAdapter, then bind its attributes."""
+        """Initialize and ping a Mongo adapter before exposing its public attributes.
+
+        Args:
+            runtime: App-like context supplying configuration and a logger.
+
+        Raises:
+            RuntimeError: The adapter ping raises ConnectionFailure; the new
+                adapter is closed and the failure is logged before raising.
+
+        Notes:
+            Adapter setup failures propagate. Successful setup replaces public
+            store attributes but does not close an adapter previously bound here.
+        """
         from pymongo.errors import ConnectionFailure
 
         from api.infra.mongo.adapter import MongoAdapter

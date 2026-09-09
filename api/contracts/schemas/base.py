@@ -48,6 +48,14 @@ class _FindingDocBase(_DocBase):
     @model_validator(mode="before")
     @classmethod
     def _remove_embedded_comments(cls, data: Any) -> Any:
+        """Remove embedded comments from raw finding dictionaries.
+
+        Args:
+            data: Raw finding input; non-dictionaries pass through.
+
+        Returns:
+            A shallow copy without comments, or the non-dictionary input unchanged.
+        """
         if not isinstance(data, dict):
             return data
         normalized = dict(data)

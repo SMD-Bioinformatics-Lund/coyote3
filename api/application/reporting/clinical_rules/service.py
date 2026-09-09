@@ -15,14 +15,40 @@ class ClinicalRuleService:
     """Resolve the explicitly bound active release and evaluate prepared facts."""
 
     def __init__(self, repository: Any, evaluator: ClinicalRuleEvaluator | None = None) -> None:
+        """Configure release lookup and rule evaluation.
+
+        Args:
+            repository: Provides active published rule documents by logical ID.
+            evaluator: Evaluation engine; None creates ClinicalRuleEvaluator.
+        """
         self.repository = repository
         self.evaluator = evaluator or ClinicalRuleEvaluator()
 
     @classmethod
     def from_store(cls, store: Any) -> "ClinicalRuleService":
+        """Bind runtime evaluation to the store's rule repository.
+
+        Args:
+            store: Provider of clinical_rule_set_repository.
+
+        Returns:
+            Service with the default evaluator.
+        """
         return cls(store.clinical_rule_set_repository)
 
     def resolve(self, *, context: PreparedReportContext) -> ClinicalRuleSetDoc:
+        """Resolve and integrity-check the active release bound in prepared ASPC facts.
+
+        Args:
+            context: Report facts providing the rule binding and sample analyte.
+
+        Returns:
+            Parsed active rule version with a verified canonical content hash.
+
+        Raises:
+            ValueError: Binding/release is absent, schema or engine version is
+                unsupported, analyte differs, or the content hash does not match.
+        """
         rule_set_id = context.aspc.reporting.clinical_rule_set_id
         if not rule_set_id:
             raise ValueError("ASPC does not define reporting.clinical_rule_set_id")
@@ -42,6 +68,14 @@ class ClinicalRuleService:
 
     @staticmethod
     def _report_sections(context: PreparedReportContext) -> set[str]:
+        """Canonicalize nonblank analysis names from prepared reporting settings.
+
+        Args:
+            context: Facts containing the ASPC report section list.
+
+        Returns:
+            Distinct normalized analysis names.
+        """
         return {
             normalize_analysis_type(value)
             for value in context.aspc.reporting.report_sections
@@ -54,6 +88,19 @@ class ClinicalRuleService:
         aspc: dict[str, Any],
         context: PreparedReportContext,
     ) -> ClinicalRuleEvaluation:
+        """Resolve the bound release and evaluate the prepared reporting sections.
+
+        Args:
+            aspc: Accepted but unused; configuration is read from context.aspc.
+            context: Prepared facts and reporting configuration.
+
+        Returns:
+            Rendered sections, source provenance, and rule decision traces.
+
+        Raises:
+            ValueError: Release resolution fails, report analyses are undeclared,
+                or the evaluator cannot render the rules.
+        """
         _ = aspc
         rule_set = self.resolve(context=context)
         return self.evaluate_document(rule_set=rule_set, context=context)

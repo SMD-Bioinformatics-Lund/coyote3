@@ -20,6 +20,13 @@ class AuditService:
     """Persist security and business audit events as MongoDB documents."""
 
     def __init__(self, collection: Any, *, retention_days: int, environment: str) -> None:
+        """Configure audit storage and operational event expiry.
+
+        Args:
+            collection: MongoDB collection accepting audit inserts and recent-event queries.
+            retention_days: Operational retention in days, clamped to at least 30.
+            environment: Source environment label; falsey values use development.
+        """
         self.collection = collection
         self.retention_days = max(int(retention_days), 30)
         self.environment = str(environment or "development")
@@ -103,6 +110,15 @@ class AuditService:
 
     @staticmethod
     def _actor_document(actor: Any | str | None, *, provider: str | None) -> dict[str, Any]:
+        """Project an actor object or login into audit identity fields.
+
+        Args:
+            actor: Login string, object with identity attributes, or None for anonymous.
+            provider: Authentication provider override; objects supply auth_type if falsey.
+
+        Returns:
+            Username, full name, role list, and provider without unrelated actor data.
+        """
         if actor is None:
             return {"username": "anonymous", "fullname": None, "roles": [], "provider": provider}
         if isinstance(actor, str):

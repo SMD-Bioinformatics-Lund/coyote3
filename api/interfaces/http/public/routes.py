@@ -40,6 +40,18 @@ __all__ = ["router", "PublicCatalogService"]
 
 
 def _load_filter_flag_metadata() -> dict:
+    """Read filter-flag YAML metadata, supplying empty mappings for absent groups.
+
+    Returns:
+        A dictionary with exact, prefixes, and terms entries. All are empty
+        mappings when the configured file is absent; false group values also
+        become empty mappings.
+
+    Raises:
+        OSError: If the existing metadata file cannot be opened or read.
+        yaml.YAMLError: If the file contains invalid YAML.
+        AttributeError: If a truthy YAML root does not support mapping lookup.
+    """
     metadata_path = FILTER_FLAG_METADATA_PATH
     if not metadata_path.exists():
         return {"exact": {}, "prefixes": {}, "terms": {}}
@@ -184,6 +196,8 @@ def public_filter_flag_metadata_read():
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
     """Return public view context for a genelist.
 
+    \u000c
+
     Args:
         genelist_id: Genelist identifier to inspect.
         assay: Optional assay used to scope visible genes.
@@ -202,6 +216,8 @@ def public_genelist_view_context_read(genelist_id: str, assay: str | None = None
 def public_asp_genes_read(asp_id: str):
     """Return public genes for an assay panel.
 
+    \u000c
+
     Args:
         asp_id: Assay-panel identifier to inspect.
 
@@ -218,6 +234,8 @@ def public_asp_genes_read(asp_id: str):
 )
 def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
     """Return public catalog genes for a catalog genelist.
+
+    \u000c
 
     Args:
         isgl_key: Catalog genelist identifier to inspect.

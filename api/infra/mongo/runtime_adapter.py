@@ -127,6 +127,7 @@ class MongoAdapter:
     """
 
     def __init__(self):
+        """Initialize an adapter without clients or database connections."""
         self.client = None
         self._connections = None
 
@@ -142,10 +143,12 @@ class MongoAdapter:
         self.client = self.coyote_db.client
 
     def close(self):
+        """Close owned MongoDB clients if connections have been initialized."""
         if self._connections is not None:
             self._connections.close()
 
     def ping(self):
+        """Ping initialized connections, propagating connection failures."""
         self._connections.ping()
 
     def init_from_app(self, app) -> None:
@@ -160,6 +163,14 @@ class MongoAdapter:
             raise
 
     def get_db_name(self) -> str:
+        """Read the configured primary application database name.
+
+        Returns:
+            The runtime's ``COYOTE3_DB`` setting.
+
+        Raises:
+            KeyError: If the connected runtime has no ``COYOTE3_DB`` setting.
+        """
         return self.app.config["COYOTE3_DB"]
 
     def setup(self) -> None:

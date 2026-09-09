@@ -15,6 +15,8 @@ from api.contracts.schemas.base import _StrictDocBase
 
 
 class SnvFiltersDoc(_StrictDocBase):
+    """Somatic SNV frequency, read-support, consequence, and gene-scope filters."""
+
     max_freq: float = Field(default=1.0, ge=0.0, le=1.0)
     min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
     max_control_freq: float = Field(default=0.05, ge=0.0, le=0.5)
@@ -27,6 +29,14 @@ class SnvFiltersDoc(_StrictDocBase):
 
     @model_validator(mode="after")
     def _validate_read_depth(self) -> "SnvFiltersDoc":
+        """Check that the depth threshold can accommodate alternate reads.
+
+        Returns:
+            This SNV profile unchanged.
+
+        Raises:
+            ValueError: If minimum alternate reads exceed minimum total depth.
+        """
         if self.min_depth < self.min_alt_reads:
             raise ValueError("min_depth must be greater than or equal to min_alt_reads")
         return self
@@ -50,12 +60,22 @@ class GermlineSnvFiltersDoc(_StrictDocBase):
 
     @model_validator(mode="after")
     def _validate_read_depth(self) -> "GermlineSnvFiltersDoc":
+        """Check that the depth threshold can accommodate alternate reads.
+
+        Returns:
+            This germline SNV profile unchanged.
+
+        Raises:
+            ValueError: If minimum alternate reads exceed minimum total depth.
+        """
         if self.min_depth < self.min_alt_reads:
             raise ValueError("min_depth must be greater than or equal to min_alt_reads")
         return self
 
 
 class CnvFiltersDoc(_StrictDocBase):
+    """CNV size bounds, gain/loss thresholds, effects, and gene-scope filters."""
+
     min_cnv_size: int = Field(default=100, ge=0)
     max_cnv_size: int = Field(default=50_000_000, ge=0)
     cnv_loss_cutoff: float = Field(default=-0.3)
@@ -66,6 +86,15 @@ class CnvFiltersDoc(_StrictDocBase):
 
     @model_validator(mode="after")
     def _validate_consistency(self) -> "CnvFiltersDoc":
+        """Check size bounds, gain/loss threshold ordering, and allowed effects.
+
+        Returns:
+            This CNV profile unchanged.
+
+        Raises:
+            ValueError: If sizes are reversed, loss is not below gain, or an
+                effect is neither gain nor loss.
+        """
         if self.min_cnv_size > self.max_cnv_size:
             raise ValueError("min_cnv_size must be less than or equal to max_cnv_size")
         if self.cnv_loss_cutoff >= self.cnv_gain_cutoff:
@@ -77,17 +106,29 @@ class CnvFiltersDoc(_StrictDocBase):
 
 
 class CoverageFiltersDoc(_StrictDocBase):
+    """Read-depth thresholds for coverage warnings and errors."""
+
     warn_cov: int = Field(default=100, ge=0)
     error_cov: int = Field(default=10, ge=0)
 
     @model_validator(mode="after")
     def _validate_consistency(self) -> "CoverageFiltersDoc":
+        """Check that the error threshold does not exceed the warning threshold.
+
+        Returns:
+            This coverage profile unchanged.
+
+        Raises:
+            ValueError: If error_cov exceeds warn_cov.
+        """
         if self.error_cov > self.warn_cov:
             raise ValueError("error_cov must be less than or equal to warn_cov")
         return self
 
 
 class FusionFiltersDoc(_StrictDocBase):
+    """RNA fusion caller, annotation, read-support, and gene-scope filters."""
+
     fusion_callers: list[str] = Field(default_factory=list)
     fusion_descriptions: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
@@ -99,6 +140,17 @@ class FusionFiltersDoc(_StrictDocBase):
     @field_validator("fusion_callers", mode="before")
     @classmethod
     def _normalize_fusion_callers(cls, value: Any) -> list[str]:
+        """Resolve caller selections through the clinical vocabulary.
+
+        Args:
+            value: Caller selection; falsey input is treated as an empty list.
+
+        Returns:
+            Caller names normalized by the clinical vocabulary.
+
+        Raises:
+            ValueError: If a caller is not supported by the vocabulary.
+        """
         return CLINICAL_VOCABULARY.normalize_fusion_callers(value or [])
 
 
@@ -115,6 +167,8 @@ class TranslocationFiltersDoc(_StrictDocBase):
 
 
 class SomaticDnaFiltersDoc(_StrictDocBase):
+    """Optional SNV, CNV, translocation, and coverage profiles for somatic DNA."""
+
     snv: SnvFiltersDoc | None = None
     cnv: CnvFiltersDoc | None = None
     translocation: TranslocationFiltersDoc | None = None
@@ -128,13 +182,19 @@ class GermlineDnaFiltersDoc(_StrictDocBase):
 
 
 class DnaFilterProfilesDoc(_StrictDocBase):
+    """DNA filters partitioned into optional somatic and germline profiles."""
+
     somatic: SomaticDnaFiltersDoc | None = None
     germline: GermlineDnaFiltersDoc | None = None
 
 
 class SomaticRnaFiltersDoc(_StrictDocBase):
+    """Optional fusion filtering profile for somatic RNA analysis."""
+
     fusion: FusionFiltersDoc | None = None
 
 
 class RnaFilterProfilesDoc(_StrictDocBase):
+    """RNA filters restricted to the supported somatic analysis intent."""
+
     somatic: SomaticRnaFiltersDoc | None = None

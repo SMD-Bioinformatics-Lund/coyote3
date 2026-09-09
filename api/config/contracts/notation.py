@@ -16,6 +16,7 @@ class ClinicalNotationContract:
 
     @property
     def amino_acid_one_to_three(self) -> dict[str, str]:
+        """Return a fresh mapping from one-letter to three-letter amino-acid codes."""
         return {
             one_letter: three_letter
             for three_letter, one_letter in self.amino_acid_three_to_one.items()

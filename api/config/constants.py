@@ -203,6 +203,20 @@ def _ensure_in_options(
     label: str,
     lowercase: bool = True,
 ) -> str:
+    """Validate a normalized value against a configured choice list.
+
+    Args:
+        value: Input to stringify and trim; false-valued inputs become blank.
+        options: Accepted strings, retained in their supplied case.
+        label: Field name included in validation errors.
+        lowercase: Whether to lowercase the input before comparison.
+
+    Returns:
+        The normalized input when it belongs to options.
+
+    Raises:
+        ValueError: The normalized value is not an accepted choice.
+    """
     normalized = str(value or "").strip()
     normalized = normalized.lower() if lowercase else normalized
     allowed = tuple(options)

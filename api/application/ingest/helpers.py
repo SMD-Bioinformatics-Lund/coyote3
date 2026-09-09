@@ -98,6 +98,18 @@ def extract_vcf_database_versions(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _parse_vep_header_line(line: str) -> dict[str, Any]:
+    """Parse quoted database-version assignments from a VEP metadata header.
+
+    Args:
+        line: Header text beginning with ##; the first two characters are removed.
+
+    Returns:
+        Canonical version keys with nonempty values. Leading v/V characters are
+        removed only from VEP versions; later assignments overwrite earlier ones.
+
+    Raises:
+        ValueError: Shell-style tokenization encounters malformed quoting or escapes.
+    """
     raw = line[2:]
     parts = shlex.split(raw)
     versions: dict[str, str] = {}
@@ -114,6 +126,17 @@ def _parse_vep_header_line(line: str) -> dict[str, Any]:
 
 
 def _sample_path_value(payload: dict[str, Any], key: str) -> str | None:
+    """Resolve an ingest source path using runtime paths before manifest paths.
+
+    Args:
+        payload: Sample payload with optional _runtime_files and files mappings.
+        key: File-resource key to resolve.
+
+    Returns:
+        Truthy runtime path first, then files[key].path or a scalar files[key],
+        then a top-level path for absent/falsey scalar entries. A dictionary entry
+        without a path yields None rather than falling back to the top level.
+    """
     runtime_files = payload.get("_runtime_files")
     if isinstance(runtime_files, dict) and runtime_files.get(key):
         return str(runtime_files[key])

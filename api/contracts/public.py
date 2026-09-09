@@ -20,12 +20,16 @@ class PublicAssayCatalogImportRequest(BaseModel):
 
 
 class PublicAssayCatalogUpdateRequest(BaseModel):
+    """Catalog replacement content qualified by the expected revision."""
+
     model_config = ConfigDict(extra="forbid")
     revision: int = Field(ge=1)
     catalog: dict[str, Any]
 
 
 class PublicAssayCatalogTransitionRequest(BaseModel):
+    """Revision-qualified catalog transition with assignment and decision details."""
+
     model_config = ConfigDict(extra="forbid")
     revision: int = Field(ge=1)
     assignee: str = ""
@@ -46,6 +50,8 @@ class PublicAssayCatalogAdminPayload(BaseModel):
 
 
 class PublicAssayCatalogRevisionsPayload(BaseModel):
+    """Public catalog audit revisions returned to administrators."""
+
     items: list[PublicCatalogRevisionDoc]
 
 

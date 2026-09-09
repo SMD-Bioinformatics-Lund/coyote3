@@ -9,6 +9,15 @@ from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simpl
 
 
 def _identity(prefix: str, *parts: Any) -> tuple[str, str]:
+    """Build a colon-delimited finding identity and its domain hash.
+
+    Args:
+        prefix: Finding type prefix, lowercased without trimming.
+        *parts: Identity components; None and empty strings are omitted before stripping.
+
+    Returns:
+        Simple ID and the hash produced by the shared variant identity helper.
+    """
     values = [str(part).strip() for part in parts if part not in (None, "")]
     simple_id = ":".join((prefix.lower(), *values))
     return simple_id, build_simple_id_hash_from_simple_id(simple_id)
@@ -54,6 +63,15 @@ def build_cnv_snapshot_rows(cnvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _selected_translocation_annotation(row: dict[str, Any]) -> dict[str, Any]:
+    """Choose the stored MANE annotation or first dictionary ANN entry.
+
+    Args:
+        row: Translocation with optional dictionary-shaped INFO.
+
+    Returns:
+        Annotation dictionary, or an empty dictionary when absent. An empty MANE
+        dictionary still takes precedence over ANN entries.
+    """
     info = row.get("INFO") if isinstance(row.get("INFO"), dict) else {}
     mane = info.get("MANE_ANN")
     if isinstance(mane, dict):

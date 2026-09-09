@@ -1,3 +1,5 @@
+"""Build sample-scoped RNA fusion predicates from filters and query policy."""
+
 import re
 from typing import Any, Dict
 

@@ -15,18 +15,59 @@ class DisabledCacheBackend:
     """No-op cache backend used for an explicitly permitted Redis fallback."""
 
     def __init__(self, reason: str = "disabled"):
+        """Record why caching is unavailable.
+
+        Args:
+            reason: Diagnostic label, defaulting to ``disabled``.
+        """
         self.reason = reason
 
     def get(self, _key: str) -> Any | None:
+        """Return a cache miss without contacting a backend.
+
+        Args:
+            _key: Ignored cache key.
+
+        Returns:
+            Always ``None``.
+        """
         return None
 
     def set(self, _key: str, _value: Any, timeout: int | None = None) -> bool:  # noqa: ARG002
+        """Decline to store a value.
+
+        Args:
+            _key: Ignored cache key.
+            _value: Ignored payload.
+            timeout: Ignored expiration in seconds, including ``None``.
+
+        Returns:
+            Always ``False``.
+        """
         return False
 
     def delete(self, _key: str) -> bool:
+        """Report that no cached entry was deleted.
+
+        Args:
+            _key: Ignored cache key.
+
+        Returns:
+            Always ``False``.
+        """
         return False
 
     def add(self, _key: str, _value: Any, timeout: int | None = None) -> bool:  # noqa: ARG002
+        """Decline a conditional cache insertion.
+
+        Args:
+            _key: Ignored cache key.
+            _value: Ignored payload.
+            timeout: Ignored expiration in seconds, including ``None``.
+
+        Returns:
+            Always ``False``; no lock or entry is acquired.
+        """
         return False
 
     def increment_window(self, _key: str, *, window_seconds: int) -> tuple[int, int]:
@@ -45,15 +86,43 @@ class RedisCacheBackend:
         default_timeout: int,
         logger: logging.Logger,
     ) -> None:
+        """Bind a Redis client and namespace without opening a connection.
+
+        Args:
+            client: Redis client used for cache operations.
+            key_prefix: Namespace with trailing colons removed before use.
+            default_timeout: Default entry lifetime in seconds; nonpositive values
+                disable expiration for ``set``.
+            logger: Destination for cache diagnostics.
+        """
         self._client = client
         self._key_prefix = key_prefix.rstrip(":")
         self._default_timeout = int(default_timeout)
         self._logger = logger
 
     def _key(self, key: str) -> str:
+        """Prefix an entry name with the backend namespace.
+
+        Args:
+            key: Unqualified entry name.
+
+        Returns:
+            Namespace and entry name joined by a colon.
+        """
         return f"{self._key_prefix}:{key}"
 
     def get(self, key: str) -> Any | None:
+        """Read and decode a MongoDB Extended JSON cache entry.
+
+        Args:
+            key: Entry name within this backend's namespace.
+
+        Returns:
+            Decoded value, or ``None`` for a miss, read failure, or invalid payload.
+
+        Notes:
+            Read and decoding failures are logged rather than propagated.
+        """
         cache_key = self._key(key)
         try:
             raw = self._client.get(cache_key)
@@ -75,6 +144,20 @@ class RedisCacheBackend:
         return value
 
     def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        """Serialize and replace a namespaced cache entry.
+
+        Args:
+            key: Entry name within this backend's namespace.
+            value: Payload serializable by BSON's Extended JSON encoder.
+            timeout: Lifetime in seconds; ``None`` uses the configured default,
+                and nonpositive values store without expiration.
+
+        Returns:
+            Whether serialization and the Redis write completed without error.
+
+        Notes:
+            Serialization and Redis failures are logged and return ``False``.
+        """
         cache_key = self._key(key)
         ttl = self._default_timeout if timeout is None else int(timeout)
 
@@ -92,6 +175,14 @@ class RedisCacheBackend:
         return True
 
     def delete(self, key: str) -> bool:
+        """Remove a namespaced entry if present.
+
+        Args:
+            key: Entry name within this backend's namespace.
+
+        Returns:
+            Whether Redis deleted an entry; ``False`` also covers logged failures.
+        """
         cache_key = self._key(key)
         try:
             return bool(self._client.delete(cache_key))

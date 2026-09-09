@@ -89,6 +89,17 @@ class ApiUiSettingsUpdateRequest(BaseModel):
     @field_validator("table_page_size")
     @classmethod
     def _validate_table_page_size(cls, value: int | None) -> int | None:
+        """Validate an optional table page-size preference.
+
+        Args:
+            value: Rows per page, or None when the update does not specify a size.
+
+        Returns:
+            The supported size unchanged, including None.
+
+        Raises:
+            ValueError: If a nonnull size is absent from TABLE_PAGE_SIZE_OPTIONS.
+        """
         if value is not None and value not in TABLE_PAGE_SIZE_OPTIONS:
             allowed = ", ".join(str(option) for option in TABLE_PAGE_SIZE_OPTIONS)
             raise ValueError(f"table_page_size must be one of: {allowed}")

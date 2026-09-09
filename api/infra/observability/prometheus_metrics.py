@@ -7,11 +7,22 @@ from collections import defaultdict
 
 
 def _label(value: str) -> str:
+    """Replace label delimiters and truncate to 120 characters.
+
+    Args:
+        value: Label text; falsey values become an empty string.
+
+    Returns:
+        Text with backslashes, quotes, and newlines replaced by underscores.
+    """
     return str(value or "").replace("\\", "_").replace('"', "_").replace("\n", "_")[:120]
 
 
 class _ApiMetricsStore:
+    """Accumulate process-local request and operation metrics under a lock."""
+
     def __init__(self) -> None:
+        """Initialize empty counters, duration totals, gauges, and their lock."""
         self._lock = threading.Lock()
         self._requests_total: defaultdict[tuple[str, str, str], int] = defaultdict(int)
         self._latency_ms_sum: defaultdict[tuple[str, str], float] = defaultdict(float)
@@ -25,6 +36,14 @@ class _ApiMetricsStore:
     def observe_request(
         self, *, method: str, path: str, status_code: int, duration_ms: float
     ) -> None:
+        """Count a request and accumulate its nonnegative duration under the lock.
+
+        Args:
+            method: HTTP method, uppercased for the label.
+            path: Request path label.
+            status_code: HTTP status, grouped by hundreds as a status class.
+            duration_ms: Elapsed milliseconds, clamped to zero.
+        """
         status_class = f"{int(status_code) // 100}xx"
         key = (_label(method.upper()), _label(path), _label(status_class))
         latency_key = (_label(method.upper()), _label(path))
@@ -34,10 +53,22 @@ class _ApiMetricsStore:
             self._latency_ms_count[latency_key] += 1
 
     def inc_rate_limited(self, *, path: str) -> None:
+        """Increment the rejection counter for a sanitized path label.
+
+        Args:
+            path: Path whose rate limit rejected a request.
+        """
         with self._lock:
             self._rate_limited_total[_label(path)] += 1
 
     def observe_operation(self, *, operation: str, outcome: str, duration_ms: float) -> None:
+        """Count an operation outcome and accumulate duration across outcomes.
+
+        Args:
+            operation: Operation name used as a sanitized label.
+            outcome: Outcome label for the invocation counter.
+            duration_ms: Elapsed milliseconds, clamped to zero.
+        """
         operation_label = _label(operation)
         with self._lock:
             self._operations_total[(operation_label, _label(outcome))] += 1
@@ -45,10 +76,22 @@ class _ApiMetricsStore:
             self._operation_duration_ms_count[operation_label] += 1
 
     def set_startup_phase_duration(self, *, phase: str, duration_ms: float) -> None:
+        """Replace the latest duration gauge for a startup phase.
+
+        Args:
+            phase: Startup phase name used as a sanitized label.
+            duration_ms: Elapsed milliseconds, clamped to zero.
+        """
         with self._lock:
             self._startup_phase_duration_ms[_label(phase)] = max(float(duration_ms), 0.0)
 
     def render(self) -> str:
+        """Serialize a locked snapshot in Prometheus text format.
+
+        Returns:
+            Metric declarations and sorted observations with a trailing newline;
+            duration values use milliseconds and six decimal places.
+        """
         with self._lock:
             lines: list[str] = [
                 "# HELP coyote3_api_requests_total Total API requests by method/path/status class.",
@@ -139,6 +182,14 @@ _STORE = _ApiMetricsStore()
 
 
 def observe_request(*, method: str, path: str, status_code: int, duration_ms: float) -> None:
+    """Record a request in the process-local metrics store.
+
+    Args:
+        method: HTTP method, uppercased for aggregation.
+        path: Request path label.
+        status_code: HTTP status, aggregated by status class.
+        duration_ms: Elapsed milliseconds; negative values contribute zero.
+    """
     _STORE.observe_request(
         method=method,
         path=path,
@@ -148,6 +199,11 @@ def observe_request(*, method: str, path: str, status_code: int, duration_ms: fl
 
 
 def record_rate_limited(*, path: str) -> None:
+    """Count a rate-limit rejection in the process-local store.
+
+    Args:
+        path: Rejected request's path label.
+    """
     _STORE.inc_rate_limited(path=path)
 
 
@@ -162,4 +218,9 @@ def set_startup_phase_duration(*, phase: str, duration_ms: float) -> None:
 
 
 def render_prometheus_metrics() -> str:
+    """Render the current process's accumulated Prometheus metrics.
+
+    Returns:
+        Newline-terminated Prometheus text containing counters and duration gauges.
+    """
     return _STORE.render()

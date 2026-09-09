@@ -17,6 +17,14 @@ class ClinicalRuleTestingService:
 
     @classmethod
     def from_store(cls, store: Any) -> "ClinicalRuleTestingService":
+        """Construct sample preview workflows from the repository store.
+
+        Args:
+            store: Repository provider used by rule, sample, assay, and report services.
+
+        Returns:
+            Testing service with DNA and RNA workflow instances.
+        """
         return cls(
             rule_repository=store.clinical_rule_set_repository,
             sample_repository=store.sample_repository,
@@ -36,6 +44,16 @@ class ClinicalRuleTestingService:
         dna_workflow: Any,
         rna_workflow: Any,
     ) -> None:
+        """Configure sample lookup and non-persisting report preview dependencies.
+
+        Args:
+            rule_repository: Reads selected rule versions.
+            sample_repository: Searches ready samples within requested scope.
+            assay_panel_repository: Supplies assay panel settings.
+            assay_configuration_repository: Supplies sample-specific ASPC settings.
+            dna_workflow: Builds DNA report payloads with a rule override.
+            rna_workflow: Builds RNA report payloads with a rule override.
+        """
         self.rule_repository = rule_repository
         self.sample_repository = sample_repository
         self.assay_panel_repository = assay_panel_repository
@@ -44,6 +62,18 @@ class ClinicalRuleTestingService:
         self.rna_workflow = rna_workflow
 
     def _rule_set(self, document_id: str) -> ClinicalRuleSetDoc:
+        """Load a rule version for testing without requiring publication.
+
+        Args:
+            document_id: Stored version identifier.
+
+        Returns:
+            Parsed canonical rule document.
+
+        Raises:
+            AppError: With status 404 when the version is absent.
+            ValidationError: The stored document violates its schema.
+        """
         document = self.rule_repository.get(document_id)
         if document is None:
             raise api_error(404, "Clinical rule-set version was not found")
@@ -60,6 +90,24 @@ class ClinicalRuleTestingService:
         page: int,
         per_page: int,
     ) -> dict[str, Any]:
+        """Search ready samples for the rule-set assay within caller-provided access scope.
+
+        Args:
+            document_id: Rule version whose assay constrains the search.
+            search: Repository sample search text.
+            match_subpanel: Also restrict to the rule-set subpanel when True.
+            allowed_asp_ids: Allowed assay IDs; None skips the assay access check.
+            allowed_environments: Environment restriction forwarded to the repository;
+                None leaves it unrestricted.
+            page: Requested one-based page.
+            per_page: Requested page size.
+
+        Returns:
+            Sample identity rows and pagination metadata.
+
+        Raises:
+            AppError: With status 404 for a missing version or 403 for an excluded assay.
+        """
         rule_set = self._rule_set(document_id)
         asp_id = rule_set.scope.asp_id
         if allowed_asp_ids is not None and asp_id not in set(allowed_asp_ids):
@@ -97,6 +145,23 @@ class ClinicalRuleTestingService:
         sample: dict[str, Any],
         include_condition_trace: bool = False,
     ) -> dict[str, Any]:
+        """Build report text for an authorized sample using the selected rule version.
+
+        Args:
+            document_id: Rule version to use instead of the configured release.
+            sample: Sample document whose access has already been checked by the caller.
+            include_condition_trace: Include nested condition decisions when True.
+
+        Returns:
+            Sample/version metadata, summary, and evaluation with persisted set to False.
+
+        Raises:
+            AppError: With status 404 for a missing version or 422 for assay mismatch,
+                report-contract failures, or absent evaluation output.
+
+        Notes:
+            Requests save=0, no snapshot, and clinical-rule-only workflow output.
+        """
         rule_set = self._rule_set(document_id)
         if str(sample.get("asp_id") or "") != rule_set.scope.asp_id:
             raise api_error(422, "Sample assay does not match the clinical rule set")

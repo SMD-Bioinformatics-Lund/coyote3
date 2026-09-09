@@ -13,6 +13,17 @@ class MongoConnections:
     """Own clients for one runtime/worker process, not for individual requests."""
 
     def __init__(self, config, *, client_factory=MongoClient):
+        """Create shared clients and database handles for configured endpoints.
+
+        Args:
+            config: MongoDB endpoint, pool, timeout, and read/write concern settings.
+            client_factory: Client constructor accepting a URI and pool options;
+                defaults to PyMongo's ``MongoClient``.
+
+        Notes:
+            Endpoints with identical URIs share a client. If setup fails, clients
+            already created are closed before the exception propagates.
+        """
         self.endpoints = mongo_endpoints(config)
         self._clients: dict[str, Any] = {}
         self.databases: dict[str, Any] = {}
@@ -43,10 +54,12 @@ class MongoConnections:
             raise
 
     def ping(self):
+        """Ping each distinct client, propagating connection or command failures."""
         for client in self._clients.values():
             client.admin.command("ping")
 
     def close(self):
+        """Close owned clients and clear the client registry."""
         for client in self._clients.values():
             client.close()
         self._clients.clear()

@@ -33,10 +33,28 @@ class ApiLoginSession:
 
 
 def _normalize_base_url(base_url: str) -> str:
+    """Remove trailing separators before appending an API path.
+
+    Args:
+        base_url: Caller-supplied API base URL; no URL validation is performed.
+
+    Returns:
+        The base URL without trailing slashes.
+    """
     return base_url.rstrip("/")
 
 
 def _extract_session_token(response: httpx.Response, cookie_name: str) -> str | None:
+    """Read a session token from a login response's cookies.
+
+    Args:
+        response: HTTP login response carrying any issued cookies.
+        cookie_name: Preferred session cookie name.
+
+    Returns:
+        The preferred cookie's nonempty value, otherwise the first available
+        cookie value, or None when the response has no cookies.
+    """
     token = response.cookies.get(cookie_name)
     if token:
         return token

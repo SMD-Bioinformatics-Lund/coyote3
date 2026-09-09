@@ -30,13 +30,17 @@ def _login_provider(login_identifier: str) -> str:
 def _lookup_user_doc(
     login_identifier: str, *, provider: str | None = None
 ) -> dict[str, Any] | None:
-    """Lookup user doc by provider-specific login key.
+    """Look up an account by its provider-specific login identifier.
 
     Args:
-            login_identifier: Login identifier.
+        login_identifier: Username or email address, trimmed and lowercased.
+        provider: Explicit local or LDAP provider. When omitted, an identifier
+            containing @ selects LDAP; other identifiers select local auth.
 
     Returns:
-            The  lookup user doc result.
+        A copy of the matching account document, or None for a blank identifier,
+        unsupported provider, or missing account. LDAP lookup uses email; local
+        lookup uses username. This helper does not verify credentials.
     """
     normalized = str(login_identifier).strip().lower()
     if not normalized:
@@ -128,6 +132,8 @@ def authenticate_credentials(
     Args:
         username: Submitted login identifier.
         password: Submitted password.
+        provider: Explicit provider, or None to infer LDAP from an identifier
+            containing @ and local authentication otherwise.
 
     Returns:
         The authenticated user document, or ``None`` when authentication fails.

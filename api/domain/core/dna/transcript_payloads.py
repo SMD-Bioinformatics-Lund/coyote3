@@ -94,6 +94,16 @@ def hgnc_doc_for_transcript(
 
 
 def _hgnc_transcripts(document: dict[str, Any] | None, key: str) -> set[str]:
+    """Collect versionless transcript identifiers from an HGNC field.
+
+    Args:
+        document: HGNC mapping, or None when no gene record is available.
+        key: Transcript field containing one string or an iterable of identifiers.
+
+    Returns:
+        A set of versionless identifiers after dropping blank entries; missing
+        records or fields produce an empty set.
+    """
     values = (document or {}).get(key)
     if isinstance(values, str):
         values = [values]

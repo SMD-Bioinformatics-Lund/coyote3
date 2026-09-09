@@ -20,6 +20,16 @@ class NotificationService:
         retention_days: int,
         audit_service: Any | None = None,
     ) -> "NotificationService":
+        """Bind notification workflows to the store's notification and user repositories.
+
+        Args:
+            store: Provider of notification_repository and user_repository.
+            retention_days: Expiry interval in days, clamped by the constructor.
+            audit_service: Optional recorder for broadcast and reset events.
+
+        Returns:
+            Service using the supplied repositories and retention policy.
+        """
         return cls(
             notification_repository=store.notification_repository,
             user_repository=store.user_repository,
@@ -35,12 +45,29 @@ class NotificationService:
         retention_days: int,
         audit_service: Any | None = None,
     ) -> None:
+        """Configure notification persistence, recipient lookup, and expiry.
+
+        Args:
+            notification_repository: Stores notifications and recipient read states.
+            user_repository: Looks up active recipients and role membership.
+            retention_days: Days until expiry; falsey values use 180, with a minimum of 7.
+            audit_service: Optional event recorder; None disables audit recording here.
+        """
         self.notification_repository = notification_repository
         self.user_repository = user_repository
         self.retention_days = max(7, int(retention_days or 180))
         self.audit_service = audit_service
 
     def inbox(self, *, username: str, limit: int = 200) -> dict[str, Any]:
+        """List notifications visible to a recipient with per-recipient read state.
+
+        Args:
+            username: Recipient login, stripped and lowercased before lookup.
+            limit: Maximum rows requested from the repository, defaulting to 200.
+
+        Returns:
+            Serialized notifications and the unread count within those rows.
+        """
         normalized = self._username(username)
         rows = self.notification_repository.list_for_user(normalized, limit=limit)
         notifications = [self._serialize(item, username=normalized) for item in rows]
@@ -50,26 +77,71 @@ class NotificationService:
         }
 
     def mark_read(self, *, notification_id: str, username: str) -> dict[str, Any]:
+        """Mark one notification read for the specified recipient.
+
+        Args:
+            notification_id: Notification identifier to update.
+            username: Recipient login, normalized before the repository call.
+
+        Returns:
+            Success status with changed set to one.
+
+        Raises:
+            AppError: With status 404 when the repository reports no change.
+        """
         changed = self.notification_repository.mark_read(notification_id, self._username(username))
         if not changed:
             raise api_error(404, "Notification not found")
         return {"status": "ok", "changed": 1}
 
     def mark_all_read(self, *, username: str) -> dict[str, Any]:
+        """Mark the recipient's notifications read in bulk.
+
+        Args:
+            username: Recipient login, normalized before the repository call.
+
+        Returns:
+            Success status and the repository's changed count.
+        """
         changed = self.notification_repository.mark_all_read(self._username(username))
         return {"status": "ok", "changed": changed}
 
     def dismiss(self, *, notification_id: str, username: str) -> dict[str, Any]:
+        """Dismiss one notification for the specified recipient.
+
+        Args:
+            notification_id: Notification identifier to update.
+            username: Recipient login, normalized before the repository call.
+
+        Returns:
+            Success status with changed set to one.
+
+        Raises:
+            AppError: With status 404 when the repository reports no change.
+        """
         changed = self.notification_repository.dismiss(notification_id, self._username(username))
         if not changed:
             raise api_error(404, "Notification not found")
         return {"status": "ok", "changed": 1}
 
     def dismiss_all(self, *, username: str) -> dict[str, Any]:
+        """Dismiss the recipient's notifications in bulk.
+
+        Args:
+            username: Recipient login, normalized before the repository call.
+
+        Returns:
+            Success status and the repository's changed count.
+        """
         changed = self.notification_repository.dismiss_all(self._username(username))
         return {"status": "ok", "changed": changed}
 
     def recipient_options(self) -> dict[str, Any]:
+        """Build broadcast choices from active users and their role memberships.
+
+        Returns:
+            User identity labels and alphabetically ordered roles with user counts.
+        """
         users = self.user_repository.list_active_users_for_notifications()
         role_counts: dict[str, int] = {}
         for user in users:
@@ -98,6 +170,24 @@ class NotificationService:
         }
 
     def broadcast(self, *, payload: dict[str, Any], actor: Any) -> dict[str, Any]:
+        """Create a broadcast for all active users, selected users, or role members.
+
+        Args:
+            payload: Audience (all, roles, or selected), recipients or role_ids,
+                title, message, and optional tone and category.
+            actor: Audit actor; its username identifies the creator when present.
+
+        Returns:
+            Success status, notification ID, audience, and resolved recipient count.
+
+        Raises:
+            AppError: With status 400 for invalid or empty audiences, inactive
+                recipients, unsupported tone/category, or absent title/message.
+
+        Notes:
+            Resolves recipients before writing and records an audit event when
+            an audit service is configured. Authorization is the caller's concern.
+        """
         audience = str(payload.get("audience") or "").strip().lower()
         requested = [self._username(item) for item in payload.get("recipients", [])]
         requested = list(dict.fromkeys(item for item in requested if item))
@@ -216,6 +306,25 @@ class NotificationService:
         created_by: str,
         resource: dict[str, Any] | None = None,
     ) -> str:
+        """Persist a notification with expiry and initially empty recipient states.
+
+        Args:
+            audience: Audience marker stored unchanged.
+            recipients: Recipient logins stored unchanged; callers resolve membership.
+            tone: Configured notification tone, stripped and lowercased.
+            category: Configured notification category, stripped and lowercased.
+            title: Required title, truncated to 160 characters.
+            message: Required body, truncated to 5000 characters.
+            source: Origin label, truncated to 160 characters.
+            created_by: Creator login; blank values become system.
+            resource: Optional resource reference; empty mappings are stored as None.
+
+        Returns:
+            Identifier returned by the notification repository.
+
+        Raises:
+            AppError: With status 400 for unsupported tone/category or empty title/body.
+        """
         normalized_tone = tone.strip().lower()
         normalized_category = category.strip().lower()
         if normalized_tone not in NOTIFICATIONS.tones:
@@ -246,10 +355,26 @@ class NotificationService:
 
     @staticmethod
     def _username(value: Any) -> str:
+        """Canonicalize a login or role identifier.
+
+        Args:
+            value: Identifier to stringify; falsey values become an empty string.
+
+        Returns:
+            Stripped, lowercase text.
+        """
         return str(value or "").strip().lower()
 
     @staticmethod
     def _display_name(user: dict[str, Any]) -> str:
+        """Choose a full name, joined first/last names, or login for display.
+
+        Args:
+            user: User document with optional name fields.
+
+        Returns:
+            First nonempty name representation, or an empty string without a login.
+        """
         return (
             str(user.get("fullname") or "").strip()
             or " ".join(
@@ -265,6 +390,15 @@ class NotificationService:
 
     @staticmethod
     def _serialize(document: dict[str, Any], *, username: str) -> dict[str, Any]:
+        """Expose notification text and the requesting recipient's read state.
+
+        Args:
+            document: Stored notification with optional presentation fields.
+            username: Canonical recipient login checked against read_by.
+
+        Returns:
+            Inbox row with a string identifier and ISO timestamp when supported.
+        """
         created_on = document.get("created_on")
         return {
             "id": str(document.get("_id") or ""),

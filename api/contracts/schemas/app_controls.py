@@ -30,6 +30,18 @@ class RetentionControlDoc(BaseModel):
     @field_validator("gzip_disk_logs_after_days")
     @classmethod
     def _gzip_before_delete(cls, value: int, info: Any) -> int:
+        """Check that log compression is scheduled no later than deletion.
+
+        Args:
+            value: Log age in days at which compression starts.
+            info: Pydantic context containing the previously validated disk_log_days.
+
+        Returns:
+            The compression age unchanged.
+
+        Raises:
+            ValueError: If the compression age exceeds the available deletion age.
+        """
         disk_log_days = (info.data or {}).get("disk_log_days")
         if disk_log_days is not None and int(value) > int(disk_log_days):
             raise ValueError("gzip_disk_logs_after_days cannot exceed disk_log_days")

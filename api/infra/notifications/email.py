@@ -13,6 +13,15 @@ logger = logging.getLogger("api.infra.notifications.email")
 
 
 def smtp_configured(config: dict[str, Any]) -> bool:
+    """Check whether an SMTP host and sender address are supplied.
+
+    Args:
+        config: Runtime settings containing ``SMTP_HOST`` and ``SMTP_FROM_EMAIL``.
+
+    Returns:
+        Whether both settings contain nonblank text; no connection or address
+        validation is performed.
+    """
     host = str(config.get("SMTP_HOST") or "").strip()
     from_email = str(config.get("SMTP_FROM_EMAIL") or "").strip()
     return bool(host and from_email)

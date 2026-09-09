@@ -43,8 +43,30 @@ def measured_operation(operation: str) -> Callable[[Callable[P, R]], Callable[P,
     """Decorate a synchronous application operation with shared timing metrics."""
 
     def decorator(function: Callable[P, R]) -> Callable[P, R]:
+        """Wrap the supplied callable with this operation's timing context.
+
+        Args:
+            function: Synchronous callable to measure.
+
+        Returns:
+            Wrapper preserving the callable's metadata and return value.
+        """
+
         @wraps(function)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+            """Invoke the callable while logging scalar keyword context and timing.
+
+            Args:
+                *args: Positional arguments forwarded unchanged.
+                **kwargs: Keyword arguments forwarded unchanged; scalar values and
+                    ``None`` are also included in timing log context.
+
+            Returns:
+                The wrapped callable's return value.
+
+            Notes:
+                Exceptions propagate after the timing context records failure.
+            """
             context: dict[str, Any] = {
                 key: value
                 for key, value in kwargs.items()

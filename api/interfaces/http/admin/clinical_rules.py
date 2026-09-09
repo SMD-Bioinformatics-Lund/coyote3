@@ -38,6 +38,14 @@ router = APIRouter(prefix="/api/v1/admin/clinical-rule-sets", tags=[TAG_CLINICAL
 
 
 def _serializable(value):
+    """Convert rule payloads using the shared response serializer.
+
+    Args:
+        value: Rule document, collection, or evaluation payload to serialize.
+
+    Returns:
+        The value with types converted by the shared serialization utility.
+    """
     return util.common.convert_to_serializable(value)
 
 
@@ -50,6 +58,21 @@ def list_rule_sets(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """List rule sets with optional filters; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        status: Lifecycle status filter, or None to omit it.
+        q: Search text, or None to omit text filtering.
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 200; defaults to 30.
+        _user: User authorized by the view dependency.
+        service: Rule authoring service used to query the catalog.
+
+    Returns:
+        Serialized rule-set listing with pagination metadata.
+    """
     return _serializable(service.list(status=status, search=q, page=page, per_page=per_page))
 
 
@@ -57,6 +80,16 @@ def list_rule_sets(
 def clinical_rule_facts(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
 ):
+    """List supported rule facts; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        _user: User authorized by the view dependency.
+
+    Returns:
+        An items envelope containing the registered fact definitions.
+    """
     return {"items": fact_catalog_payload()}
 
 
@@ -65,6 +98,17 @@ def clinical_rule_authoring_options(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Return rule authoring choices; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        _user: User authorized by the view dependency.
+        service: Rule authoring service supplying configuration choices.
+
+    Returns:
+        Available assay scopes and rule authoring options.
+    """
     return service.authoring_options()
 
 
@@ -78,6 +122,29 @@ def search_clinical_rule_test_samples(
     user: ApiUser = Depends(require_access(permission="clinical_rules:test")),
     service: ClinicalRuleTestingService = Depends(get_clinical_rule_testing_service),
 ):
+    """Find ready samples for a rule version; requires `clinical_rules:test`.
+
+    \u000c
+
+    Args:
+        document_id: Rule-set version document identifier.
+        q: Sample search text; an empty string omits text filtering.
+        match_subpanel: Restrict to the rule scope's subpanel when True (default).
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 100; defaults to 20.
+        user: Authorized user whose assay and environment scopes limit results.
+        service: Rule testing service used to search ready samples.
+
+    Returns:
+        Serialized sample summaries and pagination metadata.
+
+    Raises:
+        AppError: If the version is absent (404) or its assay is outside the
+            user's assigned scope (403).
+
+    Notes:
+        Superusers have no user-specific assay or environment restrictions.
+    """
     return _serializable(
         service.search_samples(
             document_id=document_id,
@@ -125,6 +192,18 @@ def list_rule_set_versions(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """List versions of a rule set; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        rule_set_id: Logical rule-set identifier shared by its versions.
+        _user: User authorized by the view dependency.
+        service: Rule authoring service used to retrieve versions.
+
+    Returns:
+        An items envelope containing serialized version documents.
+    """
     return {"items": _serializable(service.versions(rule_set_id))}
 
 
@@ -134,6 +213,21 @@ def get_rule_set_version(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Read a rule-set version; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        document_id: Version document identifier, not the logical rule-set ID.
+        _user: User authorized by the view dependency.
+        service: Rule authoring service used to load the version.
+
+    Returns:
+        The serialized rule-set version document.
+
+    Raises:
+        AppError: If the version does not exist (404).
+    """
     return _serializable(service.get(document_id))
 
 
@@ -156,6 +250,21 @@ def list_rule_set_revisions(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """List a version's saved revisions; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        document_id: Rule-set version document identifier.
+        _user: User authorized by the view dependency.
+        service: Rule authoring service used to load revision history.
+
+    Returns:
+        An items envelope containing serialized revision records.
+
+    Raises:
+        AppError: If the version does not exist (404).
+    """
     return {"items": _serializable(service.revisions(document_id))}
 
 
@@ -169,6 +278,22 @@ def get_rule_set_revision(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Read a saved version revision; requires `clinical_rules:view`.
+
+    \u000c
+
+    Args:
+        document_id: Rule-set version document identifier.
+        revision: Revision number to retrieve from that version's history.
+        _user: User authorized by the view dependency.
+        service: Rule authoring service used to retrieve the revision.
+
+    Returns:
+        The serialized revision record.
+
+    Raises:
+        AppError: If the version or revision does not exist (404).
+    """
     return _serializable(service.revision(document_id, revision))
 
 
@@ -203,6 +328,23 @@ def update_rule_set_draft(
     user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Save draft changes; requires `clinical_rules:draft`.
+
+    \u000c
+
+    Args:
+        document_id: Draft version document identifier.
+        payload: Expected revision and changes; None-valued fields are omitted.
+        user: Authorized user recorded as the editor and audit actor.
+        service: Rule authoring service that validates and persists the changes.
+
+    Returns:
+        The serialized updated draft with its incremented revision.
+
+    Raises:
+        AppError: If the version is absent (404) or the draft update conflicts (409).
+        ValidationError: If the proposed document fails schema validation.
+    """
     return _serializable(service.update_draft(document_id, payload, actor=user.username))
 
 
@@ -213,6 +355,23 @@ def delete_rule_set_draft(
     user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Permanently delete an editable draft; requires `clinical_rules:draft`.
+
+    \u000c
+
+    Args:
+        document_id: Draft version document identifier.
+        revision: Expected current revision, at least 1.
+        user: Authorized user recorded as the deletion audit actor.
+        service: Rule authoring service that deletes and audits the draft.
+
+    Raises:
+        AppError: If the version is absent (404), is not a draft, or changed
+            before deletion (409).
+
+    Notes:
+        The endpoint returns HTTP 204 with no response body.
+    """
     service.delete_draft(document_id, expected_revision=revision, actor=user.username)
 
 
@@ -222,6 +381,21 @@ def validate_rule_set_draft(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Check a rule version for validation issues; requires `clinical_rules:draft`.
+
+    \u000c
+
+    Args:
+        document_id: Rule-set version document identifier to validate.
+        _user: User authorized by the draft dependency.
+        service: Rule authoring service running rule validation.
+
+    Returns:
+        Validation status and reported rule issues without a lifecycle transition.
+
+    Raises:
+        AppError: If the version does not exist (404).
+    """
     return service.validate(document_id)
 
 
@@ -232,6 +406,26 @@ def preview_rule_set_draft(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Evaluate a version against supplied facts; requires `clinical_rules:draft`.
+
+    \u000c
+
+    Args:
+        document_id: Rule-set version document identifier to evaluate.
+        payload: Facts validated as a prepared report context by the service.
+        _user: User authorized by the draft dependency.
+        service: Rule authoring service running the evaluation.
+
+    Returns:
+        Serialized evaluation using the version's declared reporting analyses.
+
+    Raises:
+        AppError: If the version does not exist (404).
+        ValidationError: If the facts do not form a valid prepared report context.
+
+    Notes:
+        The evaluation is not persisted as a report or rule-set update.
+    """
     return _serializable(service.preview(document_id, payload.facts))
 
 
@@ -242,6 +436,26 @@ def submit_rule_set_draft(
     user: ApiUser = Depends(require_access(permission="clinical_rules:submit")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Submit a valid draft for review; requires `clinical_rules:submit`.
+
+    \u000c
+
+    Args:
+        document_id: Draft version document identifier.
+        payload: Transition reason and assigned clinical reviewer.
+        user: Authorized submitter recorded in the lifecycle and audit history.
+        service: Rule authoring service handling validation and submission.
+
+    Returns:
+        The serialized submitted version.
+
+    Raises:
+        AppError: If the version is absent (404), validation fails (422), the
+            reviewer is missing (400), or assignment or state conflicts (409).
+
+    Notes:
+        The service records submission and notifies the assigned reviewer.
+    """
     return _serializable(service.submit(document_id, payload, actor=user.username))
 
 
@@ -252,6 +466,23 @@ def start_rule_set_clinical_review(
     user: ApiUser = Depends(require_access(permission="clinical_rules:clinical_review")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Start an assigned review; requires `clinical_rules:clinical_review`.
+
+    \u000c
+
+    Args:
+        document_id: Submitted version document identifier.
+        payload: Transition reason; the assignee field is not used here.
+        user: Authorized user who must be the assigned clinical reviewer.
+        service: Rule authoring service recording the review transition.
+
+    Returns:
+        The serialized version in clinical review.
+
+    Raises:
+        AppError: If the version is absent (404), another reviewer is assigned,
+            or the version is not submitted (409).
+    """
     return _serializable(service.start_review(document_id, payload, actor=user.username))
 
 
@@ -262,6 +493,26 @@ def decide_rule_set_clinical_review(
     user: ApiUser = Depends(require_access(permission="clinical_rules:clinical_review")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Record a clinical decision; requires `clinical_rules:clinical_review`.
+
+    \u000c
+
+    Args:
+        document_id: Version document identifier currently in clinical review.
+        payload: Approval decision, reason, and publisher for an approval.
+        user: Assigned reviewer, who cannot be the latest content editor.
+        service: Rule authoring service recording the decision and notifications.
+
+    Returns:
+        The serialized approved or rejected version.
+
+    Raises:
+        AppError: If the version is absent (404), an approval lacks a publisher
+            (400), or the actor, publisher eligibility, or state conflicts (409).
+
+    Notes:
+        Approval notifies the publisher; rejection notifies the draft creator.
+    """
     return _serializable(service.clinical_decision(document_id, payload, actor=user.username))
 
 
@@ -272,6 +523,27 @@ def publish_rule_set(
     user: ApiUser = Depends(require_access(permission="clinical_rules:publish")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Publish an approved rule version; requires `clinical_rules:publish`.
+
+    \u000c
+
+    Args:
+        document_id: Approved version document identifier.
+        payload: Publication reason; the assignee field is not used here.
+        user: Authorized user who must be the assigned publisher.
+        service: Rule authoring service validating and publishing the version.
+
+    Returns:
+        The serialized active, published version with its content hash.
+
+    Raises:
+        AppError: If the version is absent (404), validation fails (422), or
+            approval, editor independence, publisher, or state checks fail (409).
+
+    Notes:
+        The service audits publication and notifies the creator when different
+        from the publisher.
+    """
     return _serializable(service.publish(document_id, payload, actor=user.username))
 
 
@@ -282,4 +554,21 @@ def retire_rule_set(
     user: ApiUser = Depends(require_access(permission="clinical_rules:retire")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
+    """Retire a published rule version; requires `clinical_rules:retire`.
+
+    \u000c
+
+    Args:
+        document_id: Published version document identifier.
+        payload: Required retirement reason; the assignee field is not used here.
+        user: Authorized user recorded as the retiring actor.
+        service: Rule authoring service recording retirement and its audit event.
+
+    Returns:
+        The serialized retired version with active set to False.
+
+    Raises:
+        AppError: If the reason is empty (400) or the version cannot transition
+            from published to retired (409).
+    """
     return _serializable(service.retire(document_id, payload, actor=user.username))

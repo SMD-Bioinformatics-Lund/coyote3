@@ -22,6 +22,14 @@ class PublicAssayCatalogManagementService:
 
     @classmethod
     def from_store(cls, store: Any):
+        """Bind catalog governance to the store's catalog, source, and identity repositories.
+
+        Args:
+            store: Provider of catalog/version, assay, gene-list, user, and role repositories.
+
+        Returns:
+            Management service with preview and notification services still unassigned.
+        """
         return cls(
             store.public_assay_catalog_repository,
             assay_panel_repository=store.assay_panel_repository,
@@ -43,6 +51,17 @@ class PublicAssayCatalogManagementService:
         users: Any = None,
         roles: Any = None,
     ) -> None:
+        """Configure catalog persistence and sources for governance choices.
+
+        Args:
+            repository: Reads the published default catalog.
+            assay_panel_repository: Optional source of active assay choices.
+            assay_configuration_repository: Optional source of production configurations.
+            gene_list_repository: Optional source of active public, non-adhoc lists.
+            versions: Version/history repository required for governance operations.
+            users: Active-user repository required for assignee choices.
+            roles: Role/capability repository required for assignee choices.
+        """
         self.repository = repository
         self.versions, self.users, self.roles = versions, users, roles
         self.notification_service = None
@@ -52,12 +71,31 @@ class PublicAssayCatalogManagementService:
         self.gene_list_repository = gene_list_repository
 
     def get(self) -> dict[str, Any]:
+        """Read the published catalog or construct an unpersisted starter catalog.
+
+        Returns:
+            Validated catalog data with field aliases.
+
+        Raises:
+            ValidationError: The stored catalog violates its schema.
+        """
         document = self.repository.get_default()
         if document is None:
             return self._new_document().model_dump(by_alias=True)
         return PublicAssayCatalogDoc.model_validate(document).model_dump(by_alias=True)
 
     def export(self, *, modality: str | None = None) -> dict[str, Any]:
+        """Export the catalog or one modality in its importable envelope.
+
+        Args:
+            modality: Modality key, stripped and lowercased; None or empty exports all.
+
+        Returns:
+            Complete catalog or a typed modality-export payload.
+
+        Raises:
+            AppError: With status 404 when the requested modality is absent.
+        """
         document = PublicAssayCatalogDoc.model_validate(self.get())
         if not modality:
             return document.model_dump(by_alias=True)
@@ -137,6 +175,11 @@ class PublicAssayCatalogManagementService:
         }
 
     def workspace(self) -> dict[str, Any]:
+        """Assemble catalog content, governance history, source choices, and editor presets.
+
+        Returns:
+            Workspace payload including publication existence and eligible assignees.
+        """
         return {
             "catalog": self.get(),
             "has_published": self.repository.get_default() is not None,
@@ -161,6 +204,14 @@ class PublicAssayCatalogManagementService:
         }
 
     def eligible(self, permission: str) -> list[dict[str, str]]:
+        """Find active users with an active qualifying role or superuser role.
+
+        Args:
+            permission: Catalog capability required of non-superuser roles.
+
+        Returns:
+            Username and display-name choices, or no choices without matching roles.
+        """
         roles = [
             r["role_id"]
             for r in self.roles.get_all_roles_plus_permissions()
@@ -175,6 +226,17 @@ class PublicAssayCatalogManagementService:
         ]
 
     def document(self, oid: str) -> dict[str, Any]:
+        """Read one governed catalog version.
+
+        Args:
+            oid: Version document identifier.
+
+        Returns:
+            Stored version document.
+
+        Raises:
+            AppError: With status 404 when the version is absent.
+        """
         doc = self.versions.get(oid)
         if doc is None:
             raise api_error(404, "Catalog version not found")
@@ -196,6 +258,17 @@ class PublicAssayCatalogManagementService:
         )
 
     def revisions(self, oid: str) -> dict[str, Any]:
+        """Read revision snapshots after checking that the version exists.
+
+        Args:
+            oid: Catalog version identifier.
+
+        Returns:
+            Revision rows under items.
+
+        Raises:
+            AppError: With status 404 when the version is absent.
+        """
         self.document(oid)
         return {"items": self.versions.revisions(oid)}
 
@@ -208,6 +281,21 @@ class PublicAssayCatalogManagementService:
         per_page: int = 100,
         gene: str | None = None,
     ) -> dict[str, Any]:
+        """Build a gene-assay matrix from validated, unpersisted catalog content.
+
+        Args:
+            content: Proposed catalog document.
+            actor: Login stamped on the temporary normalized content.
+            page: Requested matrix page, defaulting to one.
+            per_page: Requested page size, defaulting to 100.
+            gene: Optional gene filter passed to the public catalog service.
+
+        Returns:
+            Public catalog service's matrix payload for this preview.
+
+        Raises:
+            AppError: With status 422 for invalid content or duplicate entry identifiers.
+        """
         document = self._content(content, actor=actor)
         return self.public_catalog_service.assay_catalog_matrix_payload(
             preview_document=document,
@@ -217,6 +305,18 @@ class PublicAssayCatalogManagementService:
         )
 
     def _content(self, raw: dict[str, Any], *, actor: str) -> dict[str, Any]:
+        """Copy and validate catalog content, assigning missing public entry identifiers.
+
+        Args:
+            raw: Proposed document; its _id is removed from the copy.
+            actor: Login recorded with the current UTC update timestamp.
+
+        Returns:
+            Collection-normalized content without mutating the input.
+
+        Raises:
+            AppError: With status 422 for invalid schema or duplicate catalog IDs.
+        """
         candidate = deepcopy(raw)
         candidate.pop("_id", None)
         try:
@@ -238,6 +338,18 @@ class PublicAssayCatalogManagementService:
             raise api_error(422, "Invalid catalog content", str(exc)) from exc
 
     def create(self, *, actor: str, imported: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Insert a draft based on the live catalog, starter content, or an import.
+
+        Args:
+            actor: Initial content editor and lifecycle actor.
+            imported: Full catalog or modality envelope; None copies live/starter content.
+
+        Returns:
+            Inserted draft at revision one, bound to the current publication version.
+
+        Raises:
+            AppError: With status 422 for invalid import/content or duplicate entry IDs.
+        """
         live = self.repository.get_default()
         content = deepcopy(live) if live else self._new_document().model_dump(by_alias=True)
         if imported is not None:
@@ -273,6 +385,19 @@ class PublicAssayCatalogManagementService:
         return self.versions.insert(doc.model_dump(by_alias=True, mode="python"))
 
     def _checked(self, oid: str, revision: int, status: str) -> dict[str, Any]:
+        """Require an existing version at the caller's expected revision and status.
+
+        Args:
+            oid: Version identifier.
+            revision: Expected revision number.
+            status: Required lifecycle state.
+
+        Returns:
+            Stored version when both expectations match.
+
+        Raises:
+            AppError: With status 404 for absence or 409 for stale revision/state.
+        """
         doc = self.document(oid)
         if doc["revision"] != revision or doc["status"] != status:
             raise api_error(409, "Catalog state changed. Reload this version before continuing.")
@@ -288,6 +413,23 @@ class PublicAssayCatalogManagementService:
         reason: str = "",
         publish: bool = False,
     ) -> dict[str, Any]:
+        """Validate and conditionally replace a version with a new lifecycle revision.
+
+        Args:
+            previous: Stored version used as the conditional replacement baseline.
+            changes: Fields merged over a deep copy of the baseline.
+            actor: Updater and lifecycle actor.
+            action: Lifecycle event name.
+            reason: Event explanation, defaulting to an empty string.
+            publish: Ask the repository to update the live catalog as well when True.
+
+        Returns:
+            Saved version with an incremented revision and UTC update timestamp.
+
+        Raises:
+            ValidationError: The candidate version violates its schema.
+            AppError: With status 409 when replacement/publication conflicts.
+        """
         now = datetime.now(timezone.utc)
         candidate = {
             **deepcopy(previous),
@@ -311,6 +453,21 @@ class PublicAssayCatalogManagementService:
     def update(
         self, oid: str, revision: int, content: dict[str, Any], *, actor: str
     ) -> dict[str, Any]:
+        """Save draft content while preserving catalog creation metadata and version.
+
+        Args:
+            oid: Draft identifier.
+            revision: Expected current revision.
+            content: Proposed complete catalog content.
+            actor: Editor added to the draft's content-editor set.
+
+        Returns:
+            Updated draft revision.
+
+        Raises:
+            AppError: With status 404 for absence, 409 for state/revision conflicts,
+                or 422 for invalid catalog content.
+        """
         previous = self._checked(oid, revision, "draft")
         content = self._content(content, actor=actor)
         for key in ("version", "created_by", "created_at"):
@@ -326,6 +483,19 @@ class PublicAssayCatalogManagementService:
         )
 
     def _assignee(self, username: str, permission: str, editors: list[str]) -> str:
+        """Require an eligible assignee independent of every listed editor.
+
+        Args:
+            username: Exact login to check; this method does not normalize it.
+            permission: Required catalog capability.
+            editors: Logins excluded from assignment.
+
+        Returns:
+            The accepted login unchanged.
+
+        Raises:
+            AppError: With status 409 for an editor or an ineligible user.
+        """
         if username in editors:
             raise api_error(
                 409, "Review and publication must be independent of every content editor"
@@ -337,6 +507,15 @@ class PublicAssayCatalogManagementService:
     def _notify(
         self, doc: dict[str, Any], recipient: str, actor: str, title: str, reason: str = ""
     ) -> None:
+        """Send a linked catalog notification when a notification service is assigned.
+
+        Args:
+            doc: Catalog version supplying its header and link identifier.
+            recipient: Recipient login.
+            actor: Notification creator login.
+            title: Notification heading and fallback body text.
+            reason: Body explanation; blank uses the title.
+        """
         if self.notification_service is not None:
             self.notification_service.create_notification(
                 audience="users",
@@ -356,6 +535,21 @@ class PublicAssayCatalogManagementService:
             )
 
     def submit(self, oid: str, revision: int, reviewer: str, *, actor: str) -> dict[str, Any]:
+        """Validate draft links and submit to an independent eligible reviewer.
+
+        Args:
+            oid: Draft identifier.
+            revision: Expected draft revision.
+            reviewer: Reviewer login, excluded if an editor or the submitting actor.
+            actor: Submitting login recorded in review provenance.
+
+        Returns:
+            Submitted revision after optional reviewer notification.
+
+        Raises:
+            AppError: With status 404 for absence, 409 for state/assignment conflicts,
+                or 422 for invalid catalog links or presentation fields.
+        """
         doc = self._checked(oid, revision, "draft")
         reviewer = self._assignee(reviewer, "catalog:review", doc["content_editors"] + [actor])
         self.validate_links(doc["catalog"])
@@ -373,6 +567,27 @@ class PublicAssayCatalogManagementService:
     def decide(
         self, oid: str, revision: int, *, actor: str, approve: bool, publisher: str, reason: str
     ) -> dict[str, Any]:
+        """Record the assigned reviewer's decision with optional outcome notifications.
+
+        Args:
+            oid: Submitted version identifier.
+            revision: Expected revision number.
+            actor: Assigned reviewer, required to remain eligible and independent.
+            approve: True approves; False rejects.
+            publisher: Eligible independent publisher required only for approval.
+            reason: Decision explanation; rejection requires nonblank text.
+
+        Returns:
+            Approved or rejected version revision.
+
+        Raises:
+            AppError: With status 404 for absence, 409 for state/eligibility conflicts,
+                403 for another reviewer, or 422 for a missing rejection reason.
+
+        Notes:
+            When a notification service is assigned, both outcomes notify the creator;
+            only approval also sends a publication request to the selected publisher.
+        """
         doc = self._checked(oid, revision, "submitted")
         self._assignee(actor, "catalog:review", doc["content_editors"])
         if doc["review"]["reviewer"] != actor:
@@ -409,6 +624,20 @@ class PublicAssayCatalogManagementService:
         return saved
 
     def publish(self, oid: str, revision: int, *, actor: str) -> dict[str, Any]:
+        """Recheck governance and source links before publishing an approved catalog.
+
+        Args:
+            oid: Approved version identifier.
+            revision: Expected revision number.
+            actor: Assigned publisher, required to remain eligible and independent.
+
+        Returns:
+            Published revision after optional creator notification.
+
+        Raises:
+            AppError: With status 404 for absence, 403 for another publisher,
+                409 for governance/concurrent publication conflicts, or 422 for bad links.
+        """
         doc = self._checked(oid, revision, "approved")
         self._assignee(actor, "catalog:publish", doc["content_editors"])
         if doc["review"]["publisher"] != actor:
@@ -430,6 +659,16 @@ class PublicAssayCatalogManagementService:
         return saved
 
     def validate_links(self, catalog: dict[str, Any]) -> None:
+        """Check catalog entries against currently available public source choices.
+
+        Args:
+            catalog: Catalog content containing modality categories and gene-list entries.
+
+        Raises:
+            AppError: With status 422 for empty sections/labels, inactive assays,
+                missing or mismatched production configurations, unavailable or duplicate
+                gene lists within an entry, or unsupported analysis badges.
+        """
         options = self.source_options()
         asps = {a["asp_id"] for a in options["asps"]}
         configs = {a["aspc_id"]: a for a in options["aspcs"]}
@@ -468,6 +707,11 @@ class PublicAssayCatalogManagementService:
 
     @staticmethod
     def _new_document() -> PublicAssayCatalogDoc:
+        """Construct an unpersisted catalog with the three starter modality headings.
+
+        Returns:
+            Catalog headed Assay Catalog with WGS, WTS, and gene-panel sections.
+        """
         return PublicAssayCatalogDoc(
             header="Assay Catalog",
             layout={"order": ["wgs", "wts", "genepanels"]},

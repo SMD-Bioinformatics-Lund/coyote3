@@ -124,6 +124,16 @@ class UserManagementService:
     def list_users_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
     ) -> dict[str, Any]:
+        """Search users and assemble the administration list response.
+
+        Args:
+            q: Repository search text; empty requests an unfiltered page.
+            page: Requested page number, defaulting to one.
+            per_page: Requested page size, defaulting to 30.
+
+        Returns:
+            Users with canonical roles, role colors, and pagination metadata.
+        """
         users, total = self.user_repository.search_users(q=q, page=page, per_page=per_page)
         users = [
             self._normalize_user_permissions(dict(item)) for item in users if isinstance(item, dict)
@@ -137,6 +147,15 @@ class UserManagementService:
         }
 
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
+        """Build a new-user form with available roles and assay access choices.
+
+        Args:
+            actor_username: Actor used to populate managed-form defaults.
+
+        Returns:
+            Form, role policies, and assay group map; user is the default role
+            when it is available.
+        """
         form = build_managed_form(self._spec, actor_username=actor_username)
         role_options = list(self.roles_repository.get_all_role_names() or [])
         form["fields"]["roles"]["options"] = role_options
@@ -152,6 +171,17 @@ class UserManagementService:
         }
 
     def context_payload(self, *, user_id: str) -> dict[str, Any]:
+        """Load an existing user and populate its administration form.
+
+        Args:
+            user_id: Identifier accepted by the user repository.
+
+        Returns:
+            User document, form defaults, role policies, and assay group map.
+
+        Raises:
+            AppError: With status 404 when the user is absent.
+        """
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -175,6 +205,16 @@ class UserManagementService:
 
     @staticmethod
     def _changed_user_fields(old_doc: dict[str, Any], new_doc: dict[str, Any]) -> list[str]:
+        """Compare fields used in account-change notifications.
+
+        Args:
+            old_doc: User state before the update.
+            new_doc: User state after the update; missing keys compare as None.
+
+        Returns:
+            Changed email, access, authentication, and password-policy field names
+            in the fixed tracked-field order.
+        """
         tracked_keys = [
             "email",
             "roles",
@@ -197,6 +237,24 @@ class UserManagementService:
         actor_username: str,
         actor_is_superuser: bool = False,
     ) -> dict[str, Any]:
+        """Validate and persist a managed user, issuing an invite for local login.
+
+        Args:
+            payload: Managed form_data including identity, roles, and auth providers.
+            actor_username: Creator recorded in document provenance and invitation.
+            actor_is_superuser: Whether the actor may assign the superuser role.
+
+        Returns:
+            Create-change payload with local invitation delivery metadata when applicable.
+
+        Raises:
+            AppError: With status 400 for invalid user data, 403 for unauthorized
+                superuser assignment, or 409 for an existing username or email.
+
+        Notes:
+            Persists the user before issuing the invitation. Missing API runtime
+            during invitation issuance is returned as a warning, not a rollback.
+        """
         form_data = dict(payload.get("form_data", {}) or {})
         form_data["roles"] = _normalize_role_ids(form_data.get("roles"))
         if not form_data["roles"]:
@@ -272,6 +330,24 @@ class UserManagementService:
         actor_username: str,
         actor_is_superuser: bool = False,
     ) -> dict[str, Any]:
+        """Replace managed account fields while preserving identity and password.
+
+        Args:
+            user_id: Existing user identifier.
+            payload: Managed form_data; password changes are rejected.
+            actor_username: Updater recorded in provenance and change notification.
+            actor_is_superuser: Whether superuser role membership may be changed.
+
+        Returns:
+            Update-change payload with change-email delivery metadata.
+
+        Raises:
+            AppError: With status 404 for an absent user, 400 for invalid data or
+                password edits, or 403 for unauthorized superuser role changes.
+
+        Notes:
+            Increments the document version and persists before sending notification.
+        """
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -427,6 +503,19 @@ class UserManagementService:
         return payload
 
     def delete_user(self, *, user_id: str, actor_is_superuser: bool = False) -> dict[str, Any]:
+        """Delete an account after system-managed and superuser protection checks.
+
+        Args:
+            user_id: Existing user identifier.
+            actor_is_superuser: Whether the actor may delete a superuser account.
+
+        Returns:
+            User delete-change payload.
+
+        Raises:
+            AppError: With status 404 for an absent user, 409 for a system-managed
+                account, or 403 for unauthorized superuser deletion.
+        """
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -440,6 +529,19 @@ class UserManagementService:
         return payload
 
     def toggle_user(self, *, user_id: str, actor_is_superuser: bool = False) -> dict[str, Any]:
+        """Invert account activation and send an account-status notification.
+
+        Args:
+            user_id: Existing user identifier.
+            actor_is_superuser: Whether the actor may change a superuser's status.
+
+        Returns:
+            Toggle-change payload with new activation state and email metadata.
+
+        Raises:
+            AppError: With status 404 for an absent user or 403 for an unauthorized
+                superuser account change.
+        """
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -463,7 +565,23 @@ class UserManagementService:
         return payload
 
     def username_exists(self, *, username: str) -> bool:
+        """Check whether a normalized login is already registered.
+
+        Args:
+            username: Login text normalized by the shared lower helper.
+
+        Returns:
+            Whether the user repository finds a matching login.
+        """
         return bool(self.user_repository.user_exists(username=lower(username)))
 
     def email_exists(self, *, email: str) -> bool:
+        """Check whether a normalized email is already registered.
+
+        Args:
+            email: Email text normalized by the shared lower helper.
+
+        Returns:
+            Whether the user repository finds a matching email.
+        """
         return bool(self.user_repository.user_exists(email=lower(email)))

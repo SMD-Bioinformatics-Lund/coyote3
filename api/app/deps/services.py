@@ -223,6 +223,15 @@ def get_api_session_repository() -> MongoApiSessionRepository:
     collection = store.identity_db[get_api_sessions_collection_name(runtime_app.config)]
 
     def _load_user(username: str):
+        """Load an active user's API identity for session resolution.
+
+        Args:
+            username: User document ID to retrieve from the shared user repository.
+
+        Returns:
+            An API user, or None if the document is absent or is_active is falsy.
+            A missing is_active flag is treated as active.
+        """
         user_doc = store.user_repository.user_with_id(username)
         if not user_doc or not user_doc.get("is_active", True):
             return None

@@ -10,6 +10,8 @@ FactKind = Literal["boolean", "integer", "number", "string", "string_list", "obj
 
 
 class ClinicalFactDefinition(BaseModel):
+    """Immutable fact metadata defining rule operators, scopes, and editor hints."""
+
     model_config = ConfigDict(frozen=True)
 
     path: str
@@ -35,6 +37,22 @@ def _fact(
     value_options: tuple[str, ...] = (),
     value_format: Literal["gene", "integer", "number", "text"] = "text",
 ) -> ClinicalFactDefinition:
+    """Construct an allowlisted fact definition for the rule editor.
+
+    Args:
+        path: Dotted lookup path in prepared facts.
+        label: Display name for the fact.
+        group: Editor grouping label.
+        kind: Fact value category.
+        operators: Permitted predicate operator names.
+        scopes: Evaluation modes in which the fact is available; defaults to all.
+        unit: Display unit, or None for unitless facts.
+        value_options: Suggested fixed values; empty allows no fixed suggestions.
+        value_format: Editor input format, defaulting to text.
+
+    Returns:
+        Frozen fact metadata.
+    """
     return ClinicalFactDefinition(
         path=path,
         label=label,
@@ -226,6 +244,18 @@ FACTS_BY_PATH = {definition.path: definition for definition in FACT_CATALOG}
 
 
 def validate_fact_path(path: str, *, scope: str | None = None) -> ClinicalFactDefinition:
+    """Require a registered fact path and, optionally, a supported evaluation scope.
+
+    Args:
+        path: Exact dotted path in the fact catalog.
+        scope: Evaluation mode to check; None or an empty string skips this check.
+
+    Returns:
+        The registered fact definition.
+
+    Raises:
+        ValueError: The path is unregistered or unavailable in the requested scope.
+    """
     definition = FACTS_BY_PATH.get(path)
     if definition is None:
         raise ValueError(
@@ -238,4 +268,9 @@ def validate_fact_path(path: str, *, scope: str | None = None) -> ClinicalFactDe
 
 
 def fact_catalog_payload() -> list[dict[str, object]]:
+    """Serialize the allowlisted facts for the rule editor.
+
+    Returns:
+        JSON-compatible fact definitions in catalog order.
+    """
     return [definition.model_dump(mode="json") for definition in FACT_CATALOG]

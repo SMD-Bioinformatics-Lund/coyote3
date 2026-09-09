@@ -13,6 +13,11 @@ class AnnoVepRepository(BaseRepository):
     """Store all VEP transcript consequences keyed by variant identity and VEP version."""
 
     def __init__(self, adapter):
+        """Bind the VEP transcript annotation vault collection.
+
+        Args:
+            adapter: Mongo adapter exposing ``anno_vep_collection``.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.anno_vep_collection)
 

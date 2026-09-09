@@ -19,7 +19,7 @@ from api.infra.mongo.repositories.base import BaseRepository
 # Class Definition
 # -------------------------------------------------------------------------
 class RNAClassificationRepository(BaseRepository):
-    """ """
+    """Read sample-scoped RNA classifications and delete sample-owned classification records."""
 
     def __init__(self, adapter):
         """

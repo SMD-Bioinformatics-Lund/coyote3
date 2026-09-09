@@ -48,6 +48,14 @@ def canonical_content(document: ClinicalRuleSetDoc) -> dict[str, Any]:
 
 
 def content_hash(document: ClinicalRuleSetDoc) -> str:
+    """Hash canonical clinical content with stable JSON key ordering.
+
+    Args:
+        document: Rule set whose canonical fields exclude lifecycle metadata.
+
+    Returns:
+        Hexadecimal SHA-256 digest of compact UTF-8 JSON.
+    """
     payload = json.dumps(
         canonical_content(document), sort_keys=True, separators=(",", ":"), ensure_ascii=False
     ).encode("utf-8")
@@ -61,6 +69,14 @@ def _validate_condition(
     depth: int,
     errors: list[str],
 ) -> None:
+    """Collect invalid fact, operator, scope, and nesting errors recursively.
+
+    Args:
+        condition: Condition subtree to inspect.
+        scope: Evaluation mode used for fact availability checks.
+        depth: Current nesting level; callers start root conditions at one.
+        errors: Mutable list to which validation messages are appended.
+    """
     if depth > MAX_CONDITION_DEPTH:
         errors.append(f"Condition nesting exceeds {MAX_CONDITION_DEPTH} levels")
         return
@@ -88,6 +104,15 @@ def _validate_condition(
 
 
 def validate_rule_set(document: ClinicalRuleSetDoc) -> ClinicalRuleValidationResult:
+    """Validate rule semantics and execute embedded cases when structure permits.
+
+    Args:
+        document: Parsed rule set with blocks, declarations, and optional test cases.
+
+    Returns:
+        Validity, errors, and warnings. Embedded cases compare ordered matched
+        rule IDs and exact section text; evaluation failures become errors.
+    """
     errors: list[str] = []
     warnings: list[str] = []
     if document.minimum_engine_version > ENGINE_VERSION:

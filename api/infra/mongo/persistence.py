@@ -17,6 +17,19 @@ def insert_many_transaction(collection, documents, *, ignore_duplicates=False, o
         document.setdefault("_id", ObjectId())
 
     def insert(session):
+        """Insert the current pending batch and run its completion callback.
+
+        Args:
+            session: Owning transaction session, also passed to ``on_insert``.
+
+        Returns:
+            Serialized IDs of pending documents, including an empty list when
+            there is nothing left to insert.
+
+        Notes:
+            The completion callback runs even for an empty batch; write and callback
+            failures propagate to the transaction runner.
+        """
         if pending:
             collection.insert_many(
                 [dict(document) for document in pending], ordered=True, session=session

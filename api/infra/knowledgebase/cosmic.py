@@ -29,11 +29,28 @@ _PRODUCT_COLLECTION_ATTRS = {
 
 
 def _chromosome_values(value: Any) -> list[str]:
+    """Build chromosome spellings with and without a lowercase chr prefix.
+
+    Args:
+        value: Chromosome label; leading ``chr`` or ``CHR`` is removed once.
+
+    Returns:
+        Deduplicated nonempty spellings. A falsey input produces only ``chr``.
+    """
     chromosome = str(value or "").removeprefix("chr").removeprefix("CHR")
     return list(dict.fromkeys(filter(None, (chromosome, f"chr{chromosome}"))))
 
 
 def _gene_symbols(values: Any) -> list[str]:
+    """Extract up to 50 unique uppercase symbols from a list.
+
+    Args:
+        values: List of symbols or dictionaries using gene, then name, for the symbol.
+
+    Returns:
+        Symbols in first-seen order, skipping falsey entries; non-list input returns
+        an empty list. Whitespace is not stripped.
+    """
     if not isinstance(values, list):
         return []
     symbols = []
@@ -45,6 +62,15 @@ def _gene_symbols(values: Any) -> list[str]:
 
 
 def _truthy(value: Any) -> bool:
+    """Interpret COSMIC boolean flags from numeric or textual values.
+
+    Args:
+        value: Boolean, number, or text to interpret.
+
+    Returns:
+        The boolean itself, whether a number is nonzero, or whether stripped,
+        lowercase text is one of 1, true, yes, or y.
+    """
     if isinstance(value, bool):
         return value
     if isinstance(value, int | float):
@@ -53,6 +79,15 @@ def _truthy(value: Any) -> bool:
 
 
 def _category_values(value: Any) -> list[str]:
+    """Split COSMIC category values on semicolons and pipes.
+
+    Args:
+        value: Scalar category text or a list, tuple, or set of values to split.
+
+    Returns:
+        Stripped nonempty category fragments without deduplication; falsey items
+        contribute no fragments.
+    """
     values = value if isinstance(value, list | tuple | set) else [value]
     categories: list[str] = []
     for item in values:
@@ -61,6 +96,17 @@ def _category_values(value: Any) -> list[str]:
 
 
 def _distribution(counter: Counter[str], *, limit: int | None = None) -> list[dict[str, Any]]:
+    """Format category counts with optional overflow aggregation.
+
+    Args:
+        counter: Category names and their counts.
+        limit: Number of leading categories to retain before an Other bucket;
+            ``None`` retains every category.
+
+    Returns:
+        Name/value rows sorted by descending count and case-insensitive name,
+        with overflow summed into Other and nonpositive rows omitted.
+    """
     rows = sorted(counter.items(), key=lambda item: (-item[1], item[0].lower()))
     if limit is not None and len(rows) > limit:
         visible = rows[:limit]
@@ -70,6 +116,15 @@ def _distribution(counter: Counter[str], *, limit: int | None = None) -> list[di
 
 
 def _role_label(value: Any) -> str:
+    """Expand recognized cancer-role abbreviations for display.
+
+    Args:
+        value: Role text, stripped before case-insensitive matching.
+
+    Returns:
+        Display label for tsg or oncogene, other stripped text unchanged, or
+        ``Not specified`` for blank or falsey input.
+    """
     role = str(value or "").strip()
     if not role:
         return "Not specified"
@@ -81,6 +136,12 @@ class CosmicRepository(BaseRepository):
     """Query COSMIC by indexed finding identity without exposing source sample data."""
 
     def __init__(self, adapter: Any) -> None:
+        """Bind genome-screen evidence and initialize product availability caching.
+
+        Args:
+            adapter: Mongo adapter exposing ``cosmic_collection`` and optional COSMIC
+                product collections and installed-release metadata.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.cosmic_collection)
         self._availability_cache: dict[str, tuple[float, bool]] = {}
@@ -99,9 +160,31 @@ class CosmicRepository(BaseRepository):
 
     @staticmethod
     def _rows(cursor: Any) -> list[dict[str, Any]]:
+        """Materialize query rows without their MongoDB document IDs.
+
+        Args:
+            cursor: Iterable of result dictionaries.
+
+        Returns:
+            Row copies retaining every field except ``_id``.
+        """
         return [{key: value for key, value in row.items() if key != "_id"} for row in cursor]
 
     def _availability(self, products: list[str]) -> dict[str, bool]:
+        """Check active release metadata and nonempty collections for known products.
+
+        Args:
+            products: Product keys from the repository's collection-attribute mapping.
+
+        Returns:
+            Availability by product; all are false when release metadata is unavailable.
+
+        Raises:
+            KeyError: If an uncached product has no collection-attribute mapping.
+
+        Notes:
+            Results are cached per repository for 30 seconds using monotonic time.
+        """
         versions = getattr(self.adapter, "knowledgebase_versions_collection", None)
         if versions is None:
             return {product: False for product in products}
@@ -132,6 +215,15 @@ class CosmicRepository(BaseRepository):
         return {product: self._availability_cache[product][1] for product in products}
 
     def _gene_census(self, genes: list[str]) -> list[dict[str, Any]]:
+        """Read a bounded Cancer Gene Census projection for exact gene symbols.
+
+        Args:
+            genes: Symbols matched against gene_symbol without further normalization.
+
+        Returns:
+            At most 25 gene context records without IDs, or an empty list for no
+            symbols or an unconfigured collection; no explicit sort is applied.
+        """
         collection = getattr(self.adapter, "cosmic_cgc_collection", None)
         if collection is None or not genes:
             return []
@@ -262,6 +354,15 @@ class CosmicRepository(BaseRepository):
         }
 
     def _hallmarks(self, genes: list[str]) -> list[dict[str, Any]]:
+        """Read bounded hallmark evidence for exact gene symbols.
+
+        Args:
+            genes: Symbols matched against gene_symbol without further normalization.
+
+        Returns:
+            At most 25 projected hallmark records without IDs, or an empty list for
+            no symbols or an unconfigured collection; no explicit sort is applied.
+        """
         collection = getattr(self.adapter, "cosmic_cgc_hallmarks_collection", None)
         if collection is None or not genes:
             return []
@@ -286,6 +387,16 @@ class CosmicRepository(BaseRepository):
         }
 
     def _actionability(self, genes: list[str]) -> list[dict[str, Any]]:
+        """Read bounded gene-level actionability context.
+
+        Args:
+            genes: Exact symbols; one symbol matches directly, while multiple symbols
+                require both of the first two to appear in a record's genes field.
+
+        Returns:
+            At most 25 projected records without IDs, or an empty list for no genes
+            or an unconfigured collection; no explicit sort is applied.
+        """
         collection = getattr(self.adapter, "cosmic_actionability_collection", None)
         if collection is None:
             return []
@@ -344,6 +455,15 @@ class CosmicRepository(BaseRepository):
         )
 
     def _resistance(self, mutation_ids: list[str]) -> list[dict[str, Any]]:
+        """Read bounded drug-resistance evidence for genomic mutation IDs.
+
+        Args:
+            mutation_ids: Exact COSMIC genomic_mutation_id values to match.
+
+        Returns:
+            At most 25 projected records without IDs, or an empty list for no IDs
+            or an unconfigured collection; no explicit sort is applied.
+        """
         collection = getattr(self.adapter, "cosmic_resistance_collection", None)
         if collection is None or not mutation_ids:
             return []
@@ -408,6 +528,14 @@ class CosmicRepository(BaseRepository):
         }
 
         def product_clauses(product):
+            """Keep coordinate clauses only for a product with a matching assembly.
+
+            Args:
+                product: Coordinate product key in the enclosing assembly-match map.
+
+            Returns:
+                All captured clauses for a matching assembly; otherwise only ID clauses.
+            """
             return (
                 clauses if matching[product] else [clause for clause in clauses if "id" in clause]
             )

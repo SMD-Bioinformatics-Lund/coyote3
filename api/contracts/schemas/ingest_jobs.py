@@ -9,6 +9,8 @@ from api.contracts.schemas.base import _StrictCollectionDocBase
 
 
 class IngestJobDoc(_StrictCollectionDocBase):
+    """Durable ingest job with source payload, lease, attempts, and completion result."""
+
     kind: Literal["sample_bundle", "insert_document", "insert_documents", "upsert_document"] = (
         "sample_bundle"
     )

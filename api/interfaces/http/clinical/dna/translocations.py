@@ -35,6 +35,23 @@ def _translocation_flag_change(
     flag: str,
     apply: bool,
 ):
+    """Check sample access, change a translocation flag, and describe the change.
+
+    Args:
+        sample_id: Sample identifier used for access validation and the response.
+        transloc_id: Translocation identifier passed to the mutation service.
+        user: User whose access to the sample is checked before mutation.
+        service: Structural-variant service that applies the flag change.
+        flag: Flag name forwarded unchanged to the service.
+        apply: True to mark the flag; False to unmark it.
+
+    Returns:
+        Serialized sample-change payload identifying the translocation and
+        mark/unmark action, with operation metadata when supplied by the service.
+
+    Raises:
+        AppError: If sample lookup or access validation fails before mutation.
+    """
     action = f"{'mark' if apply else 'unmark'}_{flag}"
     return resource_change(
         sample_id,

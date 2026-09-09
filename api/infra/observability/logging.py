@@ -52,6 +52,15 @@ class JsonFormatter(logging.Formatter):
     _standard_fields = set(logging.makeLogRecord({}).__dict__) | {"message", "asctime"}
 
     def format(self, record: logging.LogRecord) -> str:
+        """Serialize a record with request context and nonprivate extra fields.
+
+        Args:
+            record: Log event to format, including optional exception information.
+
+        Returns:
+            JSON object text with a UTC timestamp. Values unsupported by JSON are
+            stringified; extra fields cannot overwrite standard payload fields.
+        """
         context = current_request_context()
         payload: dict[str, Any] = {
             "timestamp": datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
@@ -81,10 +90,23 @@ class ServiceFilter(logging.Filter):
     """Attach a service name to every record passing through a handler."""
 
     def __init__(self, service_name: str) -> None:
+        """Set the service label attached to subsequent log records.
+
+        Args:
+            service_name: Label identifying the emitting runtime service.
+        """
         super().__init__()
         self.service_name = service_name
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Attach the configured service label without rejecting the record.
+
+        Args:
+            record: Log event whose ``service`` attribute is overwritten.
+
+        Returns:
+            Always ``True`` so the handler retains the event.
+        """
         record.service = self.service_name
         return True
 

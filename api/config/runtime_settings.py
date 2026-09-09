@@ -276,14 +276,7 @@ class DefaultConfig(
 
 
 class ProductionConfig(DefaultConfig):
-    """
-    Production configuration.
-
-    This class defines the configuration settings for the production
-    environment of the Coyote3 application. It inherits from the
-    `DefaultConfig` class and overrides specific attributes to suit
-    the production setup.
-    """
+    """Production runtime settings with required-secret validation at startup."""
 
     LOGS = "logs/prod"
     PRODUCTION = True
@@ -304,14 +297,7 @@ class ProductionConfig(DefaultConfig):
 
 
 class DevelopmentConfig(DefaultConfig):
-    """
-    Development configuration.
-
-    This class defines the configuration settings for the development
-    environment of the Coyote3 application. It inherits from the
-    `DefaultConfig` class and overrides specific attributes to suit
-    the development setup.
-    """
+    """Development database defaults, debug mode and branch-aware version label."""
 
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_dev").strip()
     IDENTITY_DB = os.getenv("IDENTITY_DB", "coyote3_identity").strip()
@@ -330,13 +316,7 @@ class DevelopmentConfig(DefaultConfig):
 
 
 class TestConfig(DefaultConfig):
-    """
-    Placeholder for future test code.
-
-    This docstring indicates that this section or class is reserved
-    for implementing test-related configurations or functionality
-    in the future.
-    """
+    """Test database defaults and runtime flags for isolated test execution."""
 
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_test").strip()
     IDENTITY_DB = os.getenv("IDENTITY_DB", "coyote3_identity_test").strip()

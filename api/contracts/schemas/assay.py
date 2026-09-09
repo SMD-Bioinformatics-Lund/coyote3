@@ -45,6 +45,8 @@ class AssayPanelToAssayGroupMappingDoc(_DocBase):
 
 
 class AspcReportingDoc(_StrictDocBase):
+    """Report sections, governed rule-set reference, text, and output locations."""
+
     # Reporting
     report_sections: list[str] = Field(default_factory=list)
     clinical_rule_set_id: str
@@ -56,6 +58,18 @@ class AspcReportingDoc(_StrictDocBase):
 
     @model_validator(mode="after")
     def _validate_paths(self) -> AspcReportingDoc:
+        """Require report text, output locations, and a clinical rule-set reference.
+
+        Returns:
+            This reporting configuration unchanged.
+
+        Raises:
+            ValueError: If plots_path, report_folder, report_header, report_method,
+                report_description, or clinical_rule_set_id is empty.
+
+        Notes:
+            Paths are checked for presence, not filesystem existence.
+        """
         # Basic sanity checks (not OS-dependent strict validation)
         if not self.plots_path:
             raise ValueError("plots_path cannot be empty")
@@ -80,6 +94,17 @@ class AspcReportingDoc(_StrictDocBase):
     @field_validator("report_sections", mode="before")
     @classmethod
     def _normalize_report_sections(cls, value: Any) -> list[str]:
+        """Normalize selected analyses and remove blanks and duplicates.
+
+        Args:
+            value: Analysis name or list of names; None produces an empty list.
+
+        Returns:
+            Canonical uppercase analysis names in first-occurrence order.
+
+        Raises:
+            ValueError: If a nonblank name is not an allowed analysis type.
+        """
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
@@ -106,6 +131,8 @@ class AspcCatalogDoc(_StrictDocBase):
 
 
 class AspConfigDoc(_StrictCollectionDocBase):
+    """Versioned assay configuration binding scope, filter profiles, and reporting."""
+
     aspc_id: str
     asp_id: str
     subpanel_id: str = SUBPANEL_BASE_ID
@@ -140,31 +167,97 @@ class AspConfigDoc(_StrictCollectionDocBase):
     @field_validator("environment", mode="before")
     @classmethod
     def _normalize_environment(cls, value: Any) -> str:
+        """Validate an environment against the configured vocabulary.
+
+        Args:
+            value: Input choice before whitespace and case normalization.
+
+        Returns:
+            The stripped, lowercase configured choice.
+
+        Raises:
+            ValueError: If the choice is blank or unsupported.
+        """
         return normalize_environment(value)
 
     @field_validator("asp_category", mode="before")
     @classmethod
     def _normalize_asp_category(cls, value: Any) -> str:
+        """Validate an assay category against the configured vocabulary.
+
+        Args:
+            value: Input choice before whitespace and case normalization.
+
+        Returns:
+            The stripped, lowercase configured choice.
+
+        Raises:
+            ValueError: If the choice is blank or unsupported.
+        """
         return normalize_asp_category(value)
 
     @field_validator("platform", mode="before")
     @classmethod
     def _normalize_platform(cls, value: Any) -> str | None:
+        """Canonicalize an optional sequencing platform.
+
+        Args:
+            value: Platform name; null or blank input means unspecified.
+
+        Returns:
+            The lowercase configured platform, or None for blank input.
+
+        Raises:
+            ValueError: If a nonblank platform is unsupported.
+        """
         return normalize_platform(value)
 
     @field_validator("aspc_id")
     @classmethod
     def _validate_aspc_id(cls, value: str) -> str:
+        """Canonicalize the configuration identifier.
+
+        Args:
+            value: Required identifier, allowing letters, digits, hyphens, and underscores.
+
+        Returns:
+            The stripped, lowercase identifier.
+
+        Raises:
+            ValueError: If the identifier is empty or contains unsupported characters.
+        """
         return normalize_clinical_identifier(value, label="aspc_id")
 
     @field_validator("asp_id", mode="before")
     @classmethod
     def _validate_asp_id(cls, value: Any) -> str:
+        """Canonicalize the assay identifier.
+
+        Args:
+            value: Required identifier, allowing letters, digits, hyphens, and underscores.
+
+        Returns:
+            The stripped, lowercase identifier.
+
+        Raises:
+            ValueError: If the identifier is empty or contains unsupported characters.
+        """
         return normalize_clinical_identifier(value, label="asp_id")
 
     @field_validator("subpanel_id", mode="before")
     @classmethod
     def _validate_subpanel_id(cls, value: Any) -> str:
+        """Canonicalize a subpanel identifier, defaulting blank input to the base panel.
+
+        Args:
+            value: Subpanel identifier; null and blank values select the base panel.
+
+        Returns:
+            The canonical identifier or SUBPANEL_BASE_ID.
+
+        Raises:
+            ValueError: If a nonblank identifier contains unsupported characters.
+        """
         raw = str(value or "").strip()
         if not raw:
             return SUBPANEL_BASE_ID
@@ -173,10 +266,29 @@ class AspConfigDoc(_StrictCollectionDocBase):
     @field_validator("asp_group", mode="before")
     @classmethod
     def _normalize_asp_group(cls, value: Any) -> str:
+        """Validate an assay group against the configured vocabulary.
+
+        Args:
+            value: Input choice before whitespace and case normalization.
+
+        Returns:
+            The stripped, lowercase configured choice.
+
+        Raises:
+            ValueError: If the choice is blank or unsupported.
+        """
         return normalize_asp_group(value)
 
     @model_validator(mode="after")
     def _validate_filter_contract(self) -> "AspConfigDoc":
+        """Check that filter profile type agrees with the assay's omics category.
+
+        Returns:
+            This assay configuration unchanged.
+
+        Raises:
+            ValueError: If DNA has RNA filters or RNA has DNA filters.
+        """
         if self.asp_category == "dna" and not isinstance(self.filters, DnaFilterProfilesDoc):
             raise ValueError("filters must be DnaFilterProfilesDoc when asp_category='dna'")
 
@@ -188,6 +300,17 @@ class AspConfigDoc(_StrictCollectionDocBase):
     @field_validator("analysis_types", mode="before")
     @classmethod
     def _normalize_analysis_types(cls, value: Any) -> list[str]:
+        """Normalize selected analyses and remove blanks and duplicates.
+
+        Args:
+            value: Analysis name or list of names; None produces an empty list.
+
+        Returns:
+            Canonical uppercase analysis names in first-occurrence order.
+
+        Raises:
+            ValueError: If a nonblank name is not an allowed analysis type.
+        """
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
@@ -197,6 +320,14 @@ class AspConfigDoc(_StrictCollectionDocBase):
     @field_validator("analysis_intents", mode="before")
     @classmethod
     def _normalize_analysis_intents(cls, value: Any) -> list[str]:
+        """Strip, lowercase, and deduplicate intent names before intent validation.
+
+        Args:
+            value: Intent name or list; empty selections default to somatic.
+
+        Returns:
+            Nonblank intents in first-occurrence order, or a single somatic intent.
+        """
         values = value if isinstance(value, list) else [value]
         return list(
             dict.fromkeys(
@@ -206,6 +337,19 @@ class AspConfigDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _validate_analysis_and_reporting_options(self) -> "AspConfigDoc":
+        """Check enabled analyses, reporting sections, intents, and required filters.
+
+        Returns:
+            This configuration with canonical analysis intents.
+
+        Raises:
+            ValueError: If analyses or report sections are empty or invalid for the
+                category, report sections are not enabled, intents or filters are
+                unsupported, or an enabled analysis lacks its required filter section.
+
+        Notes:
+            Germline requires SNV analysis and a germline SNV filter profile.
+        """
         allowed_analysis = (
             set(DNA_ANALYSIS_TYPE_OPTIONS)
             if self.asp_category == "dna"
@@ -279,6 +423,18 @@ class AspIgvDoc(_StrictDocBase):
     @field_validator("base_folder", "bam_subfolder", "design_bed")
     @classmethod
     def _validate_relative_path(cls, value: str) -> str:
+        """Reject absolute, traversing, URL-like, or unsafe IGV resource paths.
+
+        Args:
+            value: Slash-separated relative path; blank optional paths are allowed.
+
+        Returns:
+            The stripped relative path.
+
+        Raises:
+            ValueError: If the path has an absolute prefix, empty/dot segments,
+                prohibited punctuation, or ASCII control characters.
+        """
         value = value.strip()
         if value and (
             value.startswith("/")
@@ -291,12 +447,22 @@ class AspIgvDoc(_StrictDocBase):
 
     @model_validator(mode="after")
     def _require_base_folder(self) -> "AspIgvDoc":
+        """Require a nonblank base folder after path normalization.
+
+        Returns:
+            This IGV configuration unchanged.
+
+        Raises:
+            ValueError: If base_folder is empty.
+        """
         if not self.base_folder:
             raise ValueError("base_folder is required when IGV settings are provided")
         return self
 
 
 class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
+    """Assay definition with gene coverage, file requirements, and sequencing metadata."""
+
     asp_id: str
     asp_group: str
     asp_family: str
@@ -333,36 +499,110 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     @field_validator("asp_id", mode="before")
     @classmethod
     def _validate_asp_id(cls, value: Any) -> str:
+        """Canonicalize the assay identifier.
+
+        Args:
+            value: Required identifier, allowing letters, digits, hyphens, and underscores.
+
+        Returns:
+            The stripped, lowercase identifier.
+
+        Raises:
+            ValueError: If the identifier is empty or contains unsupported characters.
+        """
         return normalize_clinical_identifier(value, label="asp_id")
 
     @field_validator("asp_category", mode="before")
     @classmethod
     def _normalize_asp_category(cls, value: Any) -> str:
+        """Validate an assay category against the configured vocabulary.
+
+        Args:
+            value: Input choice before whitespace and case normalization.
+
+        Returns:
+            The stripped, lowercase configured choice.
+
+        Raises:
+            ValueError: If the choice is blank or unsupported.
+        """
         return normalize_asp_category(value)
 
     @field_validator("asp_family", mode="before")
     @classmethod
     def _normalize_asp_family(cls, value: Any) -> str:
+        """Validate an assay family against the configured vocabulary.
+
+        Args:
+            value: Input choice before whitespace and case normalization.
+
+        Returns:
+            The stripped, lowercase configured choice.
+
+        Raises:
+            ValueError: If the choice is blank or unsupported.
+        """
         return normalize_asp_family(value)
 
     @field_validator("asp_group", mode="before")
     @classmethod
     def _normalize_asp_group(cls, value: Any) -> str:
+        """Validate an assay group against the configured vocabulary.
+
+        Args:
+            value: Input choice before whitespace and case normalization.
+
+        Returns:
+            The stripped, lowercase configured choice.
+
+        Raises:
+            ValueError: If the choice is blank or unsupported.
+        """
         return normalize_asp_group(value)
 
     @field_validator("platform", mode="before")
     @classmethod
     def _normalize_platform(cls, value: Any) -> str | None:
+        """Canonicalize an optional sequencing platform.
+
+        Args:
+            value: Platform name; null or blank input means unspecified.
+
+        Returns:
+            The lowercase configured platform, or None for blank input.
+
+        Raises:
+            ValueError: If a nonblank platform is unsupported.
+        """
         return normalize_platform(value)
 
     @field_validator("read_mode", mode="before")
     @classmethod
     def _normalize_read_mode(cls, value: Any) -> str | None:
+        """Canonicalize an optional sequencing read mode.
+
+        Args:
+            value: Read mode; null or blank input means unspecified.
+
+        Returns:
+            The uppercase configured read mode, or None for blank input.
+
+        Raises:
+            ValueError: If a nonblank read mode is unsupported.
+        """
         return normalize_read_mode(value)
 
     @field_validator("expected_files", mode="before")
     @classmethod
     def _normalize_expected_files(cls, value: Any) -> list[str]:
+        """Strip, lowercase, and deduplicate ingest file keys.
+
+        Args:
+            value: File key or list of keys; None produces an empty list.
+
+        Returns:
+            Nonblank keys in first-occurrence order, without validating availability.
+        """
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
@@ -376,6 +616,14 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     @field_validator("required_files", mode="before")
     @classmethod
     def _normalize_required_files(cls, value: Any) -> list[str]:
+        """Strip, lowercase, and deduplicate ingest file keys.
+
+        Args:
+            value: File key or list of keys; None produces an empty list.
+
+        Returns:
+            Nonblank keys in first-occurrence order, without validating availability.
+        """
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
@@ -388,6 +636,15 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _validate_expected_files(self) -> "AssaySpecificPanelsDoc":
+        """Apply default expected files and check required-file membership.
+
+        Returns:
+            This assay with default expected files when none were supplied.
+
+        Raises:
+            ValueError: If a file key is unsupported for the category or a required
+                key is absent from expected_files.
+        """
         allowed = (
             set(DNA_EXPECTED_FILE_OPTIONS)
             if self.asp_category == "dna"
@@ -419,6 +676,15 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _derive_platform_capabilities(self) -> "AssaySpecificPanelsDoc":
+        """Validate read mode and derive read technology from the platform.
+
+        Returns:
+            This assay with read_technology set from the platform vocabulary.
+
+        Raises:
+            ValueError: If read mode is incompatible or a supplied read technology
+                differs from the platform-derived value.
+        """
         validate_platform_read_mode(self.platform, self.read_mode)
         derived = derived_read_technology(self.platform)
         if self.read_technology and self.read_technology != derived:
@@ -431,11 +697,13 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     @property
     @computed_field
     def covered_genes_count(self) -> int:
+        """Return the number of covered-gene entries, including duplicates."""
         return len(self.covered_genes)
 
     @property
     @computed_field
     def germline_genes_count(self) -> int:
+        """Return the number of germline-gene entries, including duplicates."""
         return len(self.germline_genes)
 
 
@@ -468,11 +736,33 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @field_validator("isgl_id", mode="before")
     @classmethod
     def _validate_isgl_id(cls, value: Any) -> str:
+        """Canonicalize the gene-list identifier.
+
+        Args:
+            value: Required identifier, allowing letters, digits, hyphens, and underscores.
+
+        Returns:
+            The stripped, lowercase identifier.
+
+        Raises:
+            ValueError: If the identifier is empty or contains unsupported characters.
+        """
         return normalize_clinical_identifier(value, label="isgl_id")
 
     @field_validator("diagnosis", mode="before")
     @classmethod
     def _normalize_diagnosis(cls, value: Any) -> list[str]:
+        """Parse diagnosis/subpanel identifiers separated by commas or newlines.
+
+        Args:
+            value: Delimited string or iterable of strings; falsey input gives no IDs.
+
+        Returns:
+            Canonical identifiers in first-occurrence order with duplicates removed.
+
+        Raises:
+            ValueError: If a nonblank identifier contains unsupported characters.
+        """
         if isinstance(value, str):
             value = value.replace(",", "\n").splitlines()
         if not value:
@@ -494,6 +784,17 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @field_validator("list_type", mode="before")
     @classmethod
     def _normalize_list_type(cls, value: Any) -> list[str]:
+        """Canonicalize the finding types supported by a gene list.
+
+        Args:
+            value: Type name or list; None selects all configured gene-list types.
+
+        Returns:
+            Nonblank canonical types in first-occurrence order, without duplicates.
+
+        Raises:
+            ValueError: If a nonblank type is unsupported.
+        """
         if value is None:
             return list(GENELIST_TYPE_OPTIONS)
         values = value if isinstance(value, list) else [value]
@@ -502,6 +803,14 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _validate_adhoc_list_types(self) -> "InsilicoGenelistsDoc":
+        """Check finding types against the ad hoc or standard gene-list vocabulary.
+
+        Returns:
+            This gene list unchanged.
+
+        Raises:
+            ValueError: If a type is disallowed for the list's adhoc setting.
+        """
         allowed = GENELIST_ADHOC_TYPE_OPTIONS if self.adhoc else GENELIST_STANDARD_TYPE_OPTIONS
         invalid = [value for value in self.list_type if value not in allowed]
         if invalid:
@@ -514,6 +823,17 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @field_validator("asp_ids")
     @classmethod
     def _validate_asp_ids(cls, value: list[str]) -> list[str]:
+        """Require at least one assay identifier and canonicalize each entry.
+
+        Args:
+            value: Assay identifiers associated with the gene list.
+
+        Returns:
+            Canonical identifiers in input order, retaining duplicates.
+
+        Raises:
+            ValueError: If the list is empty or an identifier is invalid.
+        """
         if not value:
             raise ValueError("asp_ids must include at least one ASP identifier")
         return [normalize_clinical_identifier(item, label="asp_ids") for item in value]
@@ -521,6 +841,17 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @field_validator("asp_groups")
     @classmethod
     def _validate_asp_groups(cls, value: list[str]) -> list[str]:
+        """Require and canonicalize the gene list's assay groups.
+
+        Args:
+            value: Assay groups associated with the gene list.
+
+        Returns:
+            Canonical configured groups in first-occurrence order.
+
+        Raises:
+            ValueError: If the list is empty or a group is unsupported.
+        """
         if not value:
             raise ValueError("asp_groups must include at least one ASP group")
         normalized: list[str] = []
@@ -535,15 +866,19 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @computed_field
     @property
     def gene_count(self) -> int:
+        """Return the number of gene entries, including duplicates."""
         return len(self.genes)
 
     @computed_field
     @property
     def germline_gene_count(self) -> int:
+        """Return the number of germline-gene entries, including duplicates."""
         return len(self.germline_genes)
 
 
 class BlacklistDoc(_StrictCollectionDocBase):
+    """Blacklisted position with optional assay group and normal-sample frequency."""
+
     pos: str
     assay_group: str | None = None
     in_normal_perc: float | None = None

@@ -35,6 +35,8 @@ SAMPLE_SOURCE_PATH_KEYS: tuple[str, ...] = ALL_SAMPLE_FILE_KEYS
 
 
 class SampleCaseControlDoc(_DocBase):
+    """Alignment paths and sequencing metadata for one case or control."""
+
     bam: str = ""
     bai: str = ""
     id: str | None = None
@@ -48,12 +50,22 @@ class SampleCaseControlDoc(_DocBase):
     @field_validator("bam", "bai", mode="before")
     @classmethod
     def _normalize_alignment_paths(cls, value: Any) -> Any:
+        """Normalize optional BAM and index path text.
+
+        Args:
+            value: Alignment path; None means no path.
+
+        Returns:
+            An empty string for None, stripped text for strings, or other input unchanged.
+        """
         if value is None:
             return ""
         return value.strip() if isinstance(value, str) else value
 
 
 class SampleFileDoc(_StrictDocBase):
+    """Registered sample file path with optional checksum, byte size, and timestamp."""
+
     path: str
     checksum: str | None = None
     size_bytes: int | None = None
@@ -62,6 +74,15 @@ class SampleFileDoc(_StrictDocBase):
     @field_validator("path", "checksum", mode="before")
     @classmethod
     def _strip_optional_strings(cls, value: Any) -> Any:
+        """Convert file path or checksum input to stripped text.
+
+        Args:
+            value: Path or checksum value; null and whitespace-only input mean missing.
+
+        Returns:
+            Stripped text, or None for missing input. Required-field validation
+            subsequently rejects a missing path.
+        """
         if value is None:
             return None
         value = str(value).strip()
@@ -69,6 +90,8 @@ class SampleFileDoc(_StrictDocBase):
 
 
 class SampleCommentRecordDoc(_DocBase):
+    """Sample-level comment with authorship and hiding metadata."""
+
     sample_oid: Any
     sample_name: str | None = None
     author: str
@@ -80,6 +103,8 @@ class SampleCommentRecordDoc(_DocBase):
 
 
 class FindingCommentRecordDoc(_DocBase):
+    """Finding-level comment with retained display identity and hiding metadata."""
+
     sample_oid: Any
     sample_name: str | None = None
     finding_oid: Any
@@ -104,6 +129,17 @@ class FindingCommentRecordDoc(_DocBase):
     @field_validator("author", mode="before")
     @classmethod
     def _normalize_author(cls, value: Any) -> str:
+        """Require a nonblank author after converting the input to text.
+
+        Args:
+            value: Author identifier; falsey input is treated as empty.
+
+        Returns:
+            The stripped author text.
+
+        Raises:
+            ValueError: If the author text is blank.
+        """
         normalized = str(value or "").strip()
         if not normalized:
             raise ValueError("author must be a non-empty string")
@@ -112,12 +148,25 @@ class FindingCommentRecordDoc(_DocBase):
     @field_validator("text", mode="before")
     @classmethod
     def _validate_text(cls, value: Any) -> str:
+        """Require comment text while preserving the author's whitespace.
+
+        Args:
+            value: Nonblank string containing the comment.
+
+        Returns:
+            The original string, without trimming.
+
+        Raises:
+            ValueError: If input is not a string or contains only whitespace.
+        """
         if not isinstance(value, str) or not value.strip():
             raise ValueError("text must be a non-empty string")
         return value
 
 
 class SampleReportRecordDoc(_DocBase):
+    """Saved report reference with sample scope and filter/configuration snapshots."""
+
     sample_oid: Any
     sample_name: str | None = None
     asp_id: str | None = None
@@ -147,6 +196,17 @@ class SampleAspcResolutionDoc(_StrictDocBase):
     @field_validator("requested_subpanel_id", "resolved_subpanel_id", mode="before")
     @classmethod
     def _normalize_scope_identifier(cls, value: Any) -> str:
+        """Canonicalize a requested or resolved subpanel identifier.
+
+        Args:
+            value: Required subpanel identifier.
+
+        Returns:
+            Stripped lowercase identifier with hyphens and underscores preserved.
+
+        Raises:
+            ValueError: If blank or containing unsupported characters.
+        """
         return normalize_clinical_identifier(value, label="subpanel_id")
 
 
@@ -160,6 +220,8 @@ SampleRnaFiltersDoc = RnaFilterProfilesDoc
 
 
 class SamplesDoc(_DocBase):
+    """Sample ingest contract linking clinical scope, files, filters, and case/control metadata."""
+
     name: str
     asp_id: str
     subpanel_id: str | None = None
@@ -230,6 +292,14 @@ class SamplesDoc(_DocBase):
     @field_validator("sequencing_scope", "omics_layer", mode="before")
     @classmethod
     def _normalize_lowercase(cls, value: Any) -> Any:
+        """Trim and lowercase sequencing scope or omics-layer strings.
+
+        Args:
+            value: Raw scope or layer input.
+
+        Returns:
+            Stripped lowercase text for strings, otherwise the input unchanged.
+        """
         if isinstance(value, str):
             return value.strip().lower()
         return value
@@ -237,6 +307,14 @@ class SamplesDoc(_DocBase):
     @field_validator("sex", mode="before")
     @classmethod
     def _normalize_sex(cls, value: Any) -> str | None:
+        """Normalize an optional sex label before literal-choice validation.
+
+        Args:
+            value: Label value; null or blank input means unspecified.
+
+        Returns:
+            Stripped lowercase text, or None for unspecified input.
+        """
         if value is None:
             return None
         normalized = str(value).strip().lower()
@@ -245,6 +323,17 @@ class SamplesDoc(_DocBase):
     @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod
     def _normalize_assay_identifiers(cls, value: Any) -> Any:
+        """Canonicalize nonnull assay and subpanel identifiers.
+
+        Args:
+            value: Clinical scope identifier, or None.
+
+        Returns:
+            Stripped lowercase identifier, or None for later field validation.
+
+        Raises:
+            ValueError: If a nonnull identifier is blank or contains unsupported characters.
+        """
         if value is None:
             return None
         return normalize_clinical_identifier(value, label="clinical scope identifier")
@@ -252,6 +341,17 @@ class SamplesDoc(_DocBase):
     @field_validator("environment", mode="before")
     @classmethod
     def _normalize_profile(cls, value: Any) -> Any:
+        """Validate a nonnull environment against the configured vocabulary.
+
+        Args:
+            value: Environment label, or None for later required-field validation.
+
+        Returns:
+            Canonical lowercase environment, or None.
+
+        Raises:
+            ValueError: If a nonnull environment is blank or unsupported.
+        """
         if value is None:
             return None
         return normalize_environment(value, label="environment")
@@ -259,26 +359,80 @@ class SamplesDoc(_DocBase):
     @field_validator("sequencing_scope", mode="before")
     @classmethod
     def _normalize_sequencing_scope(cls, value: Any) -> str:
+        """Validate the sample's sequencing scope.
+
+        Args:
+            value: Scope label before whitespace and case normalization.
+
+        Returns:
+            The canonical configured scope.
+
+        Raises:
+            ValueError: If the scope is blank or unsupported.
+        """
         return normalize_sequencing_scope(value)
 
     @field_validator("platform", mode="before")
     @classmethod
     def _normalize_platform(cls, value: Any) -> str | None:
+        """Canonicalize an optional sequencing platform.
+
+        Args:
+            value: Platform name; null and blank input mean unspecified.
+
+        Returns:
+            Canonical lowercase platform, or None for unspecified input.
+
+        Raises:
+            ValueError: If a nonblank platform is unsupported.
+        """
         return normalize_platform(value)
 
     @field_validator("read_mode", mode="before")
     @classmethod
     def _normalize_read_mode(cls, value: Any) -> str | None:
+        """Canonicalize an optional sequencing read mode.
+
+        Args:
+            value: Read mode; null and blank input mean unspecified.
+
+        Returns:
+            Canonical uppercase read mode, or None for unspecified input.
+
+        Raises:
+            ValueError: If a nonblank mode is unsupported.
+        """
         return normalize_read_mode(value)
 
     @field_validator("database_versions", mode="before")
     @classmethod
     def _normalize_database_versions(cls, value: Any) -> dict[str, str]:
+        """Validate database-version keys and remove missing-version markers.
+
+        Args:
+            value: Mapping of canonical database keys to versions; None gives an empty mapping.
+
+        Returns:
+            Stripped version strings with missing markers omitted and leading v/V
+            characters removed from VEP versions.
+
+        Raises:
+            ValueError: If input is not a mapping or contains an unsupported database key.
+        """
         return normalize_database_versions(value)
 
     @field_validator("pipeline_version", mode="before")
     @classmethod
     def _normalize_pipeline_version(cls, value: Any) -> str | None:
+        """Treat blank and not-provided pipeline version labels as missing.
+
+        Args:
+            value: Version value; not provided may use spaces, underscores, or hyphens
+                and any letter case.
+
+        Returns:
+            Stripped version text, or None for null, blank, or not-provided input.
+        """
         if value is None:
             return None
         text = str(value).strip()
@@ -289,6 +443,17 @@ class SamplesDoc(_DocBase):
     @field_validator("analysis_intents", mode="before")
     @classmethod
     def _normalize_analysis_intents(cls, value: Any) -> list[str]:
+        """Canonicalize and deduplicate sample analysis intents.
+
+        Args:
+            value: Intent or list of intents; blank selections default to somatic.
+
+        Returns:
+            Somatic and/or germline intent names in first-occurrence order.
+
+        Raises:
+            ValueError: If a nonblank intent is neither somatic nor germline.
+        """
         values = value if isinstance(value, list) else [value]
         normalized = list(
             dict.fromkeys(
@@ -305,6 +470,14 @@ class SamplesDoc(_DocBase):
     @field_validator("case_id", "control_id", "name", "asp_id", "pipeline", mode="before")
     @classmethod
     def _strip_strings(cls, value: Any) -> Any:
+        """Trim sample identity text and turn blank strings into null.
+
+        Args:
+            value: Case/control ID, sample name, assay ID, or pipeline value.
+
+        Returns:
+            Stripped nonblank strings, None for blank strings, or nonstrings unchanged.
+        """
         if isinstance(value, str):
             value = value.strip()
             return value or None
@@ -312,6 +485,16 @@ class SamplesDoc(_DocBase):
 
     @model_validator(mode="after")
     def _validate_case_control_consistency(self) -> "SamplesDoc":
+        """Check identifiers, pairing status, and declared sample count together.
+
+        Returns:
+            This sample unchanged.
+
+        Raises:
+            ValueError: If case_id is empty, case and control IDs coincide, a single
+                case has paired status, count other than one, or control details,
+                or a case/control pair lacks paired=True and sample_no=2.
+        """
         has_case = bool(self.case_id)
         has_control = bool(self.control_id)
 
@@ -342,6 +525,15 @@ class SamplesDoc(_DocBase):
 
     @model_validator(mode="after")
     def _derive_platform_capabilities(self) -> "SamplesDoc":
+        """Validate read mode and set technology from the platform vocabulary.
+
+        Returns:
+            This sample with derived read_technology.
+
+        Raises:
+            ValueError: If read mode is incompatible or an explicitly supplied technology
+                conflicts with the platform-derived value.
+        """
         validate_platform_read_mode(self.platform, self.read_mode)
         derived = derived_read_technology(self.platform)
         if self.read_technology and self.read_technology != derived:
@@ -353,6 +545,18 @@ class SamplesDoc(_DocBase):
 
     @model_validator(mode="after")
     def _validate_omics_payload_consistency(self) -> "SamplesDoc":
+        """Check that registered data file keys agree with the sample's omics layer.
+
+        Returns:
+            This sample unchanged.
+
+        Raises:
+            ValueError: If DNA includes an RNA file key, RNA includes a DNA file key,
+                or no file key belonging to the selected layer is present.
+
+        Notes:
+            Membership is checked against the configured key sets, not file existence.
+        """
         present_keys = set(self.files)
         has_dna = any(key in present_keys for key in DNA_SAMPLE_FILE_KEYS)
         has_rna = any(key in present_keys for key in RNA_SAMPLE_FILE_KEYS)
@@ -378,6 +582,22 @@ class SamplesDoc(_DocBase):
     @model_validator(mode="before")
     @classmethod
     def _normalize_sample_shape(cls, data: Any) -> Any:
+        """Collect file metadata, discard embedded history, and normalize filter profiles.
+
+        Args:
+            data: Raw sample dictionary; other inputs pass through.
+
+        Returns:
+            A shallow copy with top-level source paths moved into files, uploaded
+            checksums applied when absent, and embedded comments/report fields removed.
+            Missing reported is derived from latest_report_id.
+
+        Raises:
+            ValueError: If supplied filters violate the canonical intent-aware contract.
+
+        Notes:
+            Existing nested file dictionaries can receive checksum entries in place.
+        """
         if not isinstance(data, dict):
             return data
         normalized = dict(data)
@@ -411,6 +631,15 @@ class SamplesDoc(_DocBase):
 
     @model_validator(mode="after")
     def _validate_intent_filter_capabilities(self) -> "SamplesDoc":
+        """Check germline availability and the presence of its SNV filter profile.
+
+        Returns:
+            This sample unchanged; absent filters bypass profile-presence checks.
+
+        Raises:
+            ValueError: If RNA requests germline, supplied filters lack germline SNV
+                for a germline intent, or germline filters exist without that intent.
+        """
         if self.omics_layer == "rna" and "germline" in self.analysis_intents:
             raise ValueError("germline analysis is currently supported only for DNA SNV")
         if self.filters is None:

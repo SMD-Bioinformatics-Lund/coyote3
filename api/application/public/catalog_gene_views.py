@@ -281,6 +281,15 @@ class PublicCatalogGeneViewsMixin:
             return {}
 
         def records(repository: Any, method: str = "get_gene_records") -> dict[str, Any]:
+            """Fetch the enclosing symbol batch when an optional repository supports it.
+
+            Args:
+                repository: Knowledgebase repository, or None when unavailable.
+                method: Batch lookup method name, defaulting to get_gene_records.
+
+            Returns:
+                Lookup mapping or an empty mapping without a callable method.
+            """
             getter = getattr(repository, method, None)
             return getter(symbols) if callable(getter) else {}
 

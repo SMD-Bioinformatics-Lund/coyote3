@@ -83,6 +83,15 @@ def format_assay_config(config: dict | None, schema: dict | None) -> dict:
     report_section = sections.get("reporting", {})
 
     def section_keys_and_defaults(section_obj):
+        """Extract configurable field names and defaults from a section definition.
+
+        Args:
+            section_obj: Mapping or list of field names/definitions; other values yield no fields.
+
+        Returns:
+            A pair of ordered keys and defaults, excluding identity keys and the
+            filters/reporting containers. Fields without a declared default use None.
+        """
         keys = []
         defaults = {}
         skip_keys = {"id_", "id", "_id", "filters", "reporting"}

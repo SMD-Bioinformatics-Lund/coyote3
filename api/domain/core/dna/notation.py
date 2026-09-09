@@ -33,6 +33,14 @@ def three_letter_p(value: str | None) -> str:
         return ""
 
     def replace(match: re.Match[str]) -> str:
+        """Expand the residue captured by the simple HGVS substitution pattern.
+
+        Args:
+            match: Regex match with a source or target one-letter residue group.
+
+        Returns:
+            The configured three-letter code for the captured residue.
+        """
         residue = match.group("source") or match.group("target")
         return CLINICAL_NOTATION.amino_acid_one_to_three[residue]
 

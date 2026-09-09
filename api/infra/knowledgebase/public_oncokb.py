@@ -67,6 +67,12 @@ class PublicOncoKbClient:
     """Tiny synchronous client for public OncoKB endpoints."""
 
     def __init__(self, *, base_url: str, timeout: float = 3.0) -> None:
+        """Configure synchronous public OncoKB requests without contacting the API.
+
+        Args:
+            base_url: API URL with trailing slashes removed before endpoint concatenation.
+            timeout: HTTP request timeout in seconds, defaulting to three.
+        """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 

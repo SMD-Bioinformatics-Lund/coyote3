@@ -209,6 +209,17 @@ def merged_dna_translocation_filters(
 def _validate_profile_availability(
     profiles: dict[str, Any], *, layer: str, intents: list[str]
 ) -> None:
+    """Reject filter profiles outside enabled intents and germline capabilities.
+
+    Args:
+        profiles: Canonical mapping of analysis intents to filter sections.
+        layer: Normalized omics layer, such as dna or rna.
+        intents: Enabled analysis intents for the sample.
+
+    Raises:
+        ValueError: If profiles include a disabled intent, non-DNA has germline
+            filters, or germline contains sections other than the supported SNV section.
+    """
     unexpected_intents = set(profiles) - set(intents)
     if unexpected_intents:
         raise ValueError(

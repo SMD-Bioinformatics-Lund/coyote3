@@ -95,6 +95,16 @@ def _validated_member_path(member: zipfile.ZipInfo) -> Path:
 
 
 def _add_index_entry(index: dict[str, str], name: str, path: str) -> None:
+    """Index a staged file under original and slash-normalized archive names.
+
+    Args:
+        index: Mutable exact-name index receiving both aliases.
+        name: Archive member name; backslashes are normalized to slashes.
+        path: Extracted file path associated with both names.
+
+    Raises:
+        ValueError: Either name is already indexed, even for the same path.
+    """
     normalized = name.replace("\\", "/")
     if name in index or normalized in index:
         raise ValueError(f"data_archive contains a duplicate path: {name!r}")
@@ -103,6 +113,13 @@ def _add_index_entry(index: dict[str, str], name: str, path: str) -> None:
 
 
 def _add_basename_entry(index: dict[str, str | None], name: str, path: str) -> None:
+    """Index a basename or mark it ambiguous when it refers to different paths.
+
+    Args:
+        index: Mutable basename index; None entries remain ambiguous on later calls.
+        name: Extracted member basename.
+        path: Staged file path to associate with the basename.
+    """
     existing = index.get(name)
     if existing is None and name in index:
         return
@@ -116,10 +133,24 @@ class _DigestingReader:
     """File-like reader that updates a digest as shutil copies archive data."""
 
     def __init__(self, source, digest) -> None:
+        """Wrap a byte reader with an externally owned incremental digest.
+
+        Args:
+            source: File-like object whose read method returns bytes.
+            digest: Hash object updated with every returned byte chunk.
+        """
         self._source = source
         self._digest = digest
 
     def read(self, size: int = -1) -> bytes:
+        """Read bytes and add the returned chunk to the configured digest.
+
+        Args:
+            size: Byte limit forwarded to the source; -1 requests all remaining bytes.
+
+        Returns:
+            Source bytes unchanged, including an empty chunk at end of input.
+        """
         value = self._source.read(size)
         self._digest.update(value)
         return value

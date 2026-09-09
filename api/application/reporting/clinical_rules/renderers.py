@@ -8,6 +8,18 @@ from api.domain.common.reporting import nl_join, nl_num
 
 
 def _required(mapping: dict[str, Any], key: str) -> Any:
+    """Require a terminology key without substituting report wording.
+
+    Args:
+        mapping: Terminology section to inspect.
+        key: Required key; an explicit None value still counts as present.
+
+    Returns:
+        Stored value unchanged.
+
+    Raises:
+        ValueError: The key is absent from the mapping.
+    """
     if key not in mapping:
         raise ValueError(f"Clinical rule terminology is missing '{key}'")
     return mapping[key]
@@ -185,6 +197,24 @@ def render_fusion_summary(findings: list[dict[str, Any]], terminology: dict[str,
 def render_named(
     name: str, *, source: Any, scope: dict[str, Any], terminology: dict[str, Any]
 ) -> str:
+    """Dispatch a named clinical renderer with rule-owned terminology.
+
+    Args:
+        name: dna_report_intro, tier_summary, or fusion_summary.
+        source: Tier groups or findings for summary renderers; falsey values use an
+            empty list. The DNA introduction does not use this argument.
+        scope: Prepared evaluation scope used by the DNA introduction.
+        terminology: Renderer-specific wording and formatting settings.
+
+    Returns:
+        Text produced by the selected renderer.
+
+    Raises:
+        ValueError: The renderer is unsupported, required terminology is absent,
+            or a renderer's numeric conversion fails.
+        KeyError: Prepared data or nested terminology lacks a required field.
+        TypeError: Source data or terminology has incompatible types.
+    """
     if name == "dna_report_intro":
         return render_dna_report_intro(scope, terminology)
     if name == "tier_summary":

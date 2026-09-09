@@ -849,6 +849,15 @@ class CommonQueryService:
         )
 
         def prevalence(numerator: int, denominator: int) -> float | None:
+            """Express a sample count as a percentage of its comparison population.
+
+            Args:
+                numerator: Number of samples with the finding.
+                denominator: Number of samples in the comparison group.
+
+            Returns:
+                Percentage rounded to two decimals, or None for a zero denominator.
+            """
             return round((numerator / denominator) * 100, 2) if denominator else None
 
         assay_rows = []

@@ -9,6 +9,12 @@ class ReportLibraryService:
     """List saved reports and their immutable finding snapshot summaries."""
 
     def __init__(self, *, report_repository: Any, reported_variant_repository: Any) -> None:
+        """Bind saved-report listing to report and finding-snapshot repositories.
+
+        Args:
+            report_repository: Lists saved reports within user scope.
+            reported_variant_repository: Aggregates finding counts for listed reports.
+        """
         self.report_repository = report_repository
         self.reported_variant_repository = reported_variant_repository
 

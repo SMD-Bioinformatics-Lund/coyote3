@@ -33,6 +33,15 @@ from api.contracts.schemas.clinical_rules import (
 
 
 def resolve_path(scope: Mapping[str, Any], path: str) -> tuple[Any, bool]:
+    """Walk a dotted path through mappings, distinguishing absent keys from nulls.
+
+    Args:
+        scope: Fact mappings to traverse.
+        path: Dot-separated keys; list indexing is not supported.
+
+    Returns:
+        The stored value and True, or (None, False) when traversal fails.
+    """
     value: Any = scope
     for part in path.split("."):
         if isinstance(value, Mapping) and part in value:
@@ -43,6 +52,20 @@ def resolve_path(scope: Mapping[str, Any], path: str) -> tuple[Any, bool]:
 
 
 def _compare(operator: str, actual: Any, expected: Any) -> bool:
+    """Apply a scalar equality or ordering operator.
+
+    Args:
+        operator: One of eq, ne, gt, gte, lt, or lte.
+        actual: Left-hand operand from the prepared facts.
+        expected: Right-hand operand from the rule.
+
+    Returns:
+        Whether the comparison holds.
+
+    Raises:
+        ValueError: The operator is unsupported.
+        TypeError: The operands cannot be ordered for the selected operator.
+    """
     if operator == "eq":
         return actual == expected
     if operator == "ne":
@@ -61,6 +84,17 @@ def _compare(operator: str, actual: Any, expected: Any) -> bool:
 def _predicate_matches(
     predicate: ClinicalRulePredicate, scope: Mapping[str, Any]
 ) -> tuple[bool, list[str]]:
+    """Evaluate a predicate and identify an absent fact path.
+
+    Args:
+        predicate: Fact path, operator, and comparison value.
+        scope: Prepared facts visible to the rule.
+
+    Returns:
+        Match status and missing paths. Comparisons raising TypeError do not
+        match; other comparisons retain their operator semantics. Existence
+        checks do not report absent paths as missing facts.
+    """
     actual, exists = resolve_path(scope, predicate.fact)
     operator = predicate.operator
     if operator == ClinicalRuleOperator.EXISTS:
@@ -101,6 +135,21 @@ def condition_matches(
     condition: ClinicalCondition | None,
     scope: Mapping[str, Any],
 ) -> tuple[bool, list[str]]:
+    """Evaluate a condition tree, retaining paths missing from its fact scope.
+
+    Args:
+        condition: Predicate or compound condition; None always matches.
+        scope: Prepared facts, with collection elements exposed as item.
+
+    Returns:
+        Match status and reported missing paths. Reported missing paths prevent
+        negation and collection matches. Existence predicates report no missing
+        paths, so negating an existence check can match an absent fact.
+        An all-quantified empty collection does not match.
+
+    Raises:
+        ValueError: A condition node or count comparison operator is unsupported.
+    """
     if condition is None:
         return True, []
     if isinstance(condition, ClinicalRulePredicate):
@@ -249,6 +298,16 @@ def condition_matches_with_trace(
 
 
 def _format_value(value: Any, formatter: str) -> str:
+    """Convert a fact to text and apply the requested case conversion.
+
+    Args:
+        value: Fact value to stringify.
+        formatter: gene_symbol or upper uppercases; lower lowercases;
+            other values preserve case.
+
+    Returns:
+        Formatted text.
+    """
     text = str(value)
     if formatter in {"gene_symbol", "upper"}:
         return text.upper()
@@ -263,6 +322,20 @@ def _render_output_node(
     scope: dict[str, Any],
     terminology: dict[str, Any],
 ) -> str:
+    """Render one typed output node using facts and named terminology.
+
+    Args:
+        node: Literal, fact, list, number, message, or named-renderer output.
+        scope: Facts available for dotted-path lookup.
+        terminology: Wording configuration passed to named renderers.
+
+    Returns:
+        Rendered text, or an empty string for an omitted missing fact.
+
+    Raises:
+        ValueError: The node is unsupported, a required fact is absent or null,
+            a list or number has the wrong type, or a named renderer fails.
+    """
     if isinstance(node, ClinicalTextOutput):
         return node.value
     if isinstance(node, ClinicalParagraphBreakOutput):
@@ -304,12 +377,35 @@ def _render_output_node(
 
 
 def render_rule(rule: ClinicalRule, *, scope: dict[str, Any], terminology: dict[str, Any]) -> str:
+    """Concatenate a rule's output nodes in their configured order.
+
+    Args:
+        rule: Rule whose output is rendered without checking its condition.
+        scope: Prepared facts available to output nodes.
+        terminology: Wording configuration for named renderers.
+
+    Returns:
+        Combined text without an added separator.
+
+    Raises:
+        ValueError: An output node cannot be rendered from the supplied facts.
+    """
     return "".join(
         _render_output_node(node, scope=scope, terminology=terminology) for node in rule.output
     )
 
 
 def _collection_items(context: PreparedReportContext, collection: str) -> list[dict[str, Any]]:
+    """Extract mapping elements from a prepared-context collection.
+
+    Args:
+        context: Facts from which to build the evaluation scope.
+        collection: Dotted path to a list.
+
+    Returns:
+        Shallow dictionary copies of mapping elements, or an empty list for
+        an absent or non-list collection.
+    """
     scope = context.evaluation_scope()
     values, exists = resolve_path(scope, collection)
     if not exists or not isinstance(values, list):
@@ -328,6 +424,26 @@ class ClinicalRuleEvaluator:
         reporting_analyses: set[str],
         include_condition_trace: bool = False,
     ) -> ClinicalRuleEvaluation:
+        """Render enabled rules and record decisions in section and rule order.
+
+        Args:
+            context: Prepared report facts; this method does not filter findings.
+            rule_set: Canonical rule document and provenance to evaluate.
+            reporting_analyses: Analyses whose named blocks may run; blocks
+                without an analysis are also evaluated.
+            include_condition_trace: Include nested condition decisions when True.
+
+        Returns:
+            Source provenance, section text, heading visibility, and rule traces.
+
+        Raises:
+            ValueError: Rendering fails, a block violates its match cardinality,
+                or rendered blocks disagree on section heading visibility.
+
+        Notes:
+            first_match stops after the first nonblank matched output for each
+            candidate. Disabled rules and excluded analyses have no trace entries.
+        """
         sections: dict[str, list[str]] = {}
         section_headings: dict[str, bool] = {}
         trace: list[ClinicalRuleTraceEntry] = []

@@ -444,6 +444,21 @@ class InternalIngestService:
         counts.update(self._data_counts(preload))
 
         def update(session):
+            """Apply the prepared sample update and dependent replacements in one session.
+
+            Args:
+                session: Transaction session supplied by the collection gateway.
+
+            Returns:
+                Success status, sample identity, dependent write results, and data counts.
+
+            Raises:
+                ValueError: The stored sample differs from the document used for preparation.
+
+            Notes:
+                Sets loading before writes and ready afterward. The optional completion
+                callback runs in the same session before returning to the transaction runner.
+            """
             selector = {"_id": self._provider_sample_id(sample_id)}
             current = self._sample_collection().find_one(selector, session=session)
             if current != current_doc:
@@ -561,6 +576,18 @@ class InternalIngestService:
         document["_id"] = self._provider_sample_id(sample_id)
 
         def create(session):
+            """Insert the prepared sample and dependent analyses in the supplied transaction.
+
+            Args:
+                session: Transaction session supplied by the collection gateway.
+
+            Returns:
+                Success status, sample identity, dependent write results, and data counts.
+
+            Notes:
+                Marks the sample ready after dependent writes, then invokes the optional
+                completion callback in the same session. Write/callback failures propagate.
+            """
             self._sample_collection().insert_one(dict(document), session=session)
             written = self._write_dependents(
                 preload=preload, sample_id=sample_id, sample_name=sample_name, session=session
@@ -639,6 +666,21 @@ class InternalIngestService:
             self.validate_async_collection(collection)
 
         def replace(session):
+            """Validate and replace the enclosing collection document within one session.
+
+            Args:
+                session: Target collection's session supplied by the transaction gateway.
+
+            Returns:
+                Status, collection name, matched/modified counts, and optional upserted ID.
+
+            Raises:
+                ValueError: The match is empty/invalid or document normalization fails.
+
+            Notes:
+                Runs the optional completion callback with the replacement result and
+                the same session before returning to the transaction runner.
+            """
             result = collection_writes.upsert_collection_document(
                 self,
                 collection=collection,

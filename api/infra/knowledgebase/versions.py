@@ -11,6 +11,11 @@ class KnowledgebaseVersionRepository(BaseRepository):
     """Expose sanitized active release manifests from the knowledgebase database."""
 
     def __init__(self, adapter: Any) -> None:
+        """Bind installed knowledgebase release metadata.
+
+        Args:
+            adapter: Mongo adapter exposing ``knowledgebase_versions_collection``.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.knowledgebase_versions_collection)
 

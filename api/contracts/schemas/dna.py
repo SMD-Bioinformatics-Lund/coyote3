@@ -18,6 +18,8 @@ from api.contracts.schemas.normalizers import normalize_ampersand_terms
 
 
 class DnaFiltersDoc(_StrictDocBase):
+    """Flat DNA filter thresholds and gene-list selections with cross-field checks."""
+
     max_freq: float = Field(default=1.00, ge=0.0, le=1.0)
     min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
     max_control_freq: float = Field(default=0.05, ge=0.0, le=0.5)
@@ -109,6 +111,8 @@ class DnaFiltersDoc(_StrictDocBase):
 
 
 class VariantCsqDoc(_DocBase):
+    """Transcript consequence annotations with normalized consequence and significance lists."""
+
     Feature: str | None = None
     HGNC_ID: str | None = None
     SYMBOL: str | None = None
@@ -131,6 +135,14 @@ class VariantCsqDoc(_DocBase):
     @field_validator("Consequence", "CLIN_SIG", mode="before")
     @classmethod
     def _normalize_term_lists(cls, value: Any) -> list[str]:
+        """Split ampersand-delimited annotation terms and remove blanks and duplicates.
+
+        Args:
+            value: Scalar or iterable of terms; null and empty input give no terms.
+
+        Returns:
+            Stripped terms in first-occurrence order.
+        """
         return normalize_ampersand_terms(value)
 
 
@@ -160,6 +172,15 @@ class VariantInfoDoc(_DocBase):
     @field_validator("variant_callers", mode="before")
     @classmethod
     def _normalize_variant_callers(cls, value: Any) -> Any:
+        """Split pipe-delimited caller names without changing their case or whitespace.
+
+        Args:
+            value: Caller string or existing collection; null and empty strings give no callers.
+
+        Returns:
+            Nonempty pipe-separated tokens for strings, an empty list for unset input,
+            or other input unchanged for subsequent validation.
+        """
         if value is None or value == "":
             return []
         if isinstance(value, str):
@@ -168,6 +189,14 @@ class VariantInfoDoc(_DocBase):
 
     @model_validator(mode="after")
     def _cleanup_none_fields(self) -> "VariantInfoDoc":
+        """Remove null-valued attributes except the required identity or payload fields.
+
+        Returns:
+            This model after deleting null attributes other than selected_CSQ, selected_CSQ_criteria, and variant_callers.
+
+        Notes:
+            Attributes are deleted in place, including null extra fields.
+        """
         # keys you ALWAYS want to keep even if None
         exclude_keys = {
             "selected_CSQ",
@@ -186,6 +215,8 @@ class VariantInfoDoc(_DocBase):
 
 
 class VariantGtDoc(_DocBase):
+    """Per-sample genotype with allele frequency, total depth, and alternate-read count."""
+
     AF: float
     DP: int
     GT: str
@@ -195,6 +226,8 @@ class VariantGtDoc(_DocBase):
 
 
 class VariantsDoc(_FindingDocBase):
+    """Sample-scoped small variant with selected consequence and hashed genomic identity."""
+
     SAMPLE_ID: str
     CHROM: str
     POS: int
@@ -229,6 +262,14 @@ class VariantsDoc(_FindingDocBase):
     @field_validator("consequence_terms", mode="before")
     @classmethod
     def _normalize_consequence_terms(cls, value: Any) -> list[str]:
+        """Expand ampersand-delimited consequences without stripping term whitespace.
+
+        Args:
+            value: Scalar or list, tuple, or set of terms; null and empty strings give no terms.
+
+        Returns:
+            Nonempty terms in encounter order with duplicates removed.
+        """
         if value in (None, ""):
             return []
         raw_values = value.split("&") if isinstance(value, str) else value
@@ -249,12 +290,32 @@ class VariantsDoc(_FindingDocBase):
     )
     @classmethod
     def _normalize_optional_frequency(cls, value: Any) -> Any:
+        """Translate supported missing-frequency markers to null.
+
+        Args:
+            value: Frequency or missing marker: empty string, one space, NA, N/A, or None.
+
+        Returns:
+            None for a missing marker; otherwise the input for numeric validation.
+        """
         if value in ("", " ", "NA", "N/A", None):
             return None
         return value
 
     @model_validator(mode="after")
     def _validate_simple_id_and_hash(self) -> "VariantsDoc":
+        """Check the genomic identifier and its UTF-8 MD5 digest.
+
+        Returns:
+            This variant, filling the hash if it is None when this validator runs.
+
+        Raises:
+            ValueError: If simple_id is empty or its supplied hash differs from the digest.
+
+        Notes:
+            Field validation precedes this check; this does not make the required
+            simple_id_hash field nullable in the public contract.
+        """
         if not self.simple_id:
             raise ValueError("simple_id is required. Usually it is CHROM_POS_REF_ALT")
 
@@ -269,6 +330,8 @@ class VariantsDoc(_FindingDocBase):
 
 
 class CnvGeneDoc(_DocBase):
+    """Gene affected by a CNV with optional classification and copy-number type."""
+
     gene: str
     class_: str | None = Field(
         validation_alias=AliasChoices("class_", "class"),
@@ -279,6 +342,14 @@ class CnvGeneDoc(_DocBase):
 
     @model_validator(mode="after")
     def _cleanup_none_fields(self) -> "CnvGeneDoc":
+        """Remove null-valued attributes except the required identity or payload fields.
+
+        Returns:
+            This model after deleting null attributes other than gene.
+
+        Notes:
+            Attributes are deleted in place, including null extra fields.
+        """
         # keys you ALWAYS want to keep even if None
         exclude_keys = {"gene"}
 
@@ -293,6 +364,8 @@ class CnvGeneDoc(_DocBase):
 
 
 class CnvsDoc(_FindingDocBase):
+    """Sample-scoped copy-number interval with ratio, genes, probes, and callers."""
+
     SAMPLE_ID: str
     chr: str
     start: int
@@ -307,6 +380,15 @@ class CnvsDoc(_FindingDocBase):
     @field_validator("ratio", mode="before")
     @classmethod
     def _normalize_ratio(cls, value: Any) -> Any:
+        """Convert numeric or symbolic copy-number ratios to floats.
+
+        Args:
+            value: Number, numeric text, or DEL/LOSS/AMP/DUP/GAIN label.
+
+        Returns:
+            A float, with DEL/LOSS mapped to -1, AMP to 1, and DUP/GAIN to 0.5.
+            Null, empty, and unparseable values produce None.
+        """
         if value is None or value == "":
             return None
         if isinstance(value, (int, float)):
@@ -329,6 +411,15 @@ class CnvsDoc(_FindingDocBase):
     @field_validator("callers", mode="before")
     @classmethod
     def _normalize_callers(cls, value: Any) -> Any:
+        """Parse and lowercase copy-number caller names.
+
+        Args:
+            value: Comma-, pipe-, or semicolon-delimited text, a collection, or a scalar.
+
+        Returns:
+            Stripped nonblank caller strings, retaining duplicates; null or empty
+            input produces an empty list.
+        """
         if value is None or value == "":
             return []
         if isinstance(value, str):
@@ -341,6 +432,8 @@ class CnvsDoc(_FindingDocBase):
 
 
 class TranslocationInfoAnnDoc(_DocBase):
+    """Structural-variant consequence annotation with gene and transcript coordinates."""
+
     Allele: str  # G
     Annotation: list[str] = Field(default_factory=list)  # ["feature_fusion" ]
     Annotation_Impact: str | None = None  # LOW
@@ -367,6 +460,8 @@ class TranslocationInfoAnnDoc(_DocBase):
 
 
 class TranslocationInfoDoc(_DocBase):
+    """Structural-variant INFO fields with all and selected MANE annotations."""
+
     SVTYPE: str | None = None  # BND
     MATEID: str | None = None  # MantaBND:155054:0:1:0:0:0:1
     SVINSLEN: int | None = None
@@ -383,6 +478,8 @@ class TranslocationInfoDoc(_DocBase):
 
 
 class TranslocationGtDoc(_DocBase):
+    """Sample-level translocation support fields from the genotype payload."""
+
     UR: float | None = None
     sample: str
     PR: str
@@ -390,6 +487,8 @@ class TranslocationGtDoc(_DocBase):
 
 
 class TranslocationsDoc(_FindingDocBase):
+    """Sample-scoped structural variant with breakend, genotype, and annotation fields."""
+
     SAMPLE_ID: str
     CHROM: str
     POS: int
@@ -408,12 +507,16 @@ class TranslocationsDoc(_FindingDocBase):
 
 
 class BiomarkersMsiDoc(_DocBase):
+    """MSI total and somatic counts with the reported percentage."""
+
     tot: int
     som: int
     per: float
 
 
 class BiomarkersHrdDoc(_DocBase):
+    """HRD component scores and a conditionally checked combined score."""
+
     tai: int
     hrd: int
     lst: int
@@ -421,6 +524,14 @@ class BiomarkersHrdDoc(_DocBase):
 
     @model_validator(mode="after")
     def _validate_sum(self) -> "BiomarkersHrdDoc":
+        """Check the combined score only when all three component scores are nonzero.
+
+        Returns:
+            This HRD result unchanged.
+
+        Raises:
+            ValueError: If all components are truthy and sum differs from tai + hrd + lst.
+        """
         if self.tai and self.hrd and self.lst:
             sum_expected = self.tai + self.hrd + self.lst
             if self.sum != sum_expected:
@@ -430,6 +541,8 @@ class BiomarkersHrdDoc(_DocBase):
 
 
 class BiomarkersDoc(_DocBase):
+    """Sample biomarker results with absent optional assays removed after validation."""
+
     SAMPLE_ID: str
     name: str
     MSIS: BiomarkersMsiDoc | None = None
@@ -438,6 +551,14 @@ class BiomarkersDoc(_DocBase):
 
     @model_validator(mode="after")
     def _cleanup_none_fields(self) -> "BiomarkersDoc":
+        """Remove null-valued attributes except the required identity or payload fields.
+
+        Returns:
+            This model after deleting null attributes other than SAMPLE_ID and name.
+
+        Notes:
+            Attributes are deleted in place, including null extra fields.
+        """
         # keys you ALWAYS want to keep even if None
         exclude_keys = {
             "SAMPLE_ID",
@@ -540,6 +661,17 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
     @model_validator(mode="before")
     @classmethod
     def reject_generic_finding_payload(cls, value: Any) -> Any:
+        """Reject the generic finding_data field in a reported finding.
+
+        Args:
+            value: Raw report-finding input before model validation.
+
+        Returns:
+            The input unchanged when no prohibited field is present.
+
+        Raises:
+            ValueError: If a dictionary contains finding_data, even when its value is null.
+        """
         if isinstance(value, dict) and "finding_data" in value:
             raise ValueError(
                 "finding_data is not part of the reported finding contract; "
@@ -550,6 +682,17 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
     @field_validator("tier")
     @classmethod
     def validate_tier(cls, v):
+        """Restrict a supplied report tier to the four supported levels.
+
+        Args:
+            v: Tier after field parsing, or None when no tier was captured.
+
+        Returns:
+            The tier unchanged, including None.
+
+        Raises:
+            ValueError: If the tier is not 1, 2, 3, or 4.
+        """
         if v is None:
             return v
         if v not in {1, 2, 3, 4}:
@@ -559,6 +702,18 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
     @field_validator("var_type")
     @classmethod
     def validate_var_type(cls, v):
+        """Check a report snapshot's optional variant-type label.
+
+        Args:
+            v: Uppercase type label, or None when no label was captured.
+
+        Returns:
+            The type unchanged, including None.
+
+        Raises:
+            ValueError: If the label is not SNV, INDEL, CNV, FUSION, TRANSLOCATION,
+                BIOMARKER, or PGX.
+        """
         if v is None:
             return v
         allowed = {"SNV", "INDEL", "CNV", "FUSION", "TRANSLOCATION", "BIOMARKER", "PGX"}
@@ -568,6 +723,8 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
 
 
 class CoverageRegionDoc(_DocBase):
+    """Genomic coverage interval with optional region number and depth."""
+
     chr: str
     start: int
     end: int
@@ -576,6 +733,8 @@ class CoverageRegionDoc(_DocBase):
 
 
 class ProbeRegionDoc(_DocBase):
+    """Probe interval with optional coverage depth."""
+
     chr: str
     start: int
     end: int
@@ -583,6 +742,8 @@ class ProbeRegionDoc(_DocBase):
 
 
 class TranscriptDoc(_DocBase):
+    """Transcript identifier and genomic interval used for coverage display."""
+
     chr: str
     start: int
     end: int
@@ -590,6 +751,8 @@ class TranscriptDoc(_DocBase):
 
 
 class GeneCoverageDoc(_DocBase):
+    """Panel membership and transcript, exon, CDS, and probe coverage for one gene."""
+
     covered_by_panel: bool
     transcript: TranscriptDoc
     exons: Dict[str, CoverageRegionDoc] = Field(default_factory=dict)
@@ -598,12 +761,16 @@ class GeneCoverageDoc(_DocBase):
 
 
 class PanelCovDoc(_DocBase):
+    """Per-gene coverage records for a panel and sample."""
+
     genes: Dict[str, GeneCoverageDoc] = Field(default_factory=dict)
     SAMPLE_ID: str
     sample: str
 
 
 class GroupCoverageDoc(_DocBase):
+    """Per-gene coverage records for an assay group and sample."""
+
     genes: Dict[str, GeneCoverageDoc] = Field(default_factory=dict)
     SAMPLE_ID: str
     sample: str

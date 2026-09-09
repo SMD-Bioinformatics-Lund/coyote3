@@ -31,8 +31,16 @@ def list_admin_samples_read(
 ):
     """Return the admin sample list.
 
+    \u000c
+
     Args:
         search: Free-text search string.
+        asp_group: Assay group used to select active, accessible panels; blank
+            text omits the group filter.
+        asp_id: Assay-panel identifier used to narrow the active, accessible
+            panels; blank text omits the panel filter.
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 200; defaults to 30.
         user: Authenticated user requesting the list.
         service: Admin sample workflow service.
 
@@ -61,6 +69,8 @@ def admin_sample_context_read(
 ):
     """Return edit context for an admin sample.
 
+    \u000c
+
     Args:
         sample_id: Sample identifier to load.
         user: Authenticated user requesting edit context.
@@ -87,7 +97,10 @@ def update_sample_change(
 ):
     """Update an admin sample.
 
+    \u000c
+
     Args:
+        request: Request receiving audit metadata for the updated sample.
         sample_id: Sample identifier to update.
         payload: Submitted sample payload.
         user: Authenticated user performing the mutation.
@@ -126,7 +139,10 @@ def delete_sample_change(
 ):
     """Delete an admin sample.
 
+    \u000c
+
     Args:
+        request: Request receiving sample audit metadata and deletion results.
         sample_id: Sample identifier to delete.
         user: Authenticated user performing the mutation.
         service: Admin sample workflow service.

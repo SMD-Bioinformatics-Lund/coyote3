@@ -102,11 +102,28 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     @staticmethod
     def _overlay_modalities(overlay: dict[str, Any]) -> dict[str, Any]:
+        """Extract dictionary-shaped modality presentation metadata.
+
+        Args:
+            overlay: Center catalog document.
+
+        Returns:
+            Stored modalities mapping, or an empty mapping for other shapes.
+        """
         modalities = overlay.get("modalities")
         return modalities if isinstance(modalities, dict) else {}
 
     @staticmethod
     def _overlay_categories(overlay: dict[str, Any]) -> list[dict[str, Any]]:
+        """Flatten direct or modality-scoped category presentation entries.
+
+        Args:
+            overlay: Catalog with a direct category list or modality categories.
+
+        Returns:
+            Dictionary entries in input order. A direct list takes precedence;
+            nested entries receive modality/key defaults without overriding stored fields.
+        """
         direct = overlay.get("categories")
         if isinstance(direct, list):
             return [item for item in direct if isinstance(item, dict)]
@@ -139,6 +156,18 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         aspc_id: str | None,
         catalog_id: str,
     ) -> dict[str, Any]:
+        """Find the first overlay category matching any supported identity.
+
+        Args:
+            overlay: Center presentation metadata to search.
+            asp_id: Assay ID for the assay/subpanel match.
+            subpanel_id: Subpanel paired with the assay ID.
+            aspc_id: Optional explicit configuration ID match.
+            catalog_id: Catalog ID or category key to match.
+
+        Returns:
+            First matching entry in traversal order, or an empty mapping.
+        """
         for item in cls._overlay_categories(overlay):
             item_asp = str(item.get("asp_id") or "").strip()
             item_subpanel = (
@@ -156,6 +185,15 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     @staticmethod
     def _gene_list_overlay(category_overlay: dict[str, Any], isgl_id: str) -> dict[str, Any]:
+        """Find a category's first gene-list presentation override by identifier.
+
+        Args:
+            category_overlay: Category containing optional gene_lists.
+            isgl_id: Identifier matched against stripped isgl_id or key text.
+
+        Returns:
+            Matching dictionary, or an empty mapping when absent.
+        """
         for item in category_overlay.get("gene_lists") or []:
             if not isinstance(item, dict):
                 continue
@@ -295,6 +333,15 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     @staticmethod
     def _overlay_order(overlay: dict[str, Any], modalities: dict[str, Any]) -> list[str]:
+        """Keep configured modality order and append unlisted available modalities.
+
+        Args:
+            overlay: Catalog with optional layout.order list.
+            modalities: Available modality mapping.
+
+        Returns:
+            Existing configured keys followed by remaining keys in mapping order.
+        """
         layout = overlay.get("layout") if isinstance(overlay.get("layout"), dict) else {}
         configured = layout.get("order") if isinstance(layout.get("order"), list) else []
         ordered = [str(item) for item in configured if str(item) in modalities]
@@ -302,6 +349,14 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         return ordered
 
     def _nav_groups_from_asps(self, active_asps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Group assays into sample-navigation links by category, family, and group.
+
+        Args:
+            active_asps: Active assay documents; rows without an assay ID are skipped.
+
+        Returns:
+            Sorted group descriptors with assay IDs and sample query fields.
+        """
         grouped: dict[tuple[str, str, str], dict[str, Any]] = {}
         for asp in active_asps or []:
             asp_id = str(asp.get("asp_id") or "").strip()
@@ -337,6 +392,17 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         active_asps: list[dict[str, Any]],
         active_isgls: list[dict[str, Any]],
     ) -> dict[str, Any]:
+        """Resolve configured modality entries against active assay and gene-list data.
+
+        Args:
+            overlay_modalities: Presentation modalities with list or mapping categories.
+            active_asps: Active assay documents indexed by asp_id.
+            active_isgls: Active public gene-list documents indexed by isgl_id.
+
+        Returns:
+            Modality payloads in overlay order, with hydrated categories and empty
+            sample_groups; non-dictionary modality/category entries are skipped.
+        """
         asp_by_id = {str(asp.get("asp_id") or "").strip(): dict(asp) for asp in active_asps or []}
         isgl_by_id = {
             str(isgl.get("isgl_id") or "").strip(): dict(isgl) for isgl in active_isgls or []
@@ -384,6 +450,18 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         asp_by_id: dict[str, dict[str, Any]],
         isgl_by_id: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
+        """Merge one configured catalog entry with assay, configuration, and list metadata.
+
+        Args:
+            category_key: Mapping key used for missing identity and display labels.
+            category_overlay: Center-defined entry and presentation overrides.
+            asp_by_id: Active assay documents by ID.
+            isgl_by_id: Active public gene-list documents by ID.
+
+        Returns:
+            Entry payload retaining overrides and filling assay/reporting details;
+            missing assay metadata does not remove the entry.
+        """
         asp_id = str(category_overlay.get("asp_id") or "").strip()
         asp = asp_by_id.get(asp_id, {})
         aspc = self._overlay_aspc(category_overlay, asp_id)
@@ -446,6 +524,16 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         }
 
     def _overlay_aspc(self, category_overlay: dict[str, Any], asp_id: str) -> dict[str, Any] | None:
+        """Resolve the configuration reference selected by an overlay category.
+
+        Args:
+            category_overlay: Entry with optional aspc_id or environment-to-ID mapping.
+            asp_id: Assay used for first-active-configuration lookup without references.
+
+        Returns:
+            Configuration or None. Explicit ID takes precedence over environment
+            mapping, which takes precedence over assay lookup; failed lookups do not retry.
+        """
         aspc_id = str(category_overlay.get("aspc_id") or "").strip()
         if aspc_id:
             return self.assay_configuration_repository.get_aspc_with_id(aspc_id)
@@ -469,6 +557,16 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         category_overlay: dict[str, Any],
         isgl_by_id: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
+        """Combine list presentation overrides with public list and category defaults.
+
+        Args:
+            item: List entry with optional isgl_id/key and display fields.
+            category_overlay: Parent defaults for subpanel and presentation fields.
+            isgl_by_id: Public list documents by identifier.
+
+        Returns:
+            List payload, or an empty mapping when both identifier and label are absent.
+        """
         isgl_id = str(item.get("isgl_id") or item.get("key") or "").strip()
         if not isgl_id and not item.get("label"):
             return {}
@@ -635,10 +733,26 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     @staticmethod
     def _title(value: object) -> str:
+        """Turn a machine label into title-cased words.
+
+        Args:
+            value: Label to stringify; falsey values become empty text.
+
+        Returns:
+            Title-cased text with underscores and hyphens replaced by spaces.
+        """
         return str(value or "").replace("_", " ").replace("-", " ").title()
 
     @staticmethod
     def _family_bucket(asp: dict[str, Any]) -> str:
+        """Collapse panel-prefixed assay families into a shared navigation bucket.
+
+        Args:
+            asp: Assay document with optional asp_family.
+
+        Returns:
+            Stripped lowercase family, panel for panel prefixes, or assay when blank.
+        """
         family = str(asp.get("asp_family") or "").strip().lower()
         if family.startswith("panel"):
             return "panel"
@@ -646,15 +760,40 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     @staticmethod
     def _aspc_subpanel_id(aspc: dict[str, Any] | None) -> str:
+        """Read a nonblank configuration subpanel with the base ID as default.
+
+        Args:
+            aspc: Configuration document, or None.
+
+        Returns:
+            Stripped subpanel ID or SUBPANEL_BASE_ID.
+        """
         return str((aspc or {}).get("subpanel_id") or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID
 
     @staticmethod
     def _aspc_catalog(aspc: dict[str, Any] | None) -> dict[str, Any]:
+        """Extract dictionary-shaped catalog settings from a configuration.
+
+        Args:
+            aspc: Configuration document, or None.
+
+        Returns:
+            Stored catalog mapping, or an empty mapping when absent or malformed.
+        """
         catalog = (aspc or {}).get("catalog")
         return catalog if isinstance(catalog, dict) else {}
 
     @classmethod
     def _category_key(cls, asp: dict[str, Any], aspc: dict[str, Any] | None = None) -> str:
+        """Compose catalog identity from assay family, group, ID, and subpanel.
+
+        Args:
+            asp: Assay identity and grouping fields.
+            aspc: Optional configuration supplying the subpanel; None uses base.
+
+        Returns:
+            Four components joined by double colons, with unassigned for a blank group.
+        """
         return "::".join(
             [
                 cls._family_bucket(asp),
@@ -666,16 +805,40 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     @staticmethod
     def _unique(values: list[Any]) -> list[str]:
+        """Stringify and deduplicate nonblank values without changing their order.
+
+        Args:
+            values: Values converted to stripped strings, including None as literal text.
+
+        Returns:
+            Distinct nonempty strings in first-occurrence order.
+        """
         return list(dict.fromkeys(str(value).strip() for value in values if str(value).strip()))
 
     @classmethod
     def _aspc_available_analysis(cls, aspc: dict[str, Any] | None) -> list[str]:
+        """Read distinct nonblank analysis types from a configuration.
+
+        Args:
+            aspc: Configuration with optional analysis_types; None yields no types.
+
+        Returns:
+            Stripped analysis names in stored order without case normalization.
+        """
         if not aspc:
             return []
         return cls._unique(list(aspc.get("analysis_types") or []))
 
     @classmethod
     def _aspc_report_sections(cls, aspc: dict[str, Any] | None) -> list[str]:
+        """Read distinct reporting section names from dictionary-shaped settings.
+
+        Args:
+            aspc: Configuration with optional reporting settings; None yields no sections.
+
+        Returns:
+            Nonblank stripped names in stored order without case normalization.
+        """
         if not aspc:
             return []
         reporting = aspc.get("reporting") if isinstance(aspc.get("reporting"), dict) else {}
@@ -691,6 +854,19 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         gene_lists: list[dict[str, Any]],
         overlay: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Build a collection-derived category with optional center presentation overrides.
+
+        Args:
+            asp: Active assay supplying identity, platform, and default labels.
+            aspc: Optional configuration supplying subpanel and reporting analyses.
+            family: Navigation family bucket.
+            assay_group: Navigation assay group.
+            gene_lists: Public lists selected for this assay/subpanel.
+            overlay: Optional center metadata used to locate category and list overrides.
+
+        Returns:
+            Category with an all-covered-genes entry followed by named list entries.
+        """
         asp_id = str(asp.get("asp_id") or "")
         subpanel_id = self._aspc_subpanel_id(aspc)
         catalog_id = self._category_key(asp, aspc)
@@ -791,6 +967,15 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
     def _group_isgls_by_asp_and_subpanel(
         isgls: list[dict[str, Any]],
     ) -> dict[str, dict[str, list[dict[str, Any]]]]:
+        """Index public lists under every associated assay and diagnosis subpanel.
+
+        Args:
+            isgls: List documents with asp_ids and diagnosis IDs; absent diagnoses use base.
+
+        Returns:
+            Assay/subpanel mappings of shallow document copies sorted by display name,
+            name, or identifier.
+        """
         grouped: dict[str, dict[str, list[dict[str, Any]]]] = {}
         for isgl in isgls or []:
             diagnosis_ids = [
@@ -815,6 +1000,15 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
     def _isgls_for_catalog_subpanel(
         isgls_by_subpanel: dict[str, list[dict[str, Any]]], subpanel_id: str
     ) -> list[dict[str, Any]]:
+        """Select subpanel lists followed by base lists, keeping each list ID once.
+
+        Args:
+            isgls_by_subpanel: Lists grouped under diagnosis/base subpanel IDs.
+            subpanel_id: Requested subpanel; base does not append itself twice.
+
+        Returns:
+            First document for each nonblank isgl_id in selection order.
+        """
         selected = list(isgls_by_subpanel.get(subpanel_id, []))
         if subpanel_id != SUBPANEL_BASE_ID:
             selected.extend(isgls_by_subpanel.get(SUBPANEL_BASE_ID, []))

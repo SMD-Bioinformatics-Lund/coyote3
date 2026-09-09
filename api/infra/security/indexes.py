@@ -125,6 +125,18 @@ def ensure_security_indexes(
 def _create_index(
     collection: Any, fields: list[tuple[str, int]], *, name: str, logger, **kwargs
 ) -> None:
+    """Attempt to create a security index and log MongoDB failures.
+
+    Args:
+        collection: Collection receiving the index.
+        fields: Ordered field and direction pairs.
+        name: Explicit index name.
+        logger: Destination for index-creation warnings.
+        **kwargs: Additional options forwarded to ``create_index``.
+
+    Notes:
+        PyMongo errors are logged and suppressed; other exceptions propagate.
+    """
     try:
         collection.create_index(fields, name=name, **kwargs)
     except PyMongoError as exc:

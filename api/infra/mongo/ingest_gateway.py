@@ -59,6 +59,11 @@ class IngestCollectionGateway:
         )
 
     def __init__(self, *, collections: dict[str, Any]) -> None:
+        """Copy the mapping of collection names permitted for ingestion.
+
+        Args:
+            collections: Ingest names mapped to MongoDB collection handles.
+        """
         self._collections = dict(collections)
 
     def collection(self, name: str) -> Any:
@@ -94,6 +99,21 @@ class IngestCollectionGateway:
             )
 
     def run_collection_transaction(self, name, operation):
+        """Run a transaction on the client owning a named ingest collection.
+
+        Args:
+            name: Configured ingest collection name.
+            operation: Callback receiving the transaction's session.
+
+        Returns:
+            The callback's result after successful transaction completion.
+
+        Raises:
+            ValueError: If the collection name is not configured.
+
+        Notes:
+            Transaction failures propagate from the shared transaction runner.
+        """
         return run_transaction(self.collection(name).database.client, operation)
 
     def insert_documents(self, name, documents, *, ignore_duplicates=False, record_completion=None):
@@ -107,6 +127,15 @@ class IngestCollectionGateway:
             self.validate_completion_target(name)
 
         def payload(ids):
+            """Build an ingest receipt from the successfully inserted identifiers.
+
+            Args:
+                ids: Serialized identifiers from the insertion batch.
+
+            Returns:
+                Status, collection, and inserted count, plus an inserted ID only
+                when the original batch contained one document and it was inserted.
+            """
             result = {
                 "status": "ok",
                 "collection": name,

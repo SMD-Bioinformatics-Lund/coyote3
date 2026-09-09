@@ -764,6 +764,15 @@ def variant_context_payload(
     tier_by_scope: dict[tuple[str, str | None], int | None] = {}
 
     def classification_tier(classification: dict[str, Any] | None) -> int | None:
+        """Extract a displayable tier from a scoped classification.
+
+        Args:
+            classification: Classification with a class value, or None.
+
+        Returns:
+            Integer tier from one through four, or None for missing, invalid,
+            or out-of-range values.
+        """
         try:
             tier = int((classification or {}).get("class"))
         except (TypeError, ValueError):

@@ -184,6 +184,15 @@ class AppControlsService:
         audit_service: Any | None = None,
         index_conflicts_provider: Any | None = None,
     ) -> None:
+        """Bind runtime controls and audit inspection to their separate databases.
+
+        Args:
+            db: Application database containing the operational controls collection.
+            identity_db: Identity database containing configured audit events.
+            config: Runtime defaults and collection/inspection configuration.
+            audit_service: Optional recorder for administrative control changes.
+            index_conflicts_provider: Optional callable supplying index-conflict details.
+        """
         self.collection = db[OPERATIONAL_COLLECTIONS.app_controls]
         self.audit_collection = identity_db[get_audit_events_collection_name(config)]
         self.config = config

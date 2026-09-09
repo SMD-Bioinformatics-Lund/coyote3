@@ -71,6 +71,17 @@ _OPENAPI_UI_PATHS = frozenset({"/api/v1/docs", "/api/v1/redoc"})
 
 
 def _get_api_limiter() -> RedisFixedWindowRateLimiter | None:
+    """Reuse or rebuild the process-wide limiter for the current cache and settings.
+
+    Returns:
+        The Redis limiter, or None when API_RATE_LIMIT_ENABLED is false. Disabling
+        clears the cached limiter; changed limits, window, or backend rebuild it.
+
+    Raises:
+        RuntimeError: Rate limiting is enabled before the cache is initialized.
+        TypeError: A configured limit or window cannot be passed to int.
+        ValueError: A configured limit or window string is not an integer.
+    """
     global _API_LIMITER, _API_LIMITER_CFG
     enabled = bool(runtime_app.config.get("API_RATE_LIMIT_ENABLED", True))
     if not enabled:
@@ -94,7 +105,16 @@ def _get_api_limiter() -> RedisFixedWindowRateLimiter | None:
 def build_authentication_middleware(
     *, testing: bool, development: bool
 ) -> Callable[[Request, Callable[..., Awaitable[JSONResponse]]], Awaitable[JSONResponse]]:
-    """Build the request middleware that initializes runtime state and enforces API auth."""
+    """Build middleware for runtime initialization and API request protection.
+
+    Args:
+        testing: Select test runtime settings when bootstrap is first required.
+        development: Select development settings unless testing takes precedence.
+
+    Returns:
+        Async middleware enforcing rate limits, authentication, CSRF validation,
+        and module availability, with request-context cleanup and audit logging.
+    """
 
     async def api_authentication_middleware(request: Request, call_next):
         """Initialize request context, auth, and audit metadata.
@@ -308,9 +328,24 @@ def build_authentication_middleware(
 
 
 def build_security_headers_middleware():
-    """Build browser security headers for API and documentation responses."""
+    """Build browser security-header middleware for API and documentation responses.
+
+    Returns:
+        Async middleware that adds missing security headers to downstream responses.
+    """
 
     async def security_headers_middleware(request: Request, call_next):
+        """Add missing browser security headers while preserving downstream values.
+
+        Args:
+            request: Request whose path selects the documentation CSP and whose
+                scheme determines whether HSTS is added.
+            call_next: Awaitable downstream request handler.
+
+        Returns:
+            The same response with default security headers. Documentation pages
+            allow their UI resources; HSTS is added only for HTTPS requests.
+        """
         response = await call_next(request)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
@@ -335,7 +370,20 @@ def build_security_headers_middleware():
 
 
 def _unauthorized_response(*, request: Request, request_id: str, start: float) -> JSONResponse:
-    """Return a standardized unauthenticated API response and emit request audit metadata."""
+    """Build a login-required response and record the rejected request.
+
+    Args:
+        request: Rejected request supplying method, route, and client address.
+        request_id: Correlation ID to include in the response and audit metadata.
+        start: Request start from time.perf_counter(), in seconds.
+
+    Returns:
+        A 401 JSON response with an X-Request-ID header.
+
+    Notes:
+        Emits access logs, metrics, and request audit events, plus a durable
+        session-rejected event when the audit service is initialized.
+    """
     exc = HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
     payload = (
         exc.detail
@@ -396,7 +444,18 @@ def _log_api_request(
     username: str,
     ip: str,
 ) -> None:
-    """Log API requests, suppressing successful health/heartbeat chatter."""
+    """Log requests by status severity, omitting successful health and metrics probes.
+
+    Args:
+        request_id: Correlation ID included in the log message.
+        method: HTTP request method.
+        path: Request URL path, checked against the access-log exclusion set.
+        status_code: Response status; 5xx logs as error, other 4xx as warning,
+            and lower statuses as info unless the path is excluded.
+        duration_ms: Elapsed request time in milliseconds.
+        username: Resolved actor name or anonymous fallback.
+        ip: Client address for the log message.
+    """
     if status_code < 400 and path in _API_ACCESS_LOG_EXCLUDED_PATHS:
         return
     log_fn = (

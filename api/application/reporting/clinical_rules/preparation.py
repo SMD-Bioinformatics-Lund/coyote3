@@ -8,6 +8,16 @@ from api.application.reporting.clinical_rules.facts import PreparedReportContext
 
 
 def _genotype_vaf(variant: dict[str, Any], genotype_type: str) -> float | None:
+    """Read the first matching genotype's AF, with a top-level fallback for cases.
+
+    Args:
+        variant: Variant containing GT records and optional af.
+        genotype_type: Exact GT type to select; only case permits the af fallback.
+
+    Returns:
+        Allele fraction as a float, or None for absent or nonnumeric values.
+        A matching GT with unusable AF does not fall back to top-level af.
+    """
     for genotype in variant.get("GT", []) or []:
         if genotype.get("type") == genotype_type:
             value = genotype.get("AF")
@@ -25,10 +35,28 @@ def _genotype_vaf(variant: dict[str, Any], genotype_type: str) -> float | None:
 
 
 def _selected_csq(variant: dict[str, Any]) -> dict[str, Any]:
+    """Read the selected consequence without choosing a transcript.
+
+    Args:
+        variant: Variant with optional INFO.selected_CSQ.
+
+    Returns:
+        Stored selected consequence, or an empty dictionary when falsey or absent.
+    """
     return (variant.get("INFO") or {}).get("selected_CSQ") or {}
 
 
 def _snv_fact(variant: dict[str, Any]) -> dict[str, Any]:
+    """Project an SNV into rule facts using its already selected consequence.
+
+    Args:
+        variant: Filtered SNV with genotype, classification, and annotation fields.
+
+    Returns:
+        SNV facts with fractional VAFs left unrounded and derived percentages
+        rounded to three decimals; unavailable VAFs remain None. String
+        consequences split on ampersands.
+    """
     csq = _selected_csq(variant)
     gene = csq.get("SYMBOL") or variant.get("symbol") or variant.get("gene")
     case_vaf = _genotype_vaf(variant, "case")
@@ -62,6 +90,15 @@ def _snv_fact(variant: dict[str, Any]) -> dict[str, Any]:
 
 
 def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
+    """Project CNV genes, tier, and effect into rule facts.
+
+    Args:
+        cnv: Filtered CNV with gene dictionaries and optional effect or numeric ratio.
+
+    Returns:
+        CNV facts; gene is populated only for one gene. Without an explicit
+        effect, a positive ratio means gain and a nonpositive ratio means loss.
+    """
     genes = [
         str(gene.get("gene"))
         for gene in cnv.get("genes", []) or []
@@ -82,6 +119,16 @@ def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
 
 
 def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
+    """Project structural genes, selected-call support, and visible annotation text.
+
+    Args:
+        finding: Fusion or translocation with optional calls and annotations.
+        kind: Finding kind stored as both kind and variant_type.
+
+    Returns:
+        Structural facts using explicit genes before MANE/first ANN genes,
+        selected call before first call, and the latest visible text by timestamp string.
+    """
     gene_1 = finding.get("gene1")
     gene_2 = finding.get("gene2")
     if not gene_1 or not gene_2:
@@ -129,6 +176,15 @@ def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
 
 
 def _gene_list_fact(gene_list: dict[str, Any]) -> dict[str, Any]:
+    """Project an applied gene list into the report fact fields.
+
+    Args:
+        gene_list: Applied list document; list_type may be a string or sequence.
+
+    Returns:
+        Identity, version, selection, and gene fields with absent sequences empty
+        and adhoc converted to a boolean.
+    """
     list_type = gene_list.get("list_type") or []
     if isinstance(list_type, str):
         list_type = [list_type]

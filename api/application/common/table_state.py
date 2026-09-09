@@ -61,6 +61,18 @@ def sort_items(
         return list(items)
 
     def compare(left: dict[str, Any], right: dict[str, Any]) -> int:
+        """Compare rows using the enclosing sort specifications and value getter.
+
+        Args:
+            left: First table row.
+            right: Second table row.
+
+        Returns:
+            Negative, zero, or positive ordering, with None values last in either direction.
+
+        Raises:
+            TypeError: Nonmissing values returned by the getter cannot be ordered.
+        """
         for field, direction in specs:
             left_value = value_getter(left, field)
             right_value = value_getter(right, field)

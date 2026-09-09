@@ -59,8 +59,20 @@ def clean_catalog_html(value: str) -> str:
 
 
 class _PublicCatalogTextDoc(_StrictDocBase):
+    """Catalog text base that sanitizes selected HTML fields after validation."""
+
     @model_validator(mode="after")
     def sanitize_public_html(self):
+        """Sanitize designated public HTML fields and string-valued extra fields.
+
+        Returns:
+            This model with description, limitations, public_notes, and extra strings
+            cleaned using the catalog HTML allowlist.
+
+        Notes:
+            Updates model attributes and extra-field storage in place. Other declared
+            presentation fields are not sanitized by this validator.
+        """
         for name in ("description", "limitations", "public_notes"):
             value = getattr(self, name, None)
             if isinstance(value, str):
@@ -92,6 +104,18 @@ class PublicCatalogPresentationDoc(_PublicCatalogTextDoc):
     @field_validator("tat")
     @classmethod
     def validate_turnaround(cls, value: str) -> str:
+        """Validate turnaround text as a positive duration or ascending range.
+
+        Args:
+            value: Blank text or a duration such as 7-10 days; units are lowercase
+                day, week, month, or year in singular or plural form.
+
+        Returns:
+            The stripped text.
+
+        Raises:
+            ValueError: If syntax is invalid, an endpoint is zero, or a range descends.
+        """
         value = value.strip()
         if not value:
             return value
@@ -102,6 +126,8 @@ class PublicCatalogPresentationDoc(_PublicCatalogTextDoc):
 
 
 class PublicCatalogGeneListDoc(PublicCatalogPresentationDoc):
+    """Public gene-list wording with an optional ISGL identifier or presentation key."""
+
     isgl_id: str | None = None
     key: str | None = None
 
@@ -123,6 +149,17 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
     @field_validator("catalog_id", "asp_id", "aspc_id", "subpanel_id", mode="before")
     @classmethod
     def normalize_optional_identifier(cls, value: Any) -> str | None:
+        """Canonicalize an optional catalog, assay, configuration, or subpanel identifier.
+
+        Args:
+            value: Identifier value; null or whitespace-only input means unspecified.
+
+        Returns:
+            The lowercase clinical identifier, or None for unspecified input.
+
+        Raises:
+            ValueError: If a nonblank identifier contains unsupported characters.
+        """
         if value is None or not str(value).strip():
             return None
         return normalize_clinical_identifier(value, label="public catalog identifier")
@@ -147,6 +184,17 @@ class PublicCatalogLayoutDoc(_StrictDocBase):
     @field_validator("order", mode="before")
     @classmethod
     def normalize_order(cls, value: Any) -> list[str]:
+        """Normalize and deduplicate public section ordering keys.
+
+        Args:
+            value: List containing only strings.
+
+        Returns:
+            Stripped lowercase nonblank keys in first-occurrence order.
+
+        Raises:
+            ValueError: If input is not a list of strings.
+        """
         if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
             raise ValueError("order must be a list of section keys")
         values = value
@@ -174,11 +222,31 @@ class PublicAssayCatalogDoc(_StrictCollectionDocBase):
     @field_validator("description")
     @classmethod
     def sanitize_description(cls, value: str) -> str:
+        """Clean catalog description HTML using the catalog allowlist.
+
+        Args:
+            value: Description HTML before sanitization.
+
+        Returns:
+            HTML retaining only allowed tags, attributes, and link protocols.
+        """
         return clean_catalog_html(value)
 
     @field_validator("modalities", mode="before")
     @classmethod
     def normalize_modalities(cls, value: Any) -> dict[str, Any]:
+        """Canonicalize section keys without changing their definitions.
+
+        Args:
+            value: Dictionary mapping section keys to modality definitions.
+
+        Returns:
+            A new mapping with stripped lowercase string keys.
+
+        Raises:
+            ValueError: If input is not a dictionary, a normalized key is blank,
+                or normalization merges distinct keys.
+        """
         if not isinstance(value, dict):
             raise ValueError("modalities must be an object")
         normalized = {str(key).strip().lower(): item for key, item in value.items()}
@@ -198,6 +266,17 @@ class PublicCatalogModalityExport(_StrictDocBase):
     @field_validator("modality")
     @classmethod
     def normalize_modality(cls, value: str) -> str:
+        """Require a nonblank export modality key after normalization.
+
+        Args:
+            value: Modality key before whitespace and case normalization.
+
+        Returns:
+            The stripped lowercase key.
+
+        Raises:
+            ValueError: If the key is blank.
+        """
         normalized = value.strip().lower()
         if not normalized:
             raise ValueError("modality cannot be empty")
@@ -205,6 +284,8 @@ class PublicCatalogModalityExport(_StrictDocBase):
 
 
 class PublicCatalogStatus(str, Enum):
+    """Persisted catalog states from drafting through review and publication."""
+
     DRAFT = "draft"
     SUBMITTED = "submitted"
     APPROVED = "approved"
@@ -213,6 +294,8 @@ class PublicCatalogStatus(str, Enum):
 
 
 class PublicCatalogReviewDoc(_StrictDocBase):
+    """Catalog submission, review decision, and publisher assignment metadata."""
+
     submitted_by: str | None = None
     submitted_at: datetime | None = None
     reviewer: str | None = None
@@ -222,6 +305,8 @@ class PublicCatalogReviewDoc(_StrictDocBase):
 
 
 class PublicCatalogLifecycleEvent(_StrictDocBase):
+    """Catalog lifecycle action with actor, timestamp, and optional reason."""
+
     action: str
     actor: str
     occurred_at: datetime
@@ -251,6 +336,8 @@ class PublicAssayCatalogVersionDoc(_StrictCollectionDocBase):
 
 
 class PublicCatalogRevisionDoc(_StrictCollectionDocBase):
+    """Preserved catalog-version snapshot identified by version ID and revision."""
+
     version_id: str
     revision: int = Field(ge=1)
     document: PublicAssayCatalogVersionDoc

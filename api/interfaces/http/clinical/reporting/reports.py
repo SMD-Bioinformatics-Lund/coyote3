@@ -213,6 +213,8 @@ def _persist_report(
         html: Rendered report HTML.
         snapshot_rows: Snapshot rows extracted from the report.
         created_by: Username saving the report.
+        rule_provenance: Rule-source identity and matched rule IDs to persist
+            with the report, or None when no rule provenance is supplied.
 
     Returns:
         tuple[str, str]: Persisted report object identifier and PDF file path.

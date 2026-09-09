@@ -33,6 +33,15 @@ from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
 
 def _unwrap_optional(annotation: Any) -> Any:
+    """Unwrap a typing.Union that has exactly one non-None member.
+
+    Args:
+        annotation: Field annotation to inspect.
+
+    Returns:
+        The sole non-None member of a matching union, otherwise the annotation
+        unchanged. PEP 604 unions are not explicitly handled.
+    """
     origin = get_origin(annotation)
     if origin is Union:
         args = [arg for arg in get_args(annotation) if arg is not type(None)]
@@ -42,6 +51,15 @@ def _unwrap_optional(annotation: Any) -> Any:
 
 
 def _field_data_type(annotation: Any) -> tuple[str, list[Any] | None]:
+    """Map a field annotation to a managed-form data type and literal choices.
+
+    Args:
+        annotation: Pydantic field annotation before optional unwrapping.
+
+    Returns:
+        A data-type key and, for Literal annotations, a list of choices.
+        Unsupported annotations fall back to text with no choices.
+    """
     inner = _unwrap_optional(annotation)
     origin = get_origin(inner)
 
@@ -66,6 +84,16 @@ def _field_data_type(annotation: Any) -> tuple[str, list[Any] | None]:
 
 
 def _default_display_type(data_type: str, options: list[Any] | None) -> str:
+    """Select the default form control for a data type and available choices.
+
+    Args:
+        data_type: Managed-form type key such as bool, json, or list.
+        options: Selectable values; None and an empty list mean no choices.
+
+    Returns:
+        Checkbox for bool, JSON editor for json, select for nonempty choices,
+        textarea for a choice-free list, or input for other types.
+    """
     if data_type == "bool":
         return "checkbox"
     if data_type == "json":
@@ -970,6 +998,16 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
 
 
 def _section_payload(spec_key: str, fields: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
+    """Group available form fields using a resource's configured sections.
+
+    Args:
+        spec_key: Resource key used to look up section definitions.
+        fields: Available field definitions in display order.
+
+    Returns:
+        Nonempty configured sections in declared order, with unassigned fields
+        under advanced. Resources without section definitions use general.
+    """
     section_spec = RESOURCE_SECTIONS.get(spec_key, [])
     if not section_spec:
         return {"general": list(fields.keys())}

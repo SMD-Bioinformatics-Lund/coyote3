@@ -13,10 +13,14 @@ from api.contracts.schemas.base import _StrictCollectionDocBase
 
 
 class _StrictModel(BaseModel):
+    """Reject undeclared rule fields while accepting field names and aliases."""
+
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 class ClinicalRuleStatus(str, Enum):
+    """Persisted lifecycle states from draft authoring through retirement."""
+
     DRAFT = "draft"
     SUBMITTED = "submitted"
     IN_CLINICAL_REVIEW = "in_clinical_review"
@@ -27,6 +31,8 @@ class ClinicalRuleStatus(str, Enum):
 
 
 class ClinicalRuleOperator(str, Enum):
+    """Predicate operators accepted by the clinical rule syntax."""
+
     EQ = "eq"
     NE = "ne"
     IN = "in"
@@ -44,6 +50,8 @@ class ClinicalRuleOperator(str, Enum):
 
 
 class ClinicalRulePredicate(_StrictModel):
+    """Comparison of one fact path with an operator-specific operand."""
+
     type: Literal["predicate"] = "predicate"
     fact: str
     operator: ClinicalRuleOperator = ClinicalRuleOperator.EQ
@@ -52,6 +60,17 @@ class ClinicalRulePredicate(_StrictModel):
     @field_validator("fact")
     @classmethod
     def _fact_is_present(cls, value: str) -> str:
+        """Strip surrounding whitespace from a required fact path.
+
+        Args:
+            value: Fact path supplied by the rule author.
+
+        Returns:
+            The stripped path.
+
+        Raises:
+            ValueError: If the path is blank.
+        """
         value = value.strip()
         if not value:
             raise ValueError("fact cannot be empty")
@@ -59,6 +78,15 @@ class ClinicalRulePredicate(_StrictModel):
 
     @model_validator(mode="after")
     def _operator_value_contract(self) -> "ClinicalRulePredicate":
+        """Check operand presence and shape for the selected operator.
+
+        Returns:
+            This predicate unchanged.
+
+        Raises:
+            ValueError: If a required operand is null, exists lacks a boolean,
+                a list operator lacks a list, or between lacks two bounds.
+        """
         no_value = {ClinicalRuleOperator.IS_EMPTY, ClinicalRuleOperator.IS_UNKNOWN}
         if self.operator not in no_value and self.value is None:
             raise ValueError(f"operator '{self.operator}' requires a value")
@@ -77,26 +105,36 @@ class ClinicalRulePredicate(_StrictModel):
 
 
 class ClinicalRuleAll(_StrictModel):
+    """Conjunction of at least one child condition."""
+
     type: Literal["all"] = "all"
     children: list["ClinicalCondition"] = Field(min_length=1)
 
 
 class ClinicalRuleAny(_StrictModel):
+    """Disjunction of at least one child condition."""
+
     type: Literal["any"] = "any"
     children: list["ClinicalCondition"] = Field(min_length=1)
 
 
 class ClinicalRuleNot(_StrictModel):
+    """Negation of a single child condition."""
+
     type: Literal["not"] = "not"
     child: "ClinicalCondition"
 
 
 class ClinicalRuleCountComparison(_StrictModel):
+    """Comparison operator and nonnegative target for a collection match count."""
+
     operator: Literal["eq", "ne", "gt", "gte", "lt", "lte"]
     value: int = Field(ge=0)
 
 
 class ClinicalRuleCollectionMatch(_StrictModel):
+    """Quantified condition over a supported collection of report facts."""
+
     type: Literal["collection_match"] = "collection_match"
     collection: Literal["findings", "biomarkers", "applied_gene_lists", "tier_summaries"]
     quantifier: Literal["any", "none", "all", "count"]
@@ -105,6 +143,14 @@ class ClinicalRuleCollectionMatch(_StrictModel):
 
     @model_validator(mode="after")
     def _count_contract(self) -> "ClinicalRuleCollectionMatch":
+        """Require a count comparison exclusively for the count quantifier.
+
+        Returns:
+            This collection condition unchanged.
+
+        Raises:
+            ValueError: If count is absent for count or present for another quantifier.
+        """
         if (self.quantifier == "count") != (self.count is not None):
             raise ValueError("count comparison is required only for the count quantifier")
         return self
@@ -121,11 +167,15 @@ ClinicalCondition = Annotated[
 
 
 class ClinicalTextOutput(_StrictModel):
+    """Nonempty literal text to include in rule output."""
+
     type: Literal["text"] = "text"
     value: str = Field(min_length=1)
 
 
 class ClinicalFactOutput(_StrictModel):
+    """Fact substitution with text formatting and a missing-value policy."""
+
     type: Literal["fact"] = "fact"
     path: str
     formatter: Literal["text", "gene_symbol", "upper", "lower"] = "text"
@@ -133,6 +183,8 @@ class ClinicalFactOutput(_StrictModel):
 
 
 class ClinicalListOutput(_StrictModel):
+    """Fact-list substitution with item formatting and a joining conjunction."""
+
     type: Literal["list"] = "list"
     path: str
     conjunction: str = "and"
@@ -141,6 +193,8 @@ class ClinicalListOutput(_StrictModel):
 
 
 class ClinicalNumberOutput(_StrictModel):
+    """Numeric fact substitution with decimal precision and an optional unit."""
+
     type: Literal["number"] = "number"
     path: str
     precision: int = Field(default=0, ge=0, le=6)
@@ -149,6 +203,8 @@ class ClinicalNumberOutput(_StrictModel):
 
 
 class ClinicalMessageOutput(_StrictModel):
+    """Singular and plural text alternatives selected using a count fact."""
+
     type: Literal["message"] = "message"
     count_path: str
     one: str
@@ -156,12 +212,16 @@ class ClinicalMessageOutput(_StrictModel):
 
 
 class ClinicalRendererOutput(_StrictModel):
+    """Invocation of a named report renderer with an optional source path."""
+
     type: Literal["renderer"] = "renderer"
     name: Literal["dna_report_intro", "tier_summary", "fusion_summary"]
     source: str | None = None
 
 
 class ClinicalParagraphBreakOutput(_StrictModel):
+    """Explicit paragraph boundary in a rule's output sequence."""
+
     type: Literal["paragraph_break"] = "paragraph_break"
 
 
@@ -178,6 +238,8 @@ ClinicalOutputNode = Annotated[
 
 
 class ClinicalRule(_StrictModel):
+    """Ordered, optionally conditional output with rationale and references."""
+
     rule_id: str
     name: str
     order: int = Field(ge=0)
@@ -190,6 +252,17 @@ class ClinicalRule(_StrictModel):
     @field_validator("rule_id", "name")
     @classmethod
     def _nonempty_text(cls, value: str) -> str:
+        """Trim a required rule identifier or display name.
+
+        Args:
+            value: Rule identifier or name before whitespace removal.
+
+        Returns:
+            The stripped text.
+
+        Raises:
+            ValueError: If the text is blank.
+        """
         value = value.strip()
         if not value:
             raise ValueError("rule identity and name cannot be empty")
@@ -197,6 +270,8 @@ class ClinicalRule(_StrictModel):
 
 
 class ClinicalRuleEvaluationScope(_StrictModel):
+    """Select evaluation once, per finding, or per named collection item."""
+
     mode: Literal["once", "each_finding", "each_item"] = "once"
     collection: Literal["findings", "biomarkers", "applied_gene_lists", "tier_summaries"] | None = (
         None
@@ -204,12 +279,22 @@ class ClinicalRuleEvaluationScope(_StrictModel):
 
     @model_validator(mode="after")
     def _collection_contract(self) -> "ClinicalRuleEvaluationScope":
+        """Require a collection only for per-item evaluation.
+
+        Returns:
+            This evaluation scope unchanged.
+
+        Raises:
+            ValueError: If each_item lacks a collection or another mode names one.
+        """
         if (self.mode == "each_item") != (self.collection is not None):
             raise ValueError("collection is required only for each_item evaluation")
         return self
 
 
 class ClinicalRuleBlock(_StrictModel):
+    """Rules grouped by report section, evaluation scope, and match strategy."""
+
     block_id: str
     name: str
     analysis: str | None = None
@@ -223,6 +308,14 @@ class ClinicalRuleBlock(_StrictModel):
 
     @model_validator(mode="after")
     def _unique_rules(self) -> "ClinicalRuleBlock":
+        """Check that rule identifiers and order values are unique in this block.
+
+        Returns:
+            This block unchanged.
+
+        Raises:
+            ValueError: If rule identifiers or ordering values repeat.
+        """
         ids = [rule.rule_id for rule in self.rules]
         if len(ids) != len(set(ids)):
             raise ValueError(f"block '{self.block_id}' contains duplicate rule IDs")
@@ -233,6 +326,8 @@ class ClinicalRuleBlock(_StrictModel):
 
 
 class ClinicalRuleScope(_StrictModel):
+    """Assay, subpanel, analyte, and language addressed by a rule set."""
+
     asp_id: str
     subpanel_id: str
     analyte: Literal["dna", "rna"]
@@ -241,19 +336,42 @@ class ClinicalRuleScope(_StrictModel):
     @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod
     def _normalize_identity(cls, value: Any) -> str:
+        """Canonicalize an assay or subpanel identifier.
+
+        Args:
+            value: Identifier accepted by the clinical identifier normalizer.
+
+        Returns:
+            The stripped, lowercase clinical identifier.
+
+        Raises:
+            ValueError: If the identifier is empty or has disallowed characters.
+        """
         return normalize_clinical_identifier(value, label="clinical rule scope")
 
     @field_validator("language")
     @classmethod
     def _normalize_language(cls, value: str) -> str:
+        """Strip and lowercase the language tag without checking locale support.
+
+        Args:
+            value: Language tag supplied for the scope.
+
+        Returns:
+            The stripped, lowercase tag.
+        """
         return value.strip().lower()
 
 
 class ClinicalAnalysisDeclaration(_StrictModel):
+    """Declare whether an analysis contributes narrative text."""
+
     narrative: Literal["enabled", "none"]
 
 
 class ClinicalRuleReview(_StrictModel):
+    """Submission, reviewer, publisher, and clinical decision metadata."""
+
     submitted_by: str | None = None
     submitted_at: datetime | None = None
     clinical_reviewer: str | None = None
@@ -263,6 +381,8 @@ class ClinicalRuleReview(_StrictModel):
 
 
 class ClinicalRuleLifecycleEvent(_StrictModel):
+    """Actor, timestamp, and optional reason for a rule lifecycle action."""
+
     action: str
     actor: str
     occurred_at: datetime
@@ -280,6 +400,8 @@ class ClinicalRuleProvenance(_StrictModel):
 
 
 class ClinicalRuleTestCase(_StrictModel):
+    """Authored facts and expected matched rules and rendered sections."""
+
     test_id: str
     name: str
     facts: dict[str, Any]
@@ -321,6 +443,16 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _document_invariants(self) -> "ClinicalRuleSetDoc":
+        """Check scope identity, global rule uniqueness, and publication metadata.
+
+        Returns:
+            This rule set unchanged.
+
+        Raises:
+            ValueError: If the ID differs from assay/subpanel/language, block or
+                rule IDs repeat, publication metadata is missing, or an
+                unpublished rule set is active.
+        """
         expected_id = f"{self.scope.asp_id}__{self.scope.subpanel_id}__{self.scope.language}"
         if self.rule_set_id != expected_id:
             raise ValueError(f"rule_set_id must be '{expected_id}'")
@@ -339,6 +471,8 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
 
 
 class ClinicalRuleRevisionDoc(_StrictCollectionDocBase):
+    """Hash-linked audit revision preserving a complete rule-set document."""
+
     rule_set_oid: str
     rule_set_id: str
     content_version: int = Field(ge=1)
@@ -353,6 +487,15 @@ class ClinicalRuleRevisionDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _snapshot_identity_matches_document(self) -> "ClinicalRuleRevisionDoc":
+        """Check revision identifiers against the preserved rule-set snapshot.
+
+        Returns:
+            This audit revision unchanged.
+
+        Raises:
+            ValueError: If the snapshot lacks an ID or its ID, rule-set ID,
+                content version, or revision differs from the revision envelope.
+        """
         if self.document.id_ is None or self.rule_set_oid != str(self.document.id_):
             raise ValueError("revision rule_set_oid must match document._id")
         if self.rule_set_id != self.document.rule_set_id:
@@ -365,6 +508,8 @@ class ClinicalRuleRevisionDoc(_StrictCollectionDocBase):
 
 
 class ClinicalRuleSourceRef(_StrictModel):
+    """Version, hash, and scope metadata identifying evaluated rule content."""
+
     rule_set_oid: str
     rule_set_id: str
     schema_version: int
@@ -375,6 +520,8 @@ class ClinicalRuleSourceRef(_StrictModel):
 
 
 class ClinicalConditionTraceNode(_StrictModel):
+    """Condition match result with missing facts and recursive child traces."""
+
     type: str
     label: str
     matched: bool
@@ -383,6 +530,8 @@ class ClinicalConditionTraceNode(_StrictModel):
 
 
 class ClinicalRuleTraceEntry(_StrictModel):
+    """Match and rendering evidence for one rule and optional collection item."""
+
     block_id: str
     rule_id: str
     section: str
@@ -394,6 +543,8 @@ class ClinicalRuleTraceEntry(_StrictModel):
 
 
 class ClinicalRuleEvaluation(_StrictModel):
+    """Rendered sections, heading choices, and traces tied to a rule source."""
+
     source: ClinicalRuleSourceRef
     sections: dict[str, list[str]] = Field(default_factory=dict)
     section_headings: dict[str, bool] = Field(default_factory=dict)
@@ -401,6 +552,8 @@ class ClinicalRuleEvaluation(_StrictModel):
 
 
 class ClinicalRuleDraftCreate(_StrictModel):
+    """Draft creation inputs for a new scope or a copied source version."""
+
     source_version_id: str | None = None
     scope: ClinicalRuleScope | None = None
     name: str | None = None
@@ -416,6 +569,8 @@ class ClinicalRuleImportRequest(_StrictModel):
 
 
 class ClinicalRuleDraftUpdate(_StrictModel):
+    """Revision-qualified draft edits with optional authored content fields."""
+
     revision: int = Field(ge=1)
     name: str | None = Field(default=None, min_length=1, max_length=160)
     analysis_declarations: dict[str, ClinicalAnalysisDeclaration] | None = None
@@ -427,27 +582,37 @@ class ClinicalRuleDraftUpdate(_StrictModel):
 
 
 class ClinicalRuleDecision(_StrictModel):
+    """Clinical approval or rejection with a reason and optional publisher."""
+
     reason: str = Field(min_length=1, max_length=1000)
     approve: bool
     publisher: str | None = None
 
 
 class ClinicalRuleTransition(_StrictModel):
+    """Reason and optional assignee for a requested lifecycle transition."""
+
     reason: str = Field(default="", max_length=1000)
     assignee: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class ClinicalRulePreviewRequest(_StrictModel):
+    """Caller-supplied facts for evaluating a rule-set preview."""
+
     facts: dict[str, Any]
 
 
 class ClinicalRuleValidationResult(_StrictModel):
+    """Validation outcome with separate errors and advisory warnings."""
+
     valid: bool
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 
 class ClinicalRuleSetListPayload(_StrictModel):
+    """Rule-set page with one-based pagination and total item count."""
+
     items: list[ClinicalRuleSetDoc]
     page: int = Field(ge=1)
     per_page: int = Field(ge=1)
@@ -455,14 +620,20 @@ class ClinicalRuleSetListPayload(_StrictModel):
 
 
 class ClinicalRuleSetVersionsPayload(_StrictModel):
+    """Rule-set documents returned by a version listing."""
+
     items: list[ClinicalRuleSetDoc]
 
 
 class ClinicalRuleRevisionsPayload(_StrictModel):
+    """Preserved audit revisions returned for a rule set."""
+
     items: list[ClinicalRuleRevisionDoc]
 
 
 class ClinicalRuleFactPayload(_StrictModel):
+    """Authoring metadata describing a fact's type, operators, and scopes."""
+
     path: str
     label: str
     group: str
@@ -476,16 +647,22 @@ class ClinicalRuleFactPayload(_StrictModel):
 
 
 class ClinicalRuleFactsPayload(_StrictModel):
+    """Available fact definitions for clinical rule authoring."""
+
     items: list[ClinicalRuleFactPayload]
 
 
 class ClinicalRuleAssayOption(_StrictModel):
+    """Assay identity, label, and analyte offered to rule authors."""
+
     asp_id: str
     display_name: str
     analyte: Literal["dna", "rna"]
 
 
 class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
+    """Assays, condition choices, reviewers, and publishers for authoring."""
+
     assays: list[ClinicalRuleAssayOption]
     condition_values: dict[str, list[str]] = Field(default_factory=dict)
     clinical_reviewers: list[dict[str, str]] = Field(default_factory=list)
@@ -493,6 +670,8 @@ class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
 
 
 class ClinicalRuleTestSample(_StrictModel):
+    """Sample identity and assay context offered for rule preview testing."""
+
     id: str
     name: str
     asp_id: str | None = None
@@ -502,6 +681,8 @@ class ClinicalRuleTestSample(_StrictModel):
 
 
 class ClinicalRuleTestSamplesPayload(_StrictModel):
+    """Paginated sample choices for testing clinical rule sets."""
+
     items: list[ClinicalRuleTestSample]
     page: int
     per_page: int
@@ -509,6 +690,8 @@ class ClinicalRuleTestSamplesPayload(_StrictModel):
 
 
 class ClinicalRuleSamplePreviewPayload(_StrictModel):
+    """Nonpersisted evaluation with sample, rule-set, and summary context."""
+
     sample: dict[str, Any]
     rule_set: dict[str, Any]
     summary: str

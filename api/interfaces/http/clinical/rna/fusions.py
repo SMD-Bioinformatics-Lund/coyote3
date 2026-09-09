@@ -38,6 +38,23 @@ def _require_rna_sample(sample: dict, sample_id: str) -> None:
 def _fusion_flag_change(
     *, sample_id: str, fusion_id: str, user: ApiUser, service: RnaService, flag: str, apply: bool
 ):
+    """Check sample access, change a fusion flag, and describe the change.
+
+    Args:
+        sample_id: Sample identifier used for access validation and the response.
+        fusion_id: Fusion identifier passed to the mutation service.
+        user: User whose access to the sample is checked before mutation.
+        service: RNA service that applies the flag change.
+        flag: Flag name forwarded unchanged to the service.
+        apply: True to mark the flag; False to unmark it.
+
+    Returns:
+        Serialized sample-change payload identifying the fusion and mark/unmark
+        action, with operation metadata when supplied by the service.
+
+    Raises:
+        AppError: If sample lookup or access validation fails before mutation.
+    """
     action = f"{'mark' if apply else 'unmark'}_{flag}"
     return resource_change(
         sample_id,

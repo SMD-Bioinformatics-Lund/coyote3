@@ -17,6 +17,8 @@ from api.domain.core.annotation_identity import (
 
 
 class AnnotationDoc(_StrictCollectionDocBase):
+    """Classification or text annotation with nomenclature-specific finding identity."""
+
     variant: str
     hgvsp: str | None = None
     hgvsc: str | None = None
@@ -38,6 +40,18 @@ class AnnotationDoc(_StrictCollectionDocBase):
     @model_validator(mode="before")
     @classmethod
     def reject_unrelated_identity_fields(cls, value: Any) -> Any:
+        """Reject identity fields that do not belong to the selected nomenclature.
+
+        Args:
+            value: Raw annotation input; non-dictionaries pass through.
+
+        Returns:
+            The input unchanged for allowed fields or an unrecognized nomenclature.
+
+        Raises:
+            ValueError: If a known nomenclature includes an unrelated identity key,
+                including one whose value is null.
+        """
         if not isinstance(value, dict):
             return value
         nomenclature = str(value.get("nomenclature") or "").strip().lower()
@@ -55,6 +69,19 @@ class AnnotationDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def validate_annotation_shape(self):
+        """Check annotation content exclusivity and nomenclature-specific key presence.
+
+        Returns:
+            This annotation unchanged.
+
+        Raises:
+            ValueError: If both or neither of class and text are nonnull, required
+                identity keys were not supplied, or unrelated identity keys were supplied.
+
+        Notes:
+            Required identity keys may hold null where their field types allow it;
+            presence is checked separately from value completeness.
+        """
         if (self.class_ is None and self.text is None) or (
             self.class_ is not None and self.text is not None
         ):
@@ -114,6 +141,14 @@ class VepAnnoTranscriptDoc(_DocBase):
     @field_validator("Consequence", "CLIN_SIG", mode="before")
     @classmethod
     def normalize_term_lists(cls, value: Any) -> list[str]:
+        """Split ampersand-delimited annotation terms and remove blanks and duplicates.
+
+        Args:
+            value: Scalar or iterable of terms; null and empty input give no terms.
+
+        Returns:
+            Stripped terms in first-occurrence order.
+        """
         return normalize_ampersand_terms(value)
 
 
@@ -134,6 +169,8 @@ class AnnoVepDoc(_DocBase):
 
 
 class BrcaExchangeDoc(_DocBase):
+    """BRCA Exchange alleles, ENIGMA interpretation, and retained source metadata."""
+
     id: str
 
     chr: str
@@ -162,11 +199,37 @@ class BrcaExchangeDoc(_DocBase):
     @field_validator("pos", mode="before")
     @classmethod
     def convert_pos_to_int(cls, v):
+        """Convert the position using Python integer conversion.
+
+        Args:
+            v: Numeric value or integer text supplied by the source.
+
+        Returns:
+            The integer conversion of the input.
+
+        Raises:
+            ValueError: If the input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         return int(v)
 
     @field_validator("pos38", mode="before")
     @classmethod
     def convert_optional_pos_to_int(cls, v):
+        """Parse an optional GRCh38 position as an integer.
+
+        Args:
+            v: Numeric value or integer text; None and the empty string mean missing.
+
+        Returns:
+            The integer conversion, or None for missing input.
+
+        Raises:
+            ValueError: If nonempty input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         if v is None or v == "":
             return None
         return int(v)
@@ -174,6 +237,17 @@ class BrcaExchangeDoc(_DocBase):
     @field_validator("chr", "chr38")
     @classmethod
     def validate_chr(cls, v):
+        """Validate an unprefixed human chromosome and map M to MT.
+
+        Args:
+            v: Chromosome text: 1 through 22, X, Y, M, or MT; None or empty is missing.
+
+        Returns:
+            The chromosome, with M replaced by MT, or None for missing input.
+
+        Raises:
+            ValueError: If the chromosome is outside the accepted case-sensitive set.
+        """
         if v is None or v == "":
             return None
         # allow numeric chromosomes + X/Y
@@ -185,6 +259,8 @@ class BrcaExchangeDoc(_DocBase):
 
 
 class CivicGenesDoc(_DocBase):
+    """CIViC gene record with review timestamp, aliases, and source identifiers."""
+
     gene_id: int
     entrez_id: int | None = None
     name: str
@@ -202,11 +278,37 @@ class CivicGenesDoc(_DocBase):
     @field_validator("gene_id", mode="before")
     @classmethod
     def convert_id(cls, v):
+        """Convert the CIViC gene identifier using Python integer conversion.
+
+        Args:
+            v: Numeric value or integer text supplied by the source.
+
+        Returns:
+            The integer conversion of the input.
+
+        Raises:
+            ValueError: If the input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         return int(v)
 
     @field_validator("entrez_id", mode="before")
     @classmethod
     def convert_optional_id(cls, v):
+        """Parse an optional Entrez identifier as an integer.
+
+        Args:
+            v: Numeric value or integer text; None and the empty string mean missing.
+
+        Returns:
+            The integer conversion, or None for missing input.
+
+        Raises:
+            ValueError: If nonempty input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         if v is None or v == "":
             return None
         return int(v)
@@ -214,6 +316,19 @@ class CivicGenesDoc(_DocBase):
     @field_validator("last_review_date", mode="before")
     @classmethod
     def parse_datetime(cls, v):
+        """Parse a CIViC review timestamp from ISO or legacy export text.
+
+        Args:
+            v: Datetime or timestamp text; ISO Z is translated to the UTC offset.
+
+        Returns:
+            Existing datetimes unchanged, otherwise a parsed datetime. No timezone
+            is assigned to inputs that parse without one.
+
+        Raises:
+            ValueError: If neither ISO format nor the legacy year-month-day, time,
+                and timezone-name format can parse the text.
+        """
         if isinstance(v, datetime):
             return v
         value = str(v).strip()
@@ -226,12 +341,28 @@ class CivicGenesDoc(_DocBase):
     @field_validator("gene_civic_url")
     @classmethod
     def validate_url(cls, v):
+        """Require the literal lowercase http prefix on a CIViC link.
+
+        Args:
+            v: Source URL text.
+
+        Returns:
+            The input unchanged.
+
+        Raises:
+            ValueError: If the text does not start with http.
+
+        Notes:
+            No URL structure, host, or reachability check is performed.
+        """
         if not v.startswith("http"):
             raise ValueError("Invalid URL")
         return v
 
 
 class CivicVariantsDoc(_DocBase):
+    """CIViC variant or fusion record with coordinates, HGVS, and review metadata."""
+
     variant_id: int
     entrez_id: int | None = None
 
@@ -287,6 +418,19 @@ class CivicVariantsDoc(_DocBase):
     )
     @classmethod
     def convert_variant_id(cls, v):
+        """Convert the CIViC variant identifier using Python integer conversion.
+
+        Args:
+            v: Numeric value or integer text supplied by the source.
+
+        Returns:
+            The integer conversion of the input.
+
+        Raises:
+            ValueError: If the input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         return int(v)
 
     @field_validator(
@@ -302,6 +446,19 @@ class CivicVariantsDoc(_DocBase):
     )
     @classmethod
     def convert_optional_int_fields(cls, v):
+        """Parse an optional coordinate, identifier, or Ensembl version as an integer.
+
+        Args:
+            v: Numeric value or integer text; None and the empty string mean missing.
+
+        Returns:
+            The integer conversion, or None for missing input.
+
+        Raises:
+            ValueError: If nonempty input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         if v is None or v == "":
             return None
         return int(v)
@@ -309,6 +466,18 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("civic_actionability_score", mode="before")
     @classmethod
     def convert_score(cls, v):
+        """Parse an optional CIViC actionability score.
+
+        Args:
+            v: Numeric score or text; None and the empty string mean missing.
+
+        Returns:
+            A float score, or None for missing input.
+
+        Raises:
+            ValueError: If nonempty text cannot be parsed as a float.
+            TypeError: If the input does not support float conversion.
+        """
         if v is None or v == "":
             return None
         return float(v)
@@ -316,6 +485,15 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("variant_types", "variant_groups", "hgvs_expressions", mode="before")
     @classmethod
     def convert_list_fields(cls, v):
+        """Split comma-delimited CIViC types, groups, or HGVS expressions.
+
+        Args:
+            v: Source text or existing list; None and the empty string mean no entries.
+
+        Returns:
+            Stripped nonblank tokens for text, an empty list for missing input,
+            or other input unchanged for field validation.
+        """
         if v is None or v == "":
             return []
         if isinstance(v, str):
@@ -325,6 +503,19 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("last_review_date", mode="before")
     @classmethod
     def parse_datetime(cls, v):
+        """Parse a CIViC review timestamp from ISO or legacy export text.
+
+        Args:
+            v: Datetime or timestamp text; ISO Z is translated to the UTC offset.
+
+        Returns:
+            Existing datetimes unchanged, otherwise a parsed datetime. No timezone
+            is assigned to inputs that parse without one.
+
+        Raises:
+            ValueError: If neither ISO format nor the legacy year-month-day, time,
+                and timezone-name format can parse the text.
+        """
         if isinstance(v, datetime):
             return v
         value = str(v).strip()
@@ -337,6 +528,20 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("variant_civic_url")
     @classmethod
     def validate_url(cls, v):
+        """Require the literal lowercase http prefix on a CIViC link.
+
+        Args:
+            v: Source URL text.
+
+        Returns:
+            The input unchanged.
+
+        Raises:
+            ValueError: If the text does not start with http.
+
+        Notes:
+            No URL structure, host, or reachability check is performed.
+        """
         if not v.startswith("http"):
             raise ValueError("Invalid URL")
         return v
@@ -344,6 +549,17 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("chromosome", "chromosome2")
     @classmethod
     def validate_chr(cls, v):
+        """Validate an unprefixed human chromosome and map M to MT.
+
+        Args:
+            v: Chromosome text: 1 through 22, X, Y, M, or MT; None or empty is missing.
+
+        Returns:
+            The chromosome, with M replaced by MT, or None for missing input.
+
+        Raises:
+            ValueError: If the chromosome is outside the accepted case-sensitive set.
+        """
         if v is None or v == "":
             return None
         allowed = {str(i) for i in range(1, 23)} | {"X", "Y", "MT", "M"}
@@ -355,6 +571,8 @@ class CivicVariantsDoc(_DocBase):
 
 
 class CosmicDoc(_DocBase):
+    """COSMIC variant interval with named occurrence counts."""
+
     id: str
 
     chr: str
@@ -366,6 +584,17 @@ class CosmicDoc(_DocBase):
     @field_validator("chr", mode="before")
     @classmethod
     def validate_chr(cls, v):
+        """Normalize a COSMIC chromosome label and validate the human chromosome set.
+
+        Args:
+            v: Chromosome value, optionally prefixed by chr in any case.
+
+        Returns:
+            Stripped uppercase chromosome without the prefix, mapping M to MT.
+
+        Raises:
+            ValueError: If the result is not 1 through 22, X, Y, M, or MT.
+        """
         v = str(v).strip().upper().removeprefix("CHR")
         allowed = {str(i) for i in range(1, 23)} | {"X", "Y", "MT", "M"}
         if v not in allowed:
@@ -377,6 +606,17 @@ class CosmicDoc(_DocBase):
     @field_validator("start", "end")
     @classmethod
     def validate_positions(cls, v):
+        """Reject negative interval coordinates while allowing zero.
+
+        Args:
+            v: Parsed start or end coordinate.
+
+        Returns:
+            The coordinate unchanged.
+
+        Raises:
+            ValueError: If the coordinate is negative.
+        """
         if v < 0:
             raise ValueError("Position must be positive")
         return v
@@ -384,6 +624,17 @@ class CosmicDoc(_DocBase):
     @field_validator("cnt")
     @classmethod
     def validate_counts(cls, v):
+        """Check named COSMIC occurrence counts.
+
+        Args:
+            v: Mapping from count labels to integer counts.
+
+        Returns:
+            The mapping unchanged.
+
+        Raises:
+            ValueError: If a key is not a string or a count is not a nonnegative integer.
+        """
         for k, val in v.items():
             if not isinstance(k, str):
                 raise ValueError("cnt keys must be strings")
@@ -415,6 +666,8 @@ class KnowledgebaseReleaseDoc(_DocBase):
 
 
 class HgncAdditionalTranscriptInfoDoc(_DocBase):
+    """Transcript bounds, length, and start-site metadata attached to an HGNC gene."""
+
     start: int
     end: int
     length: int
@@ -422,6 +675,8 @@ class HgncAdditionalTranscriptInfoDoc(_DocBase):
 
 
 class HgncGenesDoc(_DocBase):
+    """HGNC gene nomenclature with genomic, cross-reference, and transcript metadata."""
+
     hgnc_id: str
     hgnc_symbol: str
     gene_name: str
@@ -474,12 +729,25 @@ class HgncGenesDoc(_DocBase):
 
 
 class HpaExprDoc(_DocBase):
+    """Tissue expression values associated with an HPA transcript identifier."""
+
     tid: str
     expr: dict[str, float] = Field(default_factory=dict)
 
     @field_validator("expr")
     @classmethod
     def validate_expr(cls, v):
+        """Check tissue labels and reject nonnumeric or negative expression values.
+
+        Args:
+            v: Mapping of tissue names to expression measurements.
+
+        Returns:
+            The expression mapping unchanged.
+
+        Raises:
+            ValueError: If a tissue key is not a string or a value is nonnumeric or negative.
+        """
         for tissue, value in v.items():
             if not isinstance(tissue, str):
                 raise ValueError("All expr keys must be strings")
@@ -491,6 +759,8 @@ class HpaExprDoc(_DocBase):
 
 
 class IarcTp53Doc(_DocBase):
+    """TP53 variant evidence with functional annotations and cohort counts."""
+
     id: int
     var: str
 
@@ -520,6 +790,19 @@ class IarcTp53Doc(_DocBase):
     @field_validator("id", mode="before")
     @classmethod
     def convert_id(cls, v):
+        """Convert the TP53 record identifier using Python integer conversion.
+
+        Args:
+            v: Numeric value or integer text supplied by the source.
+
+        Returns:
+            The integer conversion of the input.
+
+        Raises:
+            ValueError: If the input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         return int(v)
 
     @field_validator(
@@ -527,12 +810,27 @@ class IarcTp53Doc(_DocBase):
     )
     @classmethod
     def convert_optional_int(cls, v):
+        """Parse an optional cohort count as an integer.
+
+        Args:
+            v: Numeric value or integer text; None and the empty string mean missing.
+
+        Returns:
+            The integer conversion, or None for missing input.
+
+        Raises:
+            ValueError: If nonempty input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         if v is None or v == "":
             return None
         return int(v)
 
 
 class ManeSelectDoc(_DocBase):
+    """Gene mapping between Ensembl and RefSeq MANE transcript identifiers."""
+
     gene: str
     enst: str
     refseq: str
@@ -540,18 +838,42 @@ class ManeSelectDoc(_DocBase):
 
     @field_validator("ensg")
     def validate_ensg(cls, v):
+        """Check the Ensembl gene identifier pattern.
+
+        Args:
+            v: Identifier beginning with ENSG followed by digits, without a version suffix.
+
+        Returns:
+            The identifier unchanged.
+
+        Raises:
+            ValueError: If the ENSG-plus-digits pattern does not match.
+        """
         if not re.match(r"^ENSG\d+$", v):
             raise ValueError("Invalid ENSG format")
         return v
 
     @field_validator("enst")
     def validate_enst(cls, v):
+        """Check the Ensembl transcript identifier pattern.
+
+        Args:
+            v: Identifier beginning with ENST followed by digits, without a version suffix.
+
+        Returns:
+            The identifier unchanged.
+
+        Raises:
+            ValueError: If the ENST-plus-digits pattern does not match.
+        """
         if not re.match(r"^ENST\d+$", v):
             raise ValueError("Invalid ENST format")
         return v
 
 
 class OncoKbActionableDoc(_DocBase):
+    """OncoKB alteration evidence with drug, cancer-type, and evidence-level fields."""
+
     RefSeq: str
     Alteration: str
     Isoform: str
@@ -569,15 +891,32 @@ class OncoKbActionableDoc(_DocBase):
     @field_validator("Entrez_Gene_ID", mode="before")
     @classmethod
     def convert_entrez(cls, v):
+        """Convert the Entrez gene identifier using Python integer conversion.
+
+        Args:
+            v: Numeric value or integer text supplied by the source.
+
+        Returns:
+            The integer conversion of the input.
+
+        Raises:
+            ValueError: If the input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         return int(v)
 
 
 class OncoKbGenesDoc(_DocBase):
+    """OncoKB gene name and descriptive text."""
+
     name: str
     description: str
 
 
 class OncoKbPublicDoc(_DocBase):
+    """Sample-independent public OncoKB query cache with provenance and response data."""
+
     query_hash: str
     gene: str
     alteration: str | None = None
@@ -607,6 +946,8 @@ class OncoKbPublicDoc(_DocBase):
 
 
 class OncoKbGenesPublicDoc(_DocBase):
+    """Public OncoKB gene summary, identifiers, aliases, and assembly-specific isoforms."""
+
     gene: str
     source: str | None = None
     public_api: bool = True
@@ -685,6 +1026,8 @@ class ClinPgxGenesPublicDoc(_DocBase):
 
 
 class VepDbInfoDoc(_DocBase):
+    """Assembly and database versions used by a VEP annotation installation."""
+
     assembly_name: str
     assembly_accession: str
     genome_assembly: str
@@ -710,10 +1053,25 @@ class VepDbInfoDoc(_DocBase):
     @field_validator("ensembl_version", mode="before")
     @classmethod
     def convert_ensembl(cls, v):
+        """Convert the Ensembl version using Python integer conversion.
+
+        Args:
+            v: Numeric value or integer text supplied by the source.
+
+        Returns:
+            The integer conversion of the input.
+
+        Raises:
+            ValueError: If the input cannot be represented as an integer.
+            TypeError: If the input does not support integer conversion.
+            OverflowError: If the input is an infinite float.
+        """
         return int(v)
 
 
 class VepVariantClassDoc(_DocBase):
+    """Display translation and Sequence Ontology term for a VEP variant class."""
+
     short: str
     desc: str
     displayname: str
@@ -721,6 +1079,8 @@ class VepVariantClassDoc(_DocBase):
 
 
 class VepConsequenceDoc(_DocBase):
+    """Consequence display translation with impact, ontology term, and group."""
+
     short: str
     display: str
     desc: str
@@ -730,6 +1090,8 @@ class VepConsequenceDoc(_DocBase):
 
 
 class VepMetadataDoc(_DocBase):
+    """Versioned VEP database metadata, display translations, and consequence groups."""
+
     vep_id: str
     created_by: str
     created_on: datetime
@@ -747,6 +1109,22 @@ class VepMetadataDoc(_DocBase):
     @field_validator("vep_id", mode="before")
     @classmethod
     def derive_vep_id(cls, value, info):
+        """Keep an explicit VEP ID or derive one from available parsed database metadata.
+
+        Args:
+            value: Supplied ID; null or blank text requests derivation.
+            info: Pydantic validation context whose data may contain db_info dictionaries.
+
+        Returns:
+            The stripped supplied ID or the sole Ensembl version found in that context.
+
+        Raises:
+            ValueError: If derivation does not find exactly one distinct version.
+
+        Notes:
+            Only fields already available in info.data are inspected; this validator
+            does not read later fields from the raw model input.
+        """
         if value is not None and str(value).strip():
             return str(value).strip()
         raw = info.data or {}
@@ -763,6 +1141,14 @@ class VepMetadataDoc(_DocBase):
 
     @model_validator(mode="after")
     def validate_consequence_groups_against_translations(self):
+        """Require each grouped consequence term to have a translation entry.
+
+        Returns:
+            This VEP metadata document unchanged.
+
+        Raises:
+            ValueError: If any consequence group names a term absent from conseq_translations.
+        """
         known_terms = set(self.conseq_translations.keys())
         invalid_terms: dict[str, list[str]] = {}
         for group_name, terms in self.consequence_groups.items():

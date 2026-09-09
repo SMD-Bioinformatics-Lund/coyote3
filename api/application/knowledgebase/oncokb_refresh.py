@@ -35,6 +35,14 @@ class PublicOncoKbRefreshService:
         config: dict[str, Any],
         audit_service: Any | None = None,
     ) -> None:
+        """Configure HGNC matching, OncoKB cache writes, and refresh settings.
+
+        Args:
+            cache_repository: Persists public OncoKB gene records.
+            hgnc_repository: Supplies reference gene identifiers for matching.
+            config: Lookup enablement, OncoKB base URL, and request timeout settings.
+            audit_service: Optional recorder of refresh success and failure events.
+        """
         self.cache_repository = cache_repository
         self.hgnc_repository = hgnc_repository
         self.config = config

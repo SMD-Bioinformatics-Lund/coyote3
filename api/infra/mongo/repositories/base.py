@@ -75,6 +75,14 @@ class BaseRepository:
         """Join an owning transaction, or start a required transaction for the batch."""
 
         def write(active_session):
+            """Execute the captured unordered bulk operations in the supplied session.
+
+            Args:
+                active_session: Session owning this batch's transaction.
+
+            Returns:
+                PyMongo bulk-write result for the bound collection.
+            """
             return self.get_collection().bulk_write(
                 operations, ordered=False, session=active_session
             )
@@ -90,6 +98,14 @@ class BaseRepository:
             invalidate_dashboard_metrics(adapter, collection=self.get_collection().name)
 
     def _invalidate_dashboard_on_change(self, result: OperationResult) -> OperationResult:
+        """Invalidate dependent metrics when a write reports changed documents.
+
+        Args:
+            result: Write counts to inspect for modifications, deletions, or inserts.
+
+        Returns:
+            The same operation result after any required invalidation.
+        """
         if result.modified_count or result.deleted_count or result.inserted_count:
             self.invalidate_dashboard_metrics()
         return result

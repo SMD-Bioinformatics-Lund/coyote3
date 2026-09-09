@@ -10,6 +10,18 @@ logger = logging.getLogger(__name__)
 
 
 def _filename(value: Any) -> str:
+    """Extract a basename from a path or HTTP(S) URL.
+
+    Args:
+        value: Path-like text; backslashes are treated as separators and falsey values as empty.
+
+    Returns:
+        Final path component, excluding HTTP(S) query/fragment text, or an empty
+        string for empty input and dot/dot-dot names.
+
+    Raises:
+        ValueError: URL parsing rejects malformed authority information.
+    """
     raw = str(value or "").strip().replace("\\", "/")
     if not raw:
         return ""

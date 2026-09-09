@@ -10,6 +10,8 @@ from api.infra.security.indexes import security_index_contracts
 
 @dataclass(frozen=True)
 class IndexContract:
+    """Describe an expected index and its missing, present, or conflicting state."""
+
     repository: str
     collection: str
     name: str
@@ -31,15 +33,39 @@ class _ContractCollection:
     """Record create-index calls while exposing the current index inventory."""
 
     def __init__(self, collection: Any, repository: str):
+        """Bind a collection for read-only index contract recording.
+
+        Args:
+            collection: Live collection whose index inventory is inspected.
+            repository: Repository label attached to recorded contracts.
+        """
         self._collection = collection
         self.repository = repository
         self.name = collection.name
         self.contracts: list[IndexContract] = []
 
     def list_indexes(self):
+        """Read the wrapped collection's index inventory.
+
+        Returns:
+            The collection's index cursor without materializing it.
+        """
         return self._collection.list_indexes()
 
     def create_index(self, keys, *, name: str, **options):
+        """Record an expected index and compare it with the live named index.
+
+        Args:
+            keys: Ordered field and integer-direction pairs.
+            name: Expected index name.
+            **options: Index options; only semantic options affect comparison.
+
+        Returns:
+            The supplied index name, without creating or changing a database index.
+
+        Notes:
+            Appends a contract with missing, present, or conflict state.
+        """
         current = {index["name"]: index for index in self._collection.list_indexes()}
         existing = current.get(name)
         expected_keys = tuple((str(field), int(direction)) for field, direction in keys)

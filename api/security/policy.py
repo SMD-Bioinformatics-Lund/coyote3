@@ -31,6 +31,14 @@ POLICY_ACTION = "use"
 
 
 def _norm(value: Any) -> str:
+    """Normalize an authorization identifier for case-insensitive matching.
+
+    Args:
+        value: Identifier to stringify; false-valued inputs become an empty string.
+
+    Returns:
+        Lowercase text with surrounding whitespace removed.
+    """
     return str(value or "").strip().lower()
 
 
@@ -40,6 +48,14 @@ def _norm_env(value: Any) -> str:
 
 
 def _unique(values: list[Any] | tuple[Any, ...] | set[Any] | None) -> list[str]:
+    """Remove blank and repeated authorization identifiers.
+
+    Args:
+        values: Identifiers to normalize; None is treated as an empty collection.
+
+    Returns:
+        Distinct lowercase identifiers in first-encounter order.
+    """
     seen: set[str] = set()
     result: list[str] = []
     for value in values or []:
@@ -51,10 +67,26 @@ def _unique(values: list[Any] | tuple[Any, ...] | set[Any] | None) -> list[str]:
 
 
 def _principal_user(username: str) -> str:
+    """Build a Casbin user principal.
+
+    Args:
+        username: Account name to normalize.
+
+    Returns:
+        Lowercase, trimmed account name prefixed with user:.
+    """
     return f"user:{_norm(username)}"
 
 
 def _principal_role(role_id: str) -> str:
+    """Build a Casbin role principal distinct from user principals.
+
+    Args:
+        role_id: Role identifier to normalize.
+
+    Returns:
+        Lowercase, trimmed role identifier prefixed with role:.
+    """
     return f"role:{_norm(role_id)}"
 
 
@@ -98,12 +130,33 @@ class PrincipalScope:
 
 
 def _scope_contains(scope_values: frozenset[str], required: str) -> bool:
+    """Match one resource attribute against an authorized scope.
+
+    Args:
+        scope_values: Normalized scope values; * grants any value.
+        required: Resource attribute; an empty value imposes no restriction.
+
+    Returns:
+        True when no value is required, a wildcard exists, or the value is present.
+    """
     if not required:
         return True
     return "*" in scope_values or required in scope_values
 
 
 def _active_permission_ids(permissions_repository: Any | None) -> set[str]:
+    """Load identifiers from active permission records.
+
+    Args:
+        permissions_repository: Permission reader, or None when unavailable.
+
+    Returns:
+        Normalized nonblank identifiers. Missing repositories and read failures
+        return an empty set; callers determine how that affects enforcement.
+
+    Notes:
+        Read failures are logged by exception type without record contents.
+    """
     if permissions_repository is None:
         return set()
     try:
@@ -122,6 +175,18 @@ def _active_permission_ids(permissions_repository: Any | None) -> set[str]:
 
 
 def _role_docs_by_id(roles_repository: Any | None) -> dict[str, dict[str, Any]]:
+    """Index active role records by normalized identifier.
+
+    Args:
+        roles_repository: Role reader, or None when unavailable.
+
+    Returns:
+        Copies of active role records, with later duplicates replacing earlier
+        records. Missing repositories and read failures return an empty mapping.
+
+    Notes:
+        Records without is_active are included. Read failures log exception type.
+    """
     if roles_repository is None:
         return {}
     try:
@@ -148,6 +213,15 @@ class AccessPolicy:
     principal_scope: PrincipalScope
 
     def permission_known(self, permission: str | None) -> bool:
+        """Check a permission name against the loaded permission catalog.
+
+        Args:
+            permission: Permission identifier to normalize and look up.
+
+        Returns:
+            False for a blank identifier; otherwise True when the catalog is
+            empty or contains the identifier. This does not grant access.
+        """
         normalized = _norm(permission)
         return bool(normalized) and (
             not self.active_permissions or normalized in self.active_permissions
@@ -159,6 +233,17 @@ class AccessPolicy:
         permission: str | None,
         context: AccessContext | dict[str, Any] | None = None,
     ) -> bool:
+        """Evaluate permission grants and resource scope for a user.
+
+        Args:
+            user: Authenticated principal exposing a username attribute.
+            permission: Requested permission identifier; blank values are denied.
+            context: Resource assay, environment and group, or None for no
+                resource-specific constraints.
+
+        Returns:
+            True only when the permission passes catalog checks and Casbin allows it.
+        """
         normalized = _norm(permission)
         if not normalized or not self.permission_known(normalized):
             return False
@@ -203,6 +288,17 @@ def build_access_policy(
     principal_scope = PrincipalScope.from_user(user)
 
     def _has_scope(_principal: str, assay: str, environment: str, assay_group: str) -> bool:
+        """Evaluate the captured user's scope for Casbin's matcher.
+
+        Args:
+            _principal: Casbin subject argument; scope belongs to the captured user.
+            assay: Required assay identifier, or an empty string for no restriction.
+            environment: Required environment, or an empty string for no restriction.
+            assay_group: Required assay group, or an empty string for no restriction.
+
+        Returns:
+            True when all three normalized attributes match the user's scopes.
+        """
         return (
             _scope_contains(principal_scope.asp_ids, _norm(assay))
             and _scope_contains(principal_scope.environments, _norm_env(environment))

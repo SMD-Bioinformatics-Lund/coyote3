@@ -39,10 +39,29 @@ def _ensure_worker_runtime() -> None:
 
 
 def _serializable(payload: Any) -> Any:
+    """Convert ingest results for Celery's JSON result transport.
+
+    Args:
+        payload: Result containing nested mappings, sequences and BSON values.
+
+    Returns:
+        The result after conversion by the shared serialization utility.
+    """
     return util.common.convert_to_serializable(payload)
 
 
 def _record_ingest_audit(event_type: str, message: str, **kwargs: Any) -> None:
+    """Submit an ingest audit event without undoing completed ingest work.
+
+    Args:
+        event_type: Audit event identifier describing the ingest operation.
+        message: Human-readable event summary.
+        **kwargs: Audit resource, outcome, severity and metadata fields.
+
+    Notes:
+        Events use the data category and celery/ingest tags. An absent audit
+        service skips delivery; delivery failures are logged and suppressed.
+    """
     audit = get_audit_service()
     if audit is None:
         return
@@ -53,6 +72,15 @@ def _record_ingest_audit(event_type: str, message: str, **kwargs: Any) -> None:
 
 
 def _retryable_ingest_error(exc):
+    """Determine whether an ingest failure should remain eligible for retry.
+
+    Args:
+        exc: Failure raised while executing an ingest operation.
+
+    Returns:
+        True for connection failures, soft time limits, and MongoDB errors
+        labeled TransientTransactionError or UnknownTransactionCommitResult.
+    """
     return isinstance(exc, (ConnectionFailure, SoftTimeLimitExceeded)) or (
         isinstance(exc, PyMongoError)
         and (
@@ -63,6 +91,18 @@ def _retryable_ingest_error(exc):
 
 
 def _unique_marker_path(manifest_path: Path, suffix: str, task_id: str | None) -> Path:
+    """Choose the acknowledgement filename for a watched manifest.
+
+    Args:
+        manifest_path: Source manifest path; the marker stays in its directory.
+        suffix: Completion or failure suffix appended to the filename.
+        task_id: Task token appended if the initial marker already exists;
+            None uses retry as the token.
+
+    Returns:
+        Candidate marker path. The task-suffixed candidate is not checked for
+        an existing file, and this helper does not create or rename files.
+    """
     marker_path = manifest_path.with_name(f"{manifest_path.name}{suffix}")
     if not marker_path.exists():
         return marker_path
@@ -103,6 +143,21 @@ def _resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path)
 
 
 def _run_watch_directory_once(self) -> dict[str, Any]:
+    """Discover stable manifests and execute their durable ingest jobs.
+
+    Returns:
+        Directory status, or scan counts and successful/failed acknowledgements.
+
+    Notes:
+        Uses the bound task's request ID for tracing and marker names. The caller
+        owns the scan lock. Jobs are submitted before execution; changed manifests
+        and retryable failures remain for a later scan. Busy jobs are skipped;
+        other returned statuses reach the completion-marker rename, including a
+        disabled status if the task family is switched off during a scan. A marker
+        alone therefore does not prove that ingest succeeded. An acknowledgement
+        failure does not undo committed data. Nonretryable failures receive a
+        failure marker when directory permissions allow it.
+    """
     watch_dir = WATCH_INGEST_DIRECTORY
     if not watch_dir.exists():
         return {"status": "not_found", "watch_dir": str(watch_dir), "scanned": 0}
@@ -238,6 +293,25 @@ def ingest_watch_directory_once(self) -> dict[str, Any]:
 
 
 def _execute_ingest_job(job_id: str) -> dict[str, Any]:
+    """Claim a durable ingest job and record completion with its data writes.
+
+    Args:
+        job_id: Identifier of a previously submitted job.
+
+    Returns:
+        Serialized ingest result, a busy status when another worker owns the
+        lease, or a disabled status when the job's task family is disabled.
+        Previously successful jobs return their stored result.
+
+    Raises:
+        ValueError: The job does not exist or has already failed permanently.
+
+    Notes:
+        Completion is recorded through the ingest service's transaction callback.
+        Execution failures update retry state and propagate unless a committed
+        result is found. Successful jobs remove their staging directory and emit
+        a best-effort audit event.
+    """
     repository = get_ingest_jobs_repository()
     existing = repository.get(job_id)
     if existing is None:
@@ -259,6 +333,12 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
             service = get_internal_ingest_service()
 
             def completion(result, session):
+                """Complete the leased job within the ingest transaction.
+
+                Args:
+                    result: Ingest result to persist for duplicate delivery.
+                    session: MongoDB session owning the corresponding data writes.
+                """
                 repository.complete(job_id, job["lease_token"], result, session)
 
             if job["kind"] == "sample_bundle":

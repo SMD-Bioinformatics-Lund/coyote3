@@ -7,6 +7,13 @@ class RedisFixedWindowRateLimiter:
     """Apply one fixed-window quota consistently across all API workers."""
 
     def __init__(self, *, backend, limit: int, window_seconds: int) -> None:
+        """Configure a counter backend and fixed-window quota.
+
+        Args:
+            backend: Backend implementing atomic ``increment_window`` calls.
+            limit: Allowed requests per window, clamped to at least one.
+            window_seconds: Window duration in seconds, clamped to at least one.
+        """
         self.backend = backend
         self.limit = max(int(limit), 1)
         self.window_seconds = max(int(window_seconds), 1)
