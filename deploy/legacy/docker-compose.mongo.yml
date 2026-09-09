@@ -5,6 +5,7 @@ services:
   mongo:
     profiles: [mongo]
     image: mongo:7.0.41
+    security_opt: [seccomp=unconfined]
     command: ["mongod", "--replSet", "${MONGO_REPLICA_SET_NAME:-coyote3-rs}", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile/keyfile"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-}
@@ -37,6 +38,7 @@ services:
   mongo_init:
     profiles: [mongo]
     image: mongo:7.0.41
+    security_opt: [seccomp=unconfined]
     environment:
       MONGO_SERVICE_HOST: mongo
       MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-}
@@ -54,6 +56,7 @@ services:
   mongo-kb:
     profiles: [mongo-kb]
     image: mongo:7.0.41
+    security_opt: [seccomp=unconfined]
     command: ["mongod", "--replSet", "${KNOWLEDGEBASE_REPLICA_SET_NAME:-coyote3-kb-rs}", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile/keyfile"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${KNOWLEDGEBASE_MONGO_ROOT_USERNAME:-}
@@ -76,6 +79,7 @@ services:
   mongo_kb_init:
     profiles: [mongo-kb]
     image: mongo:7.0.41
+    security_opt: [seccomp=unconfined]
     environment:
       MONGO_SERVICE_HOST: mongo-kb
       MONGO_ROOT_USERNAME: ${KNOWLEDGEBASE_MONGO_ROOT_USERNAME:-}

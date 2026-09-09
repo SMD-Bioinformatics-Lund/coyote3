@@ -8,8 +8,12 @@ Configuration rendering is tested with Compose 1.29.2 and modern Compose.
 This is not certification of the application images on Docker 18.09. The host
 CPU, kernel, runtime, and seccomp policy must support the current images.
 Docker 18.09 and Compose v1 are obsolete; use this deployment only under the
-center's explicit legacy-runtime policy. Do not disable authentication, seccomp,
-or other isolation controls to make an image start.
+center's explicit legacy-runtime policy. The legacy MongoDB servers and replica
+initializers use `seccomp=unconfined` because Docker 18.09's default seccomp policy
+blocks thread creation in MongoDB 7.0.41 and `mongosh`. This disables syscall
+filtering for those four services, including their health checks. Authentication
+and the other isolation controls remain enabled. Remove this exception when the
+runtime is upgraded and startup and health checks pass with the default profile.
 
 ## Definitions
 
@@ -68,8 +72,8 @@ database project names so application updates do not stop MongoDB.
 
 ```bash
 docker-compose version
-docker run --rm mongo:7.0.41 mongod --version
-docker run --rm mongo:7.0.41 mongosh --version
+docker run --rm --security-opt seccomp=unconfined mongo:7.0.41 mongod --version
+docker run --rm --security-opt seccomp=unconfined mongo:7.0.41 mongosh --version
 set -a; source .coyote3_dev_env; set +a
 export COYOTE3_VERSION="$(python3 api/version.py)"
 docker network inspect "$COYOTE3_APP_NETWORK" >/dev/null 2>&1 || docker network create "$COYOTE3_APP_NETWORK"

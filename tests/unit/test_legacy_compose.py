@@ -137,15 +137,23 @@ def test_legacy_application_tracks_modern_service_contract():
     assert yaml.safe_load(modern_text) == legacy
 
 
-def test_no_modern_only_syntax_or_security_bypasses():
+def test_no_modern_only_syntax_or_unscoped_security_bypasses():
     for file in LEGACY.glob("*.yml"):
         document = yaml.safe_load(file.read_text())
         assert "name" not in document
         assert "create_host_path" not in yaml.safe_dump(document)
         assert "host-gateway" not in yaml.safe_dump(document)
-        for service in document.get("services", {}).values():
+        for name, service in document.get("services", {}).items():
             assert not service.get("privileged")
-            assert "security_opt" not in service
+            if file.name == "docker-compose.mongo.yml" and name in (
+                "mongo",
+                "mongo_init",
+                "mongo-kb",
+                "mongo_kb_init",
+            ):
+                assert service["security_opt"] == ["seccomp=unconfined"]
+            else:
+                assert "security_opt" not in service
 
 
 def test_legacy_mongo_tracks_modern_service_contract():
@@ -154,6 +162,7 @@ def test_legacy_mongo_tracks_modern_service_contract():
     for service in modern["services"].values():
         service.pop("extra_hosts", None)
         service["image"] = "mongo:7.0.41"
+        service["security_opt"] = ["seccomp=unconfined"]
     assert (
         yaml.safe_load(yaml.safe_dump(modern).replace("./mongo-init/", "../compose/mongo-init/"))
         == legacy
