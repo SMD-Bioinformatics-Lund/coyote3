@@ -11,6 +11,11 @@ export type AppNotification = {
   read: boolean
   category?: "application" | "feature" | "maintenance" | "security" | "warning"
   persisted?: boolean
+  severity?: "info" | "important" | "warning" | "critical" | "success"
+  isBroadcast?: boolean
+  canClear?: boolean
+  expiresAt?: string | null
+  withdrawnAt?: string | null
 }
 
 export type NotificationResource = {

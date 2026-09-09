@@ -4,13 +4,13 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { NotificationProvider } from "./NotificationProvider"
 import { useNotifications } from "./use-notifications"
 
-function Probe() {
+function Probe({ title = "Local warning" }: { title?: string }) {
   const inbox = useNotifications()
   return (
     <div>
       <output aria-label="Unread count">{inbox.unreadCount}</output>
       {inbox.notifications.map((item) => <span key={item.id}>{item.title}</span>)}
-      <button type="button" onClick={() => inbox.push({ tone: "warning", title: "Local warning", message: "Review it" })}>Push</button>
+      <button type="button" onClick={() => inbox.push({ tone: "warning", title, message: "Review it" })}>Push</button>
       <button type="button" onClick={() => inbox.markRead("server-1")}>Read one</button>
       <button type="button" onClick={inbox.markAllRead}>Read all</button>
       <button type="button" onClick={() => inbox.remove("server-1")}>Remove one</button>
@@ -80,6 +80,21 @@ describe("NotificationProvider", () => {
     render(<NotificationProvider><Probe /></NotificationProvider>)
     await waitFor(() => expect(screen.getByLabelText("Unread count")).toHaveTextContent("0"))
     expect(screen.queryByText("Server notice")).not.toBeInTheDocument()
+  })
+
+  it("retains a toast as a read inbox item when closed", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => response(
+      String(input).includes("whoami") ? { username: "reader" } : { notifications: [] }
+    )))
+    const user = userEvent.setup()
+    render(<NotificationProvider><Probe title="Retained warning" /></NotificationProvider>)
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    await user.click(screen.getByRole("button", { name: "Push" }))
+    await user.click(screen.getByRole("button", { name: "Dismiss notification" }))
+    expect(screen.getAllByText("Retained warning")).toHaveLength(1)
+    expect(screen.getByLabelText("Unread count")).toHaveTextContent("0")
+    await user.click(screen.getByRole("button", { name: "Clear" }))
+    expect(screen.queryByText("Retained warning")).not.toBeInTheDocument()
   })
 
   it("rejects notification context use outside its provider", () => {

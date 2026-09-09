@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { apiPath } from "@/lib/runtime-paths"
+import { apiPath, appPath } from "@/lib/runtime-paths"
 import { api } from "@/lib/api"
+import { NotificationSeverityBadge } from "./NotificationSeverityBadge"
 import { SESSION_CHANGED_EVENT } from "@/lib/session-state"
 import { NotificationContext, type NotificationContextValue } from "./notification-context"
 import {
@@ -60,8 +61,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         seenServerIds.current.clear()
         return
       }
-      const identity = await identityResponse.json() as { username?: string }
+      const identity = await identityResponse.json() as { username?: string; must_change_password?: boolean }
       if (generation !== sessionGeneration.current) return
+      if (identity.must_change_password) { setNotifications([]); setVisibleToasts([]); return }
       const nextUsername = String(identity.username || "").trim().toLowerCase()
       if (!nextUsername) return
       const changedUser = usernameRef.current !== nextUsername
@@ -149,6 +151,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [notifications, updateServerState])
 
   const remove = useCallback((id: string) => {
+    if (notifications.find((item) => item.id === id)?.canClear === false) return
     const persisted = notifications.some((item) => item.id === id && item.persisted)
     setNotifications((current) => current.filter((notification) => notification.id !== id))
     setVisibleToasts((current) => current.filter((notification) => notification.id !== id))
@@ -156,8 +159,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [notifications, updateServerState])
 
   const clear = useCallback(() => {
-    setNotifications([])
-    setVisibleToasts([])
+    setNotifications((current) => current.filter((item) => item.isBroadcast))
+    setVisibleToasts((current) => current.filter((item) => item.isBroadcast))
     if (notifications.some((item) => item.persisted)) {
       void updateServerState("/notifications", "DELETE")
     }
@@ -181,7 +184,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed right-4 top-20 z-[80] flex w-[min(420px,calc(100vw-2rem))] flex-col gap-2">
         {visibleToasts.map((notification) => (
-          <NotificationToast key={notification.id} notification={notification} onClose={() => remove(notification.id)} />
+          <NotificationToast key={notification.id} notification={notification} onClose={() => {
+            markRead(notification.id)
+            setVisibleToasts((current) => current.filter((item) => item.id !== notification.id))
+          }} />
         ))}
       </div>
     </NotificationContext.Provider>
@@ -205,6 +211,11 @@ type ServerNotification = {
   }
   created_at: string
   read: boolean
+  severity?: AppNotification["severity"]
+  is_broadcast?: boolean
+  can_clear?: boolean
+  expires_at?: string | null
+  withdrawn_at?: string | null
 }
 
 function mapServerNotification(item: ServerNotification): AppNotification {
@@ -226,6 +237,11 @@ function mapServerNotification(item: ServerNotification): AppNotification {
     createdAt: item.created_at,
     read: item.read,
     persisted: true,
+    severity: item.severity,
+    isBroadcast: item.is_broadcast,
+    canClear: item.can_clear,
+    expiresAt: item.expires_at,
+    withdrawnAt: item.withdrawn_at,
   }
 }
 
@@ -254,6 +270,7 @@ function NotificationToast({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm font-semibold text-foreground">{notification.title}</p>
+            {notification.isBroadcast && <NotificationSeverityBadge notification={notification} />}
             <button
               type="button"
               onClick={onClose}
@@ -263,9 +280,10 @@ function NotificationToast({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          {notification.message && (
+          {notification.message && !notification.isBroadcast && (
             <p className="mt-1 max-h-24 overflow-auto text-xs leading-5 text-muted-foreground">{notification.message}</p>
           )}
+          {notification.isBroadcast && <a href={appPath("/notifications")} className="link-text text-xs">Open notification</a>}
           {resourceChips.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {resourceChips.map((chip) => (

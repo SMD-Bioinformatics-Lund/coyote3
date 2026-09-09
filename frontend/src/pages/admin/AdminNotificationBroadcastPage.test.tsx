@@ -14,7 +14,8 @@ const recipients = vi.hoisted(() => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: recipients, isLoading: false }),
+  useQuery: ({ queryKey }: { queryKey: string[] }) => ({ data: queryKey[0] === "notification-broadcast-sent" ? { notifications: [] } : recipients, isLoading: false }),
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useMutation: () => mutation,
 }))
 

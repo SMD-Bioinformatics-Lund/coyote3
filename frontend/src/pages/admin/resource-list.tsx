@@ -361,7 +361,7 @@ export function adminCell(
         kind={value ? "status" : "neutral"}
         title={
           value
-            ? "Installed with Coyote3. This record cannot be deleted; deactivate it when it should no longer be used."
+            ? "Installed with Coyote3. Available operations depend on the resource's protection policy."
             : "Created and managed by this center."
         }
       />

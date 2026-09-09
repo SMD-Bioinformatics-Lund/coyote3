@@ -1,91 +1,40 @@
+import { useState } from "react"
 import { Bell, CheckCheck, Trash2 } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { MarkdownText } from "@/components/comments/MarkdownText"
+import { NotificationSeverityBadge } from "@/components/notifications/NotificationSeverityBadge"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { cn } from "@/lib/utils"
 
-const toneClass = {
-  success: "border-pass bg-pass/10 text-pass",
-  info: "border-primary bg-primary/10 text-primary",
-  warning: "border-warn bg-warn/10 text-warn",
-  error: "border-destructive bg-destructive/10 text-destructive",
-}
-
 export function NotificationHistoryPage() {
-  const { notifications, unreadCount, markAllRead, remove, clear } = useNotifications()
-
-  return (
-    <PageShell
-      eyebrow="Account"
-      title="Notifications"
-      description="Messages addressed to your account, together with recent workflow feedback from this browser."
-      actions={
-        <>
-          <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}>
-            <CheckCheck className="h-4 w-4" />
-            Mark read
-          </Button>
-          <Button variant="destructive" onClick={clear} disabled={!notifications.length}>
-            <Trash2 className="h-4 w-4" />
-            Clear
-          </Button>
-        </>
-      }
-    >
-      <section className="surface-panel p-3">
-        {!notifications.length ? (
-          <div className="flex min-h-48 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-            <div className="rounded-xl border border-border bg-muted/40 p-3">
-              <Bell className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="font-bold text-foreground">No notifications yet</p>
-              <p className="mt-1 text-sm">Application and API messages will appear here.</p>
-            </div>
+  const { notifications, unreadCount, markRead, markAllRead, remove, clear } = useNotifications()
+  const [withdrawId, setWithdrawId] = useState<string | null>(null)
+  return <PageShell eyebrow="Account" title="Notifications" actions={<>
+    <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}><CheckCheck className="h-4 w-4" />Mark read</Button>
+    <Button variant="outline" onClick={clear} disabled={!notifications.some((item) => !item.isBroadcast)}><Trash2 className="h-4 w-4" />Clear</Button>
+  </>}>
+    <section className="surface-panel divide-y divide-border px-3">
+      {!notifications.length && <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><Bell className="h-6 w-6" /><p>No notifications yet</p></div>}
+      {notifications.map((notification) => <article key={notification.id} className={cn("flex items-start gap-2 py-3", !notification.read && "bg-primary/5")}>
+        <details className="min-w-0 flex-1" onToggle={(event) => { if (event.currentTarget.open && !notification.read) markRead(notification.id) }}>
+          <summary className="cursor-pointer rounded px-2 py-1 focus-visible:outline-2 focus-visible:outline-ring">
+            <span className="ml-1 inline-flex max-w-full flex-wrap items-center gap-2 align-middle"><NotificationSeverityBadge notification={notification} /><span className="min-w-0 break-words text-sm font-semibold [overflow-wrap:anywhere]">{notification.title}</span></span>
+          </summary>
+          <div className="space-y-3 overflow-auto px-3 py-3">
+            {notification.isBroadcast ? <MarkdownText text={notification.message} className="break-words [overflow-wrap:anywhere]" /> : <p className="whitespace-pre-wrap break-words text-sm">{notification.message}</p>}
+            {notification.resource?.uri && <a className="link-text" href={notification.resource.uri}>Open details</a>}
+            <div className="flex flex-wrap gap-3 type-meta text-muted-foreground"><span>{notification.read ? "Read" : "Unread"}</span><span>{notification.source}</span><TimeDisplay value={notification.createdAt} mode="full" />{notification.expiresAt && <span>Expires <TimeDisplay value={notification.expiresAt} mode="full" /></span>}</div>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {notifications.map((notification) => (
-              <article
-                key={notification.id}
-                className={cn(
-                  "rounded-xl border border-border bg-card/80 p-3 shadow-sm transition-colors",
-                  !notification.read && "border-primary/40 bg-primary/5"
-                )}
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn("rounded-full border px-2 py-0.5 type-label font-semibold uppercase", toneClass[notification.tone])}>
-                        {notification.tone}
-                      </span>
-                      {notification.source && (
-                        <span className="truncate type-meta font-semibold uppercase tracking-wide text-muted-foreground">
-                          {notification.source}
-                        </span>
-                      )}
-                      {notification.category && (
-                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 type-label font-semibold uppercase text-muted-foreground">
-                          {notification.category}
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="mt-2 text-sm font-semibold text-foreground">{notification.title}</h2>
-                    {notification.message && (
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{notification.message}</p>
-                    )}
-                    <TimeDisplay value={notification.createdAt} mode="full" className="mt-2 type-meta font-medium text-muted-foreground" />
-                  </div>
-                  <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </PageShell>
-  )
+        </details>
+        <div className="flex shrink-0 gap-1">
+          {!notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markRead(notification.id)} title="Mark notification as read" aria-label="Mark notification as read"><CheckCheck className="h-4 w-4" /></Button>}
+          {notification.canClear !== false && <Button variant="ghost" size="icon-sm" onClick={() => notification.isBroadcast ? setWithdrawId(notification.id) : remove(notification.id)} title={notification.isBroadcast ? "Withdraw for everyone" : "Remove notification"} aria-label={notification.isBroadcast ? "Withdraw for everyone" : "Remove notification"}><Trash2 className="h-4 w-4" /></Button>}
+        </div>
+      </article>)}
+    </section>
+    <ConfirmationDialog open={!!withdrawId} title="Withdraw broadcast?" description="Remove this broadcast from every recipient's tray while retaining its database record." confirmLabel="Withdraw" onConfirm={() => { if (withdrawId) remove(withdrawId); setWithdrawId(null) }} onCancel={() => setWithdrawId(null)} />
+  </PageShell>
 }

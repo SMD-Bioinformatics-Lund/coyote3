@@ -4,7 +4,7 @@ import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query"
 import { clearSessionState } from "@/lib/session-state"
 import { ThemeToggle } from "./theme-toggle"
 import { EnvironmentBanner } from "./EnvironmentBanner"
-import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
+import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, Grid2X2, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
@@ -67,7 +67,7 @@ export function Layout() {
   })
 
   useEffect(() => {
-    if (user?.must_change_password && location.pathname !== "/profile") navigate("/profile", { replace: true })
+    if (user?.must_change_password) navigate("/change-password", { replace: true })
   }, [user?.must_change_password, location.pathname, navigate])
 
   const navigationProfileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
@@ -150,7 +150,7 @@ export function Layout() {
         ...(moduleIsEnabled(modules, "assay_catalog") ? [
           { name: "Public Home", href: "/public", icon: BookOpen },
           { name: "Catalog", href: "/public/catalog", icon: FileText },
-          { name: "Matrix", href: "/public/matrix", icon: Database },
+          { name: "Matrix", href: "/public/matrix", icon: Grid2X2 },
         ] : []),
         { name: "About", href: "/about", icon: FileQuestion },
         { name: "Contact", href: "/contact", icon: LifeBuoy },
@@ -178,7 +178,7 @@ export function Layout() {
         items: [
           ...(moduleIsEnabled(modules, "knowledgebases") ? [{ name: "Knowledgebases", href: "/knowledgebases", icon: Database }] : []),
           ...(moduleIsEnabled(modules, "assay_catalog") ? [
-            { name: "Matrix", href: "/public/matrix", icon: Database },
+            { name: "Matrix", href: "/public/matrix", icon: Grid2X2 },
             { name: "Catalog", href: "/public/catalog", icon: FileText },
           ] : []),
           { name: "About", href: "/about", icon: BookOpen },
@@ -279,6 +279,8 @@ export function Layout() {
     setActiveAssayCategory(null)
     if (location.pathname !== "/samples") navigate(`/samples?${newParams.toString()}`)
   }
+
+  if (user?.must_change_password) return null
 
   return (
     <div className="relative isolate flex h-screen flex-col overflow-hidden bg-transparent font-sans antialiased">

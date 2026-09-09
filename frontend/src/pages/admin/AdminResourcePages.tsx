@@ -166,7 +166,7 @@ export function AdminResourcePage() {
       cell: ({ row }) => {
         const id = rowId(row.original, spec)
         const systemManaged = Boolean(row.original.system_managed)
-        const systemPermission = spec.key === "permissions" && systemManaged
+        const systemPermission = ["permissions", "roles", "users"].includes(spec.key) && systemManaged
         return (
           <div className="flex items-center gap-1">
             {canView && <Link
@@ -183,7 +183,7 @@ export function AdminResourcePage() {
             >
               <Edit className="h-4 w-4" />
             </Link>}
-            {spec.canToggle && canEdit && (
+            {spec.canToggle && canEdit && !systemPermission && (
               <button
                 onClick={() =>
                   setPendingAction({ action: "toggle", id, name: rowDisplayName(row.original, spec) })
@@ -219,7 +219,7 @@ export function AdminResourcePage() {
               <span
                 className="rounded-md p-1.5 text-muted-foreground"
                 title={systemPermission
-                  ? "Installed with Coyote3. Its definition cannot be edited or deleted; its active state can be changed."
+                  ? "Installed with Coyote3. This identity record cannot be edited, disabled, or deleted."
                   : "Installed with Coyote3. This record can be edited or deactivated, but it cannot be deleted."}
               >
                 <LockKeyhole className="h-4 w-4" />
@@ -396,10 +396,24 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
     },
   })
 
-  const form = contextQuery.data?.form as FormSpec | undefined
+  const canAssignRoles = hasPermission(user, "user:role:edit")
+  const canAssignScope = hasPermission(user, "user:group:edit")
+  const form = useMemo(() => {
+    const source = contextQuery.data?.form as FormSpec | undefined
+    if (!source || spec.key !== "users") return source
+    return {
+      ...source,
+      fields: Object.fromEntries(Object.entries(source.fields).map(([key, field]) => [
+        key,
+        (key === "roles" && !canAssignRoles)
+          || (["asp_ids", "asp_groups", "environments"].includes(key) && !canAssignScope)
+          ? { ...field, readonly: true } : field,
+      ])),
+    }
+  }, [canAssignRoles, canAssignScope, contextQuery.data?.form, spec.key])
   const doc = resourceDocFromContext(contextQuery.data, spec)
   const systemManaged = Boolean(doc?.system_managed)
-  const systemPermission = spec.key === "permissions" && systemManaged
+  const systemPermission = ["permissions", "roles", "users"].includes(spec.key) && systemManaged
   const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
   const supportsConfigurationTransfer = ["asp", "aspc", "genelists"].includes(spec.key)
 
@@ -606,9 +620,9 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             <section className="surface-panel flex items-start gap-3 p-3">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
-                <h2 className="text-sm font-semibold">System permission</h2>
+                <h2 className="text-sm font-semibold">System-installed identity record</h2>
                 <p className="text-xs text-muted-foreground">
-                  This definition is shipped with Coyote3 and cannot be edited or deleted. Authorized administrators may deactivate it, and roles control who receives it.
+                  This record is maintained by Coyote3 installation tools. Administrative edits, deactivation, and deletion are disabled. Account passwords use the dedicated password workflow.
                 </p>
               </div>
             </section>

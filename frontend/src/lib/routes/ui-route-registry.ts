@@ -50,6 +50,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["password reset request result"],
   },
   {
+    path: "/change-password",
+    page: "ChangePassword",
+    area: "account",
+    api: ["GET /auth/whoami", "POST /auth/password/change", "DELETE /auth/sessions/current"],
+    dataUsed: ["temporary-password restriction", "password-change result"],
+  },
+  {
     path: "/reset-password",
     page: "ResetPassword",
     area: "account",
@@ -304,7 +311,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/notifications",
     page: "AdminNotificationBroadcastPage",
     area: "admin",
-    api: ["GET /admin/notifications/recipients", "POST /admin/notifications/broadcast"],
+    api: ["GET /admin/notifications/recipients", "POST /admin/notifications/broadcast", "GET /admin/notifications/sent", "DELETE /notifications/{notification_id}"],
     dataUsed: ["active recipient accounts", "broadcast audience", "message category and severity"],
   },
   {

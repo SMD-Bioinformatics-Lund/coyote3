@@ -34,6 +34,7 @@ const TieredVariantContext = lazy(() => import("./pages/search/TieredVariantCont
 const TieredVariantSearch = lazy(() => import("./pages/search/TieredVariantSearch").then((module) => ({ default: module.TieredVariantSearch })))
 const GeneCohortExplorer = lazy(() => import("./pages/search/GeneCohortExplorer").then((module) => ({ default: module.GeneCohortExplorer })))
 const Profile = lazy(() => import("./pages/account/Profile").then((module) => ({ default: module.Profile })))
+const ChangePassword = lazy(() => import("./pages/auth/ChangePassword").then((module) => ({ default: module.ChangePassword })))
 const ContactPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.ContactPage })))
 const AboutPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.AboutPage })))
 const KnowledgebaseDetails = lazy(() => import("./pages/KnowledgebaseDetails").then((module) => ({ default: module.KnowledgebaseDetails })))
@@ -109,6 +110,7 @@ export default function App() {
       <BrowserRouter basename={APP_BASENAME || undefined}>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/change-password" element={withRouteLoader(<ChangePassword />)} />
           <Route path="/forgot-password" element={withRouteLoader(<ForgotPassword />)} />
           <Route path="/reset-password" element={withRouteLoader(<ResetPassword />)} />
           <Route element={<TablePreferencesProvider><Layout /></TablePreferencesProvider>}>

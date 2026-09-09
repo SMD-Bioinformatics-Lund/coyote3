@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { clearSessionState } from "@/lib/session-state"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +17,7 @@ import { setCsrfToken } from "@/lib/api"
 export function Login() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [providers, setProviders] = useState<string[]>([])
   const [provider, setProvider] = useState("")
   const [username, setUsername] = useState("")
@@ -69,10 +70,10 @@ export function Login() {
         return
       }
 
-      const data = await res.json().catch(() => ({})) as { csrf_token?: string }
+      const data = await res.json().catch(() => ({})) as { csrf_token?: string; user?: { must_change_password?: boolean } }
       await clearSessionState(queryClient)
       setCsrfToken(data.csrf_token)
-      navigate("/")
+      navigate(data.user?.must_change_password ? "/change-password" : "/")
     } catch (err: any) {
       setError(err.message || "Sign in failed")
     } finally {
@@ -165,6 +166,7 @@ export function Login() {
 
           <section className="login-card">
             <h2 className="text-2xl font-bold">Welcome back</h2>
+            {searchParams.get("password") === "changed" && <p role="status" className="mt-2 text-sm text-pass">Password changed. Sign in with your new password.</p>}
             <p className="text-muted-foreground mt-1 mb-4 text-sm">
               Sign in to continue.
             </p>
