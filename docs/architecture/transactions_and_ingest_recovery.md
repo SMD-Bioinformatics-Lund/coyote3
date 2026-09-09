@@ -25,6 +25,11 @@ transaction failure never falls back to ordinary writes. The driver can retry th
 callback: it must contain database work only, with stable identities. Do not put
 file writes, broker publication, remote requests, or notifications inside it.
 
+Return values must come from the committed callback attempt, not mutable state
+retained across attempts. Clinical-rule publication returns that attempt's updated
+candidate, or `None` if no approved candidate matches; an aborted attempt's candidate
+is not a published result. Sibling deactivation and revision snapshots share the commit.
+
 Parsing and validation precede sample transactions. Updates compare the sample
 with the version read during preparation and reject intervening changes. The
 sample anchor is written before evidence replacement, providing a conflict point
@@ -73,6 +78,10 @@ policy; do not delete records or staging for pending/running jobs.
 Watched manifests derive a stable job identifier from their absolute path,
 modification time, and bytes. A failed acknowledgement rename does not undo a
 committed ingest. A subsequent scan can return its receipt and retry the marker.
+Only successful processing produces a completion marker and success audit event.
+If the ingest family is disabled during a scan, the job and unchanged manifest remain
+available for later processing, without a `.done` acknowledgement. Busy jobs likewise
+remain unacknowledged; non-retryable failures use the failure marker.
 Producers must publish complete manifests atomically and leave them unchanged
 until acknowledgement; an edited/replaced manifest represents a new submission.
 
@@ -98,6 +107,10 @@ Logical Redis databases share one process and memory budget; this is isolation o
 keys, not high availability. A full Redis instance rejects writes instead of
 evicting queued work. MongoDB retains accepted ingest jobs for redispatch, but
 MongoDB and staged files still need backups. Do not remove volumes as a cache reset.
+
+For [load testing](../testing/load_testing.md), measure submission latency separately
+from receipt completion and backlog drain. Use a separate Redis instance and storage;
+never reset a shared broker to create a cold-cache phase.
 
 ## Report artifact reconciliation
 

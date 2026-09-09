@@ -3,10 +3,12 @@
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock
 
 import mongomock
 import pytest
 from pydantic import ValidationError
+from pymongo.errors import ConnectionFailure
 
 from api.infra.mongo.repositories.clinical_rule_sets import (
     ClinicalRuleRevisionRepository,
@@ -28,6 +30,53 @@ def _adapter():
         clinical_rule_sets_collection=database.clinical_rule_sets,
         clinical_rule_revisions_collection=database.clinical_rule_revisions,
     )
+
+
+@pytest.mark.parametrize("candidate_available_on_retry", [False, True])
+def test_publish_returns_committed_callback_result(monkeypatch, candidate_available_on_retry):
+    """Publication must not return a candidate from an aborted transaction attempt."""
+    candidate = {**_payload(), "status": "approved"}
+    aborted = {**candidate, "status": "published", "revision": 2}
+    committed = {**aborted, "revision": 3} if candidate_available_on_retry else None
+    collection = Mock()
+    collection.find_one.side_effect = [
+        candidate,
+        candidate if candidate_available_on_retry else None,
+    ]
+    collection.find.return_value = []
+    collection.find_one_and_update.side_effect = [aborted, committed]
+    client = MagicMock()
+    session = client.start_session.return_value.__enter__.return_value
+    repository = ClinicalRuleSetRepository(
+        SimpleNamespace(
+            client=client,
+            clinical_rule_sets_collection=collection,
+            clinical_rule_revisions_collection=Mock(),
+        )
+    )
+    insert_revision = Mock(side_effect=[ConnectionFailure("Synthetic aborted attempt"), None])
+    monkeypatch.setattr(repository, "_insert_revision", insert_revision)
+
+    def retry_transaction(callback, **kwargs):
+        with pytest.raises(ConnectionFailure, match="Synthetic aborted attempt"):
+            callback(session)
+        return callback(session)
+
+    session.with_transaction.side_effect = retry_transaction
+    event = {
+        "action": "published",
+        "actor": "publisher",
+        "occurred_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+    }
+
+    result = repository.publish(
+        candidate["_id"], changes={"status": "published", "active": True}, event=event
+    )
+
+    assert result is committed
+    assert collection.find_one.call_count == 2
+    assert collection.find_one_and_update.call_count == 1 + candidate_available_on_retry
+    assert insert_revision.call_count == 1 + candidate_available_on_retry
 
 
 def test_revision_hash_is_canonical_and_content_sensitive() -> None:

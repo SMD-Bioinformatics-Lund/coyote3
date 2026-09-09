@@ -15,8 +15,8 @@ deployment sequence:
 
 The procedure uses the immutable application topology from
 `deploy/compose/docker-compose.yml` without a development, test, or stage
-overlay. MongoDB runs from `deploy/compose/docker-compose.mongo.yml`, using the
-same MongoDB 8.2 single-member replica-set configuration documented for a new
+overlay. MongoDB runs from `deploy/compose/docker-compose.mongo.yml` with the
+`mongo` profile, using the same MongoDB 8.2 single-member replica-set configuration for a new
 deployment. Isolation comes from local project names, ports, credentials, and
 temporary host paths rather than different application code.
 
@@ -77,8 +77,8 @@ Use ports that are not assigned to another local service. The explicit Compose
 project names keep the test containers separate from an installed Coyote3
 environment. Every Compose command in this procedure passes one of these names
 with `-p`. This overrides the base Compose project name, producing container
-names such as `coyote3_testing_app-api-1` and
-`coyote3_testing_mongo-mongo-1`; it does not create containers with production,
+names beginning with the run-specific `coyote3_testing_app_` and
+`coyote3_testing_mongo_` project names; it does not create containers with production,
 development, or staging project names.
 
 ## 1. Create the isolated workspace
@@ -89,10 +89,10 @@ procedure:
 ```bash
 export VALIDATION_ROOT="$(mktemp -d /tmp/coyote3-validation.XXXXXX)"
 export VALIDATION_ENV_FILE="$VALIDATION_ROOT/coyote3.env"
-export VALIDATION_OVERRIDE_FILE="$VALIDATION_ROOT/storage.override.yml"
-export VALIDATION_APP_PROJECT="coyote3_testing_app"
-export VALIDATION_MONGO_PROJECT="coyote3_testing_mongo"
-export VALIDATION_APP_NETWORK="coyote3-validation-app-net"
+export VALIDATION_RUN_ID="$(openssl rand -hex 6)"
+export VALIDATION_APP_PROJECT="coyote3_testing_app_$VALIDATION_RUN_ID"
+export VALIDATION_MONGO_PROJECT="coyote3_testing_mongo_$VALIDATION_RUN_ID"
+export VALIDATION_APP_NETWORK="coyote3-validation-app-$VALIDATION_RUN_ID"
 export VALIDATION_APP_SUBNET="172.29.120.0/28"
 export VALIDATION_APP_GATEWAY="172.29.120.1"
 export VALIDATION_APP_PORT="6816"
@@ -101,9 +101,6 @@ export COYOTE3_VERSION="$(python3 api/version.py)"
 
 mkdir -p \
   "$VALIDATION_ROOT/data/coyote3/copied_sample_files/yaml" \
-  "$VALIDATION_ROOT/access" \
-  "$VALIDATION_ROOT/media" \
-  "$VALIDATION_ROOT/fs1" \
   "$VALIDATION_ROOT/logs" \
   "$VALIDATION_ROOT/mongo-data" \
   "$VALIDATION_ROOT/mongo-backups"
@@ -131,6 +128,7 @@ export VALIDATION_MONGO_APP_PASSWORD="$(openssl rand -hex 24)"
 export VALIDATION_SECRET_KEY="$(openssl rand -hex 32)"
 export VALIDATION_INTERNAL_TOKEN="$(openssl rand -hex 32)"
 export VALIDATION_PASSWORD_SALT="$(openssl rand -hex 32)"
+export VALIDATION_REDIS_PASSWORD="$(openssl rand -hex 32)"
 export VALIDATION_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
 ```
 
@@ -149,6 +147,7 @@ to a tracked environment file.
 Create the environment file used by MongoDB and the application stack:
 
 ```bash
+umask 077
 cat > "$VALIDATION_ENV_FILE" <<EOF
 ENV_NAME=testing
 COYOTE3_DB=coyote3_validation
@@ -161,6 +160,7 @@ LOCAL_TIME_ZONE=UTC
 SECRET_KEY=$VALIDATION_SECRET_KEY
 INTERNAL_API_TOKEN=$VALIDATION_INTERNAL_TOKEN
 PASSWORD_TOKEN_SALT=$VALIDATION_PASSWORD_SALT
+REDIS_PASSWORD=$VALIDATION_REDIS_PASSWORD
 
 COYOTE3_PORT=$VALIDATION_APP_PORT
 SCRIPT_NAME=/coyote3_validation
@@ -172,6 +172,9 @@ MONGO_ROOT_PASSWORD=$VALIDATION_MONGO_ROOT_PASSWORD
 MONGO_APP_USER=coyote3_app
 MONGO_APP_PASSWORD=$VALIDATION_MONGO_APP_PASSWORD
 COYOTE3_MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@mongo-app:27017/coyote3_validation?authSource=admin&replicaSet=coyote3-validation-rs
+IDENTITY_MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@mongo-app:27017/coyote3_identity_validation?authSource=admin&replicaSet=coyote3-validation-rs
+KNOWLEDGEBASE_MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@mongo-app:27017/coyote3_knowledgebase_validation?authSource=admin&replicaSet=coyote3-validation-rs
+BAM_MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@mongo-app:27017/BAM_Service_validation?authSource=admin&replicaSet=coyote3-validation-rs
 COYOTE3_APP_NETWORK=$VALIDATION_APP_NETWORK
 COYOTE3_MONGO_PORT=$VALIDATION_MONGO_PORT
 COYOTE3_MONGO_BIND_ADDRESS=127.0.0.1
@@ -201,37 +204,34 @@ CLINPGX_PUBLIC_LOOKUPS_ENABLED=0
 EOF
 ```
 
-Public knowledgebase calls are disabled so the rehearsal is deterministic and
-does not depend on internet access. This does not disable the local
-knowledgebase collections loaded by database bootstrap.
+Public OncoKB and ClinPGx lookups are disabled so these requests do not leave the
+rehearsal environment. Local HGNC and VEP reference snapshots loaded by bootstrap
+remain available; bootstrap does not populate an external knowledgebase database.
 
-Create a local storage override so the deployment `/access`, `/media`, and
-`/fs1` container mounts cannot expose corresponding host directories. Compose
-merges these entries by container target and retains all other deployment
-service settings:
+All four logical databases use explicit URI/name pairs on this disposable replica
+set. The `mongo` profile creates the application MongoDB service and initializer;
+`mongo-kb` is only needed for a separate knowledgebase instance and is not enabled
+here. Without these profiles, no MongoDB container starts. The runtime user has
+read-only knowledgebase access and read/write access to app, identity, and BAM.
 
-```bash
-cat > "$VALIDATION_OVERRIDE_FILE" <<EOF
-services:
-  api:
-    volumes: &validation_app_volumes
-      - $VALIDATION_ROOT/logs:/app/logs
-      - $VALIDATION_ROOT/access:/access
-      - $VALIDATION_ROOT/media:/media
-      - $VALIDATION_ROOT/data:/data
-      - $VALIDATION_ROOT/data:$VALIDATION_ROOT/data
-      - $VALIDATION_ROOT/fs1:/fs1
-  worker:
-    volumes: *validation_app_volumes
-  beat:
-    volumes: *validation_app_volumes
-EOF
-```
+The base stack mounts only the configured data root at `/data` and logs at
+`/app/logs`; no storage override is needed for these bundle-relative synthetic
+fixtures. There are no implicit `/access`, `/media`, `/fs1`, or host-path mirror
+mounts. Do not add center clinical input mounts to the disposable deployment.
 
 Validate the file before starting services:
 
 ```bash
-scripts/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
+bash scripts/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
+bash scripts/compose-with-version.sh \
+  -p "$VALIDATION_APP_PROJECT" \
+  --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.yml config --quiet
+docker compose \
+  -p "$VALIDATION_MONGO_PROJECT" \
+  --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.mongo.yml \
+  --profile mongo config --quiet
 ```
 
 ## 4. Start the disposable MongoDB replica set
@@ -357,11 +357,10 @@ it is not exposed on external host interfaces.
 Use the version-aware wrapper so image tags always use `api/version.py`:
 
 ```bash
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   build
 ```
 
@@ -378,15 +377,14 @@ application that a center would deploy.
 Initialize the empty database before starting the API:
 
 ```bash
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   run --rm --no-deps api \
   python scripts/bootstrap_database.py \
     --mongo-uri "$(grep '^COYOTE3_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
-    --identity-mongo-uri "$IDENTITY_MONGO_URI" \
+    --identity-mongo-uri "$(grep '^IDENTITY_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --db coyote3_validation \
     --identity-db coyote3_identity_validation \
     --username coyote3.admin \
@@ -411,22 +409,20 @@ governed database. A second successful bootstrap is not expected.
 Start the complete immutable service stack:
 
 ```bash
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   up -d
 ```
 
 Inspect service state:
 
 ```bash
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   ps
 ```
 
@@ -462,7 +458,6 @@ export VALIDATION_WORKER_CONTAINER_ID="$(docker compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   ps -q worker)"
 
 test -n "$VALIDATION_WORKER_CONTAINER_ID"
@@ -512,6 +507,9 @@ done
 The completed sample must appear once, have `ingest_status=ready`, and contain
 the declared SNV, CNV, CNV-profile, and coverage resources. A `.failed` marker
 is a failed validation result; do not rename it to `.done`.
+If the ingest family is disabled during the scan, expect the job and manifest to
+remain pending without a success acknowledgement. Re-enable it before checking
+completion; neither a disabled task result nor an HTTP acceptance is ingest success.
 
 ## 9. Validate the clinical workflow
 
@@ -567,14 +565,8 @@ database or use a second unique sample manifest; it must not overwrite the
 watch-ingested sample:
 
 ```bash
-scripts/compose-with-version.sh \
-  -p "$VALIDATION_APP_PROJECT" \
-  --env-file "$VALIDATION_ENV_FILE" \
-  -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
-  exec -T api \
-  bash scripts/center_check.sh \
-    --api-base-url http://127.0.0.1:8001 \
+PYTHON_BIN=.venv/bin/python bash scripts/center_check.sh \
+    --api-base-url "$VALIDATION_PUBLIC_URL" \
     --username coyote3.admin \
     --password "$VALIDATION_ADMIN_PASSWORD" \
     --provider local \
@@ -588,6 +580,8 @@ deployment where LDAP connectivity is part of the test scope.
 
 Skip this optional step when the same sample already exists and update is
 disabled. The watch-folder result remains the required live-ingest evidence.
+This command runs on the host with the repository's Python environment and fixture
+files, through the public proxy; it does not require fixtures inside the API image.
 
 ## 11. Capture evidence before cleanup
 
@@ -596,18 +590,16 @@ Save service state and logs outside the containers:
 ```bash
 mkdir -p "$VALIDATION_ROOT/evidence"
 
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   ps > "$VALIDATION_ROOT/evidence/application-services.txt"
 
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   logs --no-color > "$VALIDATION_ROOT/evidence/application.log"
 
 docker compose \
@@ -628,11 +620,10 @@ reviewer with the release evidence.
 Stop the application before MongoDB:
 
 ```bash
-scripts/compose-with-version.sh \
+bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  -f "$VALIDATION_OVERRIDE_FILE" \
   down --remove-orphans
 
 docker compose \
@@ -648,6 +639,19 @@ docker network rm "$VALIDATION_APP_NETWORK"
 Do not use `down -v`. Coyote3's version-aware wrapper rejects that option, and
 production MongoDB data must never be coupled to application teardown.
 
+After confirming that the disposable jobs are complete and evidence has been retained,
+remove only this run's Redis volume. Unique project names prevent a later rehearsal
+from inheriting old queues or credentials:
+
+```bash
+docker volume rm "${VALIDATION_APP_PROJECT}_redis-data"
+docker ps -a --filter "label=com.docker.compose.project=$VALIDATION_APP_PROJECT"
+docker ps -a --filter "label=com.docker.compose.project=$VALIDATION_MONGO_PROJECT"
+```
+
+Both container queries must be empty. Never substitute a clinical deployment's
+project name or remove a shared Redis volume.
+
 Confirm that the variables still identify the disposable location before
 removing its bind-mounted files:
 
@@ -657,9 +661,10 @@ case "$VALIDATION_ROOT" in
   *) echo "Refusing to remove unexpected path: $VALIDATION_ROOT" >&2; exit 1 ;;
 esac
 
-rm -rf -- "$VALIDATION_ROOT"
-unset VALIDATION_ROOT VALIDATION_ENV_FILE VALIDATION_OVERRIDE_FILE
+sudo rm -rf -- "$VALIDATION_ROOT"
+unset VALIDATION_ROOT VALIDATION_ENV_FILE
 unset VALIDATION_APP_PROJECT
+unset VALIDATION_RUN_ID VALIDATION_APP_NETWORK VALIDATION_APP_SUBNET VALIDATION_APP_GATEWAY
 unset VALIDATION_MONGO_PROJECT
 unset VALIDATION_MONGO_CONTAINER_ID VALIDATION_WORKER_CONTAINER_ID
 unset VALIDATION_APP_PORT VALIDATION_MONGO_PORT VALIDATION_PUBLIC_URL
@@ -667,15 +672,11 @@ unset COYOTE3_VERSION
 unset VALIDATION_MONGO_ROOT_PASSWORD VALIDATION_MONGO_APP_PASSWORD
 unset VALIDATION_SECRET_KEY VALIDATION_INTERNAL_TOKEN
 unset VALIDATION_PASSWORD_SALT VALIDATION_ADMIN_PASSWORD
+unset VALIDATION_REDIS_PASSWORD
 ```
 
-Finally, confirm that no validation containers remain:
-
-```bash
-docker ps -a --filter name=coyote3_validation
-```
-
-An empty result completes the teardown. Images remain in the local Docker
+The empty project-scoped container queries complete container verification. Elevated
+removal is needed for files owned by the container UIDs. Images remain in the local Docker
 cache and may be removed separately according to the host's image-retention
 policy.
 
@@ -700,6 +701,13 @@ Failure in any item blocks promotion until the cause is understood and the
 complete rehearsal passes on a fresh disposable database.
 
 ## Related procedures
+
+For a separate capacity exercise, use [self-hosted load testing](load_testing.md)
+after this stack is healthy. The generator must reach this isolated stack's Nginx
+prefix, with external fetches disabled or mocked. This functional rehearsal,
+including its deliberate report save, is not a load-tested release; do not turn its
+clinical write checks into load loops. The load guide owns generator commands and
+excludes publication and finalization.
 
 - [Initial deployment checklist](../operations/initial_deployment_checklist.md)
 - [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md)

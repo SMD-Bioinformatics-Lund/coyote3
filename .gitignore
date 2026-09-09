@@ -115,6 +115,9 @@ celerybeat.pid
 .coyote3_test_env
 .coyote3_env
 .coyote3_storage.yml
+.coyote3_load/
+.venv-load/
+load-results/
 .venv
 env/
 venv/

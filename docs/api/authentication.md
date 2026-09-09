@@ -210,6 +210,18 @@ https://localhost/coyote3_dev/api/v1/auth/whoami
 The backend route remains `/api/v1/...` inside the service. The reverse proxy
 and FastAPI root-path configuration expose the route at the mounted public URL.
 
+## Load-test sessions
+
+The [self-hosted load workload](../testing/load_testing.md) uses ordinary local test
+accounts and the normal session endpoints through Nginx, including `SCRIPT_NAME`.
+Cookie-authenticated mutations and logout must send the login response's CSRF token;
+do not disable CSRF or replace user sessions with the internal service token.
+Complete required password changes before the run, scope accounts to synthetic data,
+and keep rate limiting enabled unless a separately documented test requires otherwise.
+Report `429` responses explicitly. Keep credentials and workload configuration in
+untracked local files mounted read-only, not in results or logs. LDAP integration
+checks are separate from sustained load on the application.
+
 ## Internal Service Token
 
 Some infrastructure-only routes use `X-Coyote-Internal-Token`. That token is

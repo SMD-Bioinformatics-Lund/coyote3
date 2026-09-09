@@ -136,6 +136,19 @@ the source database.
 
 ## 6. Record the decision
 
+### Capacity assessment
+
+Agree expected concurrent reviewers, request mix, ingest arrival rate, and acceptable
+latency/error/completion thresholds before a
+[load-testing run](../testing/load_testing.md). Use a synthetic validation deployment
+with separate application and identity databases, Redis queues, and storage. Do not
+load the center's LDAP, SMTP, or public knowledgebase providers; disable or mock external
+fetches and validate provider integration separately at controlled volume. Preserve
+Nginx and `SCRIPT_NAME` routing in the measured path. Record performance as unassessed
+if this optional assessment has not been performed.
+
+### Acceptance record
+
 The acceptance record must include:
 
 - application version, Git revision, and container image digests

@@ -573,9 +573,8 @@ class ClinicalRuleSetRepository(BaseRepository):
             event: Lifecycle entry with action, actor, occurred_at, and optional reason.
 
         Returns:
-            The last candidate-update result assigned by a transaction callback, or
-            ``None`` for an invalid ID or when that result remains or is assigned None.
-            This value can survive an aborted callback attempt; see the retry limitation below.
+            Updated candidate from the committed transaction attempt, or ``None``
+            for an invalid ID or when no approved candidate matches in that attempt.
 
         Raises:
             RuntimeError: If an active version changes during deactivation, a required
@@ -586,37 +585,32 @@ class ClinicalRuleSetRepository(BaseRepository):
         Notes:
             Deactivation and publication each increment revisions and append snapshots
             in the same transaction. Publication field values are supplied by the caller.
-            The enclosing result is not reset between callback retries. If an attempt
-            assigns a candidate and then aborts, a retry finding no approved candidate
-            returns without clearing it. The method can therefore return a candidate
-            from the aborted attempt rather than a document updated by the committed attempt.
+            Callback retries discard results from aborted attempts; only the committed
+            attempt determines the returned document.
         """
         object_id = _object_id(document_id)
         if object_id is None:
             return None
-        result: dict[str, Any] | None = None
 
-        def _transaction(session: Any) -> None:
-            """Deactivate sibling releases and store the updated candidate in ``result``.
+        def _transaction(session: Any) -> dict[str, Any] | None:
+            """Deactivate sibling releases and return this attempt's updated candidate.
 
             Args:
                 session: Session shared by release updates and revision snapshots.
 
+            Returns:
+                Updated candidate after snapshot insertion, or ``None`` when no
+                approved candidate matches in this attempt.
+
             Raises:
                 RuntimeError: If a prior active release no longer matches its revision
                     or a snapshot cannot extend the revision chain.
-
-            Notes:
-                Returns without changing the enclosing result when no approved candidate
-                is found, preserving any value from a prior callback attempt. Otherwise
-                assigns the candidate-update result before appending its snapshot.
             """
-            nonlocal result
             candidate = self.get_collection().find_one(
                 {"_id": object_id, "status": "approved"}, session=session
             )
             if candidate is None:
-                return
+                return None
             previous_versions = list(
                 self.get_collection().find(
                     {
@@ -674,8 +668,9 @@ class ClinicalRuleSetRepository(BaseRepository):
                     session=session,
                 )
 
-        run_transaction(self.adapter.client, _transaction)
-        return result
+            return result
+
+        return run_transaction(self.adapter.client, _transaction)
 
     def capture_baseline(
         self, document: dict[str, Any], *, actor: str, occurred_at: datetime

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "samples": [
+    {
+      "sample_id": "demo_dna_sample",
+      "finding_ids": ["demo_small_variant"],
+      "report_type": "dna"
+    }
+  ],
+  "gene_symbols": ["BRAF"],
+  "rule_tests": [{"sample_id": "demo_dna_sample", "rule_version_id": "demo_rule_version"}],
+  "ingest_sample_template": {
+    "name": "load_sample",
+    "case_id": "load_case",
+    "asp_id": "load_assay",
+    "environment": "testing",
+    "sample_no": 1,
+    "sequencing_scope": "panel",
+    "omics_layer": "dna",
+    "pipeline": "synthetic_load",
+    "genome_build": 38,
+    "database_versions": {"vep": "103"},
+    "files": {"biomarkers": {"path": "/load/synthetic/biomarkers.json"}}
+  }
+}

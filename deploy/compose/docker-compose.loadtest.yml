@@ -1,0 +1,61 @@
+name: coyote3_loadtest
+
+# Standalone load generator. Join an existing isolated application's network;
+# this file does not start or reconfigure the target application or its databases.
+services:
+  loadtest:
+    image: locustio/locust:2.46.5
+    profiles: [loadtest]
+    user: "${COYOTE3_LOAD_UID:-1000}:${COYOTE3_LOAD_GID:-1000}"
+    working_dir: /mnt/locust
+    command:
+      - -f
+      - /mnt/locust/locustfile.py
+      - --web-host
+      - 0.0.0.0
+      - --web-port
+      - "8089"
+      - --csv
+      - /load/results/run
+      - --csv-full-history
+      - --html
+      - /load/results/report.html
+    environment:
+      COYOTE3_LOAD_CONFIG: /load/private/config.json
+      COYOTE3_LOAD_CREDENTIALS: /load/private/credentials.json
+      PYTHONDONTWRITEBYTECODE: "1"
+    ports:
+      - "127.0.0.1:${COYOTE3_LOAD_PORT:-8089}:8089"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [load_target]
+    volumes:
+      - type: bind
+        source: ../../tests/load
+        target: /mnt/locust
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COYOTE3_LOAD_PRIVATE_DIR:-../../.coyote3_load}
+        target: /load/private
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COYOTE3_LOAD_RESULTS_DIR:-../../load-results}
+        target: /load/results
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs: [/tmp:size=64m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${COYOTE3_LOAD_MEM_LIMIT:-512m}
+    cpus: ${COYOTE3_LOAD_CPU_LIMIT:-1.0}
+    restart: "no"
+
+networks:
+  load_target:
+    name: ${COYOTE3_LOAD_NETWORK:-coyote3-loadtest-net}
+    external: true

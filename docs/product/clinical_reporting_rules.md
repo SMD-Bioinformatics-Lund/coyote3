@@ -472,6 +472,17 @@ rule-set URI. Rejection notifies the author, and publication notifies the author
 user publishes the release. Notifications are delivery signals; the revision archive and audit
 events remain the traceability records.
 
+Publication deactivates sibling releases, updates the approved candidate, and appends
+revision snapshots in one MongoDB transaction. The returned candidate belongs to the
+committed callback attempt. If a retry finds no approved candidate, the repository
+returns `None`, not a candidate retained from an aborted attempt. See
+[transaction boundaries](../architecture/transactions_and_ingest_recovery.md).
+
+For [load validation](../testing/load_testing.md), use synthetic rules and read-only
+evaluation or preview operations supported by the workload. Publication, retirement,
+approval, and report finalization are not load-generator actions. Validate governance
+and retry behavior with focused correctness tests, separately from HTTP timing.
+
 ## Runtime Evaluation And Provenance
 
 Report preparation creates facts only from the exact filtered findings, biomarkers,

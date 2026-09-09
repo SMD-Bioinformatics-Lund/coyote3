@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_DIRECTORIES = ("api", "scripts", "deploy/gunicorn")
+SOURCE_DIRECTORIES = ("api", "scripts", "deploy/gunicorn", "tests/load")
 DEFINITION_TYPES = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
 
 

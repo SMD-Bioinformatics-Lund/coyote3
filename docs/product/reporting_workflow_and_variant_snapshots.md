@@ -189,6 +189,14 @@ Rules:
 
 ## Report Save
 
+For [load testing](../testing/load_testing.md), distinguish report preview request
+latency from saved-artifact generation and clinical workflow correctness. Use synthetic
+fixtures and the workload's supported preview/read operations; do not save or finalize
+reports, publish rules, or alter issued snapshots in the load loop. Any opt-in synthetic
+comment writes can change preview conclusions, so keep their dataset and results
+separate from read-only preview measurements. Validate rendered React and PDF output
+with the browser/report checks rather than treating HTTP timing as rendering evidence.
+
 Endpoint:
 
 ```text

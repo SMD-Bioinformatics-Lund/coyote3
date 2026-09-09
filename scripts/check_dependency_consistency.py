@@ -109,6 +109,13 @@ def main() -> int:
             _read_requirements(ROOT / "requirements-docs.txt"),
         )
     )
+    errors.extend(
+        _check(
+            "requirements-load.txt",
+            _declared(optional["load"]),
+            _read_requirements(ROOT / "requirements-load.txt"),
+        )
+    )
     if errors:
         print("Dependency exports are inconsistent with pyproject.toml:", file=sys.stderr)
         for error in errors:

@@ -279,7 +279,7 @@ constructing a document does not mean inserting it, and an empty result is not
 necessarily an error. Do not copy type annotations into otherwise empty descriptions.
 
 The backend suite includes an AST-based presence check for `api/`, `scripts/`,
-Gunicorn configuration and root Python entry points. It does
+`tests/load/`, Gunicorn configuration and root Python entry points. It does
 not import the application, connect to MongoDB, or inspect clinical data. Run it with:
 
 ```bash
@@ -288,7 +288,8 @@ PYTHONPATH=. .venv/bin/pytest -q tests/integration/test_python_docstrings.py --n
 
 This check detects missing documentation, not inaccurate explanations. Ruff checks
 the configured Google-style formatting; code review checks the content against the
-implementation. Tests and fixtures are outside the production presence check.
+implementation. Ordinary tests and fixtures are outside this presence check;
+the executable load harness under `tests/load/` is included.
 
 ## Continuous Integration
 
@@ -400,7 +401,23 @@ All permission-gate testing must operate at the logical boundary being enforced:
 
 ## Performance Checks
 
-Use dedicated profiling or staged environment testing when you need performance numbers.
+Use the optional [self-hosted Locust workflow](load_testing.md) for HTTP performance
+measurements against an isolated synthetic deployment. It is separate from the normal
+quality gate and does not render React; Playwright retains ownership of browser behavior.
+Run through Nginx and the configured `SCRIPT_NAME` with ordinary sessions and CSRF.
+Keep read workloads separate from explicitly enabled comment or ingest writes; do not
+publish rules or finalize reports as load actions.
+
+Record workload mix, concurrency, duration, dataset size, cache-cold and cache-warm
+phases, p95/p99 latency, and errors including `429`. Async acceptance timing must be
+paired with completion and queue measurements. The existence of this harness or a
+passing unit suite is not evidence that a release has been load tested.
+
+The separate CI `loadtest-smoke` job installs only `requirements-load.txt`
+(Locust `2.46.5`, from the optional `load` dependency group) and runs
+`python tests/load/smoke_test.py` against synthetic HTTP responses. It checks harness
+behavior without a real application database; it is neither a deployment load run
+nor a measurement of Coyote3 capacity.
 
 See also:
 

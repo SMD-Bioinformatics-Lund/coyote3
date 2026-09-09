@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add optional self-hosted load testing with synthetic fixtures, target checks,
+  authenticated workflows and separate measurement of ingest completion.
+- Preserve watched ingest manifests when processing is disabled during a scan.
+- Return clinical rule publication results from the committed transaction attempt.
+
 ## v4.0.0 - 2026-08-10
 
 Version 4 replaces the Flask/Jinja application with a production-oriented
@@ -8,7 +15,7 @@ FastAPI and React platform while preserving its supported clinical workflows.
 - Added typed DNA and RNA ingestion, analysis, reporting, administration, public
   catalog, and cohort-review workflows.
 - Added versioned data contracts, ASPC-driven filtering, reference annotations,
-  YAML reporting rules, and immutable report snapshots.
+  MongoDB-backed clinical reporting rules, and immutable report snapshots.
 - Added database-backed access control, authentication, auditing, notifications,
   background processing, and operational controls.
 - Added secure container deployment, backup and restore tooling, automated tests,

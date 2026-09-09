@@ -123,6 +123,12 @@ logs only when the check fails and keeps them for three days.
 
 ## Browser Validation Protocol
 
+The [Locust workload](load_testing.md) measures HTTP requests through the deployed
+proxy, not React rendering, deferred component behavior, layout, or accessibility.
+Keep these browser checks separate, even when both suites use the same synthetic
+fixture revision. Do not repeat this protocol's report saves or administrative
+mutations in a load loop; the load workload excludes publication and finalization.
+
 Use a clean browser profile and a controlled account for each access scope:
 
 | Account scope | Purpose |

@@ -17,14 +17,14 @@ A completed YAML manifest is the ingest declaration. Pipeline keys such as assay
 3. It resolves the active ASP from assay_specific_panels and the active ASPC from asp_configs using asp_id, subpanel_id, and environment. If the requested subpanel configuration is absent, the configured base ASPC is resolved and the sample records that base configuration is in use.
 4. The ASP defines accepted and required file keys. The ASPC defines enabled analysis types. Every enabled analysis makes its configured source file required. An optional file may be absent only when it is not declared; a declared file must exist, parse, validate, and persist successfully.
 5. The DNA or RNA parser reads declared files into an internal preload payload. Parsers never write directly to MongoDB.
-6. Every database-backed payload is normalized through the Pydantic collection registry, then dependent records are written before the sample is persisted with current counts and ready state.
-7. If a dependent write fails, the service restores the earlier dependent state for an update or removes staged records for a new sample. A failed ingest cannot leave a ready sample.
-8. The manifest receives its configured done or failed suffix and an ingest audit event. Optional public knowledgebase enrichment is separate from readiness.
+6. Every database-backed payload is normalized through the Pydantic collection registry. The sample anchor, declared evidence, ready state, and async completion receipt commit in one required MongoDB transaction.
+7. A failed transaction exposes none of its writes and leaves prior sample data unchanged. There is no compensating-delete or unprotected-write fallback.
+8. Successful watched processing receives its done suffix and success audit event; non-retryable failures receive a failed suffix. Busy or disabled jobs retain their manifests without success acknowledgement for a later scan. Optional public knowledgebase enrichment is separate from readiness.
 
 > **Info: Pipeline paths**
 >
 >
-> Manifests retain pipeline host paths. API and Celery containers must be able to read those paths through their mounts. The paths are preserved in the sample document so the originating artifact remains identifiable.
+> Absolute manifest paths must be readable through explicit API and Celery container mounts; host paths are not mirrored automatically. Relative paths resolve from the manifest directory. The resolved paths are preserved in the sample document so the originating artifact remains identifiable.
 >
 
 ## Configured file ownership

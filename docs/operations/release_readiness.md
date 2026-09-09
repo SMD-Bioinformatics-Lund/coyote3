@@ -27,6 +27,15 @@ upstream exception and its required mitigation tests.
 | Compatibility | Supported manifest, collection, configuration, and reporting-rule contracts are unchanged or explicitly versioned | [Schema contracts and versioning](../developer/schema_contracts_and_versioning.md) |
 | Limitations | Known clinical and operational limitations have been reviewed by the deployment owner | [Minimum production baseline](minimum_production_baseline.md) |
 
+## Performance evidence
+
+When the center requires a capacity assessment, follow
+[self-hosted load testing](../testing/load_testing.md) against an isolated deployment
+of the candidate. Record the workload, resource limits, fixture revision, cache phases,
+p95/p99, errors including throttling, and async completion/backlog results against
+center-approved thresholds. Mark performance as unassessed when no run exists;
+shipping the harness or passing the automated quality gate is not a load-tested release.
+
 ## Compose-backed browser gate
 
 Run this gate after deploying the exact image and configuration intended for

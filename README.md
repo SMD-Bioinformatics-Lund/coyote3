@@ -105,6 +105,7 @@ deploy/                      Compose, proxy, and container configuration
 scripts/                     Bootstrap, quality, validation, and operations tools
 docs/                        User, clinical, API, architecture, and operations guides
 tests/                       Backend unit, API, integration, and contract tests
+tests/load/                  Optional synthetic HTTP workload and safety checks
 demo_data/                   Synthetic demonstration and ingest data
 ```
 
@@ -144,6 +145,12 @@ See [service topology](docs/architecture/mongodb_topology.md) for local and spli
 
 See [MongoDB deployment and recovery](docs/operations/mongodb_deployment_and_recovery.md)
 for replica-set initialization, backups, and recovery testing.
+
+Capacity testing uses a separate, optional Locust service, not the API image.
+The [load-testing guide](docs/testing/load_testing.md) covers isolated test data,
+authenticated workflows, the `loadtest` Compose profile, and how to interpret
+latency, error rates and background-job completion. Its CI smoke test runs only
+against an in-process synthetic HTTP server; it does not certify deployment capacity.
 
 The public application path is controlled by `SCRIPT_NAME`. With the example
 development value `/coyote3_dev`, the standard endpoints are:

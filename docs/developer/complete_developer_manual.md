@@ -465,6 +465,15 @@ PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
 The authoritative test scopes, coverage gates, and deployment validation are in
 [testing and quality](../testing/testing_and_quality.md).
 
+For measured HTTP behavior, use the optional
+[self-hosted Locust workload](../testing/load_testing.md) after deploying a synthetic,
+isolated stack. Load dependencies are separate from runtime and ordinary test
+dependencies. Extend request groups alongside the relevant API contracts and verify
+authorization and response semantics before interpreting timings. Locust does not
+render React; retain Playwright coverage for the user workflow. Transaction retries
+and watcher acknowledgement guarantees require focused regression tests, not just
+successful HTTP response counts.
+
 ## Documentation
 
 Write for the person performing the task. Start with the outcome, then list

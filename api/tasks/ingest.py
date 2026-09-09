@@ -151,12 +151,11 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
     Notes:
         Uses the bound task's request ID for tracing and marker names. The caller
         owns the scan lock. Jobs are submitted before execution; changed manifests
-        and retryable failures remain for a later scan. Busy jobs are skipped;
-        other returned statuses reach the completion-marker rename, including a
-        disabled status if the task family is switched off during a scan. A marker
-        alone therefore does not prove that ingest succeeded. An acknowledgement
-        failure does not undo committed data. Nonretryable failures receive a
-        failure marker when directory permissions allow it.
+        and retryable failures remain for a later scan. Busy or disabled jobs are
+        skipped without a completion marker or success audit, preserving their
+        manifests for later processing. An acknowledgement failure does not undo
+        committed data. Nonretryable failures receive a failure marker when
+        directory permissions allow it.
     """
     watch_dir = WATCH_INGEST_DIRECTORY
     if not watch_dir.exists():
@@ -203,7 +202,7 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
                     submitted_by="ingest-watcher",
                 )
                 result = _execute_ingest_job(identity)
-                if result.get("status") == "busy":
+                if result.get("status") in {"busy", "disabled"}:
                     continue
             done_path = _unique_marker_path(manifest_path, done_suffix, self.request.id)
             try:

@@ -204,11 +204,12 @@ Watcher settings:
 - `COYOTE3_INGEST_DONE_SUFFIX`: success marker suffix. Defaults to `.done`.
 - `COYOTE3_INGEST_FAILED_SUFFIX`: failure marker suffix. Defaults to `.failed`.
 
-The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at `/data` and at the
-same original absolute path in ingest-capable containers. Pipeline manifests may
-therefore retain absolute paths below that host root; those paths are persisted
-unchanged in `samples.files.<key>.path`. Relative manifest paths and absolute
-`/data/...` paths are also supported.
+The base Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` only at `/data`.
+Absolute manifest paths must be readable at the same container location by the API
+and worker; host paths are not automatically mirrored. Configure any additional
+input mounts in a [private storage override](../operations/deployment_guide.md#center-storage-mounts).
+Resolved paths are persisted in `samples.files.<key>.path`. Relative manifest paths
+and absolute `/data/...` paths are also supported.
 
 Pipeline identity fields are normalized before any ASP/ASPC lookup:
 
@@ -238,6 +239,23 @@ The watcher is protected by a non-overlap lock. If a previous scan is still
 parsing or writing a sample bundle when the next beat tick fires, the newer task
 returns `skipped` with `reason=already_running` and does not touch any manifest
 files.
+
+If the ingest family is disabled while a scan is in progress, its durable job and
+manifest are preserved for a later enabled run. A disabled or busy result produces
+neither a success marker nor a success audit event. A `.done` acknowledgement follows
+successful processing, including recovery of an already-committed receipt.
+
+### Ingest load validation
+
+The [optional load-testing workflow](../testing/load_testing.md) treats ingest as an
+explicit opt-in write workload using sample JSON and a small synthetic biomarker file.
+It measures dispatch, biomarker parsing, and persistence, not staged uploads or
+large-file throughput. Use a dedicated synthetic ASP/ASPC configured for that input;
+do not weaken clinical assay requirements.
+Record request acceptance latency separately from time to terminal job status and
+sample readiness. Include failed jobs, queue wait, timeouts, and post-load drain time;
+a fast acceptance response does not demonstrate ingest throughput. Disable or mock
+external enrichment so workers do not direct test traffic at third-party services.
 
 ## MongoDB dependency
 

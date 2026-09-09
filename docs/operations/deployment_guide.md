@@ -117,6 +117,20 @@ explicit write access to their directory. NFS/SMB storage can be mounted by the 
 or supplied through center-owned Compose volumes. Do not commit operational paths,
 mount credentials, or the private override.
 
+## Optional load generator
+
+The self-hosted Locust overlay, `deploy/compose/docker-compose.loadtest.yml`, is
+standalone and opt-in under the `loadtest` profile. It runs only the generator; it does not start
+or provision Coyote3. Deploy an isolated synthetic application first and target its
+Nginx entrypoint with the configured prefix, not the API container port. The Locust
+UI is bound to localhost on port `8089`, and local credentials/configuration JSON
+are mounted read-only from `.coyote3_load`; only `load-results` is writable persistent
+output. It joins the pre-created external `COYOTE3_LOAD_NETWORK` (default
+`coyote3-loadtest-net`). Supply generator configuration, not the application's database
+environment file. Keep the overlay out of normal production startup.
+Use the [load-testing guide](../testing/load_testing.md) for the exact setup and
+execution commands, workload selection, and result handling.
+
 ## Environment warnings
 
 Set `ENV_NAME` consistently for the API, frontend and documentation builds. Compose

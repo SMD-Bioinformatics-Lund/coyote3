@@ -34,6 +34,7 @@ The system consists of:
 | `frontend/tests/e2e/` | Playwright browser tests. |
 | `api/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
 | `tests/` | Backend unit, API, integration, contract, and fixture coverage. |
+| `tests/load/` | Optional Locust HTTP workloads, target checks and synthetic smoke server. |
 | `deploy/` | Dockerfiles, Compose definitions, proxy configuration, and environment examples. |
 | `scripts/` | Quality, bootstrap, deployment, maintenance, and contract-generation tools. |
 | `docs/` | MkDocs user, developer, API, configuration, and operations documentation. |
@@ -135,6 +136,11 @@ enforce several of these rules and must remain passing.
   coverage is collected from `api` and has a 75% minimum.
 - Frontend unit/component tests use Vitest and Testing Library under `frontend/src`.
 - Browser tests use Playwright under `frontend/tests/e2e`.
+- Locust runs in a separate environment using `requirements-load.txt`, not the API
+  runtime. Load only an explicitly approved synthetic deployment through its proxy.
+  Preserve target/database checks, TLS verification, CSRF handling and opt-in writes.
+  Never aim load tests at production or external knowledgebase APIs. HTTP load tests
+  do not replace browser acceptance, clinical validation or deployment capacity tests.
 - Add positive, negative, authorization, validation, and regression cases appropriate to
   the behavior changed. Clinical and cross-layer changes require broader coverage than a
   visual-only change.
@@ -167,6 +173,10 @@ npm --prefix frontend run test:e2e
 npm run docs:lint
 .venv/bin/python scripts/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
+
+# Standalone load-generator smoke test against a synthetic HTTP server
+# Run with a separate interpreter where requirements-load.txt is installed.
+.venv-load/bin/python tests/load/smoke_test.py
 ```
 
 Start the development stack with the version-aware Compose wrapper:

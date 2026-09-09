@@ -112,6 +112,24 @@ The supplied Docker MongoDB deployment is reachable through its dedicated
 network and is bound to loopback only for host-side maintenance. In local mode,
 the external MongoDB deployment owns its own exposure and maintenance policy.
 
+## Load-test isolation
+
+An `ENV_NAME` label or separate MongoDB database alone does not isolate a load run.
+Use explicit application, identity, and BAM URI/name pairs pointing only to
+disposable resources, with synthetic accounts and fixtures. Prefer a disposable
+knowledgebase; a shared read-only knowledgebase requires its operator's approval
+and a test plan accounting for contention with other deployments. Keep Redis,
+its `ingest`/`default` queues and result backend, report artifacts, ingest staging,
+watch directories, and logs separate from clinical environments. Logical Redis
+databases within one shared server still compete for memory and processing.
+
+Set `ONCOKB_PUBLIC_LOOKUPS_ENABLED=0` and `CLINPGX_PUBLIC_LOOKUPS_ENABLED=0` for
+load runs. Disable or mock other external fetches and integrations as applicable;
+do not direct generated traffic at third parties. Store generator credentials and
+configuration JSON in private untracked files mounted read-only. The
+[load-testing guide](../testing/load_testing.md) defines the optional runner setup;
+application secrets, including `REDIS_PASSWORD`, remain deployment requirements.
+
 ## Secrets handling
 
 - Keep real values out of git

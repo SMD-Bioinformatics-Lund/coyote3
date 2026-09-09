@@ -120,6 +120,23 @@ When an alert fires:
    `docker compose ps`, worker/Beat logs, broker connectivity, and the
    internal task-status endpoint for a known task id.
 
+## Load-test measurements
+
+During [load testing](../testing/load_testing.md), correlate Locust request groups
+with proxy/API logs and worker state over the same time window. Capture p95/p99 and
+error rates, including `429`, connection failures, and request timeouts; do not hide
+throttled requests by reporting only successful response latency. Keep cache-cold,
+warm-up, and steady cache-warm phases distinct.
+
+For async ingest, measure acceptance latency, queue wait, terminal receipt completion,
+failed jobs, and backlog drain after arrivals stop. Worker inspection counts are not
+a substitute for broker queue depth or durable pending-job age. Collect MongoDB
+connection/pool pressure, wait-queue and server-selection timeouts, query duration,
+and host CPU/memory/storage signals with the deployment's monitoring tools; do not
+assume the API metrics endpoint exports all of them. Record pool limits and worker
+concurrency with results. Never flush shared Redis broker/result databases for a
+cold-cache measurement.
+
 ## Ownership
 
 - Platform/DevOps: dashboard and alert wiring.

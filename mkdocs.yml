@@ -115,6 +115,7 @@ nav:
   - Test and validate Coyote3:
       - Test strategy and quality gates: testing/testing_and_quality.md
       - Local disposable full-stack validation: testing/disposable_full_stack_validation.md
+      - Load and capacity testing: testing/load_testing.md
       - Browser and release validation: testing/browser_and_release_validation.md
       - Test data and fixtures: testing/test_data_and_fixtures.md
   - Project:
