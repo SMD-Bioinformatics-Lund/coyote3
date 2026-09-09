@@ -140,16 +140,19 @@ class IngestJobsRepository(BaseRepository):
         if updated.matched_count != 1:
             raise RuntimeError("Ingest job lease changed before commit")
 
-    def fail(self, job_id, lease_token, *, retryable):
+    def fail(self, job_id, lease_token, *, retryable, error=None):
         """Never overwrite a committed success after a lost acknowledgement."""
         self.get_collection().update_one(
             {"_id": job_id, "state": "running", "lease_token": lease_token},
             {
                 "$set": {
                     "state": "pending" if retryable else "failed",
-                    "error": "Temporary database failure"
-                    if retryable
-                    else "Ingest validation or write failed",
+                    "error": error
+                    or (
+                        "Temporary database failure"
+                        if retryable
+                        else "Ingest validation or write failed"
+                    ),
                     "lease_until": None,
                     "lease_token": None,
                     "updated_at": datetime.now(timezone.utc),

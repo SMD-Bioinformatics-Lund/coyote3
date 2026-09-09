@@ -149,6 +149,34 @@ class UserManagementService:
             ),
         }
 
+    def _configure_assay_choices(self, form: dict[str, Any]) -> dict[str, Any]:
+        """Offer active assay checkboxes only within the selected assay groups."""
+        groups = self.common_util.create_assay_group_map(
+            self.assay_panel_repository.get_all_asps(is_active=True)
+        )
+        form["fields"]["asp_ids"].update(
+            {
+                "display_type": "checkbox-group",
+                "help": "Select assay groups first, then the permitted assay IDs.",
+                "options_by_field": {
+                    "field": "asp_groups",
+                    "values": {
+                        str(group).lower(): [
+                            {
+                                "value": panel["asp_id"],
+                                "label": f"{panel['asp_id']} — {panel.get('display_name') or panel['asp_id']}",
+                            }
+                            for panel in panels
+                            if panel.get("asp_id")
+                        ]
+                        for group, panels in groups.items()
+                        if group
+                    },
+                },
+            }
+        )
+        return groups
+
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
         """Build a new-user form with available roles and assay access choices.
 
@@ -168,9 +196,7 @@ class UserManagementService:
         return {
             "form": form,
             "role_map": self._roles_policy_map(),
-            "assay_group_map": self.common_util.create_assay_group_map(
-                self.assay_panel_repository.get_all_asps()
-            ),
+            "assay_group_map": self._configure_assay_choices(form),
         }
 
     def context_payload(self, *, user_id: str) -> dict[str, Any]:
@@ -201,9 +227,7 @@ class UserManagementService:
             "user_doc": user_doc,
             "form": form,
             "role_map": self._roles_policy_map(),
-            "assay_group_map": self.common_util.create_assay_group_map(
-                self.assay_panel_repository.get_all_asps()
-            ),
+            "assay_group_map": self._configure_assay_choices(form),
         }
 
     @staticmethod

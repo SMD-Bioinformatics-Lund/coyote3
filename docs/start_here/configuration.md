@@ -61,7 +61,6 @@ Every center must review and set only this core deployment contract:
 | `INTERNAL_API_TOKEN` | Authenticates trusted internal service requests. |
 | `PASSWORD_TOKEN_SALT` | Separates password-token signing from other signed data. |
 | `COYOTE3_DATA_HOST_ROOT` | Provides persistent sample, ingest, and report storage. |
-| `COYOTE3_REPORTS_HOST_ROOT` | Optionally separates saved report artifacts from ingest storage. |
 | `COYOTE3_LOGS_HOST_ROOT` | Provides persistent application log storage. |
 | `COYOTE3_APP_NETWORK` | Selects the pre-created Docker network. |
 | `PUBLIC_BASE_URL` | Required by Compose for generated public links. |
@@ -155,31 +154,52 @@ for read-only, same-path input mounts.
 | Setting | Meaning |
 | --- | --- |
 | `COYOTE3_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` in each ingest-capable container. |
-| `COYOTE3_REPORTS_HOST_ROOT` | Optional separate host directory mounted at `/data/coyote3/reports`. |
-| `/data/coyote3/reports` | Fixed container location for report artifacts. |
-| `/data/coyote3/ingest_staging` | Fixed container location for staged async upload jobs. |
-| `/data/coyote3/copied_sample_files/yaml` | Fixed container location scanned for ingest manifests. |
-
-Example:
+| `/data/coyote3_<env>/reports` | Saved report artifacts. |
+| `/data/coyote3_<env>/ingest_staging` | Durable staged upload jobs. |
+| `/data/coyote3_<env>/copied_sample_files/yaml` | Watched ingest manifests. |
 
 ```env
-COYOTE3_DATA_HOST_ROOT='/srv/coyote3/data'
-COYOTE3_REPORTS_HOST_ROOT='/srv/coyote3/reports'
+COYOTE3_DATA_HOST_ROOT='/data/coyote3'
+ENV_NAME='development'
 ```
 
-Saved HTML and PDF reports are stored on disk; MongoDB stores report records
-and their artifact references. With this example, report artifacts are stored
-under `/srv/coyote3/reports` on the host, retaining their report subdirectories.
-Create the report directory with write access for the configured application
-UID/GID (default `10001:10001`). API, worker, and beat share this mount.
+The application creates its environment directory and report/ingest working
+folders at startup, using the configured application UID/GID. The supplied root
+must already exist and be writable by that user. Environment names map as follows:
+`dev`/`development` to `coyote3_dev`, `prod`/`production` to `coyote3_prod`,
+`test`/`testing` to `coyote3_test`, and `stage`/`staging` to `coyote3_stage`.
+Other labels use `coyote3_<label>`; labels must contain only letters, digits,
+underscores, or hyphens. Changing ENV_NAME changes the storage location.
 
-If `COYOTE3_REPORTS_HOST_ROOT` is empty or omitted, the host location remains
-`COYOTE3_DATA_HOST_ROOT/coyote3/reports`. When changing an existing deployment,
-copy the complete report directory to the new root while report writers are
-stopped, preserving permissions and subdirectories, then recreate the containers.
-The container path stays unchanged, so stored artifact references remain valid.
-Changing the variable does not move existing files. Include this directory in
-the center's backup process alongside MongoDB backups.
+For the example above, the host layout is:
+
+The bind mount is `/data/coyote3:/data`. The application's container directory
+`/data/coyote3_dev` therefore corresponds to `/data/coyote3/coyote3_dev` on the
+host; it does not create `/data/coyote3_dev` on the host.
+
+```text
+/data/coyote3/coyote3_dev/
+  reports/
+  ingest_staging/
+  copied_sample_files/yaml/
+```
+
+Saved HTML and PDF files belong under reports; MongoDB stores their records and
+artifact references. Back up each environment directory alongside its databases.
+Logs retain their separately configured log mount. MongoDB storage is unchanged.
+Pipeline input directories are separate read-only mounts and need not be beneath
+this application storage root. All environments can use the same host root;
+these subdirectories organize storage, but are not an access-control boundary.
+
+### Migrating existing application storage
+
+Stop the environment's API, worker, and beat before copying existing reports,
+staged jobs, and watched manifests into the corresponding new directories.
+Preserve ownership and relative subdirectories. Keep the original files until
+verification is complete. Changing the env file does not move existing data.
+Container paths also change from `/data/coyote3/...` to the environment directory;
+review stored absolute report/job paths and queued tasks before resuming writers.
+Update those references through a reviewed migration before deleting old storage.
 
 Pipeline manifests may use paths relative to the manifest or absolute paths
 visible inside the ingest containers. A host path is readable only if an
@@ -189,7 +209,7 @@ the pipeline's declared references.
 > **Info: Container path contract**
 >
 >
-> Report output, upload staging, and watched manifests use `/data/coyote3/...`
+> Report output, upload staging, and watched manifests use `/data/coyote3_<env>/...`
 > locations. Separate source mounts may be read-only; staging and output mounts
 > must remain writable. Configure the same input mounts on API, worker, and beat.
 >
@@ -291,7 +311,6 @@ registration is not configurable through an environment variable.
 | `COYOTE3_GID` | No | Positive integer; default `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days; default `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
-| `COYOTE3_REPORTS_HOST_ROOT` | No | Host path | Writable report artifact root mounted at `/data/coyote3/reports`; empty or omitted uses `COYOTE3_DATA_HOST_ROOT/coyote3/reports`. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer; Compose default `2` | Celery worker process concurrency. |
 | `CELERY_TASK_TIME_LIMIT` | No | Seconds; default `7200` | Hard Celery task timeout. |

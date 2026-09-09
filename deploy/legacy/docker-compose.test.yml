@@ -1,5 +1,4 @@
-name: coyote3_test
-
+# Combine with docker-compose.yml; select the project with -p.
 services:
   frontend:
     image: coyote3-frontend:${COYOTE3_VERSION:-local}-test
@@ -15,17 +14,23 @@ services:
   worker:
     image: coyote3-api:${COYOTE3_VERSION:-local}-test
     build:
+      context: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
+      network: host
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
   beat:
     image: coyote3-api:${COYOTE3_VERSION:-local}-test
     build:
+      context: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
+      network: host
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
   proxy:
@@ -38,12 +43,14 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_all
+      network: host
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
     environment:
       ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-      COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:-${MONGO_URI:-}}
+      COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}
       IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
       KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
       BAM_MONGO_URI: ${BAM_MONGO_URI:-}

@@ -7,6 +7,13 @@ export type AppControlHelp = {
 }
 
 export const APP_CONTROL_HELP: Record<string, AppControlHelp> = {
+  email_enabled: {
+    label: "Outgoing email",
+    summary: "Enable or disable the application's email service.",
+    enabledEffect: "Account, password-reset, security, and broadcast emails may be sent when SMTP is configured.",
+    disabledEffect: "No new email delivery starts. In-app notifications continue; queued broadcast deliveries wait.",
+    operationalNote: "Defaults to enabled. Saving applies to subsequent email operations without a restart; an SMTP send already underway cannot be recalled.",
+  },
   enabled: {
     label: "Allow background task execution",
     summary: "Master application gate for every controlled Celery task family.",

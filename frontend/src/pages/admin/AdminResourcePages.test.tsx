@@ -464,7 +464,7 @@ describe("AdminResourcePage", () => {
     await waitFor(() => expect(screen.queryByLabelText("Hematology SNV")).not.toBeInTheDocument())
   })
 
-  it("combines ASP choices for all selected genelist assay groups", async () => {
+  it.each(["genelists", "users"])("combines ASP choices for selected %s assay groups", async (resource) => {
     mocks.get.mockResolvedValue({
       data: {
         form: {
@@ -492,7 +492,7 @@ describe("AdminResourcePage", () => {
       },
     })
     const user = userEvent.setup()
-    renderEditor("genelists", "create")
+    renderEditor(resource, "create")
 
     expect((await screen.findAllByText("Select assay groups first."))[0]).toBeVisible()
     await user.click(screen.getByLabelText("hematology"))

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -22,7 +23,7 @@ from api.app.deps.repositories import (
     get_ingest_jobs_repository,
     get_roles_repository,
 )
-from api.app.deps.services import get_internal_ingest_service
+from api.app.deps.services import get_audit_service, get_internal_ingest_service
 from api.application.ingest.jobs import job_status_payload, submit_ingest_job
 from api.application.ingest.parsers import runtime_file_path
 from api.application.ingest.service import InternalIngestService
@@ -64,6 +65,27 @@ from api.tasks.ingest import (
 )
 
 router = APIRouter(tags=[TAG_INTERNAL])
+
+
+def _record_upload_error(user: ApiUser, exc: Exception) -> None:
+    """Record the actionable upload rejection in both logs and the audit."""
+    logger = logging.getLogger(__name__)
+    logger.exception("Ingest upload rejected: %s", exc)
+    try:
+        audit = get_audit_service()
+        if audit:
+            audit.record(
+                "ingest.upload.rejected",
+                f"Ingest upload rejected: {exc}"[:500],
+                category="data",
+                severity="warning",
+                outcome="failure",
+                actor=user,
+                tags=["ingest", "upload"],
+                metadata={"error": str(exc)[:1000]},
+            )
+    except Exception:
+        logger.exception("Could not record upload rejection in audit")
 
 
 def _task_submit_payload(task, *, task_name: str, queue: str) -> dict:
@@ -383,15 +405,21 @@ def _prepare_uploaded_bundle(
     checksums: dict[str, str] = {}
     missing: list[str] = []
     ambiguous: list[str] = []
+    warnings: list[str] = []
     for key in SAMPLE_SOURCE_PATH_KEYS:
         raw_value = runtime_file_path(source_payload, key)
         if not raw_value or not raw_value.strip():
             continue
         path_value = raw_value.strip()
         if key not in expected_keys:
-            raise ValueError(
-                f"Manifest declares '{key}', but ASP '{source_payload.get('asp_id')}' does not accept it"
+            warnings.append(
+                f"Ignored '{key}': ASP '{source_payload.get('asp_id')}' does not accept this file."
             )
+            source_payload.pop(key, None)
+            for container in ("files", "_runtime_files", "_uploaded_file_checksums"):
+                if isinstance(source_payload.get(container), dict):
+                    source_payload[container].pop(key, None)
+            continue
         resolved = archive_index.exact.get(path_value)
         if not resolved:
             basename = Path(path_value).name
@@ -428,6 +456,8 @@ def _prepare_uploaded_bundle(
         source_payload["_runtime_files"] = runtime_files
     if checksums:
         source_payload["_uploaded_file_checksums"] = checksums
+    if warnings:
+        source_payload["_ingest_warnings"] = warnings
     return source_payload
 
 
@@ -463,17 +493,21 @@ def ingest_sample_bundle_upload_internal(
         )
         _enforce_sample_ingest_permission(user, source_payload)
         result = ingest_service.ingest_sample_bundle(
-            source_payload,
+            {key: value for key, value in source_payload.items() if key != "_ingest_warnings"},
             allow_update=update_existing,
             increment=increment,
         )
         serialized = util.common.convert_to_serializable(result)
+        if source_payload.get("_ingest_warnings"):
+            serialized["warnings"] = source_payload["_ingest_warnings"]
         return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
     except HTTPException:
         raise
     except (ValueError, FileNotFoundError, UnicodeDecodeError) as exc:
         if acknowledge:
+            _record_upload_error(user, exc)
             return _ingest_acknowledgement(error=exc)
+        _record_upload_error(user, exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
@@ -584,14 +618,17 @@ def enqueue_ingest_sample_bundle_upload_internal(
             staging_dir=str(staging_dir),
         )
         task_enqueued = True
-        return _task_submit_payload(
+        response = _task_submit_payload(
             SimpleNamespace(id=job_id),
             task_name="api.tasks.ingest.ingest_sample_bundle",
             queue=queue,
         )
+        response["warnings"] = source_payload.get("_ingest_warnings", [])
+        return response
     except HTTPException:
         raise
     except (ValueError, FileNotFoundError, UnicodeDecodeError) as exc:
+        _record_upload_error(user, exc)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     finally:
         for upload in upload_refs:

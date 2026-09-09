@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from api.contracts.schemas.samples import SamplesDoc
 
@@ -61,6 +61,7 @@ class InternalTaskSubmitPayload(BaseModel):
     task_id: str
     task_name: str
     queue: str
+    warnings: list[str] = Field(default_factory=list)
 
 
 class InternalTaskStatusPayload(BaseModel):

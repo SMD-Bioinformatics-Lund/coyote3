@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from pysam import VariantFile
@@ -12,6 +11,7 @@ from api.domain.common.parsers import cmdvcf
 from api.domain.core.dna.transcript_payloads import compact_selected_csq
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
 
+from .json_resources import read_ingest_json
 from .parsers import (
     _build_anno_vep_docs,
     _build_transcript_vault_rows,
@@ -90,15 +90,13 @@ class DnaIngestParser:
         cnv_path = runtime_file_path(args, primary_analysis_file_key("dna", "CNV"))
         if cnv_path:
             require_exists("CNV JSON", cnv_path)
-            with open(cnv_path, "r", encoding="utf-8") as handle:
-                cnv_doc = json.load(handle)
+            cnv_doc = read_ingest_json(cnv_path, "CNV")
             preload["cnvs"] = self._parse_cnvs_only(cnv_doc)
 
         biomarkers_path = runtime_file_path(args, primary_analysis_file_key("dna", "BIOMARKER"))
         if biomarkers_path:
             require_exists("Biomarkers JSON", biomarkers_path)
-            with open(biomarkers_path, "r", encoding="utf-8") as handle:
-                preload["biomarkers"] = json.load(handle)
+            preload["biomarkers"] = read_ingest_json(biomarkers_path, "Biomarkers")
 
         transloc_path = runtime_file_path(args, primary_analysis_file_key("dna", "TRANSLOCATION"))
         if transloc_path:
@@ -108,14 +106,12 @@ class DnaIngestParser:
         cov_path = runtime_file_path(args, primary_analysis_file_key("dna", "COVERAGE"))
         if cov_path:
             require_exists("Coverage JSON", cov_path)
-            with open(cov_path, "r", encoding="utf-8") as handle:
-                preload["cov"] = json.load(handle)
+            preload["cov"] = read_ingest_json(cov_path, "Coverage")
 
         pgx_path = runtime_file_path(args, primary_analysis_file_key("dna", "PGX"))
         if pgx_path:
             require_exists("PGX data", pgx_path)
-            with open(pgx_path, "r", encoding="utf-8") as handle:
-                preload["pgx"] = _normalize_pgx_document(json.load(handle))
+            preload["pgx"] = _normalize_pgx_document(read_ingest_json(pgx_path, "PGX"))
 
         return preload
 
@@ -334,29 +330,24 @@ class RnaIngestParser:
         fusions = runtime_file_path(args, primary_analysis_file_key("rna", "FUSION"))
         if fusions:
             require_exists("Fusions JSON", fusions)
-            with open(fusions, "r", encoding="utf-8") as handle:
-                preload["fusions"] = _normalize_fusion_docs(json.load(handle))
+            preload["fusions"] = _normalize_fusion_docs(read_ingest_json(fusions, "Fusions"))
 
         expr_path = runtime_file_path(args, primary_analysis_file_key("rna", "EXPRESSION"))
         if expr_path:
             require_exists("Expression JSON", expr_path)
-            with open(expr_path, "r", encoding="utf-8") as handle:
-                preload["rna_expr"] = json.load(handle)
+            preload["rna_expr"] = read_ingest_json(expr_path, "RNA expression")
         class_path = runtime_file_path(args, primary_analysis_file_key("rna", "CLASSIFICATION"))
         if class_path:
             require_exists("Classification JSON", class_path)
-            with open(class_path, "r", encoding="utf-8") as handle:
-                preload["rna_class"] = json.load(handle)
+            preload["rna_class"] = read_ingest_json(class_path, "RNA classification")
         qc_path = runtime_file_path(args, primary_analysis_file_key("rna", "QC"))
         if qc_path:
             require_exists("QC JSON", qc_path)
-            with open(qc_path, "r", encoding="utf-8") as handle:
-                preload["rna_qc"] = json.load(handle)
+            preload["rna_qc"] = read_ingest_json(qc_path, "RNA QC")
 
         pgx_path = runtime_file_path(args, primary_analysis_file_key("rna", "PGX"))
         if pgx_path:
             require_exists("PGX data", pgx_path)
-            with open(pgx_path, "r", encoding="utf-8") as handle:
-                preload["pgx"] = _normalize_pgx_document(json.load(handle))
+            preload["pgx"] = _normalize_pgx_document(read_ingest_json(pgx_path, "PGX"))
 
         return preload

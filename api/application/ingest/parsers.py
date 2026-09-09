@@ -449,6 +449,10 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
             "VARIANT_CLASS",
         ):
             slim[key] = transcript.get(key)
+        # Score aggregation produces numbers; persisted selected CSQ uses text.
+        cadd_phred = slim.get("CADD_PHRED")
+        if isinstance(cadd_phred, (int, float)) and not isinstance(cadd_phred, bool):
+            slim["CADD_PHRED"] = str(cadd_phred)
         slim["CLIN_SIG"] = normalize_ampersand_terms(transcript.get("CLIN_SIG"))
 
         raw_consequences = transcript.get("Consequence")

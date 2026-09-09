@@ -1,14 +1,13 @@
-name: coyote3_prod
-
+# Standalone legacy dev definition; use instead of docker-compose.yml.
+# Matches the modern dev service contract using Compose 1.29.2 syntax.
 x-runtime-defaults: &runtime-defaults
   mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
   cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
   restart: on-failure:5
   networks: [app]
-
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-  COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:-${MONGO_URI:-}}
+  COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}
   IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
   KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
   BAM_MONGO_URI: ${BAM_MONGO_URI:-}
@@ -97,110 +96,137 @@ x-app-environment: &app-environment
   MONGO_READ_CONCERN_LEVEL: ${MONGO_READ_CONCERN_LEVEL:-majority}
   MONGO_WRITE_CONCERN_W: ${MONGO_WRITE_CONCERN_W:-majority}
   MONGO_WRITE_CONCERN_JOURNAL: ${MONGO_WRITE_CONCERN_JOURNAL:-1}
-  PYTHONDONTWRITEBYTECODE: "1"
-  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUNBUFFERED: '1'
   GIT_COMMIT: ${GIT_COMMIT:-unknown}
   BUILD_TIME: ${BUILD_TIME:-unknown}
-
-x-api-image: &api-image
-  image: coyote3-api:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
-
-x-app-volumes: &app-volumes
-  - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
-  - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
-
 services:
   frontend:
+    image: node:22-alpine
     <<: *runtime-defaults
-    image: coyote3-frontend:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.frontend
-      args:
-        SCRIPT_NAME: ${SCRIPT_NAME:-}
-        ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
-        LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
-        GENS_URI: ${GENS_URI:-}
-        IGV_URI: ${IGV_URI:-}
-        IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --port 3000 --host 0.0.0.0"
     environment:
+      ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
       SCRIPT_NAME: ${SCRIPT_NAME:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}
+      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+      LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
       TZ: ${LOCAL_TIME_ZONE:-UTC}
+      GENS_URI: ${GENS_URI:-}
+      IGV_URI: ${IGV_URI:-}
+      IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
+      COYOTE3_API_INTERNAL_URL: http://api:8001
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    volumes:
+    - ../../frontend:/app
+    - ../../api/version.py:/api/version.py:ro
+    - frontend_node_modules:/app/node_modules
     depends_on:
-      api: {condition: service_healthy}
-
+      api:
+        condition: service_healthy
+    networks:
+    - app
   docs:
     <<: *runtime-defaults
-    image: coyote3-docs:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
+    image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
+      network: host
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-
+    volumes:
+    - ../../site:/usr/share/nginx/html:ro
   api:
-    <<: [*runtime-defaults, *api-image]
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    <<: *runtime-defaults
     build:
       context: ../..
-      dockerfile: docker/Dockerfile
-      target: coyote3_api
+      dockerfile: docker/Dockerfile.dev
+      network: host
+      target: coyote3_dev_api
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
     environment: *app-environment
-    extra_hosts: ["host.docker.internal:host-gateway"]
-    volumes: *app-volumes
-    command: python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-1}
+    volumes: &dev-app-volumes
+    - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
+    - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
+    - ../../.git:/app/.git:ro
+    - ../../api:/app/api
+    - ../../docs:/app/docs
+    - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
+    - ../../README.md:/app/README.md:ro
+    - ../../LICENSE.txt:/app/LICENSE.txt:ro
+    - ../../NOTICE.txt:/app/NOTICE.txt:ro
+    command: python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
+      test:
+      - CMD-SHELL
+      - python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()"
       interval: 5s
       timeout: 3s
       retries: 20
       start_period: 10s
     depends_on:
-      redis: {condition: service_healthy}
-
+      redis:
+        condition: service_healthy
   worker:
-    <<: [*runtime-defaults, *api-image]
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    <<: *runtime-defaults
     environment: *app-environment
-    extra_hosts: ["host.docker.internal:host-gateway"]
-    volumes: *app-volumes
+    volumes: *dev-app-volumes
     command: celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
-      redis: {condition: service_healthy}
-
+      redis:
+        condition: service_healthy
   beat:
-    <<: [*runtime-defaults, *api-image]
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    <<: *runtime-defaults
+    ipc: none
     environment: *app-environment
-    extra_hosts: ["host.docker.internal:host-gateway"]
-    volumes: *app-volumes
+    volumes: *dev-app-volumes
     command: celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     depends_on:
-      redis: {condition: service_healthy}
-
+      redis:
+        condition: service_healthy
   redis:
     <<: *runtime-defaults
     image: redis:7.4.3
+    security_opt:
+    - seccomp=unconfined
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --appendfsync always --maxmemory-policy noeviction"]
+    command:
+    - sh
+    - -c
+    - exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes --appendfsync always --maxmemory-policy noeviction
     volumes:
-      - redis-data:/data
+    - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+      - CMD
+      - redis-cli
+      - ping
       interval: 5s
       timeout: 3s
       retries: 10
-
   proxy:
     <<: *runtime-defaults
     image: nginx:1.27-alpine
-    ports: ["${COYOTE3_PORT:-5815}:8088"]
-    command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
+    ports:
+    - ${COYOTE3_PORT:-6801}:8088
+    command:
+    - sh
+    - -c
+    - sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'
     environment:
       SCRIPT_NAME: ${SCRIPT_NAME:-}
       COYOTE3_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
@@ -208,15 +234,17 @@ services:
       COYOTE3_NGINX_DOCS_UPSTREAM: http://docs:8080
       COYOTE3_NGINX_PUBLIC_SCHEME: ${COYOTE3_NGINX_PUBLIC_SCHEME:-http}
     volumes:
-      - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
+    - ../compose/nginx/render-config.sh:/etc/nginx/render-config.sh:ro
     depends_on:
-      frontend: {condition: service_started}
-      api: {condition: service_healthy}
-      docs: {condition: service_started}
-
+      frontend:
+        condition: service_started
+      api:
+        condition: service_healthy
+      docs:
+        condition: service_started
 volumes:
+  frontend_node_modules:
   redis-data:
-
 networks:
   app:
     name: ${COYOTE3_APP_NETWORK:?COYOTE3_APP_NETWORK is required}

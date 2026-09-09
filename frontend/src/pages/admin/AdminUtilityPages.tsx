@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react"
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
@@ -19,7 +19,7 @@ import {
 import { api } from "@/lib/api"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
-import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -93,6 +93,7 @@ function ModuleNotice({ children }: { children: ReactNode }) {
 }
 
 type AppControls = {
+  email?: { enabled: boolean }
   celery: Record<string, boolean>
   retention: Record<string, number>
   modules: Record<string, boolean>
@@ -191,7 +192,7 @@ export function AdminControlsPage() {
     onError: (error) => notifyActionError("Unable to queue public OncoKB refresh", error, "Knowledgebases"),
   })
 
-  const updateBool = (section: "celery" | "modules", key: string, value: boolean) => {
+  const updateBool = (section: "celery" | "modules" | "email", key: string, value: boolean) => {
     const base = controls || controlsQuery.data?.controls
     if (!base) return
     setDraft({
@@ -270,6 +271,14 @@ export function AdminControlsPage() {
             {Object.entries(controls.modules).map(([key, value]) => (
               <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("modules", key, checked)} />
             ))}
+          </ControlSection>
+
+          <ControlSection
+            title="Email Service"
+            description="Control outgoing account, security, password-reset, and broadcast emails. In-app notifications remain available."
+            icon={<Settings2 className="h-4 w-4" />}
+          >
+            <ControlToggle definition={appControlHelp("email_enabled")} checked={controls.email?.enabled ?? true} disabled={!canEdit} onChange={(checked) => updateBool("email", "enabled", checked)} />
           </ControlSection>
 
           <ControlSection
@@ -751,6 +760,7 @@ export function AdminIngestPage() {
   const [updateExisting, setUpdateExisting] = useState(false)
   const [increment, setIncrement] = useState(false)
   const [taskId, setTaskId] = useState("")
+  const notifiedFailure = useRef("")
   const taskStatus = useQuery({
     queryKey: ["internal-task", taskId],
     enabled: Boolean(taskId),
@@ -770,6 +780,11 @@ export function AdminIngestPage() {
     },
     onSuccess: (payload) => {
       setTaskId(String(payload.task_id || ""))
+      for (const warning of payload.warnings || []) {
+        notifyWarning("Ingest file ignored", String(warning), "Ingest workspace", {
+          type: "ingest", id: String(payload.task_id || ""),
+        })
+      }
       notifySuccess("Ingest queued", `${yamlFile?.name || "Sample bundle"} was submitted to the ingest worker.`, "Ingest workspace", {
         type: "ingest",
         id: String(payload.task_id || ""),
@@ -783,6 +798,15 @@ export function AdminIngestPage() {
       })
     },
   })
+
+  useEffect(() => {
+    if (!taskId || taskStatus.data?.state !== "FAILURE" || notifiedFailure.current === taskId) return
+    notifiedFailure.current = taskId
+    notifyActionError("Ingest failed", new Error(String(taskStatus.data.error || "Ingestion failed")), "Ingest workspace", {
+      type: "ingest",
+      id: taskId,
+    })
+  }, [taskId, taskStatus.data])
 
   return (
     <PageShell eyebrow="Admin" title="Ingest Workspace" description="Validate and enqueue sample-bundle ingestion through the internal API and Celery ingest workers.">

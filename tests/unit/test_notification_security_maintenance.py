@@ -16,6 +16,23 @@ from api.infra.security.indexes import _create_index, ensure_security_indexes
 from api.tasks import maintenance
 
 
+def test_disabled_email_never_opens_smtp(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("SMTP must not be contacted while email is disabled")
+
+    monkeypatch.setattr(email.smtplib, "SMTP", forbidden)
+    monkeypatch.setattr(email.smtplib, "SMTP_SSL", forbidden)
+    config = {
+        "SMTP_HOST": "smtp.test",
+        "SMTP_FROM_EMAIL": "sender@example.test",
+        "EMAIL_ENABLED": False,
+    }
+    assert not email.smtp_configured(config)
+    assert not email.send_email(
+        config=config, to_email="user@example.test", subject="Test", text_body="Test"
+    )
+
+
 class _SmtpServer:
     def __init__(self, *_args, **_kwargs) -> None:
         self.started_tls = False

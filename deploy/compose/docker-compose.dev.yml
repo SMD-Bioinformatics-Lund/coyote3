@@ -10,6 +10,7 @@ services:
     environment:
       ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
       SCRIPT_NAME: ${SCRIPT_NAME:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}
       ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
       LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
       TZ: ${LOCAL_TIME_ZONE:-UTC}
@@ -21,6 +22,7 @@ services:
       WATCHPACK_POLLING: "true"
     volumes:
       - ../../frontend:/app
+      - ../../api/version.py:/api/version.py:ro
       - frontend_node_modules:/app/node_modules
 
   docs:

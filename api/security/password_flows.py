@@ -23,6 +23,13 @@ _TOKEN_PURPOSE_RESET = "reset"
 _TOKEN_PURPOSES = {_TOKEN_PURPOSE_INVITE, _TOKEN_PURPOSE_RESET}
 
 
+def _email_config() -> dict[str, Any]:
+    """Read SMTP configuration with the current application email switch."""
+    from api.app.deps.services import get_email_config
+
+    return get_email_config()
+
+
 def _password_token_ttl_seconds() -> int:
     """Read the configured lifetime for password-action tokens.
 
@@ -100,10 +107,11 @@ def notify_user_change(
         f"Changed by: {actor}\n\n"
         "If you did not expect this, contact your administrator."
     )
-    mail_ready = bool(smtp_configured(runtime_app.config))
+    email_config = _email_config()
+    mail_ready = bool(smtp_configured(email_config))
     email_sent = (
         send_email(
-            config=runtime_app.config,
+            config=email_config,
             to_email=to_email,
             subject=subject,
             text_body=text_body,
@@ -117,6 +125,8 @@ def notify_user_change(
     warning: str | None = None
     if not to_email:
         warning = "User email is missing."
+    elif not email_config.get("EMAIL_ENABLED", True):
+        warning = "Outgoing email is disabled in Application Controls."
     elif not mail_ready:
         warning = "Mail is not configured."
     elif not email_sent:
@@ -183,7 +193,7 @@ def issue_password_token_for_user(
         return {
             "status": "ok",
             "email_sent": False,
-            "mail_configured": bool(smtp_configured(runtime_app.config)),
+            "mail_configured": bool(smtp_configured(_email_config())),
         }
 
     user_id = resolve_user_identity(user_doc)
@@ -192,7 +202,7 @@ def issue_password_token_for_user(
         return {
             "status": "ok",
             "email_sent": False,
-            "mail_configured": bool(smtp_configured(runtime_app.config)),
+            "mail_configured": bool(smtp_configured(_email_config())),
         }
 
     user_repository = get_user_repository()
@@ -232,10 +242,11 @@ def issue_password_token_for_user(
         f"This link expires in {ttl_minutes} minutes.\n\n"
         "If you did not expect this, contact your administrator."
     )
-    mail_ready = bool(smtp_configured(runtime_app.config))
+    email_config = _email_config()
+    mail_ready = bool(smtp_configured(email_config))
     email_sent = (
         send_email(
-            config=runtime_app.config,
+            config=email_config,
             to_email=to_email,
             subject=subject,
             text_body=text_body,
@@ -249,7 +260,11 @@ def issue_password_token_for_user(
         else False
     )
     warning: str | None = None
-    if not mail_ready:
+    if not email_config.get("EMAIL_ENABLED", True):
+        warning = (
+            "Outgoing email is disabled in Application Controls. Share the setup URL manually."
+        )
+    elif not mail_ready:
         warning = "Mail is not configured. Share the setup URL manually."
     elif not email_sent:
         warning = "Mail send failed. Share the setup URL manually."

@@ -182,3 +182,15 @@ NOTIFICATION_TEST_MONGO_URI='mongodb://127.0.0.1:27017/?replicaSet=coyote3-rs' \
 The tests remove only their temporary database. They do not read deployment users
 or messages. Keep credentials out of command history; provide a protected environment
 variable when authentication is required.
+
+## Runtime email switch
+
+In **Admin → Application Controls → Email Service**, use **Outgoing email**
+to enable or disable application email, then save controls. The stored setting
+is `email.enabled` and defaults to true for existing installations.
+
+Disabling it prevents subsequent account, password-reset, security, and broadcast
+email delivery. In-app notifications and audits continue. Queued broadcast email
+waits until delivery is enabled again; disabling the switch cannot recall an
+SMTP operation already underway. SMTP configuration is still required when the
+switch is enabled. No container restart is required after saving this control.

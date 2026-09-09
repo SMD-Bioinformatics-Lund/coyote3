@@ -32,7 +32,6 @@ def _render(command, *files, profiles=(), extra_env=None):
             "MONGO_GID": "23456",
             "COYOTE3_MONGO_URI": "mongodb://mongo-app:27017/?replicaSet=coyote3-rs",
             "COYOTE3_DATA_HOST_ROOT": "/synthetic/data",
-            "COYOTE3_REPORTS_HOST_ROOT": "/synthetic/reports",
             "COYOTE3_MONGO_BACKUP_HOST_ROOT": "/synthetic/backups",
             "CENTER_INPUT_SOURCE": "/synthetic/inputs",
             "CENTER_INPUT_TARGET": "/inputs",
@@ -90,7 +89,7 @@ def test_application_and_optional_storage_render(compose):
         service = services[name]
         assert "192.0.2.10" in str(service["extra_hosts"])
         mounts = {v["target"]: v for v in service["volumes"]}
-        assert mounts["/data/coyote3/reports"]["source"] == "/synthetic/reports"
+        assert mounts["/data"]["source"] == "/synthetic/data"
         assert mounts["/inputs"]["read_only"] is True
         assert service["environment"]["COYOTE3_MONGO_URI"].startswith("mongodb://mongo-app:")
     proxy_script = services["proxy"]["volumes"][0]["source"]
@@ -130,9 +129,77 @@ def test_mongo_auth_replica_sets_and_optional_backup(compose, backup):
         assert Path(services[name]["volumes"][0]["source"]).is_file()
 
 
-def test_legacy_requires_explicit_report_root(compose):
+def test_legacy_requires_explicit_data_root(compose):
     with pytest.raises(subprocess.CalledProcessError):
-        _render(compose, "docker-compose.yml", extra_env={"COYOTE3_REPORTS_HOST_ROOT": ""})
+        _render(compose, "docker-compose.yml", extra_env={"COYOTE3_DATA_HOST_ROOT": ""})
+
+
+def test_legacy_dev_has_isolated_images_and_live_source(compose):
+    services = _render(compose, "docker-compose.dev.yml")["services"]
+    frontend = services["frontend"]
+    assert frontend["image"] == "node:22-alpine"
+    assert "build" not in frontend
+    assert "npm run dev" in str(frontend["command"])
+    assert frontend["environment"]["COYOTE3_API_INTERNAL_URL"] == "http://api:8001"
+    for name in ("api", "worker", "beat"):
+        assert services[name]["image"] == "coyote3-api:legacy-test-dev"
+        mounts = {mount["target"]: mount for mount in services[name]["volumes"]}
+        assert mounts["/app/api"]["source"] == str(ROOT / "api")
+        assert "/data" in mounts
+        assert not any(target.startswith("/data/") for target in mounts)
+    assert "--reload" in services["api"]["command"]
+    assert services["api"]["build"]["args"]["PYTHON_BASE_IMAGE"] == "python:3.12-slim-bullseye"
+    assert services["docs"]["image"] == "coyote3-docs:legacy-test-dev"
+
+
+@pytest.mark.parametrize("environment", ["stage", "test"])
+def test_legacy_environment_images_and_profiles(compose, environment):
+    services = _render(
+        compose,
+        "docker-compose.yml",
+        f"docker-compose.{environment}.yml",
+        profiles=("with-ui", "tests") if environment == "test" else (),
+    )["services"]
+    for name in ("api", "worker", "beat", "frontend", "docs"):
+        image_name = "api" if name in {"worker", "beat"} else name
+        assert services[name]["image"] == f"coyote3-{image_name}:legacy-test-{environment}"
+    if environment == "test":
+        assert services["test_runner"]["profiles"] == ["tests"]
+        for name in ("api", "worker", "beat", "test_runner"):
+            assert services[name]["build"]["network"] == "host"
+            assert (
+                services[name]["build"]["args"]["PYTHON_BASE_IMAGE"] == "python:3.12-slim-bullseye"
+            )
+
+
+@pytest.mark.parametrize("environment", ["dev", "stage", "test"])
+def test_legacy_environment_tracks_modern_contract(compose, environment):
+    if len(compose) == 1:
+        pytest.skip("Modern overlays require Compose v2")
+    profiles = ("with-ui", "tests") if environment == "test" else ()
+    modern = _render(
+        compose,
+        ROOT / "deploy/compose/docker-compose.yml",
+        ROOT / f"deploy/compose/docker-compose.{environment}.yml",
+        profiles=profiles,
+    )["services"]
+    files = [f"docker-compose.{environment}.yml"]
+    if environment != "dev":
+        files.insert(0, "docker-compose.yml")
+    legacy = _render(compose, *files, profiles=profiles)["services"]
+    assert legacy.keys() == modern.keys()
+    for name, service in modern.items():
+        for field in ("image", "environment", "command", "profiles", "healthcheck"):
+            assert legacy[name].get(field) == service.get(field), (name, field)
+        modern_mounts = {
+            mount["target"]: (mount["source"], mount.get("read_only", False))
+            for mount in service.get("volumes", [])
+        }
+        legacy_mounts = {
+            mount["target"]: (mount["source"], mount.get("read_only", False))
+            for mount in legacy[name].get("volumes", [])
+        }
+        assert legacy_mounts == modern_mounts, name
 
 
 def test_legacy_application_tracks_modern_service_contract():
@@ -148,17 +215,10 @@ def test_legacy_application_tracks_modern_service_contract():
     for service in modern["services"].values():
         service.pop("extra_hosts", None)
     modern_text = yaml.safe_dump(modern)
-    modern_text = (
-        modern_text.replace(
-            "${COYOTE3_MONGO_URI:-${MONGO_URI:-}}",
-            "${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}",
-        )
-        .replace(
-            "${COYOTE3_REPORTS_HOST_ROOT:-${COYOTE3_DATA_HOST_ROOT}/coyote3/reports}",
-            "${COYOTE3_REPORTS_HOST_ROOT:?Set an explicit report host directory for legacy Compose}",
-        )
-        .replace("./nginx/", "../compose/nginx/")
-    )
+    modern_text = modern_text.replace(
+        "${COYOTE3_MONGO_URI:-${MONGO_URI:-}}",
+        "${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}",
+    ).replace("./nginx/", "../compose/nginx/")
     assert yaml.safe_load(modern_text) == legacy
 
 
@@ -178,7 +238,10 @@ def test_no_modern_only_syntax_or_unscoped_security_bypasses():
             ):
                 assert service["security_opt"] == ["seccomp=unconfined"]
             else:
-                if file.name == "docker-compose.yml" and name == "redis":
+                if (
+                    file.name in {"docker-compose.yml", "docker-compose.dev.yml"}
+                    and name == "redis"
+                ):
                     assert service["security_opt"] == ["seccomp=unconfined"]
                 else:
                     assert "security_opt" not in service

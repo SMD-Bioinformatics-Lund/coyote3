@@ -39,6 +39,7 @@ def password_runtime(monkeypatch):
         "SCRIPT_NAME": "/coyote3",
     }
     monkeypatch.setattr(password_flows.runtime_app, "config", config)
+    monkeypatch.setattr(password_flows, "_email_config", lambda: config)
     monkeypatch.setattr(
         password_flows.runtime_app,
         "logger",
@@ -46,6 +47,17 @@ def password_runtime(monkeypatch):
     )
     monkeypatch.setattr(password_flows, "emit_auth_metric", lambda *_args, **_kwargs: None)
     return config
+
+
+def test_disabled_email_reports_control_reason(password_runtime, monkeypatch):
+    password_runtime["EMAIL_ENABLED"] = False
+    monkeypatch.setattr(password_flows, "send_email", lambda **kwargs: False)
+    result = password_flows.notify_user_change(
+        user_doc={"username": "synthetic", "email": "user@example.test"},
+        event="profile_updated",
+    )
+    assert result["email_sent"] is False
+    assert result["warning"] == "Outgoing email is disabled in Application Controls."
 
 
 def test_token_configuration_and_url_helpers(password_runtime, monkeypatch):

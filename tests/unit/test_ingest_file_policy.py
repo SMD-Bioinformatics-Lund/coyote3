@@ -38,6 +38,7 @@ def dna_panel(**overrides):
     return {
         "asp_id": "panel_a",
         "asp_category": "dna",
+        "is_active": True,
         "expected_files": ["vcf_files", "cnv"],
         "required_files": ["vcf_files"],
         **overrides,
@@ -61,7 +62,7 @@ def test_assay_file_policy_requires_registered_consistent_asp():
 
     with pytest.raises(ValueError, match="assay is required"):
         assay_file_policy(collection, assay_name=None, omics_layer="dna")
-    with pytest.raises(ValueError, match="ASP is not registered"):
+    with pytest.raises(ValueError, match="No active ASP"):
         assay_file_policy(collection, assay_name="panel_a", omics_layer="dna")
 
     inconsistent = resolver(
@@ -69,6 +70,25 @@ def test_assay_file_policy_requires_registered_consistent_asp():
     )
     with pytest.raises(ValueError, match="required_files outside expected_files"):
         assay_file_policy(inconsistent, assay_name="panel_a", omics_layer="dna")
+
+
+def test_inactive_revision_cannot_allow_removed_cnv_file():
+    collection = resolver(
+        panels=[dna_panel(is_active=False), dna_panel(expected_files=["vcf_files"])],
+        configurations=[active_aspc()],
+    )
+    with pytest.raises(ValueError, match="cnv"):
+        validate_payload_file_keys(
+            collection,
+            {
+                "asp_id": "panel_a",
+                "omics_layer": "dna",
+                "_runtime_files": {"vcf_files": "sample.vcf", "cnv": "sample.json"},
+            },
+        )
+    inactive = resolver(panels=[dna_panel(is_active=False)], configurations=[])
+    with pytest.raises(ValueError, match="No active ASP"):
+        assay_file_policy(inactive, assay_name="panel_a", omics_layer="dna")
 
 
 def test_payload_rejects_files_outside_asp_contract():
@@ -85,7 +105,7 @@ def test_payload_rejects_files_outside_asp_contract():
         )
 
 
-def test_declared_resources_use_base_aspc_and_validate_paths(tmp_path: Path):
+def test_declared_resources_use_asp_and_validate_paths(tmp_path: Path):
     vcf = tmp_path / "sample.vcf"
     vcf.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
     collection = resolver(panels=[dna_panel()], configurations=[active_aspc()])
@@ -100,7 +120,7 @@ def test_declared_resources_use_base_aspc_and_validate_paths(tmp_path: Path):
     assert validate_declared_file_resources(collection, payload) == {"vcf_files"}
 
 
-def test_declared_resources_reject_missing_unreadable_and_invalid_analysis(tmp_path: Path):
+def test_declared_resources_reject_missing_and_unreadable_files(tmp_path: Path):
     collection = resolver(panels=[dna_panel()], configurations=[active_aspc()])
     base_payload = {
         "asp_id": "panel_a",
@@ -117,24 +137,25 @@ def test_declared_resources_reject_missing_unreadable_and_invalid_analysis(tmp_p
     with pytest.raises(FileNotFoundError, match="not readable"):
         validate_declared_file_resources(collection, unreadable)
 
-    incompatible = resolver(
-        panels=[dna_panel()],
-        configurations=[active_aspc(analysis_types=["SNV", "COVERAGE"])],
+
+def test_aspc_analyses_do_not_add_file_requirements(tmp_path):
+    vcf = tmp_path / "sample.vcf"
+    vcf.write_text("synthetic")
+    collection = resolver(
+        panels=[dna_panel(expected_files=["vcf_files"])],
+        configurations=[active_aspc(analysis_types=["SNV", "CNV", "COVERAGE"])],
     )
-    with pytest.raises(ValueError, match="not declared by the ASP"):
-        validate_declared_file_resources(incompatible, unreadable)
+    assert validate_declared_file_resources(
+        collection, {"asp_id": "panel_a", "omics_layer": "dna", "files": {"vcf_files": str(vcf)}}
+    ) == {"vcf_files"}
 
 
-def test_declared_resources_require_active_aspc():
-    collection = resolver(panels=[dna_panel()], configurations=[])
-
-    with pytest.raises(ValueError, match="No active ASPC"):
-        validate_declared_file_resources(
-            collection,
-            {
-                "asp_id": "panel_a",
-                "subpanel_id": "base",
-                "environment": "production",
-                "omics_layer": "dna",
-            },
-        )
+def test_empty_expected_files_do_not_restore_default_requirements():
+    collection = resolver(
+        panels=[dna_panel(expected_files=[], required_files=[])], configurations=[]
+    )
+    assert assay_file_policy(collection, assay_name="panel_a", omics_layer="dna") == (set(), set())
+    assert (
+        validate_declared_file_resources(collection, {"asp_id": "panel_a", "omics_layer": "dna"})
+        == set()
+    )

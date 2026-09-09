@@ -84,8 +84,15 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
 }
 
 function userFacingApiError(status: number, data: any, statusText: string) {
-  const rawError = data?.error || data?.message || data?.detail?.error || statusText || "Request failed"
-  const details = data?.details || data?.detail?.details || data?.detail?.message
+  const rawError = data?.error || data?.message || data?.detail?.error || (typeof data?.detail === "string" ? data.detail : "") || statusText || "Request failed"
+  const structured = data?.details || data?.detail?.details || data?.detail?.message || (Array.isArray(data?.detail) ? data.detail : null)
+  const issues = Array.isArray(structured) ? structured : structured?.issues
+  const details = Array.isArray(issues)
+    ? issues.map((item: { loc?: (string | number)[]; location?: (string | number)[]; msg?: string; message?: string }) => {
+        const field = (item.loc || item.location || []).join(".")
+        return [field, item.msg || item.message].filter(Boolean).join(": ")
+      }).join("; ")
+    : typeof structured === "string" ? structured : ""
   if (status === 403) {
     return "You do not have permission to perform this action. Contact an administrator if this access is expected."
   }

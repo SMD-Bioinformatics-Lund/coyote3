@@ -11,6 +11,9 @@ function normalizeScriptName(value?: string) {
 }
 
 const scriptName = normalizeScriptName(process.env.SCRIPT_NAME)
+const publicHostname = process.env.PUBLIC_BASE_URL
+  ? new URL(process.env.PUBLIC_BASE_URL).hostname
+  : undefined
 const apiTarget = process.env.COYOTE3_API_INTERNAL_URL || 'http://api:8001'
 const organizationName = process.env.ORGANIZATION_NAME || 'Coyote3'
 const localTimeZone = process.env.LOCAL_TIME_ZONE || process.env.TZ || 'UTC'
@@ -52,6 +55,7 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [
+      ...(publicHostname ? [publicHostname] : []),
       'frontend',
       'localhost',
       '127.0.0.1',

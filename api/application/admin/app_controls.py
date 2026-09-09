@@ -135,7 +135,7 @@ def merge_controls(defaults: AppControlsDoc, stored: dict[str, Any] | None) -> A
     """Merge stored control values onto typed defaults."""
     payload = defaults.model_dump(by_alias=True)
     if stored:
-        for section in ("celery", "retention", "modules"):
+        for section in ("celery", "retention", "modules", "email"):
             stored_section = stored.get(section)
             if isinstance(stored_section, dict):
                 payload[section].update(
@@ -381,7 +381,7 @@ class AppControlsService:
         """Validate and persist a complete controls document."""
         current = self.get_controls().model_dump(by_alias=True)
         incoming = deepcopy(current)
-        for section in ("celery", "retention", "modules"):
+        for section in ("celery", "retention", "modules", "email"):
             if isinstance(payload.get(section), dict):
                 incoming[section].update(payload[section])
         if isinstance(payload.get("curation"), dict):

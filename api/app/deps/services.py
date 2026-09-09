@@ -258,9 +258,17 @@ def get_audit_service() -> AuditService | None:
     )
 
 
+def get_email_config() -> dict:
+    """Combine SMTP settings with the current application email switch."""
+    return {
+        **runtime_app.config,
+        "EMAIL_ENABLED": get_app_controls_service().get_controls().email.enabled,
+    }
+
+
 def get_notification_service() -> NotificationService:
     """Return the recipient-scoped notification service."""
-    config = runtime_app.config
+    config = get_email_config()
     base = str(config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
     prefix = str(config.get("SCRIPT_NAME") or "").strip().rstrip("/")
     url = urlsplit(base)

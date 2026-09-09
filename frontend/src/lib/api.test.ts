@@ -50,6 +50,14 @@ describe("typed API client", () => {
     expect(new Headers(options.headers).has("Content-Type")).toBe(false)
   })
 
+  it("shows HTTP detail strings and structured field validation reasons", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(response(JSON.stringify({ detail: "CNV file 'synthetic.json' is empty" }), 400, "Bad Request"))
+    await expect(api.post("/internal/ingest/sample-bundle/upload/async", {})).rejects.toThrow("CNV file 'synthetic.json' is empty")
+    vi.mocked(fetch).mockResolvedValueOnce(response(JSON.stringify({ detail: [{ loc: ["body", "asp_id"], msg: "Field required", input: "private-input" }] }), 422, "Unprocessable Entity"))
+    await expect(api.post("/admin/asp", {})).rejects.toThrow("body.asp_id: Field required")
+    expect(JSON.stringify(notifyMock.mock.calls)).not.toContain("private-input")
+  })
+
   it("keeps the CSRF token in memory and sends it only on mutations", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response("{}"))

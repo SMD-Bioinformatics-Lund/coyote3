@@ -141,6 +141,7 @@ def _store_stub(sample_docs=None):
         "assay_specific_panels": _Col(
             [
                 {
+                    "is_active": True,
                     "asp_id": "assay_1",
                     "assay_name": "assay_1",
                     "asp_group": "hematology",
@@ -159,6 +160,7 @@ def _store_stub(sample_docs=None):
                 },
                 {
                     "asp_id": "A",
+                    "is_active": True,
                     "assay_name": "A",
                     "asp_group": "hematology",
                     "asp_family": "panel-dna",
@@ -715,6 +717,7 @@ def test_assay_file_policy_normalizes_pipeline_asp_identifier(monkeypatch):
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
             "asp_id": "hema_gmsv1",
+            "is_active": True,
             "asp_category": "dna",
             "expected_files": ["vcf_files", "cnv"],
             "required_files": ["vcf_files"],
@@ -735,6 +738,7 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
     store_stub = _store_stub()
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
+            "is_active": True,
             "asp_id": "assay_1",
             "assay_name": "assay_1",
             "asp_group": "hematology",
@@ -792,6 +796,7 @@ def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
             "asp_id": "assay_1",
+            "is_active": True,
             "assay_name": "assay_1",
             "asp_group": "hematology",
             "asp_family": "panel-dna",
@@ -826,7 +831,7 @@ def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_
         service._validate_declared_file_resources(validated)
 
 
-def test_aspc_enabled_analysis_requires_its_file_resource(tmp_path, monkeypatch):
+def test_aspc_enabled_analysis_does_not_add_asp_file_requirements(tmp_path, monkeypatch):
     store_stub = _store_stub()
     store_stub.coyote_db["asp_configs"].docs = [
         {
@@ -852,8 +857,21 @@ def test_aspc_enabled_analysis_requires_its_file_resource(tmp_path, monkeypatch)
         }
     )
 
-    with pytest.raises(ValueError, match="cnv, cnvprofile, cov"):
-        service._validate_declared_file_resources(payload)
+    service._validate_declared_file_resources(payload)
+
+
+@pytest.mark.parametrize(
+    "score,expected", [(3.4, "3.4"), (0, "0"), (12, "12"), ("3.40", "3.40"), (None, None)]
+)
+def test_ingest_normalizes_cadd_score_for_selected_csq(score, expected):
+    from api.contracts.schemas.dna import VariantCsqDoc
+    from api.domain.core.dna.transcript_payloads import compact_selected_csq
+
+    transcripts = ingest_parsers._parse_transcripts(
+        [{"Feature": "ENST_SYNTHETIC", "CADD_PHRED": score}]
+    )[0]
+    selected = compact_selected_csq(transcripts[0])
+    assert VariantCsqDoc.model_validate(selected).CADD_PHRED == expected
 
 
 def test_float_and_af_helpers():

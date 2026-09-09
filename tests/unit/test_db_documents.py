@@ -605,6 +605,15 @@ def test_role_color_normalizes_hex_and_preserves_legacy_names():
         RolesDoc.model_validate({**base, "color": "#fff"})
 
 
+def test_asp_identifier_is_visible_and_editable_at_creation():
+    form = build_form_spec(managed_resource_spec("asp"))
+    field = form["fields"]["asp_id"]
+    assert field["display_type"] == "input"
+    assert "create" not in field.get("hidden_mode", [])
+    assert "create" not in field.get("readonly_mode", [])
+    assert field["readonly_mode"] == ["edit"]
+
+
 def test_managed_clinical_forms_expose_system_metadata_read_only_after_create():
     """Clinical configuration provenance is visible but cannot be edited."""
     expected_metadata = {

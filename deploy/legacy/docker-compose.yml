@@ -107,7 +107,6 @@ x-api-image: &api-image
 x-app-volumes: &app-volumes
   - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
   - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
-  - ${COYOTE3_REPORTS_HOST_ROOT:?Set an explicit report host directory for legacy Compose}:/data/coyote3/reports
 
 services:
   frontend:

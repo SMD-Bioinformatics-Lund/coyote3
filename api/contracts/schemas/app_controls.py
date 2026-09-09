@@ -75,10 +75,17 @@ class CurationControlDoc(BaseModel):
     tiering: TieringControlDoc = Field(default_factory=TieringControlDoc)
 
 
+class EmailControlDoc(BaseModel):
+    """Runtime switch for all outgoing application email."""
+
+    enabled: bool = True
+
+
 class AppControlsDoc(_StrictCollectionDocBase):
     """Single active runtime-control document stored in MongoDB."""
 
     control_id: str = "default"
+    email: EmailControlDoc = Field(default_factory=EmailControlDoc)
     celery: CeleryControlDoc = Field(default_factory=CeleryControlDoc)
     retention: RetentionControlDoc = Field(default_factory=RetentionControlDoc)
     modules: ModuleControlDoc = Field(default_factory=ModuleControlDoc)

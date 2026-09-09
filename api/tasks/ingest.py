@@ -2,31 +2,55 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
 from billiard.exceptions import SoftTimeLimitExceeded
-from celery.utils.log import get_task_logger
 from filelock import FileLock, Timeout
+from pydantic import ValidationError
 from pymongo.errors import ConnectionFailure, PyMongoError
 
 from api.app.container import util
 from api.app.deps.repositories import get_ingest_jobs_repository
-from api.app.deps.services import get_audit_service, get_internal_ingest_service
+from api.app.deps.services import (
+    get_audit_service,
+    get_internal_ingest_service,
+    get_notification_service,
+)
 from api.app.lifecycle import ensure_runtime_initialized
 from api.celery_app import celery_app
 from api.config import get_runtime_mode_flags
 from api.config.paths import INGEST_WATCH_DIR
 from api.config.runtime_settings import DefaultConfig
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
+from api.domain.core.exceptions import AppError
 from api.infra.observability.operations import timed_operation
 from api.tasks.controls import disabled_result, task_family_enabled
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger(__name__)
 WATCH_INGEST_DIRECTORY = INGEST_WATCH_DIR
 WATCH_INGEST_LOCK_PATH = Path(DefaultConfig.COYOTE3_INGEST_WATCH_LOCK_PATH)
+
+
+def _ingest_failure_message(exc: Exception, *, retryable: bool) -> str:
+    """Expose validation explanations without serializing internal exception details."""
+    if retryable:
+        return "Temporary service failure; ingestion will be retried"
+    if isinstance(exc, ValidationError):
+        return "; ".join(
+            f"{'.'.join(map(str, item['loc']))}: {item['msg']}"
+            for item in exc.errors(include_input=False, include_context=False, include_url=False)
+        )[:450]
+    if isinstance(exc, FileNotFoundError):
+        return str(exc)[:450]
+    if isinstance(exc, PermissionError):
+        return f"Permission denied reading or writing '{Path(exc.filename).name if exc.filename else 'ingest storage'}'; check application UID/GID and directory permissions."
+    if isinstance(exc, ValueError) or (isinstance(exc, AppError) and exc.status_code < 500):
+        return str(exc)[:450] or "Ingest validation failed"
+    return "Ingest write failed; contact an administrator with the task ID"
 
 
 def _ensure_worker_runtime() -> None:
@@ -250,7 +274,7 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
             )
             _record_ingest_audit(
                 "ingest.watch.failed",
-                "Watched manifest ingest failed",
+                f"Watched manifest ingest failed: {_ingest_failure_message(exc, retryable=False)}",
                 severity="error",
                 outcome="failure",
                 resource_type="manifest",
@@ -341,8 +365,18 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                 repository.complete(job_id, job["lease_token"], result, session)
 
             if job["kind"] == "sample_bundle":
+                source_payload = dict(job["source_payload"])
+                for warning in source_payload.pop("_ingest_warnings", []):
+                    _record_ingest_audit(
+                        "ingest.bundle.files_ignored",
+                        warning,
+                        severity="warning",
+                        outcome="warning",
+                        actor=job.get("submitted_by"),
+                        metadata={"task_id": job_id},
+                    )
                 result = service.ingest_sample_bundle(
-                    job["source_payload"],
+                    source_payload,
                     allow_update=job["update_existing"],
                     increment=job["increment"],
                     record_completion=completion,
@@ -355,18 +389,40 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                 }[job["kind"]]
                 result = operation(**job["source_payload"], record_completion=completion)
     except Exception as exc:
-        repository.fail(job_id, job["lease_token"], retryable=_retryable_ingest_error(exc))
+        retryable = _retryable_ingest_error(exc)
+        error = _ingest_failure_message(exc, retryable=retryable)
+        logger.exception("Ingest task %s failed: %s", job_id, error)
+        repository.fail(job_id, job["lease_token"], retryable=retryable, error=error)
         committed = repository.get(job_id)
         if committed is not None and committed["state"] == "succeeded":
             result = committed["result"]
         else:
             _record_ingest_audit(
                 "ingest.bundle.failed",
-                "Ingest attempt failed",
+                f"Ingest attempt failed: {error}",
                 severity="error",
                 outcome="failure",
-                metadata={"task_id": job_id, "retryable": _retryable_ingest_error(exc)},
+                actor=job.get("submitted_by"),
+                metadata={"task_id": job_id, "retryable": retryable, "error": error},
             )
+            if not retryable and job.get("submitted_by"):
+                try:
+                    get_notification_service().create_notification(
+                        audience="users",
+                        recipients=[job["submitted_by"]],
+                        tone="error",
+                        category="application",
+                        title="Ingest failed",
+                        message=f"{error}\nTask ID: {job_id}",
+                        source="Ingest workspace",
+                        created_by="system",
+                        severity="warning",
+                        resource={"type": "ingest", "id": job_id},
+                    )
+                except Exception:
+                    logger.exception(
+                        "Could not deliver failure notification for ingest task %s", job_id
+                    )
             raise
     if job.get("staging_dir"):
         shutil.rmtree(job["staging_dir"], ignore_errors=True)

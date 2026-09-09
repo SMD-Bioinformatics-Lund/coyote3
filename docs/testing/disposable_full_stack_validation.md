@@ -100,7 +100,7 @@ export VALIDATION_MONGO_PORT="27182"
 export COYOTE3_VERSION="$(python3 api/version.py)"
 
 mkdir -p \
-  "$VALIDATION_ROOT/data/coyote3/copied_sample_files/yaml" \
+  "$VALIDATION_ROOT/data/coyote3_test/copied_sample_files/yaml" \
   "$VALIDATION_ROOT/logs" \
   "$VALIDATION_ROOT/mongo-data" \
   "$VALIDATION_ROOT/mongo-backups"
@@ -464,7 +464,7 @@ export VALIDATION_WORKER_CONTAINER_ID="$(docker compose \
 
 test -n "$VALIDATION_WORKER_CONTAINER_ID"
 
-VALIDATION_DNA_BUNDLE="/data/coyote3/copied_sample_files/yaml/demo_dna_sample"
+VALIDATION_DNA_BUNDLE="/data/coyote3_test/copied_sample_files/yaml/demo_dna_sample"
 docker exec "$VALIDATION_WORKER_CONTAINER_ID" \
   mkdir -p "$VALIDATION_DNA_BUNDLE"
 

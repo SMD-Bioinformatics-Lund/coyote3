@@ -63,6 +63,7 @@ Required keys:
 Optional keys:
 - `id_` (Any | None)
 - `control_id` (str)
+- `email` (EmailControlDoc)
 - `celery` (CeleryControlDoc)
 - `retention` (RetentionControlDoc)
 - `modules` (ModuleControlDoc)

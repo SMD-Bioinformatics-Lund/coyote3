@@ -11,6 +11,7 @@ from api.app.container import store
 from api.app.runtime_setup import create_runtime_context
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import bind_runtime_context
+from api.config.paths import initialize_storage_directories
 
 _runtime_bootstrap_lock = threading.Lock()
 _runtime_initialized = False
@@ -89,6 +90,7 @@ def create_lifespan(*, testing: bool, development: bool):
             Uses the factory's testing/development flags and performs no teardown.
         """
         ensure_runtime_initialized(testing=testing, development=development)
+        initialize_storage_directories()
         yield
 
     return _lifespan

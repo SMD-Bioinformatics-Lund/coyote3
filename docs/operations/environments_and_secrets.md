@@ -30,8 +30,8 @@ root with `COYOTE3_DATA_HOST_ROOT` in the copied `.coyote3_*_env` file. Compose
 mounts that directory at the fixed container path `/data` and also at the same
 absolute host path inside API and Celery containers. The latter preserves
 pipeline-declared source paths in the database. The API and Celery containers
-use repository-defined locations `/data/coyote3/reports`,
-`/data/coyote3/ingest_staging`, and `/data/coyote3/copied_sample_files/yaml` for
+use repository-defined locations `/data/coyote3_<env>/reports`,
+`/data/coyote3_<env>/ingest_staging`, and `/data/coyote3_<env>/copied_sample_files/yaml` for
 application workspaces. Edit Compose only for permanent center infrastructure
 mounts that are outside the data root.
 

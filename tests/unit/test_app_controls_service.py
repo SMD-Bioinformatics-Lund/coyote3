@@ -64,6 +64,7 @@ def test_app_controls_update_keeps_created_on_insert_only_metadata():
     result = service.update_controls(
         {
             "celery": {"sample_ingest_enabled": False},
+            "email": {"enabled": False},
             "retention": {"disk_log_days": 45},
         },
         actor=actor,
@@ -72,6 +73,9 @@ def test_app_controls_update_keeps_created_on_insert_only_metadata():
     assert result["controls"]["created_on"] is not None
     assert result["controls"]["updated_by"] == "coyote3.admin"
     assert result["controls"]["celery"]["sample_ingest_enabled"] is False
+    assert service.get_controls().email.enabled is False
+    service.update_controls({"email": {"enabled": True}})
+    assert service.get_controls().email.enabled is True
     assert result["controls"]["retention"]["disk_log_days"] == 45
     assert "created_on" not in collection.last_update["$set"]
     assert "created_on" in collection.last_update["$setOnInsert"]

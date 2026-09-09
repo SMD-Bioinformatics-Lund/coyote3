@@ -8,13 +8,9 @@ from typing import Any
 
 from api.application.ingest.parsers import infer_omics_layer, runtime_file_path
 from api.config.constants import (
-    ANALYSIS_FILE_KEYS_BY_OMICS,
-    DEFAULT_ENVIRONMENT,
     SAMPLE_FILE_KEYS,
-    SUBPANEL_BASE_ID,
     expected_file_keys,
     normalize_clinical_identifier,
-    normalize_environment,
 )
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 
@@ -36,13 +32,15 @@ def assay_file_policy(
     panel_collection = collection("assay_specific_panels")
     if not hasattr(panel_collection, "find_one"):
         raise ValueError("assay_specific_panels collection is not available for sample ingest")
-    panel = panel_collection.find_one({"asp_id": asp_id})
+    panel = panel_collection.find_one({"asp_id": asp_id, "is_active": True})
     if not isinstance(panel, dict):
-        raise ValueError(f"ASP is not registered for assay '{asp_id}'")
+        raise ValueError(f"No active ASP is configured for assay '{asp_id}'")
     asp_category = str(panel.get("asp_category") or default_category).strip().lower()
     allowed = set(SAMPLE_FILE_KEYS.get(asp_category, expected_file_keys(default_category)))
-    expected = _configured_keys(panel.get("expected_files")) or set(
-        expected_file_keys(asp_category)
+    expected = (
+        _configured_keys(panel["expected_files"])
+        if "expected_files" in panel
+        else set(expected_file_keys(asp_category))
     )
     required = _configured_keys(panel.get("required_files"))
     invalid_required = required - expected
@@ -85,40 +83,11 @@ def validate_payload_file_keys(
 def validate_declared_file_resources(
     collection: CollectionResolver, payload: dict[str, Any]
 ) -> set[str]:
-    """Validate ASP/ASPC file requirements and every declared path before parsing."""
+    """Validate only active ASP file requirements and declared paths before parsing."""
     omics = str(payload.get("omics_layer") or infer_omics_layer(payload) or "").lower()
     expected, required = assay_file_policy(
         collection, assay_name=payload.get("asp_id"), omics_layer=omics
     )
-    assay = normalize_clinical_identifier(payload.get("asp_id"), label="asp_id")
-    environment = normalize_environment(payload.get("environment") or DEFAULT_ENVIRONMENT)
-    subpanel = normalize_clinical_identifier(
-        payload.get("subpanel_id") or SUBPANEL_BASE_ID, label="subpanel_id"
-    )
-    query = {"asp_id": assay, "environment": environment, "is_active": True}
-    aspc_collection = collection("asp_configs")
-    aspc = aspc_collection.find_one({**query, "subpanel_id": subpanel})
-    if not isinstance(aspc, dict) and subpanel != SUBPANEL_BASE_ID:
-        aspc = aspc_collection.find_one({**query, "subpanel_id": SUBPANEL_BASE_ID})
-    if not isinstance(aspc, dict):
-        raise ValueError(
-            f"No active ASPC is configured for assay='{assay}', subpanel='{subpanel}', "
-            f"environment='{environment}'"
-        )
-    configured = [
-        str(value or "").strip().upper()
-        for value in aspc.get("analysis_types", [])
-        if str(value or "").strip()
-    ]
-    analysis_map = ANALYSIS_FILE_KEYS_BY_OMICS.get(omics, {})
-    configured_keys = {key for analysis in configured for key in analysis_map.get(analysis, ())}
-    invalid = sorted(configured_keys - expected)
-    if invalid:
-        raise ValueError(
-            f"ASPC '{aspc.get('aspc_id') or aspc.get('_id')}' enables analyses whose file "
-            f"resources are not declared by the ASP: {', '.join(invalid)}"
-        )
-    required |= configured_keys
     declared = {key for key in expected if runtime_file_path(payload, key)}
     missing = sorted(required - declared)
     if missing:

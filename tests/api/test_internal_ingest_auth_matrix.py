@@ -416,6 +416,32 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(
     assert kwargs["source_payload"]["_uploaded_file_checksums"]["vcf_files"]
 
 
+def test_upload_ignores_excluded_file_without_resolving_it(tmp_path):
+    service = SimpleNamespace(
+        parse_yaml_payload=lambda _: {
+            "asp_id": "synthetic",
+            "omics_layer": "dna",
+            "cnv": "missing.json",
+            "files": {"cnv": "missing.json"},
+            "_runtime_files": {"cnv": "missing.json"},
+            "_uploaded_file_checksums": {"cnv": "old-checksum"},
+        },
+        _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
+    )
+    result = internal_router._prepare_uploaded_bundle(
+        yaml_file=_Upload(filename="sample.yaml", content=b"synthetic"),
+        data_archive=None,
+        staging_dir=tmp_path,
+        ingest_service=service,
+    )
+    assert "cnv" not in result
+    for field in ("files", "_runtime_files", "_uploaded_file_checksums"):
+        assert "cnv" not in result[field]
+    assert result["_ingest_warnings"] == [
+        "Ignored 'cnv': ASP 'synthetic' does not accept this file."
+    ]
+
+
 def test_internal_task_status_payload_success(monkeypatch):
     """Task status endpoint returns successful Celery result payloads."""
 

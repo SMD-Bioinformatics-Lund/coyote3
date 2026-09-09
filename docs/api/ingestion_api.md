@@ -87,7 +87,7 @@ and expired leases every 30 seconds. Every Compose environment uses the stable
 Runtime settings:
 
 - `CELERY_WORKER_CONCURRENCY`: Worker concurrency. Defaults to `2`.
-- `/data/coyote3/ingest_staging`: Fixed durable server-side staging root for async upload files.
+- `/data/coyote3_<env>/ingest_staging`: Fixed durable server-side staging root for async upload files.
 
 Redis broker/result URLs are internal Compose wiring. They are not center-owned
 environment-file settings.
@@ -192,11 +192,11 @@ checking the acknowledgement `status`.
 Compose also defines the stable `beat` scheduler service. When
 `COYOTE3_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
 `api.tasks.ingest.ingest_watch_directory_once`, which scans
-the fixed `/data/coyote3/copied_sample_files/yaml` directory for `coyote3.yaml`.
+the fixed `/data/coyote3_<env>/copied_sample_files/yaml` directory for `coyote3.yaml`.
 
 Watcher settings:
 
-- `/data/coyote3/copied_sample_files/yaml`: fixed root folder scanned recursively.
+- `/data/coyote3_<env>/copied_sample_files/yaml`: fixed root folder scanned recursively.
 - `COYOTE3_INGEST_WATCH_FILENAME`: manifest filename. Defaults to `coyote3.yaml`.
 - `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS`: beat interval. Defaults to `30`.
 - `COYOTE3_INGEST_WATCH_UPDATE_EXISTING`: pass `allow_update=true` to sample ingest.
@@ -856,16 +856,41 @@ Other fixed admin/runtime vocabularies:
 
 Use the raw, flat pipeline manifest format documented in the DNA and RNA
 manifest sections. The service resolves `assay`, `subpanel`, and `profile` to
-the active ASPC, then validates every declared file before creating the sample.
+the active ASPC for analysis filters and policy snapshots. File acceptance and
+mandatory inputs come exclusively from the active ASP's `expected_files` and
+`required_files`. ASPC `analysis_types` neither adds required files nor overrides
+the ASP file policy. An explicitly empty `expected_files` list accepts no files.
 
 ### Uploaded archive
 
 `POST /api/v1/internal/ingest/sample-bundle/upload` accepts one ZIP archive.
-It must contain one supported YAML manifest and every file declared by that
-manifest. File paths remain the manifest's declared paths in MongoDB; archive
+The YAML manifest is uploaded separately. Files declared by the manifest but
+excluded from the active ASP's expected files are ignored with a warning; they
+are not parsed or written as sample analysis data. The async response includes
+`warnings`, the ingest workspace displays warning notifications, and the worker
+records the warnings in the audit. Required files remain mandatory. Accepted
+declared files must still be readable and valid. Archive safety checks remain
+in force for the complete ZIP. File paths remain the manifest's declared paths in MongoDB; archive
 members are matched by basename while the request is processed.
 
 ## Collection insert examples
+
+### Diagnosing ingestion failures
+
+Upload validation failures include their reason in the HTTP response and audit.
+For queued jobs, the job status, submitter's notification, and audit include the
+failure reason and task ID. The worker log records that task ID and traceback.
+JSON errors identify the analysis type, filename, and line/column; empty files
+are reported as empty. Schema errors identify the collection, record number,
+and invalid field. Fix the reported input or configuration before retrying.
+
+### Admin assay configuration
+
+The ASP creation form includes the required ASP ID. It remains visible and
+read-only when editing because existing samples and configurations reference
+that identifier. User create/edit forms show assay IDs as checkboxes, filtered
+by selected assay groups. Removing a group clears its assay selections when
+editing the form; normal permission checks still govern saving access changes.
 
 ### Single document
 

@@ -128,6 +128,12 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
+        "asp_id": {
+            "label": "ASP ID",
+            "display_type": "input",
+            "readonly_mode": ["edit"],
+            "help": "Unique assay identifier. Existing IDs are retained because samples and configurations reference them.",
+        },
         "igv": {
             "label": "IGV files",
             "data_type": "json",
@@ -981,7 +987,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
 }
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
-    "asp": {"asp_id"},
+    "asp": set(),
     "aspc_dna": {"id_"},
     "aspc_rna": {"id_"},
     "isgl": {"isgl_id"},

@@ -6,6 +6,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from pydantic import ValidationError
+
 from api.application.ingest import collection_writes, dependent_writes, helpers, sample_updates
 from api.application.ingest.file_policy import (
     assay_file_policy,
@@ -221,7 +223,10 @@ class InternalIngestService:
         )
         if resolved is None:
             raise ValueError(
-                "No active ASPC is configured for the sample ASP, subpanel, and environment"
+                f"No active ASPC is configured for assay='{payload.get('asp_id')}', "
+                f"subpanel='{payload.get('subpanel_id') or 'base'}', "
+                f"environment='{payload.get('environment') or 'production'}'. "
+                "Create or activate the matching analysis configuration."
             )
         aspc = dict(resolved.get("aspc") or {})
         normalized = dict(payload)
@@ -271,7 +276,19 @@ class InternalIngestService:
         Returns:
             A list of normalised dicts validated against the collection contract.
         """
-        return [normalize_collection_document(collection, doc) for doc in docs]
+        normalized = []
+        for index, doc in enumerate(docs, start=1):
+            try:
+                normalized.append(normalize_collection_document(collection, doc))
+            except ValidationError as exc:
+                errors = exc.errors(include_input=False, include_context=False, include_url=False)
+                detail = "; ".join(
+                    f"{'.'.join(map(str, item['loc']))}: {item['msg']}" for item in errors[:5]
+                )
+                raise ValueError(
+                    f"{collection} record {index} failed validation: {detail}"
+                ) from exc
+        return normalized
 
     def _write_dependents(
         self,

@@ -33,6 +33,8 @@ def smtp_configured(config: dict[str, Any]) -> bool:
         Whether both settings contain nonblank text; no connection or address
         validation is performed.
     """
+    if not config.get("EMAIL_ENABLED", True):
+        return False
     host = str(config.get("SMTP_HOST") or "").strip()
     from_email = str(config.get("SMTP_FROM_EMAIL") or "").strip()
     return bool(host and from_email)
@@ -71,6 +73,10 @@ def send_email(
         TLS verifies the server certificate. Logs omit recipients and message content.
     """
     log = log or logger
+    if not config.get("EMAIL_ENABLED", True):
+        log.info("Email service disabled in application controls; email was not sent")
+        emit_mail_metric("send_skipped", reason="email_disabled")
+        return False
     if not smtp_configured(config):
         emit_mail_metric("send_skipped", reason="smtp_not_configured")
         log.info("SMTP not configured; email was not sent")

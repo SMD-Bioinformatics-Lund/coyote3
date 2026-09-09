@@ -187,8 +187,6 @@ for key in ("COYOTE3_DATA_HOST_ROOT", "COYOTE3_LOGS_HOST_ROOT"):
     if not value:
         raise SystemExit(f"ERROR: missing host path in env file: {key}")
     has_access(value, write=True)
-if data.get("COYOTE3_REPORTS_HOST_ROOT"):
-    has_access(data["COYOTE3_REPORTS_HOST_ROOT"], write=True)
 ' "$ENV_FILE"
 
 if [[ -n "$SEED_FILE" ]]; then

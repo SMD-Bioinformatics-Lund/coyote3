@@ -26,7 +26,10 @@ retaining a private IPC namespace. Workers retain their shared-memory mount.
 
 | File | Purpose |
 | --- | --- |
-| `docker-compose.yml` | Compiled application, API, workers, Redis, docs, and proxy; no MongoDB. Use for any environment with its own env file and project name. |
+| `docker-compose.yml` | Compiled production application, API, workers, Redis, docs, and proxy; no MongoDB. |
+| `docker-compose.dev.yml` | Standalone development stack with Vite, API reload, source mounts, and `-dev` application image tags. Use instead of the base file. |
+| `docker-compose.stage.yml` | Stage image tags; combine with the base file. |
+| `docker-compose.test.yml` | Test image tags and test runner; combine with the base file. |
 | `docker-compose.mongo.yml` | Optional `mongo` and `mongo-kb` profiles, with authentication and separate replica sets. Can run as an independent project. |
 | `docker-compose.mongo-backup.yml` | Optional server `/backup` mount; omit for externally managed backups. |
 | `docker-compose.storage.example.yml` | Optional read-only input mounts shared by API, worker, and beat. |
@@ -36,9 +39,21 @@ MongoDB servers and replica initializers are pinned to `mongo:7.0.41`; the moder
 deployment retains MongoDB 8.2. There is no MongoDB Dockerfile: these services
 use the official image directly. Initialization scripts, proxy configuration,
 application Dockerfiles, and application settings are reused from the current
-repository. Hot-reload, test
-runner, and load-test overlays from `deploy/compose` are not part of this legacy
-deployment. There is no implicit project name; always pass `-p` explicitly.
+repository. Development and test services follow the modern definitions. The
+load-test overlay is not provided here. There is no implicit project name; always
+pass `-p` explicitly.
+
+The selected definition controls image tags, just as in modern Compose:
+`<version>-dev`, `<version>-stage`, `<version>-test`, or `<version>` for production.
+`ENV_NAME` controls application branding; changing it alone does not select a
+development server or change image tags. Upstream images such as Node, MongoDB,
+Redis, and Nginx retain their upstream version tags. Compose project names isolate
+containers and named volumes; configure distinct networks, ports, and storage
+paths in each environment file.
+
+Development is a standalone definition because Compose 1.29.2 cannot remove an
+inherited frontend build with `!reset`, or extend services with dependencies.
+It uses native Compose settings and the shared application Dockerfiles.
 
 ## Configuration
 
@@ -50,9 +65,16 @@ Never commit a completed environment file.
 | Setting | Legacy requirement |
 | --- | --- |
 | `COYOTE3_MONGO_URI` | Explicit URI; the old `MONGO_URI` alias is not consulted. |
-| `COYOTE3_REPORTS_HOST_ROOT` | Required, nonempty host path. Set it to your data root followed by `/coyote3/reports` to preserve existing storage, or choose a separate report directory. Write the full path, not a nested variable expression. |
 | `COYOTE3_DOCKER_HOST_IP` | Only required with `docker-compose.host.yml`. Numeric host IP reachable from the application network; no automatic gateway substitution. |
 | `COYOTE3_VERSION` | Export from `api/version.py` before application Compose commands. |
+| `COYOTE3_DATA_HOST_ROOT` | Shared application storage root, for example `/data/coyote3`. The application creates `coyote3_dev`, `coyote3_prod`, `coyote3_test`, or `coyote3_stage` according to `ENV_NAME`, with reports and ingest working directories inside. |
+
+Pipeline input locations remain separate mounts in the storage overlay. Prepare
+the application root with write access for `COYOTE3_UID:COYOTE3_GID`; startup
+creates its environment subdirectories without changing ownership of existing files.
+Existing installations must follow the [storage migration instructions](../../docs/start_here/configuration.md#migrating-existing-application-storage)
+before deploying this layout. Updating the env file does not migrate files or
+stored absolute paths. Log and MongoDB storage settings remain independent.
 
 For Docker MongoDB, use `mongo-app:27017` in the application URI and set
 `MONGO_REPLICA_MEMBER_HOST=mongo-app:27017`. For split knowledgebases, use
@@ -135,11 +157,42 @@ package hash verification remain enabled. This base no longer receives Debian
 LTS security updates.
 
 The base file serves compiled frontend assets even when `ENV_NAME=development`.
-It retains development branding and environment configuration without hot reload.
+Use `docker-compose.dev.yml` for live development, as shown below.
 Build explicitly, then bootstrap and provision indexes before starting writers.
 The API, frontend, and documentation builds use `build.network: host` so Dockerfile
 `RUN` commands use the host network for dependency downloads on the legacy host.
 Application containers still use the configured application network at runtime.
+
+For development, build the documentation site with `python3 -m mkdocs build`
+in the project's documentation environment before starting; the dev service mounts
+`site/`, matching modern development. Export `COYOTE3_VERSION` from `api/version.py`
+as above. Use the same definition and env file for every command:
+
+```bash
+docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml config --quiet
+docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml build api docs
+docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml pull frontend
+docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml up -d
+```
+
+Frontend source changes update through Vite; API source changes trigger Uvicorn
+reload. Restart worker and beat after changing task code. Rebuild API images after
+Python dependency changes, and recreate services after changing environment
+settings. Compose v1 has no `--watch`; the source mounts provide live development.
+The dev frontend runs the official Node image and installs dependencies into its
+project-scoped `frontend_node_modules` volume, so it has no frontend build step.
+Its runtime network must reach the npm registry.
+
+Stage and test use the base plus the matching overlay:
+
+```bash
+docker-compose -p coyote3-stage --env-file .coyote3_stage_env -f deploy/legacy/docker-compose.yml -f deploy/legacy/docker-compose.stage.yml up -d --build
+docker-compose -p coyote3-test --env-file .coyote3_test_env -f deploy/legacy/docker-compose.yml -f deploy/legacy/docker-compose.test.yml --profile tests run --rm test_runner
+```
+
+Add `--profile with-ui` for the test frontend, docs, and proxy. The following
+compiled-stack bootstrap examples are only for a fresh installation; substitute
+the selected environment definition on every command when using dev, stage, or test.
 
 ```bash
 docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml config --quiet

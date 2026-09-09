@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import mongomock
 import pytest
@@ -21,6 +22,7 @@ def jobs(monkeypatch):
     monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(ingest, "task_family_enabled", lambda family: True)
     monkeypatch.setattr(ingest, "_record_ingest_audit", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ingest, "get_notification_service", lambda: Mock())
     return repository
 
 
@@ -83,6 +85,49 @@ def test_failed_attempt_retains_staged_input(jobs, monkeypatch, tmp_path, failur
         ingest.ingest_sample_bundle_task.run(job_id=identity)
     assert jobs.get(identity)["state"] == ("pending" if retryable else "failed")
     assert staged.exists()
+
+
+@pytest.mark.parametrize(
+    "failure,detail",
+    [
+        (
+            ValueError(
+                "No active ASPC is configured for assay='synthetic', subpanel='base', environment='development'"
+            ),
+            "No active ASPC is configured",
+        ),
+        (RuntimeError("private connection details"), "Ingest write failed"),
+    ],
+)
+def test_failed_job_and_audit_preserve_validation_reason(
+    jobs, monkeypatch, caplog, failure, detail
+):
+    events = []
+    notifications = Mock()
+    monkeypatch.setattr(ingest, "get_notification_service", lambda: notifications)
+
+    def fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(
+        ingest, "get_internal_ingest_service", lambda: SimpleNamespace(ingest_sample_bundle=fail)
+    )
+    monkeypatch.setattr(
+        ingest, "_record_ingest_audit", lambda *args, **kwargs: events.append((args, kwargs))
+    )
+    identity = jobs.submit(source_payload={}, submitted_by="synthetic")
+    with pytest.raises(type(failure)):
+        ingest.ingest_sample_bundle_task.run(job_id=identity)
+    error = job_status_payload(jobs.get(identity))["error"]
+    assert detail in error
+    assert "private connection details" not in error
+    assert events[0][0][1] == f"Ingest attempt failed: {error}"
+    assert events[0][1]["metadata"]["error"] == error
+    notification = notifications.create_notification.call_args.kwargs
+    assert notification["message"] == f"{error}\nTask ID: {identity}"
+    assert notification["recipients"] == ["synthetic"]
+    assert f"Ingest task {identity} failed: {error}" in caplog.text
+    assert any(record.exc_info for record in caplog.records)
 
 
 def test_lost_acknowledgement_uses_the_committed_receipt(jobs, monkeypatch, tmp_path):

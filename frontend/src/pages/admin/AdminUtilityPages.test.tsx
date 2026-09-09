@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   post: vi.fn(),
   put: vi.fn(),
   success: vi.fn(),
+  warning: vi.fn(),
   error: vi.fn(),
   access: {
     data: { username: "admin", roles: ["superuser"], role: "superuser", access_level: 100, permissions: [] as string[] } as any,
@@ -18,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post, put: mocks.put } }))
-vi.mock("@/lib/notifications", () => ({ notifySuccess: mocks.success, notifyActionError: mocks.error }))
+vi.mock("@/lib/notifications", () => ({ notifySuccess: mocks.success, notifyWarning: mocks.warning, notifyActionError: mocks.error }))
 vi.mock("@/lib/access-control", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/access-control")>()
   return { ...actual, useCurrentUserAccess: () => mocks.access }
@@ -137,6 +138,17 @@ describe("AdminControlsPage", () => {
     expect(mocks.success).toHaveBeenCalledWith("Maintenance queued", expect.stringContaining("MAINT_1"), "Admin controls")
   })
 
+  it("saves the email toggle without changing module controls", async () => {
+    const user = userEvent.setup()
+    renderPage(<AdminControlsPage />)
+    const toggle = await screen.findByRole("switch", { name: /Outgoing email: enabled/i })
+    await user.click(toggle)
+    await user.click(screen.getByRole("button", { name: "Save controls" }))
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/admin/controls", {
+      controls: expect.objectContaining({ email: { enabled: false }, modules: controlsPayload.controls.modules }),
+    }))
+  })
+
   it("queues one HGNC-backed public OncoKB refresh through operational maintenance", async () => {
     const user = userEvent.setup()
     renderPage(<AdminControlsPage />)
@@ -219,6 +231,7 @@ describe("AdminIngestPage", () => {
 
   it("requires a manifest and submits an optional data archive with multipart options", async () => {
     const user = userEvent.setup()
+    mocks.post.mockResolvedValue({ data: { task_id: "TASK_1", warnings: ["Ignored 'cnv': ASP 'synthetic' does not accept this file."] } })
     renderPage(<AdminIngestPage />)
     const queue = screen.getByRole("button", { name: "Queue ingest" })
     expect(queue).toBeDisabled()
@@ -238,6 +251,10 @@ describe("AdminIngestPage", () => {
     expect((body as FormData).get("update_existing")).toBe("true")
     expect((body as FormData).get("increment")).toBe("true")
     expect(await screen.findByText("TASK_1")).toBeVisible()
+    expect(mocks.warning).toHaveBeenCalledWith(
+      "Ingest file ignored", "Ignored 'cnv': ASP 'synthetic' does not accept this file.",
+      "Ingest workspace", expect.objectContaining({ id: "TASK_1" }),
+    )
     expect(await screen.findByText("SUCCESS")).toBeVisible()
     expect(screen.getByText(/SYNTHETIC_001/)).toBeVisible()
   })
@@ -252,6 +269,22 @@ describe("AdminIngestPage", () => {
     await waitFor(() => expect(mocks.error).toHaveBeenCalledWith(
       "Unable to queue ingest", expect.any(Error), "Ingest workspace", expect.objectContaining({ name: "sample.yaml" }),
     ))
+  })
+
+  it("notifies once with the asynchronous ingestion failure reason", async () => {
+    const user = userEvent.setup()
+    const reason = "No active ASPC is configured for assay='synthetic', subpanel='base', environment='development'"
+    mocks.post.mockResolvedValue({ data: { task_id: "FAILED_TASK" } })
+    mocks.get.mockResolvedValue({ data: { state: "FAILURE", ready: true, successful: false, error: reason } })
+    renderPage(<AdminIngestPage />)
+    await user.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, new File(["name: synthetic"], "sample.yaml"))
+    await user.click(screen.getByRole("button", { name: "Queue ingest" }))
+    await waitFor(() => expect(mocks.error).toHaveBeenCalledWith(
+      "Ingest failed", expect.objectContaining({ message: reason }), "Ingest workspace",
+      expect.objectContaining({ id: "FAILED_TASK" }),
+    ))
+    expect(mocks.error).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText(reason)).toBeVisible()
   })
 })
 
