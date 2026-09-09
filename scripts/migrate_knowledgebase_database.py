@@ -39,6 +39,19 @@ def assert_distinct_databases(source: Database, target: Database) -> None:
         raise ValueError("Source and target must be different database namespaces")
 
     def deployment(client):
+        """Identify a replica set or standalone server using MongoDB's hello response.
+
+        Args:
+            client: Connected MongoClient whose deployment identity is required.
+
+        Returns:
+            A replica tag, set name, and frozen member set, or a standalone tag and
+            topology process ID.
+
+        Raises:
+            ValueError: The response describes a router or lacks sufficient identity data.
+            pymongo.errors.PyMongoError: The hello command fails.
+        """
         hello = client.admin.command("hello")
         if hello.get("setName") and hello.get("hosts"):
             members = set(hello["hosts"])

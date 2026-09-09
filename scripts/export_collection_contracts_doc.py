@@ -15,6 +15,15 @@ if str(REPO_ROOT) not in sys.path:
 
 
 def _field_type_name(annotation: Any) -> str:
+    """Render a field annotation while retaining generic type parameters.
+
+    Args:
+        annotation: Runtime annotation obtained from a Pydantic model field.
+
+    Returns:
+        Class name or simplified annotation text without ``typing.`` prefixes;
+        outer ``Optional`` annotations use ``| None`` notation.
+    """
     # On Python 3.10, `list[str]` / `dict[str, int]` can satisfy
     # `isinstance(annotation, type)`. Guard with `get_origin` so we don't lose
     # generic parameters and generate unstable docs across Python versions.
@@ -27,6 +36,19 @@ def _field_type_name(annotation: Any) -> str:
 
 
 def main() -> int:
+    """Overwrite the collection-contract reference from registered Pydantic adapters.
+
+    Returns:
+        Zero after writing ``docs/api/collection_contracts.md`` relative to the
+        working directory and printing its path.
+
+    Raises:
+        OSError: The output directory is missing or the Markdown file cannot be written.
+
+    Notes:
+        Orders collections alphabetically and fields in model declaration order.
+        Does not connect to MongoDB.
+    """
     from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
     adapters = COLLECTION_MODEL_ADAPTERS

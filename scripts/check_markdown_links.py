@@ -20,11 +20,28 @@ def strip_code(text: str) -> str:
 
 
 def is_external(target: str) -> bool:
+    """Recognize supported web, mail, and telephone link prefixes.
+
+    Args:
+        target: Link target to inspect without trimming whitespace.
+
+    Returns:
+        Whether the target starts with HTTP, HTTPS, mailto, or tel, ignoring case.
+    """
     lowered = target.lower()
     return lowered.startswith(("http://", "https://", "mailto:", "tel:"))
 
 
 def normalize_target(target: str) -> str:
+    """Remove surrounding whitespace, angle brackets, fragments, and queries.
+
+    Args:
+        target: Raw Markdown link destination.
+
+    Returns:
+        Destination path or URL without its fragment or query; fragment-only links
+        become empty strings. Percent-encoded characters are left unchanged.
+    """
     cleaned = target.strip()
     if cleaned.startswith("<") and cleaned.endswith(">"):
         cleaned = cleaned[1:-1]
@@ -34,6 +51,15 @@ def normalize_target(target: str) -> str:
 
 
 def main() -> int:
+    """Check links in repository documentation after removing code examples.
+
+    Returns:
+        One after reporting absolute, escaping, or nonexistent local targets to
+        stderr; zero after printing success. External and fragment-only links are skipped.
+
+    Raises:
+        OSError: A Markdown file cannot be read.
+    """
     root = Path(__file__).resolve().parents[1]
     docs_dir = root / "docs"
     failures: list[str] = []

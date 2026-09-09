@@ -12,6 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _normalize(requirement: str) -> str:
+    """Normalize a requirement's name separators and lowercase its full declaration.
+
+    Args:
+        requirement: Dependency declaration including any specifier or extras.
+
+    Returns:
+        Stripped lowercase text with runs of dots, underscores, and hyphens in the
+        leading package name replaced by one hyphen. Does not parse requirement syntax.
+    """
     value = requirement.strip()
     match = re.match(r"^([A-Za-z0-9_.-]+)(.*)$", value)
     if match is None:
@@ -21,6 +30,17 @@ def _normalize(requirement: str) -> str:
 
 
 def _read_requirements(path: Path) -> set[str]:
+    """Collect normalized declarations, ignoring comments and ``-r`` include lines.
+
+    Args:
+        path: UTF-8 requirements export to read; included files are not traversed.
+
+    Returns:
+        Unique nonblank declarations after removing inline comments.
+
+    Raises:
+        OSError: The export cannot be read.
+    """
     requirements: set[str] = set()
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.split("#", 1)[0].strip()
@@ -31,10 +51,29 @@ def _read_requirements(path: Path) -> set[str]:
 
 
 def _declared(values: list[str]) -> set[str]:
+    """Normalize and deduplicate a pyproject dependency group.
+
+    Args:
+        values: Requirement strings from a project dependency list.
+
+    Returns:
+        Unique declarations normalized for comparison with requirements exports.
+    """
     return {_normalize(value) for value in values}
 
 
 def _check(label: str, expected: set[str], actual: set[str]) -> list[str]:
+    """Describe missing and undeclared dependency exports.
+
+    Args:
+        label: Export filename used to identify each diagnostic.
+        expected: Normalized declarations from pyproject.
+        actual: Normalized declarations read from the export.
+
+    Returns:
+        Missing-export diagnostic followed by undeclared-export diagnostic when
+        applicable, each with sorted names; an empty list when the sets match.
+    """
     errors: list[str] = []
     missing = sorted(expected - actual)
     extra = sorted(actual - expected)

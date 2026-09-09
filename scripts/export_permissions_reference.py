@@ -14,10 +14,29 @@ OUTPUT = REPO_ROOT / "docs/developer/permission_catalog.md"
 
 
 def _escape(value: Any) -> str:
+    """Prepare a permission value for a single Markdown table cell.
+
+    Args:
+        value: Catalog field value; falsey values are rendered as empty text.
+
+    Returns:
+        Stripped text with pipes escaped and newlines replaced by spaces.
+    """
     return str(value or "").replace("|", "\\|").replace("\n", " ").strip()
 
 
 def main() -> int:
+    """Overwrite the permission reference using the bundled NDJSON catalog.
+
+    Returns:
+        Zero after writing the repository's permission catalog Markdown and printing
+        its path. Categories and permission IDs are sorted alphabetically.
+
+    Raises:
+        json.JSONDecodeError: A nonblank catalog line is malformed JSON.
+        KeyError: A permission record lacks ``permission_id``.
+        OSError: The catalog cannot be read or the reference cannot be written.
+    """
     permissions = [
         json.loads(line) for line in SOURCE.read_text(encoding="utf-8").splitlines() if line.strip()
     ]

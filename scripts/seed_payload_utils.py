@@ -9,6 +9,15 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the seed count or bulk-ingest payload command.
+
+    Returns:
+        Process options identifying a seed directory and collection, with duplicate
+        ignoring disabled unless explicitly requested for payload output.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -26,6 +35,19 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_docs(seed_dir: Path, collection: str) -> list:
+    """Read a collection's JSON array without validating its individual entries.
+
+    Args:
+        seed_dir: Directory containing collection seed files.
+        collection: File stem used to select ``<collection>.json``.
+
+    Returns:
+        Decoded array, or an empty list for a missing file or non-array JSON value.
+
+    Raises:
+        json.JSONDecodeError: An existing file contains malformed JSON.
+        OSError: An existing file cannot be read.
+    """
     path = seed_dir / f"{collection}.json"
     if not path.exists():
         return []
@@ -34,6 +56,16 @@ def load_docs(seed_dir: Path, collection: str) -> list:
 
 
 def main() -> int:
+    """Print a document count or compact bulk-ingest JSON without submitting it.
+
+    Returns:
+        Zero after emitting the requested count or payload to stdout.
+
+    Raises:
+        SystemExit: CLI parsing rejects arguments or help is requested.
+        json.JSONDecodeError: The selected seed file contains malformed JSON.
+        OSError: The seed file cannot be read.
+    """
     args = parse_args()
     seed_dir = Path(args.seed_dir)
     docs = load_docs(seed_dir, args.collection)

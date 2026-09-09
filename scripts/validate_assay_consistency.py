@@ -47,6 +47,15 @@ REQUIRED_BASELINE_COLLECTIONS = (
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse seed directories, optional sample YAML, and contract-validation scope.
+
+    Returns:
+        Process options with reference packs in CLI order and baseline-only model
+        validation unless ``--validate-all-contracts`` is set.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(
         description="Validate assay references in center seed JSON and optional sample YAML."
     )
@@ -73,10 +82,32 @@ def parse_args() -> argparse.Namespace:
 
 
 def _norm(value: Any) -> str:
+    """Convert a reference value to stripped text without changing case.
+
+    Args:
+        value: Value to stringify; None becomes the literal text ``None``.
+
+    Returns:
+        String representation with leading and trailing whitespace removed.
+    """
     return str(value).strip()
 
 
 def _load_seed(path: str) -> dict[str, Any]:
+    """Read immediate JSON seed arrays from an existing directory.
+
+    Args:
+        path: Directory containing collection-named ``.json`` files.
+
+    Returns:
+        File stems mapped to decoded arrays, read in sorted filename order.
+        An empty directory produces an empty mapping.
+
+    Raises:
+        SystemExit: The directory is missing or a file does not contain a JSON array.
+        json.JSONDecodeError: A seed file contains malformed JSON.
+        OSError: A seed file cannot be read.
+    """
     seed_path = Path(path)
     if not seed_path.is_dir():
         raise SystemExit(f"Seed directory not found: {seed_path}")
@@ -90,6 +121,21 @@ def _load_seed(path: str) -> dict[str, Any]:
 
 
 def _load_reference_seed_pack(path: str) -> dict[str, Any]:
+    """Read supported RBAC, HGNC, and VEP NDJSON files from a reference directory.
+
+    Args:
+        path: Existing directory with at least one supported plain or gzip reference file.
+
+    Returns:
+        Present collections mapped to ordered object lists; plain files take precedence
+        over gzip versions and absent collections are omitted.
+
+    Raises:
+        SystemExit: The directory is missing, no supported files exist, or a line
+            contains a JSON value other than an object.
+        json.JSONDecodeError: A reference line contains malformed JSON.
+        OSError: Reading or decompressing a reference file fails.
+    """
     reference_path = Path(path)
     if not reference_path.is_dir():
         raise SystemExit(f"Reference seed data directory not found: {reference_path}")
@@ -102,6 +148,15 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
     }
 
     def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path | None:
+        """Select an existing plain reference file before trying its gzip variant.
+
+        Args:
+            base_dir: Reference pack directory.
+            stem_name: Complete uncompressed filename including the NDJSON suffix.
+
+        Returns:
+            Plain or gzip file path, or None when neither exists.
+        """
         plain_path = base_dir / stem_name
         if plain_path.exists():
             return plain_path
@@ -111,6 +166,19 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
         return None
 
     def _load_ndjson(file_path: Path) -> list[dict[str, Any]]:
+        """Decode nonblank reference lines as objects, supporting gzip compression.
+
+        Args:
+            file_path: UTF-8 NDJSON file; a ``.gz`` suffix selects decompression.
+
+        Returns:
+            JSON objects in source order, or an empty list for a blank file.
+
+        Raises:
+            SystemExit: A nonblank line decodes to a non-object value.
+            json.JSONDecodeError: A nonblank line is malformed JSON.
+            OSError: Reading or decompressing the file fails.
+        """
         docs: list[dict[str, Any]] = []
         opener = gzip.open if file_path.suffix == ".gz" else open
         with opener(file_path, "rt", encoding="utf-8") as handle:
@@ -144,6 +212,15 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
 
 
 def _is_iso_datetime(value: str) -> bool:
+    """Check whether stripped text is accepted by datetime.fromisoformat.
+
+    Args:
+        value: Candidate timestamp, optionally using the UTC ``Z`` suffix.
+
+    Returns:
+        False for empty or unparseable text, otherwise True. Does not require a time
+        component or timezone beyond what datetime.fromisoformat accepts.
+    """
     text = value.strip()
     if not text:
         return False
@@ -158,6 +235,15 @@ def _is_iso_datetime(value: str) -> bool:
 
 
 def _contains_extended_json_dates(value: Any) -> bool:
+    """Search nested dictionaries and lists for single-key Extended JSON wrappers.
+
+    Args:
+        value: Seed value or nested container to inspect.
+
+    Returns:
+        Whether any dictionary has exactly the key ``$date`` or ``$oid``;
+        dictionaries with additional keys are not themselves treated as wrappers.
+    """
     if isinstance(value, dict):
         if set(value.keys()) == {"$date"}:
             return True
@@ -170,6 +256,16 @@ def _contains_extended_json_dates(value: Any) -> bool:
 
 
 def _validate_contract_shaping(seed: dict[str, Any]) -> list[str]:
+    """Check seed container shapes, audit timestamps, and version-history values.
+
+    Args:
+        seed: Collection-to-payload mapping before registered model validation.
+
+    Returns:
+        Location-qualified errors for non-array collections, non-object records,
+        Extended JSON wrappers, malformed non-null timestamps, nonnumeric versions,
+        or invalid history entries. An empty list indicates no detected shape errors.
+    """
     errors: list[str] = []
     for collection, docs in sorted(seed.items()):
         if not isinstance(docs, list):
@@ -219,6 +315,18 @@ def _validate_contract_shaping(seed: dict[str, Any]) -> list[str]:
 def _validate_registered_contracts(
     seed: dict[str, Any], *, validate_all_contracts: bool = False
 ) -> list[str]:
+    """Validate selected seed documents with their registered collection contracts.
+
+    Args:
+        seed: Collection mapping whose payloads have already passed shape checks.
+        validate_all_contracts: Validate every present registered collection when True;
+            by default, validate only present registered baseline collections.
+
+    Returns:
+        Location-qualified model failure messages, or an empty list when selected
+        documents validate. Unregistered collections are ignored; model exceptions
+        are collected rather than propagated.
+    """
     errors: list[str] = []
     registered = set(supported_collections())
     if validate_all_contracts:
@@ -243,6 +351,15 @@ def _validate_registered_contracts(
 
 
 def _known_assays(seed: dict[str, Any]) -> set[str]:
+    """Collect nonblank assay IDs from ASPC, panel, and in-silico gene-list documents.
+
+    Args:
+        seed: Collection mapping with optional ``asp_configs``, ``assay_specific_panels``,
+            and ``insilico_genelists`` arrays.
+
+    Returns:
+        Stripped, case-preserving assay IDs, including IDs mentioned only by gene lists.
+    """
     assays: set[str] = set()
     for doc in seed.get("asp_configs", []):
         if isinstance(doc, dict):
@@ -264,6 +381,14 @@ def _known_assays(seed: dict[str, Any]) -> set[str]:
 
 
 def _known_assay_groups(seed: dict[str, Any]) -> set[str]:
+    """Collect nonblank assay groups from ASPC, panel, and in-silico gene-list documents.
+
+    Args:
+        seed: Collection mapping containing optional assay configuration and gene-list arrays.
+
+    Returns:
+        Stripped, case-preserving group names, including groups mentioned only by gene lists.
+    """
     groups: set[str] = set()
     for collection in ("asp_configs", "assay_specific_panels"):
         for doc in seed.get(collection, []):
@@ -281,6 +406,15 @@ def _known_assay_groups(seed: dict[str, Any]) -> set[str]:
 
 
 def _collect_references(seed: dict[str, Any]) -> tuple[set[str], set[str]]:
+    """Collect sample and in-silico gene-list references for assay consistency checks.
+
+    Args:
+        seed: Collection mapping with optional sample and in-silico gene-list arrays.
+
+    Returns:
+        Assay IDs from both collections and group names from gene lists, as separate
+        sets of nonblank, stripped strings with case preserved.
+    """
     assays: set[str] = set()
     groups: set[str] = set()
 
@@ -306,11 +440,30 @@ def _collect_references(seed: dict[str, Any]) -> tuple[set[str], set[str]]:
 
 
 def _normalize_env(value: Any) -> str:
+    """Lowercase an environment label and expand recognized deployment aliases.
+
+    Args:
+        value: Environment value to stringify and trim.
+
+    Returns:
+        Canonical environment for known aliases, including stage/staging as validation;
+        unrecognized values remain stripped lowercase text without validation.
+    """
     raw = _norm(value).lower()
     return ENV_ALIASES.get(raw, raw)
 
 
 def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
+    """Report uppercase characters in configured scalar and list business-key fields.
+
+    Args:
+        seed: Collection mapping to inspect without mutation; null fields and
+            non-dictionary records are skipped.
+
+    Returns:
+        One diagnostic per nonblank value that differs from its lowercase form,
+        including its collection, document index, and field; empty when none differ.
+    """
     errors: list[str] = []
     field_rules: dict[str, tuple[str, ...]] = {
         "permissions": ("permission_id",),
@@ -324,6 +477,14 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
     }
 
     def _append_error(collection: str, idx: int, field: str, value: str) -> None:
+        """Append one case-consistency diagnostic to the enclosing error list.
+
+        Args:
+            collection: Logical collection containing the invalid business key.
+            idx: Zero-based document index within the collection array.
+            field: Scalar or list field containing the value.
+            value: Stripped text that does not match its lowercase form.
+        """
         errors.append(
             f"{collection}[{idx}] field '{field}' must be lowercase for business-key consistency: '{value}'"
         )
@@ -347,6 +508,15 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
 
 
 def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
+    """Map assays to groups declared by ASPC and assay-specific panel documents.
+
+    Args:
+        seed: Collection mapping with optional ASPC and panel arrays.
+
+    Returns:
+        Nonblank, stripped assay IDs mapped to their nonblank group-name sets.
+        In-silico gene-list declarations do not contribute to this mapping.
+    """
     mapping: dict[str, set[str]] = {}
     for collection in ("asp_configs", "assay_specific_panels"):
         for doc in seed.get(collection, []):
@@ -360,6 +530,20 @@ def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
 
 
 def _validate_aspc(seed: dict[str, Any]) -> list[str]:
+    """Check ASPC identifiers, environments, active flags, and uniqueness constraints.
+
+    Args:
+        seed: Collection mapping containing an optional ``asp_configs`` array.
+
+    Returns:
+        Diagnostics for malformed records, missing or inconsistent IDs, duplicate
+        ASPC IDs or active assay/subpanel/environment tuples, unsupported nonempty
+        environments, and missing boolean active flags; empty when checks pass.
+
+    Notes:
+        Missing subpanel IDs default to ``base`` for these checks. Environment aliases
+        are normalized for comparison without modifying the seed.
+    """
     errors: list[str] = []
     seen_ids: set[str] = set()
     seen_active_keys: set[tuple[str, str, str]] = set()
@@ -410,6 +594,14 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
 
 
 def _validate_panels(seed: dict[str, Any]) -> list[str]:
+    """Check panel records are objects with explicit boolean active flags.
+
+    Args:
+        seed: Collection mapping with an optional ``assay_specific_panels`` array.
+
+    Returns:
+        Location-qualified object or ``is_active`` errors, or an empty list.
+    """
     errors: list[str] = []
     for idx, doc in enumerate(seed.get("assay_specific_panels", [])):
         if not isinstance(doc, dict):
@@ -423,6 +615,21 @@ def _validate_panels(seed: dict[str, Any]) -> list[str]:
 def _validate_isgl(
     seed: dict[str, Any], known_assays: set[str], known_groups: set[str]
 ) -> list[str]:
+    """Check gene-list activity, assay/group references, and configured group overlap.
+
+    Args:
+        seed: Collection mapping containing gene lists and the ASPC/panel group declarations.
+        known_assays: Accepted assay IDs for reference membership checks.
+        known_groups: Accepted assay group names for reference membership checks.
+
+    Returns:
+        Diagnostics for malformed records, absent boolean active flags, empty or
+        unknown references, and assays whose configured groups do not overlap the
+        gene list's groups. Empty when all checks pass.
+
+    Notes:
+        Group overlap is required only for assays with a nonempty ASPC/panel mapping.
+    """
     errors: list[str] = []
     assay_to_groups = _collect_assay_group_map(seed)
     for idx, doc in enumerate(seed.get("insilico_genelists", [])):
@@ -459,6 +666,21 @@ def _validate_isgl(
 
 
 def _validate_yaml_assay(yaml_path: str, known_assays: set[str]) -> None:
+    """Check an optional top-level YAML ``assay`` value against known seed IDs.
+
+    Args:
+        yaml_path: UTF-8 sample YAML file to read.
+        known_assays: Accepted assay IDs, compared case-sensitively after trimming.
+
+    Raises:
+        SystemExit: YAML decodes to a non-object or its nonblank assay is unknown.
+        yaml.YAMLError: YAML syntax is invalid.
+        OSError: The YAML file cannot be read.
+
+    Notes:
+        A missing or blank assay is accepted; this helper does not validate the
+        complete ingestion contract or inspect ``asp_id``.
+    """
     payload = yaml.safe_load(Path(yaml_path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise SystemExit("YAML must decode to an object")
@@ -471,6 +693,16 @@ def _validate_yaml_assay(yaml_path: str, known_assays: set[str]) -> None:
 
 
 def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
+    """Check baseline collection presence and RBAC and user-scope references.
+
+    Args:
+        seed: Collection mapping containing baseline catalogs and optional users.
+
+    Returns:
+        Diagnostics for missing or empty baseline arrays, unknown role permissions,
+        or unknown user roles, assays, and groups. Empty reference values are ignored;
+        an empty result means these dependency checks passed.
+    """
     errors: list[str] = []
     for collection in REQUIRED_BASELINE_COLLECTIONS:
         value = seed.get(collection)
@@ -516,6 +748,22 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
 
 
 def main() -> int:
+    """Validate merged seed contracts and assay references before reporting known IDs.
+
+    Returns:
+        Zero after all checks pass and assay and group inventories are printed.
+
+    Raises:
+        SystemExit: CLI parsing exits, input layout is invalid, or any validation
+            stage reports errors; later stages are not run after a failure.
+        json.JSONDecodeError: A seed or reference file contains malformed JSON.
+        yaml.YAMLError: The optional sample YAML has invalid syntax.
+        OSError: Input files cannot be read or decompressed.
+
+    Notes:
+        Reference packs overwrite matching seed collections in CLI order. Performs
+        no writes to source files or databases.
+    """
     args = parse_args()
     seed = _load_seed(args.seed_file)
     for reference_dir in args.reference_seed_data:

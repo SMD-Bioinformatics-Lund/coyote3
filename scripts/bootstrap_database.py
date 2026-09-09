@@ -42,6 +42,14 @@ DEFAULT_DEMO_CENTER_DIR = BOOTSTRAP_ROOT / "demo_center"
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse database, first-user, and optional demonstration seed settings.
+
+    Returns:
+        Process command-line options with bundled seed directories as defaults.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
@@ -73,6 +81,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def _fail_if_placeholder_values(args: argparse.Namespace) -> None:
+    """Reject string options containing the deployment placeholder ``change_me``.
+
+    Args:
+        args: Parsed options to scan case-insensitively; non-string values are ignored.
+
+    Raises:
+        SystemExit: At least one option contains the placeholder; only option names
+            are included in the error.
+    """
     fields = [
         key
         for key, value in vars(args).items()
@@ -96,6 +113,18 @@ def _superuser_exists(db, users_collection: str) -> bool:
 
 
 def _resolve_directory(value: str, *, label: str) -> Path:
+    """Expand and resolve a seed directory, rejecting missing or non-directory paths.
+
+    Args:
+        value: Directory path, optionally containing a home-directory prefix.
+        label: Operator-facing name used in the failure message.
+
+    Returns:
+        Absolute, resolved directory path.
+
+    Raises:
+        SystemExit: The resolved path is not a directory.
+    """
     path = Path(value).expanduser().resolve()
     if not path.is_dir():
         raise SystemExit(f"{label} directory was not found: {path}")
@@ -134,6 +163,19 @@ def _build_seed_documents(
 
 
 def _make_superuser_document(args: argparse.Namespace, *, actor: str) -> dict:
+    """Build a validated local bootstrap user with a hashed password.
+
+    Args:
+        args: Options containing username, email, role_id, and plaintext password.
+        actor: Identity recorded in creation and update audit fields.
+
+    Returns:
+        Normalized user document with lowercase identifiers, the selected role,
+        current UTC timestamps, and a required password change.
+
+    Raises:
+        pydantic.ValidationError: The user does not satisfy the collection contract.
+    """
     username = str(args.username).strip().lower()
     email = str(args.email).strip().lower()
     role_id = str(args.role_id).strip().lower()
@@ -166,6 +208,23 @@ def _make_superuser_document(args: argparse.Namespace, *, actor: str) -> dict:
 
 
 def _insert_if_empty(db, collection: str, documents: list[dict]) -> str:
+    """Insert a seed batch only when its target collection has no documents.
+
+    Args:
+        db: MongoDB database receiving the seed documents.
+        collection: Physical collection name.
+        documents: Ordered batch to insert; an empty list performs no database access.
+
+    Returns:
+        ``empty`` for no input, ``skipped`` for a populated target, or ``loaded``
+        after insertion.
+
+    Raises:
+        pymongo.errors.PyMongoError: The emptiness check or insertion fails.
+
+    Notes:
+        The check and ordered insertion are not atomic; a failed batch may be partial.
+    """
     if not documents:
         return "empty"
     if db[collection].count_documents({}, limit=1):
@@ -177,6 +236,24 @@ def _insert_if_empty(db, collection: str, documents: list[dict]) -> str:
 def _seed_clinical_rule_revisions(
     db, *, rules_collection: str, revisions_collection: str, actor: str
 ) -> str:
+    """Insert a baseline snapshot for each rule set without revision history.
+
+    Args:
+        db: Application MongoDB database containing rules and revisions.
+        rules_collection: Physical collection of current rule documents.
+        revisions_collection: Physical collection receiving immutable snapshots.
+        actor: Operator identity recorded on every new baseline.
+
+    Returns:
+        ``loaded`` when at least one snapshot was inserted, otherwise ``skipped``.
+
+    Raises:
+        pymongo.errors.PyMongoError: Reading rules or writing revisions fails.
+
+    Notes:
+        Processes rules in ascending ``_id`` order and uses one UTC timestamp.
+        Existing history is left untouched; inserts are not one transaction.
+    """
     revisions = db[revisions_collection]
     captured = 0
     occurred_at = datetime.now(timezone.utc)
@@ -207,6 +284,29 @@ def _initialize_governance(
     roles_collection: str,
     permissions_collection: str,
 ) -> str:
+    """Populate empty governance collections with bundled RBAC and the first user.
+
+    Args:
+        db: Identity MongoDB database receiving governance records.
+        seed: Seed mapping containing permissions and roles document lists.
+        user_document: Validated first-user document with at least one assigned role.
+        users_collection: Physical user collection name.
+        roles_collection: Physical role collection name.
+        permissions_collection: Physical permission collection name.
+
+    Returns:
+        ``skipped`` when governance data and a superuser already exist, or ``loaded``
+        after inserting permissions, roles, and the user.
+
+    Raises:
+        SystemExit: Governance is partially populated without a superuser, or the
+            user's first role is absent from the seed catalog.
+        pymongo.errors.PyMongoError: Governance reads or writes fail.
+
+    Notes:
+        Writes permissions, then roles, then the user without a transaction.
+        Failure can leave partially initialized governance collections.
+    """
     collection_names = (users_collection, roles_collection, permissions_collection)
     if _deployment_is_initialized(db, collection_names):
         if _superuser_exists(db, users_collection):
@@ -230,6 +330,23 @@ def _initialize_governance(
 
 
 def main() -> int:
+    """Validate bootstrap inputs and initialize identity and application collections.
+
+    Returns:
+        Zero after printing the load or skip status of each selected seed collection.
+
+    Raises:
+        SystemExit: CLI parsing exits, placeholders or required inputs are invalid,
+            seed directories or collections are missing, or governance cannot be initialized.
+        ValueError: Seed normalization fails or database namespaces are not distinct.
+        pydantic.ValidationError: Seed or first-user documents violate their contracts.
+        OSError: Seed files cannot be read.
+        pymongo.errors.PyMongoError: Database checks or bootstrap operations fail.
+
+    Notes:
+        Loads demonstration data only when requested. Writes are not transactional
+        across collections or databases; both MongoDB clients are closed on exit.
+    """
     args = parse_args()
     _fail_if_placeholder_values(args)
     if not args.mongo_uri:

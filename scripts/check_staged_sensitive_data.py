@@ -78,19 +78,62 @@ SAMPLE_FIELD = re.compile(
 
 
 def _git(*args: str) -> bytes:
+    """Run Git in the current directory and capture standard output.
+
+    Args:
+        *args: Git subcommand and arguments, passed directly without a shell.
+
+    Returns:
+        Unmodified stdout bytes; stderr remains attached to the caller.
+
+    Raises:
+        subprocess.CalledProcessError: Git exits unsuccessfully.
+        OSError: The Git executable cannot be started.
+    """
     return subprocess.check_output(("git", *args))
 
 
 def _staged_paths() -> list[str]:
+    """List staged added, copied, modified, and renamed paths, excluding deletions.
+
+    Returns:
+        UTF-8 paths decoded from Git's NUL-delimited index diff.
+
+    Raises:
+        subprocess.CalledProcessError: The staged diff cannot be read.
+        UnicodeDecodeError: A staged filename is not UTF-8.
+    """
     raw = _git("diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z")
     return [item.decode("utf-8") for item in raw.split(b"\0") if item]
 
 
 def _read_staged(path: str) -> bytes:
+    """Read a file's index contents without consulting the working tree.
+
+    Args:
+        path: Repository-relative path present in the Git index.
+
+    Returns:
+        Raw bytes of the staged blob.
+
+    Raises:
+        subprocess.CalledProcessError: Git cannot retrieve the indexed path.
+    """
     return _git("show", f":{path}")
 
 
 def _read_worktree(path: str) -> bytes | None:
+    """Read a working-tree file when the path resolves to a regular file.
+
+    Args:
+        path: Path relative to the current directory, or an absolute path.
+
+    Returns:
+        File bytes, or None when the path is missing or is not a file.
+
+    Raises:
+        OSError: Reading an existing file fails.
+    """
     candidate = Path(path)
     if not candidate.is_file():
         return None
@@ -98,17 +141,48 @@ def _read_worktree(path: str) -> bytes | None:
 
 
 def _decode(path: str, content: bytes) -> str:
+    """Decode UTF-8 content, decompressing paths with a literal ``.gz`` suffix.
+
+    Args:
+        path: Filename used only to determine whether gzip decoding is needed.
+        content: Raw file or blob bytes.
+
+    Returns:
+        Text with invalid UTF-8 sequences replaced by replacement characters.
+
+    Raises:
+        OSError: The gzip header is invalid.
+        EOFError: The gzip stream is truncated.
+        zlib.error: Compressed data is invalid.
+    """
     if path.endswith(".gz"):
         content = gzip.decompress(content)
     return content.decode("utf-8", errors="replace")
 
 
 def _is_private_filename(path: str) -> bool:
+    """Check a POSIX basename against blocked credential names and key suffixes.
+
+    Args:
+        path: Repository-relative path; parent directory names are not checked.
+
+    Returns:
+        Whether the basename matches a blocked name or suffix, case-sensitively.
+    """
     name = PurePosixPath(path).name
     return name in BLOCKED_PRIVATE_FILENAMES or name.endswith(BLOCKED_PRIVATE_SUFFIXES)
 
 
 def _is_safe_secret_value(raw_value: str) -> bool:
+    """Recognize empty, variable-reference, or marked placeholder secret assignments.
+
+    Args:
+        raw_value: Assignment value, optionally surrounded by whitespace and quotes.
+
+    Returns:
+        True for empty values, a leading ``${``, or any case-insensitive safe marker;
+        false otherwise. This is a textual heuristic, not credential validation.
+    """
     value = raw_value.strip().strip("'\"")
     return (
         not value
@@ -118,11 +192,34 @@ def _is_safe_secret_value(raw_value: str) -> bool:
 
 
 def _is_synthetic(value: str) -> bool:
+    """Recognize a synthetic-data marker anywhere in a metadata value.
+
+    Args:
+        value: Sample metadata text to check case-insensitively.
+
+    Returns:
+        Whether any configured synthetic marker is a substring of the value.
+    """
     candidate = value.lower()
     return any(marker in candidate for marker in SYNTHETIC_VALUE_MARKERS)
 
 
 def _find_violations(path: str, content: bytes) -> list[str]:
+    """Scan a blob for blocked filenames, sensitive patterns, and unsafe fixture fields.
+
+    Args:
+        path: Repository-relative POSIX path controlling file and fixture checks.
+        content: Staged or working-tree bytes, possibly gzip-compressed.
+
+    Returns:
+        Violation descriptions, possibly repeated, or an empty list. Blocked names
+        are rejected before binary-suffix exclusions; decode OSError and UnicodeError
+        failures become diagnostics.
+
+    Raises:
+        EOFError: A gzip stream is truncated.
+        zlib.error: A gzip payload contains invalid compressed data.
+    """
     violations: list[str] = []
     if _is_private_filename(path):
         return ["private environment, credential, or key file"]
@@ -155,6 +252,19 @@ def _find_violations(path: str, content: bytes) -> list[str]:
 
 
 def main() -> int:
+    """Report sensitive-data findings in staged blobs or all tracked working-tree files.
+
+    Returns:
+        One when any file has findings, otherwise zero. Findings go to stderr;
+        success goes to stdout. Missing working-tree files are skipped.
+
+    Raises:
+        SystemExit: CLI arguments are invalid or help is requested.
+        subprocess.CalledProcessError: Git cannot list paths or read an indexed blob.
+        OSError: Reading a working-tree file fails.
+        EOFError: A scanned gzip stream is truncated.
+        zlib.error: A scanned gzip payload is invalid.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--all-files",

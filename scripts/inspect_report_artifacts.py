@@ -12,6 +12,23 @@ from api.config.mongo import configured_mongo_uri
 
 
 def main():
+    """Compare report records with stored artifacts and print a read-only JSON inventory.
+
+    Returns:
+        One when records reference missing or outside-root files, otherwise zero.
+        Output contains counts unless ``--details`` requests identifiers and paths.
+
+    Raises:
+        SystemExit: CLI parsing exits, the MongoDB URI is missing, or the minimum
+            artifact age is negative.
+        ValueError: The report root exists but is not a directory.
+        OSError: Resolving the report root or inspecting artifact metadata fails.
+        pymongo.errors.PyMongoError: Report records cannot be read from MongoDB.
+
+    Notes:
+        Converts the minimum age from hours to seconds; the default is 24 hours.
+        Does not modify database records or artifact files and closes the client.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument("--database", required=True)

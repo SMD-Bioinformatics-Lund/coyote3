@@ -24,6 +24,15 @@ from scripts.knowledgebase_update_common import (
 
 
 def _boolean(value: Any) -> bool:
+    """Interpret CIViC flag text using the accepted true markers.
+
+    Args:
+        value: Source field value, including null or a boolean.
+
+    Returns:
+        True only for stripped, case-insensitive ``1``, ``true``, or ``yes`` text;
+        all other values are false.
+    """
     return str(value or "").strip().lower() in {"1", "true", "yes"}
 
 
@@ -102,6 +111,14 @@ def variant_documents(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CIViC feature and variant paths with shared release-publication options.
+
+    Returns:
+        Process options; validation is read-only unless ``--apply`` is set.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--features", required=True, type=Path)
     parser.add_argument("--variants", required=True, type=Path)
@@ -110,6 +127,21 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Validate or publish CIViC gene and variant collections as one release.
+
+    Returns:
+        Zero on success, or two for a source, validation, or database failure caught
+        by the shared command runner.
+
+    Raises:
+        SystemExit: CLI parsing exits.
+        ValueError: A collection mapping is missing or invalid before the runner starts.
+        OSError: Reading mappings or writing the optional report fails.
+
+    Notes:
+        Publishes to MongoDB only with ``--apply`` and prints the update report.
+        The feature input contributes Gene records, while variants include fusion features.
+    """
     args = parse_args()
     specs = [
         CollectionSpec(

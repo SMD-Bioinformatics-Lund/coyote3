@@ -23,6 +23,16 @@ from scripts.knowledgebase_update_common import (
 
 
 def _first(row: dict[str, Any], names: Sequence[str]) -> str | None:
+    """Choose the first meaningful TP53 source value from ordered heading alternatives.
+
+    Args:
+        row: Source record keyed by upstream column heading.
+        names: Candidate headings in precedence order.
+
+    Returns:
+        Stripped text for the first nonmissing value, or None when all candidates
+        are absent or contain configured empty markers.
+    """
     for name in names:
         value = clean_text(row.get(name))
         if value is not None:
@@ -68,6 +78,14 @@ def documents(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse a MutationView input path and shared release-publication options.
+
+    Returns:
+        Process options; validation is read-only unless ``--apply`` is set.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
@@ -80,6 +98,20 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Validate or publish the NCI TP53 release and render its update report.
+
+    Returns:
+        Zero on success, or two for a source, validation, or database failure caught
+        by the shared command runner.
+
+    Raises:
+        SystemExit: CLI parsing exits.
+        ValueError: The collection mapping is missing or invalid before the runner starts.
+        OSError: Reading the mapping or writing the optional report fails.
+
+    Notes:
+        MongoDB publication occurs only with ``--apply``; variant IDs are uniquely indexed.
+    """
     args = parse_args()
     spec = CollectionSpec(
         name=mapped_collection(args, "iarc_tp53_collection"),

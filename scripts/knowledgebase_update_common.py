@@ -193,14 +193,45 @@ def record_key(*parts: Any) -> str:
 
 
 def _stage_name(collection: str, run_id: str) -> str:
+    """Construct the temporary collection name for an unpublished snapshot.
+
+    Args:
+        collection: Stable physical collection name that will receive the release.
+        run_id: Publication-run identifier appended without normalization.
+
+    Returns:
+        Collection name combining the staging prefix, stable name, and run identifier.
+    """
     return f"{STAGE_PREFIX}{collection}__{run_id}"
 
 
 def _backup_name(collection: str, run_id: str) -> str:
+    """Construct the retained collection name for a replaced snapshot.
+
+    Args:
+        collection: Stable physical collection name being replaced.
+        run_id: Publication-run identifier appended without normalization.
+
+    Returns:
+        Collection name combining the backup prefix, stable name, and run identifier.
+    """
     return f"{BACKUP_PREFIX}{collection}__{run_id}"
 
 
 def _insert_batch(collection: Collection, batch: list[dict[str, Any]]) -> int:
+    """Insert one unordered snapshot batch and count it after successful completion.
+
+    Args:
+        collection: Staging collection receiving the documents.
+        batch: Nonempty list of MongoDB documents to insert.
+
+    Returns:
+        Number of documents supplied in the batch.
+
+    Raises:
+        PyMongoError: Insertion fails; some documents may already have been written.
+        TypeError: The batch is empty.
+    """
     collection.insert_many(batch, ordered=False)
     return len(batch)
 
@@ -233,6 +264,18 @@ def _insert_documents(
 
 
 def _create_indexes(collection: Collection, spec: CollectionSpec) -> list[str]:
+    """Create all indexes declared for a staged knowledgebase collection.
+
+    Args:
+        collection: Collection on which to create indexes.
+        spec: Index key sequences and options for the snapshot.
+
+    Returns:
+        Created index names, or an empty list without database access when none are declared.
+
+    Raises:
+        PyMongoError: MongoDB rejects or cannot complete index creation.
+    """
     if not spec.indexes:
         return []
     return collection.create_indexes(
@@ -241,6 +284,21 @@ def _create_indexes(collection: Collection, spec: CollectionSpec) -> list[str]:
 
 
 def _inspect_spec(spec: CollectionSpec) -> dict[str, Any]:
+    """Exhaust a collection's document factory and reject an empty snapshot.
+
+    Args:
+        spec: Collection name and restartable document iterator factory to validate.
+
+    Returns:
+        Report containing collection name, document count, and ``validated`` status.
+
+    Raises:
+        ValueError: No documents are produced, or source parsing rejects a record.
+        OSError: The factory cannot read its source.
+
+    Notes:
+        Does not write to MongoDB or validate records beyond the factory's own checks.
+    """
     count = sum(1 for _ in spec.documents())
     if count == 0:
         raise ValueError(f"Parsed collection would be empty: {spec.name}")

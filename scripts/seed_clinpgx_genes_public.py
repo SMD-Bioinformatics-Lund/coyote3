@@ -19,6 +19,11 @@ class _Adapter:
     """Minimal adapter surface required by ClinPgxPublicRepository."""
 
     def __init__(self, collection):
+        """Expose the supplied collection under the repository's expected attribute.
+
+        Args:
+            collection: MongoDB collection holding the public ClinPGx gene cache.
+        """
         self.clinpgx_genes_public_collection = collection
 
 
@@ -29,6 +34,23 @@ def collection_name(config: dict) -> str:
 
 
 def main() -> int:
+    """Import the selected ClinPGx gene ZIP into the configured public cache.
+
+    Returns:
+        Zero after printing total, matched, modified, and upserted record counts.
+
+    Raises:
+        SystemExit: CLI parsing exits or MongoDB URI or database settings are missing.
+        FileNotFoundError: The supplied ZIP path does not exist.
+        OSError: The collection configuration or gene archive cannot be read.
+        zipfile.BadZipFile: The input is not a valid ZIP archive.
+        KeyError: The archive does not contain ``genes.tsv``.
+        pymongo.errors.PyMongoError: Index creation or gene-cache writes fail.
+
+    Notes:
+        Ensures repository indexes and imports records into the mapped knowledgebase
+        collection. This command has no dry-run mode.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--zip",

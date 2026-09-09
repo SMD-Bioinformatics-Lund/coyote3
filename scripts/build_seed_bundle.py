@@ -60,6 +60,14 @@ def _normalize_username(value) -> str:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse seed source, output directory, audit stamps, and reference pack paths.
+
+    Returns:
+        Process options with reference directories retained in command-line order.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed-source", required=True, help="Directory with *.json seed files")
     parser.add_argument("--dest-dir", required=True, help="Output directory for normalized seed")
@@ -75,6 +83,20 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_seed(path: Path) -> dict[str, list[dict]]:
+    """Read immediate JSON seed files into a collection-name mapping.
+
+    Args:
+        path: Directory searched for ``*.json`` files in sorted filename order.
+
+    Returns:
+        File stems mapped to decoded arrays; no matches produce an empty mapping.
+        Array elements are not validated here.
+
+    Raises:
+        SystemExit: A file contains a JSON value other than an array.
+        json.JSONDecodeError: A file contains malformed JSON.
+        OSError: A matching file cannot be read.
+    """
     payload: dict[str, list[dict]] = {}
     for file in sorted(path.glob("*.json")):
         value = json.loads(file.read_text(encoding="utf-8"))
@@ -85,6 +107,20 @@ def load_seed(path: Path) -> dict[str, list[dict]]:
 
 
 def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
+    """Load available RBAC, HGNC, and VEP NDJSON reference files.
+
+    Args:
+        path: Directory containing supported ``*.seed.ndjson`` files or gzip variants.
+
+    Returns:
+        Collection names mapped to object lists; absent files are omitted and plain
+        files take precedence over their gzip variants.
+
+    Raises:
+        SystemExit: A nonblank line decodes to a value other than an object.
+        json.JSONDecodeError: A nonblank line contains malformed JSON.
+        OSError: Reading or decompressing a selected file fails.
+    """
     supported_pack = {
         "permissions": "permissions.seed.ndjson",
         "roles": "roles.seed.ndjson",
@@ -93,6 +129,15 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
     }
 
     def resolve_reference_file(base_dir: Path, stem_name: str) -> Path:
+        """Prefer the plain reference file over its gzip alternative.
+
+        Args:
+            base_dir: Reference pack directory.
+            stem_name: Complete uncompressed filename, including its NDJSON suffix.
+
+        Returns:
+            Existing plain or gzip path, or the plain path when neither exists.
+        """
         plain_path = base_dir / stem_name
         if plain_path.exists():
             return plain_path
@@ -102,6 +147,19 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
         return plain_path
 
     def load_ndjson(file_path: Path) -> list[dict]:
+        """Read nonblank lines as JSON objects, decompressing ``.gz`` input.
+
+        Args:
+            file_path: UTF-8 NDJSON file selected from the reference pack.
+
+        Returns:
+            Objects in source order; blank files produce an empty list.
+
+        Raises:
+            SystemExit: A nonblank line is not a JSON object.
+            json.JSONDecodeError: A nonblank line is malformed JSON.
+            OSError: The file cannot be read or decompressed.
+        """
         docs: list[dict] = []
         opener = gzip.open if file_path.suffix == ".gz" else open
         with opener(file_path, "rt", encoding="utf-8") as handle:
@@ -127,6 +185,15 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
 
 
 def normalize_extended_json(value):
+    """Recursively unwrap single-key ``$date`` and ``$oid`` objects.
+
+    Args:
+        value: JSON-compatible scalar, list, or dictionary, including null.
+
+    Returns:
+        Wrapper contents as stored, rebuilt lists and dictionaries for other
+        containers, or the original scalar. Wrapper contents are not parsed as dates.
+    """
     if isinstance(value, dict):
         if set(value.keys()) == {"$date"}:
             return value.get("$date")
@@ -139,6 +206,12 @@ def normalize_extended_json(value):
 
 
 def lower_business_keys(seed: dict[str, list[dict]]) -> None:
+    """Trim and lowercase configured business-key fields in seed documents in place.
+
+    Args:
+        seed: Collection-to-document mapping. Only the listed identifier fields are
+            changed; null fields and non-dictionary entries are skipped.
+    """
     lowercase_fields = {
         "permissions": ("permission_id",),
         "roles": ("role_id",),
@@ -157,6 +230,14 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
     }
 
     def normalize_item(value):
+        """Normalize strings recursively within list-valued business keys.
+
+        Args:
+            value: Field value or nested list item.
+
+        Returns:
+            Trimmed lowercase strings, rebuilt lists, or other values unchanged.
+        """
         if isinstance(value, str):
             return value.strip().lower()
         if isinstance(value, list):
@@ -173,6 +254,16 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
 
 
 def canonicalize_permission_fields(seed: dict[str, list[dict]]) -> None:
+    """Normalize permission IDs, role grants, and usernames in place.
+
+    Args:
+        seed: Collection mapping whose permission records become system-managed,
+            role permissions are deduplicated, and usernames become contract-safe.
+
+    Notes:
+        Removes ``permission_name`` after using it as an ID fallback and discards
+        role ``deny_permissions``. Non-dictionary entries are ignored.
+    """
     for doc in seed.get("permissions", []) or []:
         if not isinstance(doc, dict):
             continue
@@ -199,6 +290,19 @@ def canonicalize_permission_fields(seed: dict[str, list[dict]]) -> None:
 
 
 def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
+    """Rebuild ASPC identifiers and normalize their environment in place.
+
+    Args:
+        seed: Collection mapping containing optional ``asp_configs`` documents.
+            Missing identifiers use ``assay`` and the configured base subpanel;
+            a missing environment uses production.
+
+    Raises:
+        ValueError: An ASPC contains a retired field or an unsupported environment.
+
+    Notes:
+        Documents may already be modified when a retired field is detected.
+    """
     for doc in seed.get("asp_configs", []) or []:
         if not isinstance(doc, dict):
             continue
@@ -221,6 +325,20 @@ def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
 
 
 def canonicalize_sample_fields(seed: dict[str, list[dict]]) -> None:
+    """Normalize sample metadata and move top-level file resources into ``files``.
+
+    Args:
+        seed: Collection mapping containing optional sample documents, mutated in place.
+
+    Raises:
+        ValueError: A sample contains a retired assay/profile field or an unsupported
+            environment.
+
+    Notes:
+        Nonempty top-level file values overwrite corresponding nested resources;
+        scalar paths become path objects. Removes legacy comment, report, group,
+        count, and ingest-status fields. Non-dictionary sample entries are skipped.
+    """
     for doc in seed.get("samples", []) or []:
         if not isinstance(doc, dict):
             continue
@@ -257,12 +375,35 @@ def canonicalize_sample_fields(seed: dict[str, list[dict]]) -> None:
 
 
 def canonicalize_seed_contract(seed: dict[str, list[dict]]) -> None:
+    """Apply permission, ASPC, and sample normalization to the seed mapping in place.
+
+    Args:
+        seed: Collection names mapped to seed document lists.
+
+    Raises:
+        ValueError: An ASPC or sample uses retired fields or an unsupported environment.
+
+    Notes:
+        Earlier mutations are not rolled back when a later normalization fails.
+    """
     canonicalize_permission_fields(seed)
     canonicalize_assay_config_fields(seed)
     canonicalize_sample_fields(seed)
 
 
 def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> None:
+    """Unwrap Extended JSON and replace mutable document audit stamps in place.
+
+    Args:
+        seed: Collection mapping whose dictionary entries are replaced with unwrapped copies.
+        seed_actor: Literal value assigned to creation and update actor fields.
+        seed_time: Timestamp string assigned without parsing or validating its format.
+
+    Notes:
+        Clinical rule sets use ``created_at`` and ``updated_at``; other mutable
+        documents use ``created_on`` and ``updated_on``. Clinical rule revisions
+        are unwrapped but their audit stamps are preserved.
+    """
     for collection, docs in seed.items():
         if not isinstance(docs, list):
             continue
@@ -284,6 +425,21 @@ def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> 
 
 
 def main() -> int:
+    """Write normalized, stamped JSON seed files to the selected destination.
+
+    Returns:
+        Zero after writing every collection and printing the destination.
+
+    Raises:
+        SystemExit: CLI parsing exits, a source directory is missing, or seed values
+            are not arrays or reference lines are not objects.
+        ValueError: Seed JSON is malformed or normalization rejects a contract field.
+        OSError: Reading sources or creating and writing the destination fails.
+
+    Notes:
+        Later reference packs replace earlier collections. Output files overwrite
+        matching filenames; unrelated destination files are retained.
+    """
     args = parse_args()
     source = Path(args.seed_source)
     dest_dir = Path(args.dest_dir)

@@ -18,6 +18,15 @@ if str(REPO_ROOT) not in sys.path:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the ingestion YAML path and optional file-check and output modes.
+
+    Returns:
+        Process options; file existence checks, normalized JSON, and file listing
+        are disabled unless explicitly requested.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description="Validate Coyote3 ingest spec YAML")
     parser.add_argument("--yaml", required=True, help="Path to YAML spec file")
     parser.add_argument(
@@ -39,6 +48,22 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Validate ingestion YAML against the sample contract without submitting it.
+
+    Returns:
+        Zero after printing success, optional normalized JSON, or resolved file paths.
+        File-list output takes precedence over success and JSON output.
+
+    Raises:
+        SystemExit: CLI parsing exits, YAML is missing or not an object, contract
+            validation fails, or a requested file existence check finds missing inputs.
+        yaml.YAMLError: The YAML syntax is invalid.
+        OSError: The YAML file cannot be read.
+
+    Notes:
+        Relative input paths resolve against the YAML file's directory. File existence
+        is checked only with ``--check-files``; no API or database writes occur.
+    """
     from api.application.ingest.collection_writes import parse_yaml_payload
     from api.config.constants import ALL_SAMPLE_FILE_KEYS
     from api.contracts.schemas.samples import SamplesDoc

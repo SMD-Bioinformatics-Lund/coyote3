@@ -16,6 +16,12 @@ from api.infra.security.indexes import ensure_security_indexes
 
 
 def _config() -> object:
+    """Select application configuration from the normalized ``ENV_NAME`` variable.
+
+    Returns:
+        Test, stage, or production configuration for recognized aliases;
+        development configuration for an absent or unrecognized environment.
+    """
     env = os.getenv("ENV_NAME", "development").strip().lower()
     if env in {"test", "testing"}:
         return app_config.TestConfig()
@@ -27,6 +33,18 @@ def _config() -> object:
 
 
 def _adapter() -> MongoAdapter:
+    """Connect and initialize MongoDB repositories without ensuring their indexes.
+
+    Returns:
+        Configured, pinged MongoAdapter using the environment-selected configuration.
+
+    Raises:
+        ValueError: MongoDB endpoint or numeric connection settings are invalid.
+        pymongo.errors.PyMongoError: Client configuration or the connectivity check fails.
+
+    Notes:
+        This helper does not close the adapter or create repository indexes.
+    """
     config_obj = _config()
     config = {name: getattr(config_obj, name) for name in dir(config_obj) if name.isupper()}
     app = SimpleNamespace(config=config, logger=logging.getLogger("coyote.mongo_indexes"))
@@ -39,6 +57,12 @@ def _adapter() -> MongoAdapter:
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Define index inspection, application, and explicitly confirmed retirement commands.
+
+    Returns:
+        Parser requiring one subcommand; retirement requires collection, index,
+        and confirmation names and optionally accepts a repository discriminator.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("status", help="Show contract state and known obsolete indexes")
@@ -53,6 +77,22 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Execute the selected index command and print the resulting contract state as JSON.
+
+    Returns:
+        Zero after printing index state and known retired indexes still present.
+        The plan command omits entries already present.
+
+    Raises:
+        SystemExit: CLI parsing exits or the retirement confirmation differs from the index.
+        ValueError: Retirement targets an unknown or ambiguous collection, a missing
+            index, or the protected ``_id_`` index.
+        pymongo.errors.PyMongoError: Index inspection or modification fails.
+
+    Notes:
+        Apply ensures repository and security indexes; retire drops the selected
+        index. Status and plan do not request index creation or retirement.
+    """
     args = _parser().parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     adapter = _adapter()

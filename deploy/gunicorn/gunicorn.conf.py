@@ -2,10 +2,23 @@
 
 
 def when_ready(server):
-    """Log a minimal readiness marker; app logging is configured by runtime setup."""
+    """Log the Gunicorn readiness marker through the server logger.
+
+    Args:
+        server: Gunicorn server exposing the logger used for the informational message.
+
+    Notes:
+        Does not configure application logging; runtime setup owns that configuration.
+    """
     server.log.info("coyote3 gunicorn ready")
 
 
 def post_worker_stop(worker, worker_pid, exit_code) -> None:
-    """Keep the hook for Gunicorn deployments."""
+    """Accept worker-stop callback arguments without performing cleanup.
+
+    Args:
+        worker: Stopped worker object; ignored.
+        worker_pid: Process ID of the stopped worker; ignored.
+        exit_code: Worker process exit status; ignored.
+    """
     _ = (worker, worker_pid, exit_code)

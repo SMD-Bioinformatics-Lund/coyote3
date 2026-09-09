@@ -34,6 +34,19 @@ from scripts.knowledgebase_update_common import (
 
 @dataclass(frozen=True)
 class Product:
+    """Describe archive selection, parsing, and indexes for one COSMIC product.
+
+    Args:
+        collection_key: Logical key resolved through the knowledgebase collection mapping.
+        archive_prefix: Required leading filename text for archive discovery.
+        data_suffix: Suffix identifying the data member inside the archive.
+        file_type: Parser selector, such as vcf, mutation_census, signature, or tsv.
+        indexes: Ordered index key sequences paired with MongoDB index options.
+        archive_extension: Archive filename suffix; defaults to ``.tar``.
+        archive_has_assembly: Whether discovery filters by the requested assembly;
+            defaults to True.
+    """
+
     collection_key: str
     archive_prefix: str
     data_suffix: str
@@ -380,6 +393,20 @@ _ACTIONABILITY_NON_GENES = {"AND", "COSF", "ITD", "NOT", "OR"}
 
 
 def _archive_data_stream(path: Path, suffix: str):
+    """Open the sole matching tar member as a UTF-8 text stream without extraction.
+
+    Args:
+        path: COSMIC tar archive, with compression detected by tarfile.
+        suffix: Required member-name suffix; ``.gz`` members are decompressed.
+
+    Returns:
+        Open archive and text stream with UTF-8 BOM handling. The caller must close both.
+
+    Raises:
+        ValueError: Opening the tar fails, the suffix does not match exactly one
+            member, or that member has no readable file stream.
+        OSError: The archive cannot be accessed.
+    """
     try:
         archive = tarfile.open(path, mode="r:*")
     except tarfile.TarError as exc:
@@ -398,6 +425,15 @@ def _archive_data_stream(path: Path, suffix: str):
 
 
 def _info_fields(value: str) -> dict[str, Any]:
+    """Parse VCF INFO flags and URL-decoded values under snake-case field names.
+
+    Args:
+        value: Semicolon-delimited INFO column text.
+
+    Returns:
+        Mapping of flags to True and values to strings or comma-split string lists.
+        Empty items are skipped and later duplicate normalized keys overwrite earlier ones.
+    """
     result: dict[str, Any] = {}
     for item in value.split(";"):
         if not item:
@@ -413,6 +449,15 @@ def _info_fields(value: str) -> dict[str, Any]:
 
 
 def _quality_value(value: str) -> float | str | None:
+    """Parse numeric VCF quality while retaining nonnumeric source text.
+
+    Args:
+        value: Raw quality-column text.
+
+    Returns:
+        Float when parseable, None for configured empty markers, or stripped text
+        otherwise, including the VCF ``.`` marker.
+    """
     text = clean_text(value)
     if text is None:
         return None
@@ -495,6 +540,19 @@ def vcf_documents(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def _typed_tsv_value(field: str, value: Any) -> Any:
+    """Convert configured COSMIC numeric columns while preserving nonnumeric text.
+
+    Args:
+        field: Snake-case heading used to select integer, float, or allele-frequency parsing.
+        value: Source cell value, including null and configured empty markers.
+
+    Returns:
+        Parsed number, stripped text, or None for missing values. Numeric ValueError
+        failures fall back to text, retaining accession-qualified positions.
+
+    Raises:
+        OverflowError: An integer-designated field contains an infinite numeric value.
+    """
     try:
         if field in INTEGER_FIELDS:
             return parse_int(value)
@@ -533,6 +591,16 @@ def tsv_documents(path: Path, suffix: str) -> Iterator[dict[str, Any]]:
 
 
 def _locus_fields(value: Any, assembly: str) -> dict[str, Any]:
+    """Split a chromosome:start-end locus into assembly-suffixed lookup fields.
+
+    Args:
+        value: Source locus, optionally prefixed with ``chr``; missing values are accepted.
+        assembly: Assembly label lowercased for the output field suffix.
+
+    Returns:
+        Chromosome and integer start/end fields, or an empty mapping if the locus
+        does not match. Coordinates are not shifted or checked for ordering.
+    """
     text = clean_text(value)
     match = _GENOMIC_LOCATION.fullmatch(text or "")
     if match is None:
@@ -621,6 +689,20 @@ def signature_documents(
 
 
 def _find_archive(directory: Path, product: Product, release: str, assembly: str) -> Path:
+    """Find exactly one product archive matching the release and applicable assembly.
+
+    Args:
+        directory: Directory searched nonrecursively for the product filename pattern.
+        product: Archive prefix, extension, and assembly-filtering policy.
+        release: Release token matched after ``_v`` and before an underscore or dot.
+        assembly: Assembly token matched before ``.tar``; empty text disables this filter.
+
+    Returns:
+        The sole matching archive path.
+
+    Raises:
+        ValueError: No archive or multiple archives match the selection.
+    """
     matches = sorted(directory.glob(f"{product.archive_prefix}*{product.archive_extension}"))
     release_pattern = re.compile(rf"_v{re.escape(release)}(?:_|\.)")
     matches = [path for path in matches if release_pattern.search(path.name)]
@@ -635,6 +717,15 @@ def _find_archive(directory: Path, product: Product, release: str, assembly: str
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse a COSMIC product, assembly, archive directory, and publication settings.
+
+    Returns:
+        Process options requiring a known product and GRCh37 or GRCh38 assembly;
+        validation is read-only unless ``--apply`` is set.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", required=True, type=Path)
     parser.add_argument("--assembly", required=True, choices=("GRCh37", "GRCh38"))
@@ -649,9 +740,37 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Validate or publish one selected COSMIC product and print its update report.
+
+    Returns:
+        Zero on success, or two for archive-selection, source, mapping, validation,
+        or database errors caught by the shared command runner.
+
+    Raises:
+        SystemExit: CLI parsing rejects arguments or help is requested.
+        OSError: Writing the optional report fails after the runner succeeds.
+
+    Notes:
+        Writes to MongoDB only with ``--apply`` and includes assembly and product
+        metadata in published release records.
+    """
     args = parse_args()
 
     def run() -> dict[str, Any]:
+        """Select the archive and parser, then execute the requested COSMIC update.
+
+        Returns:
+            Validation or publication report for the product selected in enclosing CLI args.
+
+        Raises:
+            ValueError: Archive selection, collection mapping, settings, or parsed data is invalid.
+            OSError: Source files or configuration cannot be read.
+            RuntimeError: Publication namespaces conflict or inserted counts disagree.
+            pymongo.errors.PyMongoError: MongoDB staging or publication fails.
+
+        Notes:
+            Uses the enclosing command's apply flag to choose validation or publication.
+        """
         product = PRODUCTS[args.product]
         path = _find_archive(args.directory, product, args.release, args.assembly)
         if product.file_type == "vcf":

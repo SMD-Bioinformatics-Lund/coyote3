@@ -23,6 +23,15 @@ from scripts.knowledgebase_update_common import (
 
 
 def _coordinate(value: Any) -> tuple[str, int, str, str] | None:
+    """Split a BRCA Exchange chromosome-position-reference-alternate coordinate.
+
+    Args:
+        value: Source coordinate text, optionally starting with lowercase ``chr``.
+
+    Returns:
+        Chromosome, integer position, reference, and alternate, or None for a missing
+        marker, fewer than four parts, or a noninteger position. Alleles are not validated.
+    """
     text = clean_text(value)
     if text is None:
         return None
@@ -74,6 +83,14 @@ def documents(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the BRCA Exchange TSV path and shared release-publication options.
+
+    Returns:
+        Process options; validation is read-only unless ``--apply`` is set.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path, help="BRCA Exchange full TSV file.")
     add_common_arguments(parser)
@@ -81,6 +98,21 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Validate or publish the BRCA Exchange release and render its update report.
+
+    Returns:
+        Zero on success, or two for a source, validation, or database failure caught
+        by the shared command runner.
+
+    Raises:
+        SystemExit: CLI parsing exits.
+        ValueError: The collection mapping is missing or invalid before the runner starts.
+        OSError: Reading the mapping or writing the optional report fails.
+
+    Notes:
+        MongoDB publication occurs only with ``--apply``; the optional report is
+        written after rendering the result to stdout.
+    """
     args = parse_args()
     spec = CollectionSpec(
         name=mapped_collection(args, "brcaexchange_collection"),

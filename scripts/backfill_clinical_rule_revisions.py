@@ -23,6 +23,14 @@ from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the database connection, baseline actor, and dry-run flag.
+
+    Returns:
+        Options from the process command line; writes are enabled unless dry-run is set.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", required=True, help="MongoDB URI with readWrite access")
     parser.add_argument("--db", required=True, help="Coyote3 application database name")
@@ -72,6 +80,20 @@ def capture_missing_baselines(db, *, actor: str, dry_run: bool) -> tuple[int, in
 
 
 def main() -> int:
+    """Capture missing clinical rule baselines and print captured and preserved counts.
+
+    Returns:
+        Zero after completing the backfill or dry-run validation.
+
+    Raises:
+        SystemExit: CLI parsing exits or the stripped actor is empty.
+        pydantic.ValidationError: A current rule document fails its collection contract.
+        pymongo.errors.PyMongoError: MongoDB connection, index, or document operations fail.
+
+    Notes:
+        Closes the MongoDB client even when validation or writes fail. Dry runs do
+        not create the revision index or insert snapshots.
+    """
     args = parse_args()
     actor = args.actor.strip()
     if not actor:
