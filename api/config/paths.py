@@ -12,6 +12,7 @@ CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
 # Container filesystem contract. Compose mounts the center-owned host data root
 # at /data for every API and Celery container; runtime code never receives host
 # filesystem paths.
+# Report storage can be mounted separately at its fixed container location.
 DATA_CONTAINER_ROOT = Path("/data")
 COYOTE3_DATA_CONTAINER_ROOT = DATA_CONTAINER_ROOT / "coyote3"
 REPORTS_BASE_PATH = COYOTE3_DATA_CONTAINER_ROOT / "reports"

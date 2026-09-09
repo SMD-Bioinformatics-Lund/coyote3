@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize("development", [False, True])
 @pytest.mark.parametrize("storage", [0, 1, 3])
-def test_center_input_mounts_are_optional_and_shared(development, storage, tmp_path):
+@pytest.mark.parametrize("reports_root", ["", "/synthetic/report-output"])
+def test_center_input_mounts_are_optional_and_shared(development, storage, reports_root, tmp_path):
     if not shutil.which("docker"):
         pytest.skip("Docker Compose CLI required; no Docker daemon is used")
     command = [
@@ -57,6 +58,8 @@ def test_center_input_mounts_are_optional_and_shared(development, storage, tmp_p
             "COYOTE3_VERSION": "storage-test",
             "CENTER_INPUT_SOURCE": "/synthetic/center/results",
             "CENTER_INPUT_TARGET": "/chosen/inputs",
+            "COYOTE3_DATA_HOST_ROOT": "/synthetic/app-data",
+            "COYOTE3_REPORTS_HOST_ROOT": reports_root,
         },
     )
     services = json.loads(result.stdout)["services"]
@@ -66,6 +69,9 @@ def test_center_input_mounts_are_optional_and_shared(development, storage, tmp_p
         assert "/data" in mounts and "/app/logs" in mounts
         assert ("/chosen/inputs" in mounts) is bool(storage)
         data_source = mounts["/data"]["source"]
+        report_mount = mounts["/data/coyote3/reports"]
+        assert report_mount["source"] == (reports_root or f"{data_source}/coyote3/reports")
+        assert not report_mount.get("read_only", False)
         if data_source != "/data":
             assert data_source not in mounts
         if storage:

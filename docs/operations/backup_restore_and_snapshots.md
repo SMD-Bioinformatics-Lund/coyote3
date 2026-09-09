@@ -9,6 +9,10 @@ The supported logical archive process is documented together with database setup
 
 ## Logical archives
 
+MongoDB archives do not include report files. Back up the directory selected by
+`COYOTE3_REPORTS_HOST_ROOT`, or `COYOTE3_DATA_HOST_ROOT/coyote3/reports` when it is
+unset, and preserve report subdirectories when restoring artifacts.
+
 The server-side `/backup` mount is optional and is not required by the archive
 script. Centers with an external backup process can omit
 `COYOTE3_MONGO_BACKUP_HOST_ROOT` and `docker-compose.mongo-backup.yml` entirely.

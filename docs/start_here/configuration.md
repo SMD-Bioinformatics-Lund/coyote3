@@ -61,6 +61,7 @@ Every center must review and set only this core deployment contract:
 | `INTERNAL_API_TOKEN` | Authenticates trusted internal service requests. |
 | `PASSWORD_TOKEN_SALT` | Separates password-token signing from other signed data. |
 | `COYOTE3_DATA_HOST_ROOT` | Provides persistent sample, ingest, and report storage. |
+| `COYOTE3_REPORTS_HOST_ROOT` | Optionally separates saved report artifacts from ingest storage. |
 | `COYOTE3_LOGS_HOST_ROOT` | Provides persistent application log storage. |
 | `COYOTE3_APP_NETWORK` | Selects the pre-created Docker network. |
 | `PUBLIC_BASE_URL` | Required by Compose for generated public links. |
@@ -154,6 +155,7 @@ for read-only, same-path input mounts.
 | Setting | Meaning |
 | --- | --- |
 | `COYOTE3_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` in each ingest-capable container. |
+| `COYOTE3_REPORTS_HOST_ROOT` | Optional separate host directory mounted at `/data/coyote3/reports`. |
 | `/data/coyote3/reports` | Fixed container location for report artifacts. |
 | `/data/coyote3/ingest_staging` | Fixed container location for staged async upload jobs. |
 | `/data/coyote3/copied_sample_files/yaml` | Fixed container location scanned for ingest manifests. |
@@ -162,7 +164,22 @@ Example:
 
 ```env
 COYOTE3_DATA_HOST_ROOT='/srv/coyote3/data'
+COYOTE3_REPORTS_HOST_ROOT='/srv/coyote3/reports'
 ```
+
+Saved HTML and PDF reports are stored on disk; MongoDB stores report records
+and their artifact references. With this example, report artifacts are stored
+under `/srv/coyote3/reports` on the host, retaining their report subdirectories.
+Create the report directory with write access for the configured application
+UID/GID (default `10001:10001`). API, worker, and beat share this mount.
+
+If `COYOTE3_REPORTS_HOST_ROOT` is empty or omitted, the host location remains
+`COYOTE3_DATA_HOST_ROOT/coyote3/reports`. When changing an existing deployment,
+copy the complete report directory to the new root while report writers are
+stopped, preserving permissions and subdirectories, then recreate the containers.
+The container path stays unchanged, so stored artifact references remain valid.
+Changing the variable does not move existing files. Include this directory in
+the center's backup process alongside MongoDB backups.
 
 Pipeline manifests may use paths relative to the manifest or absolute paths
 visible inside the ingest containers. A host path is readable only if an
@@ -273,6 +290,7 @@ registration is not configurable through an environment variable.
 | `COYOTE3_GID` | No | Positive integer; default `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days; default `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
+| `COYOTE3_REPORTS_HOST_ROOT` | No | Host path | Writable report artifact root mounted at `/data/coyote3/reports`; empty or omitted uses `COYOTE3_DATA_HOST_ROOT/coyote3/reports`. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer; Compose default `2` | Celery worker process concurrency. |
 | `CELERY_TASK_TIME_LIMIT` | No | Seconds; default `7200` | Hard Celery task timeout. |
