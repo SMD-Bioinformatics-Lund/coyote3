@@ -19,6 +19,10 @@ data directory into two running mongod processes.
 
 ## Docker deployment model
 
+For Compose 1.29.2 deployments, use the separate
+[legacy deployment definitions and commands](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/deploy/legacy/README.md).
+They do not change the modern Compose files or certify current images on an old runtime.
+
 The base Compose stack starts no MongoDB. The optional
 `deploy/compose/docker-compose.mongo.yml` overlay selects app MongoDB with
 `--profile mongo` and knowledgebase MongoDB with `--profile mongo-kb`.

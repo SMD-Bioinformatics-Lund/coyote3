@@ -1,0 +1,12 @@
+# Optional host services. Set a numeric host IP reachable from this Docker network.
+# Never use host-gateway with Docker Engine 18.09.
+x-hosts: &hosts
+  - "host.docker.internal:${COYOTE3_DOCKER_HOST_IP:?Set a reachable numeric Docker host IP}"
+
+services:
+  api:
+    extra_hosts: *hosts
+  worker:
+    extra_hosts: *hosts
+  beat:
+    extra_hosts: *hosts

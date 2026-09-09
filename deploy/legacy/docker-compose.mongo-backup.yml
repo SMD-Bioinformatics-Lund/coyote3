@@ -1,0 +1,9 @@
+# Legacy Compose 1.29.2 definition. See README.md before deployment.
+# Optional /backup mount. Load after docker-compose.mongo.yml.
+# Omit when backups are managed externally; this does not schedule backups.
+services:
+  mongo:
+    volumes:
+      - type: bind
+        source: ${COYOTE3_MONGO_BACKUP_HOST_ROOT:?Set COYOTE3_MONGO_BACKUP_HOST_ROOT for the optional backup mount}
+        target: /backup
