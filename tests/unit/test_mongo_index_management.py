@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.mongo.index_management import build_index_plan, retire_index
 
 
@@ -77,6 +78,25 @@ def test_index_plan_reports_option_conflicts():
     plan = build_index_plan(adapter_for(FakeRepository(collection)))
 
     assert plan[0]["state"] == "conflict"
+
+
+def test_oncokb_index_plan_only_reads_all_three_collections():
+    collections = SimpleNamespace(
+        oncokb_public_collection=FakeCollection("oncokb_public", []),
+        oncokb_genes_public_collection=FakeCollection("oncokb_genes_public", []),
+        oncokb_cancer_genes_public_collection=FakeCollection("oncokb_cancer_genes_public", []),
+    )
+    repository = OncoKbPublicCacheRepository(collections)
+    # FakeCollection deliberately has no create_index: any database write fails.
+    plan = build_index_plan(adapter_for(repository))
+    assert {item["collection"] for item in plan if item["repository"] == "samples"} == {
+        "oncokb_public",
+        "oncokb_genes_public",
+        "oncokb_cancer_genes_public",
+    }
+    assert repository.adapter is collections
+    assert repository.get_collection() is collections.oncokb_public_collection
+    assert all(item["state"] == "missing" for item in plan)
 
 
 def test_retire_index_requires_a_known_collection_and_exact_existing_name():

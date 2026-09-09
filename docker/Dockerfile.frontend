@@ -33,5 +33,5 @@ EXPOSE 3000
 COPY docker/nginx/render-frontend-config.sh /usr/local/bin/render-frontend-config.sh
 COPY --from=frontend_builder /app/frontend/dist/ /usr/share/nginx/html/
 
-ENTRYPOINT ["/usr/local/bin/render-frontend-config.sh"]
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/render-frontend-config.sh"]
 CMD ["nginx", "-g", "daemon off;"]

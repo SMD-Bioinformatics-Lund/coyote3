@@ -185,6 +185,7 @@ class DirectoryAndReportSettings:
     LDAP_USER_LOGIN_ATTR = os.getenv("LDAP_USER_LOGIN_ATTR", "mail")
     LDAP_USE_SSL = _environment_bool("LDAP_USE_SSL", False)
     LDAP_USE_TLS = _environment_bool("LDAP_USE_TLS", True)
+    LDAP_VERIFY_CERT = _environment_bool("LDAP_VERIFY_CERT", True)
     LDAP_PORT = int(os.getenv("LDAP_PORT") or "0") or None
     LDAP_CONNECT_TIMEOUT = int(os.getenv("LDAP_CONNECT_TIMEOUT", "10"))
     LDAP_CA_CERTS_FILE = os.getenv("LDAP_CA_CERTS_FILE", "")

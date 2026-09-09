@@ -623,7 +623,7 @@ function matrixColumnWidth(label: unknown) {
 
   // Matrix cells contain only a check mark or dash. Size each column for its
   // longest header word, then let multi-word labels wrap at their spaces.
-  return `${Math.min(96, Math.max(48, longestWordLength * 5.4 + 14))}px`
+  return Math.min(96, Math.max(48, longestWordLength * 5.4 + 14))
 }
 
 function AssayMatrixTable({
@@ -768,7 +768,11 @@ function AssayMatrixTable({
       </div>
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm [contain:paint]">
         <div className="overflow-x-auto">
-        <table className="type-table-cell w-full min-w-max table-fixed border-separate border-spacing-0 text-left type-numeric">
+        {/* Explicit column totals avoid Firefox's max-content overflow with spanning headers. */}
+        <table
+          className="type-table-cell min-w-full table-fixed border-separate border-spacing-0 text-left type-numeric"
+          style={{ width: `calc(${annotations.visible ? 18 : 11}rem + ${columns.reduce((width, col) => width + matrixColumnWidth(col.isgl_label || col.isgl_key), 0)}px)` }}
+        >
           <colgroup>
             <col className="w-44" />
             {annotations.visible && <col className="w-28" />}

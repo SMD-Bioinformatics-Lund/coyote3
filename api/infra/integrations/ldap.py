@@ -80,7 +80,7 @@ class LdapManager:
         tls = Tls(
             local_private_key_file=config.get("LDAP_CLIENT_PRIVATE_KEY"),
             local_certificate_file=config.get("LDAP_CLIENT_CERT"),
-            validate=ssl.CERT_REQUIRED,
+            validate=ssl.CERT_REQUIRED if config.get("LDAP_VERIFY_CERT", True) else ssl.CERT_NONE,
             version=config.get("LDAP_TLS_VERSION"),
             ca_certs_file=config.get("LDAP_CA_CERTS_FILE") or None,
             valid_names=config.get("LDAP_VALID_NAMES"),

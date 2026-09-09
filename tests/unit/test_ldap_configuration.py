@@ -186,6 +186,35 @@ def test_transport_flags_are_loaded_from_environment(ssl_flag, tls_flag, expecte
     assert json.loads(result.stdout) == [*expected, 1636, 7]
 
 
+@pytest.mark.parametrize("verify", [True, False])
+@pytest.mark.parametrize("host", ["ldap://ldap.example.test", "ldaps://ldap.example.test"])
+def test_certificate_verification_toggle_preserves_transport(verify, host):
+    manager = LdapManager()
+    manager.init_from_config({"LDAP_HOST": host, "LDAP_VERIFY_CERT": verify})
+    assert manager._server.tls.validate == (ssl.CERT_REQUIRED if verify else ssl.CERT_NONE)
+    assert manager._auto_bind_mode() == (
+        AUTO_BIND_NO_TLS if host.startswith("ldaps:") else AUTO_BIND_TLS_BEFORE_BIND
+    )
+
+
+@pytest.mark.parametrize(
+    "value,expected", [("0", False), ("false", False), ("1", True), ("true", True)]
+)
+def test_certificate_verification_flag_is_loaded_from_environment(value, expected):
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from api.config.runtime_settings import DirectoryAndReportSettings as S; print(S.LDAP_VERIFY_CERT)",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "LDAP_VERIFY_CERT": value},
+    )
+    assert result.stdout.strip() == str(expected)
+
+
 def test_connection_disables_referrals_and_bounds_receive_time(manager, monkeypatch):
     factory = Mock()
     monkeypatch.setattr("api.infra.integrations.ldap.Connection", factory)

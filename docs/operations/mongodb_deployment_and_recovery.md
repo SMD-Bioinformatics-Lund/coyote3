@@ -37,14 +37,27 @@ and keep its lifecycle separate from application updates.
 2. Prepare persistent directories and keyfiles for each physical instance:
 
 ```bash
-sudo install -d -o 999 -g 999 -m 0700 /srv/coyote3/mongo/data
+export MONGO_UID="$(id -u)" MONGO_GID="$(id -g)"
+sudo install -d -o "$MONGO_UID" -g "$MONGO_GID" -m 0700 /srv/coyote3/mongo/data
 sudo sh -c 'openssl rand -base64 756 > /srv/coyote3/mongo/keyfile'
 sudo chmod 0400 /srv/coyote3/mongo/keyfile
-sudo chown 999:999 /srv/coyote3/mongo/keyfile
+sudo chown "$MONGO_UID:$MONGO_GID" /srv/coyote3/mongo/keyfile
 ```
 
 For split knowledgebase MongoDB, prepare its separately configured data directory
-and keyfile too. Confirm the runtime UID if using a custom MongoDB image. Do not
+and keyfile too. Save `MONGO_UID` and `MONGO_GID` in the deployment env file.
+
+Both Compose families limit each MongoDB server and initialization container to
+8 GiB RAM and 4 CPUs by default. Override `MONGO_CONTAINER_MEM_LIMIT` and
+`MONGO_CONTAINER_CPU_LIMIT` in the deployment env file. These are per-container
+limits, including a separately enabled knowledgebase server. Recreate MongoDB
+after changing its memory limit so WiredTiger sizes its cache for the new limit.
+Both Compose families use the shared entrypoint to copy the read-only host keyfile
+into tmpfs with mode `400`, set data ownership, and drop to these IDs before
+starting MongoDB. Health checks and replica initializers use the same IDs.
+Stop MongoDB before recreating containers with changed IDs; do not run two servers
+against the same data directory. Root-squashed storage must permit the startup
+ownership changes and reading the host keyfile. Do not
 regenerate an existing replica-set keyfile during an ordinary upgrade.
 
 3. Create the configured application network if absent. Start the selected MongoDB

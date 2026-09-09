@@ -111,12 +111,11 @@ sudo chown -R 10001:10001 \
 
 openssl rand -base64 756 > "$VALIDATION_ROOT/mongo-keyfile"
 chmod 0400 "$VALIDATION_ROOT/mongo-keyfile"
-sudo chown 999:999 "$VALIDATION_ROOT/mongo-keyfile"
 ```
 
-The API and worker run as UID `10001`. MongoDB reads the replica-set keyfile as
-UID `999`. The ownership assignments are therefore part of the validation,
-not optional cleanup.
+The API and worker run as UID `10001`. MongoDB uses the host user's UID/GID
+configured below. Its shared entrypoint prepares data ownership and a protected
+container copy of the operator-owned keyfile before dropping privileges.
 
 ## 2. Generate disposable credentials
 
@@ -178,6 +177,8 @@ COYOTE3_APP_NETWORK=$VALIDATION_APP_NETWORK
 COYOTE3_MONGO_PORT=$VALIDATION_MONGO_PORT
 COYOTE3_MONGO_BIND_ADDRESS=127.0.0.1
 MONGO_REPLICA_SET_NAME=coyote3-validation-rs
+MONGO_UID=$(id -u)
+MONGO_GID=$(id -g)
 MONGO_REPLICA_MEMBER_HOST=mongo-app:27017
 
 COYOTE3_DATA_HOST_ROOT=$VALIDATION_ROOT/data

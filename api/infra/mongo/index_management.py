@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -94,18 +95,57 @@ class _ContractCollection:
         return name
 
 
+class _ContractAdapter:
+    """Intercept secondary collection handles used by repository index definitions."""
+
+    def __init__(self, adapter: Any, repository: str, recorders: list[_ContractCollection]):
+        """Bind read-only index recording for secondary collections.
+
+        Args:
+            adapter: Live adapter supplying repository collection handles.
+            repository: Repository label included in each recorded contract.
+            recorders: Shared list collecting every intercepted collection.
+        """
+        self._adapter = adapter
+        self._repository = repository
+        self._recorders = recorders
+        self._collections: dict[str, _ContractCollection] = {}
+
+    def __getattr__(self, name: str):
+        """Wrap collection handles while forwarding other adapter configuration.
+
+        Args:
+            name: Adapter attribute requested by the repository.
+
+        Returns:
+            A read-only index recorder for collection handles, or the original value.
+        """
+        value = getattr(self._adapter, name)
+        if not name.endswith("_collection"):
+            return value
+        if name not in self._collections:
+            recorder = _ContractCollection(value, self._repository)
+            self._collections[name] = recorder
+            self._recorders.append(recorder)
+        return self._collections[name]
+
+
 def build_index_plan(adapter: Any) -> list[dict[str, Any]]:
     """Compare repository index contracts with the connected database."""
     plan: list[IndexContract] = []
     for repository_name, repository in adapter.iter_repositories():
         original = repository.get_collection()
         recorder = _ContractCollection(original, repository_name)
-        repository.set_collection(recorder)
-        try:
-            repository.ensure_indexes()
-        finally:
-            repository.set_collection(original)
-        plan.extend(recorder.contracts)
+        recorders = [recorder]
+        inspection_repository = copy(repository)
+        inspection_repository.set_collection(recorder)
+        if hasattr(repository, "adapter"):
+            inspection_repository.adapter = _ContractAdapter(
+                repository.adapter, repository_name, recorders
+            )
+        inspection_repository.ensure_indexes()
+        for collection_recorder in recorders:
+            plan.extend(collection_recorder.contracts)
     for contract in security_index_contracts(adapter.app.config):
         database = adapter.identity_db if contract.database == "identity" else adapter.coyote_db
         recorder = _ContractCollection(database[contract.collection], "security")

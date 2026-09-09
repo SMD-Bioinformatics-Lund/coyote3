@@ -258,6 +258,7 @@ registration is not configurable through an environment variable.
 | `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Persistent host directory bind-mounted at `/data/db`. |
 | `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
 | `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
+| `MONGO_UID`, `MONGO_GID` | Both Mongo Compose profiles | Positive numeric host UID/GID | Required database owner IDs; used by MongoDB, health checks, and initializers in modern and legacy Compose. |
 | `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | Independent KB replica-set name, default `coyote3-kb-rs`. |
 | `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | Advertised KB member address, default `mongo-kb:27017`. |
 | `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
@@ -312,7 +313,8 @@ registration is not configurable through an environment variable.
 | `LDAP_USE_SSL` | No | Boolean; default `0` | Implicit TLS from connection establishment. An `ldaps://` host also selects this mode. |
 | `LDAP_USE_TLS` | No | Boolean; default `1` | StartTLS before search-account and user binds on a non-LDAPS connection. Ignored when implicit TLS is selected. |
 | `LDAP_CONNECT_TIMEOUT` | No | Positive seconds; default `10` | Bounds connection establishment and socket receive waits. |
-| `LDAP_CA_CERTS_FILE` | No | Empty or container-visible PEM CA bundle path | Empty uses system CA trust. A center-issued CA bundle must be mounted read-only into the API container. Server certificate verification is always required for TLS. |
+| `LDAP_VERIFY_CERT` | No | Boolean; default `1` | Set `0` to disable server certificate and hostname verification. TLS encryption remains controlled by `LDAP_USE_TLS` and `LDAP_USE_SSL`. |
+| `LDAP_CA_CERTS_FILE` | No | Empty or container-visible PEM CA bundle path | Empty uses system CA trust. A center-issued CA bundle must be mounted read-only into the API container. Used when certificate verification is enabled. |
 | `LDAP_BASE_DN` | LDAP deployments | Distinguished name | Complete LDAP search base, including any intended user subtree. |
 | `LDAP_USER_LOGIN_ATTR` | LDAP deployments | Attribute name, usually `mail` | LDAP login lookup attribute. |
 | `LDAP_BINDDN` | Directory search with a service account | Distinguished name | Read-only search-account identity; configure together with `LDAP_SECRET`, or leave both empty for anonymous search if the directory permits it. |
@@ -386,10 +388,12 @@ read-only; automatic referrals are disabled so credentials are not forwarded to
 another directory endpoint. Connections are unbound after use. Directory passwords
 are not stored in Coyote3.
 
-TLS verifies the server certificate and hostname using system trust or
+By default, TLS verifies the server certificate and hostname using system trust or
 `LDAP_CA_CERTS_FILE`. A private directory CA must be trusted by the API container;
-a client certificate is not required merely to verify the server. Do not disable
-verification to work around a missing CA. See the
+a client certificate is not required merely to verify the server. Set
+`LDAP_VERIFY_CERT=0` for an explicit deployment exception. This retains configured
+TLS encryption but disables certificate-chain, expiry, and hostname checks, so the
+directory server's identity is not verified. See the
 [ldap3 transport reference](https://ldap3.readthedocs.io/en/latest/ssltls.html)
 for the underlying TLS behavior.
 

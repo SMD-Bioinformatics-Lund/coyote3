@@ -28,7 +28,12 @@ def render(*profiles, backup_mount=False, backup_root=None):
     ]
     if backup_mount:
         command.extend(["-f", "deploy/compose/docker-compose.mongo-backup.yml"])
-    environment = {**os.environ, "COYOTE3_VERSION": "4.0.0"}
+    environment = {
+        **os.environ,
+        "COYOTE3_VERSION": "4.0.0",
+        "MONGO_UID": "12345",
+        "MONGO_GID": "23456",
+    }
     if backup_root is not None:
         environment["COYOTE3_MONGO_BACKUP_HOST_ROOT"] = backup_root
     for profile in profiles:
@@ -64,10 +69,22 @@ def test_split_profile_has_independent_replica_sets_and_one_dbpath_per_instance(
     assert "coyote3-kb-rs" in services["mongo-kb"]["command"]
     sources = []
     for name in ("mongo", "mongo-kb"):
+        service = services[name]
+        assert service["environment"]["MONGO_UID"] == "12345"
+        assert int(service["mem_limit"]) == 8 * 1024**3
+        assert float(service["cpus"]) == 4.0
+        assert service["environment"]["MONGO_GID"] == "23456"
+        assert service["environment"]["HOME"] == "/tmp"
+        assert service["command"][-1] == "/run/coyote3-mongo/keyfile"
+        assert service["tmpfs"] == ["/run/coyote3-mongo"]
+        assert service["healthcheck"]["test"][1].startswith('gosu "$$MONGO_UID:$$MONGO_GID"')
+        assert "security_opt" not in service
         paths = [v for v in services[name]["volumes"] if v["target"] == "/data/db"]
         assert len(paths) == 1
         sources.append(paths[0]["source"])
     assert sources[0] != sources[1]
+    for name in ("mongo_init", "mongo_kb_init"):
+        assert services[name]["user"] == "12345:23456"
     for name in ("api", "worker", "beat"):
         env = services[name]["environment"]
         assert "mongo-app:27017" in env["COYOTE3_MONGO_URI"]
@@ -91,7 +108,8 @@ def test_backup_overlay_preserves_other_mounts_and_knowledgebase_service():
     backup = [v for v in mounts if v["target"] == "/backup"]
     assert len(backup) == 1
     assert backup[0]["source"] == "/synthetic/backups"
-    assert backup[0]["bind"]["create_host_path"] is False
+    # Compose may omit false-valued fields from its normalized JSON output.
+    assert backup[0].get("bind", {}).get("create_host_path", False) is False
     assert services["mongo-kb"] == baseline["mongo-kb"]
 
 

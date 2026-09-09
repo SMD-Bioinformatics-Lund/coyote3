@@ -28,6 +28,8 @@ def _render(command, *files, profiles=(), extra_env=None):
         env={
             **os.environ,
             "COYOTE3_VERSION": "legacy-test",
+            "MONGO_UID": "12345",
+            "MONGO_GID": "23456",
             "COYOTE3_MONGO_URI": "mongodb://mongo-app:27017/?replicaSet=coyote3-rs",
             "COYOTE3_DATA_HOST_ROOT": "/synthetic/data",
             "COYOTE3_REPORTS_HOST_ROOT": "/synthetic/reports",
@@ -79,6 +81,11 @@ def test_application_and_optional_storage_render(compose):
         "docker-compose.storage.example.yml",
     )["services"]
     assert not any(name.startswith("mongo") for name in services)
+    for name in ("api", "frontend", "docs"):
+        assert services[name]["build"]["network"] == "host"
+    for name in ("api", "docs"):
+        assert services[name]["build"]["args"]["PYTHON_BASE_IMAGE"] == "python:3.12-slim-bullseye"
+    assert all(service.get("network_mode") != "host" for service in services.values())
     for name in ("api", "worker", "beat"):
         service = services[name]
         assert "192.0.2.10" in str(service["extra_hosts"])
@@ -97,17 +104,29 @@ def test_mongo_auth_replica_sets_and_optional_backup(compose, backup):
         files.append("docker-compose.mongo-backup.yml")
     services = _render(compose, *files, profiles=("mongo", "mongo-kb"))["services"]
     assert all(service["image"] == "mongo:7.0.41" for service in services.values())
+    assert all(
+        str(service["mem_limit"]) in {"8g", str(8 * 1024**3)} for service in services.values()
+    )
+    assert all(float(service["cpus"]) == 4.0 for service in services.values())
     for name in ("mongo", "mongo-kb"):
         service = services[name]
         assert "--keyFile" in service["command"]
         assert "--replSet" in service["command"]
+        assert service["environment"]["MONGO_UID"] == "12345"
+        assert service["environment"]["MONGO_GID"] == "23456"
         assert "extra_hosts" not in service
         mounts = {v["target"]: v for v in service["volumes"]}
         assert "/data/db" in mounts
         assert mounts["/etc/mongo-keyfile/keyfile"]["read_only"] is True
+        assert service["command"][-1] == "/run/coyote3-mongo/keyfile"
+        assert service["tmpfs"] == ["/run/coyote3-mongo"]
+        assert service["entrypoint"] == ["/bin/sh", "/opt/coyote3/mongo-entrypoint.sh"]
+        assert mounts["/opt/coyote3/mongo-entrypoint.sh"]["read_only"] is True
+        assert Path(mounts["/opt/coyote3/mongo-entrypoint.sh"]["source"]).is_file()
         assert ("/backup" in mounts) is (backup and name == "mongo")
         assert Path(mounts["/docker-entrypoint-initdb.d/01-create-app-user.js"]["source"]).is_file()
     for name in ("mongo_init", "mongo_kb_init"):
+        assert services[name]["user"] == "12345:23456"
         assert Path(services[name]["volumes"][0]["source"]).is_file()
 
 
@@ -120,6 +139,12 @@ def test_legacy_application_tracks_modern_service_contract():
     modern = yaml.safe_load((ROOT / "deploy/compose/docker-compose.yml").read_text())
     legacy = yaml.safe_load((LEGACY / "docker-compose.yml").read_text())
     modern.pop("name")
+    modern["services"]["redis"]["security_opt"] = ["seccomp=unconfined"]
+    modern["services"]["beat"]["ipc"] = "none"
+    for name in ("api", "frontend", "docs"):
+        modern["services"][name]["build"]["network"] = "host"
+    for name in ("api", "docs"):
+        modern["services"][name]["build"]["args"]["PYTHON_BASE_IMAGE"] = "python:3.12-slim-bullseye"
     for service in modern["services"].values():
         service.pop("extra_hosts", None)
     modern_text = yaml.safe_dump(modern)
@@ -153,7 +178,10 @@ def test_no_modern_only_syntax_or_unscoped_security_bypasses():
             ):
                 assert service["security_opt"] == ["seccomp=unconfined"]
             else:
-                assert "security_opt" not in service
+                if file.name == "docker-compose.yml" and name == "redis":
+                    assert service["security_opt"] == ["seccomp=unconfined"]
+                else:
+                    assert "security_opt" not in service
 
 
 def test_legacy_mongo_tracks_modern_service_contract():

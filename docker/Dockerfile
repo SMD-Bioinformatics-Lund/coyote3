@@ -1,18 +1,27 @@
-FROM python:3.14.7-slim-bookworm AS coyote3_runtime_base
+ARG PYTHON_BASE_IMAGE=python:3.14.7-slim-bookworm
+FROM ${PYTHON_BASE_IMAGE} AS coyote3_runtime_base
+ARG PYTHON_BASE_IMAGE
 
-LABEL base_image="python:3.14.7-slim-bookworm"
+LABEL base_image="${PYTHON_BASE_IMAGE}"
 LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PIP_PROGRESS_BAR=off
 ARG GIT_COMMIT="unknown"
 ARG BUILD_TIME="unknown"
 ARG COYOTE3_UID=10001
 ARG COYOTE3_GID=10001
 ENV GIT_COMMIT=${GIT_COMMIT}
 ENV BUILD_TIME=${BUILD_TIME}
+
+# Bullseye LTS ended in August 2026; verify signatures on its frozen security index.
+RUN . /etc/os-release && \
+    if [ "$VERSION_CODENAME" = bullseye ]; then \
+      sed -i 's|deb http://deb.debian.org/debian-security|deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260901T000000Z|' /etc/apt/sources.list; \
+    fi
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \

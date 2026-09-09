@@ -55,6 +55,7 @@ x-app-environment: &app-environment
   LDAP_PORT: ${LDAP_PORT:-}
   LDAP_USE_SSL: ${LDAP_USE_SSL:-0}
   LDAP_USE_TLS: ${LDAP_USE_TLS:-1}
+  LDAP_VERIFY_CERT: ${LDAP_VERIFY_CERT:-1}
   LDAP_CONNECT_TIMEOUT: ${LDAP_CONNECT_TIMEOUT:-10}
   LDAP_CA_CERTS_FILE: ${LDAP_CA_CERTS_FILE:-}
   LDAP_BASE_DN: ${LDAP_BASE_DN:-}
@@ -115,6 +116,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.frontend
+      network: host
       args:
         SCRIPT_NAME: ${SCRIPT_NAME:-}
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
@@ -135,7 +137,9 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
+      network: host
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
 
   api:
@@ -143,8 +147,10 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile
+      network: host
       target: coyote3_api
       args:
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
         COYOTE3_UID: ${COYOTE3_UID:-10001}
@@ -171,6 +177,8 @@ services:
 
   beat:
     <<: [*runtime-defaults, *api-image]
+    # Beat is a single-process scheduler and does not require a /dev/shm mount.
+    ipc: none
     environment: *app-environment
     volumes: *app-volumes
     command: celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
@@ -180,6 +188,7 @@ services:
   redis:
     <<: *runtime-defaults
     image: redis:7.4.3
+    security_opt: [seccomp=unconfined]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}

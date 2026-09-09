@@ -1,4 +1,8 @@
-FROM python:3.12-slim-bookworm AS mkdocs_builder
+ARG PYTHON_BASE_IMAGE=python:3.12-slim-bookworm
+FROM ${PYTHON_BASE_IMAGE} AS mkdocs_builder
+
+# Avoid pip's progress refresh thread on legacy container runtimes.
+ENV PIP_PROGRESS_BAR=off
 
 WORKDIR /app
 

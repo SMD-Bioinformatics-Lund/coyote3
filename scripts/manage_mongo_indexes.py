@@ -7,12 +7,22 @@ import argparse
 import json
 import logging
 import os
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 
-from api.config import app_config
-from api.infra.mongo.index_management import build_index_plan, known_retired_indexes, retire_index
-from api.infra.mongo.runtime_adapter import MongoAdapter
-from api.infra.security.indexes import ensure_security_indexes
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from api.config import app_config  # noqa: E402
+from api.infra.mongo.index_management import (  # noqa: E402
+    build_index_plan,
+    known_retired_indexes,
+    retire_index,
+)
+from api.infra.mongo.runtime_adapter import MongoAdapter  # noqa: E402
+from api.infra.security.indexes import ensure_security_indexes  # noqa: E402
 
 
 def _config() -> object:

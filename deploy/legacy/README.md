@@ -14,6 +14,13 @@ blocks thread creation in MongoDB 7.0.41 and `mongosh`. This disables syscall
 filtering for those four services, including their health checks. Authentication
 and the other isolation controls remain enabled. Remove this exception when the
 runtime is upgraded and startup and health checks pass with the default profile.
+Legacy Redis also uses `seccomp=unconfined` to allow its background threads on
+Docker 18.09. This exception is scoped to that Redis service; host kernel settings
+and other deployments are not changed.
+
+Legacy beat uses `ipc: none`: its single-process scheduler does not need
+`/dev/shm`. This avoids allocating that tmpfs mount on the legacy host while
+retaining a private IPC namespace. Workers retain their shared-memory mount.
 
 ## Definitions
 
@@ -61,7 +68,18 @@ Prepare all bind source directories and keyfiles before startup. Legacy Compose
 cannot enforce `bind.create_host_path: false` and may create missing directories.
 Check source existence and permissions yourself, especially for file mounts.
 Application data, logs, and reports must be writable by the configured application
-UID/GID; MongoDB data and keyfile ownership must match the MongoDB image user.
+UID/GID. Set `MONGO_UID` and `MONGO_GID` in the deployment env file to the
+database owner's numeric IDs (obtain them with `id -u` and `id -g`).
+Both Mongo services and their replica initializers use these IDs; root IDs are rejected.
+Keep the host keyfile owned by the deploying operator with mode `600`. The legacy
+Mongo entrypoint reads the file through a read-only bind mount as container root,
+then copies it into `/run/coyote3-mongo` (tmpfs), owned by the configured IDs with mode
+`400`. Before starting MongoDB, it updates ownership of existing files in
+`/data/db` and `/data/configdb`, then drops to the configured UID/GID using
+`gosu`. Stop the old Mongo container before recreating it after changing IDs;
+never run another Mongo process against that data directory during migration. The host
+keyfile is never modified by the container. Root-squashed network filesystems
+must still permit container root to read the source; use a local keyfile if needed.
 Read-only pipeline inputs do not replace writable ingest staging.
 
 ## MongoDB first
@@ -106,9 +124,22 @@ backup process for this deployment until its tooling has been validated.
 
 ## Application startup
 
+Legacy API and documentation builds select `python:3.12-slim-bullseye` through
+the `PYTHON_BASE_IMAGE` build argument to avoid Bookworm syscall incompatibilities
+on Docker 18.09. Workers and beat use the same API image. The modern API build
+defaults to Python 3.14.7 on Bookworm. Application dependencies remain pinned in
+`requirements.txt`, and the project supports Python 3.12 and newer.
+Bullseye LTS ended on August 31, 2026. The API build disables metadata expiry
+checking only for its Bullseye security snapshot dated September 1, 2026; APT signature and
+package hash verification remain enabled. This base no longer receives Debian
+LTS security updates.
+
 The base file serves compiled frontend assets even when `ENV_NAME=development`.
 It retains development branding and environment configuration without hot reload.
 Build explicitly, then bootstrap and provision indexes before starting writers.
+The API, frontend, and documentation builds use `build.network: host` so Dockerfile
+`RUN` commands use the host network for dependency downloads on the legacy host.
+Application containers still use the configured application network at runtime.
 
 ```bash
 docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml config --quiet
