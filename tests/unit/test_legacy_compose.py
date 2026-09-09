@@ -96,6 +96,7 @@ def test_mongo_auth_replica_sets_and_optional_backup(compose, backup):
     if backup:
         files.append("docker-compose.mongo-backup.yml")
     services = _render(compose, *files, profiles=("mongo", "mongo-kb"))["services"]
+    assert all(service["image"] == "mongo:7.0.41" for service in services.values())
     for name in ("mongo", "mongo-kb"):
         service = services[name]
         assert "--keyFile" in service["command"]
@@ -152,6 +153,7 @@ def test_legacy_mongo_tracks_modern_service_contract():
     legacy = yaml.safe_load((LEGACY / "docker-compose.mongo.yml").read_text())
     for service in modern["services"].values():
         service.pop("extra_hosts", None)
+        service["image"] = "mongo:7.0.41"
     assert (
         yaml.safe_load(yaml.safe_dump(modern).replace("./mongo-init/", "../compose/mongo-init/"))
         == legacy

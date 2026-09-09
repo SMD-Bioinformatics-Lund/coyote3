@@ -21,8 +21,11 @@ or other isolation controls to make an image start.
 | `docker-compose.storage.example.yml` | Optional read-only input mounts shared by API, worker, and beat. |
 | `docker-compose.host.yml` | Optional `host.docker.internal` mapping to an explicitly configured host IP. |
 
-Initialization scripts, proxy configuration, Dockerfiles, image versions, and
-application settings are reused from the current repository. Hot-reload, test
+MongoDB servers and replica initializers are pinned to `mongo:7.0.41`; the modern
+deployment retains MongoDB 8.2. There is no MongoDB Dockerfile: these services
+use the official image directly. Initialization scripts, proxy configuration,
+application Dockerfiles, and application settings are reused from the current
+repository. Hot-reload, test
 runner, and load-test overlays from `deploy/compose` are not part of this legacy
 deployment. There is no implicit project name; always pass `-p` explicitly.
 
@@ -65,8 +68,8 @@ database project names so application updates do not stop MongoDB.
 
 ```bash
 docker-compose version
-docker run --rm mongo:8.2 mongod --version
-docker run --rm mongo:8.2 mongosh --version
+docker run --rm mongo:7.0.41 mongod --version
+docker run --rm mongo:7.0.41 mongosh --version
 set -a; source .coyote3_dev_env; set +a
 export COYOTE3_VERSION="$(python3 api/version.py)"
 docker network inspect "$COYOTE3_APP_NETWORK" >/dev/null 2>&1 || docker network create "$COYOTE3_APP_NETWORK"
@@ -89,6 +92,13 @@ used by another running mongod. Do not also run a manually created MongoDB
 container or a modern Compose project against the same storage. Existing
 databases require their original credentials and keyfile; env changes do not
 reset database accounts or move data.
+
+Never start MongoDB 7.0 against data files written by MongoDB 8. Use a fresh
+directory for a new installation. Existing MongoDB 8 data requires a separately
+validated transfer, not an image-tag replacement. Keep the original data intact.
+The shared archive scripts still launch MongoDB 8.2 tools containers; they are
+not suitable for a host that cannot run that image. Use the center's external
+backup process for this deployment until its tooling has been validated.
 
 ## Application startup
 
