@@ -260,6 +260,36 @@ for clinically important boundaries.
 > and HTTP code.
 >
 
+## Python docstrings
+
+Production Python modules, classes and named functions require docstrings,
+including private helpers and nested callbacks. Use Google-style sections:
+
+| Section | What to document |
+| --- | --- |
+| Summary | The operation and its result, in one precise sentence. |
+| `Args:` | Each parameter's meaning, units, accepted values and relevant defaults; omit `self` and `cls`. |
+| `Returns:` or `Yields:` | The result's structure and meaning, including empty or null cases. Omit for procedures that only return `None`. |
+| `Raises:` | Expected failures callers need to handle. |
+| `Notes:` | Relevant side effects, transaction boundaries, input mutation, ordering or external-service access. |
+| `Examples:` | Short synthetic examples when they clarify behavior. |
+
+Simple properties may use a precise one-line docstring. Document actual behavior:
+constructing a document does not mean inserting it, and an empty result is not
+necessarily an error. Do not copy type annotations into otherwise empty descriptions.
+
+The backend suite includes an AST-based presence check for `api/`, `scripts/`,
+Gunicorn configuration and root Python entry points. It does
+not import the application, connect to MongoDB, or inspect clinical data. Run it with:
+
+```bash
+PYTHONPATH=. .venv/bin/pytest -q tests/integration/test_python_docstrings.py --no-cov
+```
+
+This check detects missing documentation, not inaccurate explanations. Ruff checks
+the configured Google-style formatting; code review checks the content against the
+implementation. Tests and fixtures are outside the production presence check.
+
 ## Continuous Integration
 
 CI should run these checks:

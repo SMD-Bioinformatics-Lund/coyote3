@@ -78,8 +78,9 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
   first. A docstring form-feed (`\f`) may separate that text from internal Google
   sections so injected Python dependencies do not clutter Swagger/ReDoc.
 - Ruff's Google-style configuration is a formatting check, not proof of complete
-  or accurate documentation. Existing missing-docstring exclusions are not an
-  exemption for new or substantially changed code.
+  or accurate documentation. `tests/integration/test_python_docstrings.py` checks
+  docstring presence in production modules, classes and named callables, including
+  private helpers. Reviewers must still check meaning, accuracy and section content.
 - Prefer Pydantic models at contracts and validation boundaries. Preserve meaningful
   `None` values when the contract distinguishes null from a missing field.
 - Raise established application/domain errors and let the centralized HTTP exception

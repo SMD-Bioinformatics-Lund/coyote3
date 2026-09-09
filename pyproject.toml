@@ -132,7 +132,8 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "TID"]
-# D1xx: incremental docstring adoption is tracked in .design/TODO.md.
+# Production docstring presence is enforced by tests/integration/test_python_docstrings.py.
+# D1xx remain excluded here so test fixtures need not document every helper.
 # D203/D213: conflict with Google style (D211/D212 selected by convention)
 # D400/D401/D415: first-line punctuation — too noisy for existing codebase
 ignore = [
