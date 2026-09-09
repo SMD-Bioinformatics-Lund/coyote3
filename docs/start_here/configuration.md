@@ -11,14 +11,11 @@ Sample catalog requests default to the deployed environment. The frontend explic
 sends `profile_scope`; `all` selects all authorized profiles, never bypassing user
 scope. The unused `sample_view` query parameter is not part of the request contract.
 
-## Environment files
-
-Coyote3 uses one copied environment file per deployment environment and keeps
-runtime wiring inside the application and Compose stacks. The environment file is
-for center-owned values only: identity, public mount details, secrets, database
-connection, data paths, operational limits, and optional integrations.
-
 ## Environment Files
+
+Coyote3 uses one copied environment file per deployment environment. It contains
+database connections, secrets, storage paths, public URLs, and supported runtime
+overrides. Compose wiring stays in the deployment files.
 
 Copy the single template for the environment you are deploying:
 
@@ -31,6 +28,22 @@ cp deploy/env/example.env .coyote3_env
 
 Then update the copied file. Local `.coyote3_*_env` files are ignored by git and
 must not be committed.
+
+Compose's `--env-file` supplies interpolation values; it does not automatically
+pass every variable into every container. The Compose files explicitly forward
+runtime settings, use deployment settings for ports and mounts, and supply
+frontend build arguments. Recreate affected containers after changing runtime
+values; rebuild the production frontend after changing its build-time settings
+such as `ENV_NAME`, `SCRIPT_NAME`, `GENS_URI`, or `IGV_DATA_ROOT`. Rebuild the API
+image when changing its build-time `COYOTE3_UID` or `COYOTE3_GID`.
+
+MongoDB provisioning values (`MONGO_ROOT_*`, `MONGO_APP_*`, replica-set settings,
+and MongoDB storage paths) are used only by `docker-compose.mongo.yml` and its
+enabled profiles. They can be omitted from an external-MongoDB deployment's
+private environment file. MongoDB users and replica configuration are initialized
+only for a new deployment; editing these variables does not rotate existing
+database passwords or reconfigure an existing replica set. Connection URIs must
+contain the actual credentials and reachable member addresses.
 
 ### Minimum deployment values
 
@@ -47,14 +60,16 @@ Every center must review and set only this core deployment contract:
 | `SECRET_KEY` | Signs invitation and password-reset action tokens. |
 | `INTERNAL_API_TOKEN` | Authenticates trusted internal service requests. |
 | `PASSWORD_TOKEN_SALT` | Separates password-token signing from other signed data. |
-| `CORS_ORIGINS` | Names the browser origin permitted to call the API. |
 | `COYOTE3_DATA_HOST_ROOT` | Provides persistent sample, ingest, and report storage. |
 | `COYOTE3_LOGS_HOST_ROOT` | Provides persistent application log storage. |
+| `COYOTE3_APP_NETWORK` | Selects the pre-created Docker network. |
+| `PUBLIC_BASE_URL` | Required by Compose for generated public links. |
+| `REDIS_PASSWORD` | Authenticates the Compose-managed Redis service and its clients. |
 
 Set `ENV_NAME` explicitly even though a runtime default exists. Set
-`SCRIPT_NAME`, `PUBLIC_BASE_URL`, organization/time-zone values, LDAP, SMTP,
-and integration URLs only when required by the deployment. The remaining
-variables in `example.env` are documented overrides with safe defaults.
+`SCRIPT_NAME`, organization/time-zone values, LDAP, SMTP, and integration URLs
+according to the deployment. Replace all placeholder secrets; the template is
+not a ready-to-run production configuration.
 
 ## Center-Owned Configuration Files
 
@@ -130,14 +145,15 @@ When a local nginx proxy is accessed directly, the same paths are available on
 
 ## Data Mounts
 
-Compose mounts one center-owned host data root into API, worker, and beat
-containers twice: at the fixed runtime location `/data`, and again at its
-original host path. The fixed mount owns application workspaces; the identical
-host-path mount lets pipeline manifests retain their original file references.
+The base Compose stack mounts one center-owned host data root into API, worker,
+and beat at `/data`. It does not automatically mount the original host path.
+Add input directories in a private Compose override when manifests reference
+other absolute paths. See `deploy/compose/docker-compose.storage.example.yml`
+for read-only, same-path input mounts.
 
 | Setting | Meaning |
 | --- | --- |
-| `COYOTE3_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` and at the same absolute path inside each ingest-capable container. |
+| `COYOTE3_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` in each ingest-capable container. |
 | `/data/coyote3/reports` | Fixed container location for report artifacts. |
 | `/data/coyote3/ingest_staging` | Fixed container location for staged async upload jobs. |
 | `/data/coyote3/copied_sample_files/yaml` | Fixed container location scanned for ingest manifests. |
@@ -148,25 +164,23 @@ Example:
 COYOTE3_DATA_HOST_ROOT='/srv/coyote3/data'
 ```
 
-Pipeline manifests may use either paths relative to the manifest, absolute
-`/data/...` paths, or absolute paths below `COYOTE3_DATA_HOST_ROOT`. Host-root
-paths are retained in sample file records so persisted provenance matches the
-pipeline output.
+Pipeline manifests may use paths relative to the manifest or absolute paths
+visible inside the ingest containers. A host path is readable only if an
+explicit mount exposes it at the declared location. Stored file paths retain
+the pipeline's declared references.
 
 > **Info: Container path contract**
 >
 >
-> The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at both `/data` and
-> its original absolute path. Report output, upload staging, and watched
-> manifests use fixed `/data/coyote3/...` locations. Pipeline-declared source
-> files retain their original host paths and are readable through the
-> identical-path mount.
+> Report output, upload staging, and watched manifests use `/data/coyote3/...`
+> locations. Separate source mounts may be read-only; staging and output mounts
+> must remain writable. Configure the same input mounts on API, worker, and beat.
 >
 
 ## Environment Variable Reference
 
-Every entry in the following table is an environment variable from the
-canonical `deploy/env/example.env` template. TOML and YAML keys are **not**
+The table covers every variable in `deploy/env/example.env` plus optional
+overrides supported by runtime or deployment configuration. TOML and YAML keys are **not**
 environment variables and are documented in the linked center-configuration
 tables above.
 
@@ -191,7 +205,7 @@ registration is not configurable through an environment variable.
 
 | Variable | Required | Expected Value | Purpose |
 | --- | --- | --- | --- |
-| `ENV_NAME` | No; default `production` at runtime | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
+| `ENV_NAME` | Required by Compose | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
 | `COYOTE3_DB` | Deployed environments; local default `coyote3_dev` | MongoDB database name | Environment-specific primary database, independent of the URI path and authSource. |
 | `IDENTITY_DB` | Explicit per environment | MongoDB database name | Users, RBAC, sessions, and audit. Never share this namespace between environments on the same deployment; notifications remain in the primary database. |
 | `KNOWLEDGEBASE_DB` | Default `coyote3_knowledgebases` | MongoDB database name | Shared platform datasets on `KNOWLEDGEBASE_MONGO_URI`; no per-environment copy unless explicitly configured. |
@@ -203,8 +217,7 @@ registration is not configurable through an environment variable.
 | `PASSWORD_TOKEN_SALT` | Yes | High-entropy salt | Separates invite and password-reset token signing from other application signing operations. |
 | `COYOTE3_PORT` | No; compose profile default | Host port | One exposed nginx entrypoint for UI, API, public pages, and docs. |
 | `SCRIPT_NAME` | No; default empty | Empty string or `/prefix` | Public URL mount prefix used by browser routing and generated links. |
-| `PUBLIC_BASE_URL` | Link-generating deployments | Public origin without `SCRIPT_NAME` | Origin used for links generated outside an active browser request, such as password reset email links. |
-| `CORS_ORIGINS` | Production | Comma-separated origins | Allowed browser origins for API calls. |
+| `PUBLIC_BASE_URL` | Required by Compose | Public origin without `SCRIPT_NAME` | Origin used for links generated outside an active browser request, such as password reset email links. |
 | `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value; default `2g` | Per-container memory limit. |
 | `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value; default `2.0` | Per-container CPU limit. |
 | `COYOTE3_APP_NETWORK` | Yes | Existing Docker network name | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
@@ -241,10 +254,12 @@ registration is not configurable through an environment variable.
 | `CACHE_REQUIRED` | No | `1` or `0` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | Redis socket timeout. |
+| `REDIS_PASSWORD` | Required by Compose | Unique URL-safe secret; generate with `openssl rand -hex 32` | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
 | `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds; default `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
 | `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds; default `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |
 | `API_WORKERS` | No | Positive integer; supported default `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |
-| `APP_DNS` | No | DNS server IP | Optional Docker DNS override for restricted center networks. |
+| `FORWARDED_ALLOW_IPS` | Review for proxied deployments | Trusted proxy IPs or CIDRs; default `127.0.0.1` | Uvicorn's trust list for forwarded headers. Configure the actual ingress proxy or dedicated proxy network; do not use `*`. |
+| `COYOTE3_NGINX_PUBLIC_SCHEME` | Review for TLS deployments | `http` or `https`; default `http` | Scheme emitted by Nginx in `X-Forwarded-Proto`; `https` also enables HSTS. This does not configure TLS itself. Use `https` only behind a TLS-enforcing entrypoint. |
 | `API_SESSION_COOKIE_NAME` | No; default `coyote3_api_session` | Cookie name | Browser API session cookie name. Override it when multiple mounted environments share one browser origin. |
 | `API_SESSION_TTL_SECONDS` | No | Seconds; default `43200` | Browser API session lifetime. |
 | `API_SESSION_COOKIE_SAMESITE` | No | `lax`, `strict`, or `none`; default `lax` | Browser session cookie SameSite policy. |
@@ -273,13 +288,17 @@ registration is not configurable through an environment variable.
 | `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | Beat interval for watch-folder scanning. |
 | `COYOTE3_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | Allows watch ingest to replace an existing sample. |
 | `COYOTE3_INGEST_WATCH_INCREMENT` | No | `1` or `0` | Enables incremental naming behavior where supported. |
-| `AUTHENTICATION_PROVIDERS` | No | Comma-separated list of implemented providers: `local`, `ldap`, for example `local` or `local,ldap` | Deployment override for login providers displayed by the UI. When omitted, the configured TOML list is used. |
+| `AUTHENTICATION_PROVIDERS` | No | Comma-separated list of implemented providers: `local`, `ldap`, for example `local` or `local,ldap` | Login-provider override; Compose defaults to `local,ldap`. A host-run process without this setting uses the configured TOML list. |
 | `LDAP_HOST` | When LDAP is enabled for this deployment | Hostname or URI | LDAP server host. A missing value does not block API startup; an LDAP login returns a configuration error until it is supplied. |
-| `LDAP_BASE_DN` | LDAP deployments | Distinguished name | LDAP search base. |
+| `LDAP_PORT` | No | Empty or port `1`-`65535` | Overrides a URI port. When empty, uses the URI port or defaults to 389 for LDAP and 636 for LDAPS. |
+| `LDAP_USE_SSL` | No | Boolean; default `0` | Implicit TLS from connection establishment. An `ldaps://` host also selects this mode. |
+| `LDAP_USE_TLS` | No | Boolean; default `1` | StartTLS before search-account and user binds on a non-LDAPS connection. Ignored when implicit TLS is selected. |
+| `LDAP_CONNECT_TIMEOUT` | No | Positive seconds; default `10` | Bounds connection establishment and socket receive waits. |
+| `LDAP_CA_CERTS_FILE` | No | Empty or container-visible PEM CA bundle path | Empty uses system CA trust. A center-issued CA bundle must be mounted read-only into the API container. Server certificate verification is always required for TLS. |
+| `LDAP_BASE_DN` | LDAP deployments | Distinguished name | Complete LDAP search base, including any intended user subtree. |
 | `LDAP_USER_LOGIN_ATTR` | LDAP deployments | Attribute name, usually `mail` | LDAP login lookup attribute. |
-| `LDAP_BINDDN` | LDAP deployments | Distinguished name | LDAP bind identity. |
-| `LDAP_SECRET` | LDAP deployments | Secret password | LDAP bind password. |
-| `LDAP_USER_DN` | LDAP deployments | Relative distinguished name | User subtree below base DN. |
+| `LDAP_BINDDN` | Directory search with a service account | Distinguished name | Read-only search-account identity; configure together with `LDAP_SECRET`, or leave both empty for anonymous search if the directory permits it. |
+| `LDAP_SECRET` | When `LDAP_BINDDN` is supplied | Secret password | Directory search-account password, not the password entered by the person logging in. |
 | `GENS_URI` | No | URL | Optional Gens integration. |
 | `IGV_URI` | No | URL | Optional IGV integration. |
 | `IGV_DATA_ROOT` | No | Workstation path prefix | Root prepended to ASP-resolved relative paths, for example `/R:` or `/mnt/alignments`; independent of API mounts. Assay folders and BED files are configured in ASP `igv`. |
@@ -302,9 +321,64 @@ registration is not configurable through an environment variable.
 | `API_RATE_LIMIT_REQUESTS_PER_MINUTE` | No | Positive integer; default `600` | API rate limit threshold. |
 | `API_RATE_LIMIT_WINDOW_SECONDS` | No | Seconds; default `60` | API rate limit window. |
 | `API_CSRF_ENABLED` | No | `1` or `0`; default `1` | Enforces a per-session CSRF header for cookie-authenticated mutation requests. Keep enabled outside isolated tests. |
-| `WEB_RATE_LIMIT_ENABLED` | No | `1` or `0` | Enables public web-route rate limiting. |
-| `WEB_RATE_LIMIT_REQUESTS_PER_MINUTE` | No | Positive integer | Web route rate limit threshold. |
-| `WEB_RATE_LIMIT_WINDOW_SECONDS` | No | Seconds | Web route rate limit window. |
+
+API request throttling uses the `API_RATE_LIMIT_*` settings. There is no separate
+application limiter for frontend pages or documentation assets; configure that
+policy at the ingress proxy. Configure center DNS through Docker or a private
+Compose service `dns` override rather than an application environment variable.
+
+The browser UI and API are served from the same origin. The API does not configure
+CORS response headers or an environment-controlled cross-origin allowlist.
+`PUBLIC_BASE_URL` controls generated links, not browser cross-origin permissions.
+
+### LDAP Authentication
+
+LDAP login requires an existing active Coyote3 account in the configured identity
+database. Its `auth_type` must include `ldap`; the login identifier is matched to
+the account's email. The directory verifies the password, while Coyote3 owns role,
+permission, assay, and environment assignments. LDAP login does not automatically
+create an account or copy directory groups into roles.
+
+1. Enable `ldap` in `AUTHENTICATION_PROVIDERS` alongside `local` when local recovery
+   accounts are needed.
+2. Configure `LDAP_HOST`, the complete `LDAP_BASE_DN`, and `LDAP_USER_LOGIN_ATTR`.
+   The default attribute is `mail`; another attribute must contain the same login
+   identifier as the Coyote3 account email. To restrict search to a subtree, use
+   a full base such as `ou=people,dc=example,dc=org`. A search-account DN is not a
+   substitute for the search base.
+3. Supply both `LDAP_BINDDN` and `LDAP_SECRET` for service-account lookup, or leave
+   both empty only when anonymous searches are supported by the directory.
+4. Select a transport and configure CA trust. Recreate the API after changing
+   configuration. Setting a CA path does not mount the file into the container.
+
+| Transport | `LDAP_HOST` example | `LDAP_USE_SSL` | `LDAP_USE_TLS` | Default port |
+| --- | --- | --- | --- | --- |
+| LDAP with StartTLS | `ldap://directory.example.org` | `0` | `1` | 389 |
+| LDAPS | `ldaps://directory.example.org` | `1` | `0` | 636 |
+
+Both transport flags accept `1`, `true`, `yes`, or `on` for true, and `0` or
+`false` for false. LDAPS takes precedence and never attempts a second StartTLS
+upgrade. With a plain LDAP host and both flags disabled, binds are unencrypted;
+do not use that configuration for production credentials.
+
+The API searches with an escaped equality filter, requires exactly one matching
+entry, and then binds using its DN and the submitted password. Missing or ambiguous
+entries, failed binds, timeouts, and LDAP errors deny login. Searches and binds are
+read-only; automatic referrals are disabled so credentials are not forwarded to
+another directory endpoint. Connections are unbound after use. Directory passwords
+are not stored in Coyote3.
+
+TLS verifies the server certificate and hostname using system trust or
+`LDAP_CA_CERTS_FILE`. A private directory CA must be trusted by the API container;
+a client certificate is not required merely to verify the server. Do not disable
+verification to work around a missing CA. See the
+[ldap3 transport reference](https://ldap3.readthedocs.io/en/latest/ssltls.html)
+for the underlying TLS behavior.
+
+Before enabling LDAP for users, verify a valid login, an incorrect password,
+an unregistered account, an inactive account, and a certificate-trust failure in
+the target deployment. Automated tests use a synthetic in-memory directory and
+mocked transport failures; they do not establish center network or CA readiness.
 
 ### Fixed application defaults
 

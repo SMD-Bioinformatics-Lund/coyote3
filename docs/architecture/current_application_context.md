@@ -99,7 +99,7 @@ Environment variables remain the right place for deployment-specific or sensitiv
 - API/session/token secrets
 - LDAP and SMTP credentials
 - mounted filesystem roots
-- CORS, cookie, and production hardening settings
+- Cookie, CSRF, and production hardening settings
 - organization identity and public content file paths
 - OpenAPI route grouping through the canonical tag taxonomy in
   `api/interfaces/http/tags.py`

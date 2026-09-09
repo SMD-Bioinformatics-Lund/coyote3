@@ -95,13 +95,10 @@ class DashboardMetricSettings:
 
 
 class HttpSecuritySettings:
-    """HTTP routing, browser-session, CORS, and security settings."""
+    """HTTP routing, browser-session, and security settings."""
 
     SCRIPT_NAME = normalize_url_prefix(os.getenv("SCRIPT_NAME", ""))
     INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
-    CORS_ORIGINS: list[str] = [
-        o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()
-    ]
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_COOKIE_SAMESITE = os.getenv("API_SESSION_COOKIE_SAMESITE", "lax")
@@ -123,9 +120,6 @@ class OperationsSettings:
     API_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("API_RATE_LIMIT_WINDOW_SECONDS", "60"))
     PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "")
     PASSWORD_TOKEN_TTL_SECONDS = int(os.getenv("PASSWORD_TOKEN_TTL_SECONDS", str(60 * 60)))
-    WEB_RATE_LIMIT_ENABLED = os.getenv("WEB_RATE_LIMIT_ENABLED", "1") == "1"
-    WEB_RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv("WEB_RATE_LIMIT_REQUESTS_PER_MINUTE", "300"))
-    WEB_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("WEB_RATE_LIMIT_WINDOW_SECONDS", "60"))
 
 
 class KnowledgebaseSettings:
@@ -189,11 +183,13 @@ class DirectoryAndReportSettings:
     LDAP_HOST = os.getenv("LDAP_HOST", "")
     LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "")
     LDAP_USER_LOGIN_ATTR = os.getenv("LDAP_USER_LOGIN_ATTR", "mail")
-    LDAP_USE_SSL = False
-    LDAP_USE_TLS = True
+    LDAP_USE_SSL = _environment_bool("LDAP_USE_SSL", False)
+    LDAP_USE_TLS = _environment_bool("LDAP_USE_TLS", True)
+    LDAP_PORT = int(os.getenv("LDAP_PORT") or "0") or None
+    LDAP_CONNECT_TIMEOUT = int(os.getenv("LDAP_CONNECT_TIMEOUT", "10"))
+    LDAP_CA_CERTS_FILE = os.getenv("LDAP_CA_CERTS_FILE", "")
     LDAP_BINDDN = os.getenv("LDAP_BINDDN", "")
     LDAP_SECRET = os.getenv("LDAP_SECRET", "")
-    LDAP_USER_DN = os.getenv("LDAP_USER_DN", "ou=people")
 
     GENS_URI = os.getenv("GENS_URI", "")
     IGV_URI = os.getenv("IGV_URI", "")
@@ -287,7 +283,6 @@ class ProductionConfig(DefaultConfig):
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
     PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
-    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
 
     @classmethod
@@ -312,7 +307,6 @@ class DevelopmentConfig(DefaultConfig):
     PRODUCTION = False
     ENV_NAME = os.getenv("ENV_NAME", "Development")
     SECRET_KEY = os.getenv("SECRET_KEY")
-    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
     DEBUG: bool = True
 
@@ -329,7 +323,6 @@ class TestConfig(DefaultConfig):
     PRODUCTION = False
     ENV_NAME = os.getenv("ENV_NAME", "Testing")
     SECRET_KEY = os.getenv("SECRET_KEY")
-    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
 
     APP_VERSION: str = f"{app_version}-Test (git: {_active_git_branch_name()})"
 
@@ -360,7 +353,6 @@ class StageConfig(DefaultConfig):
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
     PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
-    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
 
     @classmethod

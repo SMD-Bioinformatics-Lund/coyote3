@@ -34,7 +34,6 @@ required=(
   INTERNAL_API_TOKEN
   PASSWORD_TOKEN_SALT
   REDIS_PASSWORD
-  CORS_ORIGINS
 )
 
 # The explicit app URI supersedes the shared legacy value. Auxiliary URIs may

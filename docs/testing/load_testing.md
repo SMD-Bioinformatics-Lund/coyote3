@@ -210,6 +210,26 @@ match the owner of those host directories. Custom CA files must be inside the mo
 private directory when using Compose. No application environment file or database
 credentials are passed to Locust.
 
+### Load-generator environment reference
+
+`deploy/env/example.loadtest.env` configures the standalone generator, not the
+application. Every setting below is consumed by `docker-compose.loadtest.yml`.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `COYOTE3_LOAD_NETWORK` | `coyote3-loadtest-net` | Existing isolated target network to join; Compose does not create it. |
+| `COYOTE3_LOAD_PORT` | `8089` | Host web-UI port, bound to loopback only. |
+| `COYOTE3_LOAD_UID` | `1000` | Container UID; match the private input and output directory owner. |
+| `COYOTE3_LOAD_GID` | `1000` | Container GID for directory access. |
+| `COYOTE3_LOAD_PRIVATE_DIR` | `../../.coyote3_load` | Read-only configuration and credential directory. Relative paths resolve from `deploy/compose`. |
+| `COYOTE3_LOAD_RESULTS_DIR` | `../../load-results` | Writable results directory; relative paths resolve from `deploy/compose`. |
+| `COYOTE3_LOAD_MEM_LIMIT` | `512m` | Container memory limit. |
+| `COYOTE3_LOAD_CPU_LIMIT` | `1.0` | Container CPU limit. |
+
+Create both directories before starting the generator. Targets, synthetic-account
+credentials, workload choices, and acceptance limits belong in its private JSON
+configuration, not these deployment variables.
+
 ```bash
 docker compose --env-file deploy/env/example.loadtest.env -f deploy/compose/docker-compose.loadtest.yml --profile loadtest down
 ```

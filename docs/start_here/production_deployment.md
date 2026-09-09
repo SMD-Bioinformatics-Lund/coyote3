@@ -93,7 +93,6 @@ COYOTE3_LOGS_HOST_ROOT=/srv/coyote3/logs
 SECRET_KEY=<GENERATED_RANDOM_SECRET>
 INTERNAL_API_TOKEN=<GENERATED_RANDOM_TOKEN>
 PASSWORD_TOKEN_SALT=<GENERATED_RANDOM_SALT>
-CORS_ORIGINS=https://coyote3.example.org
 ```
 
 Generate independent secrets with the center's approved secret-management

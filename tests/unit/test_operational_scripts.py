@@ -66,7 +66,7 @@ def test_preflight_requires_explicit_database_names() -> None:
     script = (REPOSITORY_ROOT / "scripts/center_preflight.sh").read_text(encoding="utf-8")
 
     assert "for key in COYOTE3_DB IDENTITY_DB KNOWLEDGEBASE_DB BAM_DB" in script
-    assert "CORS_ORIGINS COYOTE3_APP_NETWORK" in script
+    assert "PASSWORD_TOKEN_SALT COYOTE3_APP_NETWORK" in script
     assert "from api.config.mongo import mongo_endpoints" in script
     assert "mongo_endpoints(data)" in script
     assert "auth_source != db" not in script
