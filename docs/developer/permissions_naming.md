@@ -38,14 +38,63 @@ The `system_managed` field records ownership:
 
 | Record | Edit definition | Activate or deactivate | Delete |
 | --- | ---: | ---: | ---: |
-| System permission | No | Yes | No |
-| System role | Yes | Yes | No |
+| System permission | No | No | No |
+| System role | No | No | No |
 | Center-created permission | Yes | Yes | Yes |
 | Center-created role | Yes | Yes | Yes |
 
-Deactivating a system permission makes it unavailable to authorization checks. Do this only after verifying the affected routes in the UI route audit. System records remain protected from deletion so an upgrade can reliably refer to their business identifiers.
+Installed identity definitions are read-only through administrative and ingest APIs,
+including for superusers. Create center-owned roles to customize permission bundles.
+Controlled catalog installation may update installed definitions; it is not an
+administrative CRUD operation. User role assignments require `user:role:edit`;
+assay and environment scope assignments require `user:group:edit`, in addition
+to the account endpoint's permission. Omitting scope fields preserves existing scope.
 
 The complete shipped inventory is listed in the [system permission catalog](permission_catalog.md).
+
+## Administrative responsibilities
+
+Routes enforce permissions and assay/environment scope, not a list of administrator
+role names. Roles bundle these permissions for assignment. The centralized
+superuser check is an explicit privileged exception; installed-record protection
+still applies after authorization.
+
+The bundled roles separate clinical governance from account and system operations:
+
+| Role | Scope |
+| --- | --- |
+| `admin`: Clinical administrator | Assays, ASPCs, gene lists, governed catalog and reporting configuration |
+| `sys_admin`: System administrator | Accounts, role assignment, operational controls and system health; no clinical mutation grants |
+| `superuser`: Emergency superuser | Bootstrap and controlled recovery, not routine clinical work |
+
+Prefer named accounts and permission bundles over shared administrator credentials.
+Keep authoring and approval grants separate where a workflow requires an independent
+reviewer. A single responsible owner need not mean a single account capable of recovery.
+Bootstrap creates one named system administrator and one emergency superuser.
+Additional named administrators can be assigned roles; there is no singleton role
+constraint. Assign clinical roles separately when an operator also performs clinical work.
+
+For an existing installation, select an active, non-superuser system owner before
+installing the narrower clinical-administrator grants. With the identity connection
+configured, review and then apply:
+
+```bash
+.venv/bin/python scripts/migrate_administrator_roles.py --system-admin-user ACCOUNT
+.venv/bin/python scripts/migrate_administrator_roles.py --system-admin-user ACCOUNT --apply
+```
+
+This transaction adds `sys_admin` to the selected account and replaces the bundled
+`admin` and `sys_admin` definitions. Existing memberships, custom roles, passwords,
+and installed-account flags remain unchanged. Review any custom grants on these two
+bundled roles first: their definitions are replaced, not merged. Ordinary seed
+synchronization does not remove obsolete grants and is not a substitute for this step.
+
+Permission granularity is not uniform: for example, `snv:manage` covers transcript,
+flag, blacklist, and bulk-tier operations. Splitting these grants requires updating
+routes, UI actions, role seeds, and existing memberships together. Creating a new
+permission document alone does not change authorization. Also review role grants
+rather than trusting labels: the bundled `viewer` includes comment operations and
+is not a strict read-only profile.
 
 ## Enforcement path
 

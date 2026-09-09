@@ -188,7 +188,8 @@ assets and do not run the Vite development watcher.
 ### 6. Bootstrap the empty database
 
 Load the application-owned permission and role catalogs, bundled HGNC and VEP
-reference snapshots, and the first local superuser. Run this command only for
+reference snapshots, one emergency superuser, and one named system administrator.
+Run this command only for
 an empty first installation.
 
 ```bash
@@ -198,12 +199,14 @@ echo
 scripts/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
-  run --rm --no-deps api \
+  run --rm --no-deps -it api \
   python scripts/bootstrap_database.py \
     --mongo-uri "$COYOTE3_MONGO_URI" \
     --identity-mongo-uri "$IDENTITY_MONGO_URI" \
     --db "$COYOTE3_DB" \
     --identity-db "$IDENTITY_DB" \
+    --sys-admin-username "center.operator" \
+    --sys-admin-email "operator@example.org" \
     --username "admin.coyote3" \
     --email "admin@example.org" \
     --password "$FIRST_ADMIN_PASSWORD"
@@ -258,7 +261,9 @@ curl -fsSI "$APP_URL/api/v1/docs"
 
 Confirm that requests use TLS, both the prefix with and without a trailing
 slash work, and no internal container port is exposed to users. Sign in with
-the first administrator and immediately create named operator accounts.
+each initial account and replace its temporary password before continuing.
+Use the system administrator for account operations; assign clinical roles to
+named clinical users. Reserve the superuser for setup and emergency recovery.
 
 ### 9. Import the center clinical configuration
 

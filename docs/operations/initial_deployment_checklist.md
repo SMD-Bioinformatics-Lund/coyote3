@@ -59,16 +59,23 @@ ingest any sample.
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
   --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
+  --sys-admin-username "center.operator" \
+  --sys-admin-email "operator@example.org" \
   --username "admin.coyote3" \
   --email "admin@your-center.org" \
   --password "<GENERATED_ADMIN_PASSWORD>"
 ```
 
-It creates the first local `superuser` and loads bundled `permissions` and
+It creates one local `superuser` and one named `sys_admin`, and loads bundled `permissions` and
 `roles` into `IDENTITY_DB`, then loads `hgnc_genes` and `vep_metadata` into
 `COYOTE3_DB`. A partially initialized identity database is rejected rather
 than modified. A database that already has a superuser is reported and left
 unchanged.
+
+Confirm both password-change prompts on first sign-in. Record the separate account
+owners and keep emergency credentials under controlled access. The
+[first installation guide](../start_here/first_installation.md) describes password
+requirements and the API restrictions before password replacement.
 
 For a nonclinical local demonstration, add `--with-demo-center`. This loads
 only the synthetic ASP, ASPC, and ISGL documents. It does not ingest a sample.

@@ -1,6 +1,6 @@
 # First installation
 
-This procedure prepares an empty MongoDB database, installs the application-owned catalogs, creates the first administrator, and starts Coyote3. Run the steps in order. Bootstrap is an explicit operation and is never performed automatically when the API starts.
+This procedure prepares an empty MongoDB database, installs the application-owned catalogs, creates a named system administrator and an emergency superuser, and starts Coyote3. Run the steps in order. Bootstrap is an explicit operation and is never performed automatically when the API starts.
 
 ## 1. Prepare the host
 
@@ -36,18 +36,30 @@ Create a Python virtual environment and install the project dependencies, or run
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
+  --sys-admin-username "center.operator" \
+  --sys-admin-email "operator@example.org" \
   --username "<first-superuser-username>" \
-  --email "<first-superuser-email>" \
-  --password "<generated-one-time-password>"
+  --email "<first-superuser-email>"
 ```
 
-The command writes only to empty destination collections.
+Enter and confirm each temporary password at the hidden prompts. Use different
+usernames, email addresses, and passwords for the two accounts. Temporary passwords
+must contain at least 12 characters. For automation, `--password` and
+`--sys-admin-password` accept credentials supplied by the deployment secret store;
+do not record them in shell history, logs, or version control. When running the
+interactive command through Compose, use `run --rm --no-deps -it api`.
+
+Permissions, roles, and both accounts are committed together in one identity-database
+transaction. MongoDB must support transactions, including a single-member replica set
+for local development. Existing governance with a superuser is left unchanged;
+partially initialized governance without a superuser is rejected. Reference and
+optional demonstration collections are loaded separately, only when empty.
 
 | Data installed | Collection | Ownership and behavior |
 | --- | --- | --- |
 | System permissions | `permissions` | Shipped with Coyote3. Assign through roles; do not rename or delete. |
-| System roles | `roles` | Shipped role baselines. They may be edited or deactivated, but not deleted. |
-| First local superuser | `users` | Credentials come from the command, not the repository. The account must change its password at first sign-in and cannot be deleted. |
+| System roles | `roles` | Shipped role baselines. Protected from ordinary editing, deactivation, and deletion. |
+| Initial local accounts | `users` | One `sys_admin` and one `superuser`, with operator-supplied credentials. Both must change their password at first sign-in. Profiles, activation, and deletion are protected; password workflows and UI preferences remain available. |
 | HGNC gene reference | `hgnc_genes` | Bundled reference snapshot loaded only when the collection is empty. |
 | VEP metadata | `vep_metadata` | Bundled VEP metadata snapshot loaded only when the collection is empty. |
 
@@ -69,7 +81,20 @@ Use JSON import/export in the administration pages when a reviewed configuration
 
 Build and start the immutable application services with the production Compose files described in the [production deployment guide](production_deployment.md). Confirm that the API health check succeeds, then open the UI through the reverse proxy.
 
-Sign in with the first-superuser account and change its password. Check the Application Controls page for API, worker, scheduler, cache, and MongoDB state.
+Sign in separately with each initial account. Coyote3 redirects to `/change-password`
+before opening the workspace. Enter the current temporary password, a new password,
+and its confirmation. The new password must differ from the current one and contain
+at least 10 characters, including uppercase, lowercase, a number, and a symbol.
+After the change, sign in again: previous sessions are invalidated.
+
+Until the password changes, the API permits only identity/session inspection,
+password change, and sign-out, including for the superuser. This restriction is
+enforced by the API, not just the redirect.
+
+Use the named system administrator for Application Controls and account operations.
+Assign a clinical administrator for clinical configuration. Keep emergency credentials
+under controlled access and test the recovery procedure. See
+[administrative responsibilities](../developer/permissions_naming.md#administrative-responsibilities).
 
 ## 6. Validate the installation
 

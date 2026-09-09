@@ -312,16 +312,17 @@ bootstrap and catalog-sync scripts bridge those two responsibilities:
 
 | Stage | Source | Result |
 | --- | --- | --- |
-| First installation | `api/config/bootstrap/rbac/*.seed.ndjson` | Inserts the full system catalog into empty collections and creates the first local superuser from command-line credentials. |
+| First installation | `api/config/bootstrap/rbac/*.seed.ndjson` | Installs the system catalog and one local `superuser` plus one named `sys_admin` in an identity transaction. Credentials are supplied by the operator; both accounts must change their password on first sign-in. |
 | Runtime | MongoDB `permissions`, `roles`, and `users` | Resolves active grants for each authenticated request. |
 | Upgrade | `scripts/sync_rbac_catalog.py` | Adds newly shipped permissions, marks bundled IDs as system-managed, and unions new grants into bundled roles without removing center-owned grants or roles. |
 | Documentation | `scripts/export_permissions_reference.py` | Generates the permission catalog from the same permission seed. |
 
-System permission definitions cannot be edited or deleted, but may be
-deactivated. Bundled roles, the bootstrap superuser, and demo clinical
-configuration cannot be deleted. Their editable fields and active state remain
-under the normal permission and validation rules. New records created through
-the API are always center-owned; clients cannot set `system_managed`.
+Installed permission, role, and bootstrap-user definitions cannot be edited,
+deactivated, or deleted through administrative or ingest APIs. Dedicated password
+flows, authentication state, and UI preferences remain available. Demo clinical
+configuration retains its normal edit and activation controls but cannot be deleted.
+New records created through the API are center-owned; clients cannot set
+`system_managed`. Use center-owned roles for local permission bundles.
 
 For a new protected action:
 

@@ -63,11 +63,12 @@ runs only against empty governance collections.
 ## Database bootstrap method
 
 - Run `scripts/bootstrap_database.py` before application services are started.
-- Pass the first local superuser identity explicitly:
-  - `--username`
-  - `--email`
-  - `--password`
-- The bootstrap command assigns `superuser`, not `admin`, by default.
+- Pass the emergency account using `--username` and `--email`, and the named system
+  administrator using `--sys-admin-username` and `--sys-admin-email`.
+- Omit `--password` and `--sys-admin-password` for hidden, confirmed password prompts.
+  Both accounts must replace their temporary password at first sign-in.
+- Bootstrap assigns `superuser` and `sys_admin` respectively. The clinical
+  administrator role is `admin` and is assigned separately.
 - A complete existing installation is left unchanged. Partial governance data
   without a superuser is rejected for manual review.
 - Additional superusers must be created by an existing authenticated superuser.
@@ -80,6 +81,8 @@ Standard command shape:
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
+  --sys-admin-username "center.operator" \
+  --sys-admin-email "operator@example.org" \
   --username "admin.coyote3" \
   --email "admin@your-center.org" \
   --password "<ADMIN_PASSWORD>"

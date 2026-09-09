@@ -1,0 +1,13 @@
+# Optional local SMTP capture. Combine with the application's Compose files.
+# No relay is configured; captured mail stays inside this disposable service.
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.1
+    profiles: [mail]
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    networks: [app]
+    environment:
+      MP_MAX_MESSAGES: "500"
+    restart: "no"

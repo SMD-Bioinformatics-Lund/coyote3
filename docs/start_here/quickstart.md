@@ -64,16 +64,24 @@ sample.
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
   --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
+  --sys-admin-username "center.operator" \
+  --sys-admin-email "operator@example.org" \
   --username "<first-superuser-username>" \
   --email "<first-superuser-email>" \
   --password "<generate-a-unique-password>"
 ```
 
-This creates the first local superuser and initializes `permissions` and `roles`
+This creates one local superuser and one named system administrator, and initializes `permissions` and `roles`
 in `IDENTITY_DB`, plus `hgnc_genes` and `vep_metadata` in `COYOTE3_DB`. It stops
 rather than mixing data into a partially initialized identity database. To
 install the synthetic ASP, ASPC, and ISGL demonstration catalog for a
 nonclinical local environment, add `--with-demo-center`.
+
+The omitted system-administrator password is requested through a hidden prompt;
+omit `--password` to prompt for the emergency account too. Both accounts must
+replace their temporary password on first sign-in before opening the workspace.
+See [first installation](first_installation.md) for password requirements and
+administrative responsibilities.
 
 For a clinical deployment, import reviewed center-owned ASP, ASPC, and ISGL
 definitions after startup through the managed admin interfaces or approved

@@ -70,20 +70,29 @@ runtime warning; production deployments must terminate TLS before the API.
 Durable notifications are stored in the configured `notifications` collection.
 Each document contains an audience (`all` or `users`), optional recipient
 usernames, category, severity, title, message, creation metadata, expiry time,
-and per-user `read_by` and `dismissed_by` arrays. MongoDB removes expired rows
-through the `expires_on` TTL index.
+and per-user `read_by` and `dismissed_by` arrays. Expiry hides messages from the
+inbox without removing their MongoDB records; the expiry index is not a TTL index.
 
 Visibility is evaluated as:
 
 1. the audience is `all`, or the authenticated username is in `recipients`;
-2. the authenticated username is not in `dismissed_by`.
+2. the message is neither withdrawn nor expired;
+3. for personal messages, the authenticated username is not in `dismissed_by`.
 
-Read and dismissal state is additive and scoped to one username. Dismissing an
-application-wide message does not delete the shared message or affect other
-users. Administrative publication emits `notification.broadcast.created` in
+Read state is scoped to one username. Personal-message dismissal affects only
+that recipient. Broadcasts cannot be dismissed by recipients; only their sender
+can withdraw them for everyone. Administrative publication emits `notification.broadcast.created` in
 the audit collection. A valid local password-reset request emits a security
 notification to active admin/superuser accounts and a corresponding
 `authentication.password_reset.requested` audit event.
+
+Marking a notification read does not clear it. Read messages remain in the tray
+until their visibility deadline, personal-message clearing, or sender withdrawal.
+Closing a toast marks it read without clearing the inbox item. New administrative
+broadcasts snapshot the selected active recipients, including the all-users option;
+accounts created later do not inherit earlier broadcasts. Optional email delivery
+uses recipient-specific leases in the same notification document. See
+[email and notifications](email_and_notifications.md) for delivery and test setup.
 
 Browser-generated API success and failure messages remain local workflow
 feedback. They are stored under `coyote3.notifications:<username>` and are not

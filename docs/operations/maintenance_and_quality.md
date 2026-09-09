@@ -54,6 +54,8 @@ Example staging command:
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
+  --sys-admin-username "center.operator" \
+  --sys-admin-email "operator@example.org" \
   --username "admin.coyote3" \
   --email "admin@coyote3.local" \
   --password "ENFORCED_SECRET"

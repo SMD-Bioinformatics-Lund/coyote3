@@ -72,9 +72,9 @@ in it.
 
 | Record | Installed content | What an administrator can change | Protected action |
 | --- | --- | --- | --- |
-| Permission policy | Every permission understood by the shipped API and UI. | Activate or deactivate it; assign or remove it through roles. | Rename, edit, and delete. |
-| Role | Standard clinical, operational, and administrative role baselines. | Edit grants and metadata; activate or deactivate it. | Delete. |
-| First superuser | One local account whose credentials are supplied to the bootstrap command. | Edit ordinary account fields and active state, subject to superuser safeguards. | Delete. |
+| Permission policy | Every permission understood by the shipped API and UI. | Assign through center-owned roles. | Edit, activation changes, and delete. |
+| Role | Standard clinical, operational, and administrative role baselines. | Assign to authorized accounts; create a separate center-owned role for custom grants. | Edit, activation changes, and delete. |
+| Initial administrators | One named `sys_admin` and one emergency `superuser`, supplied during bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
 | Demo ASP, ASPC, and ISGL | Synthetic configuration installed only with `--with-demo-center`. | Edit and deactivate for disposable validation. | Delete. |
 
 Center-created users, roles, permission policies, ASPs, ASPCs, and ISGLs do
@@ -227,7 +227,7 @@ The Permissions table distinguishes two policy sources:
 
 | Source | Meaning | Allowed administration actions |
 | --- | --- | --- |
-| **System** | Shipped with Coyote3 and required by protected application operations. | View, activate/deactivate, and assign through roles. The definition cannot be edited or deleted. |
+| **System** | Shipped with Coyote3 and required by protected application operations. | View and assign through center-owned roles. Editing, activation changes, and deletion are blocked. |
 | **Custom** | Created by the deploying center for local integrations or center-owned workflows. | View, edit, activate/deactivate, delete, and assign through roles, subject to the caller's permissions. |
 
 System permission locking protects the contract between API operations and the
@@ -258,6 +258,11 @@ requests.
 
 Notifications are recipient-scoped. The history view groups operational,
 clinical, account, and broadcast messages for the authenticated user.
+
+Each collapsed row shows the title and severity. Expand it to read the body;
+opening a message marks it read without clearing it. Personal messages can be
+cleared individually or together. Broadcasts remain until their sender withdraws
+them or their configured expiry is reached; recipients cannot clear them.
 
 ![Notification history](../assets/screenshots/notifications.png)
 
@@ -305,9 +310,10 @@ The **Admin -> Broadcast Notifications** page is available to roles carrying
 | --- | --- | --- |
 | Audience | All active users; Users with selected roles; Selected users | Defines the recipient-resolution strategy. |
 | Category | Application; Feature; Maintenance; Security; Warning | Identifies the operational subject of the message. |
-| Severity | Information; Success; Warning; Critical | Controls the visual urgency shown in the inbox and toast. |
+| Severity | Info; Important; Success; Warning; Critical | Semantic badge shown in the inbox, toast, and email. |
 | Title | 3-160 characters | Concise summary shown in notification lists. |
-| Message | 1-5000 characters | User-facing detail and any required action. |
+| Message | 1-5000 characters of Markdown | Formatted detail and required action; use Write and Preview before sending. |
+| Expires at | Optional future date and local time | Hides the message for every recipient at expiry; blank means it remains until withdrawn. |
 
 Role mode lists active roles and shows the number of active accounts resolved
 for each role. Selected-user mode lists active accounts and supports searching
@@ -317,7 +323,16 @@ historical audience. Review the confirmation dialog before sending. A sent
 broadcast cannot be edited in place; issue a corrected message when operational
 information changes.
 
+**Sent broadcasts** includes the sender's active, expired, and withdrawn messages.
+Expand a message and choose **Withdraw for everyone** to remove it from all inboxes.
+Only the original sender can do this, including when the sender was not a recipient.
+The message and withdrawal metadata remain in MongoDB. Expiry likewise hides rather
+than deletes the record. Inbox updates normally appear within 30 seconds.
+
+Configured broadcasts also send a branded email with their severity and an inbox
+link, not the broadcast body. See [email delivery and local testing](../operations/email_and_notifications.md).
+
 Password-reset requests for valid local accounts create a security notice for
-active administrators and superusers. This notice supports account operations;
+active system administrators and superusers. This notice supports account operations;
 the public reset page still returns the same neutral response for valid and
 invalid identifiers.

@@ -381,12 +381,14 @@ bash scripts/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
-  run --rm --no-deps api \
+  run --rm --no-deps -it api \
   python scripts/bootstrap_database.py \
     --mongo-uri "$(grep '^COYOTE3_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --identity-mongo-uri "$(grep '^IDENTITY_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --db coyote3_validation \
     --identity-db coyote3_identity_validation \
+    --sys-admin-username "center.operator" \
+    --sys-admin-email "operator@example.org" \
     --username coyote3.admin \
     --email admin@validation.invalid \
     --password "$VALIDATION_ADMIN_PASSWORD" \

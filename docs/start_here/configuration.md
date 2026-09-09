@@ -256,7 +256,7 @@ registration is not configurable through an environment variable.
 | `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
 | `COYOTE3_UID` | No | Positive integer; default `10001` | Numeric UID used by application containers. The data and log host roots must be writable by this UID or its configured group. |
 | `COYOTE3_GID` | No | Positive integer; default `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
-| `NOTIFICATION_RETENTION_DAYS` | No | Days; default `180` | Notification retention window. |
+| `NOTIFICATION_RETENTION_DAYS` | No | Days; default `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer; Compose default `2` | Celery worker process concurrency. |
@@ -293,7 +293,9 @@ registration is not configurable through an environment variable.
 | `SMTP_PASSWORD` | Mail deployments | Secret password or empty | SMTP password if required. |
 | `SMTP_USE_TLS` | Mail deployments | `1` or `0` | Enables STARTTLS. |
 | `SMTP_USE_SSL` | Mail deployments | `1` or `0` | Enables implicit SSL. |
-| `SMTP_FROM_EMAIL` | Mail deployments | Email address | Sender for invite and password reset messages. |
+| `SMTP_FROM_EMAIL` | Mail deployments | Email address; default `no-reply@coyote3.local` | Unmonitored sender for account invitations and general messages. |
+| `SMTP_SECURITY_FROM_EMAIL` | Mail deployments | Email address; default `security@coyote3.local` | Unmonitored sender for password and account-security messages. |
+| `SMTP_INFO_FROM_EMAIL` | Mail deployments | Email address; default `info@coyote3.local` | Unmonitored sender for broadcasts. Configure all senders on a relay-authorized center domain in production. |
 | `SMTP_FROM_NAME` | Mail deployments | Display name | Sender display name. |
 | `PASSWORD_TOKEN_TTL_SECONDS` | No | Seconds | Invite/reset token lifetime. |
 | `API_RATE_LIMIT_ENABLED` | No | `1` or `0`; default `1` | Enables API rate limiting. |

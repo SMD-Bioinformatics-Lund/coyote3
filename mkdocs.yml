@@ -104,6 +104,7 @@ nav:
       - Migrate an existing Coyote v3 installation: operations/upgrade_from_v3.md
       - Center configuration files: operations/center_configuration_files.md
       - Environment and secrets: operations/environments_and_secrets.md
+      - Email and notifications: operations/email_and_notifications.md
       - Data requirements: operations/deployment_data_requirements.md
       - Deployment reference: operations/deployment_guide.md
       - Minimum production baseline: operations/minimum_production_baseline.md
