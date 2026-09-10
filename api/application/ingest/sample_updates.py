@@ -24,7 +24,9 @@ def next_unique_name(service: Any, case_id: str, increment: bool) -> str:
     if not existing_exact:
         return case_id
     if not increment:
-        raise ValueError("Sample already exists; set increment=true to auto-suffix")
+        raise ValueError(
+            f"Sample '{case_id}' already exists; set increment=true to create a new auto-suffixed sample or update_existing=true to update it"
+        )
 
     suffixes: list[str] = []
     true_matches = 0

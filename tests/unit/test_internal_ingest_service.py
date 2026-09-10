@@ -1014,6 +1014,50 @@ def test_next_unique_name(monkeypatch):
     assert service._next_unique_name("CASE", increment=True) == "CASE-3"
 
 
+def test_duplicate_is_rejected_before_analysis_processing(monkeypatch):
+    service = _use_store(monkeypatch, _store_stub([{"name": "CASE"}]))
+    monkeypatch.setattr(
+        service,
+        "_validate_payload_file_keys",
+        lambda *_: pytest.fail("File policy ran before duplicate check"),
+    )
+    monkeypatch.setattr(
+        service, "_parse_preload", lambda *_: pytest.fail("Analysis files were parsed")
+    )
+    with pytest.raises(ValueError, match="increment=true"):
+        service.ingest_sample_bundle({"name": "CASE"})
+    service.preflight_sample_name({"name": "CASE"}, increment=True)
+    service.preflight_sample_name({"name": "CASE"}, allow_update=True)
+
+
+def test_upload_preflight_runs_before_archive_and_file_policy(tmp_path):
+    from io import BytesIO
+
+    from fastapi import UploadFile
+
+    from api.interfaces.http.operations.internal import _prepare_uploaded_bundle
+
+    def reject(payload):
+        assert payload["name"] == "CASE"
+        raise ValueError("Sample already exists; set increment=true")
+
+    service = SimpleNamespace(
+        parse_yaml_payload=lambda _: {"name": "CASE"},
+        _assay_file_policy=lambda **_: pytest.fail("File policy ran before preflight"),
+    )
+    archive = BytesIO(b"unread archive")
+    with pytest.raises(ValueError, match="increment=true"):
+        _prepare_uploaded_bundle(
+            yaml_file=UploadFile(filename="sample.yaml", file=BytesIO(b"name: CASE")),
+            data_archive=UploadFile(filename="data.zip", file=archive),
+            staging_dir=tmp_path,
+            ingest_service=service,
+            preflight=reject,
+        )
+    assert archive.tell() == 0
+    assert not list(tmp_path.iterdir())
+
+
 def test_build_anno_vep_docs_includes_selected_and_alternate_transcripts():
     docs = ingest_parsers._build_anno_vep_docs(
         [

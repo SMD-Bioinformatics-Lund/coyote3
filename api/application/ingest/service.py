@@ -216,6 +216,25 @@ class InternalIngestService:
             & self.collection_gateway.collection_names()
         )
 
+    def preflight_sample_name(
+        self, payload: dict[str, Any], *, allow_update: bool = False, increment: bool = False
+    ) -> None:
+        """Reject duplicate creation before reading declared analysis files.
+
+        Args:
+            payload: Parsed manifest containing the sample name.
+            allow_update: Permit the existing sample update workflow.
+            increment: Permit automatic naming of a new sample copy.
+
+        Raises:
+            ValueError: The name is missing or already exists without either option.
+        """
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise ValueError("name is required")
+        if not allow_update and not increment:
+            self._next_unique_name(name, False)
+
     def parse_yaml_payload(self, yaml_content: str) -> dict[str, Any]:
         """Parse and validate a YAML ingest payload string.
 
@@ -672,6 +691,7 @@ class InternalIngestService:
         if allow_update:
             return self._ingest_update(parsed_payload, record_completion=record_completion)
 
+        self.preflight_sample_name(parsed_payload, increment=increment)
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
         declared_file_keys = self._validate_declared_file_resources(parsed_payload)

@@ -104,10 +104,16 @@ OPENAPI_TAGS = [
     },
 ]
 
+OPENAPI_TAGS.append(
+    {
+        "name": "Sample ingestion",
+        "description": "Submit YAML and optional ZIP bundles. Synchronous endpoints accept expiring ingestion tokens; async submission and task polling require user authentication. Health checks require no token.",
+    }
+)
 OPENAPI_TAG_NAMES = tuple(tag["name"] for tag in OPENAPI_TAGS)
 
 OPENAPI_TAG_GROUPS = [
-    {"name": "Access & discovery", "tags": [TAG_AUTH, TAG_PUBLIC]},
+    {"name": "Access & discovery", "tags": [TAG_AUTH, TAG_PUBLIC, "Sample ingestion"]},
     {
         "name": "Clinical review",
         "tags": [

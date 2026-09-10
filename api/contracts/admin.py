@@ -2,9 +2,28 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class IngestTokenIssueRequest(BaseModel):
+    """Request a bounded pipeline credential lifetime."""
+
+    model_config = ConfigDict(extra="forbid")
+    expires_hours: int = Field(default=24, ge=1, le=720, strict=True)
+
+
+class IngestTokenIssueResponse(BaseModel):
+    """Credential returned once with its server-selected scope and expiry."""
+
+    token: str
+    token_id: str
+    expires_at: datetime
+    environment: str
+    scope: str
+    header: str
 
 
 class AdminListPagePayload(BaseModel):

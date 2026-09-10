@@ -12,7 +12,7 @@ from api.app.documentation import API_DESCRIPTION, register_api_documentation
 from api.app.http import api_error, get_formatted_assay_config
 from api.app.lifecycle import create_lifespan, register_route_modules
 from api.app.middleware import build_authentication_middleware, build_security_headers_middleware
-from api.app.openapi import apply_openapi_security_schema
+from api.app.openapi import SAMPLE_INGEST_PATHS, apply_openapi_security_schema
 from api.app.runtime_state import app as runtime_app
 from api.config import configure_process_env, get_runtime_mode_flags
 from api.config.runtime_settings import DefaultConfig
@@ -152,7 +152,7 @@ def create_api_app() -> FastAPI:
     app = FastAPI(
         title="Coyote3 API",
         description=description,
-        version=version.__version__,
+        version=version.environment_version(environment),
         root_path=script_name,
         root_path_in_servers=bool(script_name),
         docs_url=None,
@@ -180,9 +180,18 @@ def create_api_app() -> FastAPI:
     app.openapi = lambda: apply_openapi_security_schema(app)
     register_api_documentation(app, environment=environment)
     for registration in ROUTERS:
+        selected = SAMPLE_INGEST_PATHS | {"/api/v1/health"}
+        has_selected = any(
+            getattr(route, "path", "") in selected for route in registration.router.routes
+        )
+        if has_selected:
+            for route in registration.router.routes:
+                route.include_in_schema = getattr(route, "path", "") in selected
+                if route.include_in_schema:
+                    route.tags = ["Sample ingestion"]
         app.include_router(
             registration.router,
-            include_in_schema=registration.include_in_schema,
+            include_in_schema=registration.include_in_schema or has_selected,
         )
     register_route_modules()
     return app

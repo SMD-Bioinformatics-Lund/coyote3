@@ -112,6 +112,18 @@ def test_documentation_groups_include_every_tag_once(monkeypatch):
     assert "/api/v1/redoc" not in schema["paths"]
     assert schema["servers"] == [{"url": app.root_path or "/"}]
     assert schema["paths"]["/api/v1/samples"]["get"]["security"]
+    sync_security = schema["paths"]["/api/v1/internal/ingest/sample-bundle/upload"]["post"][
+        "security"
+    ]
+    assert {"IngestToken": []} in sync_security
+    async_security = schema["paths"]["/api/v1/internal/ingest/sample-bundle/upload/async"]["post"][
+        "security"
+    ]
+    assert {"IngestToken": []} not in async_security
     routes = list(iter_route_contexts(app.routes))
     assert any(route.path == "/api/v1/health" for route in routes)
-    assert not any(path.startswith("/api/v1/internal/") for path in schema["paths"])
+    from api.app.openapi import SAMPLE_INGEST_PATHS
+
+    assert {
+        path for path in schema["paths"] if path.startswith("/api/v1/internal/")
+    } == SAMPLE_INGEST_PATHS

@@ -56,6 +56,7 @@ from api.security.access import (
     _enforce_access,
     _require_internal_token,
     require_access,
+    require_sample_ingest_access,
 )
 from api.tasks.ingest import (
     ingest_sample_bundle_task,
@@ -284,7 +285,7 @@ def get_ingest_collection_status_internal(
 def ingest_sample_bundle_internal(
     payload: InternalIngestSampleBundleRequest,
     acknowledge: bool = False,
-    user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    user: ApiUser = Depends(require_sample_ingest_access),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Create a fresh sample and all dependent analysis documents atomically."""
@@ -375,16 +376,25 @@ def _ingest_acknowledgement(
     }
 
 
+def _preflight_sample_upload(user, service, payload, update_existing, increment):
+    """Authorize the manifest scope before checking its name for an early conflict."""
+    _enforce_sample_ingest_permission(user, payload)
+    service.preflight_sample_name(payload, allow_update=update_existing, increment=increment)
+
+
 def _prepare_uploaded_bundle(
     *,
     yaml_file: UploadFile,
     data_archive: UploadFile | None,
     staging_dir: Path,
     ingest_service: InternalIngestService,
+    preflight=None,
 ) -> dict:
     """Parse a manifest and resolve declared paths against one uploaded ZIP archive."""
     yaml_content = yaml_file.file.read().decode("utf-8")
     source_payload = ingest_service.parse_yaml_payload(yaml_content)
+    if preflight is not None:
+        preflight(source_payload)
     expected_keys, required_keys = ingest_service._assay_file_policy(
         assay_name=source_payload.get("asp_id"),
         omics_layer=source_payload.get("omics_layer"),
@@ -470,7 +480,7 @@ def ingest_sample_bundle_upload_internal(
     update_existing: bool = Form(False),
     increment: bool = Form(False),
     acknowledge: bool = Form(False),
-    user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
+    user: ApiUser = Depends(require_sample_ingest_access),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Upload YAML + data files, stage runtime files server-side, and ingest sample bundle."""
@@ -489,6 +499,9 @@ def ingest_sample_bundle_upload_internal(
             data_archive=data_archive,
             staging_dir=staging_dir,
             ingest_service=ingest_service,
+            preflight=lambda payload: _preflight_sample_upload(
+                user, ingest_service, payload, update_existing, increment
+            ),
         )
         _enforce_sample_ingest_permission(user, source_payload)
         result = ingest_service.ingest_sample_bundle(
@@ -601,6 +614,9 @@ def enqueue_ingest_sample_bundle_upload_internal(
             data_archive=data_archive,
             staging_dir=staging_dir,
             ingest_service=ingest_service,
+            preflight=lambda payload: _preflight_sample_upload(
+                user, ingest_service, payload, update_existing, increment
+            ),
         )
 
         queue = DefaultConfig.CELERY_INGEST_QUEUE

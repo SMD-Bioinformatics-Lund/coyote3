@@ -35,12 +35,14 @@ def test_api_routes_use_only_registered_openapi_tags():
 
 
 def test_openapi_exposes_supported_contract_and_hides_runtime_plumbing():
-    """OpenAPI visibility must not expose health or internal integration routes."""
+    """Expose selected ingestion routes while keeping unrelated internals hidden."""
     schema = app.openapi()
     paths = set(schema.get("paths", {}))
 
-    assert "/api/v1/health" not in paths
-    assert not any(path.startswith("/api/v1/internal/") for path in paths)
+    from api.app.openapi import SAMPLE_INGEST_PATHS
+
+    assert "/api/v1/health" in paths
+    assert {path for path in paths if path.startswith("/api/v1/internal/")} == SAMPLE_INGEST_PATHS
     assert "/api/v1/samples" in paths
     assert "/api/v1/admin/controls" in paths
     assert "/api/v1/notifications" not in paths

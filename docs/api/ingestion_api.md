@@ -2,10 +2,19 @@
 
 ## Authorization and write boundaries
 
-All ingest routes require `internal.ingest:manage`. Sample-bundle operators also
+User-authenticated ingest routes require `internal.ingest:manage`. Sample-bundle operators also
 need `sample:edit:own` for the manifest's assay and environment. Non-superuser
 requests must supply both `asp_id` and `environment`. Ingest updates cannot
 change a sample's assay or environment; use sample administration for scope changes.
+
+The synchronous sample-bundle JSON and upload routes additionally accept
+`X-Coyote-Internal-Token`, using the deployment's existing `INTERNAL_API_TOKEN`.
+This creates a request-scoped `internal-ingest` machine identity, not a user
+account or session. It can ingest active assays in the deployment's `ENV_NAME`
+environment, including explicitly requested sample updates. It cannot use user
+administration, arbitrary collection ingestion, asynchronous submission, or task
+status routes. Missing/invalid tokens fail authentication; browser user sessions
+retain their existing RBAC and assay scope checks.
 
 Direct identity and clinical collection imports are superuser-only because raw
 inserts and replacements bypass the dedicated account and clinical workflows.
@@ -142,6 +151,161 @@ and displays worker state, completion status, errors, and the final ingest resul
 This is the supported browser workflow for manual operator-triggered ingestion.
 
 ## Remote manifest acknowledgement
+
+Duplicate sample names are checked after parsing and authorizing the YAML, before
+ZIP extraction and analysis-file processing. Without `update_existing=true` or
+`increment=true`, an existing name fails with instructions to choose one of those
+options. Multipart request bytes may already have been received by the HTTP server;
+this check avoids ingestion processing, not network transfer. Final name and
+database constraints still apply if another request creates a sample concurrently.
+
+### Expiring credentials for unattended uploads
+
+An authenticated user with `ingest.token:issue` can call
+`POST /api/v1/admin/ingest-tokens` with `{"expires_hours": 24}`. Assign this
+permission explicitly through your role policy after synchronizing the RBAC
+catalog. User bearer sessions or browser sessions are accepted; browser sessions
+also require `X-CSRF-Token`. Internal secrets and ingestion tokens do not authorize
+issuance. No Docker command is needed. The pipeline itself needs no user login.
+
+For example, using an authorized user's existing session token:
+
+```bash
+umask 077
+curl --fail --silent --show-error \
+  "${BASE_URL}/api/v1/admin/ingest-tokens" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
+  -H 'Content-Type: application/json' \
+  --data '{"expires_hours":24}' > ingest-credential.json
+export COYOTE3_INGEST_TOKEN="$(python3 -c 'import json; print(json.load(open("ingest-credential.json"))["token"])')"
+```
+
+The response includes `token`, `token_id`, `expires_at`, `environment`, `scope`,
+and `header`, with `Cache-Control: no-store`. Save it securely: there is no token
+retrieval endpoint. Issuance records the authenticated issuer, credential ID,
+scope, and expiry in the audit, never the credential value. If the audit cannot
+be persisted, issuance fails without returning a token.
+
+Use `--auth ingest` with `scripts/submit_ingest_manifest.py`, or send the token in
+`X-Coyote-Ingest-Token`. Keep the file private. The token can be reused until its
+expiry (default 24 hours, maximum 720 hours); it is not a single-use token. Issue
+a replacement before expiry for scheduled pipelines. Its audit identity includes
+a unique token identifier. It is limited to synchronous sample-bundle ingestion
+in the environment where it was issued; async and task endpoints require user
+authentication. Other administrative endpoints do not accept it.
+
+Issuing a new token does not revoke older tokens. Rotating `INTERNAL_API_TOKEN`
+and recreating the API invalidates all tokens signed with the previous secret
+and affects other clients using that internal secret. Individual token revocation
+is not implemented. Distribute the expiring token, not the signing secret.
+
+The token's environment identifies the API deployment accepting the request,
+not the sample profile in the YAML. A development API can ingest a manifest with
+`profile: production` to test production analysis configuration. The manifest's
+profile is preserved; database connections come from the deployment settings.
+The token remains invalid on a different deployment environment. User-session
+uploads retain their existing role and sample-scope checks.
+
+### Built-in directory watcher
+
+The Celery beat schedule dispatches the ingestion watcher when
+`COYOTE3_INGEST_WATCH_ENABLED=1`. A worker scans the mounted ingest watch directory
+for `COYOTE3_INGEST_WATCH_FILENAME` (default `coyote3.yaml`), registers durable jobs,
+with scans scheduled by `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` (default 30 seconds),
+and invokes ingestion directly. It does not call the upload API and uses no HTTP
+token. Its audit identity is `ingest-watcher`. Successful jobs rename the manifest
+with the done suffix; nonretryable failures use the failed suffix. Retryable or
+busy jobs remain available for a later scan. The worker needs filesystem access
+to the manifest and data, plus directory write permission for acknowledgement.
+Use the deployment-server SCP helper when files are only available remotely.
+For development the container watch path is
+`/data/coyote3_dev/copied_sample_files/yaml`; with `/data/coyote3:/data`, its host
+path is `/data/coyote3/coyote3_dev/copied_sample_files/yaml`.
+
+### Deployment-server helper
+
+Run `scripts/submit_ingest_manifest.py` on the deployment server. Use
+`--remote-host USER@ANALYSIS_SERVER` to fetch the YAML and optional ZIP with SCP,
+submit them to the API, then rename the original YAML through SSH after a terminal
+acknowledgement. SCP cannot rename remote files; SSH command access is required.
+The helper requires Python 3.10+, `curl`, `ssh`, and `scp` on the deployment server;
+it has no Coyote3 Python package or MongoDB dependency. The analysis server needs
+a POSIX shell and `sha256sum`, `ln`, and `rm`, but no installed helper or API token.
+Configure SSH key/agent access and verified host keys beforehand. The SSH account
+must be able to read the inputs and modify their directory. Remote paths must be
+absolute, without spaces or shell metacharacters.
+
+By default the helper reads `INTERNAL_API_TOKEN` and sends the internal
+header, so unattended pipelines do not log in. Use the same secret value as the
+target deployment's private env file; do not generate a different client token.
+
+```bash
+read -rsp 'Internal API token: ' INTERNAL_API_TOKEN; echo
+export INTERNAL_API_TOKEN
+python3 scripts/submit_ingest_manifest.py /pipeline/outgoing/sample.yaml \
+  --remote-host pipeline@analysis.example.org \
+  --base-url https://coyote.example.org/coyote3_dev \
+  --archive /pipeline/outgoing/sample.upload.zip
+```
+
+Include the application path prefix in `--base-url`, but not `/api/v1`.
+For cron or a pipeline service, supply `INTERNAL_API_TOKEN` through its protected
+environment/secret configuration instead of prompting. Do not put the value in
+the command line or commit it. Existing user session tokens remain supported
+with `--auth bearer` and `API_BEARER_TOKEN`.
+
+Check connectivity without any credentials before submitting:
+
+```bash
+curl --fail --show-error --silent --max-time 15 \
+  https://coyote.example.org/coyote3_dev/api/v1/health
+```
+
+The expected response is `{"status":"ok"}`. This lightweight endpoint checks API
+reachability, not all database permissions or ingest readiness. Configure a trusted
+CA bundle if needed; do not disable certificate verification.
+
+Alternatively set `COYOTE3_BASE_URL`. Omit `--archive` when every required
+input path in the YAML is already readable inside the API container. A YAML
+upload alone does not transfer its referenced data. ZIP entries must match the
+manifest paths or have unique matching basenames, as for the UI upload.
+
+The script uses the synchronous endpoint below and appends the outcome to the
+original filename: `sample.yaml.done` for `status=ok`, or `sample.yaml.failed`
+for `status=failed`. In remote mode, it saves the full reason/result in a hashed
+`.ack.json` file under `~/.local/state/coyote3-ingest` on the deployment server
+(`$XDG_STATE_HOME/coyote3-ingest` when set). Use `--state-dir` to select another
+durable directory. Receipts have owner-only permissions and are saved before the
+remote rename. A hash check prevents acknowledging a YAML changed since upload.
+Both statuses leave the input ZIP untouched; downloaded temporary copies are removed.
+A local state lock prevents competing submissions from this deployment server.
+Run one coordinator for each remote manifest and retain its receipt directory.
+
+Without `--remote-host`, inputs are local: the receipt is `sample.yaml.ack.json`
+and the lock is `sample.yaml.submit.lock` beside the YAML.
+
+Exit codes:
+
+| Code | Result | Original manifest |
+| --- | --- | --- |
+| `0` | API acknowledged success | `.done` appended |
+| `1` | API acknowledged ingest failure | `.failed` appended |
+| `2` | Transport, HTTP, invalid response, or finalization error | Finalization unconfirmed; inspect the receipt and diagnostic |
+
+Use `--timeout SECONDS` (default 1800) for the complete request, and `--ca-bundle`
+for a center CA certificate. Certificate verification remains enabled. Proxy
+timeouts still apply independently. `--update-existing` and `--increment` pass
+the corresponding ingest options to the API.
+
+There are no automatic upload retries. A connection failure or timeout can occur
+after the API commits: inspect the application audit before resubmitting an
+unacknowledged input. Do not blindly retry exit code 2 from cron. When a terminal
+receipt exists but the YAML rename failed, rerunning the same command completes
+the rename without uploading again, provided the YAML hash, API URL, and remote
+location still match. This also handles a lost SSH response after a completed rename.
+Existing `.done` and `.failed` files are never overwritten. After
+correcting an acknowledged failure, archive the previous receipt and failed
+manifest before submitting the corrected YAML under its original name.
 
 Use the synchronous upload endpoint with `acknowledge=true` when a remote
 pipeline owns the manifest directory and the application may only read it. The

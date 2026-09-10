@@ -137,6 +137,7 @@ or delete installed definitions. Catalog updates use the controlled installation
 
 | Permission ID | Label | What it permits |
 | --- | --- | --- |
+| `ingest.token:issue` | Issue ingestion tokens | Issue expiring environment-bound credentials for unattended synchronous sample ingestion. |
 | `internal.ingest:manage` | Manage internal ingestion | Submit validated sample bundles and collection documents to synchronous or queued ingestion workflows. |
 | `sample:delete:global` | Delete any sample | Delete an authorized sample and its dependent clinical records through the sample deletion workflow. |
 | `sample:edit:global` | Edit any sample | Edit mutable sample administration fields across all authorized groups. |

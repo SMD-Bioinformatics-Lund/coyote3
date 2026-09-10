@@ -32,6 +32,7 @@ from api.config.security import (
 )
 from api.config.security import (
     get_internal_api_token,
+    get_runtime_environment,
 )
 from api.domain.core.models.user import UserModel
 from api.security.audit_events import emit_access_event
@@ -99,6 +100,10 @@ class ApiUser:
     def is_superuser(self) -> bool:
         """Return whether the authenticated user is a superuser."""
         return "superuser" in set(self.roles)
+
+
+class InternalIngestPrincipal(ApiUser):
+    """Identify an authenticated machine caller with fixed sample-ingest grants."""
 
 
 def _api_error(
@@ -402,6 +407,20 @@ def _enforce_access(
         permission: Required permission, when applicable.
         context: Resource attributes for ABAC scope checks.
     """
+    if isinstance(user, InternalIngestPrincipal):
+        permitted = permission is None or permission in {
+            "internal.ingest:manage",
+            "sample:edit:own",
+        }
+        # Token audience is checked during authentication against this deployment.
+        # The manifest environment selects sample/analysis configuration, not a database.
+        if not permitted:
+            raise _api_error(
+                403,
+                "Ingestion credentials are limited to sample ingestion operations",
+                category="scope",
+            )
+        return
     if user.is_superuser:
         return
     if not permission and not context:
@@ -549,6 +568,61 @@ def require_access(permission: str | None = None):
     return dep
 
 
+def require_sample_ingest_access(request: Request) -> Generator[ApiUser, None, None]:
+    """Authenticate a synchronous sample-ingest caller without granting administration.
+
+    Args:
+        request: Request carrying an internal token or the existing user credentials.
+
+    Yields:
+        A user identity, or the internal-ingest machine principal scoped to this
+        deployment's environment. No identity database account is created.
+
+    Notes:
+        Only dedicated sample-ingest routes use this dependency. Other internal
+        routes retain their own authorization requirements.
+    """
+    machine_id = "internal-ingest"
+    if "X-Coyote-Ingest-Token" in request.headers:
+        from api.security.ingest_tokens import verify_token
+
+        try:
+            claims = verify_token(
+                request.headers["X-Coyote-Ingest-Token"],
+                get_internal_api_token(runtime_app.config),
+                get_runtime_environment(runtime_app.config),
+            )
+        except (ValueError, RuntimeError):
+            raise _api_error(403, "Invalid or expired ingestion token", category="auth") from None
+        machine_id = "ingest-token-" + claims["id"]
+    elif "X-Coyote-Internal-Token" not in request.headers:
+        yield from require_access(permission="internal.ingest:manage")(request)
+        return
+    else:
+        _require_internal_token(request)
+    user = InternalIngestPrincipal(
+        id=machine_id,
+        username=machine_id,
+        email="",
+        fullname="Internal sample ingestion",
+        roles=[],
+        role="",
+        access_level=0,
+        permissions=["internal.ingest:manage", "sample:edit:own"],
+        asp_ids=["*"],
+        asp_groups=[],
+        asp_map={},
+        envs=[get_runtime_environment(runtime_app.config)],
+        auth_type=["internal"],
+    )
+    _enforce_access(user, permission="internal.ingest:manage")
+    token = set_current_user(user)
+    try:
+        yield user
+    finally:
+        reset_current_user(token)
+
+
 def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
     """Return a sample after enforcing sample-assay access rules.
 
@@ -644,5 +718,9 @@ def _require_internal_token(request: Request) -> None:
     except RuntimeError:
         expected = ""
     provided = request.headers.get("X-Coyote-Internal-Token")
-    if not expected or not provided or provided != expected:
+    if (
+        not expected
+        or not provided
+        or not secrets.compare_digest(provided.encode("utf-8"), expected.encode("utf-8"))
+    ):
         raise _api_error(403, "Forbidden", category="auth")

@@ -13,6 +13,18 @@ _PROTECTED_OPENAPI_EXACT = {
     "/api/v1/auth/whoami",
 }
 
+SAMPLE_INGEST_PATHS = {
+    "/api/v1/internal/ingest/sample-bundle",
+    "/api/v1/internal/ingest/sample-bundle/upload",
+    "/api/v1/internal/ingest/sample-bundle/async",
+    "/api/v1/internal/ingest/sample-bundle/upload/async",
+    "/api/v1/internal/tasks/{task_id}",
+}
+MACHINE_INGEST_PATHS = {
+    "/api/v1/internal/ingest/sample-bundle",
+    "/api/v1/internal/ingest/sample-bundle/upload",
+}
+
 
 def apply_openapi_security_schema(app: FastAPI) -> dict:
     """Apply the standard authentication schema to OpenAPI output.
@@ -50,15 +62,37 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
         "bearerFormat": "opaque",
         "description": "Opaque API session token. Access is limited by the user's permissions.",
     }
+    for name, header, description in (
+        (
+            "IngestToken",
+            "X-Coyote-Ingest-Token",
+            "Expiring, environment-bound synchronous sample ingestion token; no user login required.",
+        ),
+        (
+            "InternalToken",
+            "X-Coyote-Internal-Token",
+            "Deployment internal secret. Prefer an expiring IngestToken for external pipelines.",
+        ),
+    ):
+        security_schemes[name] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": header,
+            "description": description,
+        }
 
     for path, operations in schema.get("paths", {}).items():
         for method, operation in operations.items():
             if method.upper() not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
                 continue
             if path.startswith("/api/v1/") and (
-                not is_public_api_path(path) or path in _PROTECTED_OPENAPI_EXACT
+                not is_public_api_path(path)
+                or path in _PROTECTED_OPENAPI_EXACT
+                or path in SAMPLE_INGEST_PATHS
             ):
                 operation["security"] = [{"ApiSessionCookie": []}, {"BearerAuth": []}]
+                if path in MACHINE_INGEST_PATHS:
+                    operation["security"] += [{"IngestToken": []}, {"InternalToken": []}]
                 responses = operation.setdefault("responses", {})
                 responses.setdefault("401", {"description": "Unauthorized"})
                 responses.setdefault("403", {"description": "Forbidden"})

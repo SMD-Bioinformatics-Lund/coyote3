@@ -4,17 +4,55 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from api.app.container import util
 from api.app.deps.services import get_audit_service
+from api.app.runtime_state import app as runtime_app
 from api.application.audit.service import AuditService
-from api.contracts.admin import AdminAuditPayload, AdminSchemasPayload
+from api.application.ingest.tokens import issue_audited_ingest_token
+from api.config.security import get_internal_api_token, get_runtime_environment
+from api.contracts.admin import (
+    AdminAuditPayload,
+    AdminSchemasPayload,
+    IngestTokenIssueRequest,
+    IngestTokenIssueResponse,
+)
 from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 from api.interfaces.http.tags import TAG_ADMIN_OPERATIONS
 from api.security.access import ApiUser, require_access
 
 router = APIRouter(tags=[TAG_ADMIN_OPERATIONS])
+
+
+@router.post(
+    "/api/v1/admin/ingest-tokens", response_model=IngestTokenIssueResponse, status_code=201
+)
+def create_ingest_token(
+    payload: IngestTokenIssueRequest,
+    response: Response,
+    user: ApiUser = Depends(require_access(permission="ingest.token:issue")),
+    audit: AuditService = Depends(get_audit_service),
+):
+    """Issue an expiring pipeline token with the ingest.token:issue permission.
+
+    Authenticate with a user session or bearer session token. Cookie sessions
+    require X-CSRF-Token. Internal and ingestion tokens cannot issue credentials.
+    Save the returned token securely; it is returned only by this request.
+    The server selects the environment and synchronous sample-ingestion scope.
+    """
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    try:
+        return issue_audited_ingest_token(
+            secret=get_internal_api_token(runtime_app.config),
+            environment=get_runtime_environment(runtime_app.config),
+            hours=payload.expires_hours,
+            actor=user,
+            audit=audit,
+        )
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Token issuance is unavailable") from None
 
 
 def _schema_payload(collection: str, adapter: Any) -> dict[str, Any]:
