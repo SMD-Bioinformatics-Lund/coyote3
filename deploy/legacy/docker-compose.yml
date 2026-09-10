@@ -104,7 +104,7 @@ x-app-environment: &app-environment
   BUILD_TIME: ${BUILD_TIME:-unknown}
 
 x-api-image: &api-image
-  image: coyote3-api:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
+  image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
 
 x-app-volumes: &app-volumes
   - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
@@ -113,7 +113,7 @@ x-app-volumes: &app-volumes
 services:
   frontend:
     <<: *runtime-defaults
-    image: coyote3-frontend:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
+    image: coyote3-frontend:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.frontend
@@ -135,7 +135,7 @@ services:
 
   docs:
     <<: *runtime-defaults
-    image: coyote3-docs:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
+    image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs

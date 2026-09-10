@@ -28,6 +28,7 @@ def _render(command, *files, profiles=(), extra_env=None):
         env={
             **os.environ,
             "COYOTE3_VERSION": "legacy-test",
+            "COYOTE3_IMAGE_TAG": "legacy-test-dev",
             "MONGO_UID": "12345",
             "MONGO_GID": "23456",
             "COYOTE3_MONGO_URI": "mongodb://mongo-app:27017/?replicaSet=coyote3-rs",
@@ -72,8 +73,8 @@ def compose(request):
     return command
 
 
-def test_remote_dev_uses_compiled_images(compose):
-    services = _render(compose, "docker-compose.yml", "docker-compose.remote-dev.yml")["services"]
+def test_base_uses_compiled_environment_images(compose):
+    services = _render(compose, "docker-compose.yml")["services"]
     frontend = services["frontend"]
     assert frontend["image"] == "coyote3-frontend:legacy-test-dev"
     assert frontend["build"]["dockerfile"] == "docker/Dockerfile.frontend"
@@ -82,6 +83,38 @@ def test_remote_dev_uses_compiled_images(compose):
     for name in ("api", "worker", "beat", "monitor"):
         assert services[name]["image"] == "coyote3-api:legacy-test-dev"
     assert "--reload" not in str(services["api"]["command"])
+
+
+@pytest.mark.parametrize(
+    "overrides,api_level,celery_level",
+    [
+        (
+            {"LOG_LEVEL": "DEBUG", "CELERY_LOG_LEVEL": "DEBUG"},
+            "DEBUG",
+            "DEBUG",
+        ),
+        (
+            {"LOG_LEVEL": "INFO", "CELERY_LOG_LEVEL": "INFO"},
+            "INFO",
+            "INFO",
+        ),
+        (
+            {
+                "LOG_LEVEL": "INFO",
+                "CELERY_LOG_LEVEL": "WARNING",
+            },
+            "INFO",
+            "WARNING",
+        ),
+    ],
+)
+def test_environment_logging_defaults_and_overrides(compose, overrides, api_level, celery_level):
+    """Compose passes consistent default or explicit logging levels to every service."""
+    services = _render(compose, "docker-compose.yml", extra_env=overrides)["services"]
+    assert services["api"]["environment"]["LOG_LEVEL"] == api_level
+    for name in ("worker", "beat"):
+        assert services[name]["environment"]["CELERY_LOG_LEVEL"] == celery_level
+        assert f"--loglevel={celery_level}" in str(services[name]["command"])
 
 
 def test_application_and_optional_storage_render(compose):
@@ -171,6 +204,7 @@ def test_legacy_environment_images_and_profiles(compose, environment):
         "docker-compose.yml",
         f"docker-compose.{environment}.yml",
         profiles=("with-ui", "tests") if environment == "test" else (),
+        extra_env={"COYOTE3_IMAGE_TAG": f"legacy-test-{environment}"},
     )["services"]
     for name in ("api", "worker", "beat", "frontend", "docs"):
         image_name = "api" if name in {"worker", "beat"} else name

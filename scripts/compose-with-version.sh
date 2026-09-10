@@ -42,6 +42,9 @@ for ((i=1; i<=$#; i++)); do
     next=$((i+1))
     env_file="${!next:-}"
   fi
+  if [[ "$current" == --env-file=* ]]; then
+    env_file="${current#--env-file=}"
+  fi
   if [[ "$current" == "up" || "$current" == "start" ]]; then
     is_deploy_action=1
   fi
@@ -52,6 +55,51 @@ for ((i=1; i<=$#; i++)); do
     has_remove_volumes=1
   fi
 done
+
+deployment_environment="$(python3 - "${env_file:-.env}" <<'PY'
+import os
+import pathlib
+import re
+import shlex
+import sys
+
+settings = {}
+env_path = pathlib.Path(sys.argv[1])
+if env_path.exists():
+    for line in env_path.read_text().splitlines():
+        if not re.match(r"^\s*(?:export\s+)?(?:ENV_NAME|LOG_LEVEL|CELERY_LOG_LEVEL)\s*=", line):
+            continue
+        tokens = shlex.split(line, comments=True)
+        if tokens and tokens[0] == "export":
+            tokens = tokens[1:]
+        key, separator, candidate = " ".join(tokens).partition("=")
+        settings[key.strip()] = candidate.strip()
+for key in ("ENV_NAME", "LOG_LEVEL", "CELERY_LOG_LEVEL"):
+    if key in os.environ:
+        settings[key] = os.environ[key]
+value = settings.get("ENV_NAME")
+value = (value or "production").strip().lower()
+value = {"development": "dev", "production": "prod", "testing": "test", "staging": "stage"}.get(value, value)
+if value not in {"dev", "prod", "test", "stage"}:
+    sys.exit("ENV_NAME must be development/dev, production/prod, testing/test, or staging/stage")
+print(value)
+level = settings.get("LOG_LEVEL") or ("INFO" if value == "prod" else "DEBUG")
+celery_level = settings.get("CELERY_LOG_LEVEL") or level
+for selected in (level, celery_level):
+    selected = selected.upper()
+    if selected not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "FATAL", "WARN"}:
+        sys.exit("LOG_LEVEL and CELERY_LOG_LEVEL must be literal logging level names")
+    print(selected)
+PY
+)"
+readarray -t deployment_settings <<< "$deployment_environment"
+export COYOTE3_IMAGE_TAG="${COYOTE3_VERSION}-${deployment_settings[0]}"
+if [[ "${deployment_settings[0]}" == "prod" ]]; then
+  export COYOTE3_IMAGE_TAG="$COYOTE3_VERSION"
+fi
+export LOG_LEVEL="${deployment_settings[1]}"
+export CELERY_LOG_LEVEL="${deployment_settings[2]}"
+echo "Using COYOTE3_IMAGE_TAG=${COYOTE3_IMAGE_TAG}"
 
 if [[ "$is_deploy_action" -eq 1 && -n "$env_file" ]]; then
   bash "$VALIDATE_SCRIPT" --env-file "$env_file"

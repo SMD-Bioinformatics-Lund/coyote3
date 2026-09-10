@@ -24,13 +24,17 @@ function readAppVersion() {
   try {
     const versionFile = path.resolve(__dirname, '../api/version.py')
     const content = fs.readFileSync(versionFile, 'utf-8')
-    return content.match(/__version__\s*=\s*["']([^"']+)["']/)?.[1] || 'v4.0.0-dev'
+    const version = content.match(/__version__\s*=\s*["']([^"']+)["']/)?.[1]
+    if (!version) throw new Error('Missing __version__ in api/version.py')
+    return version
   } catch {
-    return 'v4.0.0-dev'
+    throw new Error('Cannot read application version from api/version.py')
   }
 }
 
-const appVersion = readAppVersion()
+const environment = String(process.env.ENV_NAME || 'development').trim().toLowerCase()
+const environmentSuffix = ({ development: 'dev', testing: 'test', staging: 'stage', production: 'prod' } as Record<string, string>)[environment] || environment
+const appVersion = `${readAppVersion()}${environmentSuffix === 'prod' ? '' : `-${environmentSuffix}`}`
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -39,7 +43,7 @@ export default defineConfig({
   define: {
     __COYOTE3_RUNTIME__: JSON.stringify({
       appVersion,
-      environment: String(process.env.ENV_NAME || 'development').trim().toLowerCase(),
+      environment,
       gensUri: String(process.env.GENS_URI || '').trim().replace(/\/+$/, ''),
       igvUri: String(process.env.IGV_URI || '').trim().replace(/\/+$/, ''),
       igvDataRoot: String(process.env.IGV_DATA_ROOT || '').trim().replace(/\/+$/, ''),

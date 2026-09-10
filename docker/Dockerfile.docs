@@ -10,6 +10,7 @@ COPY requirements-docs.txt mkdocs.yml ./
 RUN pip install --no-cache-dir -r requirements-docs.txt
 
 COPY docs/ ./docs/
+COPY api/version.py ./api/version.py
 ARG ENV_NAME=""
 ENV ENV_NAME=${ENV_NAME}
 RUN mkdocs build --strict

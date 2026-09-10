@@ -134,7 +134,7 @@ services:
     - app
   docs:
     <<: *runtime-defaults
-    image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
@@ -149,7 +149,7 @@ services:
       monitor:
         condition: service_started
   api:
-    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     build:
       context: ../..
@@ -186,7 +186,7 @@ services:
       redis:
         condition: service_healthy
   worker:
-    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     environment:
       <<: *app-environment
@@ -197,7 +197,7 @@ services:
       redis:
         condition: service_healthy
   beat:
-    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     ipc: none
     environment:
@@ -209,7 +209,7 @@ services:
       redis:
         condition: service_healthy
   monitor:
-    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     environment:
       <<: *app-environment

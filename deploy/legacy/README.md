@@ -28,7 +28,6 @@ retaining a private IPC namespace. Workers retain their shared-memory mount.
 | --- | --- |
 | `docker-compose.yml` | Compiled production application, API, workers, Redis, docs, and proxy; no MongoDB. |
 | `docker-compose.dev.yml` | Standalone development stack with Vite, API reload, source mounts, and `-dev` application image tags. Use instead of the base file. |
-| `docker-compose.remote-dev.yml` | Combine with the base file for compiled `-dev` images served to remote browsers; no watch mode. |
 | `docker-compose.stage.yml` | Stage image tags; combine with the base file. |
 | `docker-compose.test.yml` | Test image tags and test runner; combine with the base file. |
 | `docker-compose.mongo.yml` | Optional `mongo` and `mongo-kb` profiles, with authentication and separate replica sets. Can run as an independent project. |
@@ -67,12 +66,18 @@ Never commit a completed environment file.
 | --- | --- |
 | `COYOTE3_MONGO_URI` | Explicit URI; the old `MONGO_URI` alias is not consulted. |
 | `COYOTE3_DOCKER_HOST_IP` | Only required with `docker-compose.host.yml`. Numeric host IP reachable from the application network; no automatic gateway substitution. |
-| `COYOTE3_VERSION` | Export from `api/version.py` before application Compose commands. |
+| `ENV_NAME` | The deployment wrapper derives application image tags and logging defaults from this value. Use the wrapper for all application Compose commands. |
 | `COYOTE3_DATA_HOST_ROOT` | Shared application storage root, for example `/data/coyote3`. The application creates `coyote3_dev`, `coyote3_prod`, `coyote3_test`, or `coyote3_stage` according to `ENV_NAME`, with reports and ingest working directories inside. |
 
 Pipeline input locations remain separate mounts in the storage overlay. Prepare
 the application root with write access for `COYOTE3_UID:COYOTE3_GID`; startup
 creates its environment subdirectories without changing ownership of existing files.
+Copy `deploy/legacy/docker-compose.storage.example.yml` to the Git-ignored
+`.coyote3_storage.yml` and edit that local copy for your mounts. Pass it as the
+last `-f` file on deployment commands. Git pulls leave this private override
+untouched; do not edit tracked Compose files for center-specific paths. See
+[center storage mounts](../../docs/operations/deployment_guide.md#center-storage-mounts)
+for examples.
 Existing installations must follow the [storage migration instructions](../../docs/start_here/configuration.md#migrating-existing-application-storage)
 before deploying this layout. Updating the env file does not migrate files or
 stored absolute paths. Log and MongoDB storage settings remain independent.
@@ -166,14 +171,15 @@ Application containers still use the configured application network at runtime.
 
 For development, build the documentation site with `python3 -m mkdocs build`
 in the project's documentation environment before starting; the dev service mounts
-`site/`, matching modern development. Export `COYOTE3_VERSION` from `api/version.py`
-as above. Use the same definition and env file for every command:
+`site/`, matching modern development. The wrapper reads the version from
+`api/version.py` and selects the image suffix from `ENV_NAME`. Use the same
+definition and env file for every command:
 
 ```bash
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml config --quiet
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml build api docs
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml pull frontend
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml up -d
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml config --quiet
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml build api docs
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml pull frontend
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml up -d
 ```
 
 Frontend source changes update through Vite; API source changes trigger Uvicorn
@@ -196,9 +202,9 @@ compiled-stack bootstrap examples are only for a fresh installation; substitute
 the selected environment definition on every command when using dev, stage, or test.
 
 ```bash
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml config --quiet
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml build
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps api python scripts/bootstrap_database.py --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB" --username admin.coyote3 --email '<emergency administrator email>' --sys-admin-username coyote3_sysadmin --sys-admin-email '<system administrator email>'
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml config --quiet
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml build
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps api python scripts/bootstrap_database.py --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB" --username admin.coyote3 --email '<emergency administrator email>' --sys-admin-username coyote3_sysadmin --sys-admin-email '<system administrator email>'
 ```
 
 Replace the email placeholders. Bootstrap prompts for temporary passwords and
@@ -208,11 +214,11 @@ not a permanent elevation of the normal application account:
 
 ```bash
 read -rsp 'Knowledgebase maintenance URI: ' KB_MAINTENANCE_URI; echo
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps -e KNOWLEDGEBASE_MONGO_URI="$KB_MAINTENANCE_URI" api python scripts/manage_mongo_indexes.py apply
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps -e KNOWLEDGEBASE_MONGO_URI="$KB_MAINTENANCE_URI" api python scripts/manage_mongo_indexes.py apply
 unset KB_MAINTENANCE_URI
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml up -d
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml ps
-docker-compose -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml logs --tail=100 api worker beat proxy
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml up -d
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml ps
+bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml logs --tail=100 api worker beat proxy
 ```
 
 Dependency health checks still apply, but `up -d` is not a complete application

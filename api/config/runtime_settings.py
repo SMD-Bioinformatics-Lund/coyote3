@@ -22,7 +22,7 @@ from api.config.paths import (
 from api.config.paths import (
     CONTACT_CONFIG_PATH as DEFAULT_CONTACT_CONFIG_PATH,
 )
-from api.version import __version__ as app_version
+from api.version import environment_version
 
 # Load environment variables from the repo root .env file if present.
 load_dotenv(path.join(REPO_ROOT, ".env"))
@@ -115,7 +115,12 @@ class OperationsSettings:
     LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", "1") == "1"
     LOG_RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", "30"))
     LOG_GZIP_AFTER_DAYS = int(os.getenv("LOG_GZIP_AFTER_DAYS", "1"))
-    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_LEVEL = os.getenv("LOG_LEVEL") or (
+        "INFO"
+        if (os.getenv("ENV_NAME") or "production").strip().lower() in {"prod", "production"}
+        else "DEBUG"
+    )
+    CELERY_LOG_LEVEL = os.getenv("CELERY_LOG_LEVEL") or LOG_LEVEL
     NOTIFICATION_RETENTION_DAYS = int(os.getenv("NOTIFICATION_RETENTION_DAYS", "180"))
     API_RATE_LIMIT_ENABLED = os.getenv("API_RATE_LIMIT_ENABLED", "1") == "1"
     API_CSRF_ENABLED = _environment_bool("API_CSRF_ENABLED", True)
@@ -255,7 +260,7 @@ class DefaultConfig(
 ):
     """Compose the application defaults from focused settings groups."""
 
-    APP_VERSION = app_version
+    APP_VERSION = environment_version(os.getenv("ENV_NAME", "production"))
     ORGANIZATION_NAME = DEFAULT_ORGANIZATION_NAME
     LOGS = "logs"
     PRODUCTION = False
@@ -283,7 +288,7 @@ class ProductionConfig(DefaultConfig):
     LOGS = "logs/prod"
     PRODUCTION = True
     ENV_NAME = os.getenv("ENV_NAME", "Production")
-    APP_VERSION: str = f"{app_version}"
+    APP_VERSION: str = environment_version("production")
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
     PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
@@ -311,7 +316,7 @@ class DevelopmentConfig(DefaultConfig):
     PRODUCTION = False
     ENV_NAME = os.getenv("ENV_NAME", "Development")
     SECRET_KEY = os.getenv("SECRET_KEY")
-    APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
+    APP_VERSION: str = environment_version("development")
     DEBUG: bool = True
 
 
@@ -328,7 +333,7 @@ class TestConfig(DefaultConfig):
     ENV_NAME = os.getenv("ENV_NAME", "Testing")
     SECRET_KEY = os.getenv("SECRET_KEY")
 
-    APP_VERSION: str = f"{app_version}-Test (git: {_active_git_branch_name()})"
+    APP_VERSION: str = environment_version("testing")
 
     TESTING = True
     LOGIN_DISABLED = True
@@ -353,7 +358,7 @@ class StageConfig(DefaultConfig):
     PRODUCTION = True
     STAGING = True
     ENV_NAME = os.getenv("ENV_NAME", "Staging")
-    APP_VERSION: str = f"{app_version}-STAGE"
+    APP_VERSION: str = environment_version("staging")
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
     PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")

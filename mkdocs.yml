@@ -3,6 +3,8 @@ site_description: Coyote3 system, engineering, operations, and user documentatio
 docs_dir: docs
 site_dir: site
 repo_name: Coyote3
+hooks:
+  - docs/hooks/version.py
 
 theme:
   name: readthedocs

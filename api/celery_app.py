@@ -15,7 +15,7 @@ def configure_celery_logging(**kwargs) -> None:
     """Keep worker and beat logs in their own daily files, including task failures."""
     configure_json_logging(
         service_name=DefaultConfig.LOG_SERVICE_NAME,
-        level=DefaultConfig.LOG_LEVEL,
+        level=DefaultConfig.CELERY_LOG_LEVEL,
         log_root=DefaultConfig.LOG_ROOT,
         file_enabled=DefaultConfig.LOG_FILE_ENABLED,
         timezone_name=DefaultConfig.LOG_TIMEZONE,

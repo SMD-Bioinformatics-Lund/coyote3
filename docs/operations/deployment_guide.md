@@ -38,7 +38,26 @@ the deployment command and architecture reference.
 The application version is defined in `api/version.py`. The
 `scripts/compose-with-version.sh` wrapper reads that file and exports transient
 Compose variables for image names and build metadata. Do not store
-`COYOTE3_VERSION`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
+`COYOTE3_VERSION`, `COYOTE3_IMAGE_TAG`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
+The wrapper reads `ENV_NAME` from the selected env file (an exported shell value
+takes precedence). Development/dev, testing/test, staging/stage, and production/prod
+select image suffixes `-dev`, `-test`, and `-stage`; production uses the plain
+release version without a suffix. API documentation, UI, and docs version labels
+follow the same rule.
+Both modern and legacy Compose use these tags without an extra image-selection file.
+Use literal values for `ENV_NAME`. Base files serve compiled images; dev overlays
+are only for live editing.
+
+Logging defaults to `INFO` for production/prod and `DEBUG` elsewhere. `LOG_LEVEL`
+in the env file overrides that default. `CELERY_LOG_LEVEL` defaults to the effective
+`LOG_LEVEL` and can independently override worker and beat logging.
+
+API, worker, and beat container output uses readable UTC timestamps, severity,
+service and logger names, messages, and request identifiers where available.
+Exceptions retain their multiline tracebacks. Daily log files retain structured
+JSON for diagnostics and error monitoring. Routine MongoDB driver messages below
+WARNING and successful Uvicorn health probes are suppressed; application DEBUG
+messages and failed health requests remain visible.
 
 ## Deployment Commands
 
@@ -87,11 +106,25 @@ locations, and access modes in a private Compose override:
 cp deploy/compose/docker-compose.storage.example.yml .coyote3_storage.yml
 ```
 
+Copy the template once and edit only `.coyote3_storage.yml` for your deployment.
+This filename is already in `.gitignore`: local mount changes do not appear in
+Git status, and pulling repository updates leaves the file untouched. Keep the
+tracked Compose files and example templates unchanged. New template changes can
+be reviewed and applied to your local override when needed.
+
+For legacy Docker Compose, copy `deploy/legacy/docker-compose.storage.example.yml`
+instead; its mount syntax supports Compose 1.29.2.
+
 For the example's single mount, add `CENTER_INPUT_SOURCE` (an absolute host
 directory) and `CENTER_INPUT_TARGET` (an absolute container directory) to your
 untracked environment file. Edit the override to add any additional mounts or use
 center-specific environment variable names. These two example variables are not
 application configuration keys or a limit on storage locations.
+
+To preserve paths exactly, use the same absolute path for each mount's `source`
+and `target`. Add one YAML list entry per directory; Compose does not expand a
+comma-separated environment variable into multiple mounts. Source directories
+must already be accessible on the deployment host.
 
 Pass the override last on every deployment command:
 
@@ -104,6 +137,20 @@ For development, include `-f deploy/compose/docker-compose.dev.yml` before the
 storage override and use the development environment file. Compose merges mounts
 by container target. Do not shadow `/app`, `/data`, or `/app/logs` unintentionally.
 Include the same override for config validation, recreation, and maintenance.
+
+For example, a legacy remote-development deployment using compiled images uses:
+
+```bash
+./scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+  -f deploy/legacy/docker-compose.yml \
+  -f .coyote3_storage.yml up -d
+```
+
+The wrapper selects image tags from `ENV_NAME`. If application code or startup commands changed,
+build `api` with the same file list before recreating API, worker, and beat;
+all three use the shared API image. Mount-only changes do not require rebuilding.
+
+Keep any other overlays used by your deployment before `.coyote3_storage.yml`.
 
 API, worker, and beat need consistent paths for shared inputs. Paths in ingest
 manifests and file-reading configuration must refer to the chosen **container**

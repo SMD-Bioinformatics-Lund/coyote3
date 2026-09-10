@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<p>Coyote3 {{ config.extra.app_version | e }}</p>
 {% set environment = config.extra.environment | trim | lower %}
 {% if environment and environment not in ["production", "prod"] %}
 <div class="admonition warning" role="status">
