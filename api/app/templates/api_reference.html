@@ -42,7 +42,7 @@
     <summary>Using your browser session</summary>
     <label for="csrf-token">Session CSRF token</label>
     <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
-    <p id="csrf-help">Enter the CSRF token returned at sign-in to make changes using your session cookie. It stays in this page and is cleared on reload. For a bearer token, use Authorize.</p>
+    <p id="csrf-help">The explorer retrieves CSRF protection from your signed-in browser session automatically. You can also enter your session's CSRF token here. It stays in this page. For a bearer token, use Authorize.</p>
   </details>
   {% endif %}
   <main id="api-content" tabindex="-1">

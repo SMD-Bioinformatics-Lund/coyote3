@@ -40,6 +40,25 @@ script.onload = async () => {
         },
       }, document.getElementById("api-renderer"), (err) => err ? fail() : loaded());
     } else {
+      const csrfInput = document.getElementById("csrf-token");
+      const csrfHelp = document.getElementById("csrf-help");
+      const loadBrowserSession = async () => {
+        try {
+          const url = new URL(schemaUrl, window.location.href);
+          url.pathname = url.pathname.replace(/\/openapi\.json$/, "/auth/whoami");
+          if (url.origin !== window.location.origin) return;
+          const response = await fetch(url, { credentials: "same-origin", cache: "no-store" });
+          if (!response.ok) return;
+          const session = await response.json();
+          if (session.csrf_token) {
+            csrfInput.value = session.csrf_token;
+            csrfHelp.textContent = `Using the browser session for ${session.username}. CSRF protection is configured automatically. No cookie or bearer token needs to be pasted into Authorize.`;
+          }
+        } catch {
+          // Public documentation remains usable without a signed-in session.
+        }
+      };
+      await loadBrowserSession();
       SwaggerUIBundle({
         spec: schema,
         dom_id: "#api-renderer",
@@ -49,13 +68,16 @@ script.onload = async () => {
         defaultModelsExpandDepth: -1,
         displayRequestDuration: true,
         persistAuthorization: false,
+        withCredentials: true,
         validatorUrl: null,
         tryItOutEnabled: false,
-        requestInterceptor: (request) => {
-          const token = document.getElementById("csrf-token").value.trim();
+        requestInterceptor: async (request) => {
           const local = new URL(request.url, window.location.href).origin === window.location.origin;
-          if (local && token && ["POST", "PUT", "PATCH", "DELETE"].includes(request.method.toUpperCase())) {
-            request.headers["X-CSRF-Token"] = token;
+          const bearer = Object.keys(request.headers || {}).some((key) => key.toLowerCase() === "authorization");
+          if (local && !bearer && ["POST", "PUT", "PATCH", "DELETE"].includes(request.method.toUpperCase())) {
+            await loadBrowserSession();
+            const token = csrfInput.value.trim();
+            if (token) request.headers["X-CSRF-Token"] = token;
           }
           return request;
         },
