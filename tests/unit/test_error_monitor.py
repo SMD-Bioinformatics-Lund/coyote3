@@ -128,6 +128,8 @@ def test_service_wrapper_records_startup_failures_and_exit_status(tmp_path):
         timeout=10,
     )
     assert result.returncode == 1
+    assert b"[worker]" in result.stdout
+    assert b"synthetic startup failure" in result.stdout
     records = [
         json.loads(line)
         for path in tmp_path.glob("*/*/*/*.log")
@@ -155,3 +157,34 @@ def test_wrapper_preserves_ui_diagnostics_and_tracebacks():
     )
     assert record.service == "ui"
     assert json.loads(JsonFormatter().format(record))["exception"] == "synthetic stack"
+
+
+def test_console_output_preserves_context_and_exception():
+    from api.infra.observability.logging import ConsoleFormatter
+    from api.infra.observability.run_service import output_record
+
+    record = output_record(
+        json.dumps(
+            {
+                "severity": "error",
+                "logger": "ingest",
+                "message": "Upload failed",
+                "request_id": "synthetic-request",
+                "exception": "ValueError: invalid manifest\ntrace detail",
+            }
+        ),
+        "worker",
+    )
+    console = ConsoleFormatter().format(record)
+    assert "ERROR" in console and "[worker]" in console
+    assert "Upload failed" in console and "request_id=synthetic-request" in console
+    assert "\nValueError: invalid manifest\ntrace detail" in console
+    assert "\\n" not in console
+
+
+def test_health_probe_filter_keeps_failures_and_other_requests():
+    from api.infra.observability.run_service import is_successful_health_probe
+
+    assert is_successful_health_probe('INFO: 127.0.0.1 - "GET /api/v1/health HTTP/1.1" 200 OK')
+    assert not is_successful_health_probe('"GET /api/v1/health HTTP/1.1" 503 Unavailable')
+    assert not is_successful_health_probe('"GET /api/v1/samples HTTP/1.1" 200 OK')

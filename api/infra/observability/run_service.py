@@ -11,7 +11,14 @@ import subprocess
 import sys
 from datetime import datetime
 
-from api.infra.observability.logging import DailyServiceFileHandler, JsonFormatter
+from api.infra.observability.logging import ConsoleFormatter, DailyServiceFileHandler, JsonFormatter
+
+
+def is_successful_health_probe(line: str) -> bool:
+    """Recognize only successful Uvicorn health requests; retain failed probes."""
+    return line.startswith("INFO:") and bool(
+        re.search(r'"GET /api/v1/health HTTP/[0-9.]+" 200(?:\s|$)', line)
+    )
 
 
 def output_record(line: str, service: str) -> logging.LogRecord:
@@ -53,6 +60,7 @@ def main() -> int:
     file_enabled = os.getenv("LOG_FILE_ENABLED", "1") == "1"
     environment = {**os.environ, "LOG_FILE_ENABLED": "0", "LOG_SERVICE_NAME": service}
     stopping = False
+    console_formatter = ConsoleFormatter()
     try:
         child = subprocess.Popen(
             command,
@@ -79,10 +87,13 @@ def main() -> int:
     for signum in (signal.SIGTERM, signal.SIGINT):
         signal.signal(signum, forward_signal)
     for line in child.stdout:
-        sys.stdout.write(line)
+        if is_successful_health_probe(line):
+            continue
+        record = output_record(line.rstrip("\n"), service)
+        sys.stdout.write(console_formatter.format(record) + "\n")
         sys.stdout.flush()
         if file_enabled:
-            handler.handle(output_record(line.rstrip("\n"), service))
+            handler.handle(record)
     code = child.wait()
     if code and not stopping and file_enabled:
         handler.handle(output_record(f"ERROR: {service} exited with status {code}", service))

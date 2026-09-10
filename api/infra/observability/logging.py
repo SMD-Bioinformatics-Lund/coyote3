@@ -86,6 +86,40 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str, ensure_ascii=False)
 
 
+class ConsoleFormatter(logging.Formatter):
+    """Render service events for people while files retain the full JSON record."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Show time, severity, service, diagnostic context, and unescaped tracebacks."""
+        timestamp = datetime.fromtimestamp(record.created, timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S UTC"
+        )
+        message = record.getMessage()
+        try:
+            structured = json.loads(message)
+        except (ValueError, TypeError):
+            structured = None
+        if isinstance(structured, dict) and "message" in structured:
+            message = str(structured["message"])
+            details = {key: value for key, value in structured.items() if key != "message"}
+            if details:
+                message += "\n" + json.dumps(details, indent=2, default=str, ensure_ascii=False)
+        context = []
+        for key in ("request_id", "task_id", "method", "path", "status_code", "duration_ms"):
+            value = getattr(record, key, None)
+            if value is not None:
+                context.append(f"{key}={value}")
+        line = f"{timestamp} {record.levelname:<7} [{getattr(record, 'service', record.name)}] {record.name}: {message}"
+        if context:
+            line += " | " + " ".join(context)
+        exception = getattr(record, "exception", None)
+        if record.exc_info:
+            exception = self.formatException(record.exc_info)
+        if exception:
+            line += "\n" + str(exception)
+        return line
+
+
 class ServiceFilter(logging.Filter):
     """Attach a service name to every record passing through a handler."""
 
@@ -149,6 +183,8 @@ def configure_json_logging(
     """Configure root JSON logging for container stdout and optional files."""
     root = logging.getLogger()
     root.setLevel(str(level or "INFO").upper())
+    # Application DEBUG remains useful without driver heartbeat/query dumps.
+    logging.getLogger("pymongo").setLevel(logging.WARNING)
     for handler in root.handlers[:]:
         root.removeHandler(handler)
         handler.close()
