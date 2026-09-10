@@ -232,10 +232,10 @@ fi
 [ -f "$source" ] && [ ! -L "$source" ] || fail "Remote YAML is not a regular file"
 check_hash "$source"
 if [ -e "$destination" ] || [ -L "$destination" ]; then
-    [ "$source" -ef "$destination" ] || fail "Acknowledgement destination exists; it will not be overwritten"
-else
-    ln -- "$source" "$destination"
+    history=$(mktemp -d "$source.history.XXXXXX")
+    mv -- "$destination" "$history/"
 fi
+ln -- "$source" "$destination"
 rm -- "$source"
 """,
         args.yaml,
@@ -247,10 +247,19 @@ rm -- "$source"
     return 0 if suffix == ".done" else 1
 
 
+def submission_options(args: argparse.Namespace) -> dict:
+    """Return the request options recorded with an acknowledgement."""
+    return {
+        "increment": args.increment,
+        "update_existing": args.update_existing,
+        "archive": str(args.archive) if args.archive else None,
+    }
+
+
 def submit_remote(args: argparse.Namespace) -> int:
     """Fetch inputs on the deployment server and finalize the analysis-server YAML.
 
-    A saved terminal receipt is reused after SSH failures without another upload.
+    An available original YAML always triggers a fresh upload using current options.
     The local state lock serializes submissions from this deployment server.
     """
     if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.@-]*", args.remote_host):
@@ -264,20 +273,10 @@ def submit_remote(args: argparse.Namespace) -> int:
     key = hashlib.sha256(f"{args.remote_host}:{args.yaml}".encode()).hexdigest()
     receipt_path = state / (key + ".ack.json")
     with submission_lock(state / (key + ".lock")):
-        if receipt_path.exists():
-            result = finalize_remote(args, json.loads(receipt_path.read_text()))
-            print(f"Acknowledgement: {receipt_path}")
-            return result
         remote_command(
             args,
             """set -eu
 [ -f "$1" ] && [ ! -L "$1" ] || { echo "Remote YAML is not a regular file" >&2; exit 1; }
-for destination in "$1.done" "$1.failed"; do
-    if [ -e "$destination" ] || [ -L "$destination" ]; then
-        echo "Remote completion marker already exists; refusing to submit" >&2
-        exit 1
-    fi
-done
 """,
             args.yaml,
         )
@@ -303,6 +302,7 @@ done
                 "remote_host": args.remote_host,
                 "remote_path": args.yaml,
                 "sha256": fingerprint(manifest),
+                "options": submission_options(args),
                 "acknowledgement": acknowledgement,
             }
             save_receipt(receipt_path, receipt)
@@ -311,7 +311,7 @@ done
 
 
 def submit(args: argparse.Namespace) -> int:
-    """Submit once, or finish a previously acknowledged local file transition.
+    """Upload an available original YAML using the current submission options.
 
     Returns:
         Zero for acknowledged success or one for acknowledged ingest failure.
@@ -328,40 +328,35 @@ def submit(args: argparse.Namespace) -> int:
         if not manifest.is_file():
             raise ValueError("Manifest does not exist or is not a regular file")
         digest = fingerprint(manifest)
-        for suffix in (".done", ".failed"):
-            if manifest.with_name(manifest.name + suffix).exists():
-                raise ValueError(
-                    f"Destination {manifest.name + suffix} already exists; it will not be overwritten"
-                )
-        if receipt_path.exists():
-            receipt = json.loads(receipt_path.read_text())
-            if receipt.get("sha256") != digest or receipt.get("base_url") != args.base_url:
-                raise ValueError(
-                    "Saved acknowledgement belongs to different input or another API; review it before resubmitting"
-                )
-            acknowledgement = receipt["acknowledgement"]
-            if acknowledgement.get("status") not in {"ok", "failed"}:
-                raise ValueError("Saved acknowledgement has no terminal status")
-        else:
-            token_variable = {
-                "internal": "INTERNAL_API_TOKEN",
-                "bearer": "API_BEARER_TOKEN",
-                "ingest": "COYOTE3_INGEST_TOKEN",
-            }[args.auth]
-            token = os.environ.get(token_variable, "").strip()
-            if not token or any(char in token for char in '\r\n"\\'):
-                raise ValueError(f"Set {token_variable} to a valid {args.auth} token")
-            acknowledgement = upload(args, manifest, token)
-            save_receipt(
-                receipt_path,
-                {"sha256": digest, "base_url": args.base_url, "acknowledgement": acknowledgement},
-            )
+        token_variable = {
+            "internal": "INTERNAL_API_TOKEN",
+            "bearer": "API_BEARER_TOKEN",
+            "ingest": "COYOTE3_INGEST_TOKEN",
+        }[args.auth]
+        token = os.environ.get(token_variable, "").strip()
+        if not token or any(char in token for char in '\r\n"\\'):
+            raise ValueError(f"Set {token_variable} to a valid {args.auth} token")
+        acknowledgement = upload(args, manifest, token)
+        save_receipt(
+            receipt_path,
+            {
+                "sha256": digest,
+                "base_url": args.base_url,
+                "options": submission_options(args),
+                "acknowledgement": acknowledgement,
+            },
+        )
         if fingerprint(manifest) != digest:
             raise ValueError(
                 "Manifest changed during submission; acknowledgement saved but file left unchanged"
             )
         suffix = ".done" if acknowledgement["status"] == "ok" else ".failed"
         destination = manifest.with_name(manifest.name + suffix)
+        if destination.exists() or destination.is_symlink():
+            history = Path(
+                tempfile.mkdtemp(prefix=manifest.name + ".history.", dir=manifest.parent)
+            )
+            destination.rename(history / destination.name)
         # Link/unlink preserves the file and refuses to overwrite a racing destination.
         os.link(manifest, destination)
         manifest.unlink()

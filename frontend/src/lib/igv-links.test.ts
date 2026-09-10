@@ -19,10 +19,10 @@ describe("sample alignment links", () => {
       { "panel/BAM/custom.bam": "panel/BAM/custom.bai" },
       ["panel/BED/design.bed"],
     )
-    expect(links).toHaveLength(3)
-    expect(new URL(links[0].href).searchParams.get("file")).toBe("/R:panel/BAM/custom.bam")
-    expect(new URL(links[0].href).searchParams.get("index")).toBe("/R:panel/BAM/custom.bai")
-    expect(new URL(links[2].href).searchParams.get("file")).toBe("/R:panel/BED/design.bed")
+    expect(links).toHaveLength(1)
+    expect(new URL(links[0].href).searchParams.get("file")).toBe("/R:panel/BAM/custom.bam,/R:panel/BAM/control.bam,/R:panel/BED/design.bed")
+    expect(new URL(links[0].href).searchParams.get("index")).toBe("/R:panel/BAM/custom.bai,,")
+    expect(new URL(links[0].href).searchParams.get("locus")).toBe("17:1-2")
   })
 
   it("omits unconfigured design BED and avoids adding the root twice", () => {
@@ -50,17 +50,27 @@ describe("sample alignment links", () => {
       { case: ["/case.bam"], control: ["/control.bam"] }, "17:1-2",
       { "/case.bam": "/different-name.bai" },
     )
-    expect(links).toHaveLength(2)
-    expect(new URL(links[0].href).searchParams.get("index")).toBe("/different-name.bai")
-    expect(new URL(links[1].href).searchParams.has("index")).toBe(false)
-    expect(links[1].label).toContain("control")
+    expect(links).toHaveLength(1)
+    expect(new URL(links[0].href).searchParams.get("index")).toBe("/different-name.bai,")
   })
 
   it("handles multiple lookup paths and omits absent or malformed targets", () => {
-    expect(igvAlignmentLinks({ case: ["/a.bam", "/b.bam"] }, "1:10")).toHaveLength(2)
+    expect(igvAlignmentLinks({ case: ["/a.bam", "/b.bam"] }, "1:10")).toHaveLength(1)
     expect(igvAlignmentLinks({}, "1:10")).toEqual([])
     expect(igvAlignmentLinks({ case: [null, {}] }, "1:10")).toEqual([])
     expect(igvAlignmentLinks({ case: ["/a.bam"] }, "-")).toEqual([])
     expect(igvLoadUrl({}, "1:10")).toBeNull()
+  })
+
+  it("deduplicates tracks and preserves a later explicit index association", () => {
+    runtimeConfig.igvDataRoot = "/mnt"
+    const links = igvAlignmentLinks(
+      { case: ["a.bam", "/mnt/a.bam", "", " "] }, "1:10",
+      { "/mnt/a.bam": "a.bai" }, ["design.bed", "design.bed"],
+    )
+    expect(links).toHaveLength(1)
+    const params = new URL(links[0].href).searchParams
+    expect(params.get("file")).toBe("/mnt/a.bam,/mnt/design.bed")
+    expect(params.get("index")).toBe("/mnt/a.bai,")
   })
 })

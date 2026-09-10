@@ -303,13 +303,17 @@ the corresponding ingest options to the API.
 
 There are no automatic upload retries. A connection failure or timeout can occur
 after the API commits: inspect the application audit before resubmitting an
-unacknowledged input. Do not blindly retry exit code 2 from cron. When a terminal
-receipt exists but the YAML rename failed, rerunning the same command completes
-the rename without uploading again, provided the YAML hash, API URL, and remote
-location still match. This also handles a lost SSH response after a completed rename.
-Existing `.done` and `.failed` files are never overwritten. After
-correcting an acknowledged failure, archive the previous receipt and failed
-manifest before submitting the corrected YAML under its original name.
+unacknowledged input. Do not blindly retry exit code 2 from cron.
+The original `.yaml` or `.yml` file controls submission in both local and remote
+mode: if it exists, each invocation uploads it with the current options, including
+`--increment`. Without the original YAML, nothing is uploaded. Saved `.ack.json`
+files are informational only; they are never read to skip, block, or replay an
+upload. Each terminal response replaces the acknowledgement and records its
+submission options. If finalization needs an existing `.done` or `.failed` name,
+the previous completion file is preserved in a unique adjacent `.history.*`
+directory. Restore a failed manifest to its original YAML name to submit again.
+If a previous upload committed but renaming failed, another invocation uploads
+again; `--increment` can therefore create another sample.
 
 Use the synchronous upload endpoint with `acknowledge=true` when a remote
 pipeline owns the manifest directory and the application may only read it. The

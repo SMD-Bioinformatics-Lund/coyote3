@@ -75,11 +75,12 @@ def test_remote_acknowledgement_moves_original_and_is_idempotent(
     assert client.submit_remote(remote_args) == code
     assert Path(remote_args.yaml + suffix).read_text() == "name: synthetic\n"
     assert not Path(remote_args.yaml).exists()
-    assert client.submit_remote(remote_args) == code
+    with pytest.raises(ValueError, match="not a regular file"):
+        client.submit_remote(remote_args)
     assert len(calls) == 1
 
 
-def test_remote_rename_failure_reuses_receipt_without_upload(remote_args, monkeypatch):
+def test_remote_original_is_uploaded_again_after_rename_failure(remote_args, monkeypatch):
     finalize = client.finalize_remote
     monkeypatch.setattr(
         client, "upload", lambda *a: {"status": "ok", "sample_id": "synthetic", "message": "done"}
@@ -94,8 +95,15 @@ def test_remote_rename_failure_reuses_receipt_without_upload(remote_args, monkey
     assert Path(remote_args.yaml).exists()
     assert len(list(Path(remote_args.state_dir).glob("*.ack.json"))) == 1
     monkeypatch.setattr(client, "finalize_remote", finalize)
-    monkeypatch.setattr(client, "upload", lambda *a: pytest.fail("Must not upload twice"))
+    calls = []
+
+    def upload(*a):
+        calls.append(a)
+        return {"status": "ok", "sample_id": "new", "message": "new upload"}
+
+    monkeypatch.setattr(client, "upload", upload)
     assert client.submit_remote(remote_args) == 0
+    assert len(calls) == 1
 
 
 def test_changed_remote_manifest_is_left_in_place(remote_args, monkeypatch):
@@ -110,11 +118,16 @@ def test_changed_remote_manifest_is_left_in_place(remote_args, monkeypatch):
     assert not Path(remote_args.yaml + ".done").exists()
 
 
-def test_remote_existing_marker_blocks_submission(remote_args, monkeypatch):
+def test_remote_existing_marker_does_not_block_submission(remote_args, monkeypatch):
     Path(remote_args.yaml + ".failed").write_text("previous")
-    monkeypatch.setattr(client, "upload", lambda *a: pytest.fail("Must not upload"))
-    with pytest.raises(ValueError, match="marker already exists"):
-        client.submit_remote(remote_args)
+    monkeypatch.setattr(client, "upload", lambda *a: {"status": "failed", "message": "new failure"})
+    assert client.submit_remote(remote_args) == 1
+    assert (
+        list(Path(remote_args.yaml).parent.glob("remote.yaml.history.*/remote.yaml.failed"))[
+            0
+        ].read_text()
+        == "previous"
+    )
 
 
 def test_unconfirmed_remote_upload_never_renames_source(remote_args, monkeypatch):
@@ -193,7 +206,7 @@ def test_unconfirmed_upload_leaves_manifest_unchanged(args, monkeypatch, returnc
     assert not Path(args.yaml + ".ack.json").exists()
 
 
-def test_saved_receipt_finishes_without_resubmitting(args, monkeypatch):
+def test_saved_receipt_does_not_prevent_resubmission(args, monkeypatch):
     manifest = Path(args.yaml)
     client.save_receipt(
         Path(args.yaml + ".ack.json"),
@@ -203,19 +216,51 @@ def test_saved_receipt_finishes_without_resubmitting(args, monkeypatch):
             "acknowledgement": {"status": "ok", "sample_id": "synthetic", "message": "done"},
         },
     )
-    monkeypatch.setattr(
-        client, "upload", lambda *a: pytest.fail("Must not resubmit acknowledged input")
-    )
+    calls = []
+
+    def upload(*a):
+        calls.append(a)
+        return {"status": "ok", "sample_id": "new", "message": "new upload"}
+
+    monkeypatch.setattr(client, "upload", upload)
     assert client.submit(args) == 0
+    assert len(calls) == 1
 
 
-def test_existing_marker_is_not_overwritten_or_submitted(args, monkeypatch):
+@pytest.mark.parametrize(
+    "options", [None, {"increment": False, "update_existing": False, "archive": None}]
+)
+def test_increment_does_not_replay_saved_failure(args, monkeypatch, options):
+    manifest = Path(args.yaml)
+    args.increment = True
+    client.save_receipt(
+        Path(args.yaml + ".ack.json"),
+        {
+            "sha256": client.fingerprint(manifest),
+            "base_url": args.base_url,
+            "options": options,
+            "acknowledgement": {"status": "failed", "message": "Sample already exists"},
+        },
+    )
+
+    def upload(options, *unused):
+        assert options.increment is True
+        return {"status": "ok", "sample_id": "new", "message": "incremented"}
+
+    monkeypatch.setattr(client, "upload", upload)
+    assert client.submit(args) == 0
+    assert not manifest.exists()
+    assert not Path(args.yaml + ".failed").exists()
+
+
+def test_existing_marker_is_archived_on_submission(args, monkeypatch):
     destination = Path(args.yaml + ".done")
     destination.write_text("prior result")
-    monkeypatch.setattr(client, "upload", lambda *a: pytest.fail("Must not upload"))
-    with pytest.raises(ValueError, match="already exists"):
-        client.submit(args)
-    assert destination.read_text() == "prior result"
+    monkeypatch.setattr(
+        client, "upload", lambda *a: {"status": "ok", "sample_id": "new", "message": "done"}
+    )
+    assert client.submit(args) == 0
+    assert list(destination.parent.glob("*.history.*/*.done"))[0].read_text() == "prior result"
 
 
 def test_changed_manifest_is_not_marked_done(args, monkeypatch):
@@ -227,8 +272,6 @@ def test_changed_manifest_is_not_marked_done(args, monkeypatch):
     with pytest.raises(ValueError, match="changed during submission"):
         client.submit(args)
     assert Path(args.yaml).exists()
-    with pytest.raises(ValueError, match="different input"):
-        client.submit(args)
 
 
 @pytest.mark.parametrize("auth", ["internal", "bearer", "ingest"])
