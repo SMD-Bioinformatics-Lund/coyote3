@@ -28,6 +28,7 @@ retaining a private IPC namespace. Workers retain their shared-memory mount.
 | --- | --- |
 | `docker-compose.yml` | Compiled production application, API, workers, Redis, docs, and proxy; no MongoDB. |
 | `docker-compose.dev.yml` | Standalone development stack with Vite, API reload, source mounts, and `-dev` application image tags. Use instead of the base file. |
+| `docker-compose.remote-dev.yml` | Combine with the base file for compiled `-dev` images served to remote browsers; no watch mode. |
 | `docker-compose.stage.yml` | Stage image tags; combine with the base file. |
 | `docker-compose.test.yml` | Test image tags and test runner; combine with the base file. |
 | `docker-compose.mongo.yml` | Optional `mongo` and `mongo-kb` profiles, with authentication and separate replica sets. Can run as an independent project. |
@@ -36,7 +37,7 @@ retaining a private IPC namespace. Workers retain their shared-memory mount.
 | `docker-compose.host.yml` | Optional `host.docker.internal` mapping to an explicitly configured host IP. |
 
 MongoDB servers and replica initializers are pinned to `mongo:7.0.41`; the modern
-deployment retains MongoDB 8.2. There is no MongoDB Dockerfile: these services
+deployment uses the same version with Docker's default seccomp policy. There is no MongoDB Dockerfile: these services
 use the official image directly. Initialization scripts, proxy configuration,
 application Dockerfiles, and application settings are reused from the current
 repository. Development and test services follow the modern definitions. The

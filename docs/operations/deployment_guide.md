@@ -49,9 +49,10 @@ services require no MongoDB Compose profile. See
 
 ## MongoDB baseline
 
-Coyote3 requires MongoDB 8.2 or a later compatible supported release. The
-Compose-managed service and the archive utilities use the pinned `mongo:8.2`
-image. External MongoDB deployments must meet the same baseline.
+The modern and legacy Compose-managed services use the pinned `mongo:7.0.41`
+image. Modern Docker uses its default seccomp policy; the legacy definitions
+contain the older engine's scoped compatibility exceptions. The archive utilities
+separately use `mongo:8.2` tools images.
 
 MongoDB is a stateful clinical dependency. Use a pinned release line rather
 than a floating image tag, apply the vendor's documented upgrade path for an

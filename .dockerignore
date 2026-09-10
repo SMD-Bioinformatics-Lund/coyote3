@@ -1,2 +1,18 @@
 # Ignore generated files
 **/*.pyc
+.git
+.venv*
+**/node_modules
+frontend/dist
+.coyote3*_env
+.env
+.env.*
+**/__pycache__
+.pytest_cache
+.ruff_cache
+site
+logs
+coverage
+htmlcov
+test-results
+playwright-report

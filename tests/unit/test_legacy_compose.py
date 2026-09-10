@@ -72,6 +72,18 @@ def compose(request):
     return command
 
 
+def test_remote_dev_uses_compiled_images(compose):
+    services = _render(compose, "docker-compose.yml", "docker-compose.remote-dev.yml")["services"]
+    frontend = services["frontend"]
+    assert frontend["image"] == "coyote3-frontend:legacy-test-dev"
+    assert frontend["build"]["dockerfile"] == "docker/Dockerfile.frontend"
+    assert not frontend.get("volumes")
+    assert "command" not in frontend
+    for name in ("api", "worker", "beat", "monitor"):
+        assert services[name]["image"] == "coyote3-api:legacy-test-dev"
+    assert "--reload" not in str(services["api"]["command"])
+
+
 def test_application_and_optional_storage_render(compose):
     services = _render(
         compose,
@@ -251,8 +263,9 @@ def test_legacy_mongo_tracks_modern_service_contract():
     modern = yaml.safe_load((ROOT / "deploy/compose/docker-compose.mongo.yml").read_text())
     legacy = yaml.safe_load((LEGACY / "docker-compose.mongo.yml").read_text())
     for service in modern["services"].values():
+        assert service["image"] == "mongo:7.0.41"
+        assert "security_opt" not in service
         service.pop("extra_hosts", None)
-        service["image"] = "mongo:7.0.41"
         service["security_opt"] = ["seccomp=unconfined"]
     assert (
         yaml.safe_load(yaml.safe_dump(modern).replace("./mongo-init/", "../compose/mongo-init/"))

@@ -16,7 +16,7 @@ deployment sequence:
 The procedure uses the immutable application topology from
 `deploy/compose/docker-compose.yml` without a development, test, or stage
 overlay. MongoDB runs from `deploy/compose/docker-compose.mongo.yml` with the
-`mongo` profile, using the same MongoDB 8.2 single-member replica-set configuration for a new
+`mongo` profile, using the same MongoDB 7.0.41 single-member replica-set configuration for a new
 deployment. Isolation comes from local project names, ports, credentials, and
 temporary host paths rather than different application code.
 
@@ -40,7 +40,7 @@ reused; complete the cleanup section and restart at step 1.
 
 | Deployment concern | Disposable equivalent |
 | --- | --- |
-| MongoDB 8.2 replica set | Temporary MongoDB 8.2 single-member replica set |
+| MongoDB 7.0.41 replica set | Temporary MongoDB 7.0.41 single-member replica set |
 | Persistent host paths | Isolated paths under a new `/tmp/coyote3-validation.*` directory |
 | Explicit first deployment | `bootstrap_database.py` against an empty database |
 | Immutable application services | Base Compose file and immutable image targets |
@@ -268,7 +268,7 @@ The `/28` validation network provides approximately 13 assignable addresses for
 MongoDB, API, workers, and temporary tools. Choose a larger or different range
 if it overlaps another network or more replicas are needed.
 
-This starts MongoDB 8.2 with its isolated bind-mounted data directory. The
+This starts MongoDB 7.0.41 with its isolated bind-mounted data directory. The
 host port is bound to loopback for optional host-side administration. Coyote3
 containers use the `mongo-app` network alias and do not pass through a
 published host port.

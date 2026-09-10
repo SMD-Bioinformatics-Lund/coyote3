@@ -34,7 +34,7 @@ Prepare the following before installing Coyote3:
 
 - a Linux host with Docker Engine and the Docker Compose plugin;
 - a DNS name and TLS-terminating reverse proxy;
-- MongoDB 8.2 or a later supported compatible release;
+- MongoDB 7.0.41, matching the Compose deployment;
 - durable storage for application data, logs, MongoDB data, and backups;
 - a private production environment file;
 - reviewed center ASP, ASPC, and ISGL definitions;

@@ -9,7 +9,7 @@ services:
     <<: *mongo-resources
     extra_hosts: ["host.docker.internal:host-gateway"]
     profiles: [mongo]
-    image: mongo:8.2
+    image: mongo:7.0.41
     entrypoint: ["/bin/sh", "/opt/coyote3/mongo-entrypoint.sh"]
     tmpfs: ["/run/coyote3-mongo"]
     command: ["mongod", "--replSet", "${MONGO_REPLICA_SET_NAME:-coyote3-rs}", "--bind_ip_all", "--keyFile", "/run/coyote3-mongo/keyfile"]
@@ -50,7 +50,7 @@ services:
     user: "${MONGO_UID:?Set MONGO_UID}:${MONGO_GID:?Set MONGO_GID}"
     extra_hosts: ["host.docker.internal:host-gateway"]
     profiles: [mongo]
-    image: mongo:8.2
+    image: mongo:7.0.41
     environment:
       MONGO_SERVICE_HOST: mongo
       HOME: /tmp
@@ -69,7 +69,7 @@ services:
   mongo-kb:
     <<: *mongo-resources
     profiles: [mongo-kb]
-    image: mongo:8.2
+    image: mongo:7.0.41
     entrypoint: ["/bin/sh", "/opt/coyote3/mongo-entrypoint.sh"]
     tmpfs: ["/run/coyote3-mongo"]
     command: ["mongod", "--replSet", "${KNOWLEDGEBASE_REPLICA_SET_NAME:-coyote3-kb-rs}", "--bind_ip_all", "--keyFile", "/run/coyote3-mongo/keyfile"]
@@ -99,7 +99,7 @@ services:
     <<: *mongo-resources
     user: "${MONGO_UID:?Set MONGO_UID}:${MONGO_GID:?Set MONGO_GID}"
     profiles: [mongo-kb]
-    image: mongo:8.2
+    image: mongo:7.0.41
     environment:
       MONGO_SERVICE_HOST: mongo-kb
       HOME: /tmp

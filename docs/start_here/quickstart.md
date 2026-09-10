@@ -16,7 +16,7 @@ docker compose version
 python3 --version
 ```
 
-Coyote3 uses MongoDB 8.2. App, identity, knowledgebase, and BAM databases have
+Coyote3 Compose deployments use MongoDB 7.0.41. App, identity, knowledgebase, and BAM databases have
 independent URI settings. They may share one instance or use separate services.
 The optional `mongo` and `mongo-kb` Docker profiles are described in
 [MongoDB service topology](../architecture/mongodb_topology.md).

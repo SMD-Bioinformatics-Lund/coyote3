@@ -4,7 +4,7 @@ This procedure prepares an empty MongoDB database, installs the application-owne
 
 ## 1. Prepare the host
 
-Install Git, Docker Engine, and Docker Compose. Create persistent host directories for application logs, ingest data, and backups. Select or deploy a MongoDB 8.2 service that remains available independently of the Coyote3 application containers.
+Install Git, Docker Engine, and Docker Compose. Create persistent host directories for application logs, ingest data, and backups. Select or deploy a MongoDB 7.0.41 service that remains available independently of the Coyote3 application containers.
 
 Create the external Docker network named by `COYOTE3_APP_NETWORK`. The [production deployment guide](production_deployment.md) contains the network and service commands.
 

@@ -108,6 +108,7 @@ nav:
       - Email and notifications: operations/email_and_notifications.md
       - Data requirements: operations/deployment_data_requirements.md
       - Deployment reference: operations/deployment_guide.md
+      - Remote development: operations/remote_development.md
       - Minimum production baseline: operations/minimum_production_baseline.md
       - Observability and alerts: operations/observability_slos_and_alerts.md
       - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
