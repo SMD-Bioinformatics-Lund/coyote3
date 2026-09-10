@@ -91,9 +91,9 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
             call_match["$or"] = caller_clauses
     else:
 
-        if min_spanning_reads > 0:
+        if int(min_spanning_reads) > 0:
             call_match["spanreads"] = {"$gte": min_spanning_reads}
-        if min_spanning_pairs > 0:
+        if int(min_spanning_pairs) > 0:
             call_match["spanpairs"] = {"$gte": min_spanning_pairs}
 
     query: Dict[str, Any] = {"SAMPLE_ID": settings["id"]}
@@ -117,6 +117,82 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
     # Merge any additional optional filters into the base query.
     query.update(build_fusion_optional_filters())
     return query
+
+
+# def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, Any]:
+#     if assay_group not in ["fusion", "fusionrna", "wts"]:
+#         return {"SAMPLE_ID": settings["id"]}
+
+#     min_reads = _coerce_nonnegative_int(settings.get("min_spanning_reads"), 0)
+#     min_pairs = _coerce_nonnegative_int(settings.get("min_spanning_pairs"), 0)
+
+#     effects = settings.get("fusion_effects") or []
+#     callers = settings.get("fusion_callers") or []
+#     desc_patterns = fusion_annotation_filters(settings)
+#     filter_genes = settings.get("filter_genes") or []
+
+#     # Base query
+#     query: Dict[str, Any] = {"SAMPLE_ID": settings["id"]}
+
+#     # -----------------------------
+#     # calls.$elemMatch (minimal)
+#     # -----------------------------
+#     call_match: Dict[str, Any] = {}
+
+#     # Effects
+#     if effects:
+#         call_match["effect"] = {"$in": effects}
+
+#     # Caller-aware thresholds
+#     if callers:
+#         clauses = []
+#         for caller in callers:
+#             clause: Dict[str, Any] = {"caller": caller}
+
+#             if min_reads > 0:
+#                 clause["spanreads"] = {"$gte": min_reads}
+
+#             if min_pairs > 0:
+#                 clause["spanpairs"] = {"$gte": min_pairs}
+
+#             clauses.append(clause)
+
+#         if clauses:
+#             call_match["$or"] = clauses
+
+#     else:
+#         if min_reads > 0:
+#             call_match["spanreads"] = {"$gte": min_reads}
+#         if min_pairs > 0:
+#             call_match["spanpairs"] = {"$gte": min_pairs}
+
+#     if call_match:
+#         query["calls"] = {"$elemMatch": call_match}
+
+#     # -----------------------------
+#     # Desc filter (separate)
+#     # -----------------------------
+#     if desc_patterns:
+#         query["calls.desc"] = {
+#             "$regex": "|".join(desc_patterns),
+#             "$options": "i",
+#         }
+
+#     # -----------------------------
+#     # Gene filter
+#     # -----------------------------
+#     if filter_genes:
+#         query["$or"] = [
+#             {"gene1": {"$in": filter_genes}},
+#             {"gene2": {"$in": filter_genes}},
+#         ]
+
+#     # -----------------------------
+#     # Optional extras
+#     # -----------------------------
+#     query.update(build_fusion_optional_filters())
+
+#     return query
 
 
 def build_fusion_optional_filters() -> Dict[str, Any]:

@@ -102,6 +102,8 @@ def list_fusions(sample_id: str) -> str | Response:
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
 
+    app.logger.info(f"this is the fusion filters,{sample_filters}")
+
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
         store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
