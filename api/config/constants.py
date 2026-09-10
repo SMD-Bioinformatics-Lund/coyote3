@@ -17,6 +17,8 @@ ASP_FAMILY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assay_
 SEQUENCING_SCOPE_OPTIONS = CENTER_CLINICAL_CONTRACT.sequencing_scope_options
 TARGETED_PANEL_ASP_FAMILY_OPTIONS = CENTER_CLINICAL_CONTRACT.targeted_panel_asp_families
 
+GENOME_BUILD_TO_ASSEMBLY: dict[int, str] = {37: "GRCH37", 38: "GRCH38"}
+
 # Expected sample file keys per ASP category.
 SAMPLE_FILE_KEYS: dict[str, tuple[str, ...]] = CLINICAL_VOCABULARY.sample_file_keys
 ALL_SAMPLE_FILE_KEYS: tuple[str, ...] = tuple(

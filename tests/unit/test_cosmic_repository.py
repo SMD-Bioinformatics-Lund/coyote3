@@ -44,6 +44,23 @@ def _repository() -> tuple[CosmicRepository, SimpleNamespace]:
     return CosmicRepository(adapter), adapter
 
 
+@pytest.mark.parametrize("build,assembly", [(37, "GRCH37"), (38, "GRCH38"), (38, "GRCh38")])
+def test_numeric_build_matches_installed_assembly_case_insensitively(build, assembly):
+    repository, adapter = _repository()
+    adapter.knowledgebase_versions_collection.update_one(
+        {"source": "cosmic_coding_variants", "status": "active"},
+        {"$set": {"assembly": assembly}},
+    )
+    adapter.cosmic_collection.insert_one(
+        {"id": "COSV1", "chr": "2", "start": 100, "ref": "A", "alt": "T"}
+    )
+    evidence = repository.get_variant_evidence(
+        {"CHROM": "2", "POS": 100, "REF": "A", "ALT": "T"}, genome_build=build
+    )
+    assert evidence["coordinate_matching"]["coding_variants"] is True
+    assert evidence["match_count"] == 1
+
+
 @pytest.mark.parametrize("build", [37, None])
 def test_coordinates_never_match_a_different_or_unknown_assembly(build):
     repository, adapter = _repository()
@@ -54,6 +71,44 @@ def test_coordinates_never_match_a_different_or_unknown_assembly(build):
     assert repository.get_variant_evidence(variant, genome_build=build)["records"] == []
     variant["cosmic_ids"] = ["COSV1"]
     assert repository.get_variant_evidence(variant, genome_build=build)["cosmic_ids"] == ["COSV1"]
+
+
+def test_absent_products_do_not_query_evidence_or_report_assembly_mismatch(monkeypatch):
+    repository, adapter = _repository()
+
+    def unexpected_query(*args, **kwargs):
+        pytest.fail("Absent product must not be queried")
+
+    for name in (
+        "cosmic_collection",
+        "cosmic_noncoding_collection",
+        "cosmic_targeted_collection",
+        "cosmic_mutant_census_collection",
+        "cosmic_mutation_census_collection",
+    ):
+        monkeypatch.setattr(getattr(adapter, name), "find", unexpected_query)
+    monkeypatch.setattr(adapter.knowledgebase_versions_collection, "find_one", unexpected_query)
+    evidence = repository.get_variant_evidence(
+        {"CHROM": "2", "POS": 100, "REF": "A", "ALT": "T", "cosmic_ids": ["COSV1"]},
+        genome_build=38,
+    )
+    assert evidence["coordinate_matching"] == {}
+    assert evidence["records"] == []
+    assert evidence["match_count"] == 0
+    assert repository.get_cnv_evidence({}, genome_build=38)["coordinate_matching"] == {}
+    assert repository.get_translocation_evidence({}, genome_build=38)["coordinate_matching"] == {}
+
+
+def test_installed_product_without_metadata_still_blocks_coordinate_matches():
+    repository, adapter = _repository()
+    adapter.cosmic_collection.insert_one({"chr": "2", "start": 100, "ref": "A", "alt": "T"})
+    adapter.knowledgebase_versions_collection.delete_one({"source": "cosmic_coding_variants"})
+    evidence = repository.get_variant_evidence(
+        {"CHROM": "2", "POS": 100, "REF": "A", "ALT": "T"},
+        genome_build=38,
+    )
+    assert evidence["coordinate_matching"] == {"coding_variants": False}
+    assert evidence["records"] == []
 
 
 def test_mutation_census_uses_the_requested_coordinate_columns():

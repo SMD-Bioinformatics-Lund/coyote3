@@ -7,12 +7,15 @@ import time
 from collections import Counter
 from typing import Any
 
+from api.config.constants import GENOME_BUILD_TO_ASSEMBLY
 from api.infra.mongo.repositories.base import BaseRepository
 
 _LOCUS_PATTERN = re.compile(r"(?:chr)?([0-9XYM]+)[:_]([0-9]+)", re.IGNORECASE)
 _RESULT_LIMIT = 50
 _AVAILABILITY_TTL_SECONDS = 30.0
 _PRODUCT_COLLECTION_ATTRS = {
+    "coding_variants": "cosmic_collection",
+    "noncoding_variants": "cosmic_noncoding_collection",
     "actionability": "cosmic_actionability_collection",
     "breakpoints": "cosmic_breakpoints_collection",
     "cancer_gene_census": "cosmic_cgc_collection",
@@ -145,6 +148,7 @@ class CosmicRepository(BaseRepository):
         super().__init__(adapter)
         self.set_collection(self.adapter.cosmic_collection)
         self._availability_cache: dict[str, tuple[float, bool]] = {}
+        self._collection_names_cache: tuple[float, set[str]] | None = None
 
     def ensure_indexes(self) -> None:
         """Index an installed optional genome-screen collection without creating it."""
@@ -483,9 +487,32 @@ class CosmicRepository(BaseRepository):
             collection.find({"genomic_mutation_id": {"$in": mutation_ids}}, projection).limit(25)
         )
 
-    def _assembly_matches(self, product: str, genome_build: int | None) -> bool:
-        """Coordinate evidence requires an explicitly matching installed product assembly."""
-        if genome_build not in (37, 38):
+    def _product_present(self, product: str) -> bool:
+        """Check collection existence, caching names for up to 30 seconds.
+
+        Args:
+            product: COSMIC product in the collection-attribute mapping.
+
+        Returns:
+            Whether the product collection exists in its configured database.
+        """
+        collection = getattr(self.adapter, _PRODUCT_COLLECTION_ATTRS[product], None)
+        if collection is None:
+            return False
+        now = time.monotonic()
+        if (
+            self._collection_names_cache is None
+            or now - self._collection_names_cache[0] >= _AVAILABILITY_TTL_SECONDS
+        ):
+            self._collection_names_cache = (now, set(collection.database.list_collection_names()))
+        return collection.name in self._collection_names_cache[1]
+
+    def _assembly_matches(self, product: str, genome_build: int | None) -> bool | None:
+        """Return assembly compatibility, or None when the product is not installed."""
+        if not self._product_present(product):
+            return None
+        assembly = GENOME_BUILD_TO_ASSEMBLY.get(genome_build)
+        if assembly is None:
             return False
         versions = getattr(self.adapter, "knowledgebase_versions_collection", None)
         if versions is None:
@@ -493,7 +520,7 @@ class CosmicRepository(BaseRepository):
         release = versions.find_one(
             {"source": f"cosmic_{product}", "status": "active"}, {"assembly": 1}
         )
-        return bool(release and release.get("assembly") == f"GRCh{genome_build}")
+        return bool(release and str(release.get("assembly") or "").strip().upper() == assembly)
 
     def get_variant_evidence(
         self, variant: dict[str, Any], *, genome_build: int | None
@@ -536,6 +563,8 @@ class CosmicRepository(BaseRepository):
             Returns:
                 All captured clauses for a matching assembly; otherwise only ID clauses.
             """
+            if matching[product] is None:
+                return []
             return (
                 clauses if matching[product] else [clause for clause in clauses if "id" in clause]
             )
@@ -626,7 +655,7 @@ class CosmicRepository(BaseRepository):
                     {"$or": mutant_census_clauses}, mutant_census_projection
                 ).limit(_RESULT_LIMIT)
             )
-            if mutant_census_collection is not None and mutant_census_clauses
+            if matching["census_gene_mutations"] is not None and mutant_census_clauses
             else []
         )
 
@@ -651,6 +680,9 @@ class CosmicRepository(BaseRepository):
         if identifiers:
             cmc_clauses.append({"genomic_mutation_id": {"$in": identifiers}})
         cmc_collection = getattr(self.adapter, "cosmic_mutation_census_collection", None)
+        cmc_present = self._product_present("mutation_census")
+        if not cmc_present:
+            cmc_clauses = []
         cmc_projection = {
             "_id": 0,
             "genomic_mutation_id": 1,
@@ -703,7 +735,10 @@ class CosmicRepository(BaseRepository):
         genes = _gene_symbols([csq.get("SYMBOL")])
         return {
             "kind": "small_variant",
-            "coordinate_matching": {**matching, "mutation_census": genome_build in (37, 38)},
+            "coordinate_matching": {
+                **{product: value for product, value in matching.items() if value is not None},
+                **({"mutation_census": genome_build in (37, 38)} if cmc_present else {}),
+            },
             "match_count": (
                 len(genome) + len(noncoding) + len(targeted) + len(mutant_census) + len(census)
             ),
@@ -775,7 +810,9 @@ class CosmicRepository(BaseRepository):
             ]
         return {
             "kind": "copy_number",
-            "coordinate_matching": {"copy_number": assembly_matches},
+            "coordinate_matching": {"copy_number": assembly_matches}
+            if assembly_matches is not None
+            else {},
             "match_count": sum(int(row["observations"]) for row in records),
             "records": records,
             "classifications": self._classifications(records),
@@ -910,7 +947,9 @@ class CosmicRepository(BaseRepository):
         genes = _gene_symbols(translocation.get("genes") or [])
         return {
             "kind": "translocation",
-            "coordinate_matching": {"breakpoints": assembly_matches},
+            "coordinate_matching": {"breakpoints": assembly_matches}
+            if assembly_matches is not None
+            else {},
             "match_count": len(records),
             "cosmic_ids": list(
                 dict.fromkeys(
