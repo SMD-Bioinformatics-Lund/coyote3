@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from api.application.ingest import collection_writes, dependent_writes, helpers, sample_updates
 from api.application.ingest.file_policy import (
     assay_file_policy,
+    readable_file_payload,
     validate_declared_file_resources,
     validate_payload_file_keys,
 )
@@ -62,12 +63,29 @@ class InternalIngestService:
         store: Any,
         *,
         dashboard_metrics_invalidator,
+        audit_service: Any | None = None,
+        notification_service: Any | None = None,
+        monitoring_group: str = "monitoring_group",
     ) -> "InternalIngestService":
-        """Build the service from the runtime store."""
+        """Bind ingestion and optional warning delivery to runtime repositories.
+
+        Args:
+            store: Runtime repositories and databases used for ingestion.
+            dashboard_metrics_invalidator: Callback accepting the store after commit.
+            audit_service: Warning audit recorder, or None to disable audit delivery.
+            notification_service: Inbox service, or None to disable inbox delivery.
+            monitoring_group: Role whose active members receive inbox warnings.
+
+        Returns:
+            Ingestion service with transaction and warning dependencies attached.
+        """
         return cls(
             collection_gateway=IngestCollectionGateway.from_store(store),
             anno_vep_repository=store.anno_vep_repository,
             invalidate_dashboard_metrics=lambda: dashboard_metrics_invalidator(store),
+            audit_service=audit_service,
+            notification_service=notification_service,
+            monitoring_group=monitoring_group,
         )
 
     def __init__(
@@ -76,11 +94,101 @@ class InternalIngestService:
         collection_gateway: IngestCollectionGateway,
         anno_vep_repository: Any,
         invalidate_dashboard_metrics,
+        audit_service: Any | None = None,
+        notification_service: Any | None = None,
+        monitoring_group: str = "monitoring_group",
     ) -> None:
-        """Create the service with an explicit collection gateway."""
+        """Create ingestion with transaction and post-commit warning dependencies.
+
+        Args:
+            collection_gateway: Owns sample collections and transaction execution.
+            anno_vep_repository: Stores parsed variant annotations.
+            invalidate_dashboard_metrics: Callback invoked after committed ingestion.
+            audit_service: Optional recorder for missing-file warning events.
+            notification_service: Optional service resolving and notifying group members.
+            monitoring_group: Recipient role; blank disables inbox warnings.
+        """
         self.collection_gateway = collection_gateway
         self.anno_vep_repository = anno_vep_repository
         self.invalidate_dashboard_metrics = invalidate_dashboard_metrics
+        self.audit_service = audit_service
+        self.notification_service = notification_service
+        self.monitoring_group = monitoring_group
+
+    def _missing_expected_files(self, payload: dict[str, Any], available: set[str]) -> list[str]:
+        """Return configured expected resources absent from this ingest's readable inputs.
+
+        Args:
+            payload: Sample carrying its ASP identifier and omics layer.
+            available: File keys validated as readable for this ingest attempt.
+
+        Returns:
+            Sorted missing expected file keys from the active ASP contract.
+        """
+        expected, _required = self._assay_file_policy(
+            assay_name=payload.get("asp_id"), omics_layer=payload.get("omics_layer")
+        )
+        return sorted(expected - available)
+
+    def _report_missing_expected_files(self, result: dict[str, Any]) -> None:
+        """Log and notify about committed incomplete samples without undoing ingestion.
+
+        Args:
+            result: Committed sample identity and missing expected file keys.
+
+        Notes:
+            A structured warning is picked up by the disk monitor for retryable
+            email delivery. Audit and inbox failures are logged independently.
+        """
+        missing = result.get("missing_expected_files") or []
+        if not missing:
+            return
+        message = (
+            f"Sample {result['sample_name']} ingested with unavailable expected files: "
+            + ", ".join(missing)
+            + ". Required files passed validation; ingestion proceeded."
+        )
+        metadata = {"sample_id": result["sample_id"], "missing_expected_files": missing}
+        logger.warning(message, extra={"event_type": "ingest.expected_files_missing", **metadata})
+        if self.audit_service is not None:
+            try:
+                self.audit_service.record(
+                    "ingest.expected_files_missing",
+                    message,
+                    category="data",
+                    severity="warning",
+                    outcome="warning",
+                    resource_type="sample",
+                    resource_id=result["sample_id"],
+                    resource_name=result["sample_name"],
+                    metadata=metadata,
+                    tags=["ingest"],
+                )
+            except Exception:
+                logger.exception("Could not audit missing expected ingest files")
+        if self.notification_service is not None and self.monitoring_group.strip():
+            try:
+                users = (
+                    self.notification_service.user_repository.list_active_users_for_notifications(
+                        role_ids=[self.monitoring_group]
+                    )
+                )
+                recipients = [str(user["username"]) for user in users if user.get("username")]
+                if recipients:
+                    self.notification_service.create_notification(
+                        audience="users",
+                        recipients=recipients,
+                        tone="warning",
+                        category="application",
+                        title="Sample ingested with unavailable data",
+                        message=message,
+                        source="Sample ingestion",
+                        created_by="system",
+                        severity="warning",
+                        resource={"type": "sample", "id": result["sample_id"]},
+                    )
+            except Exception:
+                logger.exception("Could not notify missing expected ingest files")
 
     def _sample_collection(self):
         """Return the sample collection used by internal ingest workflows."""
@@ -204,10 +312,9 @@ class InternalIngestService:
     def _validate_declared_file_resources(self, payload: dict[str, Any]) -> set[str]:
         """Validate assay file policy and declared file paths before parsing.
 
-        Required ASP files must be present and readable. Optional missing files
-        are allowed, but optional files declared in the manifest are treated as
-        part of the ingest contract: if they are present, they must be readable
-        and successfully parsed/written before the sample becomes ready.
+        Required ASP files must be present and readable. Missing or unreadable
+        optional expected files are recorded as unavailable, whether or not a
+        path was declared. Readable inputs must parse and write successfully.
         """
         return validate_declared_file_resources(self._collection, payload)
 
@@ -419,6 +526,9 @@ class InternalIngestService:
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
         declared_file_keys = self._validate_declared_file_resources(parsed_payload)
+        parsed_payload["missing_expected_files"] = self._missing_expected_files(
+            parsed_payload, declared_file_keys
+        )
         parsed_payload.pop("_id", None)
         parsed_payload.pop("data_counts", None)
         parsed_payload.pop("time_added", None)
@@ -451,7 +561,7 @@ class InternalIngestService:
             if key in parsed_payload and parsed_payload.get(key):
                 preload_payload[key] = parsed_payload[key]
 
-        preload = self._parse_preload(preload_payload)
+        preload = self._parse_preload(readable_file_payload(preload_payload, declared_file_keys))
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
@@ -506,6 +616,7 @@ class InternalIngestService:
                 "sample_name": str(current_doc["name"]),
                 "written": written,
                 "data_counts": counts,
+                "missing_expected_files": parsed_payload["missing_expected_files"],
             }
             if record_completion is not None:
                 record_completion(result, session)
@@ -513,6 +624,7 @@ class InternalIngestService:
 
         result = self.collection_gateway.run_transaction(update)
         self._invalidate_dashboard_metrics_after_ingest()
+        self._report_missing_expected_files(result)
         return result
 
     def ingest_sample_bundle(
@@ -563,11 +675,14 @@ class InternalIngestService:
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
         declared_file_keys = self._validate_declared_file_resources(parsed_payload)
+        parsed_payload["missing_expected_files"] = self._missing_expected_files(
+            parsed_payload, declared_file_keys
+        )
         parsed_payload = self._apply_resolved_aspc_snapshot(parsed_payload)
 
         validated_sample = SamplesDoc.model_validate(parsed_payload)
         validated_payload = validated_sample.model_dump(exclude_none=True)
-        preload = self._parse_preload(validated_payload)
+        preload = self._parse_preload(readable_file_payload(validated_payload, declared_file_keys))
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
@@ -620,6 +735,7 @@ class InternalIngestService:
                 "sample_name": sample_name,
                 "written": written,
                 "data_counts": counts,
+                "missing_expected_files": parsed_payload["missing_expected_files"],
             }
             if record_completion is not None:
                 record_completion(result, session)
@@ -627,6 +743,7 @@ class InternalIngestService:
 
         result = self.collection_gateway.run_transaction(create)
         self._invalidate_dashboard_metrics_after_ingest()
+        self._report_missing_expected_files(result)
         return result
 
     def insert_collection_document(

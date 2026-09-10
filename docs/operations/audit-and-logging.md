@@ -78,7 +78,9 @@ NOTIFICATION_RETENTION_DAYS
 
 ## System error emails
 
-The Compose `monitor` service scans daily logs for ERROR and CRITICAL records. It
+The Compose `monitor` service scans daily logs for ERROR and CRITICAL records, plus
+WARNING records with event type `ingest.expected_files_missing`. Missing optional
+expected files allow ingestion to proceed and generate warning emails. It
 runs independently of API initialization, Redis, worker, and beat. Each error batch
 includes the error messages, recorded tracebacks, and a gzip snapshot of the service
 log. The snapshot is retained under `/app/logs/.error-mail` until SMTP accepts the

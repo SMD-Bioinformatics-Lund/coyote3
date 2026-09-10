@@ -57,6 +57,9 @@ def test_store_backed_provider_builds_expected_service(
     factory = Mock(return_value=marker)
     monkeypatch.setattr(services, "get_store", lambda: store)
     monkeypatch.setattr(getattr(services, service_name), "from_store", factory)
+    if provider_name == "get_internal_ingest_service":
+        monkeypatch.setattr(services, "get_audit_service", lambda: "audit")
+        monkeypatch.setattr(services, "get_notification_service", lambda: "notifications")
 
     assert getattr(services, provider_name)() is marker
     assert factory.call_count == 1
@@ -139,7 +142,11 @@ def test_notification_and_controls_providers_include_runtime_dependencies(
     monkeypatch.setattr(services, "get_store", lambda: store)
     monkeypatch.setattr(services, "get_audit_service", lambda: "audit")
     notification_factory = Mock(return_value="notifications")
-    controls_factory = Mock(return_value=SimpleNamespace())
+    controls_factory = Mock(
+        return_value=SimpleNamespace(
+            get_controls=lambda: SimpleNamespace(email=SimpleNamespace(enabled=False))
+        )
+    )
     monkeypatch.setattr(services.NotificationService, "from_store", notification_factory)
     monkeypatch.setattr(services, "AppControlsService", controls_factory)
 

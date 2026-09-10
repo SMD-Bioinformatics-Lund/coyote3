@@ -444,12 +444,11 @@ def _prepare_uploaded_bundle(
             + ", ".join(sorted(ambiguous))
             + ". Use unique basenames or archive paths matching the YAML values."
         )
-    if missing:
-        required_missing = [entry for entry in missing if entry.split(":", 1)[0] in required_keys]
-        label = "Missing required files" if required_missing else "Missing declared files"
+    required_missing = [entry for entry in missing if entry.split(":", 1)[0] in required_keys]
+    if required_missing:
         raise ValueError(
-            f"{label} for YAML references: "
-            + ", ".join(sorted(missing))
+            "Missing required files for YAML references: "
+            + ", ".join(sorted(required_missing))
             + ". Provide one ZIP containing matching files or make the manifest paths readable."
         )
     if runtime_files:

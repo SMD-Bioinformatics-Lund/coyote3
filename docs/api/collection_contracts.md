@@ -1142,6 +1142,7 @@ Optional keys:
 - `read_technology` (str | None)
 - `pipeline_version` (str | None)
 - `files` (dict[str, api.contracts.schemas.samples.SampleFileDoc])
+- `missing_expected_files` (list[str])
 - `analysis_intents` (list[str])
 - `filters` (api.contracts.schemas.filter_profiles.DnaFilterProfilesDoc | api.contracts.schemas.filter_profiles.RnaFilterProfilesDoc | None)
 - `case` (SampleCaseControlDoc)

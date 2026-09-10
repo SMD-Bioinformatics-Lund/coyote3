@@ -42,6 +42,7 @@ class InternalIngestSampleBundlePayload(BaseModel):
     sample_name: str
     written: dict[str, int]
     data_counts: dict[str, int | bool]
+    missing_expected_files: list[str] = Field(default_factory=list)
 
 
 class InternalIngestAcknowledgementPayload(BaseModel):

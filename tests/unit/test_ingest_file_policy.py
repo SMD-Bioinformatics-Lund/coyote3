@@ -6,6 +6,7 @@ import pytest
 
 from api.application.ingest.file_policy import (
     assay_file_policy,
+    readable_file_payload,
     validate_declared_file_resources,
     validate_payload_file_keys,
 )
@@ -159,3 +160,29 @@ def test_empty_expected_files_do_not_restore_default_requirements():
         validate_declared_file_resources(collection, {"asp_id": "panel_a", "omics_layer": "dna"})
         == set()
     )
+
+
+def test_parser_input_excludes_unavailable_paths_without_losing_metadata(tmp_path):
+    vcf = tmp_path / "sample.vcf"
+    vcf.write_text("synthetic")
+    payload = {
+        "asp_id": "panel_a",
+        "omics_layer": "dna",
+        "vcf_files": str(vcf),
+        "cnv": "/missing/cnv.json",
+        "files": {"vcf_files": {"path": str(vcf)}, "cnv": {"path": "/missing/cnv.json"}},
+        "_runtime_files": {"vcf_files": str(vcf), "cnv": "/missing/cnv.json"},
+    }
+    collection = resolver(panels=[dna_panel()], configurations=[])
+    available = validate_declared_file_resources(collection, payload)
+    assert available == {"vcf_files"}
+    parsed = readable_file_payload(payload, available)
+    assert "cnv" not in parsed
+    assert "cnv" not in parsed["files"]
+    assert "cnv" not in parsed["_runtime_files"]
+    assert payload["files"]["cnv"]["path"] == "/missing/cnv.json"
+    collection = resolver(
+        panels=[dna_panel(required_files=["vcf_files", "cnv"])], configurations=[]
+    )
+    with pytest.raises(FileNotFoundError, match="cnv="):
+        validate_declared_file_resources(collection, payload)

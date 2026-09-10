@@ -39,6 +39,25 @@ def test_file_rows_read_current_sample_files_shape(tmp_path):
     assert by_key["cnv"]["availability"] == "optional_missing"
 
 
+def test_recorded_unavailable_file_stays_missing_until_ingested(tmp_path):
+    source = tmp_path / "late-transloc.vcf"
+    source.write_text("synthetic")
+    rows = SampleCatalogService._file_rows_for_sample(
+        {
+            "omics_layer": "dna",
+            "files": {"transloc": {"path": str(source)}},
+            "missing_expected_files": ["transloc"],
+        },
+        {"expected_files": ["transloc"], "required_files": []},
+    )
+    assert rows[0]["availability"] == "optional_missing"
+    assert rows[0]["required"] is False
+    assert (
+        SampleCatalogService._file_rows_for_sample({"omics_layer": "dna"}, {"expected_files": []})
+        == []
+    )
+
+
 def test_sample_catalog_attaches_flat_biomarkers_with_one_bulk_lookup():
     calls: list[list[str]] = []
 

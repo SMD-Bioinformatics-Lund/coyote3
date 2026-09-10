@@ -83,7 +83,11 @@ def validate_payload_file_keys(
 def validate_declared_file_resources(
     collection: CollectionResolver, payload: dict[str, Any]
 ) -> set[str]:
-    """Validate only active ASP file requirements and declared paths before parsing."""
+    """Require readable required files and return the readable expected resources.
+
+    Missing optional expected resources do not block ingestion. The caller retains
+    their metadata and reports their absence after committing the sample.
+    """
     omics = str(payload.get("omics_layer") or infer_omics_layer(payload) or "").lower()
     expected, required = assay_file_policy(
         collection, assay_name=payload.get("asp_id"), omics_layer=omics
@@ -94,13 +98,40 @@ def validate_declared_file_resources(
         raise ValueError(
             f"Missing required ingest file(s) for assay '{payload.get('asp_id')}': {', '.join(missing)}"
         )
-    unreadable = sorted(
-        key for key in declared if not os.path.exists(str(runtime_file_path(payload, key) or ""))
-    )
+    available = {
+        key
+        for key in declared
+        if os.path.isfile(str(runtime_file_path(payload, key)))
+        and os.access(str(runtime_file_path(payload, key)), os.R_OK)
+    }
+    unreadable = sorted(required - available)
     if unreadable:
         details = ", ".join(f"{key}={runtime_file_path(payload, key)}" for key in unreadable)
         raise FileNotFoundError(f"Declared ingest file(s) are not readable: {details}")
-    return declared
+    return available
+
+
+def readable_file_payload(payload: dict[str, Any], available: set[str]) -> dict[str, Any]:
+    """Copy parser input with only readable files, preserving original sample metadata.
+
+    Args:
+        payload: Sample metadata and optional runtime upload paths.
+        available: File keys that passed required-file and readability validation.
+
+    Returns:
+        A copy excluding unavailable paths from every supported file container.
+    """
+    result = {
+        key: value
+        for key, value in payload.items()
+        if key not in SAMPLE_SOURCE_PATH_KEYS or key in available
+    }
+    for container in ("files", "_runtime_files"):
+        if isinstance(result.get(container), dict):
+            result[container] = {
+                key: value for key, value in result[container].items() if key in available
+            }
+    return result
 
 
 def _configured_keys(value: Any) -> set[str]:

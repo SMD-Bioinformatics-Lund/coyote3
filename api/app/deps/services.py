@@ -214,6 +214,9 @@ def get_internal_ingest_service() -> InternalIngestService:
     return InternalIngestService.from_store(
         get_store(),
         dashboard_metrics_invalidator=invalidate_dashboard_metrics,
+        audit_service=get_audit_service(),
+        notification_service=get_notification_service(),
+        monitoring_group=str(runtime_app.config.get("ERROR_EMAIL_GROUP") or "monitoring_group"),
     )
 
 

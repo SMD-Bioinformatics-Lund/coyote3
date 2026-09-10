@@ -75,6 +75,31 @@ def test_monitor_reads_compressed_logs_and_waits_for_complete_lines(tmp_path):
     assert monitor.deliver(["monitor@example.test"], lambda **message: False) == 0
 
 
+def test_monitor_emails_missing_expected_file_warnings_but_not_unrelated_warnings(tmp_path):
+    source = tmp_path / "2026/09/10/worker_2026-09-10.log"
+    source.parent.mkdir(parents=True)
+    records = [
+        {"severity": "warning", "message": "Unrelated warning"},
+        {
+            "severity": "warning",
+            "event_type": "ingest.expected_files_missing",
+            "message": "Sample synthetic: transloc not available; ingestion proceeded",
+        },
+    ]
+    source.write_text("".join(json.dumps(record) + "\n" for record in records))
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    sent = []
+    assert monitor.deliver(["monitor@example.test"], lambda **kw: sent.append(kw) or True) == 1
+    assert sent[0]["severity"] == "warning"
+    assert "system warning" in sent[0]["subject"]
+    assert "transloc" in sent[0]["text_body"]
+    assert "Unrelated warning" not in sent[0]["text_body"]
+    assert "transloc" in gzip.decompress(sent[0]["attachments"][0][1]).decode()
+    monitor.scan()
+    assert monitor.deliver(["monitor@example.test"], lambda **kw: False) == 0
+
+
 def test_internal_syslog_routes_errors_and_rejects_unknown_services():
     record = parse_syslog("<187>Sep 9 12:00:00 nginx ui: upstream failed")
     assert record.service == "ui"

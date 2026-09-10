@@ -543,7 +543,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
     assert "Missing required files for YAML references" in str(exc_info.value)
 
 
-def test_ingest_sample_bundle_upload_internal_rejects_missing_declared_optional_file(monkeypatch):
+def test_ingest_sample_bundle_upload_internal_allows_missing_declared_optional_file(monkeypatch):
     """Every YAML-declared file must resolve, even when the ASP marks it optional."""
     calls: dict[str, object] = {}
 
@@ -589,18 +589,18 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_declared_optional_
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     archive = _zip_upload(("required.vcf", b"##fileformat=VCFv4.2\n"))
 
-    with pytest.raises(HTTPException) as exc_info:
-        internal.ingest_sample_bundle_upload_internal(
-            yaml_file=yaml_upload,
-            data_archive=archive,
-            update_existing=False,
-            increment=True,
-            acknowledge=False,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
-    assert exc_info.value.status_code == 400
-    assert "Missing declared files for YAML references" in str(exc_info.value)
+    result = internal.ingest_sample_bundle_upload_internal(
+        yaml_file=yaml_upload,
+        data_archive=archive,
+        update_existing=False,
+        increment=True,
+        acknowledge=False,
+        user=_admin_user(),
+        ingest_service=ingest_service,
+    )
+    assert result["status"] == "ok"
+    assert calls["payload"]["transloc"] == "/unavailable/optional.vcf"
+    assert "transloc" not in calls["payload"]["_runtime_files"]
 
 
 def test_ingest_sample_bundle_upload_internal_acknowledges_failures(monkeypatch):

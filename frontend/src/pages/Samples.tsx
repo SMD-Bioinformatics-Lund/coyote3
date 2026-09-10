@@ -16,6 +16,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleSubpanel } from "@/lib/sample-shape"
+import { FILE_ANALYSIS_LABELS } from "@/lib/sample-artifact-ui"
 import { DataTable, type CsvExportColumn } from "@/components/data-table/DataTable"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { valueBadgeClass } from "@/lib/badge-colors"
@@ -100,20 +101,29 @@ function firstDefinedValue(record: Record<string, unknown>, keys: readonly strin
 
 function countBadges(sample: any) {
   const counts = sample?.data_counts || {}
+  const missing = new Set(sample?.missing_expected_files || [])
+  const translocations = counts.transloc ?? counts.translocations
   const numericBadges = [
-    counts.snvs !== undefined ? { label: "SNV", value: shortCount(counts.snvs), className: "matte-badge-pass" } : null,
-    counts.cnvs !== undefined ? { label: "CNV", value: shortCount(counts.cnvs), className: "matte-badge-pass" } : null,
-    counts.fusions !== undefined ? { label: "Fusion", value: shortCount(counts.fusions), className: "matte-badge-pass" } : null,
-    counts.translocations !== undefined ? { label: "SV", value: shortCount(counts.translocations), className: "matte-badge-pass" } : null,
+    counts.snvs !== undefined && !missing.has("vcf_files") ? { label: "SNV", value: shortCount(counts.snvs), className: "matte-badge-pass" } : null,
+    counts.cnvs !== undefined && !missing.has("cnv") ? { label: "CNV", value: shortCount(counts.cnvs), className: "matte-badge-pass" } : null,
+    counts.fusions !== undefined && !missing.has("fusion_files") ? { label: "Fusion", value: shortCount(counts.fusions), className: "matte-badge-pass" } : null,
+    translocations !== undefined && !missing.has("transloc") ? { label: "SV", value: shortCount(translocations), className: "matte-badge-pass" } : null,
   ].filter(Boolean)
+  const fileForCount: Record<string, string> = {
+    rna_expr: "expression_path", rna_expression: "expression_path",
+    rna_class: "classification_path", rna_classification: "classification_path", rna_qc: "qc",
+  }
   const booleanBadges = Object.entries(counts)
-    .filter(([, value]) => typeof value === "boolean")
+    .filter(([key, value]) => typeof value === "boolean" && !missing.has(fileForCount[key] || key))
     .map(([key, value]) => ({
       label: BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ").toUpperCase(),
       className: value ? "matte-badge-pass" : "matte-badge-fail",
     }))
 
-  return [...numericBadges, ...booleanBadges]
+  const missingBadges = (sample?.missing_expected_files || []).map((key: string) => ({
+    label: `${FILE_ANALYSIS_LABELS[key] || key} not available`, className: "matte-badge-fail",
+  }))
+  return [...numericBadges, ...booleanBadges, ...missingBadges]
 }
 
 function positivePage(value: string | null) {
@@ -132,7 +142,7 @@ function sampleFindingTotal(sample: any) {
     Number(counts.snvs || 0) +
     Number(counts.cnvs || 0) +
     Number(counts.fusions || 0) +
-    Number(counts.translocations || 0)
+    Number(counts.transloc ?? counts.translocations ?? 0)
   )
 }
 
@@ -356,10 +366,12 @@ export function Samples() {
             counts.snvs !== undefined ? `SNV ${counts.snvs}` : "",
             counts.cnvs !== undefined ? `CNV ${counts.cnvs}` : "",
             counts.fusions !== undefined ? `Fusion ${counts.fusions}` : "",
-            counts.translocations !== undefined ? `SV ${counts.translocations}` : "",
+            (counts.transloc ?? counts.translocations) !== undefined ? `SV ${counts.transloc ?? counts.translocations}` : "",
             ...Object.entries(counts)
               .filter(([, value]) => value === true)
               .map(([key]) => BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ")),
+            ...(sample?.missing_expected_files || []).map((key: string) =>
+              `${FILE_ANALYSIS_LABELS[key] || key} not available`),
           ].filter(Boolean).join("; ")
         },
         cellClassName: "min-w-[220px]",

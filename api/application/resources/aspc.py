@@ -332,13 +332,13 @@ class AspcService:
     def _analysis_types_for_panel(panel: dict[str, Any], *, category: str) -> list[str]:
         """Return the selectable analysis types for one ASP.
 
-        Intersect category and sequencing-family capabilities with the union of
-        expected and required file keys. Missing file declarations enable nothing.
+        Intersect category and sequencing-family capabilities with expected file
+        keys. Required files control ingestion, not analysis selection.
         """
         family = str(panel.get("asp_family") or "").strip().lower()
         bindings = CLINICAL_VOCABULARY.analysis_file_keys_by_omics.get(category.lower(), {})
         allowed = CLINICAL_VOCABULARY.analysis_types_by_family.get(family, tuple(bindings))
-        files = set(panel.get("expected_files") or []) | set(panel.get("required_files") or [])
+        files = set(panel.get("expected_files") or [])
         return [analysis for analysis in allowed if files.intersection(bindings.get(analysis, ()))]
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:

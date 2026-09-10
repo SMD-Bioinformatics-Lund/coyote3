@@ -52,6 +52,12 @@ export function sampleArtifactStatus(availability: unknown): { label: string; to
     case "required_missing":
       return { label: "Required missing", tone: "red" }
     default:
-      return { label: "Optional missing", tone: "yellow" }
+      return { label: "Not available", tone: "red" }
   }
+}
+
+export const FILE_ANALYSIS_LABELS: Record<string, string> = {
+  vcf_files: "SNV", cnv: "CNV", transloc: "Translocations", cov: "Coverage",
+  biomarkers: "Biomarkers", fusion_files: "Fusion", expression_path: "Expression",
+  classification_path: "Classification", qc: "QC", cnvprofile: "CNV profile",
 }

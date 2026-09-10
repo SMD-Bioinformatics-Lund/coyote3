@@ -28,15 +28,20 @@ def test_saved_empty_file_selection_does_not_reenable_analyses():
 @pytest.mark.parametrize(
     "category,family,expected,required,analyses",
     [
-        ("dna", "panel-dna", ["vcf_files"], ["cnv"], ["SNV", "CNV"]),
+        ("dna", "panel-dna", ["vcf_files"], ["cnv"], ["SNV"]),
+        (
+            "dna",
+            "panel-dna",
+            ["vcf_files", "transloc"],
+            ["vcf_files"],
+            ["SNV", "TRANSLOCATION", "FUSION"],
+        ),
         ("dna", "panel-dna", [], [], []),
-        ("rna", "wts", ["expression_path"], ["fusion_files"], ["FUSION", "EXPRESSION"]),
+        ("rna", "wts", ["expression_path"], ["fusion_files"], ["EXPRESSION"]),
         ("rna", "panel-rna", ["expression_path"], [], []),
     ],
 )
-def test_analysis_options_follow_expected_or_required_files(
-    category, family, expected, required, analyses
-):
+def test_analysis_options_follow_expected_files(category, family, expected, required, analyses):
     panel = {
         "asp_category": category,
         "asp_family": family,

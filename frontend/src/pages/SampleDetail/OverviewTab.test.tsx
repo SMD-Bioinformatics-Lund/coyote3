@@ -108,7 +108,7 @@ describe("sample overview presentation", () => {
     expect(screen.getByText("mpn")).toBeVisible()
     expect(screen.getByText("VCF")).toBeVisible()
     expect(screen.getByText("2.0 KB")).toBeVisible()
-    expect(screen.getByText("Optional missing")).toBeVisible()
+    expect(screen.getByText("Not available")).toBeVisible()
     expect(screen.getByText("No biomarkers file available")).toBeVisible()
     expect(screen.getByRole("heading", { name: "SNV filters" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "CNV filters" })).toBeVisible()
@@ -194,8 +194,18 @@ describe("sample overview presentation", () => {
       aspc_resolution: undefined,
     }
     wrapper(<OverviewTab sampleId="CASE_002" sample={unpaired} context={{ analysis_sections: ["snv"] }} />)
-    expect(screen.getByText("Missing")).toBeVisible()
+    expect(screen.getByText("Not available")).toBeVisible()
     expect(screen.getAllByText("Not paired").length).toBeGreaterThan(1)
     expect(screen.queryByText("Base configuration in use.")).not.toBeInTheDocument()
+  })
+
+  it("does not treat an unavailable declared translocation path as ready", () => {
+    wrapper(<OverviewTab sampleId="CASE_001" sample={{ ...sample,
+      files: { transloc: { path: "/missing/transloc.vcf" } },
+      missing_expected_files: ["transloc"],
+    }} context={{ analysis_sections: ["translocation"] }} />)
+    expect(screen.getByText("Translocations")).toBeVisible()
+    expect(screen.getByText("Not available")).toBeVisible()
+    expect(screen.queryByText("Ready")).not.toBeInTheDocument()
   })
 })

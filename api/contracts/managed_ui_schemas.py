@@ -1109,7 +1109,7 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         )
         fields["analysis_types"]["show_unavailable_options"] = True
         fields["analysis_types"]["help"] = (
-            "Available analyses depend on the ASP expected and required input files."
+            "Available analyses depend on the ASP expected input files."
         )
         for group in fields["reporting"].get("groups", []):
             for field in group["fields"]:

@@ -245,6 +245,10 @@ class SamplesDoc(_DocBase):
     pipeline: str
     pipeline_version: str | None = None
     files: dict[str, SampleFileDoc] = Field(default_factory=dict)
+    missing_expected_files: list[str] = Field(
+        default_factory=list,
+        description="Expected ASP resources unavailable at ingestion; required files block ingestion.",
+    )
     analysis_intents: list[str] = Field(default_factory=lambda: ["somatic"])
     filters: SampleDnaFiltersDoc | SampleRnaFiltersDoc | None = None
     case: SampleCaseControlDoc = Field(default_factory=SampleCaseControlDoc)

@@ -159,7 +159,7 @@ def _store_stub(sample_docs=None):
                     "required_files": ["vcf_files"],
                 },
                 {
-                    "asp_id": "A",
+                    "asp_id": "a",
                     "is_active": True,
                     "assay_name": "A",
                     "asp_group": "hematology",
@@ -780,7 +780,8 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         service._validate_payload_file_keys(payload)
 
 
-def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_path):
+@pytest.mark.parametrize("declared", [True, False])
+def test_ingest_proceeds_with_missing_expected_files(monkeypatch, tmp_path, caplog, declared):
     store_stub = _store_stub()
     store_stub.coyote_db["asp_configs"].docs = [
         {
@@ -791,6 +792,7 @@ def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_
             "environment": "production",
             "is_active": True,
             "analysis_types": ["SNV", "TRANSLOCATION"],
+            "filters": {},
         }
     ]
     store_stub.coyote_db["assay_specific_panels"].docs = [
@@ -823,12 +825,55 @@ def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_
         "transloc": str(tmp_path / "missing.annotated.vcf"),
     }
 
-    validated = service._validate_payload_file_keys(payload)
-
-    assert validated["vcf_files"] == str(vcf_path)
-    assert validated["transloc"] == str(tmp_path / "missing.annotated.vcf")
-    with pytest.raises(FileNotFoundError, match="transloc="):
-        service._validate_declared_file_resources(validated)
+    if not declared:
+        payload.pop("transloc")
+    parser_inputs = []
+    audit_events = []
+    notifications = []
+    groups = []
+    service.audit_service = SimpleNamespace(
+        record=lambda *args, **kw: audit_events.append((args, kw))
+    )
+    service.notification_service = SimpleNamespace(
+        user_repository=SimpleNamespace(
+            list_active_users_for_notifications=lambda **kw: (
+                groups.append(kw) or [{"username": "monitor_user"}]
+            )
+        ),
+        create_notification=lambda **kw: notifications.append(kw),
+    )
+    monkeypatch.setattr(
+        service, "_parse_preload", lambda data: parser_inputs.append(data) or {"snvs": []}
+    )
+    result = service.ingest_sample_bundle(payload)
+    assert result["status"] == "ok"
+    assert result["missing_expected_files"] == ["transloc"]
+    saved = service._sample_collection().inserted_one[-1]
+    assert saved["missing_expected_files"] == ["transloc"]
+    assert ("transloc" in saved["files"]) == declared
+    assert "transloc" not in parser_inputs[0].get("files", {})
+    assert "translocations" not in result["data_counts"]
+    assert audit_events[0][0][0] == "ingest.expected_files_missing"
+    assert audit_events[0][1]["outcome"] == "warning"
+    assert groups == [{"role_ids": ["monitoring_group"]}]
+    assert notifications[0]["recipients"] == ["monitor_user"]
+    assert "transloc" in notifications[0]["message"]
+    assert any(
+        getattr(record, "event_type", None) == "ingest.expected_files_missing"
+        for record in caplog.records
+    )
+    transloc_path = tmp_path / "available.vcf"
+    transloc_path.write_text("synthetic")
+    payload["transloc"] = str(transloc_path)
+    monkeypatch.setattr(service, "_parse_preload", lambda data: {"snvs": [], "transloc": []})
+    updated = service.ingest_sample_bundle(payload, allow_update=True)
+    assert updated["missing_expected_files"] == []
+    assert updated["data_counts"]["transloc"] == 0
+    assert len(notifications) == 1
+    assert any(
+        update["$set"].get("missing_expected_files") == []
+        for _, update, _ in service._sample_collection().updated
+    )
 
 
 def test_aspc_enabled_analysis_does_not_add_asp_file_requirements(tmp_path, monkeypatch):

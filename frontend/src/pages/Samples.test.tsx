@@ -122,6 +122,27 @@ describe("Samples page", () => {
     expect(screen.getByText("Try the modern layout")).toBeInTheDocument()
   })
 
+  it("marks missing expected translocations red without hiding the sample", () => {
+    queryState.data = { ...samples, live_samples: [{
+      ...samples.live_samples[0], missing_expected_files: ["transloc"],
+      data_counts: { ...samples.live_samples[0].data_counts, transloc: 5 },
+    }] }
+    renderWithRouter(<Samples />, "/samples")
+    expect(screen.getByText("DNA_CASE_001")).toBeVisible()
+    expect(screen.getByText("SNV 2.1K")).toBeVisible()
+    expect(screen.getByText("Translocations not available")).toHaveClass("matte-badge-fail")
+    expect(screen.queryByText("SV 5")).not.toBeInTheDocument()
+  })
+
+  it("shows an ingested translocation file with zero findings as available", () => {
+    queryState.data = { ...samples, live_samples: [{
+      ...samples.live_samples[0], missing_expected_files: [], data_counts: { transloc: 0 },
+    }] }
+    renderWithRouter(<Samples />, "/samples")
+    expect(screen.getByText("SV 0")).toHaveClass("matte-badge-pass")
+    expect(screen.queryByText("Translocations not available")).not.toBeInTheDocument()
+  })
+
   it("switches to reported samples and preserves the state in the URL", async () => {
     const user = userEvent.setup()
     queryState.user = {

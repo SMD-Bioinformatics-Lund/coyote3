@@ -33,7 +33,7 @@ class DiskErrorMonitor:
         self.offsets = json.loads(self.state_path.read_text()) if self.state_path.exists() else {}
 
     def scan(self) -> None:
-        """Snapshot new ERROR/CRITICAL records, committing jobs before advancing offsets."""
+        """Queue errors and missing-expected-file warnings before advancing offsets."""
         for path in sorted(self.root.glob("[0-9][0-9][0-9][0-9]/*/*/*.log*")):
             compressed = path.suffix == ".gz"
             logical_path = path.with_suffix("") if compressed else path
@@ -55,7 +55,13 @@ class DiskErrorMonitor:
                         record = json.loads(line)
                     except (ValueError, UnicodeDecodeError):
                         continue
-                    if isinstance(record, dict) and record.get("severity") in {"error", "critical"}:
+                    if isinstance(record, dict) and (
+                        record.get("severity") in {"error", "critical"}
+                        or (
+                            record.get("severity") == "warning"
+                            and record.get("event_type") == "ingest.expected_files_missing"
+                        )
+                    ):
                         errors.append(record)
             if end == start:
                 continue
@@ -93,6 +99,11 @@ class DiskErrorMonitor:
             job = json.loads(path.read_text())
             snapshot = path.with_suffix(".gz")
             source = Path(job["source"])
+            severity = (
+                "error"
+                if any(event.get("severity") in {"error", "critical"} for event in job["errors"])
+                else "warning"
+            )
             body = f"Log file: {job['source']}\n\n" + "\n\n".join(
                 f"{event.get('timestamp', '')} {event.get('message', '')}\n{event.get('exception', '')}"
                 for event in job["errors"]
@@ -102,9 +113,9 @@ class DiskErrorMonitor:
                     continue
                 if sender(
                     to_email=address,
-                    subject=f"Coyote3 system error: {source.name}",
+                    subject=f"Coyote3 system {severity}: {source.name}",
                     text_body=body,
-                    severity="error",
+                    severity=severity,
                     purpose="security",
                     attachments=[(source.name + ".gz", snapshot.read_bytes())],
                 ):

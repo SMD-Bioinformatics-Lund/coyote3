@@ -100,8 +100,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         raw = asp.get("expected_files")
         if isinstance(raw, list):
             keys = [str(item or "").strip() for item in raw if str(item or "").strip()]
-            if keys:
-                return keys
+            return keys
         omics = str(sample.get("omics_layer", "")).strip().lower()
         if omics == "rna":
             return list(RNA_EXPECTED_FILE_OPTIONS)
@@ -148,7 +147,9 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                 except OSError:
                     size_bytes = None
             data_count = data_counts.get(preload_keys.get(key, ""))
-            if path and path_exists:
+            if key in (sample.get("missing_expected_files") or []):
+                availability = "optional_missing"
+            elif path and path_exists:
                 availability = "available"
             elif path and not path_exists:
                 availability = "unreadable"

@@ -355,9 +355,9 @@ function analysisStatusItems(sample: any, context?: any) {
       key: "translocation",
       label: "Translocations",
       configuredKeys: ["translocation", "translocations"],
-      raw: countValue(raw.translocation, raw.translocations, counts.translocation, counts.translocations),
+      raw: countValue(raw.translocation, raw.translocations, counts.transloc, counts.translocation, counts.translocations),
       filtered: countValue(filtered.translocation, filtered.translocations),
-      present: countValue(raw.translocation, raw.translocations, counts.translocation, counts.translocations) > 0 || Boolean(files?.transloc || files?.translocation),
+      present: counts.transloc !== undefined || counts.translocations !== undefined || countValue(raw.translocation, raw.translocations, counts.translocation) > 0 || Boolean(files?.transloc || files?.translocation),
     },
     {
       key: "coverage",
@@ -376,7 +376,13 @@ function analysisStatusItems(sample: any, context?: any) {
       present: countValue(raw.biomarker, raw.biomarkers, counts.biomarker, counts.biomarkers) > 0 || Boolean(files?.biomarkers),
     },
   ]
+  const fileKeys: Record<string, string> = {
+    snv: "vcf_files", cnv: "cnv", fusion: "fusion_files", translocation: "transloc",
+    coverage: "cov", biomarkers: "biomarkers",
+  }
+  const missing = new Set(sample?.missing_expected_files || [])
   return items.filter((item) => configured.size === 0 || item.configuredKeys.some((key) => configured.has(key)))
+    .map((item) => missing.has(fileKeys[item.key]) ? { ...item, present: false, raw: 0, filtered: 0 } : item)
 }
 
 function AnalysisStatusStrip({ sample, context }: { sample: any; context?: any }) {
@@ -387,14 +393,14 @@ function AnalysisStatusStrip({ sample, context }: { sample: any; context?: any }
     <SettingsCard title="Analysis Status" tone="border-t-primary">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {items.map((item) => {
-          const tone = item.present ? "green" : "yellow"
+          const tone = item.present ? "green" : "red"
           const filteredText = item.filtered > 0 ? `${shortCount(item.filtered)} filtered` : "filter on demand"
           const rawText = item.raw > 0 ? `${shortCount(item.raw)} raw` : item.present ? "file present" : "missing"
           return (
             <div key={item.key} className="rounded-xl border border-border bg-background/70 p-2">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="type-label text-foreground">{item.label}</h3>
-                <StatusPill tone={tone}>{item.present ? "Ready" : "Missing"}</StatusPill>
+                <StatusPill tone={tone}>{item.present ? "Ready" : "Not available"}</StatusPill>
               </div>
               <p className="type-meta mt-2 text-foreground/80">{rawText}</p>
               <p className="type-meta text-muted-foreground">{filteredText}</p>
