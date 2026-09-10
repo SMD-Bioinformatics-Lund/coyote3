@@ -60,16 +60,28 @@ function clinicalSig(csq: any, variant: any) {
   return csq?.CLIN_SIG || variant?.INFO?.CLNSIG || variant?.INFO?.CLIN_SIG
 }
 
-function ponRows(value: any) {
+function ponRows(value: unknown) {
   if (!value || typeof value !== "object") return []
   return Object.entries(value)
-    .flatMap(([caller, callerValue]: [string, any]) => {
-      if (!callerValue || typeof callerValue !== "object") return []
-      return Object.entries(callerValue).map(([metric, metricValue]) => ({
-        caller,
-        metric,
-        value: metricValue,
-      }))
+    .flatMap(([caller, callerValue]: [string, unknown]) => {
+      if (!callerValue || typeof callerValue !== "object" || Array.isArray(callerValue)) return []
+      const evidence = callerValue as Record<string, unknown>
+      const num = displayValue(evidence.NUM)
+      const ratio = /^(\d+)\s*\/\s*(\d+)$/.exec(num)
+      const detected = ratio && Number(ratio[2]) > 0 && Number(ratio[1]) <= Number(ratio[2])
+        ? `${num} (${(100 * Number(ratio[1]) / Number(ratio[2])).toFixed(1)}%)`
+        : num
+      const values = (Array.isArray(evidence.VAFS) ? evidence.VAFS : String(evidence.VAFS ?? "").split(","))
+        .map((value) => String(value).trim())
+        .filter(Boolean)
+        .slice(-20)
+        .map((value) => {
+          const frequency = Number(value)
+          return Number.isFinite(frequency) && frequency >= 0 && frequency <= 1
+            ? `${(100 * frequency).toFixed(1)}%`
+            : "-"
+        })
+      return [{ caller, detected, frequencies: values.join(", ") || "-" }]
     })
 }
 
@@ -253,8 +265,8 @@ export function VariantDetail() {
                 empty="No panel-of-normals evidence available."
                 columns={[
                   { key: "caller", header: "Tool", render: (row: any) => row.caller || "-" },
-                  { key: "metric", header: "Metric", render: (row: any) => row.metric || "-" },
-                  { key: "value", header: "Value", render: (row: any) => displayValue(row.value) },
+                  { key: "detected", header: "Num (freq)", render: (row) => row.detected },
+                  { key: "frequencies", header: "Latest 20 frequencies", render: (row) => row.frequencies },
                 ]}
               />
             </DetailCard>

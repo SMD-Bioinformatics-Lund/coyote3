@@ -113,11 +113,13 @@ export function DetailDataTable<T>({
   columns,
   empty = "No data available.",
   initialRows,
+  tableLayout = "auto",
 }: {
   rows: T[]
   columns: DetailColumn<T>[]
   empty?: string
   initialRows?: number
+  tableLayout?: "auto" | "fixed"
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -131,7 +133,7 @@ export function DetailDataTable<T>({
   return (
     <div className="overflow-hidden rounded-lg border border-border/70">
       <div className="overflow-x-auto">
-        <table className="type-table-cell w-full min-w-max border-separate border-spacing-0 text-left">
+        <table className={cn("type-table-cell w-full border-separate border-spacing-0 text-left", tableLayout === "fixed" ? "table-fixed" : "min-w-max")}>
           <thead className="type-table-header bg-muted text-foreground dark:bg-muted/70">
             <tr>
               {columns.map((column) => (

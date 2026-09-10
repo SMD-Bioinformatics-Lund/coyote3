@@ -530,6 +530,7 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
             <h5 className="mb-1 type-section-title">Actionability</h5>
             <DetailDataTable
               rows={visibleActionability}
+              tableLayout="fixed"
               initialRows={10}
               empty="No actionability records match this search."
               columns={[
@@ -544,7 +545,7 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
                     />
                   ),
                 },
-                { key: "disease", header: "Disease", render: (row: any) => <EvidenceValues value={row.disease} /> },
+                { key: "disease", header: "Disease", render: (row: any) => <EvidenceValues value={evidenceValues(row.disease).flatMap(term => term.split(/\s*\/\s*/))} /> },
                 { key: "drug", header: "Drug", render: (row: any) => <EvidenceValues value={row.drug_combination} /> },
                 {
                   key: "evidence",
