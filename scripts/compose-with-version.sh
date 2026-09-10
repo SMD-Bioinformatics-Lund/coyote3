@@ -54,7 +54,7 @@ for ((i=1; i<=$#; i++)); do
 done
 
 if [[ "$is_deploy_action" -eq 1 && -n "$env_file" ]]; then
-  "$VALIDATE_SCRIPT" --env-file "$env_file"
+  bash "$VALIDATE_SCRIPT" --env-file "$env_file"
 fi
 
 if [[ -z "$compose_file" ]]; then
