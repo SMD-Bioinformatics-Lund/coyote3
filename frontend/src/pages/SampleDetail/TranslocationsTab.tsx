@@ -32,6 +32,7 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState";
 import { AnalysisTableCard } from "./AnalysisTableCard";
+import { VepVersionBadge } from "@/components/ui/vep-version-badge";
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
 import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
 import { matchedKnowledgebaseGenes } from "@/lib/knowledgebase-markers";
@@ -221,7 +222,7 @@ export function TranslocationsTab({
   ];
 
   return (
-    <AnalysisTableCard header={header} filterPanel={filterPanel}>
+    <AnalysisTableCard header={<div className="flex flex-wrap items-center gap-2">{header}<VepVersionBadge version={data?.sample?.database_versions?.vep} /></div>} filterPanel={filterPanel}>
       <DataTable
         columns={columns}
         data={translocations}

@@ -121,7 +121,9 @@ function countBadges(sample: any) {
     }))
 
   const missingBadges = (sample?.missing_expected_files || []).map((key: string) => ({
-    label: `${FILE_ANALYSIS_LABELS[key] || key} not available`, className: "matte-badge-fail",
+    label: key === "transloc" ? "Transloc" : FILE_ANALYSIS_LABELS[key] || key,
+    title: `${FILE_ANALYSIS_LABELS[key] || key} not available`,
+    className: "matte-badge-fail",
   }))
   return [...numericBadges, ...booleanBadges, ...missingBadges]
 }
@@ -352,7 +354,7 @@ export function Samples() {
         return (
           <div className="flex flex-wrap gap-1">
             {badges.length ? badges.map((item: any) => (
-              <TableBadge key={item.label} className={item.className}>
+              <TableBadge key={item.label} className={item.className} title={item.title} aria-label={item.title}>
                 {item.value === undefined ? item.label : `${item.label} ${item.value}`}
               </TableBadge>
             )) : <span className="text-muted-foreground">-</span>}

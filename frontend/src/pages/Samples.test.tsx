@@ -130,7 +130,8 @@ describe("Samples page", () => {
     renderWithRouter(<Samples />, "/samples")
     expect(screen.getByText("DNA_CASE_001")).toBeVisible()
     expect(screen.getByText("SNV 2.1K")).toBeVisible()
-    expect(screen.getByText("Translocations not available")).toHaveClass("matte-badge-fail")
+    expect(screen.getByText("Transloc")).toHaveClass("matte-badge-fail")
+    expect(screen.getByText("Transloc")).toHaveAttribute("title", "Translocations not available")
     expect(screen.queryByText("SV 5")).not.toBeInTheDocument()
   })
 
@@ -140,7 +141,7 @@ describe("Samples page", () => {
     }] }
     renderWithRouter(<Samples />, "/samples")
     expect(screen.getByText("SV 0")).toHaveClass("matte-badge-pass")
-    expect(screen.queryByText("Translocations not available")).not.toBeInTheDocument()
+    expect(screen.queryByText("Transloc")).not.toBeInTheDocument()
   })
 
   it("switches to reported samples and preserves the state in the URL", async () => {

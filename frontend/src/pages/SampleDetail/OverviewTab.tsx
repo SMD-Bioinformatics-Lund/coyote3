@@ -7,6 +7,7 @@ import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { shortCount } from "@/lib/detail-formatters"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import {
   sampleArtifactCountLabel,
   sampleArtifactPresentation,
@@ -470,6 +471,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             {sample?.pipeline && <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
             {sampleReported(sample) && <StatusPill tone="blue">Reported</StatusPill>}
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Database versions</span>
+            {Object.entries(sample?.database_versions || {}).filter(([, value]) => value !== null && value !== undefined && value !== "").map(([key, value]) => (
+              key === "vep" ? <VepVersionBadge key={key} version={value} /> :
+                <StatusPill key={key}>{key}: {displayValue(value)}</StatusPill>
+            ))}
+            {!Object.keys(sample?.database_versions || {}).length && <span className="text-sm text-muted-foreground">Not recorded</span>}
+          </div>
           {context?.aspc_update?.available && (
             <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
               <p className="text-xs font-semibold">Newer ASPC available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
@@ -505,6 +514,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                   ["Pool ID", sample?.case?.clarity_pool_id, sample?.control?.clarity_pool_id],
                   ["Sequencing run", sample?.case?.sequencing_run, sample?.control?.sequencing_run],
                   ["Reads", sample?.case?.reads, sample?.control?.reads],
+                  ["BAM", sample?.case?.bam, sample?.control?.bam],
                   ["FFPE", sample?.case?.ffpe ? "Yes" : "No", sample?.control?.ffpe ? "Yes" : "No"],
                   ["Purity", formatPurityPercentage(sample?.case?.purity), formatPurityPercentage(sample?.control?.purity)],
                 ].map(([label, caseValue, controlValue]) => (

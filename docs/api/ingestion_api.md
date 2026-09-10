@@ -283,6 +283,10 @@ Run one coordinator for each remote manifest and retain its receipt directory.
 
 Without `--remote-host`, inputs are local: the receipt is `sample.yaml.ack.json`
 and the lock is `sample.yaml.submit.lock` beside the YAML.
+Lock files are removed when the helper exits after success or a handled failure,
+including remote-mode locks in the state directory. Acknowledgement receipts are
+retained for recovery. A forced process kill can leave an unlocked file; the next
+run can safely acquire and clean it up. Never delete another running helper's lock.
 
 Exit codes:
 

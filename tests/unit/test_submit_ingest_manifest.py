@@ -12,6 +12,26 @@ import pytest
 from scripts import submit_ingest_manifest as client
 
 
+@pytest.mark.parametrize("fail", [False, True])
+def test_submission_lock_removed_after_exit(tmp_path, fail):
+    path = tmp_path / "sample.yaml.submit.lock"
+    try:
+        with client.submission_lock(path):
+            assert path.exists()
+            with pytest.raises(ValueError, match="Another process"):
+                with client.submission_lock(path):
+                    pytest.fail("Concurrent submission acquired the lock")
+            assert path.exists()
+            if fail:
+                raise RuntimeError("synthetic failure")
+    except RuntimeError:
+        assert fail
+    assert not path.exists()
+    with client.submission_lock(path):
+        assert path.exists()
+    assert not path.exists()
+
+
 @pytest.fixture
 def remote_args(args, tmp_path, monkeypatch):
     manifest = tmp_path / "remote.yaml"

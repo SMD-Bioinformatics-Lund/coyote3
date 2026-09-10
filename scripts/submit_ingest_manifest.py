@@ -17,9 +17,51 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urlsplit
+
+
+@contextmanager
+def submission_lock(path: Path):
+    """Hold an exclusive submission lock and remove its file on exit.
+
+    Recheck the inode after acquisition so a process that opened an unlinked old
+    lock cannot submit concurrently with a process using the replacement file.
+    A competing process never removes the current owner's lock.
+    """
+    while True:
+        lock = path.open("a")
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            lock.close()
+            raise ValueError("Another process is submitting this manifest") from exc
+        except BaseException:
+            lock.close()
+            raise
+        identity = os.fstat(lock.fileno())
+        try:
+            current = path.stat()
+        except FileNotFoundError:
+            lock.close()
+            continue
+        if (current.st_dev, current.st_ino) != (identity.st_dev, identity.st_ino):
+            lock.close()
+            continue
+        break
+    try:
+        yield
+    finally:
+        try:
+            current = path.stat()
+            if (current.st_dev, current.st_ino) == (identity.st_dev, identity.st_ino):
+                path.unlink()
+        except FileNotFoundError:
+            pass
+        finally:
+            lock.close()
 
 
 def fingerprint(path: Path) -> str:
@@ -221,11 +263,7 @@ def submit_remote(args: argparse.Namespace) -> int:
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     key = hashlib.sha256(f"{args.remote_host}:{args.yaml}".encode()).hexdigest()
     receipt_path = state / (key + ".ack.json")
-    with (state / (key + ".lock")).open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            raise ValueError("Another process is submitting this remote manifest") from exc
+    with submission_lock(state / (key + ".lock")):
         if receipt_path.exists():
             result = finalize_remote(args, json.loads(receipt_path.read_text()))
             print(f"Acknowledgement: {receipt_path}")
@@ -286,11 +324,7 @@ def submit(args: argparse.Namespace) -> int:
     if manifest.is_symlink() or manifest.suffix.lower() not in {".yaml", ".yml"}:
         raise ValueError("Supply a regular .yaml or .yml manifest, not a symbolic link")
     receipt_path = manifest.with_name(manifest.name + ".ack.json")
-    with manifest.with_name(manifest.name + ".submit.lock").open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            raise ValueError("Another process is submitting this manifest") from exc
+    with submission_lock(manifest.with_name(manifest.name + ".submit.lock")):
         if not manifest.is_file():
             raise ValueError("Manifest does not exist or is not a regular file")
         digest = fingerprint(manifest)

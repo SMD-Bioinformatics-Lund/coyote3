@@ -571,6 +571,7 @@ class DnaStructuralService:
         page_genes = [gene for transloc in page_translocs for gene in translocation_genes(transloc)]
         return {
             "sample": {
+                "database_versions": sample.get("database_versions") or {},
                 "id": str(sample.get("_id")),
                 "name": sample.get("name"),
                 "asp_id": sample.get("asp_id"),

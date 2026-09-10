@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -192,6 +193,7 @@ export function VariantDetail() {
         callers={
           <FindingCallerMeta>
             <CallerBadges value={callers} />
+            <VepVersionBadge version={sample?.database_versions?.vep} />
           </FindingCallerMeta>
         }
         actions={
@@ -573,6 +575,7 @@ export function VariantDetail() {
             </DetailCard>
 
             <DetailCard title="Transcript Consequences">
+              <div className="mb-2"><VepVersionBadge version={sample?.database_versions?.vep} /></div>
               <TranscriptConsequencesTable
                 rows={transcripts}
                 selectedFeature={selectedFeature}

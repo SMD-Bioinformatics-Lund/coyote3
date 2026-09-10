@@ -29,6 +29,25 @@ SAMPLE_DATABASE_VERSION_KEYS: tuple[str, ...] = tuple(SAMPLE_DATABASE_VERSION_LA
 _NULL_VERSION_VALUES = frozenset({"", "null", "none", "nil", "na", "n/a"})
 
 
+def vep_metadata_release(value: object) -> str:
+    """Normalize equivalent VEP metadata release labels without discarding minor releases.
+
+    Args:
+        value: Release label such as 113, 113.0, or v113.0.
+
+    Returns:
+        The release with a leading v and trailing zero-only components removed.
+        A nonzero minor version such as 113.1 remains distinct.
+    """
+    version = str(value or "").strip().lstrip("vV")
+    if re.fullmatch(r"\d+(?:\.\d+)*", version):
+        parts = version.split(".")
+        while len(parts) > 1 and int(parts[-1]) == 0:
+            parts.pop()
+        version = ".".join(parts)
+    return version
+
+
 def normalize_database_versions(value: Any) -> dict[str, str]:
     """Validate the canonical sample database-version mapping."""
     if value is None:

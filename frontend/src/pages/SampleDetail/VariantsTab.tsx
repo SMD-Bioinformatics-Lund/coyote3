@@ -23,6 +23,7 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState";
 import { AnalysisTableCard } from "./AnalysisTableCard";
+import { VepVersionBadge } from "@/components/ui/vep-version-badge";
 import { HotspotIndicator } from "@/components/detail/HotspotIndicator";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { formatPopulationFrequency, hotspotExportValue } from "@/lib/variant-table-format";
@@ -467,6 +468,7 @@ export function VariantsTab({
         <div className="flex min-w-0 items-center gap-2">
           {header}
           <AnalysisIntentBadge intent={intent} />
+          <VepVersionBadge version={data?.sample?.database_versions?.vep} />
         </div>
       )}
       filterPanel={filterPanel}

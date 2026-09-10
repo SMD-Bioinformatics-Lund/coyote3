@@ -11,6 +11,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from api.config.database_versions import vep_metadata_release
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -53,7 +54,11 @@ class VEPMetaRepository(BaseRepository):
         Returns:
             dict: The metadata document if found, otherwise an empty dictionary.
         """
-        doc = self.get_collection().find_one({"vep_id": str(vep_version)})
+        release = vep_metadata_release(vep_version)
+        doc = self.get_collection().find_one({"vep_id": release})
+        if not doc and release:
+            # Older imports may store the equivalent release with a .0 suffix.
+            doc = self.get_collection().find_one({"vep_id": release + ".0"})
         if not doc:
             self.adapter.app.logger.warning("VEP version %s not found in metadata.", vep_version)
         return doc or {}

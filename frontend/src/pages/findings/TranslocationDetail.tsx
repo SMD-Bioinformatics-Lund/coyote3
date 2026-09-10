@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -109,6 +110,7 @@ export function TranslocationDetail() {
         callers={
           <FindingCallerMeta>
             <CallerBadges value={callers} />
+            <VepVersionBadge version={sample?.database_versions?.vep} />
           </FindingCallerMeta>
         }
         actions={
@@ -164,6 +166,7 @@ export function TranslocationDetail() {
             </DetailCard>
 
             <DetailCard title="Transcript Combinations">
+              <div className="mb-2"><VepVersionBadge version={sample?.database_versions?.vep} /></div>
               <DetailDataTable
                 rows={annRows}
                 empty="No alternate transcript combinations available."
