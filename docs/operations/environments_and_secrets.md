@@ -8,6 +8,22 @@ Use isolated stacks and databases for each environment:
 - **stage**: `deploy/compose/docker-compose.stage.yml`
 - **dev**: `deploy/compose/docker-compose.dev.yml`
 
+## Browser session cookie
+
+Set `API_SESSION_COOKIE_NAME` in each deployment's env file, for example
+`coyote3_dev_api_session` for dev and `coyote3_prod_api_session` for production.
+Change this value when copying the example env to another environment. Modern
+and legacy Compose both pass it to the API. The browser UI and interactive API
+docs use the same HttpOnly session cookie; they do not need separate cookie names.
+Workers, beat, Redis, MongoDB, and static documentation do not need browser
+session cookies. Programmatic clients using cookie authentication must pass the
+configured name to the API client helper's `cookie_name` argument.
+
+Use distinct names for deployments on the same hostname, even when their ports
+or URL prefixes differ: the session cookie currently uses path `/`. After changing
+the name, recreate the API container and log in again. No frontend rebuild is
+required for this setting.
+
 ## Default port matrix
 
 Each stack exposes one HTTP entrypoint through nginx. Web UI, FastAPI, and docs

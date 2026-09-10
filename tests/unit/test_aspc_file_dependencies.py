@@ -68,8 +68,6 @@ def test_save_rejects_unavailable_analysis_and_disabled_report_section():
     "resource,identity",
     [
         ("asp", "asp_id"),
-        ("aspc_dna", "aspc_id"),
-        ("aspc_rna", "aspc_id"),
         ("isgl", "isgl_id"),
         ("role", "name"),
         ("permission", "permission_id"),
@@ -80,3 +78,10 @@ def test_identity_is_editable_only_during_creation(resource, identity):
     assert field["readonly"] is False
     assert field["readonly_mode"] == ["edit"]
     assert "derive_from" not in field
+
+
+@pytest.mark.parametrize("resource", ["aspc_dna", "aspc_rna"])
+def test_aspc_identity_is_derived_and_readonly(resource):
+    field = build_form_spec(managed_resource_spec(resource))["fields"]["aspc_id"]
+    assert field["readonly"] is True
+    assert field["derive_from"] == ["asp_id", "subpanel_id", "environment"]

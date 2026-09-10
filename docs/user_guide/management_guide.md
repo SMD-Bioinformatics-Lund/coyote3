@@ -170,6 +170,11 @@ Values backed by platform constants, such as `DNA`, `RNA`, `hematology`, `solid`
 
 ASPCs are the "Software Profiles" that determine how a physical assay is handled in the UI.
 
+On new and copied ASPCs, `aspc_id` is read-only and updates live as the ASP,
+subpanel, or environment changes: `<asp_id>_<subpanel_id>_<environment>`.
+An empty subpanel uses `base`. The server derives the ID on creation, replacing
+any identifier carried over from an imported or copied configuration.
+
 *   **Interpretation Pipelines**: Configure which filters (Allelic Fraction, Depth, Population Frequency) are applied by default during clinical review.
 *   **Reporting Templates**: Link specific assays to their finalized PDF report designs.
 *   **Analysis Types**: Enabled domains such as `SNV`, `CNV`, `TRANSLOCATION`, `BIOMARKER`, `FUSION`, `EXPRESSION`, and `QC` are rendered as color-coded badges. The same configured values drive tab visibility and catalog/matrix grouping.

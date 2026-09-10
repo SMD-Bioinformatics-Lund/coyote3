@@ -516,9 +516,7 @@ class AspcService:
             config["reporting"].pop("analysis", None)
         self._build_filter_profiles(config, category=category)
         self._validate_filter_gene_lists(config, panel)
-        config["aspc_id"] = config.get(
-            "aspc_id"
-        ) or self.assay_configuration_repository.build_aspc_id(
+        config["aspc_id"] = self.assay_configuration_repository.build_aspc_id(
             config["asp_id"],
             str(config.get("environment", "")),
             config["subpanel_id"],

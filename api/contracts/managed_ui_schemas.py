@@ -1093,8 +1093,6 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
 
     identity_field = {
         "asp": "asp_id",
-        "aspc_dna": "aspc_id",
-        "aspc_rna": "aspc_id",
         "isgl": "isgl_id",
         "role": "name",
         "permission": "permission_id",
@@ -1105,7 +1103,7 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         fields[identity_field].pop("derive_from", None)
     if spec.key.startswith("aspc_"):
         fields["aspc_id"]["help"] = (
-            "Enter a unique ID. Each active ASPC also needs a distinct ASP, subpanel, and environment combination."
+            "Generated automatically from the ASP, subpanel, and environment."
         )
         fields["analysis_types"]["show_unavailable_options"] = True
         fields["analysis_types"]["help"] = (

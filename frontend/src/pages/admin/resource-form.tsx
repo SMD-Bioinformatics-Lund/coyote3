@@ -351,7 +351,13 @@ export function FormControl({
   compact?: boolean
   formValues?: Record<string, any>
 }) {
-  const readOnly = disabled || mode === "view" || field.readonly || field.readonly_mode?.includes(mode)
+  const readOnly = disabled || mode === "view" || field.readonly || Boolean(field.derive_from) || field.readonly_mode?.includes(mode)
+  if (mode === "create" && field.derive_from) {
+    const parts = field.derive_from.map((key) =>
+      String(formValues?.[key] || (key === "subpanel_id" ? "base" : "")).trim().toLowerCase(),
+    )
+    value = parts.every(Boolean) ? parts.join("_") : ""
+  }
   const label = fieldLabel(name, field)
   const commonClass = "w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
 

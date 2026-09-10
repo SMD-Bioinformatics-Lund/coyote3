@@ -332,7 +332,7 @@ export function VariantsTab({
       cell: ({ row }) => {
         const v = row.original;
         const loc = `${v.CHROM}:${v.POS}`;
-        const igvLinks = igvAlignmentLinks(data?.bam_id, loc, data?.bai_id, data?.design_bed_paths);
+        const igvLinks = igvAlignmentLinks(data?.bam_id, loc, data?.design_bed_paths);
         return igvLinks.length ? (
           <span className="inline-flex flex-wrap gap-1">
             {igvLinks.map((link) => (

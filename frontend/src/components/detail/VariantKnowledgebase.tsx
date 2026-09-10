@@ -688,7 +688,7 @@ export function externalVariantLinks(variant: any, csq: any, data: any) {
   const position = variant?.CHROM && variant?.POS ? `${variant.CHROM}:${variant.POS}` : ""
 
   return [
-    ...igvAlignmentLinks(data?.bam_id, position, data?.bai_id, data?.design_bed_paths),
+    ...igvAlignmentLinks(data?.bam_id, position, data?.design_bed_paths),
     clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: clinvarSearchUrl(clinvar) } : null,
     gene ? { label: `cBioPortal ${gene}`, value: gene, href: cbioportalOncoprintUrl(gene) } : null,
     gene ? { label: `OncoKB ${gene}`, value: gene, href: oncokbGeneUrl(gene) } : null,

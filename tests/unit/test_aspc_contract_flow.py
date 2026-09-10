@@ -122,6 +122,7 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
                 "subpanel_id": "base",
                 "environment": "production",
                 "display_name": "Demo ASPC",
+                "aspc_id": "copied_source_id",
                 "analysis_types": ["SNV"],
                 "reporting": {
                     "report_sections": ["SNV"],

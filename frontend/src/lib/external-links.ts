@@ -37,30 +37,24 @@ export function igvDataPath(path: string) {
   return `${root}${root.endsWith(":") ? "" : "/"}${igvRelativePath(path)}`
 }
 
-export function igvAlignmentLinks(files: unknown, locus: string, indexes: Record<string, string> = {}, designBeds: string[] = []) {
+export function igvAlignmentLinks(files: unknown, locus: string, designBeds: string[] = []) {
   if (!files || typeof files !== "object" || !locus || locus === "-") return []
-  const tracks = new Map<string, string>()
+  const tracks = new Set<string>()
   for (const paths of Object.values(files)) {
     if (!Array.isArray(paths)) continue
     for (const path of paths) {
       if (typeof path !== "string" || !path.trim()) continue
       const file = igvDataPath(path)
-      const index = indexes[path] ? igvDataPath(indexes[path]) : ""
-      tracks.set(file, index || tracks.get(file) || "")
+      tracks.add(file)
     }
   }
   for (const bed of designBeds) {
     if (typeof bed !== "string" || !bed.trim()) continue
     const file = igvDataPath(bed)
-    if (!tracks.has(file)) tracks.set(file, "")
+    tracks.add(file)
   }
   if (!tracks.size) return []
-  // Empty index slots retain file/index alignment and allow IGV index discovery.
-  const indexPaths = [...tracks.values()]
-  const href = igvLoadUrl(
-    [...tracks.keys()].join(","), locus,
-    indexPaths.some(Boolean) ? indexPaths.join(",") : undefined,
-  )
+  const href = igvLoadUrl([...tracks].join(","), locus)
   return href ? [{ label: "IGV: all alignments and design tracks", value: locus, href }] : []
 }
 

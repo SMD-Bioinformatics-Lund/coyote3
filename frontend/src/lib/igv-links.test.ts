@@ -12,16 +12,15 @@ describe("sample alignment links", () => {
     runtimeConfig.igvDataRoot = ""
   })
 
-  it("uses the workstation root for BAM, BAI and the assay design BED", () => {
+  it("combines BAMs and the assay design BED without explicit indexes", () => {
     runtimeConfig.igvDataRoot = "/R:"
     const links = igvAlignmentLinks(
       { case: ["panel/BAM/custom.bam"], control: ["panel/BAM/control.bam"] }, "17:1-2",
-      { "panel/BAM/custom.bam": "panel/BAM/custom.bai" },
       ["panel/BED/design.bed"],
     )
     expect(links).toHaveLength(1)
     expect(new URL(links[0].href).searchParams.get("file")).toBe("/R:panel/BAM/custom.bam,/R:panel/BAM/control.bam,/R:panel/BED/design.bed")
-    expect(new URL(links[0].href).searchParams.get("index")).toBe("/R:panel/BAM/custom.bai,,")
+    expect(new URL(links[0].href).searchParams.has("index")).toBe(false)
     expect(new URL(links[0].href).searchParams.get("locus")).toBe("17:1-2")
   })
 
@@ -45,13 +44,12 @@ describe("sample alignment links", () => {
     expect(url.searchParams.get("merge")).toBe("true")
   })
 
-  it("keeps index discovery for a role without a supplied index", () => {
+  it("uses index discovery for all alignments", () => {
     const links = igvAlignmentLinks(
       { case: ["/case.bam"], control: ["/control.bam"] }, "17:1-2",
-      { "/case.bam": "/different-name.bai" },
     )
     expect(links).toHaveLength(1)
-    expect(new URL(links[0].href).searchParams.get("index")).toBe("/different-name.bai,")
+    expect(new URL(links[0].href).searchParams.has("index")).toBe(false)
   })
 
   it("handles multiple lookup paths and omits absent or malformed targets", () => {
@@ -62,15 +60,15 @@ describe("sample alignment links", () => {
     expect(igvLoadUrl({}, "1:10")).toBeNull()
   })
 
-  it("deduplicates tracks and preserves a later explicit index association", () => {
+  it("deduplicates tracks without supplying indexes", () => {
     runtimeConfig.igvDataRoot = "/mnt"
     const links = igvAlignmentLinks(
       { case: ["a.bam", "/mnt/a.bam", "", " "] }, "1:10",
-      { "/mnt/a.bam": "a.bai" }, ["design.bed", "design.bed"],
+      ["design.bed", "design.bed"],
     )
     expect(links).toHaveLength(1)
     const params = new URL(links[0].href).searchParams
     expect(params.get("file")).toBe("/mnt/a.bam,/mnt/design.bed")
-    expect(params.get("index")).toBe("/mnt/a.bai,")
+    expect(params.has("index")).toBe(false)
   })
 })

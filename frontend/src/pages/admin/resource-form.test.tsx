@@ -4,6 +4,21 @@ import { AdminManagedForm, FormControl } from "./resource-form"
 import type { AdminResourceSpec, FormSpec, FormField } from "./resource-specs"
 
 describe("Resource Form UI", () => {
+  it("derives a read-only ASPC ID live instead of retaining a copied ID", () => {
+    const field: FormField = {
+      label: "ASPC ID", readonly: true,
+      derive_from: ["asp_id", "subpanel_id", "environment"],
+    }
+    const props = { name: "aspc_id", field, value: "copied_old_id", mode: "create" as const, onChange: vi.fn() }
+    const { rerender } = render(<FormControl {...props} formValues={{ asp_id: "ASSAY", environment: "production" }} />)
+    expect(screen.getByRole("textbox")).toHaveValue("assay_base_production")
+    expect(screen.getByRole("textbox")).toBeDisabled()
+    rerender(<FormControl {...props} formValues={{ asp_id: "other", subpanel_id: "panel", environment: "development" }} />)
+    expect(screen.getByRole("textbox")).toHaveValue("other_panel_development")
+    rerender(<FormControl {...props} formValues={{ asp_id: "", environment: "development" }} />)
+    expect(screen.getByRole("textbox")).toHaveValue("")
+  })
+
   const dummySpec: AdminResourceSpec = {
     key: "test_resource",
     title: "Test Resource",
