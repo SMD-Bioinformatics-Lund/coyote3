@@ -7,6 +7,7 @@ vi.mock("@/components/notifications/notification-store", () => ({ notify: notify
 import {
   ApiClientError,
   api,
+  reportUiError,
   setCsrfToken,
 } from "./api"
 
@@ -115,5 +116,24 @@ describe("typed API client", () => {
       status: 400,
       endpoint: "/records",
     })
+  })
+
+  it("reports bounded authenticated UI errors without recursive notifications", async () => {
+    reportUiError(new Error("not signed in"))
+    expect(fetch).not.toHaveBeenCalled()
+    setCsrfToken("synthetic-csrf")
+    vi.mocked(fetch).mockRejectedValue(new Error("API unavailable"))
+    reportUiError(new Error("x".repeat(5000)), "component stack")
+    await Promise.resolve()
+    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe("/api/v1/client-errors")
+    expect(new Headers(options?.headers).get("X-CSRF-Token")).toBe("synthetic-csrf")
+    const body = JSON.parse(String(options?.body))
+    expect(body.message).toHaveLength(4000)
+    expect(body.stack).toContain("component stack")
+    expect(notifyMock).not.toHaveBeenCalled()
+    for (let index = 0; index < 20; index += 1) reportUiError("repeated failure")
+    await Promise.resolve()
+    expect(fetch).toHaveBeenCalledTimes(10)
   })
 })

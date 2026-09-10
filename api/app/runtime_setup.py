@@ -59,11 +59,12 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     conf = _config_dict(config_obj)
     mongo_endpoints(conf)
     configure_json_logging(
-        service_name="api",
+        service_name=str(conf.get("LOG_SERVICE_NAME") or "api"),
         level=str(conf.get("LOG_LEVEL") or "INFO"),
-        log_root=str(conf.get("LOGS", "logs/api")),
+        log_root=str(conf.get("LOG_ROOT", "logs")),
         file_enabled=bool(conf.get("LOG_FILE_ENABLED", True)),
         retention_days=int(conf.get("LOG_RETENTION_DAYS", 30)),
+        timezone_name=str(conf.get("LOG_TIMEZONE") or "UTC"),
     )
     logger = logging.getLogger("coyote.api")
     logger.info(

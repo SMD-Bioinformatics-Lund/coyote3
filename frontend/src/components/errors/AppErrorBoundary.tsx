@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react"
 import { AlertTriangle, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { reportUiError } from "@/lib/api"
 
 type Props = { children: ReactNode }
 type State = { error: Error | null }
@@ -15,6 +16,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Uncaught UI error", error, info.componentStack)
+    reportUiError(error, info.componentStack || "")
   }
 
   render() {

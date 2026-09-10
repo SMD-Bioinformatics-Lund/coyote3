@@ -31,6 +31,7 @@ from api.interfaces.http.operations.auth import (
     http_exception_handler as auth_http_exception_handler,
 )
 from api.interfaces.http.operations.auth import router as auth_router
+from api.interfaces.http.operations.client_errors import router as client_errors_router
 from api.interfaces.http.operations.dashboard import router as dashboard_router
 from api.interfaces.http.operations.health import router as health_router
 from api.interfaces.http.operations.internal import router as internal_router
@@ -48,6 +49,7 @@ class RouterRegistration:
 
 ROUTERS = (
     RouterRegistration(health_router, include_in_schema=False),
+    RouterRegistration(client_errors_router, include_in_schema=False),
     RouterRegistration(auth_router),
     RouterRegistration(admin_operations_router),
     RouterRegistration(app_controls_router),

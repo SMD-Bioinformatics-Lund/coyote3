@@ -29,6 +29,29 @@ export function setCsrfToken(token: string | null | undefined) {
   csrfToken = token || null
 }
 
+let errorReportWindow = 0
+let errorReportCount = 0
+
+export function reportUiError(error: unknown, componentStack = "") {
+  if (!csrfToken) return
+  const now = Date.now()
+  if (now - errorReportWindow > 60000) {
+    errorReportWindow = now
+    errorReportCount = 0
+  }
+  if (errorReportCount >= 10) return
+  errorReportCount += 1
+  const message = error instanceof Error ? error.message : String(error || "Unknown UI error")
+  const stack = error instanceof Error ? error.stack || "" : ""
+  // Reporting failures must never trigger another report or replace the original UI error.
+  void fetch(apiPath("/client-errors"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+    body: JSON.stringify({ message: message.slice(0, 4000), stack: `${stack}\n${componentStack}`.slice(0, 16000) }),
+    keepalive: true,
+  }).catch(() => undefined)
+}
+
 function encodeBody(body: ApiBody): BodyInit | undefined {
   if (body === undefined || body === null) return undefined
   if (body instanceof FormData || body instanceof Blob || typeof body === "string") return body

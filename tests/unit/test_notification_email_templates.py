@@ -37,6 +37,26 @@ def test_template_rejects_unsafe_actions():
         )
 
 
+def test_error_email_contains_downloadable_log_attachment(monkeypatch):
+    smtp = MagicMock()
+    monkeypatch.setattr("api.infra.notifications.email.smtplib.SMTP", smtp)
+    assert send_email(
+        config={
+            "SMTP_HOST": "localhost",
+            "SMTP_USE_TLS": False,
+            "SMTP_FROM_EMAIL": "system@example.test",
+        },
+        to_email="monitor@example.test",
+        subject="API error",
+        text_body="Failure details",
+        attachments=[("api_2026-09-09.log", b"synthetic diagnostic\n")],
+    )
+    message = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+    attachment = next(message.iter_attachments())
+    assert attachment.get_filename() == "api_2026-09-09.log"
+    assert attachment.get_payload(decode=True) == b"synthetic diagnostic\n"
+
+
 @pytest.mark.parametrize(
     ("purpose", "sender"),
     [

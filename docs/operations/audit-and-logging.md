@@ -10,6 +10,19 @@ Coyote3 separates operational diagnostics from durable security and workflow aud
 Runtime logs are JSON Lines written to stdout and, when enabled, rotating files under `/app/logs`.
 Compose bind-mounts that fixed container location from `COYOTE3_LOGS_HOST_ROOT`, so API,
 worker, and beat logs survive container replacement and use the center-selected host storage.
+Files use `YYYY/MM/DD/<service>_YYYY-MM-DD.log`, for example
+`/app/logs/2026/09/09/api_2026-09-09.log`. The date changes at midnight in
+`LOCAL_TIME_ZONE` (UTC by default); the next record opens the new day's file.
+API, worker, beat, UI, proxy, docs, and monitor have separate files. JSON event
+timestamps remain UTC. Retention maintenance compresses old logs and deletes
+them according to the configured retention periods. Older flat logs remain eligible
+for retention; new logs no longer use the `dev`, `prod`, or `stage` subdirectories.
+
+Compose wraps API, worker, and beat commands to capture startup failures as well
+as application output. The development UI wrapper forwards Vite output. Vite and
+production UI, proxy, and docs Nginx servers send internal UDP syslog to the monitor; 5xx access
+responses also count as errors. Docker stdout remains available. Redis and external
+MongoDB retain their own container logging configuration.
 Every API request binds a request context so log records can include `request_id`, client IP,
 method, and path. The API returns the correlation id in the `X-Request-ID` response header.
 
@@ -57,8 +70,41 @@ LOG_GZIP_AFTER_DAYS
 LOG_RETENTION_DAYS
 LOG_LEVEL
 COYOTE3_LOGS_HOST_ROOT
+LOG_ROOT
+LOCAL_TIME_ZONE
+ERROR_EMAIL_GROUP
 NOTIFICATION_RETENTION_DAYS
 ```
+
+## System error emails
+
+The Compose `monitor` service scans daily logs for ERROR and CRITICAL records. It
+runs independently of API initialization, Redis, worker, and beat. Each error batch
+includes the error messages, recorded tracebacks, and a gzip snapshot of the service
+log. The snapshot is retained under `/app/logs/.error-mail` until SMTP accepts the
+message for each current recipient. Failed delivery and database outages are retried.
+The scanner can also read logs already compressed by retention.
+
+Recipients are active users whose `roles` include `monitoring_group`, configurable
+with `ERROR_EMAIL_GROUP`. This is a notification membership role with no application
+permissions. Install the role through the existing RBAC catalog synchronization
+command (`scripts/sync_rbac_catalog.py`) or create it in Admin → Roles, then assign
+it to the intended users and check their email addresses. The bootstrap catalog
+includes the role for new installations; existing user memberships are not changed.
+Configure the existing `SMTP_*` settings, including `SMTP_HOST` and `SMTP_FROM_EMAIL`;
+`SMTP_SECURITY_FROM_EMAIL` is used when supplied.
+
+Recreate the Compose API, worker, beat, UI, proxy, docs, and monitor services to apply
+the new commands and logging configuration. No database schema migration is needed.
+`LOG_ROOT` defaults to `logs` outside Compose and is `/app/logs` inside Compose.
+
+Authenticated browser crashes, unhandled errors, and promise rejections are posted
+to `/api/v1/client-errors` with CSRF protection and logged as `ui`. Browser reporting
+is capped at ten events per minute per page and cannot deliver while the API is
+unreachable. UDP syslog is best effort. Host failures and a stopped monitor
+require external infrastructure monitoring. SMTP attachment limits still apply;
+rejected messages remain queued rather than being marked delivered. A crash after
+SMTP acceptance but before state persistence can result in a duplicate email.
 
 Session cookies are automatically marked `Secure` for HTTPS requests, including
 requests received through a reverse proxy that supplies `X-Forwarded-Proto`.

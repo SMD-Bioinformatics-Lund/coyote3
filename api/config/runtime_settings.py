@@ -108,7 +108,10 @@ class OperationsSettings:
     """Audit, logging, notification, and request-rate settings."""
 
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "730"))
-    LOG_SERVICE_NAME = "api"
+    LOG_SERVICE_NAME = os.getenv("LOG_SERVICE_NAME", "api")
+    LOG_ROOT = os.getenv("LOG_ROOT", "logs")
+    LOG_TIMEZONE = os.getenv("LOCAL_TIME_ZONE", "UTC")
+    ERROR_EMAIL_GROUP = os.getenv("ERROR_EMAIL_GROUP", "monitoring_group")
     LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", "1") == "1"
     LOG_RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", "30"))
     LOG_GZIP_AFTER_DAYS = int(os.getenv("LOG_GZIP_AFTER_DAYS", "1"))

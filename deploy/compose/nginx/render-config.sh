@@ -27,6 +27,8 @@ while [ "$script_name" != "/" ] && [ "${script_name%/}" != "$script_name" ]; do
 done
 
 cat >"$output_path" <<EOF
+access_log syslog:server=monitor:5514,tag=proxy,severity=info combined;
+error_log syslog:server=monitor:5514,tag=proxy error;
 server {
     listen 8088;
     server_name _;

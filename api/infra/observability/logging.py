@@ -10,9 +10,9 @@ import uuid
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,8 +107,33 @@ class ServiceFilter(logging.Filter):
         Returns:
             Always ``True`` so the handler retains the event.
         """
-        record.service = self.service_name
+        record.service = "ui" if record.name == "coyote.ui" else self.service_name
         return True
+
+
+class DailyServiceFileHandler(logging.Handler):
+    """Append service logs by local calendar date without cross-process renames."""
+
+    def __init__(self, log_root: str | Path, timezone_name: str = "UTC") -> None:
+        """Set the log directory and IANA timezone used for midnight boundaries."""
+        super().__init__()
+        self.log_root = Path(log_root)
+        self.timezone = ZoneInfo(timezone_name)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Append a record, reopening the file so retention cannot leave stale handles."""
+        try:
+            day = datetime.fromtimestamp(record.created, self.timezone)
+            service = getattr(record, "service", "api")
+            if service not in {"api", "worker", "beat", "ui", "proxy", "docs", "monitor", "redis"}:
+                service = "api"
+            directory = self.log_root / day.strftime("%Y/%m/%d")
+            directory.mkdir(parents=True, exist_ok=True)
+            path = directory / f"{service}_{day:%Y-%m-%d}.log"
+            with path.open("a", encoding="utf-8") as stream:
+                stream.write(self.format(record) + "\n")
+        except Exception:
+            self.handleError(record)
 
 
 def configure_json_logging(
@@ -119,6 +144,7 @@ def configure_json_logging(
     file_enabled: bool = False,
     retention_days: int = 30,
     filename_prefix: str = "coyote3",
+    timezone_name: str = "UTC",
 ) -> None:
     """Configure root JSON logging for container stdout and optional files."""
     root = logging.getLogger()
@@ -139,17 +165,14 @@ def configure_json_logging(
         return
     try:
         Path(log_root).mkdir(parents=True, exist_ok=True)
-        file_handler = TimedRotatingFileHandler(
-            filename=str(Path(log_root) / f"{filename_prefix}-{service_name}.json.log"),
-            when="midnight",
-            interval=1,
-            backupCount=max(int(retention_days), 1),
-            encoding="utf-8",
-            utc=True,
-        )
+        file_handler = DailyServiceFileHandler(log_root, timezone_name)
         file_handler.setFormatter(formatter)
         file_handler.addFilter(service_filter)
         root.addHandler(file_handler)
+        for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "celery", "celery.task"):
+            logger = logging.getLogger(name)
+            logger.handlers.clear()
+            logger.propagate = True
     except OSError:
         root.exception(
             "File logging could not be initialized; continuing with stdout",

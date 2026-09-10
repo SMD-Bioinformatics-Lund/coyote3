@@ -51,6 +51,7 @@ def send_email(
     severity: str = "info",
     action_url: str = "",
     action_label: str = "Open Coyote3",
+    attachments: list[tuple[str, bytes]] | None = None,
 ) -> bool:
     """Send branded HTML and plain-text alternatives using the selected SMTP sender.
 
@@ -64,6 +65,7 @@ def send_email(
         severity: Importance badge for both HTML and plain-text alternatives.
         action_url: Optional HTTP(S) action link.
         action_label: Text displayed on the HTML action button.
+        attachments: Optional filename/content pairs attached as binary files.
 
     Returns:
         Whether the SMTP server accepted the message. Missing configuration or
@@ -130,6 +132,10 @@ def send_email(
         )
         msg.make_alternative()
         msg.attach(html_part)
+        for filename, content in attachments or []:
+            msg.add_attachment(
+                content, maintype="application", subtype="octet-stream", filename=filename
+            )
         emit_mail_metric(
             "send_attempt",
             host=host,

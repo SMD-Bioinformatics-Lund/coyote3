@@ -4,8 +4,22 @@ from __future__ import annotations
 
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import setup_logging
 
 from api.config.runtime_settings import DefaultConfig
+from api.infra.observability.logging import configure_json_logging
+
+
+@setup_logging.connect
+def configure_celery_logging(**kwargs) -> None:
+    """Keep worker and beat logs in their own daily files, including task failures."""
+    configure_json_logging(
+        service_name=DefaultConfig.LOG_SERVICE_NAME,
+        level=DefaultConfig.LOG_LEVEL,
+        log_root=DefaultConfig.LOG_ROOT,
+        file_enabled=DefaultConfig.LOG_FILE_ENABLED,
+        timezone_name=DefaultConfig.LOG_TIMEZONE,
+    )
 
 
 def _redis_url() -> str:

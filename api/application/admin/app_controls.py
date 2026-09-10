@@ -471,7 +471,7 @@ class AppControlsService:
         """Gzip old plain-text logs and delete logs beyond retention."""
         controls = self.get_controls()
         retention = controls.retention
-        log_root = Path(str(self.config.get("LOGS") or "logs")).expanduser()
+        log_root = Path(str(self.config.get("LOG_ROOT") or "logs")).expanduser()
         if not log_root.exists() or not log_root.is_dir():
             return {"log_root": str(log_root), "gzipped": 0, "deleted": 0, "status": "not_found"}
 

@@ -388,3 +388,6 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     emptyState: "Shows a not-found page with a route back into the application.",
   },
 ]
+
+// The shared error boundary reports diagnostics from any authenticated route.
+export const sharedUiApiDependencies = ["POST /client-errors"]

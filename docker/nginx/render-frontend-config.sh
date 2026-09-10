@@ -14,6 +14,11 @@ done
 
 output_path=/etc/nginx/conf.d/default.conf
 
+cat >/etc/nginx/conf.d/observability.conf <<'EOF'
+access_log syslog:server=monitor:5514,tag=ui,severity=info combined;
+error_log syslog:server=monitor:5514,tag=ui error;
+EOF
+
 if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
   cat >"$output_path" <<EOF
 server {

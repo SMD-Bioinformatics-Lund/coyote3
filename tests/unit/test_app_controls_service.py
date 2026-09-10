@@ -271,7 +271,7 @@ def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
         "retention": {"disk_log_days": 30, "gzip_disk_logs_after_days": 1},
     }
     service = AppControlsService(
-        _Db(collection), identity_db=_Db(collection), config={"LOGS": str(tmp_path)}
+        _Db(collection), identity_db=_Db(collection), config={"LOG_ROOT": str(tmp_path)}
     )
     compressible = tmp_path / "api.log"
     expired = tmp_path / "worker.log"

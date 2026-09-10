@@ -6,7 +6,7 @@ services:
     build: !reset null
     pull_policy: always
     working_dir: /app
-    command: sh -c "npm install && npm run dev -- --port 3000 --host 0.0.0.0"
+    command: node scripts/log-runtime.mjs sh -c "npm install && exec npm run dev -- --port 3000 --host 0.0.0.0"
     environment:
       ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
       SCRIPT_NAME: ${SCRIPT_NAME:-}
@@ -29,6 +29,7 @@ services:
     image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
     volumes:
       - ../../site:/usr/share/nginx/html:ro
+      - ../../docker/nginx/docs.conf:/etc/nginx/conf.d/default.conf:ro
 
   api:
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
@@ -45,13 +46,17 @@ services:
       - ../../LICENSE.txt:/app/LICENSE.txt:ro
       - ../../NOTICE.txt:/app/NOTICE.txt:ro
       - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
-    command: python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
+    command: python3 -m api.infra.observability.run_service api python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
 
   worker:
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
     volumes: *dev-app-volumes
 
   beat:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    volumes: *dev-app-volumes
+
+  monitor:
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
     volumes: *dev-app-volumes
 
