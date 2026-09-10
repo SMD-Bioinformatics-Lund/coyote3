@@ -56,14 +56,14 @@ function renderResource(resource: string, children?: ReactNode) {
   )
 }
 
-function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "") {
+function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "", copiedDocument?: Record<string, unknown>) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   const path = mode === "create" ? `/admin/${resource}/create` : `/admin/${resource}/${id}/${mode}`
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={[{ pathname: path, state: { copiedDocument } }]}>
         <Routes>
           <Route path="/admin/:resource/create" element={<AdminResourceEditorPage mode="create" />} />
           <Route path="/admin/:resource/:id/edit" element={<AdminResourceEditorPage mode="edit" />} />
@@ -346,6 +346,22 @@ describe("AdminResourcePage", () => {
     expect(screen.getByLabelText("EXPRESSION")).toBeVisible()
     expect(screen.getByLabelText("CLASSIFICATION")).toBeVisible()
   })
+
+  it.each([["asp", "asp_id"], ["aspc", "aspc_id"], ["genelists", "isgl_id"]])(
+    "requires a new editable identifier when copying %s", async (resource, identity) => {
+      mocks.get.mockResolvedValue({ data: { form: { fields: {
+        [identity]: { label: "Identifier", display_type: "input", readonly: false, readonly_mode: ["edit"], required: true },
+        display_name: { label: "Display name", display_type: "input" },
+      } } } })
+      renderEditor(resource, "create", "", { [identity]: "source-id", display_name: "Copied name" })
+      const input = await screen.findByRole("textbox", { name: /Identifier/ })
+      await waitFor(() => expect(screen.getByLabelText("Display name")).toHaveValue("Copied name"))
+      expect(input).toBeEnabled()
+      expect(input).toHaveValue("")
+      await userEvent.setup().type(input, "new-id")
+      expect(input).toHaveValue("new-id")
+    },
+  )
 
   it("selects the exact subpanel clinical rule while keeping assay rules available", async () => {
     mocks.get.mockResolvedValue({

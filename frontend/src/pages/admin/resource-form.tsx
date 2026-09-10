@@ -35,17 +35,20 @@ export function CheckboxGroup({
   const conditionalValue = conditional ? Boolean(formValues?.[conditional.field]) : false
   const dependent = field.options_by_field
   const dependentOptions = optionsForDependency(field, formValues)
-  const options = useMemo(
-    () => dependentOptions
+  const availableOptions = useMemo(
+    () => field.options_from_field
+      ? normalizeList(formValues?.[field.options_from_field])
+      : dependentOptions
       ? dependentOptions
       : conditional
         ? (conditionalValue ? conditional.truthy || [] : conditional.falsy || [])
         : field.options || [],
-    [conditional, conditionalValue, dependentOptions, field.options],
+    [conditional, conditionalValue, dependentOptions, field.options, field.options_from_field, formValues],
   )
+  const options = field.show_unavailable_options ? field.options || availableOptions : availableOptions
   const allowed = useMemo(
-    () => new Set(options.map(optionValue).filter(Boolean)),
-    [options],
+    () => new Set(availableOptions.map(optionValue).filter(Boolean)),
+    [availableOptions],
   )
   const visibleSelected = new Set([...selected].filter((item) => allowed.has(item)))
   const hasDependentValue = dependent
@@ -53,11 +56,11 @@ export function CheckboxGroup({
     : false
 
   useEffect(() => {
-    if (!dependent || !formValues?.[dependent.field]) return
+    if (disabled || (!dependent && !field.options_from_field)) return
     const current = normalizeList(value)
     const next = current.filter((item) => allowed.has(item))
     if (next.length !== current.length) onChange(next)
-  }, [allowed, dependent, formValues, onChange, value])
+  }, [allowed, dependent, disabled, field.options_from_field, formValues, onChange, value])
   if (!options.length) {
     if (dependent) {
       return (
@@ -115,7 +118,7 @@ export function CheckboxGroup({
                     <input
                       type="checkbox"
                       checked={visibleSelected.has(value)}
-                      disabled={disabled}
+                      disabled={disabled || !allowed.has(value)}
                       onChange={(event) => {
                         const next = new Set(visibleSelected)
                         if (event.target.checked) next.add(value)
@@ -148,7 +151,7 @@ export function CheckboxGroup({
                 type="checkbox"
                 className="mt-0.5"
                 checked={visibleSelected.has(value)}
-                disabled={disabled}
+                disabled={disabled || !allowed.has(value)}
                 onChange={(event) => {
                   const next = new Set(visibleSelected)
                   if (event.target.checked) next.add(value)

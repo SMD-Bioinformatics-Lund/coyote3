@@ -15,6 +15,7 @@ import re
 
 from bson import ObjectId
 from pymongo import cursor
+from pymongo.errors import DuplicateKeyError
 
 from api.config.constants import (
     DEFAULT_ENVIRONMENT,
@@ -24,6 +25,7 @@ from api.config.constants import (
     validate_identifier,
 )
 from api.contracts.operations import OperationResult
+from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
@@ -244,17 +246,29 @@ class ASPConfigRepository(BaseRepository):
         self, assay: str, profile: str = DEFAULT_ENVIRONMENT, subpanel_id: str | None = None
     ) -> dict | None:
         """
-        Retrieves a specific assay configuration document by its ID.
+        Retrieve the active configuration for an assay, environment, and subpanel.
 
         Args:
-            assay (str): The unique identifier of the assay configuration.
+            assay (str): ASP identifier, independent of the configuration's chosen ID.
             profile (str): The environment profile associated with the assay configuration (default is "production").
+            subpanel_id: Subpanel identifier; omitted selects the base subpanel.
 
         Returns:
             dict | None: The assay configuration document if found, otherwise None.
         """
-        aspc_id = self.build_aspc_id(assay, profile, subpanel_id)
-        return self.get_collection().find_one({"aspc_id": aspc_id, "is_active": True})
+        return self.get_collection().find_one(self._scope_lookup_query(assay, profile, subpanel_id))
+
+    @staticmethod
+    def _scope_lookup_query(assay: str, profile: str, subpanel_id: str | None) -> dict:
+        """Resolve the unique active runtime scope without inferring a business ID."""
+        return {
+            "asp_id": normalize_clinical_identifier(assay, label="asp_id"),
+            "subpanel_id": normalize_clinical_identifier(
+                subpanel_id or SUBPANEL_BASE_ID, label="subpanel_id"
+            ),
+            "environment": normalize_environment(profile),
+            "is_active": True,
+        }
 
     def get_aspc_with_id(self, aspc_id: str) -> dict | None:
         """
@@ -274,16 +288,12 @@ class ASPConfigRepository(BaseRepository):
         self, assay_id: str, profile: str = DEFAULT_ENVIRONMENT, subpanel_id: str | None = None
     ) -> dict | None:
         """
-        Retrieves a specific assay configuration document by its ID, ensuring it is active.
-
-        This method filters the assay configuration document by its unique identifier (`_id`)
-        and checks that the `is_active` field is set to `True`. Additionally, it excludes
-        metadata fields such as `updated_on`, `updated_by`, `created_on`, and `created_by`
-        from the result.
+        Retrieve an active scope configuration without creation/update metadata.
 
         Args:
-            assay_id (str): The unique identifier of the assay configuration.
+            assay_id (str): ASP identifier.
             profile (str): The profile name to filter the assay configuration.
+            subpanel_id: Subpanel identifier; omitted selects the base subpanel.
 
         Returns:
             dict: The filtered assay configuration document if found, otherwise `None`.
@@ -294,13 +304,8 @@ class ASPConfigRepository(BaseRepository):
             "created_on": 0,
             "created_by": 0,
         }
-        normalized_subpanel = normalize_clinical_identifier(
-            subpanel_id or SUBPANEL_BASE_ID,
-            label="subpanel_id",
-        )
-        aspc_id = self.build_aspc_id(assay_id, profile, normalized_subpanel)
         return self.get_collection().find_one(
-            {"$and": [self._aspc_lookup_query(aspc_id), {"is_active": True}]},
+            self._scope_lookup_query(assay_id, profile, subpanel_id),
             projection,
         )
 
@@ -369,8 +374,18 @@ class ASPConfigRepository(BaseRepository):
 
         Returns:
             Structured write result for the insert.
+
+        Raises:
+            AppError: If the ID/version or active assay/subpanel/environment already exists.
         """
-        result = self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
+        try:
+            result = self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
+        except DuplicateKeyError as exc:
+            raise api_error(
+                409,
+                "ASPC ID or active assay/subpanel/environment already exists. "
+                "Choose a new ID and an unused configuration scope when copying.",
+            ) from exc
         operation = OperationResult.from_insert_one(result)
         self.invalidate_dashboard_metrics()
         return operation

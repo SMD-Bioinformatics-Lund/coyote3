@@ -464,7 +464,8 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
       const copiedDocument = (location.state as { copiedDocument?: unknown } | null)?.copiedDocument
       if (copiedDocument) {
         initialCopyApplied.current = true
-        stageImport(copiedDocument)
+        const identityKey = spec.key === "roles" ? "name" : spec.idKeys[0]
+        stageImport({ ...(copiedDocument as Record<string, unknown>), [identityKey]: "" })
         return
       }
       initialCopyApplied.current = true

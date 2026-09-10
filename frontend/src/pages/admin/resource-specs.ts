@@ -30,6 +30,8 @@ export type FormField = {
   placeholder?: string
   help?: string
   options?: any[]
+  options_from_field?: string
+  show_unavailable_options?: boolean
   options_by_field?: {
     field: string
     values: Record<string, any[]>

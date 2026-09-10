@@ -636,10 +636,10 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
 
     @model_validator(mode="after")
     def _validate_expected_files(self) -> "AssaySpecificPanelsDoc":
-        """Apply default expected files and check required-file membership.
+        """Default omitted expected files, preserving explicit empty selections.
 
         Returns:
-            This assay with default expected files when none were supplied.
+            This assay with category defaults only when expected_files was omitted.
 
         Raises:
             ValueError: If a file key is unsupported for the category or a required
@@ -650,7 +650,7 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
             if self.asp_category == "dna"
             else set(RNA_EXPECTED_FILE_OPTIONS)
         )
-        if not self.expected_files:
+        if "expected_files" not in self.model_fields_set:
             self.expected_files = list(expected_file_keys(self.asp_category))
         invalid = [value for value in self.expected_files if value not in allowed]
         if invalid:

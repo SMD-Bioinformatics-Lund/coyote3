@@ -945,7 +945,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ),
     ],
     "isgl": [
-        ("list identity", ["name", "displayname", "list_type", "diagnosis"]),
+        ("list identity", ["isgl_id", "name", "displayname", "list_type", "diagnosis"]),
         ("clinical scope", ["asp_groups", "asp_ids"]),
         ("curated gene content", ["genes", "germline_genes"]),
         ("availability", ["adhoc", "is_public", "system_managed", "is_active"]),
@@ -990,7 +990,7 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
     "asp": set(),
     "aspc_dna": {"id_"},
     "aspc_rna": {"id_"},
-    "isgl": {"isgl_id"},
+    "isgl": set(),
     "user": {
         "password_updated_on",
         "password_action_token_hash",
@@ -1090,6 +1090,32 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
     for field_name, override in RESOURCE_FIELD_OVERRIDES.get(spec.key, {}).items():
         if field_name in fields:
             fields[field_name].update(deepcopy(override))
+
+    identity_field = {
+        "asp": "asp_id",
+        "aspc_dna": "aspc_id",
+        "aspc_rna": "aspc_id",
+        "isgl": "isgl_id",
+        "role": "name",
+        "permission": "permission_id",
+        "user": "username",
+    }.get(spec.key)
+    if identity_field in fields:
+        fields[identity_field].update(readonly=False, readonly_mode=["edit"])
+        fields[identity_field].pop("derive_from", None)
+    if spec.key.startswith("aspc_"):
+        fields["aspc_id"]["help"] = (
+            "Enter a unique ID. Each active ASPC also needs a distinct ASP, subpanel, and environment combination."
+        )
+        fields["analysis_types"]["show_unavailable_options"] = True
+        fields["analysis_types"]["help"] = (
+            "Available analyses depend on the ASP expected and required input files."
+        )
+        for group in fields["reporting"].get("groups", []):
+            for field in group["fields"]:
+                if field["key"] == "report_sections":
+                    field["options_from_field"] = "analysis_types"
+                    field["show_unavailable_options"] = True
 
     if "system_managed" in fields:
         fields["system_managed"].update(

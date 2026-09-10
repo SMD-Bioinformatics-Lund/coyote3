@@ -301,37 +301,45 @@ class AspcService:
 
     @staticmethod
     def _validate_analysis_types_for_panel(config: dict[str, Any], panel: dict[str, Any]) -> None:
-        """Require ASPC analysis selections to be valid for the ASP sequencing family."""
+        """Reject analyses and report sections without configured ASP input files."""
         family = str(panel.get("asp_family") or "").strip().lower()
-        if not family:
-            return
-        allowed = CLINICAL_VOCABULARY.analysis_types_by_family.get(family)
-        if allowed is None:
+        if family and family not in CLINICAL_VOCABULARY.analysis_types_by_family:
             raise api_error(400, f"Unsupported ASP family: {family}")
+        allowed = AspcService._analysis_types_for_panel(
+            panel, category=str(panel.get("asp_category") or "")
+        )
         selected = {normalize_analysis_type(value) for value in config.get("analysis_types") or []}
         invalid = sorted(selected - set(allowed))
         if invalid:
             raise api_error(
                 400,
-                f"Analysis type(s) not available for ASP family '{family}': " + ", ".join(invalid),
+                "Analysis type(s) not available for ASP input files and family: "
+                + ", ".join(invalid),
+            )
+        reporting = config.get("reporting") or {}
+        if not isinstance(reporting, dict):
+            raise api_error(400, "reporting must be an object")
+        report_sections = {
+            normalize_analysis_type(value) for value in reporting.get("report_sections") or []
+        }
+        invalid_reports = sorted(report_sections - selected)
+        if invalid_reports:
+            raise api_error(
+                400, "Report sections must be enabled analyses: " + ", ".join(invalid_reports)
             )
 
     @staticmethod
     def _analysis_types_for_panel(panel: dict[str, Any], *, category: str) -> list[str]:
         """Return the selectable analysis types for one ASP.
 
-        ASP category establishes the DNA/RNA boundary. The sequencing family
-        then narrows that category, for example separating panel RNA from WTS.
-        Older ASP records without a family retain the category-level options.
+        Intersect category and sequencing-family capabilities with the union of
+        expected and required file keys. Missing file declarations enable nothing.
         """
         family = str(panel.get("asp_family") or "").strip().lower()
-        if family:
-            allowed = CLINICAL_VOCABULARY.analysis_types_by_family.get(family)
-            if allowed is not None:
-                return list(allowed)
-        return list(
-            CLINICAL_VOCABULARY.analysis_file_keys_by_omics.get(category.lower(), {}).keys()
-        )
+        bindings = CLINICAL_VOCABULARY.analysis_file_keys_by_omics.get(category.lower(), {})
+        allowed = CLINICAL_VOCABULARY.analysis_types_by_family.get(family, tuple(bindings))
+        files = set(panel.get("expected_files") or []) | set(panel.get("required_files") or [])
+        return [analysis for analysis in allowed if files.intersection(bindings.get(analysis, ()))]
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the admin list payload for assay configurations.
@@ -657,11 +665,10 @@ class AspcService:
             assay = str(asp_id or "").strip()
             env = str(environment or "").strip()
             if assay and env:
-                resolved_id = self.assay_configuration_repository.build_aspc_id(
-                    assay,
-                    env,
-                    str(subpanel_id or SUBPANEL_BASE_ID),
+                doc = self.assay_configuration_repository.get_aspc(
+                    assay, env, str(subpanel_id or SUBPANEL_BASE_ID)
                 )
+                return bool(isinstance(doc, dict) and (doc.get("aspc_id") or doc.get("_id")))
         if not resolved_id:
             return False
         doc = self.assay_configuration_repository.get_aspc_with_id(resolved_id)

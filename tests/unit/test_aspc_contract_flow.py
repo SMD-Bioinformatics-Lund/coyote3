@@ -99,6 +99,7 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
         assay_panel_repository=SimpleNamespace(
             get_asp=lambda assay: {
                 "asp_id": assay,
+                "expected_files": ["vcf_files"],
                 "asp_group": "hematology",
                 "asp_category": "dna",
                 "platform": "illumina",
@@ -207,6 +208,7 @@ def test_aspc_service_allows_empty_gene_list_selection(monkeypatch) -> None:
     created: list[dict] = []
     panel = {
         "asp_id": "hema_gmsv1",
+        "expected_files": ["vcf_files"],
         "asp_group": "hematology",
         "asp_category": "dna",
         "platform": "illumina",
@@ -255,6 +257,7 @@ def test_aspc_service_materializes_translocation_filters_when_enabled(monkeypatc
     created: list[dict] = []
     panel = {
         "asp_id": "solid_gmsv3",
+        "expected_files": ["vcf_files", "transloc"],
         "asp_group": "solid",
         "asp_category": "dna",
         "platform": "illumina",
@@ -308,6 +311,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
         "asp_group": "hematology",
         "asp_category": "dna",
         "asp_family": "panel-dna",
+        "expected_files": ["vcf_files"],
         "platform": "illumina",
     }
     service = AspcService(
