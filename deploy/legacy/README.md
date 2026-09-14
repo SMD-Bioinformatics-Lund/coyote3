@@ -96,7 +96,7 @@ Prepare all bind source directories and keyfiles before startup. Legacy Compose
 cannot enforce `bind.create_host_path: false` and may create missing directories.
 Check source existence and permissions yourself, especially for file mounts.
 Application data, logs, and reports must be writable by the configured application
-UID/GID. Set `MONGO_UID` and `MONGO_GID` in the deployment env file to the
+UID/GID. Set `MONGO_UID` and `MONGO_GID` in the MongoDB server env file to the
 database owner's numeric IDs (obtain them with `id -u` and `id -g`).
 Both Mongo services and their replica initializers use these IDs; root IDs are rejected.
 Keep the host keyfile owned by the deploying operator with mode `600`. The legacy
@@ -112,6 +112,15 @@ Read-only pipeline inputs do not replace writable ingest staging.
 
 ## MongoDB first
 
+Copy `deploy/env/example.mongo-server.env` to `.coyote3_dev_mongo_env` and
+complete server credentials, storage, UID/GID, ports, and replica settings.
+Keep `.coyote3_dev_env` for application settings only. The MongoDB file also
+needs matching database names and `COYOTE3_APP_NETWORK` for initial grants and
+networking. It does not need application secrets, LDAP, SMTP, or Redis settings.
+Use one `--env-file` per command; Compose 1.29.2 does not support stacking them.
+For remote deployment, use `.coyote3_dev_remote_mongo_env` and
+`.coyote3_dev_remote_env` respectively instead of the example local filenames.
+
 Run these full commands from the repository root, in the same Bash session.
 Source only a trusted environment file. The examples use independent app and
 database project names so application updates do not stop MongoDB.
@@ -124,10 +133,10 @@ set -a; source .coyote3_dev_env; set +a
 export COYOTE3_VERSION="$(python3 api/version.py)"
 docker network inspect "$COYOTE3_APP_NETWORK" >/dev/null 2>&1 || docker network create "$COYOTE3_APP_NETWORK"
 bash scripts/validate_env_secrets.sh --env-file .coyote3_dev_env
-docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo config --quiet
-docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo up -d mongo
-docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo run --rm mongo_init
-docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo ps
+docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo config --quiet
+docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo up -d mongo
+docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo run --rm mongo_init
+docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo ps
 ```
 
 Stop if any command fails. `mongo_init` uses bounded retries for authentication

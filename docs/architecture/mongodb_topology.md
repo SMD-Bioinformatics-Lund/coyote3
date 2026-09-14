@@ -105,19 +105,23 @@ readable. Bind addresses default to loopback; these examples do not configure TL
 
 For one Docker MongoDB, set all service URIs to the authenticated `mongo-app`
 endpoint. Set `MONGO_REPLICA_MEMBER_HOST=mongo-app:27017`. For split deployment,
-review `deploy/env/example.mongo-split.env`, including distinct credentials and
-`KNOWLEDGEBASE_REPLICA_SET_NAME=coyote3-kb-rs`. Create a completed environment file
-with no placeholder values, then initialize MongoDB before bootstrapping Coyote3:
+review `deploy/env/example.mongo-split.env` for the application connection URIs.
+Copy `deploy/env/example.mongo-server.env` to `.coyote3_dev_mongo_env` for server
+credentials, keyfiles, storage, ownership, ports, and replica-set settings.
+For split deployment set `KNOWLEDGEBASE_REPLICA_SET_NAME=coyote3-kb-rs` there.
+Complete all required settings before initializing MongoDB. The server env needs
+only its own settings plus database names for initial grants and the shared
+network name; do not put application signing keys or SMTP credentials in it.
 
 ```bash
-./scripts/compose-with-version.sh --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.mongo.yml \
+docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+  -f deploy/compose/docker-compose.mongo.yml \
   --profile mongo --profile mongo-kb up -d mongo mongo-kb
-./scripts/compose-with-version.sh --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.mongo.yml \
+docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+  -f deploy/compose/docker-compose.mongo.yml \
   --profile mongo run --rm mongo_init
-./scripts/compose-with-version.sh --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.mongo.yml \
+docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+  -f deploy/compose/docker-compose.mongo.yml \
   --profile mongo-kb run --rm mongo_kb_init
 ```
 

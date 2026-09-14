@@ -19,6 +19,18 @@ COMPOSE_FILES = (
 )
 
 
+def test_server_only_settings_are_separate_from_application_templates():
+    app_keys = set(dotenv_values(TEMPLATE, interpolate=False))
+    mongo_keys = set(dotenv_values(ROOT / "deploy/env/example.mongo-server.env", interpolate=False))
+    shared = {"COYOTE3_APP_NETWORK", "COYOTE3_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"}
+    assert app_keys & mongo_keys == shared
+    assert {"MONGO_ROOT_PASSWORD", "MONGO_UID", "COYOTE3_MONGO_KEYFILE_HOST_PATH"} <= mongo_keys
+    assert {"COYOTE3_MONGO_URI", "IDENTITY_MONGO_URI", "KNOWLEDGEBASE_MONGO_URI"} <= app_keys
+    for name in ("example.mongo-local.env", "example.mongo-split.env"):
+        keys = set(dotenv_values(ROOT / "deploy/env" / name, interpolate=False))
+        assert not keys & (mongo_keys - shared)
+
+
 def _strings(value):
     """Yield strings from parsed Compose values, excluding comments."""
     if isinstance(value, str):

@@ -19,7 +19,11 @@ def _render(command, *files, profiles=(), extra_env=None):
             "-p",
             "legacy-test",
             "--env-file",
-            "deploy/env/example.env",
+            (
+                "deploy/env/example.mongo-server.env"
+                if files[0] == "docker-compose.mongo.yml"
+                else "deploy/env/example.env"
+            ),
             *[arg for file in files for arg in ("-f", str(LEGACY / file))],
             *[arg for profile in profiles for arg in ("--profile", profile)],
             "config",

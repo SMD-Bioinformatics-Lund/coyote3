@@ -216,6 +216,26 @@ the pipeline's declared references.
 
 ## Environment Variable Reference
 
+### Application and MongoDB server files
+
+`deploy/env/example.env` configures the API, frontend, workers, proxy, and
+integrations. Keep MongoDB connection URIs and logical database names there,
+whether MongoDB runs locally, in Docker, or on another server.
+
+`deploy/env/example.mongo-server.env` is only for deploying the MongoDB
+containers. It contains server accounts, replica initialization, host storage,
+keyfiles, listener ports, UID/GID, and resource limits. The database names and
+`COYOTE3_APP_NETWORK` appear in both files because initial grants and networking
+must agree. Other settings must not be copied between the two files.
+
+Use `.coyote3_dev_env` for the application and `.coyote3_dev_mongo_env` for
+MongoDB. A remote deployment can use `.coyote3_dev_remote_env` and
+`.coyote3_dev_remote_mongo_env`. Both files are private and must remain untracked.
+Application URIs authenticate with the provisioned application user, not the
+MongoDB root account. Updating the files does not alter existing MongoDB users,
+move data, or restart containers. For externally managed MongoDB, omit the
+server file and MongoDB Compose profiles entirely.
+
 The table covers every variable in `deploy/env/example.env` plus optional
 overrides supported by runtime or deployment configuration. TOML and YAML keys are **not**
 environment variables and are documented in the linked center-configuration
@@ -279,6 +299,8 @@ registration is not configurable through an environment variable.
 | `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
 | `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
 | `MONGO_UID`, `MONGO_GID` | Both Mongo Compose profiles | Positive numeric host UID/GID | Required database owner IDs; used by MongoDB, health checks, and initializers in modern and legacy Compose. |
+| `MONGO_CONTAINER_MEM_LIMIT` | No | Memory limit; default `8g` | Per-container memory limit for MongoDB servers and initialization jobs. Set in the server env. |
+| `MONGO_CONTAINER_CPU_LIMIT` | No | CPU count; default `4.0` | Per-container CPU limit for MongoDB servers and initialization jobs. Set in the server env. |
 | `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | Independent KB replica-set name, default `coyote3-kb-rs`. |
 | `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | Advertised KB member address, default `mongo-kb:27017`. |
 | `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
@@ -306,6 +328,7 @@ registration is not configurable through an environment variable.
 | `LOG_RETENTION_DAYS` | No | Days; default `30` | Disk log retention window. |
 | `LOG_GZIP_AFTER_DAYS` | No | Days; default `1` | Age after which nightly maintenance gzips old logs. |
 | `LOG_LEVEL` | No | Python logging level | Minimum runtime log level. |
+| `ERROR_EMAIL_GROUP` | No | Role ID; default `monitoring_group` | Recipient role for operational error emails; requires configured mail delivery. |
 | `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
 | `COYOTE3_UID` | No | Positive integer; default `10001` | Numeric UID used by application containers. The data and log host roots must be writable by this UID or its configured group. |
 | `COYOTE3_GID` | No | Positive integer; default `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |

@@ -20,6 +20,8 @@ def render(*profiles, backup_mount=False, backup_root=None):
         "--env-file",
         "deploy/env/example.env",
         "--env-file",
+        "deploy/env/example.mongo-server.env",
+        "--env-file",
         "deploy/env/example.mongo-split.env",
         "-f",
         "deploy/compose/docker-compose.yml",
@@ -31,6 +33,7 @@ def render(*profiles, backup_mount=False, backup_root=None):
     environment = {
         **os.environ,
         "COYOTE3_VERSION": "4.0.0",
+        "COYOTE3_IMAGE_TAG": "4.0.0-prod",
         "MONGO_UID": "12345",
         "MONGO_GID": "23456",
     }

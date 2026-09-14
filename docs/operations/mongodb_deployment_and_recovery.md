@@ -32,6 +32,13 @@ and keep its lifecycle separate from application updates.
 
 ## First-time setup
 
+Keep application and MongoDB server environment files separate. Copy
+`deploy/env/example.mongo-server.env` to a private `.coyote3_dev_mongo_env` for
+MongoDB deployment. Its network and database names must match the application
+settings for initial account grants. Root credentials, keyfiles, server storage,
+ports, UID/GID, and server resource limits do not belong in the application env.
+Externally managed MongoDB needs no server env file at all.
+
 1. Complete the environment file and select the URI for every logical service.
    Use separate app/identity names for each environment and a shared knowledgebase.
 2. Prepare persistent directories and keyfiles for each physical instance:
@@ -45,7 +52,7 @@ sudo chown "$MONGO_UID:$MONGO_GID" /srv/coyote3/mongo/keyfile
 ```
 
 For split knowledgebase MongoDB, prepare its separately configured data directory
-and keyfile too. Save `MONGO_UID` and `MONGO_GID` in the deployment env file.
+and keyfile too. Save `MONGO_UID` and `MONGO_GID` in the MongoDB server env file.
 
 Both Compose families limit each MongoDB server and initialization container to
 8 GiB RAM and 4 CPUs by default. Override `MONGO_CONTAINER_MEM_LIMIT` and
@@ -247,8 +254,7 @@ host directory, grant the container user appropriate access, and set
 definition:
 
 ```bash
-./scripts/compose-with-version.sh --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml \
+docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
   -f deploy/compose/docker-compose.mongo.yml \
   -f deploy/compose/docker-compose.mongo-backup.yml \
   --profile mongo up -d mongo
