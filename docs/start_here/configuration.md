@@ -275,8 +275,16 @@ registration is not configurable through an environment variable.
 | `COYOTE3_PORT` | No; compose profile default | Host port | One exposed nginx entrypoint for UI, API, public pages, and docs. |
 | `SCRIPT_NAME` | No; default empty | Empty string or `/prefix` | Public URL mount prefix used by browser routing and generated links. |
 | `PUBLIC_BASE_URL` | Required by Compose | Public origin without `SCRIPT_NAME` | Origin used for links generated outside an active browser request, such as password reset email links. |
-| `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value; default `2g` | Per-container memory limit. |
-| `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value; default `2.0` | Per-container CPU limit. |
+| `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value; default `2g` | Shared default for frontend, docs, Redis, and proxy; API, worker, beat, and monitor use their own limits. |
+| `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value; default `2.0` | Shared default for frontend, docs, Redis, and proxy; not a stack-wide limit. |
+| `COYOTE3_API_CPU_LIMIT` | No | CPU cores; default `2.0` | API container CPU limit. |
+| `COYOTE3_API_MEM_LIMIT` | No | Compose memory value; default `2g` | API container memory limit. |
+| `COYOTE3_WORKER_CPU_LIMIT` | No | CPU cores; default `2.0` | CPU limit per worker container, shared by its child processes. |
+| `COYOTE3_WORKER_MEM_LIMIT` | No | Compose memory value; default `2g` | Memory limit per worker container. |
+| `COYOTE3_BEAT_CPU_LIMIT` | No | CPU cores; default `0.25` | Beat scheduler CPU limit. |
+| `COYOTE3_BEAT_MEM_LIMIT` | No | Compose memory value; default `256m` | Beat scheduler memory limit. |
+| `COYOTE3_MONITOR_CPU_LIMIT` | No | CPU cores; default `0.5` | Log and error-email monitor CPU limit. |
+| `COYOTE3_MONITOR_MEM_LIMIT` | No | Compose memory value; default `512m` | Monitor memory limit. |
 | `COYOTE3_APP_NETWORK` | Yes | Existing Docker network name | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
 | `MONGO_ROOT_USERNAME` | Self-hosted MongoDB | Username | MongoDB administrative username used only for database deployment and maintenance. |
 | `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | MongoDB administrative password. |

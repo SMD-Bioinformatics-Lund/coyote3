@@ -1,5 +1,32 @@
 # Deployment Guide
 
+## Container resource limits
+
+Modern and legacy Compose use these per-container defaults, configurable in the
+deployment env file:
+
+| Service | CPU cores | Memory | CPU env variable | Memory env variable |
+| --- | --- | --- | --- | --- |
+| API | 2 | 2 GiB | `COYOTE3_API_CPU_LIMIT` | `COYOTE3_API_MEM_LIMIT` |
+| Worker | 2 | 2 GiB | `COYOTE3_WORKER_CPU_LIMIT` | `COYOTE3_WORKER_MEM_LIMIT` |
+| Beat | 0.25 | 256 MiB | `COYOTE3_BEAT_CPU_LIMIT` | `COYOTE3_BEAT_MEM_LIMIT` |
+| Monitor | 0.5 | 512 MiB | `COYOTE3_MONITOR_CPU_LIMIT` | `COYOTE3_MONITOR_MEM_LIMIT` |
+
+Worker, beat, and monitor together have a maximum allowance of 2.75 CPU cores
+when running one container of each. These are separate limits, not a shared pool
+or reserved resources. Scaling workers multiplies their allowance. All processes
+and threads within each container share its limit. Adjust worker memory and
+`CELERY_WORKER_CONCURRENCY` to the observed ingest workload.
+
+`COYOTE3_CONTAINER_CPU_LIMIT` and `COYOTE3_CONTAINER_MEM_LIMIT` remain the shared
+defaults for frontend, docs, Redis, and proxy; they do not override the four
+service-specific limits above. Mongo retains its separate `MONGO_CONTAINER_*`
+settings. Docker CPU usage of 100% represents approximately one core.
+
+Recreate affected containers after changing limits; an image rebuild is not
+required for resource settings. Use the same env and Compose files as the active
+deployment, adding `up -d --no-deps --force-recreate api worker beat monitor`.
+
 ## Trusted proxy configuration
 
 Set `FORWARDED_ALLOW_IPS` to the ingress proxy's IP or a dedicated trusted proxy
