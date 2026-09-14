@@ -82,10 +82,21 @@ The Compose `monitor` service scans daily logs for ERROR and CRITICAL records, p
 WARNING records with event type `ingest.expected_files_missing`. Missing optional
 expected files allow ingestion to proceed and generate warning emails. It
 runs independently of API initialization, Redis, worker, and beat. Each error batch
-includes the error messages, recorded tracebacks, and a gzip snapshot of the service
-log. The snapshot is retained under `/app/logs/.error-mail` until SMTP accepts the
+includes the error messages, recorded tracebacks, and a plain-text snapshot of the newly
+scanned log batch (up to 10,000 complete lines), rather than the entire service log.
+The email identifies the byte range included. Unchanged files already scanned to
+the end are skipped before opening, avoiding repeated gzip decompression on idle
+polls. After restart, persisted offsets are recovered and this cache is rebuilt.
+The snapshot is retained under `/app/logs/.error-mail` until SMTP accepts the
 message for each current recipient. Failed delivery and database outages are retried.
 The scanner can also read logs already compressed by retention.
+
+Log retention is scheduled once daily at midnight in `LOCAL_TIME_ZONE`
+(`COYOTE3_MAINTENANCE_HOUR=0`). The default compression age is seven days
+(`LOG_GZIP_AFTER_DAYS=7`). Existing saved App Controls retention settings take
+precedence: set **Gzip disk logs after days** to **7** there as well if previously
+saved as 1. Error scans continue frequently, but do not compress attachments;
+previously queued compressed attachments remain deliverable.
 
 Recipients are active users whose `roles` include `monitoring_group`, configurable
 with `ERROR_EMAIL_GROUP`. This is a notification membership role with no application

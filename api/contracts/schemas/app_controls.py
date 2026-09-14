@@ -25,7 +25,7 @@ class RetentionControlDoc(BaseModel):
     audit_events_days: int = Field(default=730, ge=30, le=3650)
     notification_days: int = Field(default=180, ge=7, le=3650)
     disk_log_days: int = Field(default=30, ge=1, le=3650)
-    gzip_disk_logs_after_days: int = Field(default=1, ge=1, le=3650)
+    gzip_disk_logs_after_days: int = Field(default=7, ge=1, le=3650)
 
     @field_validator("gzip_disk_logs_after_days")
     @classmethod

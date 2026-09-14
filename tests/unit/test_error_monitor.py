@@ -37,8 +37,8 @@ def test_monitor_retries_with_snapshot_and_does_not_repeat_successful_recipients
     assert monitor.deliver([], sender) == 0
     assert monitor.deliver(["first@example.test", "second@example.test"], sender) == 0
     attachment = calls[0]["attachments"][0]
-    assert attachment[0] == "api_2026-09-09.log.gz"
-    assert gzip.decompress(attachment[1]).decode() == content
+    assert attachment[0] == "api_2026-09-09.log"
+    assert attachment[1].decode() == content
     assert "database unavailable" in calls[0]["text_body"]
     source.unlink()  # Delivery still works after source retention.
     restarted = DiskErrorMonitor(tmp_path)
@@ -95,7 +95,7 @@ def test_monitor_emails_missing_expected_file_warnings_but_not_unrelated_warning
     assert "system warning" in sent[0]["subject"]
     assert "transloc" in sent[0]["text_body"]
     assert "Unrelated warning" not in sent[0]["text_body"]
-    assert "transloc" in gzip.decompress(sent[0]["attachments"][0][1]).decode()
+    assert "transloc" in sent[0]["attachments"][0][1].decode()
     monitor.scan()
     assert monitor.deliver(["monitor@example.test"], lambda **kw: False) == 0
 
@@ -106,6 +106,57 @@ def test_internal_syslog_routes_errors_and_rejects_unknown_services():
     assert record.levelno == logging.ERROR
     assert parse_syslog("<187>host arbitrary: message") is None
     assert parse_syslog('<190>host proxy: client "GET / HTTP/1.1" 502 12').levelno == logging.ERROR
+
+
+def test_monitor_skips_unchanged_archives_even_after_restart(tmp_path, monkeypatch):
+    source = tmp_path / "2026/09/09/api.log.gz"
+    source.parent.mkdir(parents=True)
+    with gzip.open(source, "wt") as stream:
+        stream.write('{"severity":"info","message":"old"}\n')
+    DiskErrorMonitor(tmp_path).scan()
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()  # Recover the persisted offset once, then cache EOF.
+    monkeypatch.setattr(
+        gzip,
+        "open",
+        lambda *a, **kw: (_ for _ in ()).throw(
+            AssertionError("Unchanged archive was decompressed again")
+        ),
+    )
+    monitor.scan()
+    monitor.scan()
+
+
+def test_monitor_changed_archive_is_scanned_and_snapshots_only_new_batch(tmp_path):
+    source = tmp_path / "2026/09/09/api.log.gz"
+    source.parent.mkdir(parents=True)
+    old = '{"severity":"info","message":"old context"}\n'
+    new = '{"severity":"error","message":"new failure"}\n'
+    with gzip.open(source, "wt") as stream:
+        stream.write(old)
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    with gzip.open(source, "wt") as stream:
+        stream.write(old + new)
+    monitor.scan()
+    sent = []
+    assert monitor.deliver(["monitor@example.test"], lambda **kw: sent.append(kw) or True) == 1
+    assert sent[0]["attachments"][0][1].decode() == new
+    assert "scanned batch" in sent[0]["text_body"]
+
+
+def test_monitor_drains_batches_before_caching_eof(tmp_path):
+    source = tmp_path / "2026/09/09/api.log.gz"
+    source.parent.mkdir(parents=True)
+    info = '{"severity":"info"}\n'
+    error = '{"severity":"error","message":"last record"}\n'
+    with gzip.open(source, "wt") as stream:
+        stream.write(info * 10000 + error)
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    assert not list(monitor.spool.glob("*.excerpt"))
+    monitor.scan()
+    assert next(monitor.spool.glob("*.excerpt")).read_text() == error
 
 
 def test_service_wrapper_records_startup_failures_and_exit_status(tmp_path):

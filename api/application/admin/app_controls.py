@@ -108,7 +108,7 @@ def default_app_controls(config: dict[str, Any] | None = None) -> AppControlsDoc
             "audit_events_days": get_audit_retention_days(config),
             "notification_days": int(config.get("NOTIFICATION_RETENTION_DAYS", 180) or 180),
             "disk_log_days": int(config.get("LOG_RETENTION_DAYS", 30) or 30),
-            "gzip_disk_logs_after_days": int(config.get("LOG_GZIP_AFTER_DAYS", 1) or 1),
+            "gzip_disk_logs_after_days": int(config.get("LOG_GZIP_AFTER_DAYS", 7) or 7),
         },
         modules={
             "dna_analysis_enabled": True,

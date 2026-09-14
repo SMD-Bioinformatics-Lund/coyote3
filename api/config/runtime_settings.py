@@ -114,7 +114,7 @@ class OperationsSettings:
     ERROR_EMAIL_GROUP = os.getenv("ERROR_EMAIL_GROUP", "monitoring_group")
     LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", "1") == "1"
     LOG_RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", "30"))
-    LOG_GZIP_AFTER_DAYS = int(os.getenv("LOG_GZIP_AFTER_DAYS", "1"))
+    LOG_GZIP_AFTER_DAYS = int(os.getenv("LOG_GZIP_AFTER_DAYS", "7"))
     LOG_LEVEL = os.getenv("LOG_LEVEL") or (
         "INFO"
         if (os.getenv("ENV_NAME") or "production").strip().lower() in {"prod", "production"}
@@ -217,7 +217,7 @@ class CelerySettings:
     CELERY_RESULT_EXPIRES = int(os.getenv("CELERY_RESULT_EXPIRES", "86400"))
     CELERY_WORKER_PREFETCH_MULTIPLIER = int(os.getenv("CELERY_WORKER_PREFETCH_MULTIPLIER", "1"))
     CELERY_INSPECTION_TIMEOUT_SECONDS = float(os.getenv("CELERY_INSPECTION_TIMEOUT_SECONDS", "1.5"))
-    COYOTE3_MAINTENANCE_HOUR = int(os.getenv("COYOTE3_MAINTENANCE_HOUR", "2"))
+    COYOTE3_MAINTENANCE_HOUR = int(os.getenv("COYOTE3_MAINTENANCE_HOUR", "0"))
 
 
 class IngestSettings:

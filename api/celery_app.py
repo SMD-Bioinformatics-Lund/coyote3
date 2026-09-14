@@ -39,6 +39,7 @@ celery_app = Celery(
 )
 
 celery_app.conf.update(
+    timezone=DefaultConfig.LOG_TIMEZONE,
     task_default_queue=DefaultConfig.CELERY_DEFAULT_QUEUE,
     task_track_started=True,
     task_time_limit=DefaultConfig.CELERY_TASK_TIME_LIMIT,

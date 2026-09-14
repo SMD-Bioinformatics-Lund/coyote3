@@ -7,7 +7,6 @@ import hashlib
 import json
 import logging
 import re
-import shutil
 from pathlib import Path
 from typing import Any, Callable
 
@@ -31,10 +30,21 @@ class DiskErrorMonitor:
         self.spool.mkdir(parents=True, exist_ok=True)
         self.state_path = self.spool / "offsets.json"
         self.offsets = json.loads(self.state_path.read_text()) if self.state_path.exists() else {}
+        self._completed: dict[str, tuple[int, int, int, int]] = {}
 
     def scan(self) -> None:
-        """Queue errors and missing-expected-file warnings before advancing offsets."""
+        """Scan new records, attaching only the scanned batch to queued errors.
+
+        Unchanged files already read to EOF are skipped before opening them, so
+        archived gzip logs are not decompressed on every polling cycle. File
+        size, timestamps and inode changes invalidate that in-memory cache.
+        Durable offsets still control recovery after a monitor restart.
+        """
         for path in sorted(self.root.glob("[0-9][0-9][0-9][0-9]/*/*/*.log*")):
+            stat = path.stat()
+            signature = (stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+            if self._completed.get(str(path)) == signature:
+                continue
             compressed = path.suffix == ".gz"
             logical_path = path.with_suffix("") if compressed else path
             key = str(logical_path.relative_to(self.root))
@@ -42,6 +52,8 @@ class DiskErrorMonitor:
             if not compressed and path.stat().st_size < start:
                 start = 0
             errors = []
+            batch = []
+            reached_end = False
             opener = gzip.open if compressed else open
             with opener(path, "rb") as source:
                 source.seek(start)
@@ -49,8 +61,10 @@ class DiskErrorMonitor:
                 for _ in range(10000):
                     line = source.readline()
                     if not line or not line.endswith(b"\n"):
+                        reached_end = True
                         break
                     end = source.tell()
+                    batch.append(line)
                     try:
                         record = json.loads(line)
                     except (ValueError, UnicodeDecodeError):
@@ -64,17 +78,31 @@ class DiskErrorMonitor:
                     ):
                         errors.append(record)
             if end == start:
+                if reached_end:
+                    self._completed[str(path)] = signature
                 continue
             if errors:
                 job_id = hashlib.sha256(f"{key}:{start}:{end}".encode()).hexdigest()
                 job_path = self.spool / f"{job_id}.json"
-                snapshot = self.spool / f"{job_id}.gz"
+                snapshot = self.spool / f"{job_id}.excerpt"
                 if not job_path.exists():
-                    with opener(path, "rb") as source, gzip.open(snapshot, "wb") as target:
-                        shutil.copyfileobj(source, target)
-                    write_json(job_path, {"source": key, "errors": errors, "sent": []})
+                    with snapshot.open("wb") as target:
+                        target.writelines(batch)
+                    write_json(
+                        job_path,
+                        {
+                            "source": key,
+                            "errors": errors,
+                            "sent": [],
+                            "start": start,
+                            "end": end,
+                            "snapshot_format": "plain",
+                        },
+                    )
             self.offsets[key] = end
             write_json(self.state_path, self.offsets)
+            if reached_end:
+                self._completed[str(path)] = signature
 
     def deliver(
         self, recipients: list[str], sender: Callable[..., bool], *, limit: int = 10
@@ -97,14 +125,20 @@ class DiskErrorMonitor:
         jobs = [path for path in sorted(self.spool.glob("*.json")) if path != self.state_path]
         for path in jobs[:limit]:
             job = json.loads(path.read_text())
-            snapshot = path.with_suffix(".gz")
+            plain_snapshot = job.get("snapshot_format") == "plain"
+            snapshot = path.with_suffix(".excerpt" if plain_snapshot else ".gz")
             source = Path(job["source"])
             severity = (
                 "error"
                 if any(event.get("severity") in {"error", "critical"} for event in job["errors"])
                 else "warning"
             )
-            body = f"Log file: {job['source']}\n\n" + "\n\n".join(
+            scope = (
+                f"Attachment contains log bytes {job['start']}–{job['end']} (scanned batch).\n"
+                if "start" in job
+                else ""
+            )
+            body = f"Log file: {job['source']}\n{scope}\n" + "\n\n".join(
                 f"{event.get('timestamp', '')} {event.get('message', '')}\n{event.get('exception', '')}"
                 for event in job["errors"]
             )
@@ -117,7 +151,9 @@ class DiskErrorMonitor:
                     text_body=body,
                     severity=severity,
                     purpose="security",
-                    attachments=[(source.name + ".gz", snapshot.read_bytes())],
+                    attachments=[
+                        (source.name + ("" if plain_snapshot else ".gz"), snapshot.read_bytes())
+                    ],
                 ):
                     job["sent"].append(address)
                     write_json(path, job)
