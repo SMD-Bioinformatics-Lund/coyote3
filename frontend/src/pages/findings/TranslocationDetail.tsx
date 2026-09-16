@@ -110,7 +110,6 @@ export function TranslocationDetail() {
         callers={
           <FindingCallerMeta>
             <CallerBadges value={callers} />
-            <VepVersionBadge version={sample?.database_versions?.vep} />
           </FindingCallerMeta>
         }
         actions={
