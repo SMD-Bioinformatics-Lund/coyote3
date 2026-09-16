@@ -4,12 +4,42 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from scripts import submit_ingest_manifest as client
+
+
+@pytest.mark.parametrize("outcome", ["ok", "error", "interrupted"])
+def test_streamed_server_logs_and_terminal_status(outcome, capsys):
+    lines = [json.dumps({"event": "log", "level": "INFO", "message": "Parsing synthetic VCF"})]
+    if outcome == "ok":
+        lines.append(
+            json.dumps({"event": "result", "data": {"status": "ok", "sample_id": "synthetic"}})
+        )
+    elif outcome == "error":
+        lines.append(
+            json.dumps({"event": "error", "status_code": 500, "data": {"error": "Parse failed"}})
+        )
+    lines.append("200")
+    code = "import sys; sys.stdin.read(); print(" + repr("\n".join(lines)) + ", flush=True)"
+    command = [sys.executable, "-c", code]
+    if outcome == "interrupted":
+        with pytest.raises(ValueError, match="without a terminal"):
+            client.streamed_upload(command, "")
+    else:
+        result = client.streamed_upload(command, "")
+        body, _, status = result.stdout.rpartition("\n")
+        assert status == ("200" if outcome == "ok" else "500")
+        assert json.loads(body) == (
+            {"status": "ok", "sample_id": "synthetic"}
+            if outcome == "ok"
+            else {"error": "Parse failed"}
+        )
+    assert "Parsing synthetic VCF" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("fail", [False, True])

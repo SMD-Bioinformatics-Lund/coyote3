@@ -217,7 +217,12 @@ class DnaIngestParser:
             logging.getLogger(__name__).warning("%s File: %s", warning, infile)
         if warnings is not None:
             warnings.extend(role_warnings)
-        for var in vcf_object.fetch():
+        processed = 0
+        for processed, var in enumerate(vcf_object.fetch(), start=1):
+            if processed % 1000 == 0:
+                logging.getLogger(__name__).info(
+                    "SNV parsing: records read=%s, retained so far=%s", processed, len(filtered)
+                )
             var_dict = cmdvcf.parse_variant(var, vcf_object.header)
             var_csq = var_dict["INFO"]["CSQ"]
             if var_csq:
@@ -313,6 +318,9 @@ class DnaIngestParser:
 
             filtered.append(ensure_variant_identity_fields(var_dict))
 
+        logging.getLogger(__name__).info(
+            "SNV parsing complete: records read=%s, retained=%s", processed, len(filtered)
+        )
         return filtered
 
     @staticmethod
@@ -331,7 +339,14 @@ class DnaIngestParser:
         mane: dict[str, dict[str, str]] = {}
         filtered_data: list[dict[str, Any]] = []
         vcf_object = VariantFile(infile)
-        for var in vcf_object.fetch():
+        processed = 0
+        for processed, var in enumerate(vcf_object.fetch(), start=1):
+            if processed % 1000 == 0:
+                logging.getLogger(__name__).info(
+                    "Translocation parsing: records read=%s, retained so far=%s",
+                    processed,
+                    len(filtered_data),
+                )
             var_dict = cmdvcf.parse_variant(var, vcf_object.header)
             if "<" in var_dict["ALT"]:
                 continue
@@ -369,6 +384,11 @@ class DnaIngestParser:
             if keep_variant:
                 filtered_data.append(_normalize_transloc_doc(var_dict))
 
+        logging.getLogger(__name__).info(
+            "Translocation parsing complete: records read=%s, retained=%s",
+            processed,
+            len(filtered_data),
+        )
         return filtered_data
 
 

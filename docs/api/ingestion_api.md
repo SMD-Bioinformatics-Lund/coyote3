@@ -152,6 +152,38 @@ This is the supported browser workflow for manual operator-triggered ingestion.
 
 ## Remote manifest acknowledgement
 
+### Live ingest logs from the submission script
+
+Add `--verbose` to display server-side ingest messages as the API processes the
+submission. This shows file reads, VCF record progress, parsed document counts,
+validation/writes, transaction completion, warnings, and failures. Curl's upload
+meter is suppressed. Log detail follows the server's configured log level; use
+INFO or DEBUG for progress messages. Only this submission's ingest logs are sent,
+not other requests or background services.
+
+```bash
+python3 scripts/submit_ingest_manifest.py /mounted/path/synthetic.coyote3.yaml \
+  --base-url https://example.org/coyote3_dev --auth ingest --verbose
+```
+
+The existing upload endpoint accepts `verbose=true` as a multipart form field.
+It returns `application/x-ndjson` with `log` and idle `heartbeat` events followed
+by one `result` or `error` event. `result.data` contains the normal response or
+acknowledgement. Once streaming starts the HTTP status is already sent, so errors
+carry their status in `error.status_code` and details in `error.data`. The script
+handles these as failures rather than treating HTTP 200 alone as success.
+
+The API disables Nginx buffering for this response. Any additional reverse proxy
+must also allow streaming. Heartbeats keep idle connections active; they are not
+displayed as progress. A disconnected stream or missing final acknowledgement
+leaves the YAML unchanged: ingestion may still be running. Writes reported before
+transaction completion are provisional. Excess log lines may be dropped if the
+client cannot keep up; terminal events are retained while connected.
+
+Without `--verbose`, the endpoint retains its normal JSON response and the script
+prints the final outcome and warnings. The API must be rebuilt with streaming
+support before using the updated script's verbose mode.
+
 SNV ingestion matches VCF sample-column names exactly against `case_id` and
 `control_id`, independently of column order. If neither matches, one or two
 sample columns use the first as case and second as control, with a warning.

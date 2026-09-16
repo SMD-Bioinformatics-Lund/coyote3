@@ -75,6 +75,63 @@ def form_file(field: str, path: Path, content_type: str) -> str:
     return f'{field}=@"{escaped}";type={content_type}'
 
 
+def streamed_upload(command: list[str], config: str) -> subprocess.CompletedProcess:
+    """Print server log events live and retain only the terminal API response.
+
+    A dropped connection or a stream without its terminal event cannot finalize
+    the manifest, even when the HTTP headers reported success.
+    """
+    terminal = None
+    status_code = ""
+    error_body = ""
+    with subprocess.Popen(
+        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1
+    ) as process:
+        process.stdin.write(config)
+        process.stdin.close()
+        for line in process.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            if line.isdigit() and len(line) == 3:
+                status_code = line
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                error_body = (error_body + line)[:16000]
+                continue
+            if not isinstance(event, dict) or "event" not in event:
+                error_body = line[:16000]
+                continue
+            kind = event["event"]
+            if kind == "log":
+                print(
+                    f"{event.get('timestamp', '')} {event.get('level', 'INFO'):7} "
+                    f"{event.get('message', '')}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            elif kind in {"result", "error"}:
+                if terminal is not None:
+                    raise ValueError("API stream returned multiple terminal events")
+                terminal = event
+        returncode = process.wait()
+    if returncode or not status_code.isdigit() or not 200 <= int(status_code) < 300:
+        return subprocess.CompletedProcess(
+            command, returncode, stdout=f"{error_body}\n{status_code}"
+        )
+    if terminal is None:
+        raise ValueError(
+            "API stream ended without a terminal ingest acknowledgement; outcome is unconfirmed"
+        )
+    if terminal["event"] == "error":
+        status_code = str(terminal.get("status_code", 500))
+    return subprocess.CompletedProcess(
+        command, returncode, stdout=f"{json.dumps(terminal.get('data'))}\n{status_code}"
+    )
+
+
 def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
     """Stream multipart files to the API and require a terminal acknowledgement.
 
@@ -83,6 +140,7 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
     """
     command = [
         "curl",
+        "--silent",
         "--show-error",
         "--config",
         "-",
@@ -101,6 +159,8 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
         "--form",
         f"increment={str(args.increment).lower()}",
     ]
+    if getattr(args, "verbose", False):
+        command.extend(["--no-buffer", "--form", "verbose=true"])
     if args.archive:
         archive = Path(args.archive).expanduser().resolve(strict=True)
         if not archive.is_file():
@@ -118,8 +178,12 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
     if args.auth == "ingest":
         header = f"X-Coyote-Ingest-Token: {token}"
     config = f'header = "{header}"\n'
-    # Let curl show transfer progress on the terminal; capture only the API response.
-    result = subprocess.run(command, input=config, text=True, stdout=subprocess.PIPE, check=False)
+    if getattr(args, "verbose", False):
+        result = streamed_upload(command, config)
+    else:
+        result = subprocess.run(
+            command, input=config, text=True, stdout=subprocess.PIPE, check=False
+        )
     if result.returncode:
         raise ValueError(
             f"Upload transport failed (curl exit {result.returncode}); ingest outcome is unconfirmed"
@@ -423,6 +487,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--update-existing", action="store_true")
     parser.add_argument("--increment", action="store_true")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show live server-side ingest logs for this submission",
+    )
     args = parser.parse_args(argv)
     args.base_url = str(args.base_url or "").rstrip("/")
     url = urlsplit(args.base_url)

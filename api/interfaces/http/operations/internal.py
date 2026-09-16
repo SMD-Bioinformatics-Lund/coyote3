@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 import tempfile
+from functools import partial
 from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
@@ -51,6 +52,7 @@ from api.contracts.internal import (
 )
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 from api.infra.observability.prometheus_metrics import render_prometheus_metrics
+from api.interfaces.http.operations.ingest_stream import stream_ingest
 from api.interfaces.http.tags import TAG_INTERNAL
 from api.security.access import (
     ApiUser,
@@ -416,10 +418,14 @@ def _prepare_uploaded_bundle(
     preflight=None,
 ) -> dict:
     """Parse a manifest and resolve declared paths against one uploaded ZIP archive."""
+    logger = logging.getLogger(__name__)
+    logger.info("Parsing YAML manifest: %s", yaml_file.filename)
     yaml_content = yaml_file.file.read().decode("utf-8")
     source_payload = ingest_service.parse_yaml_payload(yaml_content)
     if preflight is not None:
+        logger.info("Checking sample permissions and duplicate-name policy")
         preflight(source_payload)
+    logger.info("Resolving ASP expected and required files")
     expected_keys, required_keys = ingest_service._assay_file_policy(
         assay_name=source_payload.get("asp_id"),
         omics_layer=source_payload.get("omics_layer"),
@@ -430,6 +436,7 @@ def _prepare_uploaded_bundle(
         if not data_archive.filename:
             raise ValueError("data_archive must include a filename")
         archive_path = staging_dir / Path(str(data_archive.filename)).name
+        logger.info("Staging and extracting archive: %s", data_archive.filename)
         _save_upload(data_archive, archive_path)
         archive_index = extract_uploaded_archive(
             archive_path=archive_path,
@@ -492,12 +499,18 @@ def _prepare_uploaded_bundle(
         source_payload["_uploaded_file_checksums"] = checksums
     if warnings:
         source_payload["_ingest_warnings"] = warnings
+        for warning in warnings:
+            logger.warning("%s", warning)
+    logger.info(
+        "File resolution complete: readable=%s, missing optional=%s", sorted(runtime_files), missing
+    )
     return source_payload
 
 
 @router.post(
     "/api/v1/internal/ingest/sample-bundle/upload",
     response_model=InternalIngestSampleBundlePayload | InternalIngestAcknowledgementPayload,
+    responses={200: {"content": {"application/x-ndjson": {"schema": {"type": "string"}}}}},
 )
 def ingest_sample_bundle_upload_internal(
     yaml_file: UploadFile = File(...),
@@ -507,13 +520,45 @@ def ingest_sample_bundle_upload_internal(
     acknowledge: bool = Form(False),
     user: ApiUser = Depends(require_sample_ingest_access),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
+    verbose: bool = Form(False),
 ):
-    """Upload YAML + data files, stage runtime files server-side, and ingest sample bundle."""
+    """Upload and ingest YAML; verbose streams request-local logs and the final result.
+
+    With verbose=true the response is NDJSON: log/heartbeat events followed by
+    result or error. An error event carries its status_code because HTTP headers
+    have already been sent. No terminal event means the outcome is unconfirmed.
+    """
     if not yaml_file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="yaml_file must include a filename",
         )
+
+    _enforce_sample_ingest_permission(user)
+    operation = partial(
+        _execute_sample_bundle_upload,
+        yaml_file=yaml_file,
+        data_archive=data_archive,
+        update_existing=update_existing,
+        increment=increment,
+        acknowledge=acknowledge,
+        user=user,
+        ingest_service=ingest_service,
+    )
+    return stream_ingest(operation) if verbose is True else operation()
+
+
+def _execute_sample_bundle_upload(
+    *,
+    yaml_file: UploadFile,
+    data_archive: UploadFile | None,
+    update_existing: bool,
+    increment: bool,
+    acknowledge: bool,
+    user: ApiUser,
+    ingest_service: InternalIngestService,
+):
+    """Stage, execute, and clean up one authenticated bundle upload."""
 
     logging.getLogger(__name__).info("Ingest upload started: manifest=%s", yaml_file.filename)
     staging_dir = Path(tempfile.mkdtemp(prefix="coyote3_ingest_upload_"))

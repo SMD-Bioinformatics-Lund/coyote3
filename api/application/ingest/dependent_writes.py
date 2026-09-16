@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from api.contracts.schemas.registry import (
@@ -10,6 +11,8 @@ from api.contracts.schemas.registry import (
 )
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
 from api.infra.mongo.persistence import insert_many_documents
+
+logger = logging.getLogger(__name__)
 
 
 def write_dependents(
@@ -25,7 +28,11 @@ def write_dependents(
     written: dict[str, int] = {}
     anno_vep_docs = preload.get("anno_vep")
     if anno_vep_docs:
+        logger.info(
+            "Writing annotation vault: documents=%s (transaction pending)", len(anno_vep_docs)
+        )
         service.anno_vep_repository.upsert_many(list(anno_vep_docs), session=session)
+        logger.info("Annotation vault writes complete (transaction pending)")
     dependent_preload = {
         key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
     }
@@ -34,6 +41,7 @@ def write_dependents(
             continue
 
         payload = dependent_preload[key]
+        logger.info("Validating and writing %s (transaction pending)", col_name)
         if key in INGEST_SINGLE_DOCUMENT_KEYS:
             if not isinstance(payload, dict):
                 raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
@@ -45,6 +53,7 @@ def write_dependents(
             kwargs = {"session": session} if session is not None else {}
             service._collection(col_name).insert_one(dict(normalized_doc), **kwargs)
             written[key] = 1
+            logger.info("Wrote %s: documents=1 (transaction pending)", col_name)
             continue
 
         if not isinstance(payload, (list, tuple)):
@@ -62,6 +71,7 @@ def write_dependents(
         if normalized_docs:
             insert_many_documents(service._collection(col_name), normalized_docs, session=session)
         written[key] = len(normalized_docs)
+        logger.info("Wrote %s: documents=%s (transaction pending)", col_name, written[key])
     return written
 
 

@@ -306,6 +306,7 @@ class InternalIngestService:
         if not omics_layer:
             omics_layer = infer_omics_layer(args) or ""
         if omics_layer == "dna":
+            logger.info("Loading HGNC reference metadata for DNA parsing")
             hgnc_by_id, hgnc_by_symbol = self._hgnc_metadata_maps()
             return DnaIngestParser(
                 hgnc_by_id=hgnc_by_id,
@@ -580,8 +581,10 @@ class InternalIngestService:
             if key in parsed_payload and parsed_payload.get(key):
                 preload_payload[key] = parsed_payload[key]
 
+        logger.info("Ingest parsing started: sample=%s", current_doc["name"])
         preload = self._parse_preload(readable_file_payload(preload_payload, declared_file_keys))
         ingest_warnings = preload.pop("_warnings", [])
+        logger.info("Ingest parsing completed: counts=%s", self._data_counts(preload))
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
@@ -643,7 +646,9 @@ class InternalIngestService:
                 record_completion(result, session)
             return result
 
+        logger.info("Starting sample update transaction")
         result = self.collection_gateway.run_transaction(update)
+        logger.info("Sample update transaction committed: sample=%s", current_doc["name"])
         self._invalidate_dashboard_metrics_after_ingest()
         self._report_missing_expected_files(result)
         return result
@@ -707,7 +712,7 @@ class InternalIngestService:
         logger.info("Ingest parsing started: sample=%s", validated_payload.get("name"))
         preload = self._parse_preload(readable_file_payload(validated_payload, declared_file_keys))
         ingest_warnings = preload.pop("_warnings", [])
-        logger.info("Ingest parsing completed: sample=%s", validated_payload.get("name"))
+        logger.info("Ingest parsing completed: counts=%s", self._data_counts(preload))
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
@@ -767,7 +772,9 @@ class InternalIngestService:
                 record_completion(result, session)
             return result
 
+        logger.info("Starting sample creation transaction: sample=%s", sample_name)
         result = self.collection_gateway.run_transaction(create)
+        logger.info("Sample creation transaction committed: sample=%s", sample_name)
         self._invalidate_dashboard_metrics_after_ingest()
         self._report_missing_expected_files(result)
         return result

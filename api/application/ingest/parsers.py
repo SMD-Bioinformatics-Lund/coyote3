@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Callable
 from typing import Any
@@ -44,6 +45,7 @@ def require_exists(label: str, path: str | None) -> None:
     """
     if not _exists(path):
         raise FileNotFoundError(f"{label} missing or not readable: {path}")
+    logging.getLogger(__name__).info("Reading %s: %s", label, path)
 
 
 def runtime_file_path(args: dict[str, Any], key: str) -> str | None:
