@@ -206,6 +206,22 @@ def test_unconfirmed_upload_leaves_manifest_unchanged(args, monkeypatch, returnc
     assert not Path(args.yaml + ".ack.json").exists()
 
 
+def test_http_error_displays_server_reason_without_finalizing(args, monkeypatch):
+    monkeypatch.setattr(
+        client.subprocess,
+        "run",
+        lambda *a, **kw: SimpleNamespace(
+            returncode=0,
+            stdout='{"error":"Ingest failed","hint":"Check translocation annotations","request_id":"synthetic-request"}\n500',
+        ),
+    )
+    with pytest.raises(
+        ValueError, match="Ingest failed.*Check translocation annotations.*synthetic-request"
+    ):
+        client.submit(args)
+    assert Path(args.yaml).exists()
+
+
 def test_saved_receipt_does_not_prevent_resubmission(args, monkeypatch):
     manifest = Path(args.yaml)
     client.save_receipt(

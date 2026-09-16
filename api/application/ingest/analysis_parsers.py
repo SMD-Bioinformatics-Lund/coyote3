@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pysam import VariantFile
@@ -41,6 +42,41 @@ def _normalize_pgx_document(payload: Any) -> dict[str, Any]:
     raise ValueError("PGX JSON must decode to an object or an array of objects")
 
 
+def resolve_vcf_roles(
+    names: list[str], case_id: str | None, control_id: str | None
+) -> tuple[dict[str, str], list[str]]:
+    """Match explicit IDs, inferring only an unambiguous remaining column.
+
+    When neither ID matches, one or two columns use positional roles with a
+    warning. Ambiguous multi-sample inputs and identical role IDs are rejected.
+    """
+    case_id, control_id = str(case_id or ""), str(control_id or "")
+    if case_id and case_id == control_id:
+        raise ValueError("VCF case_id and control_id must differ")
+    if not names or len(set(names)) != len(names):
+        raise ValueError("VCF must contain unique sample columns")
+    roles = {}
+    if case_id in names:
+        roles[case_id] = "case"
+    if control_id in names:
+        roles[control_id] = "control"
+    if len(roles) == 2 or (len(names) == 1 and roles.get(names[0]) == "case" and not control_id):
+        return roles, []
+    if len(names) > 2 or (len(names) == 1 and (control_id or roles)):
+        raise ValueError("Cannot unambiguously match VCF columns to case_id and control_id")
+    warning = f"VCF sample IDs do not fully match case_id={case_id!r}, control_id={control_id!r}; columns={names}. "
+    if not roles:
+        roles = {name: "case" if index == 0 else "control" for index, name in enumerate(names)}
+        warning += "Using first column as case and second column, if present, as control."
+    else:
+        remaining_role = "control" if "case" in roles.values() else "case"
+        roles[next(name for name in names if name not in roles)] = remaining_role
+        warning += (
+            "Keeping the matched ID and assigning the remaining column to the unmatched role."
+        )
+    return roles, [warning]
+
+
 class DnaIngestParser:
     """Parse DNA ingest payloads by reading VCF, CNV, biomarker, and coverage files."""
 
@@ -76,7 +112,15 @@ class DnaIngestParser:
         vcf = runtime_file_path(args, primary_analysis_file_key("dna", "SNV"))
         if vcf:
             require_exists("VCF", vcf)
-            snvs = self._parse_snvs_only(vcf)
+            warnings: list[str] = []
+            snvs = self._parse_snvs_only(
+                vcf,
+                case_id=args.get("case_id"),
+                control_id=args.get("control_id"),
+                warnings=warnings,
+            )
+            if warnings:
+                preload["_warnings"] = warnings
             preload["snvs"] = snvs
             anno_vep = _build_anno_vep_docs(
                 snvs,
@@ -142,7 +186,14 @@ class DnaIngestParser:
             normalized_rows.append(normalized)
         return normalized_rows
 
-    def _parse_snvs_only(self, infile: str) -> list[dict[str, Any]]:
+    def _parse_snvs_only(
+        self,
+        infile: str,
+        *,
+        case_id: str | None = None,
+        control_id: str | None = None,
+        warnings: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Parse a VEP-annotated SNV VCF into a list of variant dicts.
 
         Applies FAIL filter exclusions, CSQ transcript selection, allele
@@ -159,6 +210,13 @@ class DnaIngestParser:
         """
         filtered: list[dict[str, Any]] = []
         vcf_object = VariantFile(infile)
+        roles, role_warnings = resolve_vcf_roles(
+            list(vcf_object.header.samples), case_id, control_id
+        )
+        for warning in role_warnings:
+            logging.getLogger(__name__).warning("%s File: %s", warning, infile)
+        if warnings is not None:
+            warnings.extend(role_warnings)
         for var in vcf_object.fetch():
             var_dict = cmdvcf.parse_variant(var, vcf_object.header)
             var_csq = var_dict["INFO"]["CSQ"]
@@ -241,11 +299,13 @@ class DnaIngestParser:
                 continue
 
             del var_dict["FORMAT"]
+            var_dict["GT"] = [sample for sample in var_dict["GT"] if sample["_sample_id"] in roles]
+            var_dict["GT"].sort(key=lambda sample: roles[sample["_sample_id"]] != "case")
             for index, sample in enumerate(var_dict["GT"]):
                 required = {"AF", "VAF", "DP", "VD", "GT"}
                 if not required.intersection(sample.keys()) or "DP" not in sample:
                     raise ValueError("Invalid VCF: expected AF/VAF, DP, VD and GT in GT entries")
-                var_dict["GT"][index]["type"] = "case" if index == 0 else "control"
+                var_dict["GT"][index]["type"] = roles[sample["_sample_id"]]
                 var_dict["GT"][index]["AF"] = var_dict["GT"][index]["VAF"]
                 del var_dict["GT"][index]["VAF"]
                 var_dict["GT"][index]["sample"] = var_dict["GT"][index]["_sample_id"]

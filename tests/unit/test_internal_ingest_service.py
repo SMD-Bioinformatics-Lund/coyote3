@@ -1299,7 +1299,7 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     )
 
     parser = ingest.DnaIngestParser()
-    monkeypatch.setattr(parser, "_parse_snvs_only", lambda _: [{"CHROM": "1"}])
+    monkeypatch.setattr(parser, "_parse_snvs_only", lambda _, **kwargs: [{"CHROM": "1"}])
     monkeypatch.setattr(parser, "_parse_transloc_only", lambda _: [{"CHROM": "2"}])
 
     out = parser.parse(

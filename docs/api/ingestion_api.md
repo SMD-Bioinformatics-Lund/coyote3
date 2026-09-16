@@ -152,6 +152,27 @@ This is the supported browser workflow for manual operator-triggered ingestion.
 
 ## Remote manifest acknowledgement
 
+SNV ingestion matches VCF sample-column names exactly against `case_id` and
+`control_id`, independently of column order. If neither matches, one or two
+sample columns use the first as case and second as control, with a warning.
+With two columns and one matching ID, the matched role is preserved and the
+remaining column receives the other role, also with a warning. Ambiguous
+multi-sample inputs are rejected unless both IDs match explicitly. Warnings
+appear in server logs and the ingest result; the submission helper prints them.
+Existing stored variants are not changed by this parsing rule.
+
+The upload API logs upload start, parsing start/completion, and successful upload
+completion. Rejections are recorded with their reason in the API log and audit.
+Unexpected exceptions use a shared error response containing the exception type,
+message, and an error ID that also appears in API logs and audit metadata. This
+applies to parsing, staging, and ingest execution, without per-field error handlers.
+
+The submission helper displays structured API error messages and hints for failed
+HTTP responses, including a request ID when supplied in the response body. An
+unexpected HTTP 500 still leaves the manifest unchanged because the ingest outcome
+is unconfirmed. Validation failures returned as terminal acknowledgements retain
+the existing `.failed` and `.ack.json` behavior.
+
 Duplicate sample names are checked after parsing and authorizing the YAML, before
 ZIP extraction and analysis-file processing. Without `update_existing=true` or
 `increment=true`, an existing name fails with instructions to choose one of those

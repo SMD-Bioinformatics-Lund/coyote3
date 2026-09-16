@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from io import BytesIO
 from types import SimpleNamespace
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -20,6 +21,30 @@ def _admin_user():
         permissions=["sample:edit:own"],
         is_superuser=True,
     )
+
+
+@pytest.mark.parametrize(
+    "failure", [KeyError("ANN"), RuntimeError("parser stopped"), OSError("read failed")]
+)
+def test_ingest_failure_reports_any_unexpected_exception(monkeypatch, failure):
+    recorded = []
+    monkeypatch.setattr(
+        internal, "_record_upload_error", lambda user, exc, **kw: recorded.append((exc, kw))
+    )
+    response = internal._ingest_failure(_admin_user(), failure, acknowledge=True)
+    body = json.loads(response.body)
+    assert response.status_code == 500
+    assert type(failure).__name__ in body["error"]
+    assert str(failure) in body["error"]
+    assert body["request_id"] == recorded[0][1]["error_id"]
+    assert body["status"] != "failed"
+
+
+def test_ingest_failure_preserves_authorization_status(monkeypatch):
+    monkeypatch.setattr(internal, "_record_upload_error", lambda *a, **kw: None)
+    with pytest.raises(HTTPException) as caught:
+        internal._ingest_failure(_admin_user(), HTTPException(403, "Forbidden"), acknowledge=True)
+    assert caught.value.status_code == 403
 
 
 class _FakeUpload:
@@ -48,6 +73,7 @@ def _zip_upload(*entries: tuple[str, bytes]) -> _FakeUpload:
 
 def _ingest_service_stub(**methods):
     """Return a lightweight ingest-service stub for direct route calls."""
+    methods.setdefault("preflight_sample_name", lambda *a, **kw: None)
     return SimpleNamespace(**methods)
 
 

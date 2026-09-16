@@ -11,10 +11,11 @@ import tempfile
 from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import ValidationError
 
 from api.app.container import util
@@ -68,10 +69,10 @@ from api.tasks.ingest import (
 router = APIRouter(tags=[TAG_INTERNAL])
 
 
-def _record_upload_error(user: ApiUser, exc: Exception) -> None:
+def _record_upload_error(user: ApiUser, exc: Exception, *, error_id: str = "") -> None:
     """Record the actionable upload rejection in both logs and the audit."""
     logger = logging.getLogger(__name__)
-    logger.exception("Ingest upload rejected: %s", exc)
+    logger.exception("Ingest failed: %s: %s error_id=%s", type(exc).__name__, exc, error_id)
     try:
         audit = get_audit_service()
         if audit:
@@ -83,10 +84,39 @@ def _record_upload_error(user: ApiUser, exc: Exception) -> None:
                 outcome="failure",
                 actor=user,
                 tags=["ingest", "upload"],
-                metadata={"error": str(exc)[:1000]},
+                metadata={
+                    "error": str(exc)[:1000],
+                    "error_type": type(exc).__name__,
+                    "error_id": error_id,
+                },
             )
     except Exception:
         logger.exception("Could not record upload rejection in audit")
+
+
+def _ingest_failure(user: ApiUser, exc: Exception, *, acknowledge: bool = False):
+    """Report ingest failures consistently without claiming uncertain writes failed.
+
+    Validation failures may produce a terminal acknowledgement. Unexpected
+    exceptions retain HTTP 500 and an error ID shared with logs and audit.
+    """
+    error_id = uuid4().hex
+    _record_upload_error(user, exc, error_id=error_id)
+    if isinstance(exc, HTTPException):
+        raise exc
+    if isinstance(exc, (ValueError, FileNotFoundError, UnicodeDecodeError)):
+        if acknowledge:
+            return _ingest_acknowledgement(error=exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": 500,
+            "error": f"Ingest failed ({type(exc).__name__}): {exc}",
+            "request_id": error_id,
+            "hint": "See the matching error_id in the API log and ingest audit; outcome is unconfirmed.",
+        },
+    )
 
 
 def _task_submit_payload(task, *, task_name: str, queue: str) -> dict:
@@ -313,13 +343,8 @@ def ingest_sample_bundle_internal(
             allow_update=payload.update_existing,
             increment=payload.increment,
         )
-    except (ValueError, FileNotFoundError) as exc:
-        if acknowledge:
-            return _ingest_acknowledgement(error=exc)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    except Exception as exc:
+        return _ingest_failure(user, exc, acknowledge=acknowledge)
     serialized = util.common.convert_to_serializable(result)
     return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
 
@@ -490,6 +515,7 @@ def ingest_sample_bundle_upload_internal(
             detail="yaml_file must include a filename",
         )
 
+    logging.getLogger(__name__).info("Ingest upload started: manifest=%s", yaml_file.filename)
     staging_dir = Path(tempfile.mkdtemp(prefix="coyote3_ingest_upload_"))
     upload_refs: list[UploadFile] = [yaml_file, *([data_archive] if data_archive else [])]
     try:
@@ -511,19 +537,14 @@ def ingest_sample_bundle_upload_internal(
         )
         serialized = util.common.convert_to_serializable(result)
         if source_payload.get("_ingest_warnings"):
-            serialized["warnings"] = source_payload["_ingest_warnings"]
+            serialized["warnings"] = [
+                *serialized.get("warnings", []),
+                *source_payload["_ingest_warnings"],
+            ]
+        logging.getLogger(__name__).info("Ingest upload completed: manifest=%s", yaml_file.filename)
         return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
-    except HTTPException:
-        raise
-    except (ValueError, FileNotFoundError, UnicodeDecodeError) as exc:
-        if acknowledge:
-            _record_upload_error(user, exc)
-            return _ingest_acknowledgement(error=exc)
-        _record_upload_error(user, exc)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    except Exception as exc:
+        return _ingest_failure(user, exc, acknowledge=acknowledge)
     finally:
         for upload in upload_refs:
             try:
@@ -640,11 +661,8 @@ def enqueue_ingest_sample_bundle_upload_internal(
         )
         response["warnings"] = source_payload.get("_ingest_warnings", [])
         return response
-    except HTTPException:
-        raise
-    except (ValueError, FileNotFoundError, UnicodeDecodeError) as exc:
-        _record_upload_error(user, exc)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        return _ingest_failure(user, exc)
     finally:
         for upload in upload_refs:
             try:

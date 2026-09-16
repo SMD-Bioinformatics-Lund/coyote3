@@ -83,7 +83,6 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
     """
     command = [
         "curl",
-        "--silent",
         "--show-error",
         "--config",
         "-",
@@ -119,15 +118,25 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
     if args.auth == "ingest":
         header = f"X-Coyote-Ingest-Token: {token}"
     config = f'header = "{header}"\n'
-    result = subprocess.run(command, input=config, text=True, capture_output=True, check=False)
+    # Let curl show transfer progress on the terminal; capture only the API response.
+    result = subprocess.run(command, input=config, text=True, stdout=subprocess.PIPE, check=False)
     if result.returncode:
         raise ValueError(
             f"Upload transport failed (curl exit {result.returncode}); ingest outcome is unconfirmed"
         )
     body, _, code = result.stdout.rpartition("\n")
     if not code.isdigit() or not 200 <= int(code) < 300:
+        try:
+            error = json.loads(body)
+        except ValueError:
+            error = {}
+        reason = ""
+        if isinstance(error, dict):
+            parts = [error.get(key) for key in ("error", "message", "detail", "hint", "request_id")]
+            reason = "; ".join(str(part)[:1000] for part in parts if isinstance(part, str) and part)
+        detail = f": {reason}" if reason else ""
         raise ValueError(
-            f"API returned HTTP {code or 'unknown'}; no terminal ingest acknowledgement"
+            f"API returned HTTP {code or 'unknown'}{detail}; no terminal ingest acknowledgement"
         )
     try:
         acknowledgement = json.loads(body)
@@ -141,6 +150,10 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
         raise ValueError("API response is not a terminal ingest acknowledgement")
     if acknowledgement["status"] == "ok" and not acknowledgement.get("sample_id"):
         raise ValueError("Successful acknowledgement is missing sample_id")
+    result_payload = acknowledgement.get("result")
+    if isinstance(result_payload, dict):
+        for warning in result_payload.get("warnings", []):
+            print(f"Warning: {warning}", file=sys.stderr)
     return acknowledgement
 
 

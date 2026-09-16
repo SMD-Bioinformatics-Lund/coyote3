@@ -581,6 +581,7 @@ class InternalIngestService:
                 preload_payload[key] = parsed_payload[key]
 
         preload = self._parse_preload(readable_file_payload(preload_payload, declared_file_keys))
+        ingest_warnings = preload.pop("_warnings", [])
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
@@ -634,6 +635,7 @@ class InternalIngestService:
                 "sample_id": str(sample_id),
                 "sample_name": str(current_doc["name"]),
                 "written": written,
+                "warnings": ingest_warnings,
                 "data_counts": counts,
                 "missing_expected_files": parsed_payload["missing_expected_files"],
             }
@@ -702,7 +704,10 @@ class InternalIngestService:
 
         validated_sample = SamplesDoc.model_validate(parsed_payload)
         validated_payload = validated_sample.model_dump(exclude_none=True)
+        logger.info("Ingest parsing started: sample=%s", validated_payload.get("name"))
         preload = self._parse_preload(readable_file_payload(validated_payload, declared_file_keys))
+        ingest_warnings = preload.pop("_warnings", [])
+        logger.info("Ingest parsing completed: sample=%s", validated_payload.get("name"))
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
@@ -756,6 +761,7 @@ class InternalIngestService:
                 "written": written,
                 "data_counts": counts,
                 "missing_expected_files": parsed_payload["missing_expected_files"],
+                "warnings": ingest_warnings,
             }
             if record_completion is not None:
                 record_completion(result, session)
