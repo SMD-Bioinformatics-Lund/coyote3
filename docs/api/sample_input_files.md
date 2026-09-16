@@ -61,7 +61,7 @@ Important behavior:
 - The manifest is validated first through `SamplesDoc`.
 - `omics_layer` controls which file keys are legal.
 - `sex`, when supplied, must be `female`, `male`, or `unknown`; it is not inferred.
-- ASP file policy rejects manifest file keys that are not listed in `assay_specific_panels.expected_files`; declared resources are never silently discarded.
+- YAML bundle upload warns about file keys outside the ASP's expected files and ignores those files before parsing. Direct canonical payload ingestion rejects unexpected declarations. Required/expected policy comes from `assay_specific_panels` (ASP), not the ASPC.
 - Required ASP files must be present and readable before parsing starts.
 - Optional expected files may be omitted. If an optional expected file path is present, Coyote3 treats it as declared data and the sample will not be marked ready unless that file is parsed and written successfully.
 - Pipeline-authored `filters` and `analysis_intents` are replaced by the resolved
@@ -114,7 +114,7 @@ Validation of all declared evidence must succeed before the bundle commits.
 | `FORMAT/GT` | Genotype, for example `0/1` | Genotype string in stored `GT[]` |
 | `FORMAT/DP`, `FORMAT/VD` | Integer total and alternate depth | Required SNV genotype fields; missing clinical values must not be supplied as invented zeros |
 | `FORMAT/VAF` | Numeric allele fraction, for example `0.12`, not `12` | Required by the SNV parser; renamed to `GT[].AF`. `AF` alone is not a substitute for raw `VAF` |
-| Sample columns | First case, second control for paired input | Column names become `GT[].sample`; order determines SNV case/control role, not name matching |
+| Sample columns | Names matching manifest `case_id` and `control_id` | Names become `GT[].sample`; explicit ID matches determine roles. If neither matches, warn and use first as case and second as control. With two columns and one match, preserve it and infer the remaining role with a warning. Ambiguous multi-sample input is rejected. |
 | `INFO/ANN` | Comma-separated annotations, pipe-separated fields with SnpEff header field names | Required for translocations; includes `Annotation`, `Gene_ID`, `HGVS.p` and other SnpEff fields; retains gene-fusion annotations |
 | Translocation `FORMAT/PR`, `SR`, `UR` | Read-support fields when supplied | PR/SR preserved as strings; UR converted to number or null; missing PR/SR become empty strings |
 | `##VEP=` | VEP/database version header | Metadata extraction reads the first 500 text header lines. Supply `database_versions` explicitly when the header is unavailable, including compressed inputs |
@@ -168,7 +168,7 @@ Expected characteristics:
 - VEP-annotated `INFO/CSQ` field present
 - `INFO.variant_callers` present
 - Per-sample `FORMAT` fields include `GT`, `DP`, `VAF`, and `VD`
-- For paired DNA input, the first sample column is treated as `case` and the second as `control`
+- For paired DNA input, sample IDs are matched before using the warned positional fallback described above.
 
 Observed demo header features:
 
@@ -571,7 +571,332 @@ If you are building or updating an upstream pipeline:
 4. For DNA VCFs, ensure VEP `CSQ`, `variant_callers`, and per-sample `GT/DP/VAF/VD` are present.
 5. For JSON payloads, shape them close to the target collection contracts even if the parser mostly passes them through.
 
-## Related References
+## Field-by-field input and storage walkthroughs
+
+The examples below are synthetic. JSON examples are complete input shapes;
+VCF record examples illustrate a row and require matching VCF header declarations.
+Keys are case-sensitive. A blank field is not automatically a measured zero.
+Validation can reject an entire bundle before commit. `SAMPLE_ID` is assigned by
+ingest from the parent sample's MongoDB ID, and must not be supplied as a sample
+name by a producer. Producer `_id` values are not an identity contract.
+
+These tables cover the fields read or normalized by sample-file ingestion.
+VCF header-defined extension fields and permissive JSON collection extensions
+can carry additional pipeline data; ingest does not assign a clinical meaning to
+every possible extension. The linked collection contracts list the typed storage
+fields, defaults, and constraints. Arbitrary extension fields are not a substitute
+for the fields listed here.
+
+### Small-variant VCF: record, genotype, and transcript sections
+
+An illustrative record, with columns separated by tabs in the real file:
+
+```text
+#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT SYNTHETIC-T SYNTHETIC-N
+1 10001 . A G 60 PASS variant_callers=sage;CSQ=G|missense_variant|MODERATE|GENE1|ENST000001.1|protein_coding|YES|ENST000001.1:c.10A>G|ENSP000001.1:p.Lys4Glu|SNV GT:DP:VAF:VD 0/1:100:0.4:40 0/0:100:0.0:0
+```
+
+The CSQ description for that example ends with this exact field order:
+
+```text
+Format: Allele|Consequence|IMPACT|SYMBOL|Feature|BIOTYPE|CANONICAL|HGVSc|HGVSp|VARIANT_CLASS
+```
+
+Declare `CSQ` as a string annotation list and declare each INFO/FORMAT field in
+the VCF header. Use a `##contig` entry for each chromosome. This excerpt is not
+a replacement for a valid VCF header. The manifest would specify
+`case_id: SYNTHETIC-T` and `control_id: SYNTHETIC-N`.
+
+| Section/key | Meaning and example | Stored mapping or transformation |
+| --- | --- | --- |
+| `CHROM` | Chromosome/contig, `1` | `variants.CHROM`; spelling preserved |
+| `POS` | 1-based VCF position, `10001` | `variants.POS` integer |
+| `ID` | Source variant identifier | `variants.ID`; missing ID becomes `.` |
+| `REF` | Reference allele, `A` | `variants.REF` |
+| `ALT` | Alternate allele, `G` | `variants.ALT`; multiple alleles are joined with commas, not split into independent findings |
+| `QUAL` | Caller quality value | `variants.QUAL` |
+| `FILTER` | Caller filter labels | Split into `variants.FILTER[]`; excluded FAIL records are not stored |
+| `INFO.variant_callers` | Actual variant callers, such as `sage` or `sage\|mutect2` | Split into `variants.INFO.variant_callers[]`; VEP is an annotation version, not a caller |
+| `INFO.SVTYPE` | Optional structural type | Also copied to `INFO.TYPE` by the SNV parser |
+| `FORMAT.GT` | Genotype, `0/1` | `GT[].GT`; pysam allele tuple becomes slash-separated text |
+| `FORMAT.DP` | Total read depth | `GT[].DP` |
+| `FORMAT.VD` | Alternate read count | `GT[].VD` |
+| `FORMAT.VAF` | Alternate fraction in 0–1 units | Renamed to `GT[].AF`; raw `VAF` removed |
+| Sample column name | `SYNTHETIC-T` or `SYNTHETIC-N` | `GT[].sample`; `GT[].type` is resolved as case/control and the case entry is placed first |
+| Other FORMAT fields | Pipeline-specific genotype evidence | Decoded from the header and retained when permitted by the genotype contract |
+| `FORMAT` column definition | Colon-separated genotype key names | Used to decode each sample; standalone `FORMAT` is removed from stored small variants |
+| `INFO.CSQ` | Transcript annotations | Used for selection, summary fields and `anno_vep`; full CSQ array removed from `variants` after staging |
+
+The example produces case evidence `AF=0.4, DP=100, VD=40` and control evidence
+`AF=0.0, DP=100, VD=0`. These fractions are displayed as percentages in the UI.
+
+Each CSQ transcript is split according to the header, not a fixed column number.
+Before selection, numeric CSQ strings are converted to numbers; ampersand-separated
+numeric values collapse to their maximum. The annotation vault therefore retains
+the parsed, normalized transcript rows, not a byte-for-byte copy of the source VCF.
+
+The recognized annotation keys are:
+
+| CSQ key | Meaning | Mapping/use |
+| --- | --- | --- |
+| `Allele` | Annotated alternate allele | Retained in complete annotation-vault transcript data |
+| `Feature` | Transcript ID including version | Selected transcript feature; `variants.transcripts[]` aggregates IDs without version suffixes |
+| `HGNC_ID` | HGNC gene identifier | Selected CSQ and HGNC/MANE reference lookup |
+| `SYMBOL` | Gene symbol | Selected CSQ and aggregated `variants.genes[]`; selected symbol may be canonicalized through HGNC |
+| `Consequence` | Ampersand-separated consequence terms | List in selected CSQ; union across transcripts in `consequence_terms[]` |
+| `IMPACT` | VEP impact category | Selected CSQ and transcript selection priority |
+| `BIOTYPE` | Transcript biotype | Selected CSQ; protein-coding selection rule |
+| `CANONICAL` | VEP canonical flag, normally `YES` or empty | Used by canonical protein-coding selection rule |
+| `ENSP` | Protein identifier | Selected CSQ |
+| `INTRON` | Intron position/count text | Selected CSQ |
+| `EXON` | Exon position/count text | Selected CSQ |
+| `STRAND` | Transcript strand | Selected CSQ |
+| `PolyPhen` | Prediction text | Selected CSQ |
+| `SIFT` | Prediction text | Selected CSQ |
+| `CADD_PHRED` | Annotation score | Selected CSQ stores text, including numeric values normalized to text |
+| `CLIN_SIG` | Clinical-significance terms | Split on `&`, with blanks and duplicates removed |
+| `VARIANT_CLASS` | VEP variant class | Selected CSQ and top-level `variant_class` (from first CSQ) |
+| `HGVSc` | Transcript-prefixed coding HGVS | Prefix removed for compact selected CSQ and aggregated `HGVSc[]` |
+| `HGVSp` | Protein-prefixed protein HGVS | Prefix removed for compact selected CSQ and aggregated `HGVSp[]` |
+| `COSMIC` | Ampersand-separated COSMIC identifiers | Aggregated `cosmic_ids[]` |
+| `Existing_variation` | Existing variant IDs | dbSNP identifiers collected; first retained as `dbsnp_id` |
+| `PUBMED` | Ampersand-separated publication IDs | Aggregated `pubmed_ids[]` |
+| `gnomAD_AF` | gnomAD exome frequency | First CSQ supplies `gnomad_frequency`, using the parser's maximum-frequency extraction |
+| `gnomADg_AF` | gnomAD genome frequency | Used when the exome frequency is absent |
+| `MAX_AF` | Maximum population frequency | Supplies `gnomad_max` when a gnomAD source is present |
+| `ExAC_MAF` | Allele-specific ExAC frequency | Parsed against ALT into `exac_frequency` |
+| `GMAF` | Allele-specific 1000 Genomes frequency | Parsed against ALT into `thousandG_frequency` |
+| Keys containing `dhotspot_OID`, `gihotspot_OID`, `luhotspot_OID`, `cnshotspot_OID`, `mmhotspot_OID`, `cohotspot_OID` | Pipeline hotspot identifiers | Grouped into `hotspots` by the corresponding prefix |
+| Other CSQ header fields | Additional VEP/plugin annotations | Complete transcript rows are retained in the annotation vault; not every field is copied into selected CSQ |
+
+Derived identifiers include `simple_id` and `simple_id_hash`, built by the variant
+identity helper from chromosome, position, reference, and alternate alleles.
+`anno_vep` stores the complete transcript set keyed by variant identity and VEP
+version. `variants.INFO.selected_CSQ` contains the compact chosen transcript;
+`selected_csq_feature` identifies it. `samples.database_versions.vep` supplies the
+VEP badge and version-specific metadata lookup. None of these makes VEP a caller.
+
+### CNV JSON: one interval row
+
+```json
+[
+  {"chr":"1","start":10000,"end":20000,"size":10000,
+   "ratio":-0.6,"type":"loss","nprobes":12,
+   "genes":[{"gene":"GENE1","class":"coding","cnv_type":"loss"}],
+   "callers":["cnvkit"]}
+]
+```
+
+| Key | Description | Storage/normalization |
+| --- | --- | --- |
+| `chr` | Chromosome string | `cnvs.chr` |
+| `start` | Interval start supplied by producer | `cnvs.start`; no coordinate conversion is performed |
+| `end` | Interval end supplied by producer | `cnvs.end` |
+| `size` | Producer-supplied interval size | `cnvs.size`; supply it explicitly |
+| `ratio` | Numeric copy-number ratio or supported event label | Float/null; `DEL`/`LOSS` → -1, `AMP` → 1, `DUP`/`GAIN` → 0.5 |
+| `type` | Event type | Preserved when provided; inferred from normalized ratio when absent |
+| `nprobes` | Probe count | Integer; missing value normalizes to 0, which is a parser default rather than measured evidence |
+| `genes` | Affected-gene objects | `cnvs.genes[]`; absent → empty list |
+| `genes[].gene` | Gene name | Stored gene identifier |
+| `genes[].class` | Producer gene class | Stored as supplied |
+| `genes[].cnv_type` | Per-gene event type | Stored as supplied |
+| `callers` | Calling tools | List, or comma/pipe/semicolon-delimited text; normalized to lowercase list |
+
+An alternative root is an object keyed by interval ID. Each value becomes one
+row and receives `_pipeline_key` from its object key when not already supplied.
+
+### Coverage JSON: one gene with transcript and regions
+
+```json
+{"genes":{"GENE1":{"covered_by_panel":true,
+  "transcript":{"chr":"1","start":10000,"end":20000,"transcript_id":"ENST000001"},
+  "exons":{"1":{"chr":"1","start":10000,"end":10100,"nbr":1,"cov":120.5}},
+  "CDS":{"1":{"chr":"1","start":10020,"end":10100,"nbr":1,"cov":118.0}},
+  "probes":{"p1":{"chr":"1","start":10000,"end":10050,"cov":null}}
+}}}
+```
+
+| Key | Description | Stored mapping |
+| --- | --- | --- |
+| `genes` | Object keyed by gene name | `panel_coverage.genes` |
+| `genes.<gene>.covered_by_panel` | Panel-membership boolean | Same nested field |
+| `transcript.chr`, `transcript.start`, `transcript.end` | Transcript interval | Same keys below the gene; producer coordinates preserved |
+| `transcript.transcript_id` | Transcript identifier | Same nested field |
+| `exons`, `CDS`, `probes` | Objects keyed by producer region ID | Same nested region maps; omitted maps default to empty objects |
+| Region `chr`, `start`, `end` | Genomic interval | Required for each supplied region |
+| Exon/CDS `nbr` | Optional region number | Integer or null |
+| Region `cov` | Optional measured coverage | Number or null; missing does not become zero |
+| `sample` | Parent display name | Overwritten by ingest with the parent sample name |
+| `SAMPLE_ID` | Parent database identity | Injected by ingest |
+
+### Biomarkers JSON: MSI and HRD sections
+
+```json
+{"name":"SYNTHETIC-T",
+ "MSIS":{"tot":100,"som":4,"per":4.0},
+ "MSIP":{"tot":200,"som":6,"per":3.0},
+ "HRD":{"tai":2,"hrd":3,"lst":4,"sum":9}}
+```
+
+| Key | Description and mapping to `biomarkers` |
+| --- | --- |
+| `name` | Required producer sample label; separate from injected `SAMPLE_ID` |
+| `MSIS`, `MSIP` | Optional MSI measurement objects; preserve these exact source labels |
+| `MSIS.tot`, `MSIP.tot` | Total evaluated count, integer |
+| `MSIS.som`, `MSIP.som` | Producer-reported somatic/unstable count, integer |
+| `MSIS.per`, `MSIP.per` | Producer-reported percentage, number; not recomputed from counts |
+| `HRD.tai` | Producer TAI score/count |
+| `HRD.hrd` | Producer HRD component |
+| `HRD.lst` | Producer LST component |
+| `HRD.sum` | Producer aggregate; validated against the HRD contract |
+
+Omit unavailable measurement objects. Do not invent zeros to satisfy a schema.
+
+### Translocation VCF: breakend and ANN sections
+
+Illustrative annotation-bearing breakend record (real columns are tab-separated):
+
+```text
+#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT SYNTHETIC-T
+1 10001 bnd1 A A]2:20001] 60 PASS SOMATIC;SVTYPE=BND;ANN=A|gene_fusion|HIGH|GENE1&GENE2|ENSG000001&ENSG000002|transcript|ENST000001&ENST000002|protein_coding||t(1;2)|p.? GT:PR:SR:UR 0/1:10,5:8,3:3
+```
+
+The ANN header must define the same order using SnpEff's ` | ` field-name
+separators. For the excerpt this is `Allele | Annotation | Annotation_Impact |
+Gene_Name | Gene_ID | Feature_Type | Feature_ID | Transcript_BioType | Rank |
+HGVS.c | HGVS.p`. Header-declared extra fields remain possible.
+
+| Key | Description | Mapping to `translocations` |
+| --- | --- | --- |
+| Standard VCF columns | Contig, position, alleles, source ID, quality | Same top-level fields; FILTER and FORMAT become lists |
+| `INFO.SVTYPE` | Structural event type | Same nested key |
+| `INFO.MATEID`, `INFO.EVENT` | Mate record and event identifiers | Same nested keys |
+| `INFO.SVINSLEN`, `INFO.SVINSSEQ` | Inserted sequence length and sequence | Same nested keys |
+| `INFO.SOMATIC` | Somatic flag | Boolean, default false |
+| `INFO.SOMATICSCORE`, `INFO.JUNCTION_SOMATICSCORE` | Caller evidence scores | Optional integers |
+| `INFO.BND_DEPTH`, `INFO.MATE_BND_DEPTH` | Breakend depths | Optional integers |
+| `INFO.PANEL` or `INFO.set` | Panel labels | Normalized into `INFO.PANEL[]` |
+| `ANN.Allele` | Annotated allele | `INFO.ANN[].Allele` |
+| `ANN.Annotation` | Ampersand-separated effects | List; only records containing `gene_fusion` or `bidirectional_gene_fusion` are retained |
+| `ANN.Annotation_Impact` | SnpEff impact | Same annotation key |
+| `ANN.Gene_Name`, `ANN.Gene_ID` | Gene names and identifiers, possibly joined with `&` | Same annotation keys |
+| `ANN.Feature_Type`, `ANN.Feature_ID` | Annotated feature class and identifiers | Same annotation keys |
+| `ANN.Transcript_BioType`, `ANN.Rank` | Transcript type and rank | Same annotation keys |
+| `ANN.HGVS.c`, `ANN.HGVS.p` | HGVS descriptions | Stored as `HGVSc`, `HGVSp` (dots removed from keys) |
+| `ANN.cDNApos`, `ANN.cDNAlength`, `ANN.CDSpos`, `ANN.CDSlength`, `ANN.AApos`, `ANN.AAlength` | Optional positions and lengths | Optional integer fields with these storage names; they are not inferred from unrelated combined fields |
+| `ANN.Distance` | Optional distance annotation | Text |
+| `ANN.ERRORS`, `ANN.WARNINGS`, `ANN.INFO` | Annotation diagnostics | Preserved; combined key `ERRORS / WARNINGS / INFO` normalizes to `INFO` |
+| Genotype `PR`, `SR` | Paired/split-read support | Text; tuple values become comma-separated strings; missing → empty text |
+| Genotype `UR` | Unique-read evidence | Float or null |
+| Sample column name | Genotype source | `GT[].sample`; translocation parser does not apply the SNV case/control role resolver |
+
+`INFO.MANE_ANN` is not selected by the current file parser because its MANE map
+is empty. Symbolic ALT values containing `<` are skipped. Do not submit a generic
+unannotated SV VCF and assume every structural variant will become a translocation.
+
+### RNA fusion JSON: caller evidence keys
+
+Use the complete example in [Fusions JSON](#fusions-json). Each root array item
+becomes one `fusions` document; alternative calls stay in its `calls[]` array.
+
+| Key | Description and storage |
+| --- | --- |
+| `gene1`, `gene2` | Required fusion-partner names, stored at the root |
+| `genes` | Required combined producer label, for example `BCR-ABL1` |
+| `calls` | Nonempty array of independent caller observations |
+| `calls[].caller` | Calling tool name, not the annotator version |
+| `calls[].breakpoint1`, `calls[].breakpoint2` | Breakpoint strings retained as provided |
+| `calls[].spanpairs` | Spanning-pair count, integer |
+| `calls[].spanreads` | Spanning-read count, integer |
+| `calls[].longestanchor` | Anchor length; integer or string accepted |
+| `calls[].selected` | Exactly one call must be 1; omitted values become 0 |
+| `calls[].effect` | Caller-authored frame/region description; omitted → empty text |
+| `calls[].desc` | Caller evidence tags as text; omitted → empty text |
+| `calls[].commonreads` | Common-read count; omitted → 0 |
+
+### RNA expression JSON: sample and reference rows
+
+```json
+{"expression_version":"1.0.0",
+ "sample":[{"hgnc_symbol":"GENE1","ensembl_gene_id":"ENSG000001",
+ "sample_expression":12.0,"reference_sd":2.0,"reference_mean":10.0,
+ "reference_median":9.5,"reference_mean_mod":10.0,"sample_mod":12.0,"z":1.0}],
+ "reference":[{"hgnc_symbol":"GENE1","ensembl_gene_id":"ENSG000001",
+ "reference_sd":2.0,"reference_mean":10.0,"reference_median":9.5,
+ "quant_values":{"reference_a":9.0,"reference_b":11.0}}]}
+```
+
+| Key | Description and mapping to `rna_expression` |
+| --- | --- |
+| `expression_version` | Required producer format/analysis version, not VEP version |
+| `sample` | Array of sample gene-expression rows |
+| `reference` | Array of reference gene-expression rows |
+| Row `hgnc_symbol` | Gene symbol |
+| Row `ensembl_gene_id` | Ensembl gene identifier |
+| Sample `sample_expression` | Producer expression measurement; units follow the upstream pipeline |
+| Row `reference_sd` | Reference standard deviation |
+| Row `reference_mean` | Reference mean |
+| Row `reference_median` | Reference median |
+| Sample `reference_mean_mod` | Producer-modified reference mean |
+| Sample `sample_mod` | Producer-modified sample expression |
+| Sample `z` | Producer z-score; ingest does not recompute it |
+| Reference `quant_values` | Map of reference labels to numeric values |
+| Other reference-row keys | Collected into `quant_values` and converted to float; matching top-level values override explicit map entries |
+
+### RNA classification JSON: one score row
+
+```json
+{"classifier_version":"1.0.0",
+ "classifier_results":[{"class":"SYNTHETIC_CLASS","score":0.98,"true":98,"total":100}]}
+```
+
+| Key | Description and mapping to `rna_classification` |
+| --- | --- |
+| `classifier_version` | Required classifier version |
+| `classifier_results` | Array of result rows |
+| Row `class` | Class label; Pydantic internal alias is `class_`, persisted key is `class` |
+| Row `score` | Numeric producer score; no reclassification during ingest |
+| Row `true` | Integer supporting count |
+| Row `total` | Integer total count; `true` cannot exceed `total` |
+
+### RNA QC JSON: every metric
+
+Use the complete object in [RNA QC JSON](#rna-qc-json). One file becomes one
+`rna_qc` document. All these fields are required; keys are stored unchanged.
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `sample_id` | string | Producer sample label; distinct from ingest-injected `SAMPLE_ID` |
+| `tot_reads` | integer | Total reads |
+| `mapped_pct` | number | Mapped percentage, 0–100 |
+| `multimap_pct` | number | Multimapped percentage, 0–100 |
+| `mismatch_pct` | number | Mismatch percentage, 0–100 |
+| `canon_splice` | integer | Canonical splice count |
+| `non_canon_splice` | integer | Noncanonical splice count |
+| `splice_ratio` | integer | Producer splice ratio; current contract requires integer |
+| `genebody_cov` | integer array | Ordered gene-body coverage measurements |
+| `genebody_cov_slope` | number | Producer gene-body coverage slope |
+| `provider_genotypes` | string-to-string map | Producer genotype labels |
+| `provider_called_genotypes` | integer | Number of called provider genotypes |
+| `flendist` | integer | Producer fragment-length metric |
+
+### PGX and non-row resources
+
+```json
+{"pipeline_version":"synthetic-1","records":[{"gene":"GENE1","result":"example"}]}
+```
+
+PGX object keys are preserved without defining gene/drug interpretation semantics.
+A root array is wrapped as `{"records": [...]}`. The resulting object is stored
+in `pgx` with injected `SAMPLE_ID`; each arbitrary record is not a separate MongoDB
+document. The example keys are illustrative extensions, not mandatory PGX fields.
+
+`cnvprofile` is an image path, not a parsed evidence row. It is registered in
+`samples.files.cnvprofile`. BAM/CRAM and index names are alignment resources for
+IGV, not variant-ingest inputs; they populate `samples.case` and `samples.control`.
+The ingest service does not derive SNVs from alignment files.
+
+## Source and contract references
 
 - [API / Sample YAML Guide](sample_yaml.md)
 - [API / Ingestion API](ingestion_api.md)
