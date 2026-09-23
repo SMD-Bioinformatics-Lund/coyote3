@@ -239,6 +239,11 @@ def test_legacy_environment_tracks_modern_contract(compose, environment):
     legacy = _render(compose, *files, profiles=profiles)["services"]
     assert legacy.keys() == modern.keys()
     for name, service in modern.items():
+        if service.get("build"):
+            assert service["build"]["network"] == "host", name
+            assert legacy[name]["build"]["network"] == "host", name
+        assert service.get("network_mode") != "host", name
+        assert legacy[name].get("network_mode") != "host", name
         for field in ("image", "environment", "command", "profiles", "healthcheck"):
             assert legacy[name].get(field) == service.get(field), (name, field)
         modern_mounts = {
@@ -258,8 +263,6 @@ def test_legacy_application_tracks_modern_service_contract():
     modern.pop("name")
     modern["services"]["redis"]["security_opt"] = ["seccomp=unconfined"]
     modern["services"]["beat"]["ipc"] = "none"
-    for name in ("api", "frontend", "docs"):
-        modern["services"][name]["build"]["network"] = "host"
     for name in ("api", "docs"):
         modern["services"][name]["build"]["args"]["PYTHON_BASE_IMAGE"] = "python:3.12-slim-bullseye"
     for service in modern["services"].values():

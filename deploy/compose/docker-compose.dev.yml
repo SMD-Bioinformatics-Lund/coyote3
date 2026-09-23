@@ -35,6 +35,7 @@ services:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     build:
       dockerfile: docker/Dockerfile.dev
+      network: host
       target: coyote3_dev_api
     volumes: &dev-app-volumes
       - ../../.git:/app/.git:ro

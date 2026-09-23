@@ -12,11 +12,13 @@ services:
     build:
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
+      network: host
   worker:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
     build:
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
+      network: host
       args:
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
@@ -25,6 +27,7 @@ services:
     build:
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
+      network: host
       args:
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
@@ -38,6 +41,7 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_all
+      network: host
       args:
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}

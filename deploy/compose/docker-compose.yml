@@ -118,6 +118,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.frontend
+      network: host
       args:
         SCRIPT_NAME: ${SCRIPT_NAME:-}
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
@@ -139,6 +140,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
+      network: host
       args:
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
     depends_on:
@@ -151,6 +153,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile
+      network: host
       target: coyote3_api
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}

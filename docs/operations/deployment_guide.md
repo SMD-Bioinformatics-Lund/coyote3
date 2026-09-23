@@ -62,6 +62,8 @@ the deployment command and architecture reference.
 
 ## Release Metadata
 
+### Image versions
+
 The application version is defined in `api/version.py`. The
 `scripts/compose-with-version.sh` wrapper reads that file and exports transient
 Compose variables for image names and build metadata. Do not store
