@@ -22,7 +22,9 @@ Compose wraps API, worker, and beat commands to capture startup failures as well
 as application output. The development UI wrapper forwards Vite output. Vite and
 production UI, proxy, and docs Nginx servers send internal UDP syslog to the monitor; 5xx access
 responses also count as errors. Docker stdout remains available. Redis and external
-MongoDB retain their own container logging configuration.
+MongoDB retain their own container logging configuration. Application Compose services,
+including Redis, use Docker's `json-file` driver with `max-size: 10m` and `max-file: 5`.
+Recreate existing containers to apply these limits; they do not limit daily application files.
 Every API request binds a request context so log records can include `request_id`, client IP,
 method, and path. The API returns the correlation id in the `X-Request-ID` response header.
 
@@ -45,6 +47,161 @@ follow-up.
 
 Metadata keys resembling passwords, secrets, tokens, cookies, authorization headers, sequences,
 report bodies, or file contents are redacted before storage.
+Credential-bearing URLs, bearer credentials and named secret assignments are also redacted
+from diagnostic strings, including formatted exception traces. This is not patient-data
+anonymization: avoid logging request bodies, clinical text or unlabelled secrets. Restrict
+access to logs, audit records and error-email attachments.
+
+## HTTP errors and support references
+
+API errors use HTTP status codes, not HTML status codes. The JSON envelope contains
+`status`, `error`, `details`, `category`, `code`, `hint`, and `request_id`. Existing
+clients can continue reading `error` and `details`; `code` identifies the status class
+in machine-readable form, while `category` retains a more specific application reason.
+Validation details contain `field` and `message`, without rejected input values.
+
+```json
+{
+  "status": 422,
+  "error": "Validation failed",
+  "details": [{"field": "asp_id", "message": "Field required"}],
+  "category": null,
+  "code": "validation_failed",
+  "hint": "Correct the listed fields or conditions before retrying.",
+  "request_id": "example-request-42"
+}
+```
+
+The response repeats the reference in `X-Request-ID` and sends `Cache-Control: no-store`.
+Incoming IDs are accepted only when they contain 1-128 ASCII letters, digits, dots,
+hyphens or underscores; other values are replaced. References correlate requests, not
+identities, and must not be used for authorization. Support can search the API logs and
+audit events for this ID. Unexpected errors retain the authenticated actor where available.
+
+| HTTP status | Meaning and action |
+| --- | --- |
+| 400 | Malformed request or invalid operation; review the supplied values. |
+| 401 | Authentication required or expired; sign in again. |
+| 403 | Permission, scope, CSRF or workflow restriction; read the specific explanation. |
+| 404 | Resource or route not found; refresh the list or correct the URL. |
+| 405 | Unsupported HTTP method; consult the preserved `Allow` header. |
+| 406 / 415 | Unsupported response or request format. |
+| 408 / 504 | Request or upstream timeout; check whether the operation completed. |
+| 409 | Conflict, including stale revisions; reload and review before resubmission. |
+| 410 | Resource no longer available. |
+| 412 / 428 | Failed or missing precondition, where an endpoint requires one. |
+| 413 | Upload too large; reduce its size or review the configured limit. |
+| 422 | Field validation or an unsatisfied application condition. |
+| 429 | Rate limit reached; respect `Retry-After` when supplied. |
+| 500 | Unexpected server failure; contact support with the reference. |
+| 502 / 503 | Failed dependency or unavailable service; check status before retrying. |
+
+This table describes the common handler's supported statuses, not a promise that every
+endpoint emits every code. Endpoint contracts determine which statuses apply. Authentication
+and retry headers are preserved. The UI displays field names, safe details, hints and support
+references; it does not display proxy HTML or internal 5xx exception messages. Cancelled
+requests do not produce error notifications. Network failures have no HTTP status and tell
+the user to check connectivity and operation status. Mutations are not automatically retried.
+
+The envelope remains Coyote3's existing JSON contract, extended with diagnostic fields.
+It is not an RFC 9457 `application/problem+json` response. Changing to that format would
+require an explicit API contract change, not just renaming the content type.
+
+## Transactional audit delivery
+
+The following business writes stage a receipt in `audit_outbox` in the same
+MongoDB transaction as their data changes:
+
+- Clinical rule creation, content edits, lifecycle transitions, publication,
+  baseline capture and draft deletion.
+- Public catalog revisions and publication.
+- Assay setup revisions and publication bundles.
+- Assay, ASPC and gene-list creation, revision rotation and availability changes.
+- Assay-group creation and availability changes; subpanel definitions and associations.
+- Report saves, sample-bundle ingestion, collection-ingest transaction callbacks,
+  and sample deletion.
+
+If receipt insertion fails, the transaction aborts. A committed receipt survives a
+process crash before the API responds or before the central audit service is reachable.
+Clinical-rule lifecycle events are delivered from this queue, not emitted a second
+time by the authoring service after commit. HTTP request/mutation events remain
+separate operational records and are not duplicate clinical lifecycle events.
+
+Each outbox document has `_id`, `route` and `event` fields. `event` contains the actor,
+resource identity, action, timestamp, request reference and bounded metadata. It
+does not contain full clinical documents. Rule receipts include the revision hash
+that identifies the separately stored immutable snapshot. Outbox collections have
+no expiry index; their built-in `_id` index supports ordered batch delivery.
+
+The worker reads the configured app, identity and knowledgebase queues and writes
+to the configured identity audit collection. Source and destination may be different
+instances or replica sets. It never passes a source session to the destination.
+Workers select only receipts for their environment and identity destination namespace.
+The routing hash excludes credentials, so credential rotation does not strand receipts;
+it includes identity hosts, replica-set name and database. A development worker cannot
+drain production receipts from the shared knowledgebase. Before changing identity hosts
+or database names, drain pending queues or plan an explicit, reviewed routing migration.
+Do not relabel receipts automatically when a deployment destination changes.
+Destination writes and source deletions use majority acknowledgement with journaling.
+Delivery uses insert-only upserts with the original event ID. If the worker crashes
+after delivery but before deleting the pending row, replay does not create a second
+event or overwrite the first one. Delivery is at least once with idempotent storage,
+not a distributed transaction or an exactly-once execution guarantee.
+The central audit browser shows these events after worker delivery, not necessarily
+immediately after saving. Their occurrence timestamps remain the original transaction times.
+
+`api.tasks.maintenance.replay_audit_events` runs every 30 seconds and attempts at
+most 100 events per configured queue, then the filesystem retry queue. Failed MongoDB
+deliveries are logged and retained. Monitor errors and the size/age of `audit_outbox`;
+it should drain after dependency recovery. API and worker database accounts need
+insert/read/delete access to the owning outbox collections, plus read/write access
+to the central audit collection. Read-only knowledgebase deployments do not produce
+outbox writes unless a controlled importer is enabled with suitable credentials.
+
+Deploy the API and worker together. No historical document rewrite is required;
+queues are created by the first audited transaction. Include `audit_outbox` in
+backups of every database that owns one, and restore it with the corresponding
+business data. Do not clear a queue to resolve delivery errors. Existing revision
+history is unchanged; this does not reconstruct missing historical central events.
+Maintenance scripts that use these repositories must load `ENV_NAME`, `IDENTITY_DB`
+and `IDENTITY_MONGO_URI` (or the shared `COYOTE3_MONGO_URI`) from the owning deployment's
+environment file. Missing audit-routing configuration aborts the transaction rather
+than creating an unassigned receipt.
+
+The atomic guarantee applies to the operations listed above. Authentication attempts,
+HTTP diagnostics, notification delivery and other events emitted outside these
+transactions use the operational recorder described below. New business write paths
+must explicitly stage their audit receipt before commit; middleware alone is not
+a substitute for transactional auditing.
+
+## Operational audit delivery during outages
+
+If an audit insert fails, the API or worker saves the sanitized event under
+`LOG_ROOT/audit-spool/<destination-namespace-hash>/`. Files use extended JSON to
+preserve MongoDB identities and timestamps, are written atomically with filesystem sync,
+and have owner-only permissions. API and worker must share the same persistent logs mount,
+database configuration and filesystem UID. Protect and back up this directory as audit data.
+
+An initialized worker attempts up to 100 files per batch, independently of optional maintenance gates.
+The original `_id` and insert-only upserts make repeated delivery idempotent, including
+recovery after an uncertain database acknowledgement. A file is removed only after an
+acknowledged write. Original timestamps and operational expiry remain unchanged.
+
+Malformed or identity-mismatched files are retained with an `.invalid` suffix and
+produce a CRITICAL log; they do not block valid events. An operator must inspect and
+repair these files rather than discard them. Recovered valid files can be restored
+to their original `<event-id>.json` name for replay.
+
+Queued events produce CRITICAL logs. Monitor these alerts and pending-file counts; a
+growing queue needs investigation. If Redis, beat, the worker or worker initialization is
+unavailable, replay waits until those dependencies recover. Pending files are not included
+in ordinary `.log` retention and must not be deleted to free disk space. If both MongoDB
+and the retry volume fail, the operation raises an error and emits a CRITICAL diagnostic.
+
+This filesystem queue is an operational fallback, not a replacement for the database
+outbox. It cannot make an event atomic with an earlier business commit. An HTTP error
+after a business commit does not mean the change was rolled back. Inspect current state
+before retrying; transaction-owned receipts remain queued even if later diagnostics fail.
 
 API sessions are opaque random tokens. Only a SHA-256 hash is stored in the
 configured `api_sessions` collection in `IDENTITY_DB`, together with `user_id`,
