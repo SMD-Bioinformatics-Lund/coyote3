@@ -862,7 +862,10 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
     )
 
     repository.set_local_password(
-        user_id="curator", password_hash="new", require_password_change=True
+        user_id="curator",
+        password_hash="new",
+        expected_password_hash="new",
+        require_password_change=True,
     )
     user = repository.user_with_id("curator")
     assert user["password"] == "new" and user["auth_type"] == ["ldap", "local"]
@@ -875,10 +878,17 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
             "firstname": "Ada",
             "is_active": True,
         },
+        fields={"email", "firstname", "is_active"},
+        expected_version=user.get("version"),
     )
     assert updated.modified_count == 1
-    assert repository.update_user("missing", {"username": "missing"}).matched_count == 0
-    assert repository.delete_user("viewer").deleted_count == 1
+    assert (
+        repository.update_user(
+            "missing", {"username": "missing"}, fields=set(), expected_version=None
+        ).matched_count
+        == 0
+    )
+    assert repository.delete_user("viewer", expected_version=None).deleted_count == 1
     with pytest.raises(ValueError):
         repository.ensure_username({})
 

@@ -27,6 +27,7 @@ class _UserRepository:
 
     def set_local_password(self, **kwargs):
         self.password_update = kwargs
+        return True
 
 
 @pytest.fixture
@@ -291,4 +292,24 @@ def test_change_local_password_checks_current_password_and_updates(password_runt
         user_id="user", current_password="old", new_password="new"
     )
     assert repository.password_update["password_hash"] == "hash:new"
+    assert repository.password_update["expected_password_hash"] == "stored"
     assert result["status"] == "ok"
+
+
+def test_password_change_conflict_does_not_send_success_notification(password_runtime, monkeypatch):
+    repository = _UserRepository(
+        {"username": "synthetic", "password": "old-hash", "is_active": True, "auth_type": ["local"]}
+    )
+    monkeypatch.setattr(password_flows, "get_user_repository", lambda: repository)
+    from api.domain.core.models.user import UserModel
+
+    monkeypatch.setattr(UserModel, "validate_login", lambda *_: True)
+    monkeypatch.setattr(password_flows.util.common, "hash_password", lambda _: "new-hash")
+    monkeypatch.setattr(repository, "set_local_password", lambda **_: False)
+    sent = []
+    monkeypatch.setattr(password_flows, "notify_user_change", lambda **kwargs: sent.append(kwargs))
+    result = password_flows.change_local_password(
+        user_id="synthetic", current_password="old", new_password="new"
+    )
+    assert result["status"] == "error"
+    assert sent == []

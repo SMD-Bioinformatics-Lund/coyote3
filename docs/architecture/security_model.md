@@ -279,6 +279,17 @@ Self-service profile editing cannot change username, email, authentication
 provider, password, roles, account status, environments, assay groups, or assay
 scope.
 
+Account edits write only the fields owned by the operation and check the observed
+document version atomically. A concurrent edit or deletion returns `409`; reload
+the account before retrying. Profile and preference saves do not replace passwords,
+reset-token state, provider settings, role assignments, or login timestamps.
+Administrative form saves preserve password-change requirements and UI preferences.
+
+Authenticated password changes match the exact stored credential that was verified,
+and require the account to remain active with local authentication enabled. If a
+reset or another password change wins first, the stale request is rejected rather
+than overwriting that credential. Password writes do not add authentication providers.
+
 The catalog also retains `user:manage`, `user:role:edit`, and
 `user:group:edit` because deployed centers already use those identifiers in
 role assignments. New route authorization should use the independent

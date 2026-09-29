@@ -14,7 +14,7 @@ It is part of the MongoDB infrastructure layer.
 import re
 from datetime import datetime, timezone
 
-from api.config.constants import AUTH_PROVIDER_LOCAL, normalize_auth_types
+from api.config.constants import AUTH_PROVIDER_LOCAL
 from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 
@@ -392,36 +392,76 @@ class UsersRepository(BaseRepository):
             "profession_role_matrix": profession_role_matrix,
         }
 
-    def delete_user(self, user_id) -> OperationResult:
-        """
-        Deletes a user from the database by their unique ID.
+    def delete_user(self, user_id, *, expected_version: int | None) -> OperationResult:
+        """Delete only the account revision used for the authorization decision.
+
         Args:
-            user_id: The unique identifier of the user to be deleted.
+            user_id: Username or persisted identity to delete.
+            expected_version: Observed revision, or None for a record without a version.
+
         Returns:
-            Structured write result for the delete.
+            Delete counts; zero means the account changed or was already removed.
         """
         normalized = self._normalize_user_id(user_id)
-        result = self.get_collection().delete_one(self._identity_query(normalized))
+        result = self.get_collection().delete_one(
+            {
+                **self._identity_query(normalized),
+                "version": expected_version if expected_version is not None else {"$exists": False},
+            }
+        )
         operation = OperationResult.from_delete(result)
         self.invalidate_dashboard_metrics()
         return operation
 
-    def update_user(self, user_id, user_data) -> OperationResult:
-        """
-        Updates a user's data in the database.
+    def update_user(
+        self, user_id, user_data, *, fields: set[str], expected_version: int | None
+    ) -> OperationResult:
+        """Update selected account fields without replacing authentication state.
+
         Args:
-            user_id: The unique identifier of the user.
-            user_data: The new data to replace the existing user data.
+            user_id: Username or persisted identity of the account.
+            user_data: Validated values; only explicitly selected fields are persisted.
+            fields: Server-selected administrative or self-service fields to update.
+            expected_version: Observed revision, or None when the record has no version.
+
         Returns:
-            Structured write result for the replace.
+            Write counts; no match means the account was removed or concurrently edited.
+
+        Raises:
+            ValueError: The requested fields include credentials or immutable metadata.
+
+        Notes:
+            Passwords, reset tokens, login timestamps and unselected preferences are
+            untouched. The version check and field updates are one atomic operation.
         """
+        allowed = {
+            "email",
+            "firstname",
+            "lastname",
+            "fullname",
+            "job_title",
+            "auth_type",
+            "roles",
+            "environments",
+            "asp_ids",
+            "asp_groups",
+            "ui_settings",
+            "is_active",
+            "updated_by",
+            "updated_on",
+        }
+        if fields - allowed:
+            raise ValueError("Account update includes protected fields")
         normalized = self._normalize_user_id(user_id)
-        payload = self.ensure_username(dict(user_data))
-        existing = self.get_collection().find_one(self._identity_query(normalized), {"_id": 1})
-        if not existing:
-            return OperationResult.empty(requested_count=1)
-        payload["_id"] = existing["_id"]
-        result = self.get_collection().replace_one({"_id": existing["_id"]}, payload)
+        payload = {key: user_data[key] for key in fields}
+        payload["version"] = (expected_version or 1) + 1
+        result = self.get_collection().update_one(
+            {
+                **self._identity_query(normalized),
+                "version": expected_version if expected_version is not None else {"$exists": False},
+            },
+            {"$set": payload},
+        )
         operation = OperationResult.from_update(result)
         self.invalidate_dashboard_metrics()
         return operation
@@ -451,7 +491,7 @@ class UsersRepository(BaseRepository):
         normalized = self._normalize_user_id(user_id)
         result = self.get_collection().update_one(
             self._identity_query(normalized),
-            {"$set": {"is_active": active_status}},
+            {"$set": {"is_active": active_status}, "$inc": {"version": 1}},
         )
         self.invalidate_dashboard_metrics()
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))
@@ -513,22 +553,39 @@ class UsersRepository(BaseRepository):
         return result.modified_count == 1
 
     def set_local_password(
-        self, *, user_id: str, password_hash: str, require_password_change: bool = False
-    ) -> None:
-        """Update local password hash and auth metadata."""
+        self,
+        *,
+        user_id: str,
+        password_hash: str,
+        expected_password_hash: str,
+        require_password_change: bool = False,
+    ) -> bool:
+        """Replace a verified local credential only while it is still current.
+
+        Args:
+            user_id: Account whose current password was verified by the caller.
+            password_hash: Newly derived password hash, never plaintext.
+            expected_password_hash: Exact stored hash used for current-password verification.
+            require_password_change: Whether another replacement is required at next login.
+
+        Returns:
+            True when replaced; False after a concurrent password change, account
+            removal, deactivation, or removal of local authentication.
+
+        Notes:
+            Clears outstanding reset tokens atomically without enabling any provider.
+        """
         normalized = self._normalize_user_id(user_id)
-        user_doc = self.user_with_id(str(user_id))
-        auth_types = normalize_auth_types(
-            (user_doc or {}).get("auth_type") or [AUTH_PROVIDER_LOCAL]
-        )
-        if AUTH_PROVIDER_LOCAL not in auth_types:
-            auth_types.append(AUTH_PROVIDER_LOCAL)
-        self.get_collection().update_one(
-            self._identity_query(normalized),
+        result = self.get_collection().update_one(
+            {
+                **self._identity_query(normalized),
+                "password": expected_password_hash,
+                "is_active": True,
+                "auth_type": AUTH_PROVIDER_LOCAL,
+            },
             {
                 "$set": {
                     "password": str(password_hash),
-                    "auth_type": auth_types,
                     "must_change_password": bool(require_password_change),
                     "password_updated_on": datetime.now(timezone.utc),
                 },
@@ -541,3 +598,4 @@ class UsersRepository(BaseRepository):
                 },
             },
         )
+        return result.modified_count == 1

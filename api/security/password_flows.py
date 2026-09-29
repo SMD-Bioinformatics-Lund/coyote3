@@ -370,11 +370,15 @@ def change_local_password(
     if new_password == current_password:
         return {"status": "error", "error": "Choose a password different from the current password"}
 
-    user_repository.set_local_password(
+    changed = user_repository.set_local_password(
         user_id=user_id,
         password_hash=util.common.hash_password(new_password),
+        expected_password_hash=str(user_doc.get("password") or ""),
         require_password_change=False,
     )
+    if not changed:
+        emit_auth_metric("password_change", outcome="failed", reason="account_changed")
+        return {"status": "error", "error": "Account changed. Sign in again before retrying."}
     notification = notify_user_change(
         user_doc=user_doc,
         event="password_changed",

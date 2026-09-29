@@ -147,7 +147,7 @@ class _AdminRepoStub:
             "auth_type": ["ldap"],
         }
 
-    def update_user(self, user_id, user_data):
+    def update_user(self, user_id, user_data, *, fields, expected_version):
         """Update user.
 
         Args:
@@ -158,8 +158,9 @@ class _AdminRepoStub:
             The function result.
         """
         self.updated_user = (user_id, user_data)
+        return SimpleNamespace(matched_count=1)
 
-    def delete_user(self, user_id):
+    def delete_user(self, user_id, *, expected_version):
         """Delete user.
 
         Args:
@@ -169,6 +170,7 @@ class _AdminRepoStub:
             The function result.
         """
         self.deleted_users.append(user_id)
+        return SimpleNamespace(deleted_count=1)
 
     def set_user_active(self, user_id, is_active):
         """Set user active.

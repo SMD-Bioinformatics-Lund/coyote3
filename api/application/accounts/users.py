@@ -387,7 +387,8 @@ class UserManagementService:
 
         Raises:
             AppError: With status 404 for an absent user, 400 for invalid data or
-                password edits, or 403 for unauthorized superuser role changes.
+                password edits, 403 for unauthorized superuser role changes, or
+                409 when the account changes during validation.
 
         Notes:
             Increments the document version and persists before sending notification.
@@ -431,6 +432,7 @@ class UserManagementService:
             updated_user.get("auth_type") or user_doc.get("auth_type")
         )
         updated_user["password"] = user_doc.get("password")
+        updated_user["must_change_password"] = user_doc.get("must_change_password", False)
         updated_user["version"] = user_doc.get("version", 1) + 1
         updated_user["_id"] = user_doc.get("_id")
         updated_user["created_by"] = user_doc.get("created_by")
@@ -442,7 +444,30 @@ class UserManagementService:
             updated_user = normalize_collection_document(self._spec.collection, updated_user)
         except Exception as exc:
             raise api_error(400, "Invalid user payload") from exc
-        self.user_repository.update_user(user_id, updated_user)
+        if (
+            "superuser" in old_roles
+            and not actor_is_superuser
+            and updated_user["is_active"] != user_doc.get("is_active", True)
+        ):
+            raise api_error(403, "Only a superuser may change a superuser account status")
+        self._persist_user_fields(
+            user_id,
+            updated_user,
+            user_doc,
+            fields={
+                "email",
+                "firstname",
+                "lastname",
+                "fullname",
+                "job_title",
+                "auth_type",
+                "roles",
+                "environments",
+                "asp_ids",
+                "asp_groups",
+                "is_active",
+            },
+        )
         response: dict[str, Any] = change_payload(
             resource="user", resource_id=user_id, action="update"
         )
@@ -457,6 +482,29 @@ class UserManagementService:
         if notification.get("warning"):
             response["meta"]["warning"] = str(notification["warning"])
         return response
+
+    def _persist_user_fields(
+        self, username: str, values: dict[str, Any], previous: dict[str, Any], *, fields: set[str]
+    ) -> None:
+        """Persist selected fields against the observed revision or reject a stale edit.
+
+        Args:
+            username: Account identity used to retrieve the original document.
+            values: Validated successor values including updater attribution.
+            previous: Original document used for validation and authorization.
+            fields: Fields owned by this operation, excluding credentials and version.
+
+        Raises:
+            AppError: HTTP 409 when the account was removed or concurrently edited.
+        """
+        result = self.user_repository.update_user(
+            username,
+            values,
+            fields=fields | {"updated_by", "updated_on"},
+            expected_version=previous.get("version"),
+        )
+        if result.matched_count != 1:
+            raise api_error(409, "Account changed; reload before saving")
 
     def update_own_profile(self, *, username: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Update only non-security identity fields on the current account."""
@@ -488,7 +536,7 @@ class UserManagementService:
             updated_user = normalize_collection_document(self._spec.collection, updated_user)
         except Exception as exc:
             raise api_error(400, "Invalid profile payload") from exc
-        self.user_repository.update_user(username, updated_user)
+        self._persist_user_fields(username, updated_user, user_doc, fields=allowed)
         return {
             "status": "ok",
             "user": {
@@ -529,7 +577,7 @@ class UserManagementService:
             updated_user = normalize_collection_document(self._spec.collection, updated_user)
         except Exception as exc:
             raise api_error(400, "Invalid UI settings payload") from exc
-        self.user_repository.update_user(username, updated_user)
+        self._persist_user_fields(username, updated_user, user_doc, fields={"ui_settings"})
         return {"status": "ok", "ui_settings": dict(updated_user["ui_settings"])}
 
     def send_local_user_invite(self, *, user_id: str, actor_username: str) -> dict[str, Any]:
@@ -578,7 +626,9 @@ class UserManagementService:
         reject_system_managed_delete(user_doc, resource="user")
         if "superuser" in _normalize_role_ids(user_doc.get("roles")) and not actor_is_superuser:
             raise api_error(403, "Only a superuser may delete a superuser account")
-        self.user_repository.delete_user(user_id)
+        result = self.user_repository.delete_user(user_id, expected_version=user_doc.get("version"))
+        if result.deleted_count != 1:
+            raise api_error(409, "Account changed; reload before deleting")
         payload: dict[str, Any] = change_payload(
             resource="user", resource_id=user_id, action="delete"
         )
@@ -605,7 +655,14 @@ class UserManagementService:
         if "superuser" in _normalize_role_ids(user_doc.get("roles")) and not actor_is_superuser:
             raise api_error(403, "Only a superuser may change a superuser account status")
         new_status = not bool(user_doc.get("is_active"))
-        self.user_repository.toggle_user_active(user_id, new_status)
+        result = self.user_repository.update_user(
+            user_id,
+            {"is_active": new_status},
+            fields={"is_active"},
+            expected_version=user_doc.get("version"),
+        )
+        if result.matched_count != 1:
+            raise api_error(409, "Account changed; reload before changing its status")
         payload: dict[str, Any] = change_payload(
             resource="user", resource_id=user_id, action="toggle"
         )

@@ -110,8 +110,9 @@ class _Repo:
             "is_active": True,
         }
 
-    def update_user(self, user_id, doc):
+    def update_user(self, user_id, doc, *, fields, expected_version):
         self.updated_user = (user_id, doc)
+        return SimpleNamespace(matched_count=1)
 
     def create_user(self, doc):
         self.created_user = doc
@@ -137,8 +138,9 @@ class _Repo:
     def delete_permission(self, permission_id):
         self.deleted_permission.append(permission_id)
 
-    def delete_user(self, user_id):
+    def delete_user(self, user_id, *, expected_version):
         self.deleted_user.append(user_id)
+        return SimpleNamespace(deleted_count=1)
 
     def delete_role(self, role_id):
         self.deleted_role.append(role_id)
