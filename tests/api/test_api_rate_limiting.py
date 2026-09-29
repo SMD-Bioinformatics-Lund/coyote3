@@ -200,5 +200,6 @@ async def test_disabled_application_module_returns_structured_503_before_route_h
     assert response.headers["Retry-After"] == "60"
     assert payload["category"] == "module_disabled"
     assert payload["module"] == "reports"
-    assert "temporarily unavailable" in payload["error"]
+    assert payload["code"] == "service_unavailable"
+    assert "temporarily unavailable" in payload["hint"]
     assert route_called is False

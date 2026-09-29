@@ -35,7 +35,7 @@ def request_id(request: Request | None) -> str:
         str: Request identifier from the request or runtime context.
     """
     if request is not None:
-        rid = (request.headers.get("X-Request-ID") or "").strip()
+        rid = getattr(request.state, "request_id", None)
         if rid:
             return rid
     return current_request_id()

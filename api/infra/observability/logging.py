@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 import time
 import uuid
@@ -13,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+
+from api.infra.observability.redaction import redact_diagnostics, redact_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,7 +86,11 @@ class JsonFormatter(logging.Formatter):
                 payload[key] = value
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
-        return json.dumps(payload, default=str, ensure_ascii=False)
+        return json.dumps(
+            redact_diagnostics(payload),
+            default=lambda value: redact_text(str(value)),
+            ensure_ascii=False,
+        )
 
 
 class ConsoleFormatter(logging.Formatter):
@@ -117,7 +124,7 @@ class ConsoleFormatter(logging.Formatter):
             exception = self.formatException(record.exc_info)
         if exception:
             line += "\n" + str(exception)
-        return line
+        return redact_text(line)
 
 
 class ServiceFilter(logging.Filter):
@@ -222,8 +229,11 @@ def request_context_from_request(request: Any) -> RequestContext:
     client_ip = forwarded_for.split(",", 1)[0].strip() if forwarded_for else None
     if not client_ip and getattr(request, "client", None):
         client_ip = request.client.host
+    identity = (request.headers.get("X-Request-ID") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", identity):
+        identity = str(uuid.uuid4())
     return RequestContext(
-        request_id=(request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4()),
+        request_id=identity,
         client_ip=client_ip,
         method=request.method,
         path=request.url.path,

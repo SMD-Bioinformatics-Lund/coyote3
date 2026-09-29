@@ -27,6 +27,7 @@ from api.infra.observability.logging import (
 )
 from api.infra.observability.prometheus_metrics import observe_request, record_rate_limited
 from api.infra.rate_limit import RedisFixedWindowRateLimiter
+from api.interfaces.http.errors import error_response
 from api.security.access import (
     is_public_api_path,
     requires_csrf_validation,
@@ -155,13 +156,9 @@ def build_authentication_middleware(
                         allowed, retry_after = limiter.check(_rate_limit_identity)
                     except Exception:
                         runtime_app.logger.exception("api_rate_limit_backend_unavailable")
-                        return JSONResponse(
-                            status_code=503,
-                            content={
-                                "status": 503,
-                                "error": "Request protection service is unavailable",
-                                "details": "Retry the request shortly.",
-                            },
+                        return error_response(
+                            request,
+                            503,
                             headers={"Retry-After": "5", "X-Request-ID": request_id},
                         )
                     if not allowed:
@@ -173,9 +170,10 @@ def build_authentication_middleware(
                             status_code=429,
                             duration_ms=duration_ms,
                         )
-                        response = JSONResponse(
-                            status_code=429,
-                            content={"status": 429, "error": "Too many requests"},
+                        response = error_response(
+                            request,
+                            429,
+                            "Too many requests",
                             headers={"Retry-After": str(retry_after), "X-Request-ID": request_id},
                         )
                         runtime_app.logger.warning(
@@ -205,13 +203,18 @@ def build_authentication_middleware(
                     and requires_csrf_validation(request.method, path)
                     and not validate_request_csrf(request)
                 ):
-                    return JSONResponse(
+                    emit_request_event(
+                        request=request,
+                        username=authenticated_user.username,
                         status_code=403,
-                        content={
-                            "status": 403,
-                            "error": "CSRF validation failed",
-                            "details": "Refresh the page and retry the action.",
-                        },
+                        duration_ms=(time.perf_counter() - start) * 1000.0,
+                        extra={"kind": "csrf_validation_failed"},
+                    )
+                    return error_response(
+                        request,
+                        403,
+                        "CSRF validation failed",
+                        details="Refresh the page and retry the action.",
                         headers={"X-Request-ID": request_id},
                     )
 
@@ -235,16 +238,11 @@ def build_authentication_middleware(
                             if authenticated_user is not None
                             else current_username(default="anonymous")
                         )
-                        response = JSONResponse(
-                            status_code=503,
-                            content={
-                                "status": 503,
-                                "error": f"{disabled_module.label} is temporarily unavailable",
-                                "details": disabled_module.description,
-                                "category": "module_disabled",
-                                "hint": "Contact an application administrator if this module should be available.",
-                                "module": disabled_module.key,
-                            },
+                        response = error_response(
+                            request,
+                            503,
+                            category="module_disabled",
+                            module=disabled_module.key,
                             headers={"Retry-After": "60", "X-Request-ID": request_id},
                         )
                         _log_api_request(
@@ -390,7 +388,7 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
         if isinstance(exc.detail, dict)
         else {"status": exc.status_code, "error": str(exc.detail)}
     )
-    response = JSONResponse(status_code=exc.status_code, content=payload)
+    response = error_response(request, exc.status_code, payload.get("error"))
     response.headers["X-Request-ID"] = request_id
     duration_ms = (time.perf_counter() - start) * 1000.0
     _log_api_request(

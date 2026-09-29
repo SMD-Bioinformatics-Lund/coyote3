@@ -74,11 +74,11 @@ describe("typed API client", () => {
   })
 
   it.each([
-    [403, '{"error":"hidden"}', "You do not have permission", "warning"],
+    [403, '{"error":"Review must be performed by another user"}', "Review must be performed by another user", "warning"],
     [404, '{"error":"Sample not found"}', "Sample not found", "warning"],
     [409, '{"message":"Already exists"}', "Already exists", "warning"],
     [422, '{"error":"Invalid payload","details":"name is required"}', "Invalid payload: name is required", "warning"],
-    [500, '{"error":"Internal error","details":"database unavailable"}', "The server could not complete the request: database unavailable", "error"],
+    [500, '{"error":"Internal error","details":"database unavailable"}', "The server could not complete the request.", "error"],
   ])("converts HTTP %s responses into actionable client errors", async (status, body, message, tone) => {
     vi.mocked(fetch).mockResolvedValue(response(body, status, "Failure"))
 
@@ -94,12 +94,41 @@ describe("typed API client", () => {
     )
   })
 
-  it("preserves non-JSON response text in the user-facing error", async () => {
+  it("does not expose non-JSON proxy responses in the user-facing error", async () => {
     vi.mocked(fetch).mockResolvedValue(response("upstream unavailable", 502, "Bad Gateway"))
 
     await expect(api.get("/health")).rejects.toThrow(
-      "The server could not complete the request. upstream unavailable",
+      "A dependent service failed.",
     )
+  })
+
+  it("explains proxy upload limits without displaying an HTML error page", async () => {
+    vi.mocked(fetch).mockResolvedValue(response("<html>nginx internal address</html>", 413))
+    await expect(api.post("/upload", {})).rejects.toThrow("The upload is too large.")
+    expect(JSON.stringify(notifyMock.mock.calls)).not.toContain("nginx")
+  })
+
+  it("preserves validation fields, hints, reference IDs and retry headers", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      error: "Validation failed", code: "validation_failed", hint: "Choose an associated subpanel.",
+      details: [{ field: "subpanel_id", message: "Not associated with this assay" }],
+    }), { status: 422, headers: { "X-Request-ID": "reference-42", "Retry-After": "30" } }))
+    await expect(api.post("/admin/aspc", {})).rejects.toMatchObject({
+      requestId: "reference-42", code: "validation_failed", retryAfter: "30",
+      message: expect.stringContaining("subpanel_id: Not associated with this assay"),
+    })
+    expect(notifyMock.mock.calls[0][0].message).toContain("Choose an associated subpanel.")
+    expect(notifyMock.mock.calls[0][0].message).toContain("Reference: reference-42")
+  })
+
+  it("normalizes network failures without notifying cancelled requests", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"))
+    await expect(api.get("/records")).rejects.toMatchObject({ status: 0, code: "network_error" })
+    notifyMock.mockReset()
+    const abort = new DOMException("Cancelled", "AbortError")
+    vi.mocked(fetch).mockRejectedValueOnce(abort)
+    await expect(api.get("/records")).rejects.toBe(abort)
+    expect(notifyMock).not.toHaveBeenCalled()
   })
 
   it("redirects an expired authenticated session without creating a duplicate notification", async () => {

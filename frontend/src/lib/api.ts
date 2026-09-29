@@ -7,6 +7,9 @@ export class ApiClientError extends Error {
   notificationShown = true
   status?: number
   endpoint?: string
+  code?: string
+  requestId?: string
+  retryAfter?: string
 
   constructor(message: string, status?: number, endpoint?: string) {
     super(message)
@@ -68,7 +71,17 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     headers.set("X-CSRF-Token", csrfToken)
   }
 
-  const response = await fetch(url, { ...options, headers })
+  let response: Response
+  try {
+    response = await fetch(url, { ...options, headers })
+  } catch (error) {
+    if (recordValue(error).name === "AbortError" || options.signal?.aborted) throw error
+    const message = "Could not reach Coyote3. Check your connection and whether the operation completed before retrying."
+    notify({ tone: "error", title: "Connection interrupted", message, source: `${method} ${endpoint}` })
+    const failure = new ApiClientError(message, 0, endpoint)
+    failure.code = "network_error"
+    throw failure
+  }
 
   // Global 401 interceptor
   if (response.status === 401 && window.location.pathname !== appPath("/login")) {
@@ -86,14 +99,24 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
       if (window.location.pathname !== appPath("/profile")) window.location.href = appPath("/profile")
       throw new ApiClientError("Change your temporary password before continuing.", 403, endpoint)
     }
-    const errorMessage = userFacingApiError(response.status, data, response.statusText)
+    const requestId = response.headers.get("X-Request-ID") || stringValue(data?.request_id)
+    const retryAfter = response.headers.get("Retry-After") || undefined
+    const errorMessage = [
+      userFacingApiError(response.status, data),
+      retryAfter ? `Retry after: ${retryAfter}${/^\d+$/.test(retryAfter) ? " seconds" : ""}.` : "",
+      requestId ? `Reference: ${requestId}` : "",
+    ].filter(Boolean).join(" ")
     notify({
       tone: response.status >= 500 ? "error" : "warning",
       title: response.status >= 500 ? "System action failed" : "Request could not be completed",
       message: errorMessage,
       source: `${options.method ?? "GET"} ${endpoint}`,
     })
-    throw new ApiClientError(errorMessage, response.status, endpoint)
+    const failure = new ApiClientError(errorMessage, response.status, endpoint)
+    failure.code = stringValue(data?.code)
+    failure.requestId = requestId
+    failure.retryAfter = retryAfter
+    throw failure
   }
 
   if (
@@ -106,41 +129,64 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   return { data: data as T, status: response.status }
 }
 
-function userFacingApiError(status: number, data: any, statusText: string) {
-  const rawError = data?.error || data?.message || data?.detail?.error || (typeof data?.detail === "string" ? data.detail : "") || statusText || "Request failed"
-  const structured = data?.details || data?.detail?.details || data?.detail?.message || (Array.isArray(data?.detail) ? data.detail : null)
-  const issues = Array.isArray(structured) ? structured : structured?.issues
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : {}
+}
+
+function userFacingApiError(status: number, value: unknown) {
+  if (status >= 500) {
+    const titles: Record<number, string> = {
+      502: "A dependent service failed.",
+      503: "Coyote3 is temporarily unavailable.",
+      504: "A dependent service timed out.",
+    }
+    return `${titles[status] || "The server could not complete the request."} Check whether the operation completed before retrying. Contact support with the reference ID when available.`
+  }
+  const data = recordValue(value)
+  const nested = recordValue(data.detail)
+  const fallback: Record<number, string> = {
+    400: "The request could not be accepted. Check the supplied values.",
+    401: "Authentication is required. Sign in again.",
+    403: "Access was denied. Check your permissions or refresh the page before trying again.",
+    404: "The requested resource was not found. Refresh the list or check the address.",
+    405: "This action is not supported at this address.",
+    406: "The requested response format is not supported.",
+    408: "The request timed out. Check whether the operation completed before retrying.",
+    409: "The change conflicts with the current record. Reload and review before retrying.",
+    410: "This resource is no longer available.",
+    412: "The record has changed. Reload the current version before retrying.",
+    413: "The upload is too large. Reduce its size or contact an administrator about the upload limit.",
+    415: "This file or request format is not supported.",
+    422: "Validation failed. Check the required fields and their formats.",
+    428: "This action requires a record version or precondition.",
+    429: "Too many requests. Wait before trying again.",
+  }
+  const rawError = stringValue(data.error) || stringValue(data.message) || stringValue(nested.error)
+    || stringValue(data.detail) || fallback[status] || `Request failed (HTTP ${status})`
+  const structured = data.details || nested.details || nested.message || (Array.isArray(data.detail) ? data.detail : null)
+  const issues = Array.isArray(structured) ? structured : recordValue(structured).issues
   const details = Array.isArray(issues)
-    ? issues.map((item: { loc?: (string | number)[]; location?: (string | number)[]; msg?: string; message?: string }) => {
-        const field = (item.loc || item.location || []).join(".")
-        return [field, item.msg || item.message].filter(Boolean).join(": ")
+    ? issues.map((value: unknown) => {
+        const item = recordValue(value)
+        const location = item.loc || item.location
+        const field = stringValue(item.field) || (Array.isArray(location) ? location.join(".") : "")
+        return [field, stringValue(item.msg) || stringValue(item.message)].filter(Boolean).join(": ")
       }).join("; ")
     : typeof structured === "string" ? structured : ""
-  if (status === 403) {
-    return "You do not have permission to perform this action. Contact an administrator if this access is expected."
-  }
-  if (status === 404) {
-    return String(rawError || "The requested record was not found.")
-  }
-  if (status === 409) {
-    return String(rawError || "This change conflicts with an existing record.")
-  }
-  if (status === 422) {
-    return [rawError, details].filter(Boolean).join(": ")
-  }
-  if (status >= 500) {
-    return details
-      ? `The server could not complete the request: ${details}`
-      : `The server could not complete the request. ${rawError}`
-  }
-  return [rawError, details].filter(Boolean).join(": ")
+  const hint = stringValue(data.hint) || stringValue(nested.hint)
+  return [[rawError, details].filter(Boolean).join(": "), hint].filter(Boolean).join(" ")
 }
 
 function safeJson(text: string) {
   try {
     return JSON.parse(text)
   } catch {
-    return { message: text }
+    return {}
   }
 }
 

@@ -498,15 +498,21 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
     errors with consistent structural keys (`status`, `error`) to client applications.
 
     Args:
-        _request (Request): The contexting active HTTP request.
-        exc (HTTPException): The triggered FastAPI HTTP exception.
+        _request: Incoming request with correlation context.
+        exc: HTTP error carrying client-safe details and protocol headers.
 
     Returns:
-        JSONResponse: Expected commercial-grade JSON response matching internal structures.
+        JSON response preserving the HTTP status and required response headers.
     """
-    if isinstance(exc.detail, dict):
-        return JSONResponse(status_code=exc.status_code, content=exc.detail)
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"status": exc.status_code, "error": str(exc.detail)},
+    from api.interfaces.http.errors import error_response
+
+    detail = exc.detail if isinstance(exc.detail, dict) else {"error": str(exc.detail)}
+    return error_response(
+        _request,
+        exc.status_code,
+        detail.get("error") or detail.get("message"),
+        details=detail.get("details"),
+        category=detail.get("category"),
+        hint=detail.get("hint"),
+        headers=exc.headers,
     )

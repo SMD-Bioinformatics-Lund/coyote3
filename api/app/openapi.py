@@ -5,6 +5,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
+from api.contracts.http import ApiErrorPayload
+from api.interfaces.http.errors import ERROR_GUIDANCE
 from api.interfaces.http.tags import OPENAPI_TAG_GROUPS
 from api.security.access import get_api_session_cookie_name, is_public_api_path
 
@@ -49,6 +51,7 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
     )
     schema["x-tagGroups"] = OPENAPI_TAG_GROUPS
     components = schema.setdefault("components", {})
+    components.setdefault("schemas", {})["ApiErrorPayload"] = ApiErrorPayload.model_json_schema()
     security_schemes = components.setdefault("securitySchemes", {})
     security_schemes["ApiSessionCookie"] = {
         "type": "apiKey",
@@ -96,6 +99,25 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
                 responses = operation.setdefault("responses", {})
                 responses.setdefault("401", {"description": "Unauthorized"})
                 responses.setdefault("403", {"description": "Forbidden"})
+
+            responses = operation.setdefault("responses", {})
+            for status in (429, 500, 503):
+                responses.setdefault(str(status), {"description": ERROR_GUIDANCE[status][1]})
+            for status, response in responses.items():
+                if not str(status).isdigit() or int(status) < 400:
+                    continue
+                response.setdefault("headers", {})["X-Request-ID"] = {
+                    "description": "Support reference shared with API logs and audit events.",
+                    "schema": {"type": "string"},
+                }
+                if status in {"429", "503"}:
+                    response["headers"]["Retry-After"] = {
+                        "description": "Optional retry delay in seconds or an HTTP date.",
+                        "schema": {"type": "string"},
+                    }
+                response.setdefault("content", {})["application/json"] = {
+                    "schema": {"$ref": "#/components/schemas/ApiErrorPayload"},
+                }
 
     app.openapi_schema = schema
     return app.openapi_schema

@@ -419,7 +419,7 @@ def test_http_exception_handler_preserves_dict_detail():
     """
     exc = HTTPException(status_code=418, detail={"status": 418, "error": "teapot"})
 
-    response = asyncio.run(auth_router.http_exception_handler(None, exc))
+    response = asyncio.run(auth_router.http_exception_handler(_http_request(), exc))
 
     assert response.status_code == 418
     assert b"teapot" in response.body
@@ -433,7 +433,7 @@ def test_http_exception_handler_wraps_string_detail():
     """
     exc = HTTPException(status_code=400, detail="bad request")
 
-    response = asyncio.run(auth_router.http_exception_handler(None, exc))
+    response = asyncio.run(auth_router.http_exception_handler(_http_request(), exc))
 
     assert response.status_code == 400
     assert b"bad request" in response.body

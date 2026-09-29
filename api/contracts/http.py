@@ -48,11 +48,32 @@ class ApiMutationPayload(BaseModel):
 
 
 class ApiErrorPayload(BaseModel):
-    """Represent the api error payload."""
+    """Expose a client-safe failure with recovery guidance and a diagnostic reference."""
 
-    status: int
-    error: str
-    details: Any | None = None
+    status: int = Field(description="HTTP response status.", examples=[422])
+    error: str = Field(description="Client-safe explanation.", examples=["Validation failed"])
+    details: Any | None = Field(
+        default=None,
+        description="Field issues or safe application details; null for server failures.",
+    )
+    category: str | None = Field(
+        default=None, description="Specific application reason, when available."
+    )
+    code: str | None = Field(
+        default=None,
+        description="Stable machine-readable status identifier.",
+        examples=["validation_failed"],
+    )
+    hint: str | None = Field(
+        default=None, description="Suggested next action; mutations must not be blindly retried."
+    )
+    request_id: str | None = Field(
+        default=None, description="Support reference also returned in X-Request-ID."
+    )
+    module: str | None = Field(
+        default=None,
+        description="Disabled module identifier, only present for module availability errors.",
+    )
 
 
 class ApiValidationIssue(BaseModel):

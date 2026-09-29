@@ -177,3 +177,25 @@ async def test_failed_read_emits_request_audit_event(monkeypatch: pytest.MonkeyP
     assert response.status_code == 500
     assert captured["username"] == "user1"
     assert captured["status_code"] == 500
+
+
+@pytest.mark.asyncio
+async def test_csrf_denial_is_audited_before_route_execution(monkeypatch: pytest.MonkeyPatch):
+    captured = []
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _: _user())
+    monkeypatch.setattr(middleware, "validate_request_csrf", lambda _: False)
+    monkeypatch.setattr(middleware, "requires_csrf_validation", lambda *_: True)
+    monkeypatch.setitem(middleware.runtime_app.config, "API_CSRF_ENABLED", True)
+    monkeypatch.setattr(middleware, "emit_request_event", lambda **kw: captured.append(kw))
+
+    async def unreachable(_request):
+        raise AssertionError("Denied request reached the route")
+
+    response = await middleware.build_authentication_middleware(testing=True, development=False)(
+        _request(path="/api/v1/records", method="POST"),
+        unreachable,
+    )
+    assert response.status_code == 403
+    assert captured[0]["username"] == "user1"
+    assert captured[0]["extra"]["kind"] == "csrf_validation_failed"

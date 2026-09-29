@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from typing import Any
 
-SENSITIVE_KEY_RE = re.compile(
-    r"password|secret|token|cookie|authorization|sequence|report_body|file_content",
-    re.IGNORECASE,
-)
+from api.infra.observability.redaction import SENSITIVE_KEY_RE, redact_text
 
 
 def safe_audit_metadata(value: Any, *, depth: int = 0) -> Any:
@@ -29,7 +25,7 @@ def safe_audit_metadata(value: Any, *, depth: int = 0) -> Any:
     if isinstance(value, (list, tuple, set)):
         return [safe_audit_metadata(item, depth=depth + 1) for item in list(value)[:50]]
     if isinstance(value, str):
-        return value[:1000]
+        return redact_text(value)[:1000]
     if value is None or isinstance(value, (bool, int, float, datetime)):
         return value
-    return str(value)[:1000]
+    return redact_text(str(value))[:1000]

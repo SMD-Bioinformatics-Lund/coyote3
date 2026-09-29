@@ -69,6 +69,6 @@ def test_hidden_routers_remain_registered_at_runtime():
 
 def test_http_route_modules_live_in_owned_subpackages():
     """The HTTP root should contain registry/taxonomy files, not route modules."""
-    allowed_root_files = {"__init__.py", "registry.py", "tags.py"}
+    allowed_root_files = {"__init__.py", "registry.py", "tags.py", "errors.py"}
     root_files = {path.name for path in Path("api/interfaces/http").glob("*.py")}
     assert root_files == allowed_root_files
