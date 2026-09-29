@@ -4,6 +4,11 @@ x-runtime-defaults: &runtime-defaults
   mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
   cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
   restart: on-failure:5
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
   networks: [app]
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
