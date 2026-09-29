@@ -16,6 +16,7 @@ import re
 
 from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit, update_audited
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 from api.infra.mongo.transactions import run_transaction
@@ -256,6 +257,14 @@ class ASPRepository(BaseRepository):
         def create(session):
             """Create the assay; its default scope requires no separate record."""
             inserted = self.get_collection().insert_one(panel, session=session)
+            enqueue_audit(
+                self.get_collection().database,
+                session,
+                event_type="assay.created",
+                resource_type="assay",
+                resource_id=panel["asp_id"],
+                actor=panel.get("created_by"),
+            )
             return OperationResult.from_insert_one(inserted)
 
         operation = run_transaction(self.get_collection().database.client, create)
@@ -304,7 +313,8 @@ class ASPRepository(BaseRepository):
             sort=[("version", -1), ("created_on", -1)],
         )
         operation = OperationResult.from_update(
-            collection.update_one(
+            update_audited(
+                collection,
                 {"_id": target["_id"]} if target else {"_id": None},
                 {"$set": {"is_active": active_status}},
             )
@@ -326,7 +336,8 @@ class ASPRepository(BaseRepository):
             Structured write result for the delete.
         """
         operation = OperationResult.from_update(
-            self.get_collection().update_one(
+            update_audited(
+                self.get_collection(),
                 {**self._asp_lookup_query(asp_id), "is_active": True},
                 {"$set": {"is_active": False}},
             )

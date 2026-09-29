@@ -9,6 +9,7 @@ from filelock import FileLock, Timeout
 
 from api.app.deps.services import (
     get_app_controls_service,
+    get_audit_service,
     get_dashboard_service,
     get_notification_service,
     get_public_oncokb_refresh_service,
@@ -21,6 +22,18 @@ from api.tasks.ingest import _ensure_worker_runtime, _serializable
 
 logger = get_task_logger(__name__)
 DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote3-dashboard-metrics-refresh.lock"
+
+
+@celery_app.task(name="api.tasks.maintenance.replay_audit_events")
+def replay_audit_events() -> dict[str, Any]:
+    """Replay up to 100 audit events per queue independently of optional maintenance controls.
+
+    Returns:
+        Number delivered; zero when no initialized audit service is available.
+    """
+    _ensure_worker_runtime()
+    service = get_audit_service()
+    return {"delivered": service.replay_pending() if service is not None else 0}
 
 
 @celery_app.task(name="api.tasks.maintenance.deliver_notification_emails")

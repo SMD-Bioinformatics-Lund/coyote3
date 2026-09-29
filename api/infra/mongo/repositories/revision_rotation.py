@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from api.contracts.operations import OperationResult
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.transactions import run_transaction
 
 
@@ -43,6 +44,15 @@ def rotate_active_revision(
         if retired.matched_count != 1:
             raise RuntimeError("Active configuration revision changed during update")
         inserted = collection.insert_one(dict(new_document), session=session)
+        enqueue_audit(
+            collection.database,
+            session,
+            event_type="configuration.revision_rotated",
+            resource_type=collection.name,
+            resource_id=inserted.inserted_id,
+            actor=new_document.get("updated_by"),
+            metadata={"previous_version": expected_version, "version": new_document.get("version")},
+        )
         return OperationResult(
             matched_count=1,
             modified_count=int(retired.modified_count or 0),

@@ -14,6 +14,7 @@ from bson.json_util import CANONICAL_JSON_OPTIONS, dumps
 from pymongo import ReturnDocument
 
 from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
 
@@ -238,6 +239,23 @@ class ClinicalRuleSetRepository(BaseRepository):
             previous_revision_hash=(previous or {}).get("revision_hash"),
         )
         self.revision_collection.insert_one(snapshot, session=session)
+        enqueue_audit(
+            self.get_collection().database,
+            session,
+            event_type=f"clinical_rules.{action}",
+            category="clinical_reporting",
+            resource_name=document["rule_set_id"],
+            resource_type="clinical_rule_set",
+            resource_id=document["_id"],
+            actor=actor,
+            metadata={
+                "revision": document["revision"],
+                "rule_set_id": document["rule_set_id"],
+                "content_version": document.get("content_version"),
+                "revision_hash": snapshot["revision_hash"],
+                "status": document["status"],
+            },
+        )
         return snapshot
 
     def ensure_indexes(self) -> None:
@@ -517,7 +535,9 @@ class ClinicalRuleSetRepository(BaseRepository):
 
         return run_transaction(self.adapter.client, _transaction)
 
-    def delete_draft(self, document_id: Any, *, expected_revision: int) -> dict[str, Any] | None:
+    def delete_draft(
+        self, document_id: Any, *, expected_revision: int, actor: str | None = None
+    ) -> dict[str, Any] | None:
         """Delete one editable draft and its private revision snapshots together."""
         object_id = _object_id(document_id)
         if object_id is None:
@@ -537,6 +557,17 @@ class ClinicalRuleSetRepository(BaseRepository):
                 session=session,
             )
             if deleted is not None:
+                enqueue_audit(
+                    self.get_collection().database,
+                    session,
+                    event_type="clinical_rules.draft_deleted",
+                    category="clinical_reporting",
+                    resource_name=deleted["rule_set_id"],
+                    resource_type="clinical_rule_set",
+                    resource_id=object_id,
+                    actor=actor,
+                    metadata={"revision": expected_revision, "rule_set_id": deleted["rule_set_id"]},
+                )
                 self.revision_collection.delete_many(
                     {"rule_set_oid": str(object_id)}, session=session
                 )
@@ -731,14 +762,24 @@ class ClinicalRuleSetRepository(BaseRepository):
         self, document: dict[str, Any], *, actor: str, occurred_at: datetime
     ) -> dict[str, Any] | None:
         """Capture the current state of a pre-snapshot rule document once."""
-        if self.revision_collection.find_one({"rule_set_oid": str(document["_id"])}) is not None:
-            return None
-        return self._insert_revision(
-            document,
-            action="baseline_captured",
-            actor=actor,
-            reason="Initial immutable baseline captured from the current rule document",
-            occurred_at=occurred_at,
-            session=None,
-            allow_baseline=True,
-        )
+
+        def capture(session):
+            """Capture a baseline and its audit receipt together, without duplicating history."""
+            if (
+                self.revision_collection.find_one(
+                    {"rule_set_oid": str(document["_id"])}, session=session
+                )
+                is not None
+            ):
+                return None
+            return self._insert_revision(
+                document,
+                action="baseline_captured",
+                actor=actor,
+                reason="Initial immutable baseline captured from the current rule document",
+                occurred_at=occurred_at,
+                session=session,
+                allow_baseline=True,
+            )
+
+        return run_transaction(self.get_collection().database.client, capture)

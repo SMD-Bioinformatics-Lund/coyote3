@@ -161,11 +161,11 @@ def merge_controls(defaults: AppControlsDoc, stored: dict[str, Any] | None) -> A
 def effective_audit_retention_days(db: Any, config: dict[str, Any]) -> int:
     """Return audit retention from controls, falling back to runtime config."""
     defaults = default_app_controls(config)
-    stored = db[OPERATIONAL_COLLECTIONS.app_controls].find_one(
-        {"control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id},
-        {"retention.audit_events_days": 1},
-    )
     try:
+        stored = db[OPERATIONAL_COLLECTIONS.app_controls].find_one(
+            {"control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id},
+            {"retention.audit_events_days": 1},
+        )
         controls = merge_controls(defaults, stored)
         return controls.retention.audit_events_days
     except Exception:

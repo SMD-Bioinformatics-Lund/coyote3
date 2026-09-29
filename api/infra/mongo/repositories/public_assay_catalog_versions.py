@@ -9,6 +9,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 from api.contracts.schemas.public_catalog import PublicAssayCatalogVersionDoc
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
 
@@ -90,6 +91,19 @@ class PublicAssayCatalogVersionRepository(BaseRepository):
                 "document": deepcopy(document),
             },
             session=session,
+        )
+        enqueue_audit(
+            self.get_collection().database,
+            session,
+            event_type="public_catalog.revision_saved",
+            resource_type="public_catalog",
+            resource_id=document["_id"],
+            actor=document["updated_by"],
+            metadata={
+                "revision": document["revision"],
+                "status": document["status"],
+                "content_version": document.get("content_version"),
+            },
         )
 
     def insert(self, document: dict[str, Any]) -> dict[str, Any]:

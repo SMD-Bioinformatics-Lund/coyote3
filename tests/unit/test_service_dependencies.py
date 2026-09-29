@@ -118,7 +118,16 @@ def test_audit_service_requires_database_and_uses_runtime_settings(
     monkeypatch.setattr(services, "get_store", lambda: store)
     assert services.get_audit_service() is None
 
-    store.identity_db = {"audit": object()}
+    from unittest.mock import ANY, MagicMock
+
+    store.identity_db = MagicMock()
+    store.coyote_db = MagicMock()
+    store.knowledgebase_db = None
+    monkeypatch.setitem(
+        services.runtime_app.config, "IDENTITY_MONGO_URI", "mongodb://identity.test:27017"
+    )
+    monkeypatch.setitem(services.runtime_app.config, "IDENTITY_DB", "identity_test")
+    store.identity_db.name = "identity_test"
     constructor = Mock(return_value="audit-service")
     monkeypatch.setattr(services, "AuditService", constructor)
     monkeypatch.setattr(services, "get_audit_events_collection_name", lambda config: "audit")
@@ -127,7 +136,12 @@ def test_audit_service_requires_database_and_uses_runtime_settings(
 
     assert services.get_audit_service() == "audit-service"
     constructor.assert_called_once_with(
-        store.identity_db["audit"], retention_days=90, environment="testing"
+        store.identity_db["audit"].with_options.return_value,
+        retention_days=90,
+        environment="testing",
+        spool_directory=ANY,
+        outboxes=ANY,
+        outbox_route=ANY,
     )
 
 

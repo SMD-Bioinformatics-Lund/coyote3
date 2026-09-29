@@ -3,6 +3,7 @@
 from api.contracts.operations import OperationResult
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.persistence import to_provider_id
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.transactions import run_transaction
 from api.infra.samples_cache import invalidate_samples_cache
 
@@ -73,6 +74,19 @@ def delete_all_sample_traces(
             result = repository.get_collection().delete_many(selector, session=session)
             results.append({"collection": name, **OperationResult.from_delete(result).to_dict()})
         results.append({"collection": "sample", **OperationResult(deleted_count=1).to_dict()})
+        enqueue_audit(
+            sample_repository.get_collection().database,
+            session,
+            event_type="sample.deleted",
+            resource_type="sample",
+            resource_id=oid,
+            metadata={
+                "deleted_counts": [
+                    {"collection": row["collection"], "deleted_count": row.get("deleted_count", 0)}
+                    for row in results
+                ]
+            },
+        )
         return {"sample_name": sample.get("name"), "results": results}
 
     result = run_transaction(sample_repository.adapter.client, delete)

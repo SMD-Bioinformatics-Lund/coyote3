@@ -5,6 +5,7 @@ from typing import Any
 from pymongo.errors import DuplicateKeyError
 
 from api.domain.common.errors import api_error
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
 
@@ -62,6 +63,15 @@ class AssayGroupRepository(BaseRepository):
                 raise api_error(
                     409, "Assay group changed or is unavailable; reload before retrying"
                 )
+            enqueue_audit(
+                collection.database,
+                session,
+                event_type="assay_group.status_changed",
+                resource_type="assay_group",
+                resource_id=group_id,
+                actor=values.get("updated_by"),
+                metadata={"version": expected_version + 1, "is_active": values.get("is_active")},
+            )
             return previous
 
         return run_transaction(collection.database.client, write)
@@ -76,10 +86,23 @@ class AssayGroupRepository(BaseRepository):
             AppError: The group identifier is already registered.
         """
         collection = self.get_collection()
+
+        def create(session):
+            """Insert the group and its audit receipt as one commit."""
+            collection.insert_one(dict(document), session=session)
+            enqueue_audit(
+                collection.database,
+                session,
+                event_type="assay_group.created",
+                resource_type="assay_group",
+                resource_id=document["group_id"],
+                actor=document.get("created_by"),
+            )
+
         try:
             run_transaction(
                 collection.database.client,
-                lambda session: collection.insert_one(dict(document), session=session),
+                create,
             )
         except DuplicateKeyError as exc:
             raise api_error(409, "Assay group already exists") from exc

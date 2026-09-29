@@ -6,6 +6,7 @@ from pymongo.errors import DuplicateKeyError
 
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
 
@@ -81,6 +82,15 @@ class AssaySubpanelRepository(BaseRepository):
                 self.get_collection().insert_many(
                     [dict(row) for row in associations], session=session
                 )
+            enqueue_audit(
+                self.definitions.database,
+                session,
+                event_type="subpanel.created",
+                resource_type="subpanel",
+                resource_id=definition["subpanel_id"],
+                actor=definition.get("updated_by"),
+                metadata={"asp_ids": asp_ids},
+            )
 
         try:
             run_transaction(self.definitions.database.client, write)
@@ -189,6 +199,19 @@ class AssaySubpanelRepository(BaseRepository):
                 if result.matched_count != 1:
                     raise api_error(409, "Subpanel changed; reload before saving")
             collection.insert_one(dict(payload), session=session)
+            enqueue_audit(
+                collection.database,
+                session,
+                event_type="subpanel.association_saved",
+                resource_type="subpanel_association",
+                resource_id=payload["subpanel_id"],
+                actor=payload.get("updated_by"),
+                metadata={
+                    "asp_id": payload["asp_id"],
+                    "version": payload.get("version"),
+                    "is_active": payload.get("is_active"),
+                },
+            )
 
         try:
             if session is not None:
@@ -265,5 +288,14 @@ class AssaySubpanelRepository(BaseRepository):
                     },
                 )
                 self.get_collection().insert_one(association, session=session)
+            enqueue_audit(
+                self.definitions.database,
+                session,
+                event_type="subpanel.revised",
+                resource_type="subpanel",
+                resource_id=subpanel_id,
+                actor=document.get("updated_by"),
+                metadata={"version": document.get("version"), "added_asp_ids": add_asp_ids},
+            )
 
         run_transaction(self.definitions.database.client, write)

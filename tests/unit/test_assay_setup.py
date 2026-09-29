@@ -41,6 +41,7 @@ def setup_service(monkeypatch):
         clinical_rule_sets_collection=db.rules,
     )
     monkeypatch.setattr(module, "run_transaction", lambda _client, callback: callback(None))
+    monkeypatch.setattr(module, "enqueue_audit", lambda *_a, **_k: None)
     repository = AssaySetupRepository(adapter)
     repository.ensure_indexes()
     AssaySetupRevisionRepository(adapter).ensure_indexes()

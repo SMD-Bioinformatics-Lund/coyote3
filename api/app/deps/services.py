@@ -184,9 +184,7 @@ def get_report_library_service() -> ReportLibraryService:
 
 def get_clinical_rule_authoring_service() -> ClinicalRuleAuthoringService:
     """Return the governed clinical rule authoring service."""
-    service = ClinicalRuleAuthoringService.from_store(
-        get_store(), audit_service=get_audit_service()
-    )
+    service = ClinicalRuleAuthoringService.from_store(get_store())
     service.notification_service = get_notification_service()
     return service
 
@@ -272,10 +270,33 @@ def get_audit_service() -> AuditService | None:
     store = get_store()
     if store.identity_db is None:
         return None
+    from pathlib import Path
+
+    from pymongo.write_concern import WriteConcern
+
+    from api.infra.mongo.repositories.audit_outbox import AuditOutboxRepository, audit_route
+
+    environment = get_runtime_environment(runtime_app.config)
+    namespace = audit_route(runtime_app.config)
     return AuditService(
-        store.identity_db[get_audit_events_collection_name(runtime_app.config)],
+        store.identity_db[get_audit_events_collection_name(runtime_app.config)].with_options(
+            write_concern=WriteConcern("majority", j=True)
+        ),
         retention_days=effective_audit_retention_days(store.coyote_db, runtime_app.config),
-        environment=get_runtime_environment(runtime_app.config),
+        environment=environment,
+        outbox_route=namespace,
+        outboxes=tuple(
+            AuditOutboxRepository(db)
+            for db in (
+                store.coyote_db,
+                store.identity_db,
+                store.knowledgebase_db,
+            )
+            if db is not None
+        ),
+        spool_directory=Path(runtime_app.config.get("LOG_ROOT") or "logs")
+        / "audit-spool"
+        / namespace,
     )
 
 

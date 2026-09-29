@@ -21,6 +21,9 @@ from tests.unit.test_mongo_index_management import adapter_for
 def registry(monkeypatch):
     """Use synthetic storage with transaction callbacks executed synchronously."""
     monkeypatch.setattr(
+        "api.infra.mongo.repositories.assay_groups.enqueue_audit", lambda *_a, **_k: None
+    )
+    monkeypatch.setattr(
         "api.infra.mongo.repositories.assay_groups.run_transaction",
         lambda _, callback: callback(None),
     )

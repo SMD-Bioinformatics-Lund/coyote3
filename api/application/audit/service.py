@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Literal
 
+from bson import ObjectId
 from pymongo.errors import PyMongoError
 
+from api.infra.mongo.repositories.audit_outbox import AuditOutboxRepository
 from api.infra.observability.audit import safe_audit_metadata
+from api.infra.observability.audit_spool import AuditSpool
 from api.infra.observability.logging import current_request_context
+from api.infra.observability.redaction import redact_diagnostics, redact_text
 
 AuditSeverity = Literal["info", "warning", "error", "critical"]
 AuditOutcome = Literal["success", "failure", "denied"]
@@ -19,18 +24,33 @@ AuditRetentionClass = Literal["operational", "traceability"]
 class AuditService:
     """Persist security and business audit events as MongoDB documents."""
 
-    def __init__(self, collection: Any, *, retention_days: int, environment: str) -> None:
+    def __init__(
+        self,
+        collection: Any,
+        *,
+        retention_days: int,
+        environment: str,
+        spool_directory: Path | None = None,
+        outboxes: tuple[AuditOutboxRepository, ...] = (),
+        outbox_route: str | None = None,
+    ) -> None:
         """Configure audit storage and operational event expiry.
 
         Args:
             collection: MongoDB collection accepting audit inserts and recent-event queries.
             retention_days: Operational retention in days, clamped to at least 30.
             environment: Source environment label; falsey values use development.
+            spool_directory: Persistent retry directory; None disables disk fallback.
+            outboxes: Queues in business databases owned by this deployment.
+            outbox_route: Credential-independent destination namespace for queue isolation.
         """
         self.collection = collection
         self.retention_days = max(int(retention_days), 30)
         self.environment = str(environment or "development")
         self.logger = logging.getLogger("coyote3.audit")
+        self.spool = AuditSpool(spool_directory) if spool_directory is not None else None
+        self.outboxes = outboxes
+        self.outbox_route = outbox_route
 
     def record(
         self,
@@ -49,11 +69,37 @@ class AuditService:
         metadata: dict[str, Any] | None = None,
         retention_class: AuditRetentionClass = "operational",
     ) -> str | None:
-        """Append one sanitized audit event and return its id when persisted."""
+        """Append an event, spooling MongoDB failures when a persistent directory is configured.
+
+        Args:
+            event_type: Stable dotted operation identifier.
+            message: Diagnostic summary, limited to 500 characters in storage.
+            severity: Operational log severity.
+            category: Event family used in administrative filtering.
+            outcome: Whether the operation succeeded, failed or was denied.
+            actor: Authenticated identity or login; None records anonymous.
+            provider: Authentication provider override, when known.
+            resource_type: Kind of affected resource, or None.
+            resource_id: Stable affected resource identifier, or None.
+            resource_name: Optional human-readable resource name.
+            tags: Searchable event labels, deduplicated and lowercased.
+            metadata: Bounded, credential-redacted diagnostic context.
+            retention_class: Operational events expire; traceability events do not.
+
+        Returns:
+            Event ID when MongoDB or the retry spool accepted it; None if no spool is configured.
+
+        Raises:
+            OSError: Both MongoDB and the configured retry volume are unavailable.
+
+        Notes:
+            This operation is not atomic with writes to a separate business database.
+        """
         now = datetime.now(timezone.utc)
         request = current_request_context()
         actor_doc = self._actor_document(actor, provider=provider)
         document = {
+            "_id": ObjectId(),
             "occurred_at": now,
             "retention_class": retention_class,
             "immutable": retention_class == "traceability",
@@ -82,9 +128,29 @@ class AuditService:
         }
         if retention_class == "operational":
             document["expires_at"] = now + timedelta(days=self.retention_days)
+        document = redact_diagnostics(document)
         try:
-            event_id = self.collection.insert_one(document).inserted_id
+            result = self.collection.insert_one(document)
+            if not result.acknowledged:
+                raise PyMongoError("Audit inserts require acknowledged write concern")
+            event_id = result.inserted_id
         except PyMongoError:
+            if self.spool is not None:
+                try:
+                    self.spool.persist(document)
+                except OSError:
+                    self.logger.critical(
+                        "Audit database and retry volume unavailable", exc_info=True
+                    )
+                    raise
+                self.logger.critical(
+                    "Audit event queued for retry",
+                    extra={
+                        "audit_event_id": str(document["_id"]),
+                        "event_type": event_type,
+                    },
+                )
+                return str(document["_id"])
             self.logger.critical(
                 "Failed to persist audit event",
                 exc_info=True,
@@ -92,7 +158,7 @@ class AuditService:
             )
             return None
         self.logger.info(
-            message,
+            redact_text(message),
             extra={
                 "audit_event_id": str(event_id),
                 "event_type": event_type,
@@ -101,6 +167,25 @@ class AuditService:
             },
         )
         return str(event_id)
+
+    def replay_pending(self) -> int:
+        """Deliver bounded database-outbox and filesystem batches and return the total count.
+
+        Notes:
+            Database delivery failures retain pending events and are logged. Other
+            configured queues are still attempted; filesystem I/O failures propagate.
+        """
+        delivered = 0
+        for outbox in self.outboxes:
+            try:
+                delivered += outbox.deliver(
+                    self.collection, environment=self.environment, route=self.outbox_route
+                )
+            except PyMongoError:
+                self.logger.error("Audit outbox delivery failed; events retained", exc_info=True)
+        if self.spool is not None:
+            delivered += self.spool.replay(self.collection)
+        return delivered
 
     def recent_events(self, *, limit: int) -> dict[str, Any]:
         """Return recent audit events and total event count."""

@@ -38,6 +38,7 @@ def repository(monkeypatch):
     import api.infra.mongo.repositories.assay_subpanels as module
 
     monkeypatch.setattr(module, "run_transaction", lambda _client, callback: callback(None))
+    monkeypatch.setattr(module, "enqueue_audit", lambda *_a, **_k: None)
     db = mongomock.MongoClient().test
     repo = AssaySubpanelRepository(
         SimpleNamespace(

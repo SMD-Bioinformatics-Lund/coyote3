@@ -12,6 +12,7 @@ class OperationalCollectionContract:
 
     api_sessions: str = "api_sessions"
     audit_events: str = "audit_events"
+    audit_outbox: str = "audit_outbox"
     app_controls: str = "app_controls"
     app_controls_document_id: str = "default"
 

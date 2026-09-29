@@ -72,14 +72,11 @@ class ClinicalRuleAuthoringService:
     """Manage rule drafts, independent clinical approval, and releases."""
 
     @classmethod
-    def from_store(
-        cls, store: Any, *, audit_service: Any | None = None
-    ) -> "ClinicalRuleAuthoringService":
+    def from_store(cls, store: Any) -> "ClinicalRuleAuthoringService":
         """Bind authoring to rule, revision, assay, and optional identity repositories.
 
         Args:
             store: Repository provider; user and role repositories may be absent.
-            audit_service: Optional recorder for lifecycle events.
 
         Returns:
             Authoring service without a notification service configured.
@@ -87,7 +84,6 @@ class ClinicalRuleAuthoringService:
         return cls(
             store.clinical_rule_set_repository,
             revision_repository=store.clinical_rule_revision_repository,
-            audit_service=audit_service,
             assay_panel_repository=store.assay_panel_repository,
             assay_subpanel_repository=store.assay_subpanel_repository,
             assay_setup_repository=getattr(store, "assay_setup_repository", None),
@@ -100,7 +96,6 @@ class ClinicalRuleAuthoringService:
         repository: Any,
         *,
         revision_repository: Any | None = None,
-        audit_service: Any | None = None,
         assay_panel_repository: Any | None = None,
         assay_subpanel_repository: Any | None = None,
         assay_setup_repository: Any | None = None,
@@ -113,7 +108,6 @@ class ClinicalRuleAuthoringService:
         Args:
             repository: Stores rule versions and conditional lifecycle updates.
             revision_repository: Reads revision history; None disables history lookup.
-            audit_service: Optional lifecycle event recorder.
             assay_panel_repository: Optional active-assay validation and option source.
             assay_subpanel_repository: Registered scopes; required when validating an assay.
             assay_setup_repository: Unpublished setup scopes available only to rule authoring.
@@ -123,7 +117,6 @@ class ClinicalRuleAuthoringService:
         """
         self.repository = repository
         self.revision_repository = revision_repository
-        self.audit_service = audit_service
         self.assay_panel_repository = assay_panel_repository
         self.assay_subpanel_repository = assay_subpanel_repository
         self.assay_setup_repository = assay_setup_repository
@@ -245,36 +238,6 @@ class ClinicalRuleAuthoringService:
         if document is None:
             raise api_error(404, "Clinical rule-set version was not found")
         return ClinicalRuleSetDoc.model_validate(document)
-
-    def _audit(self, action: str, document: ClinicalRuleSetDoc, actor: str) -> None:
-        """Record a traceability event when an audit service is configured.
-
-        Args:
-            action: Lifecycle action appended to the clinical_rules event prefix.
-            document: Version supplying resource, status, and assignment metadata.
-            actor: Login responsible for the action.
-        """
-        if self.audit_service is None:
-            return
-        self.audit_service.record(
-            f"clinical_rules.{action}",
-            f"Clinical rule set {action}",
-            category="clinical_reporting",
-            actor=actor,
-            resource_type="clinical_rule_set",
-            resource_id=str(document.id_),
-            resource_name=document.rule_set_id,
-            tags=("clinical_rules", action),
-            metadata={
-                "rule_set_id": document.rule_set_id,
-                "content_version": document.content_version,
-                "revision": document.revision,
-                "status": document.status.value,
-                "clinical_reviewer": document.review.clinical_reviewer,
-                "publisher": document.review.publisher,
-            },
-            retention_class="traceability",
-        )
 
     def _eligible_users(self, permission: str) -> list[dict[str, str]]:
         """Return active accounts assigned a role with the requested capability."""
@@ -555,7 +518,6 @@ class ClinicalRuleAuthoringService:
                 actor=actor,
             )
         )
-        self._audit("draft_created", saved, actor)
         return saved.model_dump(mode="python", by_alias=True)
 
     def import_draft(self, payload: ClinicalRuleImportRequest, *, actor: str) -> dict[str, Any]:
@@ -619,7 +581,6 @@ class ClinicalRuleAuthoringService:
                 actor=actor,
             )
         )
-        self._audit("draft_imported", saved, actor)
         return saved.model_dump(mode="python", by_alias=True)
 
     def update_draft(
@@ -658,7 +619,6 @@ class ClinicalRuleAuthoringService:
                 hint="Reload the draft and reconcile the newer revision before saving.",
             )
         parsed = ClinicalRuleSetDoc.model_validate(updated)
-        self._audit("draft_updated", parsed, actor)
         return parsed.model_dump(mode="python", by_alias=True)
 
     def delete_draft(self, document_id: str, *, expected_revision: int, actor: str) -> None:
@@ -666,13 +626,14 @@ class ClinicalRuleAuthoringService:
         document = self._document(document_id)
         if document.status != ClinicalRuleStatus.DRAFT:
             raise api_error(409, "Only a draft clinical rule set can be deleted")
-        deleted = self.repository.delete_draft(document_id, expected_revision=expected_revision)
+        deleted = self.repository.delete_draft(
+            document_id, expected_revision=expected_revision, actor=actor
+        )
         if deleted is None:
             raise api_error(
                 409,
                 "The clinical rule draft changed while it was being deleted. Reload and try again.",
             )
-        self._audit("draft_deleted", document, actor)
 
     def validate(self, document_id: str) -> dict[str, Any]:
         """Validate a stored version's semantics and embedded cases.
@@ -760,7 +721,6 @@ class ClinicalRuleAuthoringService:
         if updated is None:
             raise api_error(409, f"Clinical rule set cannot transition to {status.value}")
         parsed = ClinicalRuleSetDoc.model_validate(updated)
-        self._audit(status.value, parsed, actor)
         return parsed.model_dump(mode="python", by_alias=True)
 
     def submit(
@@ -977,7 +937,6 @@ class ClinicalRuleAuthoringService:
         if updated is None:
             raise api_error(409, "Only an approved clinical rule set can be published")
         parsed = ClinicalRuleSetDoc.model_validate(updated)
-        self._audit("published", parsed, actor)
         if parsed.created_by != actor:
             self._notify(
                 recipient=parsed.created_by,

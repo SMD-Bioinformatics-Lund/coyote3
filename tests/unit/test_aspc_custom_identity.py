@@ -10,6 +10,13 @@ from api.infra.mongo.repositories.assay_configurations import ASPConfigRepositor
 
 
 def test_custom_identity_resolves_by_scope_and_duplicate_scope_is_rejected(monkeypatch):
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.audit_outbox.run_transaction",
+        lambda _client, callback: callback(None),
+    )
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.audit_outbox.enqueue_audit", lambda *_a, **_k: None
+    )
     repository = ASPConfigRepository(
         SimpleNamespace(aspc_collection=mongomock.MongoClient().db.configs)
     )

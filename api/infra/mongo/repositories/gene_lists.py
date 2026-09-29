@@ -15,6 +15,7 @@ import re
 
 from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
+from api.infra.mongo.repositories.audit_outbox import insert_audited, update_audited
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
@@ -414,7 +415,7 @@ class ISGLRepository(BaseRepository):
         Returns:
             Structured write result for the insert.
         """
-        result = self.get_collection().insert_one(self.ensure_isgl_id(dict(data)))
+        result = insert_audited(self.get_collection(), self.ensure_isgl_id(dict(data)))
         operation = OperationResult.from_insert_one(result)
         self.invalidate_dashboard_metrics()
         return operation
@@ -460,7 +461,8 @@ class ISGLRepository(BaseRepository):
             },
             sort=[("version", -1), ("created_on", -1)],
         )
-        result = collection.update_one(
+        result = update_audited(
+            collection,
             {"_id": target["_id"]} if target else {"_id": None},
             {"$set": {"is_active": active_status}},
         )
@@ -481,7 +483,8 @@ class ISGLRepository(BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        result = self.get_collection().update_one(
+        result = update_audited(
+            self.get_collection(),
             {**self._isgl_lookup_query(isgl_id), "is_active": True},
             {"$set": {"is_active": False}},
         )

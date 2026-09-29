@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from api.infra.mongo.persistence import insert_many_transaction
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.transactions import run_transaction
 
 
@@ -88,7 +89,20 @@ class IngestCollectionGateway:
 
     def run_transaction(self, operation):
         """Commit all bundle writes together or propagate the transaction failure."""
-        return run_transaction(self.mongo_client(), operation)
+
+        def audited(session):
+            """Include a bundle receipt before committing the sample transaction."""
+            result = operation(session)
+            enqueue_audit(
+                self.sample_collection().database,
+                session,
+                event_type="ingest.bundle_committed",
+                resource_type="sample_bundle",
+                resource_id=(result or {}).get("sample_id", "batch"),
+            )
+            return result
+
+        return run_transaction(self.mongo_client(), audited)
 
     def validate_completion_target(self, name):
         """Reject remote writes that cannot share the app's ingest receipt transaction."""
@@ -115,7 +129,20 @@ class IngestCollectionGateway:
         Notes:
             Transaction failures propagate from the shared transaction runner.
         """
-        return run_transaction(self.collection(name).database.client, operation)
+
+        def audited(session):
+            """Include a collection-ingest receipt on the owning database's connection."""
+            result = operation(session)
+            enqueue_audit(
+                self.collection(name).database,
+                session,
+                event_type="ingest.collection_committed",
+                resource_type=name,
+                resource_id="batch",
+            )
+            return result
+
+        return run_transaction(self.collection(name).database.client, audited)
 
     def insert_documents(self, name, documents, *, ignore_duplicates=False, record_completion=None):
         """Insert a batch atomically, retrying without explicitly ignored duplicates.

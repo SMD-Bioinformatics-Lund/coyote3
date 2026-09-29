@@ -57,6 +57,10 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    "coyote3-audit-event-replay": {
+        "task": "api.tasks.maintenance.replay_audit_events",
+        "schedule": 30.0,
+    },
     "coyote3-notification-email-delivery": {
         "task": "api.tasks.maintenance.deliver_notification_emails",
         "schedule": 30,

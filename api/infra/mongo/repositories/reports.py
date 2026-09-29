@@ -11,6 +11,7 @@ from pymongo.errors import PyMongoError
 from api.contracts.operations import OperationResult
 from api.domain.core.exceptions import AppError
 from api.domain.core.reporting.errors import ReportCommitUncertain
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.mongo.transactions import run_transaction
@@ -204,6 +205,16 @@ class ReportRepository(BaseRepository):
                 snapshot_rows=snapshot_rows or [],
                 created_by=created_by or doc["author"],
                 session=session,
+            )
+
+            enqueue_audit(
+                self.get_collection().database,
+                session,
+                event_type="report.saved",
+                resource_type="report",
+                resource_id=report_oid,
+                actor=created_by or doc["author"],
+                metadata={"sample_oid": str(doc["sample_oid"]), "report_num": report_num},
             )
 
         try:

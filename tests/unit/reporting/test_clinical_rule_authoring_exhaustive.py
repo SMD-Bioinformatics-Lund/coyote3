@@ -169,7 +169,8 @@ class Repository:
         self.document["revision"] += 1
         return deepcopy(self.document)
 
-    def delete_draft(self, _document_id, *, expected_revision):
+    def delete_draft(self, _document_id, *, expected_revision, actor):
+        self.delete_actor = actor
         if self.document["status"] != "draft" or self.document["revision"] != expected_revision:
             return None
         deleted = deepcopy(self.document)
@@ -318,9 +319,8 @@ def test_notifications_include_review_rejection_and_creator_publication():
     assert len(calls) == 2
 
 
-def test_from_store_list_versions_get_and_audit() -> None:
+def test_from_store_list_versions_and_get() -> None:
     repository = Repository()
-    audit = SimpleNamespace(record=lambda *args, **kwargs: setattr(audit, "call", (args, kwargs)))
     store = SimpleNamespace(
         clinical_rule_set_repository=repository,
         clinical_rule_revision_repository=SimpleNamespace(
@@ -330,7 +330,7 @@ def test_from_store_list_versions_get_and_audit() -> None:
         assay_panel_repository=SimpleNamespace(get_all_asps=lambda is_active: []),
         assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
     )
-    service = ClinicalRuleAuthoringService.from_store(store, audit_service=audit)
+    service = ClinicalRuleAuthoringService.from_store(store)
 
     result = service.list(status="published", search="assay", page=2, per_page=5)
 
@@ -341,9 +341,6 @@ def test_from_store_list_versions_get_and_audit() -> None:
     assert service.revisions("id") == []
     with pytest.raises(AppError, match="revision was not found"):
         service.revision("id", 1)
-    service._audit("viewed", _document(status="published", active=True), "actor")
-    assert audit.call[0] == ("clinical_rules.viewed", "Clinical rule set viewed")
-    assert audit.call[1]["metadata"]["status"] == "published"
     with pytest.raises(AppError, match="was not found"):
         service.get("missing")
 
@@ -470,10 +467,9 @@ def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
     assert result["test_cases"] == source["test_cases"]
 
 
-def test_validate_preview_and_update_audit_paths() -> None:
+def test_validate_preview_and_update_actor() -> None:
     repository = Repository(_document(status="draft"))
-    audit = SimpleNamespace(record=lambda *args, **kwargs: setattr(audit, "called", True))
-    service = ClinicalRuleAuthoringService(repository, audit_service=audit)
+    service = ClinicalRuleAuthoringService(repository)
     assert service.validate("id")["valid"] is True
     preview = service.preview("id", _context().model_dump(mode="python"))
     assert preview["sections"]["Findings"] == ["Finding in TP53."]
@@ -482,18 +478,16 @@ def test_validate_preview_and_update_audit_paths() -> None:
     )
     assert updated["revision"] == 2
     assert repository.update_actor == "author-2"
-    assert audit.called is True
 
 
 def test_only_editable_drafts_can_be_deleted_and_the_action_is_audited() -> None:
     repository = Repository(_document(status="draft"))
-    audit = SimpleNamespace(record=lambda *args, **kwargs: setattr(audit, "call", (args, kwargs)))
-    service = ClinicalRuleAuthoringService(repository, audit_service=audit)
+    service = ClinicalRuleAuthoringService(repository)
 
     service.delete_draft("id", expected_revision=1, actor="author")
 
     assert repository.deleted_document["status"] == "draft"
-    assert audit.call[0] == ("clinical_rules.draft_deleted", "Clinical rule set draft_deleted")
+    assert repository.delete_actor == "author"
 
     with pytest.raises(AppError, match="Only a draft"):
         ClinicalRuleAuthoringService(

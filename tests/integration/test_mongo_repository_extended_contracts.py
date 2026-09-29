@@ -52,6 +52,11 @@ def emulated_repository_transactions(monkeypatch):
     monkeypatch.setattr("api.infra.mongo.repositories.base.run_transaction", execute)
     monkeypatch.setattr("api.infra.mongo.repositories.assay_panels.run_transaction", execute)
     monkeypatch.setattr("api.infra.mongo.repositories.revision_rotation.run_transaction", execute)
+    monkeypatch.setattr("api.infra.mongo.repositories.audit_outbox.run_transaction", execute)
+    for module in ("audit_outbox", "assay_panels", "revision_rotation"):
+        monkeypatch.setattr(
+            f"api.infra.mongo.repositories.{module}.enqueue_audit", lambda *_a, **_k: None
+        )
 
 
 def _adapter():

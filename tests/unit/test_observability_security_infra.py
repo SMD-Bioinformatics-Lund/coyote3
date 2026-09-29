@@ -20,6 +20,8 @@ from api.security.tokens import token_hash
 
 
 class _InsertResult:
+    acknowledged = True
+
     def __init__(self, inserted_id):
         self.inserted_id = inserted_id
 
@@ -87,7 +89,7 @@ def test_audit_service_redacts_sensitive_metadata_and_sets_expiry():
     )
 
     stored = collection.docs[0]
-    assert event_id == stored["_id"]
+    assert event_id == str(stored["_id"])
     assert stored["metadata"] == {"password": "[redacted]", "safe": 1}
     assert stored["actor"]["username"] == "alice"
     assert stored["retention_class"] == "operational"

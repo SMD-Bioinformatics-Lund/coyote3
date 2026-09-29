@@ -26,6 +26,7 @@ from api.config.constants import (
 )
 from api.contracts.operations import OperationResult
 from api.domain.common.errors import api_error
+from api.infra.mongo.repositories.audit_outbox import insert_audited, update_audited
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
@@ -379,7 +380,7 @@ class ASPConfigRepository(BaseRepository):
             AppError: If the ID/version or active assay/subpanel/environment already exists.
         """
         try:
-            result = self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
+            result = insert_audited(self.get_collection(), self.ensure_aspc_id(dict(data)))
         except DuplicateKeyError as exc:
             raise api_error(
                 409,
@@ -400,7 +401,8 @@ class ASPConfigRepository(BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        result = self.get_collection().update_one(
+        result = update_audited(
+            self.get_collection(),
             {**self._aspc_lookup_query(assay_id), "is_active": True},
             {"$set": {"is_active": False}},
         )
@@ -427,7 +429,8 @@ class ASPConfigRepository(BaseRepository):
             },
             sort=[("version", -1), ("created_on", -1)],
         )
-        result = collection.update_one(
+        result = update_audited(
+            collection,
             {"_id": target["_id"]} if target else {"_id": None},
             {"$set": {"is_active": active_status}},
         )

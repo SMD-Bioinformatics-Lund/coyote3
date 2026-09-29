@@ -8,6 +8,7 @@ from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
 
 from api.domain.common.errors import api_error
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
 
@@ -169,6 +170,19 @@ class AssaySetupRepository(BaseRepository):
                     "document": deepcopy(payload),
                 },
                 session=session,
+            )
+            enqueue_audit(
+                self.get_collection().database,
+                session,
+                event_type=f"assay_setup.{action}",
+                resource_type="assay_setup",
+                resource_id=payload["_id"],
+                actor=payload.get("updated_by"),
+                metadata={
+                    "revision": payload["revision"],
+                    "asp_id": payload["asp_id"],
+                    "status": payload["status"],
+                },
             )
             return payload
 

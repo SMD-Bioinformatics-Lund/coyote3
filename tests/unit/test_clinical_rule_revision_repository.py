@@ -20,6 +20,12 @@ from scripts.backfill_clinical_rule_revisions import capture_missing_baselines
 from tests.unit.reporting.test_clinical_rules import _document
 
 
+@pytest.fixture(autouse=True)
+def isolate_outbox(monkeypatch):
+    """Test revision hashing in memory; real transaction and outbox tests use MongoDB."""
+    monkeypatch.setattr("api.infra.mongo.repositories.clinical_rule_sets.enqueue_audit", Mock())
+
+
 def _payload() -> dict:
     return _document().model_dump(mode="python", by_alias=True, exclude_none=True)
 
@@ -121,7 +127,11 @@ def test_revision_hash_is_canonical_and_content_sensitive() -> None:
         verify_revision_snapshot({**first, "revision": 2})
 
 
-def test_baseline_and_subsequent_revision_form_a_contiguous_hash_chain() -> None:
+def test_baseline_and_subsequent_revision_form_a_contiguous_hash_chain(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.clinical_rule_sets.run_transaction",
+        lambda _client, callback: callback(None),
+    )
     adapter = _adapter()
     repository = ClinicalRuleSetRepository(adapter)
     first_document = _payload()
@@ -161,7 +171,11 @@ def test_baseline_and_subsequent_revision_form_a_contiguous_hash_chain() -> None
         )
 
 
-def test_revision_reader_orders_history_and_rejects_invalid_identifiers() -> None:
+def test_revision_reader_orders_history_and_rejects_invalid_identifiers(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.clinical_rule_sets.run_transaction",
+        lambda _client, callback: callback(None),
+    )
     adapter = _adapter()
     writer = ClinicalRuleSetRepository(adapter)
     document = _payload()
