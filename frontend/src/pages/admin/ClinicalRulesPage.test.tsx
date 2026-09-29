@@ -82,8 +82,8 @@ describe("ClinicalRulesPage", () => {
         return Promise.resolve({
           data: {
             assays: [
-              { asp_id: "solid_gmsv3", display_name: "Solid GMSv3", analyte: "dna" },
-              { asp_id: "rna_fusion", display_name: "RNA Fusion", analyte: "rna" },
+              { asp_id: "solid_gmsv3", display_name: "Solid GMSv3", analyte: "dna", subpanels: [{ subpanel_id: "base", display_name: "Base" }] },
+              { asp_id: "rna_fusion", display_name: "RNA Fusion", analyte: "rna", subpanels: [{ subpanel_id: "base", display_name: "Base" }, { subpanel_id: "solid", display_name: "Solid" }] },
             ],
           },
         })
@@ -144,16 +144,14 @@ describe("ClinicalRulesPage", () => {
     await user.selectOptions(screen.getByLabelText("Assay"), "rna_fusion")
     expect(screen.getByLabelText("Rule-set name")).toHaveValue("RNA Fusion clinical report rules")
 
-    await user.clear(screen.getByLabelText("Subpanel"))
-    await user.type(screen.getByLabelText("Subpanel"), "solid")
+    await user.selectOptions(screen.getByLabelText("Subpanel"), "solid")
     expect(screen.getByLabelText("Rule-set name")).toHaveValue(
       "RNA Fusion - solid clinical report rules",
     )
 
     await user.clear(screen.getByLabelText("Rule-set name"))
     await user.type(screen.getByLabelText("Rule-set name"), "Custom RNA wording")
-    await user.clear(screen.getByLabelText("Subpanel"))
-    await user.type(screen.getByLabelText("Subpanel"), "base")
+    await user.selectOptions(screen.getByLabelText("Subpanel"), "base")
     expect(screen.getByLabelText("Rule-set name")).toHaveValue("Custom RNA wording")
   })
 
@@ -229,6 +227,14 @@ describe("ClinicalRulesPage", () => {
     await user.clear(screen.getByLabelText("Rule identifier"))
     await user.type(screen.getByLabelText("Rule identifier"), "custom_result_rule")
     expect(screen.getByLabelText("Rule identifier")).toHaveValue("custom_result_rule")
+
+    await user.selectOptions(screen.getByLabelText("Output destination"), "clinical_question")
+    expect(screen.getByLabelText("Section")).toHaveValue("clinical_question")
+    expect(screen.getByLabelText("Section")).toBeDisabled()
+    expect(screen.getByLabelText("Evaluate")).toHaveValue("once")
+    expect(screen.getByLabelText("Analysis")).toHaveValue("")
+    expect(screen.getByLabelText("Show section heading")).not.toBeChecked()
+    expect(screen.getByLabelText("Match behavior")).toHaveValue("at_most_one")
   })
 
   it("deletes only the selected draft after confirmation", async () => {

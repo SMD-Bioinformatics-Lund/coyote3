@@ -15,7 +15,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { shortCount } from "@/lib/detail-formatters";
 import { cn } from "@/lib/utils";
-import { csvCellText } from "@/lib/csv-export";
+import { escapeCsvCell } from "@/lib/csv-export";
 import { TableBadge } from "@/components/ui/table-badge";
 import { useTablePreferences } from "@/components/data-table/table-preferences";
 import {
@@ -154,15 +154,14 @@ export function DataTable<TData, TValue>({
   const exportToCSV = () => {
     if (exportColumns?.length) {
       const headers = exportColumns
-        .map(({ header }) => `"${header.replace(/"/g, '""')}"`)
+        .map(({ header }) => escapeCsvCell(header, true))
         .join(",");
       const rows = table
         .getPrePaginationRowModel()
         .rows.map(({ original }) =>
           exportColumns
             .map(({ value }) => {
-              const strVal = csvCellText(value(original));
-              return `"${strVal.replace(/"/g, '""')}"`;
+              return escapeCsvCell(value(original), true);
             })
             .join(","),
         )
@@ -174,7 +173,7 @@ export function DataTable<TData, TValue>({
       .getAllLeafColumns()
       .filter((col) => col.id !== "actions" && col.id !== "select")
       .map((col) => {
-        return `"${col.columnDef.header?.toString() || col.id}"`;
+        return escapeCsvCell(col.columnDef.header?.toString() || col.id, true);
       })
       .join(",");
 
@@ -188,8 +187,7 @@ export function DataTable<TData, TValue>({
             const exportValue = (col.columnDef.meta as DataTableColumnMeta<TData> | undefined)?.exportValue;
             const val =
               typeof exportValue === "function" ? exportValue(row.original) : row.getValue(col.id);
-            const strVal = csvCellText(val);
-            return `"${strVal.replace(/"/g, '""')}"`;
+            return escapeCsvCell(val, true);
           })
           .join(",");
       })

@@ -36,11 +36,16 @@ const ruleSet = {
 }
 
 test("clinical rule panes fill the workspace and reflow into selectable rails", async ({ page }) => {
-  await installApiFixtures(page, (path) => {
+  let savedRuleSet = structuredClone(ruleSet)
+  await installApiFixtures(page, (path, _url, route) => {
+    if (path === "/api/v1/admin/clinical-rule-sets/drafts/rule-version-1") {
+      savedRuleSet = { ...savedRuleSet, ...route.request().postDataJSON(), revision: savedRuleSet.revision + 1, minimum_engine_version: 2 }
+      return { json: savedRuleSet }
+    }
     if (path === "/api/v1/auth/whoami") return { json: { username: "admin", role: "admin", roles: ["admin"], access_level: 99_999, permissions: ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:test"] } }
     if (path === "/api/v1/admin/clinical-rule-sets/facts") return { json: { items: [] } }
     if (path === "/api/v1/admin/clinical-rule-sets/authoring-options") return { json: { assays: [{ asp_id: "assay_1", display_name: "Assay 1", analyte: "dna" }] } }
-    if (path === "/api/v1/admin/clinical-rule-sets/versions/rule-version-1") return { json: ruleSet }
+    if (path === "/api/v1/admin/clinical-rule-sets/versions/rule-version-1") return { json: savedRuleSet }
     if (path === "/api/v1/admin/clinical-rule-sets/versions/rule-version-1/revisions") return { json: { items: [{ rule_set_oid: ruleSet._id, rule_set_id: ruleSet.rule_set_id, content_version: 1, revision: 1, action: "draft_created", actor: "admin", occurred_at: "2026-09-05T12:00:00Z", revision_hash: "a".repeat(64), document: ruleSet }] } }
     if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [ruleSet], page: 1, per_page: 30, total: 1 } }
   })
@@ -64,4 +69,13 @@ test("clinical rule panes fill the workspace and reflow into selectable rails", 
   await page.getByRole("button", { name: /Revision history/ }).click()
   await expect(page.getByText("draft created")).toBeVisible()
   await expect(page.getByText("First preserved revision")).toBeVisible()
+  await page.getByLabel("Output destination").selectOption("clinical_question")
+  await expect(page.getByLabel("Section", { exact: true })).toHaveValue("clinical_question")
+  await expect(page.getByRole("combobox", { name: "Analysis", exact: true })).toBeDisabled()
+  await expect(page.getByRole("combobox", { name: "Evaluate", exact: true })).toBeDisabled()
+  await expect(page.getByLabel("Show section heading")).toBeDisabled()
+  await page.screenshot({ path: "test-results/clinical-rule-metadata-desktop.png", fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByLabel("Output destination")).toBeVisible()
+  await page.screenshot({ path: "test-results/clinical-rule-metadata-mobile.png", fullPage: true })
 })

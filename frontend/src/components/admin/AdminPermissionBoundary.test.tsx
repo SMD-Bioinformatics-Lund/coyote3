@@ -17,7 +17,10 @@ describe("AdminPermissionBoundary", () => {
   it("shows a loading state while access is unresolved", () => {
     useCurrentUserAccess.mockReturnValue({ isLoading: true })
     render(<AdminPermissionBoundary permission="user:view">Secret</AdminPermissionBoundary>)
-    expect(screen.getByRole("status", { name: "Checking administration access" })).toBeVisible()
+    expect(screen.getByRole("status", { name: "Loading administration" })).toBeVisible()
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument()
+    expect(screen.queryByText("Secret")).not.toBeInTheDocument()
+    expect(hasPermission).not.toHaveBeenCalled()
   })
 
   it("shows the required permission when access is denied", () => {

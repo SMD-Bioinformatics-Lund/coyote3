@@ -3,6 +3,7 @@ import { APP_CONTROL_HELP, appControlHelp } from "./app-control-metadata"
 
 const expectedControlKeys = [
   "enabled",
+  "email_enabled",
   "sample_ingest_enabled",
   "collection_writes_enabled",
   "maintenance_enabled",

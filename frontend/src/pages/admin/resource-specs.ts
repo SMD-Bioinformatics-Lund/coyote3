@@ -37,11 +37,6 @@ export type FormField = {
     field: string
     values: Record<string, any[]>
   }
-  auto_select?: {
-    field: string
-    option_field: string
-    fallback?: string
-  }
   conditional_options?: {
     field: string
     truthy?: any[]
@@ -50,6 +45,7 @@ export type FormField = {
   default?: any
   groups?: Array<{
     title: string
+    category?: string
     requires_analysis?: string[]
     requires_intent?: string[]
     fields: Array<FormField & {

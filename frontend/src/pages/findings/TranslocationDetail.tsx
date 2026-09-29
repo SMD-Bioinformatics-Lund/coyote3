@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { FindingCommentComposer, FindingCommentLists } from "@/components/comments/FindingComments"
-import { CallerBadges, StatusBadges } from "@/lib/variant-ui"
+import { CallerBadges, ConsequenceBadges, StatusBadges } from "@/lib/variant-ui"
 import { selectedTranslocationAnnotation, translocationGenes, translocationPositionLabel } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
@@ -29,15 +29,6 @@ import {
 import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, igvAlignmentLinks, pubmedSearchUrl } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
-
-function translatedConsequence(annotation: any, translations: Record<string, any> = {}) {
-  const raw = annotation?.Annotation || annotation?.Consequence
-  const terms = Array.isArray(raw) ? raw : String(raw || "").split("&").filter(Boolean)
-  if (!terms.length) return "-"
-  return terms
-    .map((term: string) => translations?.[term]?.display_name || translations?.[term]?.label || term.replace(/_/g, " "))
-    .join(", ")
-}
 
 function genotypeRows(translocation: any) {
   const rows = Array.isArray(translocation?.GT) ? translocation.GT : []
@@ -175,7 +166,7 @@ export function TranslocationDetail() {
                   { key: "feature", header: "Transcript", render: (row: any) => <span className="">{row.Feature_ID || row.Feature || "-"}</span> },
                   { key: "protein", header: "Protein", render: (row: any) => row.HGVS_p || row.HGVSp || "-" },
                   { key: "cdna", header: "cDNA", render: (row: any) => row.HGVS_c || row.HGVSc || "-" },
-                  { key: "consequence", header: "Consequence", render: (row: any) => translatedConsequence(row, data.vep_conseq_translations) },
+                  { key: "consequence", header: "Consequence", render: (row: any) => <ConsequenceBadges value={row.Annotation || row.Consequence} translations={data.vep_conseq_translations} wide /> },
                 ]}
               />
             </DetailCard>
@@ -194,12 +185,12 @@ export function TranslocationDetail() {
             />
 
             <DetailCard title="Selected Annotation" tone="success">
+              <DetailField label="Consequence"><ConsequenceBadges value={annotation?.Annotation || annotation?.Consequence} translations={data.vep_conseq_translations} wide /></DetailField>
               <DetailMetricTable
                 metrics={[
                   { label: "Transcript", value: annotation?.Feature_ID || annotation?.Feature, monospace: true },
                   { label: "Protein", value: annotation?.HGVS_p || annotation?.HGVSp, monospace: true },
                   { label: "cDNA", value: annotation?.HGVS_c || annotation?.HGVSc, monospace: true },
-                  { label: "Consequence", value: translatedConsequence(annotation, data.vep_conseq_translations) },
                   { label: "Exon rank", value: annotation?.Rank || annotation?.EXON || annotation?.INTRON },
                   { label: "Biotype", value: annotation?.BioType || annotation?.BIOTYPE },
                 ]}

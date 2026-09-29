@@ -1,4 +1,5 @@
 import { downloadBlob } from "@/lib/browser-download"
+import { escapeCsvCell } from "@/lib/csv-export"
 
 export type ChartDataRow = Record<string, unknown>
 
@@ -25,13 +26,9 @@ export function rowsToCsv(rows: ChartDataRow[]) {
     Object.keys(row).forEach((key) => keys.add(key))
     return keys
   }, new Set<string>()))
-  const escape = (value: unknown) => {
-    const text = value == null ? "" : String(value)
-    return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
-  }
   return [
-    headers.map(escape).join(","),
-    ...rows.map((row) => headers.map((header) => escape(row[header])).join(",")),
+    headers.map((header) => escapeCsvCell(header)).join(","),
+    ...rows.map((row) => headers.map((header) => escapeCsvCell(row[header])).join(",")),
   ].join("\n")
 }
 

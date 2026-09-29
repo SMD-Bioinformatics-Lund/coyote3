@@ -69,6 +69,19 @@ describe("public static pages", () => {
     mocks.get.mockResolvedValue({ data: publicPayload })
   })
 
+  it("groups About information inside themed content panels", async () => {
+    mount(<AboutPage />)
+    expect(await screen.findByText("4.0.0")).toBeVisible()
+    const versions = screen.getByRole("region", { name: "Reference and software versions" })
+    expect(versions).toHaveClass("glass-card")
+    expect(versions).toContainElement(screen.getByText("Analysis pipelines"))
+    expect(versions).toContainElement(screen.getByText("Sample reference databases"))
+    expect(screen.getByRole("region", { name: "Installed knowledgebase releases" })).toHaveClass("glass-card")
+    expect(screen.getByRole("region", { name: "Resources and support" })).toContainElement(
+      screen.getByRole("link", { name: /Contact and support/ }),
+    )
+  })
+
   it("renders configured contact channels, hours, address, and prefixed internal links", async () => {
     mount(<ContactPage />)
 

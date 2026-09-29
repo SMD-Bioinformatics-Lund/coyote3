@@ -391,6 +391,20 @@
     color: var(--static-accent);
     background: color-mix(in srgb, var(--static-soft) 82%, var(--paper-raised));
   }
+  .admin-category {
+    background: color-mix(in srgb, var(--paper-raised) 80%, var(--muted));
+  }
+  .admin-destination {
+    border: 1px solid var(--paper-edge);
+    border-left: 3px solid var(--static-accent, var(--primary));
+    border-radius: 0.5rem;
+    background: var(--paper-raised);
+    box-shadow: 0 1px 2px var(--paper-shadow);
+  }
+  .admin-destination:hover {
+    border-color: var(--static-accent, var(--primary));
+    background: color-mix(in srgb, var(--static-soft, var(--surface-selected)) 35%, var(--paper-raised));
+  }
   .static-info-card {
     min-width: 0;
     border: 1px solid color-mix(in srgb, var(--static-accent) 24%, var(--paper-edge));

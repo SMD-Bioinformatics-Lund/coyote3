@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Activity, AlertTriangle, CopyPlus, Download, Edit, Eye, LockKeyhole, MailPlus, Plus, Power, Search, Trash2, Upload } from "lucide-react"
+import { CopyPlus, Download, Edit, Eye, LockKeyhole, MailPlus, Plus, Power, Search, Trash2, Upload } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { JsonDocumentEditor } from "@/components/admin/JsonDocumentEditor"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { downloadJson } from "@/lib/json-download"
 import { cn } from "@/lib/utils"
@@ -38,6 +39,7 @@ import {
 } from "@/pages/admin/resource-list"
 import { AdminManagedForm } from "@/pages/admin/resource-form"
 import { PermissionCategoryOverview } from "@/pages/admin/permission-category-overview"
+import { AssaySubpanels } from "@/pages/admin/AssaySubpanels"
 
 export function AdminResourcePage() {
   const { resource = "users" } = useParams()
@@ -56,6 +58,8 @@ export function AdminResourcePage() {
 
   useEffect(() => {
     setResourceFilters({})
+    setQ("")
+    setPendingAction(null)
   }, [spec.key])
 
   const { data, isLoading, error } = useQuery({
@@ -239,7 +243,7 @@ export function AdminResourcePage() {
       actions={
         <>
           {canCreate && <Link
-            to={`/admin/${spec.key}/create`}
+            to={spec.key === "asp" ? "/admin/assay-setups?setup=new" : `/admin/${spec.key}/create`}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
           >
             <Plus className="h-4 w-4" />
@@ -308,49 +312,15 @@ export function AdminResourcePage() {
       {spec.key === "permissions" && canList && <PermissionCategoryOverview rows={visibleRows} canEdit={canEdit} />}
 
       {pendingAction && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4">
-          <section className="w-full max-w-md rounded-2xl border border-border bg-card p-4 shadow-lg">
-            <div className="flex items-start gap-3">
-              <div className={cn(
-                "rounded-xl border p-2",
-                pendingAction.action === "delete"
-                  ? "border-destructive/30 bg-destructive/10 text-destructive"
-                  : "border-primary/30 bg-primary/10 text-primary"
-              )}>
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-base font-semibold">Confirm {pendingAction.action}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {pendingAction.action === "delete"
-                    ? `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`
-                    : `Apply ${pendingAction.action} to ${spec.title.toLowerCase()} ${pendingAction.name}?`}
-                </p>
-                <div className="mt-4 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPendingAction(null)}
-                    className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={mutate.isPending}
-                    onClick={() => mutate.mutate(pendingAction)}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50",
-                      pendingAction.action === "delete" ? "bg-destructive" : "bg-primary"
-                    )}
-                  >
-                    {mutate.isPending ? <Activity className="h-4 w-4 animate-spin" /> : null}
-                    Confirm
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+        <ConfirmationDialog open title={`Confirm ${pendingAction.action}`}
+          variant={pendingAction.action === "delete" ? "destructive" : "default"}
+          description={pendingAction.action === "delete"
+            ? `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`
+            : `Apply ${pendingAction.action} to ${spec.title.toLowerCase()} ${pendingAction.name}?`}
+          isPending={mutate.isPending}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() => mutate.mutate(pendingAction)}
+        />
       )}
     </PageShell>
   )
@@ -471,7 +441,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
       initialCopyApplied.current = true
     }
     setValues(formStateFromSpec(form, mode === "edit" || mode === "view" ? doc : null))
-  }, [aspcCategory, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport, stageImport])
+  }, [aspcCategory, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport, spec.idKeys, spec.key, stageImport])
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {
@@ -674,6 +644,11 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
               saveMutation.mutate(submitPayload(form as FormSpec, values, effectiveMode))
             }}
           />
+          {spec.key === "asp" && mode !== "create" && doc && (
+            <div className="glass-card min-w-0 p-3">
+            <AssaySubpanels key={String(doc.asp_id)} aspId={String(doc.asp_id)} canEdit={effectiveMode !== "view" && hasPermission(user, "assay.panel:edit")} />
+            </div>
+          )}
         </>
       )}
     </PageShell>

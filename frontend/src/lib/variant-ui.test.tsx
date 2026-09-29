@@ -264,4 +264,12 @@ describe("variant UI semantics", () => {
     rerender(<ConsequenceBadges value="" />)
     expect(screen.getByText("-")).toBeInTheDocument()
   })
+
+  it("shows canonical stored descriptions, groups and SO accessions on focus", () => {
+    render(<ConsequenceBadges value="missense_variant" translations={{ missense_variant: { short: "missense", desc: "Release-specific definition.", group: "missense", so_term: "SO:0001583", impact: "MODERATE" } }} />)
+    fireEvent.focus(screen.getByText("missense"))
+    expect(screen.getByText("Release-specific definition.")).toBeInTheDocument()
+    expect(screen.getByText("Group: missense")).toBeInTheDocument()
+    expect(screen.getByText("Sequence Ontology: SO:0001583")).toBeInTheDocument()
+  })
 })

@@ -22,7 +22,11 @@ const TranslocationDetail = lazy(() => import("./pages/findings/TranslocationDet
 const ForgotPassword = lazy(() => import("./pages/auth/AuthPasswordPages").then((module) => ({ default: module.ForgotPassword })))
 const ResetPassword = lazy(() => import("./pages/auth/AuthPasswordPages").then((module) => ({ default: module.ResetPassword })))
 const AdminHub = lazy(() => import("./pages/admin/AdminHubPage").then((module) => ({ default: module.AdminHubPage })))
+const AssaySubpanelsPage = lazy(() => import("./pages/admin/AssaySubpanelsPage").then((module) => ({ default: module.AssaySubpanelsPage })))
+const SubpanelDefinitionsPage = lazy(() => import("./pages/admin/SubpanelDefinitionsPage").then((module) => ({ default: module.SubpanelDefinitionsPage })))
+const AssayGroupsPage = lazy(() => import("./pages/admin/AssayGroupsPage").then((module) => ({ default: module.AssayGroupsPage })))
 const AdminResourceEditorPage = lazy(() => import("./pages/admin/AdminResourcePages").then((module) => ({ default: module.AdminResourceEditorPage })))
+const AssaySetupPage = lazy(() => import("./pages/admin/AssaySetupPage").then((module) => ({ default: module.AssaySetupPage })))
 const AdminResourcePage = lazy(() => import("./pages/admin/AdminResourcePages").then((module) => ({ default: module.AdminResourcePage })))
 const AdminAuditPage = lazy(() => import("./pages/admin/AdminUtilityPages").then((module) => ({ default: module.AdminAuditPage })))
 const AdminControlsPage = lazy(() => import("./pages/admin/AdminUtilityPages").then((module) => ({ default: module.AdminControlsPage })))
@@ -37,6 +41,7 @@ const Profile = lazy(() => import("./pages/account/Profile").then((module) => ({
 const ChangePassword = lazy(() => import("./pages/auth/ChangePassword").then((module) => ({ default: module.ChangePassword })))
 const ContactPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.ContactPage })))
 const AboutPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.AboutPage })))
+const VepReferencePage = lazy(() => import("./pages/static/VepReferencePage"))
 const KnowledgebaseDetails = lazy(() => import("./pages/KnowledgebaseDetails").then((module) => ({ default: module.KnowledgebaseDetails })))
 const NotFoundPage = lazy(() => import("./pages/static/StaticPages").then((module) => ({ default: module.NotFoundPage })))
 const CoverageBlacklistPage = lazy(() => import("./pages/resources/CommonResourcePages").then((module) => ({ default: module.CoverageBlacklistPage })))
@@ -129,6 +134,7 @@ export default function App() {
             <Route path="/reports" element={withModule(<ReportsPage />, "reports")} />
             <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />
             <Route path="/about" element={withRouteLoader(<AboutPage />)} />
+            <Route path="/about/vep" element={withRouteLoader(<VepReferencePage />)} />
             <Route path="/knowledgebases" element={withModule(<KnowledgebaseDetails />, "knowledgebases")} />
             <Route path="/contact" element={withRouteLoader(<ContactPage />)} />
             <Route path="/public" element={withModule(<PublicCatalog />, "assay_catalog")} />
@@ -151,6 +157,11 @@ export default function App() {
             <Route path="/admin/clinical-rules" element={withAdminPermission(<ClinicalRulesPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesView)} />
             <Route path="/admin/clinical-rules/testing" element={withAdminPermission(<ClinicalRuleTestingPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest)} />
             <Route path="/admin/assay-catalog" element={withAdminPermission(<PublicAssayCatalogPage />, "catalog:view")} />
+            <Route path="/admin/subpanels" element={withAdminPermission(<SubpanelDefinitionsPage />, "assay.panel:view")} />
+            <Route path="/admin/assay-groups" element={withAdminPermission(<AssayGroupsPage />, "assay.panel:view")} />
+            <Route path="/admin/assay-subpanels" element={withAdminPermission(<AssaySubpanelsPage />, "assay.panel:view")} />
+            <Route path="/admin/assay-setups" element={withRouteLoader(<AssaySetupPage />)} />
+            <Route path="/admin/asp/create" element={withRouteLoader(<AssaySetupPage />)} />
             <Route path="/admin/:resource/create" element={withRouteLoader(<AdminResourceEditorPage mode="create" />)} />
             <Route path="/admin/:resource/:id/view" element={withRouteLoader(<AdminResourceEditorPage mode="view" />)} />
             <Route path="/admin/:resource/:id/edit" element={withRouteLoader(<AdminResourceEditorPage mode="edit" />)} />

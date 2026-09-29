@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react"
+import { readFormPath, writeFormPath } from "./form-paths"
 import { Activity, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accentColor } from "@/lib/badge-colors"
@@ -251,32 +252,30 @@ export function StructuredObjectField({
   formValues?: Record<string, any>
 }) {
   const objectValue = value && typeof value === "object" && !Array.isArray(value) ? value : {}
-  const valueAtPath = (source: Record<string, any>, path: string) => path.split(".").reduce<any>((current, key) => (
-    current && typeof current === "object" ? current[key] : undefined
-  ), source)
-  const setAtPath = (source: Record<string, any>, path: string, nextValue: any) => {
-    const keys = path.split(".")
-    const next = structuredClone(source)
-    let target: Record<string, any> = next
-    keys.slice(0, -1).forEach((key) => {
-      const current = target[key]
-      target[key] = current && typeof current === "object" && !Array.isArray(current) ? { ...current } : {}
-      target = target[key]
-    })
-    target[keys[keys.length - 1]] = nextValue
-    return next
-  }
   const selectedAnalyses = new Set(normalizeList(formValues?.analysis_types).map((item) => item.toUpperCase()))
   const selectedIntents = new Set(normalizeList(formValues?.analysis_intents || ["somatic"]).map((item) => item.toLowerCase()))
+  const isFilter = field.display_type === "filters-structured"
+  const visibleGroups = (field.groups || []).filter((group: any) => (
+    (!group.requires_analysis || normalizeList(group.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
+    && (!group.requires_intent || normalizeList(group.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
+  ))
+  const groupedFilters = new Map<string, NonNullable<FormField["groups"]>[number]>()
+  if (isFilter) {
+    for (const group of visibleGroups) {
+      const category = group.category || group.title
+      const existing = groupedFilters.get(category)
+      if (existing) existing.fields.push(...group.fields)
+      else groupedFilters.set(category, { title: category, fields: [...group.fields] })
+    }
+  }
+  const displayGroups = isFilter ? [...groupedFilters.values()] : visibleGroups
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-background/60 p-3">
-      {(field.groups || []).filter((group: any) => (
-        (!group.requires_analysis || normalizeList(group.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
-        && (!group.requires_intent || normalizeList(group.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
-      )).map((group) => (
-        <div key={group.title} className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase text-muted-foreground">{group.title}</h4>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className={isFilter ? "min-w-0 space-y-4" : "space-y-3 rounded-lg border border-border bg-background/60 p-3"}>
+      {isFilter && !visibleGroups.length && <p role="status" className="p-4 type-body text-muted-foreground">No filter groups apply to the selected analyses and intents.</p>}
+      {displayGroups.map((group) => (
+        <fieldset key={group.title} aria-label={group.title} className={isFilter ? "min-w-0 overflow-hidden rounded-lg border border-border bg-background shadow-sm" : "min-w-0 space-y-2"}>
+          <h4 className={isFilter ? "border-l-4 border-primary bg-muted px-3 py-2 type-label font-semibold text-foreground" : "text-xs font-semibold uppercase text-muted-foreground"}>{group.title}</h4>
+          <div className={isFilter ? "grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-6" : "grid gap-3 md:grid-cols-2 xl:grid-cols-3"}>
             {group.fields.filter((nested: any) => (
               (!nested.requires_analysis || normalizeList(nested.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
               && (!nested.requires_intent || normalizeList(nested.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
@@ -305,15 +304,16 @@ export function StructuredObjectField({
                           : nested.type,
               }
               return (
+                <div key={nested.key} className={isFilter ? (nested.type === "checkbox-group" ? "min-w-0 xl:col-span-3" : "min-w-0 xl:col-span-2") : "min-w-0"}>
                 <FormControl
                   key={nested.key}
                   name={nested.key}
                   field={nestedField}
-                  value={valueAtPath(objectValue, nested.key) ?? nested.default ?? defaultForField(nestedField)}
+                  value={readFormPath(objectValue, nested.key) ?? nested.default ?? defaultForField(nestedField)}
                   mode="edit"
                   onChange={(nextValue) => {
                     const coerced = coerceFieldValue(nestedField, nextValue)
-                    onChange(setAtPath(
+                    onChange(writeFormPath(
                       objectValue,
                       nested.key,
                       coerced === undefined && nextValue === "" ? "" : coerced,
@@ -323,10 +323,11 @@ export function StructuredObjectField({
                   compact
                   formValues={formValues}
                 />
+                </div>
               )
             })}
           </div>
-        </div>
+        </fieldset>
       ))}
     </div>
   )
@@ -511,37 +512,44 @@ export function AdminManagedForm({
   const sections = form.sections && Object.keys(form.sections).length ? form.sections : { general: Object.keys(form.fields || {}) }
   const updateField = (name: string, next: any) => {
     const updated = { ...values, [name]: next }
-    Object.entries(form.fields || {}).forEach(([dependentName, dependentField]) => {
-      const dependency = dependentField.options_by_field
-      if (!dependency || dependency.field !== name) return
-      const allowedOptions = optionsForDependency(dependentField, updated) || []
-      const allowed = new Set(allowedOptions.map(optionValue))
-      if (dependentField.display_type === "checkbox-group") {
-        updated[dependentName] = normalizeList(updated[dependentName]).filter((item) => allowed.has(item))
-        return
-      }
-      const current = String(updated[dependentName] ?? "")
-      updated[dependentName] = allowed.has(current) ? current : ""
-    })
+    const changed = new Set([name])
+    const pending = [name]
+    while (pending.length) {
+      const changedName = pending.shift()
+      Object.entries(form.fields || {}).forEach(([dependentName, dependentField]) => {
+        const dependency = dependentField.options_by_field
+        if (!dependency || dependency.field !== changedName || changed.has(dependentName)) return
+        const allowedOptions = optionsForDependency(dependentField, updated) || []
+        const allowed = new Set(allowedOptions.map(optionValue))
+        if (["checkbox-group", "multi-select"].includes(dependentField.display_type || "")) {
+          updated[dependentName] = normalizeList(updated[dependentName]).filter((item) => allowed.has(item))
+        } else {
+          const current = String(updated[dependentName] ?? "")
+          const defaultValue = String(dependentField.default ?? "")
+          updated[dependentName] = allowed.has(current) ? current : allowed.has(defaultValue) ? defaultValue : ""
+        }
+        changed.add(dependentName)
+        pending.push(dependentName)
+      })
+    }
     Object.entries(form.fields || {}).forEach(([parentName, parentField]) => {
       for (const group of parentField.groups || []) {
         for (const nestedField of group.fields || []) {
-          const automatic = nestedField.auto_select
           const dependency = nestedField.options_by_field
-          if (!automatic || !dependency) continue
-          if (name !== automatic.field && name !== dependency.field) continue
+          if (!dependency || !changed.has(dependency.field)) continue
           const available = optionsForDependency(nestedField, updated) || []
-          const requested = String(updated[automatic.field] || automatic.fallback || "")
-          const selected = available.find(
-            (option) => String(option?.[automatic.option_field] ?? "") === requested,
-          ) || available.find(
-            (option) => String(option?.[automatic.option_field] ?? "") === automatic.fallback,
-          )
-          const parentValue = updated[parentName]
-          updated[parentName] = {
-            ...(parentValue && typeof parentValue === "object" ? parentValue : {}),
-            [nestedField.key]: selected ? optionValue(selected) : "",
+          const parentValue = updated[parentName] && typeof updated[parentName] === "object" ? updated[parentName] : {}
+          const currentValue = readFormPath(parentValue, nestedField.key)
+          if (["checkbox-group", "multi-select"].includes(nestedField.type || nestedField.display_type || "")) {
+            const allowed = new Set(available.map(optionValue))
+            updated[parentName] = writeFormPath(parentValue, nestedField.key,
+              normalizeList(currentValue).filter((item) => allowed.has(item)))
+            continue
           }
+          const current = String(currentValue ?? "")
+          const selected = available.find((option) => optionValue(option) === current)
+            || available.find((option) => optionValue(option) === String(nestedField.default ?? ""))
+          updated[parentName] = writeFormPath(parentValue, nestedField.key, selected ? optionValue(selected) : "")
         }
       }
     })

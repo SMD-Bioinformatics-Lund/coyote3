@@ -24,6 +24,7 @@ export type ClinicalRuleAssayOption = {
   asp_id: string
   display_name: string
   analyte: "dna" | "rna"
+  subpanels?: { subpanel_id: string; display_name: string }[]
 }
 
 export type ClinicalRuleReviewerOption = { username: string; name: string }

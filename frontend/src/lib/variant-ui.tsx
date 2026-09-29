@@ -745,7 +745,12 @@ export function PredictionBadge({ value }: { value: unknown }) {
   )
 }
 
-type ConsequenceMetadata = {
+export type ConsequenceMetadata = {
+  short?: string
+  display?: string
+  desc?: string
+  group?: string
+  so_term?: string
   label?: string
   display_name?: string
   description?: string
@@ -774,8 +779,8 @@ function ConsequenceBadge({
 }) {
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const meta = consequenceMeta(term, translations)
-  const label = meta.label || meta.display_name || term.replace(/_variant$/i, "").replaceAll("_", " ")
-  const description = meta.description || meta.definition || meta.tooltip || "No VEP metadata description is available for this consequence."
+  const label = meta.short || meta.display || meta.label || meta.display_name || term.replace(/_variant$/i, "").replaceAll("_", " ")
+  const description = meta.desc || meta.description || meta.definition || meta.tooltip || "No VEP metadata description is available for this consequence."
   const impact = meta.impact || meta.IMPACT
   const severity = impactSeverity(impact)
 
@@ -811,6 +816,8 @@ function ConsequenceBadge({
           </span>
           <span className="block font-bold text-foreground">{term}</span>
           <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{description}</span>
+          {meta.group && <span className="mt-2 block type-meta">Group: {meta.group.replaceAll("_", " ")}</span>}
+          {meta.so_term && <span className="block type-meta">Sequence Ontology: {meta.so_term}</span>}
         </TooltipSurface>
       )}
     </span>

@@ -111,6 +111,9 @@ export function AboutPage() {
       description={`Application, reference, version, and support information for ${orgName}.`}
       actions={
         <>
+          <Link to="/about/vep" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2 type-body-sm">
+            <BookOpen className="size-4" />VEP reference
+          </Link>
           <Link to="/public/catalog" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2 type-body-sm">
             <Home className="size-4" />
             Catalog
@@ -183,12 +186,12 @@ export function AboutPage() {
           title="Resources and support"
           description="Documentation, source, licensing, and service contacts."
           tone="warning"
-          bodyClassName="flex flex-wrap gap-3 p-3"
+          bodyClassName="grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3"
         >
             {aboutLinks.map((link) => (
-              <ResourceLink key={`${link.label}-${link.url}`} link={link} />
+              <ResourceLink key={`${link.label}-${link.url}`} link={link} embedded />
             ))}
-            <Link to="/contact" className="static-info-card flex min-w-full flex-1 items-start gap-2 p-4 type-body-sm text-link sm:min-w-80 sm:basis-96" data-static-tone="primary">
+            <Link to="/contact" className="flex min-w-0 items-start gap-2 px-1 py-2 type-body-sm text-link">
               <LifeBuoy className="mt-0.5 size-4 shrink-0 text-primary" />
               <span>
                 Contact and support
@@ -377,7 +380,7 @@ function VersionBlock({ icon: Icon, title, values, empty, tone, showDatabaseLogo
     return value !== undefined && value !== null && String(value).trim() !== ""
   })
   return (
-    <div className={`static-info-card p-4 ${className}`} data-static-tone={tone}>
+    <div className={`min-w-0 border-b border-border p-3 ${className}`} data-static-tone={tone}>
       <div className="mb-2 flex items-center gap-2">
         <span className="static-icon flex size-7 shrink-0 items-center justify-center rounded-md">
           <Icon className="size-3.5" />
@@ -430,7 +433,7 @@ function ContentSection({
   children: ReactNode
 }) {
   return (
-    <section className="static-page-section overflow-hidden" data-static-tone={tone}>
+    <section aria-label={title} className="glass-card min-w-0 overflow-hidden" data-static-tone={tone}>
       <header className="static-page-section-header flex flex-col gap-3 border-b border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="static-icon mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md">

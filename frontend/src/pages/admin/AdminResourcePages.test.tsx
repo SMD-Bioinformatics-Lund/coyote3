@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
@@ -206,6 +206,28 @@ describe("AdminResourcePage", () => {
     )
   })
 
+  it("clears search and pending actions when switching resource pages", async () => {
+    mocks.get.mockResolvedValue({ data: { roles: [{ role_id: "reviewer", name: "Reviewer", is_active: true }], users: [] } })
+    function SwitchResource() {
+      const navigate = useNavigate()
+      return <button onClick={() => navigate("/admin/users")}>Switch resource</button>
+    }
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={["/admin/roles"]}>
+        <SwitchResource />
+        <Routes><Route path="/admin/:resource" element={<AdminResourcePage />} /></Routes>
+      </MemoryRouter>
+    </QueryClientProvider>)
+    fireEvent.change(screen.getByPlaceholderText("Search roles..."), { target: { value: "reviewer" } })
+    const row = (await screen.findByText("reviewer")).closest("tr") as HTMLElement
+    fireEvent.click(within(row).getByTitle("Delete"))
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Switch resource" }))
+    expect(await screen.findByPlaceholderText("Search users...")).toHaveValue("")
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+    expect(mocks.delete).not.toHaveBeenCalled()
+  })
+
   it("shows API failures instead of an empty table", async () => {
     mocks.get.mockRejectedValue(new Error("Users service unavailable"))
     renderResource("users")
@@ -341,7 +363,7 @@ describe("AdminResourcePage", () => {
     expect(screen.queryByLabelText("EXPRESSION")).not.toBeInTheDocument()
 
     await user.selectOptions(screen.getByRole("combobox", { name: "ASP" }), "wts_panel")
-    expect(screen.getByRole("combobox", { name: "Subpanel" })).toHaveValue("")
+    expect(screen.getByRole("combobox", { name: "Subpanel" })).toHaveValue("base")
     expect(screen.getByRole("option", { name: "myeloid" })).toBeVisible()
     expect(screen.getByLabelText("EXPRESSION")).toBeVisible()
     expect(screen.getByLabelText("CLASSIFICATION")).toBeVisible()
@@ -363,7 +385,7 @@ describe("AdminResourcePage", () => {
     },
   )
 
-  it("selects the exact subpanel clinical rule while keeping assay rules available", async () => {
+  it("selects reporting language without a manual rule binding when subpanel changes", async () => {
     mocks.get.mockResolvedValue({
       data: {
         form: {
@@ -389,22 +411,18 @@ describe("AdminResourcePage", () => {
               groups: [{
                 title: "Report text",
                 fields: [{
-                  key: "clinical_rule_set_id",
-                  label: "Clinical Rule Set",
+                  key: "language",
+                  label: "Reporting Language",
                   type: "select",
+                  default: "sv",
                   options_by_field: {
                     field: "asp_id",
                     values: {
                       solid_gmsv3: [
-                        { value: "solid_gmsv3__base__sv", label: "Base rules", subpanel_id: "base" },
-                        { value: "solid_gmsv3__endometrie__sv", label: "Endometrie rules", subpanel_id: "endometrie" },
+                        { value: "sv", label: "sv" },
+                        { value: "en", label: "en" },
                       ],
                     },
-                  },
-                  auto_select: {
-                    field: "subpanel_id",
-                    option_field: "subpanel_id",
-                    fallback: "base",
                   },
                 }],
               }],
@@ -417,14 +435,14 @@ describe("AdminResourcePage", () => {
     renderEditor("aspc", "create")
 
     await user.selectOptions(await screen.findByRole("combobox", { name: "ASP" }), "solid_gmsv3")
-    const selector = screen.getByRole("combobox", { name: /Clinical Rule Set/ })
-    expect(selector).toHaveValue("solid_gmsv3__base__sv")
-    expect(screen.getByRole("option", { name: "Endometrie rules" })).toBeVisible()
+    const selector = screen.getByRole("combobox", { name: /Reporting Language/ })
+    expect(selector).toHaveValue("sv")
+    expect(screen.queryByRole("combobox", { name: /Clinical Rule Set/ })).toBeNull()
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Subpanel" }), "endometrie")
-    expect(selector).toHaveValue("solid_gmsv3__endometrie__sv")
-    await user.selectOptions(selector, "solid_gmsv3__base__sv")
-    expect(selector).toHaveValue("solid_gmsv3__base__sv")
+    expect(selector).toHaveValue("sv")
+    await user.selectOptions(selector, "en")
+    expect(selector).toHaveValue("en")
   })
 
   it("shows ASP-scoped optional gene-list checkboxes and clears stale selections", async () => {

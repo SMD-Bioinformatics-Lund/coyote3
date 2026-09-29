@@ -199,18 +199,21 @@ test("profile edits persist through the dedicated profile endpoint", async ({ pa
 test("notification broadcaster confirms and sends the selected audience", async ({ page }) => {
   let broadcast: unknown
   await installApiFixtures(page, async (path, _url, route) => {
+    if (path === "/api/v1/admin/notifications/sent") {
+      return { json: { notifications: [] } }
+    }
     if (path === "/api/v1/admin/notifications/recipients") {
       return { json: { users: [], roles: [{ role_id: "manager", label: "Manager", user_count: 2 }] } }
     }
     if (path === "/api/v1/admin/notifications/broadcast") {
       broadcast = route.request().postDataJSON()
-      return { json: { recipient_count: 2 } }
+      return { json: { recipient_count: 2, email_state: "pending" } }
     }
   })
 
   await page.goto("/admin/notifications")
   await page.getByLabel("Title").fill("Scheduled maintenance")
-  await page.getByLabel("Message").fill("The service will restart at 18:00.")
+  await page.getByLabel("Message", { exact: true }).fill("The service will restart at 18:00.")
   await page.getByRole("button", { name: "By role" }).click()
   await page.getByRole("checkbox", { name: /Manager/ }).check()
   await page.getByRole("button", { name: "Send" }).click()

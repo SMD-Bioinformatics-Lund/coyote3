@@ -1,6 +1,8 @@
 /* eslint-disable react/only-export-components -- shared admin renderers and value helpers are intentionally colocated */
 import { TableBadge } from "@/components/ui/table-badge"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { RecordProvenance } from "./RecordProvenance"
+import { provenanceLabel } from "./record-provenance"
 import { cn } from "@/lib/utils"
 import { accentColor, configuredValueDescription, valueBadgeClass } from "@/lib/badge-colors"
 import { fullDateTime, shortCount } from "@/lib/detail-formatters"
@@ -14,6 +16,7 @@ export function valueLabel(value: unknown) {
 }
 
 export function titleize(value: string) {
+  if (value === "record_provenance") return "Created by / Installed by"
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
@@ -329,10 +332,10 @@ export function defaultAdminFields(resourceKey: string) {
 export function adminFields(resourceKey: string, rows: any[]) {
   const preferred = defaultAdminFields(resourceKey)
   const seen = new Set<string>()
-  const hidden = new Set(["_id", "id", "version_history"])
+  const hidden = new Set(["_id", "id", "version_history", "created_by"])
   const rowHas = (key: string) => rows.some((row) => row?.[key] !== undefined)
-  const selected = preferred.filter((key) => rowHas(key) && !seen.has(key) && seen.add(key))
-  if (selected.length >= 5) return selected
+  const selected = preferred.filter((key) => !hidden.has(key) && rowHas(key) && !seen.has(key) && seen.add(key))
+  if (selected.length >= 5) return [...selected, "record_provenance"]
   for (const key of rows.flatMap((row) => Object.keys(row || {}))) {
     if (selected.length >= 8) break
     if (seen.has(key) || hidden.has(key) || key.startsWith("_rev")) continue
@@ -341,7 +344,7 @@ export function adminFields(resourceKey: string, rows: any[]) {
       selected.push(key)
     }
   }
-  return selected
+  return [...selected, "record_provenance"]
 }
 
 export function adminCell(
@@ -350,6 +353,7 @@ export function adminCell(
   context?: { roleColors?: Record<string, string>; primaryIdentifier?: boolean },
 ) {
   const value = row?.[field]
+  if (field === "record_provenance") return <RecordProvenance record={row} />
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) {
     return <TimeDisplay value={value} className="text-sm font-normal" />
   }
@@ -451,6 +455,7 @@ export function adminCell(
 }
 
 export function adminExportValue(field: string, row: any) {
+  if (field === "record_provenance") return provenanceLabel(row)
   const value = row?.[field]
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) return fullDateTime(value)
   if (field === "is_active") return activeLabel(value)

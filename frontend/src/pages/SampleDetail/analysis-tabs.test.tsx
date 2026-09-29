@@ -304,20 +304,23 @@ describe("sample analysis table tabs", () => {
   it("renders a report preview and requires confirmation before saving", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "DNA_REPORT" },
-      meta: { snapshot_count: 1, template_status: { status: "ready", has_html: true } },
-      report: { html: "Rendered DNA report", snapshot_rows: [{ gene: "TP53", tier: 1 }] },
+      meta: { snapshot_count: 1, preview_fingerprint: "a".repeat(64), template_status: { status: "ready", has_html: true } },
+      report: { html: "Rendered DNA report", snapshot_rows: [{ gene: "TP53", tier: 1 }], context: {
+        clinical_rule_evaluation: { source: { rule_set_id: "assay__base__sv", content_version: 2, language: "sv", requested_subpanel_id: "named", resolved_subpanel_id: "base" } },
+      } },
     } })
     mocks.post.mockResolvedValue({ data: { report_id: "R1" } })
     mount(<ReportsTab sampleId="DNA_REPORT" />, "/samples/DNA_REPORT?tab=reports")
 
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered DNA report")
+    expect(screen.getByText(/Rules: assay__base__sv/)).toHaveTextContent("v2 · sv · Assay Base scope")
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false")
     fireEvent.click(screen.getByRole("button", { name: "Save report" }))
     expect(screen.getByRole("heading", { name: "Confirm report save" })).toBeVisible()
     expect(mocks.post).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }))
 
-    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna"))
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64) }))
     expect(mocks.notifySuccess).toHaveBeenCalledWith(
       "Report saved",
       "DNA report was saved for DNA_REPORT.",

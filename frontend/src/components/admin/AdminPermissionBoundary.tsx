@@ -13,11 +13,7 @@ export function AdminPermissionBoundary({
   const accessQuery = useCurrentUserAccess()
 
   if (accessQuery.isLoading) {
-    return (
-      <PageShell eyebrow="Admin" title="Checking access">
-        <AppLoader label="Checking administration access" />
-      </PageShell>
-    )
+    return <AppLoader label="Loading administration" />
   }
 
   if (!hasPermission(accessQuery.data, permission)) {

@@ -41,7 +41,9 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   })
 
   const saveReport = useMutation({
-    mutationFn: () => api.post(`/samples/${sampleId}/reports/${reportType}`),
+    mutationFn: () => api.post(`/samples/${sampleId}/reports/${reportType}`, {
+      preview_fingerprint: data?.meta?.preview_fingerprint,
+    }),
     onSuccess: () => {
       const sampleName = data?.sample?.name || sampleId
       setConfirmOpen(false)
@@ -110,6 +112,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
   const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
   const sampleName = data?.sample?.name || sampleId
+  const ruleSource = data?.report?.context?.clinical_rule_evaluation?.source
 
   return (
     <div className="space-y-4">
@@ -194,12 +197,16 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
                 Rendered report preview
               </CardTitle>
               <CardDescription>The preview remains temporary until it is saved.</CardDescription>
+              {ruleSource && <p className="type-meta text-muted-foreground break-words">
+                Rules: {ruleSource.rule_set_id} · v{ruleSource.content_version} · {ruleSource.language}
+                {ruleSource.resolved_subpanel_id === "base" && ruleSource.requested_subpanel_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
+              </p>}
               <CardAction>
                 <Button
                   type="button"
                   size="lg"
                   onClick={() => setConfirmOpen(true)}
-                  disabled={!hasRenderedHtml || saveReport.isPending}
+                  disabled={!hasRenderedHtml || !data?.meta?.preview_fingerprint || saveReport.isPending}
                   title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
                 >
                   {saveReport.isPending ? <Activity className="size-4 animate-spin" /> : <Save className="size-4" />}

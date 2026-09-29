@@ -2,22 +2,11 @@ import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { DetailDataTable, EvidenceBadge } from "@/components/detail/DetailEvidenceCards"
 import { ExpandableText } from "@/components/detail/ExpandableText"
-import { ConsequenceBadges, ImpactBadge, InfoTooltipBadge, TierBadge } from "@/lib/variant-ui"
+import { ConsequenceBadges, ImpactBadge, InfoTooltipBadge, TierBadge, type ConsequenceMetadata } from "@/lib/variant-ui"
 
 type TranscriptRow = Record<string, unknown>
 
-type ConsequenceTranslations = Record<
-  string,
-  {
-    label?: string
-    display_name?: string
-    description?: string
-    definition?: string
-    tooltip?: string
-    impact?: string
-    IMPACT?: string
-  }
->
+type ConsequenceTranslations = Record<string, ConsequenceMetadata>
 
 type TranscriptTagMeta = {
   label: string

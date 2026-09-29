@@ -14,3 +14,10 @@ export function csvCellText(value: unknown): string {
     })
     .join(" | ")
 }
+
+export function escapeCsvCell(value: unknown, alwaysQuote = false): string {
+  let text = csvCellText(value)
+  const numeric = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text.trimStart())
+  if (!numeric && (/^[\t\r\n]/.test(text) || /^[\s]*[=+\-@]/.test(text))) text = `'${text}`
+  return alwaysQuote || /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+}

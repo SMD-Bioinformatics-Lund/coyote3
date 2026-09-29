@@ -30,6 +30,7 @@ export function Layout() {
   const [searchParams, setSearchParams] = useSearchParams()
   const isPublicRoute =
     location.pathname === "/about" ||
+    location.pathname === "/about/vep" ||
     location.pathname === "/contact" ||
     location.pathname === "/public" ||
     location.pathname.startsWith("/public/")
