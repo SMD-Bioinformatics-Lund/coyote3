@@ -5,6 +5,11 @@
     insilico_genelist_collection = "insilico_genelists"
     aspc_collection = "asp_configs"
     asp_collection = "assay_specific_panels"
+    subpanels_collection = "subpanels"
+    subpanel_associations_collection = "subpanel_associations"
+assay_setups_collection = "assay_setups"
+assay_groups_collection = "assay_groups"
+    assay_setup_revisions_collection = "assay_setup_revisions"
 
     blacklist_collection = "blacklist"
     annotations_collection = "annotation"
@@ -31,8 +36,6 @@
     rna_classification_collection = "rna_classification"
     reported_variants_collection = "reported_variants"
 
-    vep_metadata_collection = "vep_metadata"
-    hgnc_collection = "hgnc_genes"
 
 [identity]
     users_collection = "users"
@@ -42,6 +45,9 @@
     audit_events_collection = "audit_events"
 
 [knowledgebase]
+    hgnc_collection = "hgnc_genes"
+    vep_metadata_collection = "vep_metadata"
+    vep_diagrams_collection = "vep_diagrams"
     civic_variants_collection = "civic_variants"
     civic_gene_collection = "civic_genes"
     oncokb_collection = "onkokb"

@@ -36,6 +36,7 @@ from scripts.build_seed_bundle import (  # noqa: E402
     stamp_docs,
 )
 from scripts.migrate_knowledgebase_database import assert_distinct_databases  # noqa: E402
+from scripts.vep_diagram_storage import load_seed_diagrams  # noqa: E402
 
 BOOTSTRAP_ROOT = ROOT_DIR / "api" / "config" / "bootstrap"
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
@@ -55,6 +56,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
+    parser.add_argument(
+        "--knowledgebase-mongo-uri", default=os.getenv("KNOWLEDGEBASE_MONGO_URI", "")
+    )
+    parser.add_argument("--knowledgebase-db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     parser.add_argument("--db", required=True, help="Application database name")
     parser.add_argument("--identity-db", required=True, help="Identity database name")
     parser.add_argument("--username", required=True, help="First local superuser login name")
@@ -154,6 +159,7 @@ def _build_seed_documents(
     stamp_docs(payload, actor, datetime.now(timezone.utc).isoformat())
 
     for collection in (
+        "assay_groups",
         "permissions",
         "roles",
         "assay_specific_panels",
@@ -167,6 +173,26 @@ def _build_seed_documents(
     for collection, documents in payload.items():
         normalized[collection] = [
             normalize_collection_document(collection, document) for document in documents
+        ]
+    if normalized.get("assay_specific_panels"):
+        from scripts.migrate_assay_subpanels import plan_subpanels
+
+        scopes = plan_subpanels(
+            normalized["assay_specific_panels"],
+            normalized.get("asp_configs", []),
+            normalized.get("clinical_rule_sets", []),
+            normalized.get("insilico_genelists", []),
+            actor=actor,
+        )
+        normalized["subpanels"] = list(
+            {
+                row["subpanel_id"]: {key: value for key, value in row.items() if key != "asp_id"}
+                for row in scopes
+            }.values()
+        )
+        normalized["subpanel_associations"] = [
+            {key: value for key, value in row.items() if key not in {"display_name", "description"}}
+            for row in scopes
         ]
     return normalized
 
@@ -407,6 +433,8 @@ def main() -> int:
     _fail_if_placeholder_values(args)
     if not args.mongo_uri:
         raise SystemExit("--mongo-uri or COYOTE3_MONGO_URI is required")
+    if not args.knowledgebase_db:
+        raise SystemExit("--knowledgebase-db or KNOWLEDGEBASE_DB is required")
     rbac_dir = _resolve_directory(args.rbac_dir, label="RBAC seed")
     reference_dir = _resolve_directory(args.reference_dir, label="Reference seed")
     demo_center_dir = (
@@ -427,18 +455,30 @@ def main() -> int:
         raise SystemExit("Bootstrap data is missing required collections: " + ", ".join(missing))
     primary_mapping = load_collection_section("primary")
     identity_mapping = load_collection_section("identity")
+    reference_mapping = load_collection_section("knowledgebase")
+    diagram_seed = load_seed_diagrams(seed["vep_metadata"], reference_dir)
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     identity_client = client
+    reference_client = client
     try:
         identity_uri = args.identity_mongo_uri or args.mongo_uri
         if identity_uri != args.mongo_uri:
             identity_client = MongoClient(identity_uri, serverSelectionTimeoutMS=7000)
+        reference_uri = args.knowledgebase_mongo_uri or args.mongo_uri
+        if reference_uri == identity_uri:
+            reference_client = identity_client
+        elif reference_uri != args.mongo_uri:
+            reference_client = MongoClient(reference_uri, serverSelectionTimeoutMS=7000)
         client.admin.command("ping")
         identity_client.admin.command("ping")
+        reference_client.admin.command("ping")
         db = client[args.db]
         identity_db = identity_client[args.identity_db]
+        reference_db = reference_client[args.knowledgebase_db]
         assert_distinct_databases(db, identity_db)
+        assert_distinct_databases(db, reference_db)
+        assert_distinct_databases(identity_db, reference_db)
         governance = _initialize_governance(
             identity_db,
             seed=seed,
@@ -458,19 +498,31 @@ def main() -> int:
         )
         print(f"[{governance}] governance: permissions, roles, superuser and system administrator")
         primary_collections = {
-            "hgnc_genes": primary_mapping["hgnc_collection"],
-            "vep_metadata": primary_mapping["vep_metadata_collection"],
+            "assay_groups": primary_mapping["assay_groups_collection"],
             "assay_specific_panels": primary_mapping["asp_collection"],
+            "subpanels": primary_mapping["subpanels_collection"],
+            "subpanel_associations": primary_mapping["subpanel_associations_collection"],
             "asp_configs": primary_mapping["aspc_collection"],
             "insilico_genelists": primary_mapping["insilico_genelist_collection"],
             "clinical_rule_sets": primary_mapping["clinical_rule_sets_collection"],
             "clinical_rule_revisions": primary_mapping["clinical_rule_revisions_collection"],
         }
-        for logical_name in ("hgnc_genes", "vep_metadata"):
-            collection = primary_collections[logical_name]
-            print(f"[{_insert_if_empty(db, collection, seed[logical_name])}] {logical_name}")
+        result = _insert_if_empty(
+            reference_db, reference_mapping["vep_diagrams_collection"], diagram_seed
+        )
+        print(f"[{result}] knowledgebase reference: vep_diagrams")
+        for logical_name, key in (
+            ("hgnc_genes", "hgnc_collection"),
+            ("vep_metadata", "vep_metadata_collection"),
+        ):
+            collection = reference_mapping[key]
+            result = _insert_if_empty(reference_db, collection, seed[logical_name])
+            print(f"[{result}] knowledgebase reference: {logical_name}")
         for logical_name in (
+            "assay_groups",
             "assay_specific_panels",
+            "subpanels",
+            "subpanel_associations",
             "clinical_rule_sets",
             "asp_configs",
             "insilico_genelists",
@@ -487,6 +539,8 @@ def main() -> int:
             )
             print(f"[{result}] clinical_rule_revisions")
     finally:
+        if reference_client is not client and reference_client is not identity_client:
+            reference_client.close()
         if identity_client is not client:
             identity_client.close()
         client.close()

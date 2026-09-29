@@ -1,0 +1,387 @@
+{
+  "consequence_groups": {
+    "splicing": [
+      "splice_acceptor_variant",
+      "splice_donor_variant",
+      "splice_region_variant",
+      "splice_donor_5th_base_variant",
+      "splice_donor_region_variant",
+      "splice_polypyrimidine_tract_variant"
+    ],
+    "stop_gained": [
+      "stop_gained"
+    ],
+    "frameshift": [
+      "frameshift_variant"
+    ],
+    "stop_lost": [
+      "stop_lost"
+    ],
+    "start_lost": [
+      "start_lost"
+    ],
+    "inframe_indel": [
+      "inframe_insertion",
+      "inframe_deletion"
+    ],
+    "missense": [
+      "missense_variant",
+      "protein_altering_variant"
+    ],
+    "other_coding": [
+      "coding_sequence_variant",
+      "coding_transcript_variant"
+    ],
+    "synonymous": [
+      "stop_retained_variant",
+      "synonymous_variant",
+      "start_retained_variant",
+      "incomplete_terminal_codon_variant"
+    ],
+    "transcript_structure": [
+      "transcript_ablation",
+      "transcript_amplification"
+    ],
+    "UTR": [
+      "5_prime_UTR_variant",
+      "3_prime_UTR_variant"
+    ],
+    "miRNA": [
+      "mature_miRNA_variant"
+    ],
+    "NMD": [
+      "NMD_transcript_variant"
+    ],
+    "non_coding": [
+      "non_coding_transcript_exon_variant",
+      "non_coding_transcript_variant"
+    ],
+    "intronic": [
+      "intron_variant"
+    ],
+    "intergenic": [
+      "intergenic_variant",
+      "downstream_gene_variant",
+      "upstream_gene_variant"
+    ],
+    "regulatory": [
+      "regulatory_region_variant",
+      "regulatory_region_ablation",
+      "regulatory_region_amplification",
+      "TFBS_ablation",
+      "TFBS_amplification",
+      "TF_binding_site_variant"
+    ],
+    "feature_elon_trunc": [
+      "feature_elongation",
+      "feature_truncation"
+    ],
+    "other": [
+      "sequence_variant"
+    ]
+  },
+  "consequence_labels": {
+    "transcript_ablation": {
+      "short": "trans ablation",
+      "display": "Transcript ablation"
+    },
+    "splice_acceptor_variant": {
+      "short": "splice acceptor",
+      "display": "Splice acceptor variant"
+    },
+    "splice_donor_variant": {
+      "short": "splice donor",
+      "display": "Splice donor variant"
+    },
+    "stop_gained": {
+      "short": "stop gained",
+      "display": "Stop gained"
+    },
+    "frameshift_variant": {
+      "short": "frameshift",
+      "display": "Frameshift variant"
+    },
+    "stop_lost": {
+      "short": "stop lost",
+      "display": "Stop lost"
+    },
+    "start_lost": {
+      "short": "start lost",
+      "display": "Start lost"
+    },
+    "transcript_amplification": {
+      "short": "trans amp",
+      "display": "Transcript amplification"
+    },
+    "feature_elongation": {
+      "short": "feat elongation",
+      "display": "Feature elongation"
+    },
+    "feature_truncation": {
+      "short": "feat truncation",
+      "display": "Feature truncation"
+    },
+    "inframe_insertion": {
+      "short": "inframe ins",
+      "display": "Inframe insertion"
+    },
+    "inframe_deletion": {
+      "short": "inframe del",
+      "display": "Inframe deletion"
+    },
+    "missense_variant": {
+      "short": "missense",
+      "display": "Missense variant"
+    },
+    "protein_altering_variant": {
+      "short": "protein alt",
+      "display": "Protein altering variant"
+    },
+    "splice_donor_5th_base_variant": {
+      "short": "splice 5th",
+      "display": "Splice donor 5th base variant"
+    },
+    "splice_region_variant": {
+      "short": "splice region",
+      "display": "Splice region variant"
+    },
+    "splice_donor_region_variant": {
+      "short": "splice donor reg",
+      "display": "Splice donor region variant"
+    },
+    "splice_polypyrimidine_tract_variant": {
+      "short": "poly-pyrimidine",
+      "display": "Splice polypyrimidine tract variant"
+    },
+    "incomplete_terminal_codon_variant": {
+      "short": "incomplete codon",
+      "display": "Incomplete terminal codon variant"
+    },
+    "start_retained_variant": {
+      "short": "start retained",
+      "display": "Start retained variant"
+    },
+    "stop_retained_variant": {
+      "short": "stop retained",
+      "display": "Stop retained variant"
+    },
+    "synonymous_variant": {
+      "short": "synonymous",
+      "display": "Synonymous variant"
+    },
+    "coding_sequence_variant": {
+      "short": "coding seq",
+      "display": "Coding sequence variant"
+    },
+    "mature_miRNA_variant": {
+      "short": "mature miRNA",
+      "display": "Mature miRNA variant"
+    },
+    "5_prime_UTR_variant": {
+      "short": "5' UTR",
+      "display": "5 prime UTR variant"
+    },
+    "3_prime_UTR_variant": {
+      "short": "3' UTR",
+      "display": "3 prime UTR variant"
+    },
+    "non_coding_transcript_exon_variant": {
+      "short": "nc exon",
+      "display": "Non coding transcript exon variant"
+    },
+    "intron_variant": {
+      "short": "intron",
+      "display": "Intron variant"
+    },
+    "NMD_transcript_variant": {
+      "short": "NMD",
+      "display": "NMD transcript variant"
+    },
+    "non_coding_transcript_variant": {
+      "short": "nc transcript",
+      "display": "Non coding transcript variant"
+    },
+    "coding_transcript_variant": {
+      "short": "coding transcript",
+      "display": "Coding transcript variant"
+    },
+    "upstream_gene_variant": {
+      "short": "upstream",
+      "display": "Upstream gene variant"
+    },
+    "downstream_gene_variant": {
+      "short": "downstream",
+      "display": "Downstream gene variant"
+    },
+    "TFBS_ablation": {
+      "short": "TFBS ablation",
+      "display": "TFBS ablation"
+    },
+    "TFBS_amplification": {
+      "short": "TFBS amp",
+      "display": "TFBS amplification"
+    },
+    "TF_binding_site_variant": {
+      "short": "TF site",
+      "display": "TF binding site variant"
+    },
+    "regulatory_region_ablation": {
+      "short": "reg ablation",
+      "display": "Regulatory region ablation"
+    },
+    "regulatory_region_amplification": {
+      "short": "reg amp",
+      "display": "Regulatory region amplification"
+    },
+    "regulatory_region_variant": {
+      "short": "reg region",
+      "display": "Regulatory region variant"
+    },
+    "intergenic_variant": {
+      "short": "intergenic",
+      "display": "Intergenic variant"
+    },
+    "sequence_variant": {
+      "short": "seq var",
+      "display": "Sequence variant"
+    }
+  },
+  "variant_labels": {
+    "SNV": {
+      "short": "SNV",
+      "displayname": "Snv"
+    },
+    "substitution": {
+      "short": "sub",
+      "displayname": "Substitution"
+    },
+    "Alu_deletion": {
+      "short": "Alu-del",
+      "displayname": "Alu deletion"
+    },
+    "Alu_insertion": {
+      "short": "Alu-ins",
+      "displayname": "Alu insertion"
+    },
+    "HERV_deletion": {
+      "short": "HERV-del",
+      "displayname": "HERV deletion"
+    },
+    "HERV_insertion": {
+      "short": "HERV-ins",
+      "displayname": "HERV insertion"
+    },
+    "LINE1_deletion": {
+      "short": "LINE1-del",
+      "displayname": "LINE1 deletion"
+    },
+    "LINE1_insertion": {
+      "short": "LINE1-ins",
+      "displayname": "LINE1 insertion"
+    },
+    "SVA_deletion": {
+      "short": "SVA-del",
+      "displayname": "SVA deletion"
+    },
+    "SVA_insertion": {
+      "short": "SVA-ins",
+      "displayname": "SVA insertion"
+    },
+    "complex_chromosomal_rearrangement": {
+      "short": "CCR",
+      "displayname": "Complex chromosomal rearrangement"
+    },
+    "complex_structural_alteration": {
+      "short": "CSA",
+      "displayname": "Complex structural alteration"
+    },
+    "complex_substitution": {
+      "short": "cSub",
+      "displayname": "Complex substitution"
+    },
+    "copy_number_gain": {
+      "short": "CN-gain",
+      "displayname": "Copy number gain"
+    },
+    "copy_number_loss": {
+      "short": "CN-loss",
+      "displayname": "Copy number loss"
+    },
+    "copy_number_variation": {
+      "short": "CNV",
+      "displayname": "Copy number variation"
+    },
+    "duplication": {
+      "short": "dup",
+      "displayname": "Duplication"
+    },
+    "interchromosomal_breakpoint": {
+      "short": "inter-BP",
+      "displayname": "Interchromosomal breakpoint"
+    },
+    "interchromosomal_translocation": {
+      "short": "inter-TL",
+      "displayname": "Interchromosomal translocation"
+    },
+    "intrachromosomal_breakpoint": {
+      "short": "intra-BP",
+      "displayname": "Intrachromosomal breakpoint"
+    },
+    "intrachromosomal_translocation": {
+      "short": "intra-TL",
+      "displayname": "Intrachromosomal translocation"
+    },
+    "inversion": {
+      "short": "inv",
+      "displayname": "Inversion"
+    },
+    "loss_of_heterozygosity": {
+      "short": "LOH",
+      "displayname": "Loss of heterozygosity"
+    },
+    "mobile_element_deletion": {
+      "short": "ME-del",
+      "displayname": "Mobile element deletion"
+    },
+    "mobile_element_insertion": {
+      "short": "ME-ins",
+      "displayname": "Mobile element insertion"
+    },
+    "novel_sequence_insertion": {
+      "short": "novel-ins",
+      "displayname": "Novel sequence insertion"
+    },
+    "short_tandem_repeat_variation": {
+      "short": "STR-var",
+      "displayname": "Short tandem repeat variation"
+    },
+    "tandem_duplication": {
+      "short": "tandem-dup",
+      "displayname": "Tandem duplication"
+    },
+    "translocation": {
+      "short": "transloc",
+      "displayname": "Translocation"
+    },
+    "deletion": {
+      "short": "del",
+      "displayname": "Deletion"
+    },
+    "indel": {
+      "short": "indel",
+      "displayname": "Indel"
+    },
+    "insertion": {
+      "short": "ins",
+      "displayname": "Insertion"
+    },
+    "sequence_alteration": {
+      "short": "seq-alt",
+      "displayname": "Sequence alteration"
+    },
+    "probe": {
+      "short": "probe",
+      "displayname": "Probe"
+    }
+  }
+}

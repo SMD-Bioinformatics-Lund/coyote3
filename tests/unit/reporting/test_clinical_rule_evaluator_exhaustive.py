@@ -57,7 +57,7 @@ def _context() -> PreparedReportContext:
                 "environment": "testing",
                 "reporting": {
                     "report_sections": ["SNV"],
-                    "clinical_rule_set_id": "assay_1__base__sv",
+                    "language": "sv",
                 },
             },
             "findings": [

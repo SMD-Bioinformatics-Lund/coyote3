@@ -190,6 +190,8 @@ class ISGLRepository(BaseRepository):
             query["$or"] = [
                 {"isgl_id": {"$regex": pattern, "$options": "i"}},
                 {"name": {"$regex": pattern, "$options": "i"}},
+                {"displayname": {"$regex": pattern, "$options": "i"}},
+                {"aliases": {"$regex": pattern, "$options": "i"}},
                 {"description": {"$regex": pattern, "$options": "i"}},
                 {"list_type": {"$regex": pattern, "$options": "i"}},
                 {"diagnosis": {"$regex": pattern, "$options": "i"}},

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from bson import json_util
 from pydantic import ValidationError
 
 from api.contracts.schemas.registry import (
@@ -22,16 +23,22 @@ def _load_fixture_bundle(source: Path) -> dict[str, list[dict]]:
     if source.is_dir():
         payload: dict[str, list[dict]] = {}
         for file in sorted(source.glob("*.json")):
-            payload[file.stem] = json.loads(file.read_text(encoding="utf-8"))
+            payload[file.stem] = json_util.loads(file.read_text(encoding="utf-8"))
         return payload
-    return json.loads(source.read_text(encoding="utf-8"))
+    return json_util.loads(source.read_text(encoding="utf-8"))
 
 
 def _json_persistence_shape(document: dict) -> dict:
-    return json.loads(
+    return json_util.loads(
         json.dumps(
             document,
-            default=lambda value: value.isoformat() if isinstance(value, datetime) else str(value),
+            default=lambda value: (
+                value.isoformat()
+                if isinstance(value, datetime)
+                else json.loads(json_util.dumps(value))
+                if isinstance(value, bytes)
+                else str(value)
+            ),
         )
     )
 

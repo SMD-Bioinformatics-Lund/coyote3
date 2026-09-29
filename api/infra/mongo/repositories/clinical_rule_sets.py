@@ -13,7 +13,7 @@ from bson.errors import InvalidId
 from bson.json_util import CANONICAL_JSON_OPTIONS, dumps
 from pymongo import ReturnDocument
 
-from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc
+from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
 
@@ -42,7 +42,22 @@ def build_revision_snapshot(
     reason: str | None,
     previous_revision_hash: str | None,
 ) -> dict[str, Any]:
-    """Build one canonical, hash-chained immutable rule revision."""
+    """Build a hash-chained revision from the exact normalized document stored.
+
+    Args:
+        document: Rule document; schema defaults and null omission precede hashing.
+        action: Lifecycle operation producing this revision.
+        actor: Operator responsible for the operation.
+        occurred_at: Operation time, persisted at BSON millisecond precision.
+        reason: Optional explanation of the operation.
+        previous_revision_hash: Preceding revision digest, or None for a baseline.
+
+    Returns:
+        Validated snapshot whose digest survives BSON persistence and schema parsing.
+    """
+    document = ClinicalRuleSetDoc.model_validate(document).model_dump(
+        mode="python", by_alias=True, exclude_none=True
+    )
     payload = {
         "rule_set_oid": str(document["_id"]),
         "rule_set_id": document["rule_set_id"],
@@ -253,6 +268,17 @@ class ClinicalRuleSetRepository(BaseRepository):
             [("status", 1), ("updated_at", -1)], name="clinical_rule_status_updated"
         )
         collection.create_index(
+            [
+                ("scope.asp_id", 1),
+                ("scope.subpanel_id", 1),
+                ("scope.analyte", 1),
+                ("scope.language", 1),
+            ],
+            name="active_published_rule_scope_unique",
+            unique=True,
+            partialFilterExpression={"active": True, "status": "published"},
+        )
+        collection.create_index(
             [("review.clinical_reviewer", 1), ("status", 1)],
             name="clinical_rule_reviewer_status",
         )
@@ -337,17 +363,37 @@ class ClinicalRuleSetRepository(BaseRepository):
             {"rule_set_id": rule_set_id, "status": "published", "active": True}
         )
 
-    def list_active_for_assay(self, asp_id: str) -> list[dict[str, Any]]:
-        """Return active published rule sets available to one assay."""
+    def list_active_for_assay(
+        self,
+        asp_id: str,
+        *,
+        subpanel_id: str | None = None,
+        analyte: str | None = None,
+        language: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return published assay releases, optionally restricted to exact/Base scope.
+
+        Args:
+            asp_id: Assay identity.
+            subpanel_id: Restrict subpanels to this identity and Base when supplied.
+            analyte: Optional exact DNA/RNA restriction.
+            language: Optional exact reporting language restriction.
+
+        Returns:
+            Matching releases; all matches are retained to detect invalid duplicates.
+        """
+        query: dict[str, Any] = {"scope.asp_id": asp_id, "status": "published", "active": True}
+        if subpanel_id is not None:
+            query["scope.subpanel_id"] = {
+                "$in": list(dict.fromkeys((subpanel_id or "base", "base")))
+            }
+        if analyte is not None:
+            query["scope.analyte"] = analyte
+        if language is not None:
+            query["scope.language"] = language
         return list(
             self.get_collection()
-            .find(
-                {
-                    "scope.asp_id": asp_id,
-                    "status": "published",
-                    "active": True,
-                }
-            )
+            .find(query)
             .sort([("scope.subpanel_id", 1), ("scope.language", 1)])
         )
 

@@ -6,10 +6,33 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from api.contracts.schemas.public_catalog import (
-    PublicAssayCatalogDoc,
-    PublicCatalogRevisionDoc,
+from api.contracts.schemas.public_catalog import PublicAssayCatalogDoc, PublicCatalogRevisionDoc
+from api.contracts.schemas.reference import (
+    VepConsequenceDiagramDoc,
+    VepConsequenceDoc,
+    VepDbInfoDoc,
+    VepVariantClassDoc,
 )
+
+
+class PublicVepVersionsPayload(BaseModel):
+    """Available installed major VEP references, ordered numerically."""
+
+    versions: list[str]
+
+
+class PublicVepReferencePayload(BaseModel):
+    """Public reference definitions without database IDs or operator identities."""
+
+    vep_id: str
+    source: str
+    vc_translation_source: str
+    conseq_translation_source: str
+    db_info: dict[str, VepDbInfoDoc]
+    variant_class_translations: dict[str, VepVariantClassDoc]
+    conseq_translations: dict[str, VepConsequenceDoc]
+    consequence_groups: dict[str, list[str]]
+    consequence_diagram: VepConsequenceDiagramDoc | None = None
 
 
 class PublicAssayCatalogImportRequest(BaseModel):

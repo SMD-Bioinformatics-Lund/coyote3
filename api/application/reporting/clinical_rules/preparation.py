@@ -212,7 +212,7 @@ def _tier_summaries(snvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if variant.get("irrelevant") is True:
             continue
         tier = (variant.get("classification") or {}).get("class")
-        if tier not in {1, 2, 3}:
+        if tier not in {1, 2, 3, 4}:
             continue
         gene = _selected_csq(variant).get("SYMBOL")
         if not gene:
@@ -230,7 +230,7 @@ def _tier_summaries(snvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 for gene, percentages in grouped[tier].items()
             ],
         }
-        for tier in (1, 2, 3)
+        for tier in (1, 2, 3, 4)
         if tier in grouped
     ]
 
@@ -266,13 +266,13 @@ def prepare_report_context(
             ),
             0,
         )
-        for tier in (1, 2, 3)
+        for tier in (1, 2, 3, 4)
     }
     return PreparedReportContext(
         sample={
             "name": str(sample.get("name") or ""),
             "asp_id": str(sample.get("asp_id") or ""),
-            "subpanel_id": str(sample.get("subpanel_id") or aspc.get("subpanel_id") or "base"),
+            "subpanel_id": str(sample.get("subpanel_id") or "base"),
             "environment": str(sample.get("environment") or aspc.get("environment") or ""),
             "omics_layer": analyte,
             "paired": bool(sample.get("paired")),
@@ -295,9 +295,8 @@ def prepare_report_context(
             "environment": str(aspc.get("environment") or sample.get("environment") or ""),
             "reporting": {
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),
-                "clinical_rule_set_id": str(
-                    (aspc.get("reporting") or {}).get("clinical_rule_set_id") or ""
-                ),
+                "language": str((aspc.get("reporting") or {}).get("language") or "sv"),
+                "reportable_tiers": (aspc.get("reporting") or {}).get("reportable_tiers", {}),
             },
         },
         applied_gene_lists=[_gene_list_fact(item) for item in applied_gene_lists],
@@ -313,6 +312,7 @@ def prepare_report_context(
             "tier_1_count": tier_counts[1],
             "tier_2_count": tier_counts[2],
             "tier_3_count": tier_counts[3],
+            "tier_4_count": tier_counts[4],
             "tier_summaries": tier_summaries,
             "has_tiered_snvs": bool(tier_summaries),
             "has_reportable_findings": bool(findings or biomarkers),

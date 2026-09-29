@@ -55,7 +55,7 @@ required_aspc_fields = [
   "report_header",
   "report_method",
   "report_description",
-  "clinical_rule_set_id",
+  "language",
   "plots_path",
   "report_folder",
 ]

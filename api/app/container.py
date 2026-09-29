@@ -85,6 +85,10 @@ class MongoStore:
     annotation_repository: Any
     assay_configuration_repository: AssayConfigurationRepositoryProtocol
     assay_panel_repository: Any
+    assay_subpanel_repository: Any
+    assay_setup_repository: Any
+    assay_group_repository: Any
+    assay_setup_revision_repository: Any
     bam_record_repository: Any
     biomarker_repository: Any
     pgx_repository: Any
@@ -129,6 +133,10 @@ class MongoStore:
         "annotation_repository",
         "assay_configuration_repository",
         "assay_panel_repository",
+        "assay_subpanel_repository",
+        "assay_setup_repository",
+        "assay_group_repository",
+        "assay_setup_revision_repository",
         "bam_record_repository",
         "biomarker_repository",
         "pgx_repository",
@@ -187,6 +195,10 @@ class MongoStore:
         self.annotation_repository = _LazyRepositoryProxy()
         self.assay_configuration_repository = _LazyRepositoryProxy()
         self.assay_panel_repository = _LazyRepositoryProxy()
+        self.assay_subpanel_repository = _LazyRepositoryProxy()
+        self.assay_setup_repository = _LazyRepositoryProxy()
+        self.assay_group_repository = _LazyRepositoryProxy()
+        self.assay_setup_revision_repository = _LazyRepositoryProxy()
         self.bam_record_repository = _LazyRepositoryProxy()
         self.biomarker_repository = _LazyRepositoryProxy()
         self.pgx_repository = _LazyRepositoryProxy()

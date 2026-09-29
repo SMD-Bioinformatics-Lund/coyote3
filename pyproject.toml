@@ -227,4 +227,8 @@ api = [
     "config/bootstrap/demo_center/*.json",
     "config/bootstrap/rbac/*.ndjson",
     "config/bootstrap/reference/*.ndjson.gz",
+    "config/bootstrap/reference/*.ndjson",
+    "config/bootstrap/reference/vep_metadata.sources.json",
+    "config/bootstrap/reference/NOTICE.txt",
+    "config/bootstrap/reference/vep_diagrams/*",
 ]

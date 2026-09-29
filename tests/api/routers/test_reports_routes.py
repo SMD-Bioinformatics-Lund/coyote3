@@ -6,6 +6,8 @@ import pytest
 from fastapi.routing import iter_route_contexts
 
 from api.app.main import app as api_app
+from api.application.reporting.preview_consistency import preview_fingerprint
+from api.contracts.reports import ReportSaveRequest
 from api.domain.core.exceptions import AppError
 from api.interfaces.http.clinical.reporting import reports
 from api.security.access import ApiUser
@@ -134,7 +136,13 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
         ),
     )
     monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>preview</html>")
+    rendered = {}
+    monkeypatch.setitem(reports.runtime_app.config, "ORGANIZATION_NAME", "Synthetic laboratory")
+    monkeypatch.setattr(
+        reports,
+        "render_report_html",
+        lambda **kwargs: rendered.update(kwargs) or "<html>preview</html>",
+    )
 
     payload = reports.preview_report(
         sample_id="S1",
@@ -149,6 +157,8 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
     assert payload["report"]["template"] == "dna_report.html"
     assert payload["report"]["html"] == "<html>preview</html>"
     assert payload["report"]["snapshot_rows"] == [{"var": "v1"}]
+    assert rendered["organization_name"] == "Synthetic laboratory"
+    assert rendered["generated_by"] == "Test User"
 
 
 def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
@@ -193,6 +203,36 @@ def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
 
     assert payload["meta"]["snapshot_count"] == 1
     assert payload["report"]["snapshot_rows"] == []
+
+
+def test_save_report_rejects_stale_preview_before_any_write(monkeypatch):
+    """A changed preview must not allocate a number, create files or persist a report."""
+    monkeypatch.setattr(reports, "_load_report_context", lambda *_: ({}, {}))
+    monkeypatch.setattr(reports, "_validate_report_inputs", lambda *_: None)
+    monkeypatch.setattr(
+        reports,
+        "_build_preview_report",
+        lambda *args, **kwargs: ("dna_report.html", {"sample": {"tier": 2}}, []),
+    )
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("Stale preview reached report output creation")
+
+    for name in (
+        "_next_report_num",
+        "_build_report_location",
+        "_prepare_report_output",
+        "_persist_report",
+        "render_report_html",
+    ):
+        monkeypatch.setattr(reports, name, unexpected)
+    with pytest.raises(AppError, match="Refresh and review"):
+        reports.save_report(
+            sample_id="DEMO",
+            report_type="dna",
+            user=_user(),
+            payload=ReportSaveRequest(preview_fingerprint="0" * 64),
+        )
 
 
 def test_save_report_success(monkeypatch):
@@ -242,6 +282,13 @@ def test_save_report_success(monkeypatch):
     payload = reports.save_report(
         sample_id="S1",
         report_type="dna",
+        payload=ReportSaveRequest(
+            preview_fingerprint=preview_fingerprint(
+                *reports._build_preview_report(
+                    "dna", reports._load_report_context("S1", _user())[0], {}, True, True
+                )[:2]
+            )
+        ),
         user=_user(role="admin"),
     )
 
@@ -314,6 +361,13 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
     payload = reports.save_report(
         sample_id="S1",
         report_type="rna",
+        payload=ReportSaveRequest(
+            preview_fingerprint=preview_fingerprint(
+                *reports._build_preview_report(
+                    "rna", reports._load_report_context("S1", _user())[0], {}, True, True
+                )[:2]
+            )
+        ),
         user=_user(role="admin"),
     )
 

@@ -210,6 +210,7 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("aggregates.fusion_count", "Fusion count", "Result", "integer", _NUMBER),
     _fact("aggregates.translocation_count", "Translocation count", "Result", "integer", _NUMBER),
     _fact("aggregates.biomarker_count", "Biomarker count", "Result", "integer", _NUMBER),
+    _fact("aggregates.tier_4_count", "Tier IV SNV count", "Result", "integer", _NUMBER),
     _fact("aggregates.has_tiered_snvs", "Has tiered SNVs", "Result", "boolean", _EQUALITY),
     _fact(
         "aggregates.has_reportable_findings",

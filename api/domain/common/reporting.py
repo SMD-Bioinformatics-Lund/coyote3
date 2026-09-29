@@ -37,6 +37,7 @@ TIER_SUMMARY_LABELS: dict[int, str] = {
     1: " av stark klinisk signifikans (Tier I)",
     2: " av potentiell klinisk signifikans (Tier II)",
     3: " av oklar klinisk signifikans (Tier III)",
+    4: " av benign/sannolikt benign (Tier IV)",
 }
 
 STANDARD_TIER_SUMMARY_PHRASES: dict[str, Any] = {
@@ -103,16 +104,6 @@ def nl_join(arr: list, joiner: str) -> str:
         last = arr[-1]
         return f"{', '.join(arr[:-1])} {joiner} {last}"
     return ""
-
-
-def get_report_header(assay: str, sample: dict, header: str) -> str:
-    """Apply assay/sample-specific report header wording."""
-    if assay == "myeloid" and sample.get("subpanel_id") == "hem-snabb":
-        if sample.get("sample_no") == 2:
-            header += ": fullständig parad analys"
-        else:
-            header += ": preliminär oparad analys"
-    return header
 
 
 def write_report(report_data: str, report_path: str) -> bool:

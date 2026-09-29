@@ -27,7 +27,7 @@ def _email_config() -> dict[str, Any]:
     """Read SMTP configuration with the current application email switch."""
     from api.app.deps.services import get_email_config
 
-    return get_email_config()
+    return dict(get_email_config())
 
 
 def _password_token_ttl_seconds() -> int:

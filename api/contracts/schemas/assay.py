@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, computed_field, field_validator, model_validator
 
@@ -44,12 +44,35 @@ class AssayPanelToAssayGroupMappingDoc(_DocBase):
     asp_group: str
 
 
+class ReportableTiersDoc(_StrictDocBase):
+    """Allowed tiers for findings whose report inclusion is classification-driven.
+
+    Empty lists exclude all findings of that type. Structural review selections
+    and biomarkers are not tier-driven and are not configured here.
+    """
+
+    SNV: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
+    FUSION: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
+
+    @field_validator("SNV", "FUSION", mode="before")
+    @classmethod
+    def unique_tiers(cls, values: object) -> list[int]:
+        """Accept integer tiers or form selections, rejecting booleans and fractions."""
+        if not isinstance(values, list) or any(
+            type(value) not in (int, str) or str(value) not in {"1", "2", "3", "4"}
+            for value in values
+        ):
+            raise ValueError("Reportable tiers must be a list of tier numbers from 1 to 4")
+        return sorted({int(value) for value in values})
+
+
 class AspcReportingDoc(_StrictDocBase):
-    """Report sections, governed rule-set reference, text, and output locations."""
+    """Report sections, language, text, and output locations."""
 
     # Reporting
     report_sections: list[str] = Field(default_factory=list)
-    clinical_rule_set_id: str
+    reportable_tiers: ReportableTiersDoc = Field(default_factory=ReportableTiersDoc)
+    language: str = Field(default="sv", min_length=2, max_length=16)
     report_header: str
     report_method: str
     report_description: str
@@ -58,14 +81,14 @@ class AspcReportingDoc(_StrictDocBase):
 
     @model_validator(mode="after")
     def _validate_paths(self) -> AspcReportingDoc:
-        """Require report text, output locations, and a clinical rule-set reference.
+        """Require report text and output locations.
 
         Returns:
             This reporting configuration unchanged.
 
         Raises:
             ValueError: If plots_path, report_folder, report_header, report_method,
-                report_description, or clinical_rule_set_id is empty.
+                or report_description is empty.
 
         Notes:
             Paths are checked for presence, not filesystem existence.
@@ -86,10 +109,16 @@ class AspcReportingDoc(_StrictDocBase):
         if not self.report_description:
             raise ValueError("report_description cannot be empty")
 
-        if not self.clinical_rule_set_id:
-            raise ValueError("clinical_rule_set_id cannot be empty")
-
         return self
+
+    @field_validator("language")
+    @classmethod
+    def normalize_language(cls, value: str) -> str:
+        """Normalize the reporting language used for exact rule-scope matching."""
+        value = value.strip().lower()
+        if len(value) < 2:
+            raise ValueError("A reporting language tag is required")
+        return value
 
     @field_validator("report_sections", mode="before")
     @classmethod
@@ -714,6 +743,7 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     diagnosis: list[str] = Field(default_factory=list)
     name: str
     displayname: str
+    aliases: list[str] = Field(default_factory=list)
     list_type: list[str] = Field(default_factory=lambda: list(GENELIST_TYPE_OPTIONS))
     adhoc: bool = False
     is_public: bool = False
@@ -748,6 +778,35 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
             ValueError: If the identifier is empty or contains unsupported characters.
         """
         return normalize_clinical_identifier(value, label="isgl_id")
+
+    @field_validator("aliases", mode="before")
+    @classmethod
+    def _normalize_aliases(cls, value: Any) -> list[str]:
+        """Trim and deduplicate readable names without treating them as identifiers.
+
+        Args:
+            value: A list of names or comma/newline-delimited form input.
+
+        Returns:
+            Nonblank labels, preserving the spelling of their first occurrence.
+
+        Raises:
+            ValueError: An alias is not text or exceeds 200 characters.
+        """
+        if isinstance(value, str):
+            value = value.replace(",", "\n").splitlines()
+        if not isinstance(value, list):
+            raise ValueError("Aliases must be a list of names")
+        result = []
+        seen = set()
+        for label in value:
+            if not isinstance(label, str) or len(label.strip()) > 200:
+                raise ValueError("Each alias must be text of at most 200 characters")
+            label = label.strip()
+            if label and label.casefold() not in seen:
+                result.append(label)
+                seen.add(label.casefold())
+        return result
 
     @field_validator("diagnosis", mode="before")
     @classmethod

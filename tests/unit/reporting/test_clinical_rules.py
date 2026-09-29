@@ -43,7 +43,7 @@ def _context():
             "environment": "testing",
             "reporting": {
                 "report_sections": ["SNV", "CNV"],
-                "clinical_rule_set_id": "assay_1__base__sv",
+                "language": "sv",
             },
         },
         analyte="dna",
@@ -265,13 +265,13 @@ def test_validation_executes_embedded_exact_output_cases():
     assert "unexpected report text" in result.errors[0]
 
 
-def test_runtime_resolves_only_explicit_active_binding_and_verifies_hash():
+def test_runtime_resolves_published_scope_and_verifies_hash():
     document = _document(status="published", active=True)
 
     class Repository:
-        def get_active(self, rule_set_id):
-            assert rule_set_id == "assay_1__base__sv"
-            return document.model_dump(mode="python", by_alias=True)
+        def list_active_for_assay(self, asp_id, **_scope):
+            assert asp_id == "assay_1"
+            return [document.model_dump(mode="python", by_alias=True)]
 
     result = ClinicalRuleService(Repository()).evaluate(aspc={}, context=_context())
     assert result.source.rule_set_id == "assay_1__base__sv"
@@ -357,7 +357,15 @@ def test_independent_review_and_publication_preserve_content_hash():
             else []
         )
     )
-    service = ClinicalRuleAuthoringService(repository, user_repository=users, role_repository=roles)
+    service = ClinicalRuleAuthoringService(
+        repository,
+        user_repository=users,
+        role_repository=roles,
+        assay_panel_repository=SimpleNamespace(
+            get_all_asps=lambda **_: [{"asp_id": "assay_1", "asp_group": "demo"}],
+            group_options=lambda: ["demo"],
+        ),
+    )
     approved = service.clinical_decision(
         str(repository.document["_id"]),
         ClinicalRuleDecision(
@@ -392,12 +400,28 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
         ]
     )
     repository = SimpleNamespace(list_rule_sets=lambda **_kwargs: ([], 0))
-    service = ClinicalRuleAuthoringService(repository, assay_panel_repository=panels)
+    service = ClinicalRuleAuthoringService(
+        repository,
+        assay_panel_repository=panels,
+        assay_subpanel_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        ),
+    )
 
     options = service.authoring_options()
     assert options["assays"] == [
-        {"asp_id": "dna_a", "display_name": "DNA A", "analyte": "dna"},
-        {"asp_id": "rna_b", "display_name": "RNA B", "analyte": "rna"},
+        {
+            "asp_id": "dna_a",
+            "display_name": "DNA A",
+            "analyte": "dna",
+            "subpanels": [{"subpanel_id": "base", "display_name": "Base"}],
+        },
+        {
+            "asp_id": "rna_b",
+            "display_name": "RNA B",
+            "analyte": "rna",
+            "subpanels": [{"subpanel_id": "base", "display_name": "Base"}],
+        },
     ]
     assert options["condition_values"]["sample.asp_id"] == ["rna_b", "dna_a"]
     assert options["condition_values"]["sample.subpanel_id"] == ["base"]
@@ -421,7 +445,13 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
 )
 def test_new_rule_scope_must_match_an_active_assay(panel, message):
     panels = SimpleNamespace(get_asp=lambda _asp_id: panel)
-    service = ClinicalRuleAuthoringService(object(), assay_panel_repository=panels)
+    service = ClinicalRuleAuthoringService(
+        object(),
+        assay_panel_repository=panels,
+        assay_subpanel_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        ),
+    )
     payload = ClinicalRuleDraftCreate(
         scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
         name="Rules",

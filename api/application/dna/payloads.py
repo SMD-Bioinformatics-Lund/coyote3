@@ -894,7 +894,7 @@ def variant_context_payload(
     clinpgx_gene = (
         clinpgx_gene_getter(selected_csq.get("SYMBOL")) if callable(clinpgx_gene_getter) else None
     )
-    brca_exchange = service.brca_repository.get_brca_data(variant, assay_group)
+    brca_exchange = service.brca_repository.get_brca_data(variant, sample.get("genome_build"))
     iarc_tp53 = service.iarc_tp53_repository.find_iarc_tp53(variant)
     cosmic = service.cosmic_repository.get_variant_evidence(
         variant, genome_build=sample.get("genome_build")

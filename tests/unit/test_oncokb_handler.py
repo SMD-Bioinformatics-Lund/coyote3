@@ -73,10 +73,22 @@ def test_brca_lookup_uses_integer_position() -> None:
 
     handler.get_brca_data(
         {"CHROM": "17", "POS": "43071077", "REF": "A", "ALT": "G"},
-        "gmsonco",
+        38,
     )
 
     assert handler.get_collection().last_query["pos38"] == 43071077
+
+
+@pytest.mark.parametrize("build", [None, 36, "gmsonco"])
+def test_brca_lookup_does_not_guess_assembly(build):
+    handler = BRCARepository(_FakeAdapter())
+    assert handler.get_brca_data({}, build) is None
+
+
+def test_brca_grch37_uses_only_grch37_coordinates():
+    handler = BRCARepository(_FakeAdapter())
+    handler.get_brca_data({"CHROM": "chr17", "POS": 10, "REF": "A", "ALT": "G"}, 37)
+    assert handler.get_collection().last_query == {"chr": "17", "pos": 10, "ref": "A", "alt": "G"}
 
 
 @pytest.mark.parametrize(

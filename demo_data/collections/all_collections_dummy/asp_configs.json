@@ -65,6 +65,7 @@
       "germline": null
     },
     "reporting": {
+      "reportable_tiers": { "SNV": [1, 2, 3], "FUSION": [1, 2, 3] },
       "report_sections": [
         "SNV",
         "CNV"
@@ -72,7 +73,7 @@
       "report_header": "Demo report header",
       "report_method": "Demo method",
       "report_description": "DNA panel summary report for assay_1",
-      "clinical_rule_set_id": "assay_1__base__sv",
+      "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
@@ -155,6 +156,7 @@
       "germline": null
     },
     "reporting": {
+      "reportable_tiers": { "SNV": [1, 2, 3], "FUSION": [1, 2, 3] },
       "report_sections": [
         "SNV",
         "CNV"
@@ -162,7 +164,7 @@
       "report_header": "Demo report header",
       "report_method": "Demo method",
       "report_description": "DNA panel summary report for assay_1",
-      "clinical_rule_set_id": "assay_1__base__sv",
+      "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
@@ -217,6 +219,7 @@
       }
     },
     "reporting": {
+      "reportable_tiers": { "SNV": [1, 2, 3], "FUSION": [1, 2, 3] },
       "report_sections": [
         "FUSION",
         "EXPRESSION",
@@ -226,7 +229,7 @@
       "report_header": "Demo RNA report header",
       "report_method": "Demo RNA method",
       "report_description": "RNA WTS summary report for assay_rna_1",
-      "clinical_rule_set_id": "assay_rna_1__base__sv",
+      "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo-rna"
     },

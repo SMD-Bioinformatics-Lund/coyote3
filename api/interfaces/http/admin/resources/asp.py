@@ -5,8 +5,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query, Request
 
 from api.app.container import util
-from api.app.deps.services import get_admin_panel_service
+from api.app.deps.services import (
+    get_admin_assay_group_service,
+    get_admin_panel_service,
+    get_admin_subpanel_service,
+)
 from api.application.resources.asp import AspService
+from api.application.resources.assay_groups import AssayGroupService
+from api.application.resources.subpanels import SubpanelService
 from api.contracts.admin import (
     AdminChangePayload,
     AdminExistsPayload,
@@ -14,11 +20,194 @@ from api.contracts.admin import (
     AdminPanelCreateContextPayload,
     AdminPanelsListPayload,
 )
+from api.contracts.schemas.assay_groups import (
+    AssayGroupCreate,
+    AssayGroupImpact,
+    AssayGroupsPayload,
+    AssayGroupStatus,
+)
+from api.contracts.schemas.subpanels import (
+    SharedSubpanelCreate,
+    SharedSubpanelUpdate,
+    SubpanelAssociationUpdate,
+    SubpanelCreate,
+    SubpanelDefinitionsPayload,
+    SubpanelsPayload,
+    SubpanelUpdate,
+)
 from api.interfaces.http.admin.resources.audit import set_managed_resource_audit_context
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
 
 router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
+
+
+@router.get("/api/v1/resources/assay-groups/{group_id}/impact", response_model=AssayGroupImpact)
+def assay_group_impact(
+    group_id: str,
+    user: ApiUser = Depends(require_access(permission="assay.panel:view")),
+    service: AssayGroupService = Depends(get_admin_assay_group_service),
+):
+    """Inspect status and affected assays; requires assay.panel:view."""
+    return util.common.convert_to_serializable(service.impact(group_id))
+
+
+@router.patch("/api/v1/resources/assay-groups/{group_id}/status", response_model=AdminChangePayload)
+def change_assay_group_status(
+    request: Request,
+    group_id: str,
+    payload: AssayGroupStatus,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: AssayGroupService = Depends(get_admin_assay_group_service),
+):
+    """Confirm availability with a reason and current revision; requires assay.panel:edit."""
+    result = service.change_status(group_id, payload, actor=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="assay_group", action="updated", result=result
+    )
+    return result
+
+
+@router.get("/api/v1/resources/assay-groups", response_model=AssayGroupsPayload)
+def list_assay_groups(
+    user: ApiUser = Depends(require_access(permission="assay.panel:view")),
+    service: AssayGroupService = Depends(get_admin_assay_group_service),
+):
+    """List registered system and custom groups; requires assay.panel:view."""
+    return util.common.convert_to_serializable(service.list_payload())
+
+
+@router.post("/api/v1/resources/assay-groups", response_model=AdminChangePayload, status_code=201)
+def create_assay_group(
+    request: Request,
+    payload: AssayGroupCreate,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: AssayGroupService = Depends(get_admin_assay_group_service),
+):
+    """Register a custom assay group; requires assay.panel:edit and records an audit event."""
+    result = service.create(payload, actor=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="assay_group", action="created", result=result
+    )
+    return result
+
+
+@router.post("/api/v1/resources/subpanels", response_model=AdminChangePayload, status_code=201)
+def create_shared_subpanel(
+    request: Request,
+    payload: SharedSubpanelCreate,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """Create one shared definition and selected assay links; requires assay.panel:edit."""
+    result = service.create_definition(payload, actor=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="subpanel", action="created", result=result
+    )
+    return result
+
+
+@router.patch(
+    "/api/v1/resources/asp/{assay_panel_id}/subpanels/{subpanel_id}/status",
+    response_model=AdminChangePayload,
+)
+def change_subpanel_association_status(
+    request: Request,
+    assay_panel_id: str,
+    subpanel_id: str,
+    payload: SubpanelAssociationUpdate,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """Enable or disable only this assay link; requires assay.panel:edit."""
+    result = service.set_association_status(
+        assay_panel_id, subpanel_id, payload, actor=user.username
+    )
+    set_managed_resource_audit_context(
+        request, resource_type="assay_subpanel", action="updated", result=result
+    )
+    return result
+
+
+@router.get("/api/v1/resources/subpanels", response_model=SubpanelDefinitionsPayload)
+def list_shared_subpanels(
+    user: ApiUser = Depends(require_access(permission="assay.panel:view")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """List shared definitions; requires assay.panel:view."""
+    return util.common.convert_to_serializable(service.definitions_payload())
+
+
+@router.put("/api/v1/resources/subpanels/{subpanel_id}", response_model=AdminChangePayload)
+def revise_shared_subpanel(
+    request: Request,
+    subpanel_id: str,
+    payload: SharedSubpanelUpdate,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """Revise shared metadata for all associated assays; requires assay.panel:edit."""
+    result = service.revise_definition(subpanel_id, payload, actor=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="subpanel", action="updated", result=result
+    )
+    return result
+
+
+@router.get("/api/v1/resources/asp/{assay_panel_id}/subpanels", response_model=SubpanelsPayload)
+def list_subpanels(
+    assay_panel_id: str,
+    user: ApiUser = Depends(require_access(permission="assay.panel:view")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """List current and retired subpanels; requires assay.panel:view."""
+    return util.common.convert_to_serializable(service.list_payload(assay_panel_id))
+
+
+@router.post(
+    "/api/v1/resources/asp/{assay_panel_id}/subpanels",
+    response_model=AdminChangePayload,
+    status_code=201,
+)
+def create_subpanel(
+    request: Request,
+    assay_panel_id: str,
+    payload: SubpanelCreate,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """Register a subpanel under an existing assay; requires assay.panel:edit."""
+    result = service.save(assay_panel_id, payload, actor=user.username)
+    set_managed_resource_audit_context(
+        request,
+        resource_type="assay_subpanel",
+        action="created",
+        result=result,
+    )
+    return result
+
+
+@router.put(
+    "/api/v1/resources/asp/{assay_panel_id}/subpanels/{subpanel_id}",
+    response_model=AdminChangePayload,
+)
+def update_subpanel(
+    request: Request,
+    assay_panel_id: str,
+    subpanel_id: str,
+    payload: SubpanelUpdate,
+    user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
+    service: SubpanelService = Depends(get_admin_subpanel_service),
+):
+    """Revise or retire a subpanel; requires assay.panel:edit and its current version."""
+    result = service.save(assay_panel_id, payload, actor=user.username, subpanel_id=subpanel_id)
+    set_managed_resource_audit_context(
+        request,
+        resource_type="assay_subpanel",
+        action="updated",
+        result=result,
+    )
+    return result
 
 
 @router.post(

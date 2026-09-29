@@ -10,11 +10,11 @@ import shutil
 import tempfile
 from functools import partial
 from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
-from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import ValidationError
@@ -30,7 +30,6 @@ from api.application.ingest.jobs import job_status_payload, submit_ingest_job
 from api.application.ingest.parsers import runtime_file_path
 from api.application.ingest.service import InternalIngestService
 from api.application.ingest.upload_archive import UploadedFileIndex, extract_uploaded_archive
-from api.celery_app import celery_app
 from api.config.paths import INGEST_STAGING_DIR
 from api.config.runtime_settings import DefaultConfig
 from api.contracts.internal import (
@@ -114,7 +113,7 @@ def _ingest_failure(user: ApiUser, exc: Exception, *, acknowledge: bool = False)
         status_code=500,
         content={
             "status": 500,
-            "error": f"Ingest failed ({type(exc).__name__}): {exc}",
+            "error": "Ingest failed. Contact an administrator with the request ID.",
             "request_id": error_id,
             "hint": "See the matching error_id in the API log and ingest audit; outcome is unconfirmed.",
         },
@@ -127,36 +126,57 @@ def _task_submit_payload(task, *, task_name: str, queue: str) -> dict:
 
 
 def _task_status_payload(task_id: str, user: ApiUser) -> dict:
-    """Return serializable Celery task state and result/error when available."""
+    """Return a durable ingest job's status after checking ownership.
+
+    Args:
+        task_id: Identifier returned when the ingest job was accepted.
+        user: Authenticated caller with task-view permission.
+
+    Returns:
+        Public job state and completion details, excluding staged input and leases.
+
+    Raises:
+        HTTPException: If the job is absent (404) or belongs to another user (403).
+
+    Notes:
+        Superusers may inspect jobs submitted by other users.
+    """
     job = get_ingest_jobs_repository().get(task_id)
-    if job is not None:
-        if not user.is_superuser and job["submitted_by"] != user.username:
-            raise HTTPException(status_code=403, detail="This ingest job belongs to another user")
-        return job_status_payload(job)
-    result = AsyncResult(task_id, app=celery_app)
-    payload: dict = {
-        "status": "ok",
-        "task_id": task_id,
-        "state": result.state,
-        "ready": bool(result.ready()),
-    }
-    if result.ready():
-        payload["successful"] = bool(result.successful())
-        if result.successful():
-            payload["result"] = util.common.convert_to_serializable(result.result)
-        else:
-            payload["error"] = str(result.result)
-    else:
-        payload["successful"] = None
-    return payload
+    if job is None:
+        raise HTTPException(status_code=404, detail="Ingest job not found")
+    if not user.is_superuser and job["submitted_by"] != user.username:
+        raise HTTPException(status_code=403, detail="This ingest job belongs to another user")
+    return job_status_payload(job)
 
 
 def _parse_uploaded_collection_payload(filename: str, payload: bytes) -> object:
-    """Parse JSON, NDJSON, or gzipped variants for collection uploads."""
+    """Parse collection JSON within the configured compressed and expanded byte limit.
+
+    Args:
+        filename: Upload name identifying JSON, NDJSON, or their gzip variants.
+        payload: Uploaded bytes; must fit INGEST_COLLECTION_UPLOAD_MAX_BYTES.
+
+    Returns:
+        Decoded JSON document or list of NDJSON documents.
+
+    Raises:
+        HTTPException: HTTP 413 when compressed or expanded input exceeds the limit.
+        ValueError: Invalid JSON or UTF-8 content.
+        OSError: Invalid gzip content.
+        EOFError: Truncated gzip content.
+    """
+    limit = DefaultConfig.INGEST_COLLECTION_UPLOAD_MAX_BYTES
+    if limit <= 0:
+        raise RuntimeError("INGEST_COLLECTION_UPLOAD_MAX_BYTES must be positive")
+    if len(payload) > limit:
+        raise HTTPException(413, "Collection upload exceeds the configured byte limit")
     normalized_name = str(filename or "").strip().lower()
     decoded_bytes = payload
     if normalized_name.endswith(".gz"):
-        decoded_bytes = gzip.decompress(payload)
+        with gzip.GzipFile(fileobj=BytesIO(payload)) as stream:
+            decoded_bytes = stream.read(limit + 1)
+        if len(decoded_bytes) > limit:
+            raise HTTPException(413, "Expanded collection upload exceeds the configured byte limit")
         normalized_name = normalized_name[:-3]
     decoded_text = decoded_bytes.decode("utf-8")
     if normalized_name.endswith(".ndjson") or normalized_name.endswith(".jsonl"):
@@ -924,9 +944,17 @@ def ingest_collection_upload_internal(
         )
 
     try:
-        bytes_payload = documents_file.file.read()
+        _enforce_collection_permission(
+            user=user,
+            collection=raw_collection,
+            action="update" if normalized_mode == "upsert" else "create",
+        )
+        limit = DefaultConfig.INGEST_COLLECTION_UPLOAD_MAX_BYTES
+        if limit <= 0:
+            raise RuntimeError("INGEST_COLLECTION_UPLOAD_MAX_BYTES must be positive")
+        bytes_payload = documents_file.file.read(limit + 1)
         parsed = _parse_uploaded_collection_payload(documents_file.filename, bytes_payload)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (OSError, EOFError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid JSON/NDJSON upload: {exc}",
@@ -1004,7 +1032,7 @@ def get_internal_task_status(
     task_id: str,
     _user: ApiUser = Depends(require_access(permission="internal.task:view")),
 ):
-    """Return Celery task state and result/error when complete."""
+    """Return ingest status to its submitter or a superuser with internal.task:view."""
     return _task_status_payload(task_id, _user)
 
 

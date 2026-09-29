@@ -7,6 +7,7 @@ from typing import Any
 
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
 from api.application.reporting.clinical_rules.renderers import render_named
+from api.application.reporting.clinical_rules.validation import REPORT_METADATA_SECTIONS
 from api.contracts.schemas.clinical_rules import (
     ClinicalCondition,
     ClinicalConditionTraceNode,
@@ -520,6 +521,10 @@ class ClinicalRuleEvaluator:
                     section_headings[block.section] = block.show_heading
                     sections.setdefault(block.section, []).append(text)
 
+        for section in REPORT_METADATA_SECTIONS:
+            if len(sections.get(section, [])) > 1:
+                raise ValueError(f"Report metadata section '{section}' permits at most one output")
+
         return ClinicalRuleEvaluation(
             source=ClinicalRuleSourceRef(
                 rule_set_oid=str(rule_set.id_),
@@ -529,6 +534,8 @@ class ClinicalRuleEvaluator:
                 content_hash=str(rule_set.content_hash or ""),
                 language=rule_set.scope.language,
                 effective_from=rule_set.effective_from,
+                requested_subpanel_id=context.sample.subpanel_id,
+                resolved_subpanel_id=rule_set.scope.subpanel_id,
             ),
             sections=sections,
             section_headings=section_headings,

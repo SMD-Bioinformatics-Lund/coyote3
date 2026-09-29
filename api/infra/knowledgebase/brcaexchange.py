@@ -46,42 +46,24 @@ class BRCARepository(BaseRepository):
             background=True,
         )
 
-    def get_brca_data(self, variant: dict, assay: str) -> dict:
-        """
-        Retrieve BRCA data for a specific variant.
-
-        This method queries the `brcaexchange` collection in MongoDB to find BRCA-related
-        data that matches the provided variant details.
+    def get_brca_data(self, variant: dict, genome_build: int | None) -> dict | None:
+        """Look up exact variant coordinates in the explicitly selected assembly.
 
         Args:
-            variant (dict): A dictionary containing variant details, including
-                            chromosome (`CHROM`), position (`POS`), reference allele (`REF`),
-                            and alternate allele (`ALT`).
-            assay (str): The assay type to use for querying the data. If the assay is
-                         "gmsonco", the query will use GRCh38 coordinates (`chr38`, `pos38`, etc.).
-                         Otherwise, it will use standard coordinates (`chr`, `pos`, etc.).
+            variant: CHROM, POS, REF and ALT from the variant record.
+            genome_build: 37 or 38. Missing or unsupported builds do not query the database.
 
         Returns:
-            dict: A dictionary containing the BRCA data that matches the query criteria,
-                  or `None` if no match is found.
+            Matching reference document, or None when no match or valid build exists.
         """
-        if assay == "gmsonco":
-            brca = self.get_collection().find_one(
-                {
-                    "chr38": str(variant["CHROM"]),
-                    "pos38": int(variant["POS"]),
-                    "ref38": variant["REF"],
-                    "alt38": variant["ALT"],
-                }
-            )
-        else:
-            brca = self.get_collection().find_one(
-                {
-                    "chr": str(variant["CHROM"]),
-                    "pos": int(variant["POS"]),
-                    "ref": variant["REF"],
-                    "alt": variant["ALT"],
-                }
-            )
-
-        return brca
+        if genome_build not in (37, 38):
+            return None
+        suffix = "38" if genome_build == 38 else ""
+        return self.get_collection().find_one(
+            {
+                f"chr{suffix}": str(variant["CHROM"]).removeprefix("chr"),
+                f"pos{suffix}": int(variant["POS"]),
+                f"ref{suffix}": variant["REF"],
+                f"alt{suffix}": variant["ALT"],
+            }
+        )

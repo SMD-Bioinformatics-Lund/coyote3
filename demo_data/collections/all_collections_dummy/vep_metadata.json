@@ -1,6 +1,7 @@
 [
   {
     "vep_id": "103",
+    "consequence_diagram": null,
     "created_by": "system",
     "created_on": "2026-01-01T10:00:00+00:00",
     "source": "https://www.ensembl.org/info/docs/tools/vep/",
@@ -24,7 +25,8 @@
         "clinvar": "2020-08",
         "1000_genomes": "Phase 3",
         "nhlbi_esp": "V2-SSA137",
-        "gnomad": "r2.1"
+        "gnomad": "r2.1",
+        "published_sources": null
       }
     },
     "variant_class_translations": {

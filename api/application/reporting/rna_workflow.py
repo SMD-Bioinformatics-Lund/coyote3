@@ -7,6 +7,7 @@ from typing import Any
 from api.application.interpretation.annotation_enrichment import add_alt_class
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
+from api.application.reporting.eligibility import reportable_tiers
 from api.application.reporting.persistence import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
@@ -21,7 +22,7 @@ from api.domain.common.assay_filters import (
     has_sample_gene_restriction,
     merge_sample_settings_with_assay_config,
 )
-from api.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC, get_report_header, utc_now
+from api.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC, utc_now
 from api.domain.common.sample_filters import sample_filter_section
 from api.domain.core.reporting.report_paths import build_report_file_location
 from api.domain.core.rna.fusion_query_builder import build_fusion_query
@@ -457,21 +458,21 @@ class RNAWorkflowService:
         if not clinical_rule_only:
             fusions = self.fusion_repository.hydrate_finding_comments_many(fusions)
 
-        for fus_idx, fusion in enumerate(fusions):
+        for fusion in fusions:
             (
-                fusions[fus_idx]["global_annotations"],
-                fusions[fus_idx]["classification"],
-            ) = self.fusion_repository.get_fusion_annotations(fusion)
-
-        report_header = (
-            None
-            if clinical_rule_only
-            else get_report_header(
+                _annotations,
+                fusion["classification"],
+                _other_classifications,
+                interesting,
+            ) = self.annotation_repository.get_global_annotations(
+                {**fusion, **(get_selected_fusioncall(fusion) or {})},
                 str(assay_config["asp_group"]),
-                sample,
-                reporting_config["report_header"],
+                sample.get("subpanel_id"),
             )
-        )
+            fusion["global_annotations"] = list(interesting.values())
+
+        report_header = None if clinical_rule_only else reporting_config["report_header"]
+        allowed_tiers = reportable_tiers(reporting_config, "FUSION")
         reportable_fusions = [
             fusion
             for fusion in fusions
@@ -479,7 +480,7 @@ class RNAWorkflowService:
             and not fusion.get("blacklisted")
             and not fusion.get("fp")
             and not fusion.get("irrelevant")
-            and (fusion.get("classification") or {}).get("class") not in (None, 4, 999)
+            and (fusion.get("classification") or {}).get("class") in allowed_tiers
         ]
         for fusion in reportable_fusions:
             self._validate_reportable_fusion(fusion)

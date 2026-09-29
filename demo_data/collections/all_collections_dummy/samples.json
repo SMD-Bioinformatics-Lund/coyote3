@@ -45,6 +45,7 @@
         "registered_on": null
       }
     },
+    "missing_expected_files": [],
     "analysis_intents": [
       "somatic"
     ],

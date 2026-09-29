@@ -1,6 +1,9 @@
 [
   {
     "control_id": "default",
+    "email": {
+      "enabled": true
+    },
     "celery": {
       "enabled": true,
       "sample_ingest_enabled": true,

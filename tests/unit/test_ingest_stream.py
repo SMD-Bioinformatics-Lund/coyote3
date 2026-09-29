@@ -70,6 +70,9 @@ def test_terminal_errors_and_acknowledgements(failure):
     else:
         assert terminal["event"] == "error"
         assert terminal["status_code"] == (403 if failure == "http" else 500)
+        if failure == "unexpected":
+            assert "synthetic failure" not in json.dumps(terminal)
+            assert "RuntimeError" not in json.dumps(terminal)
 
 
 def test_stream_keeps_uploaded_file_open_until_consumed():

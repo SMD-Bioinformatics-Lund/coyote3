@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from api.contracts.dna import DnaCnvExportRow, DnaSnvExportRow, DnaTranslocExportRow
+from api.domain.common.csv_safety import spreadsheet_text
 from api.domain.core.dna.notation import one_letter_p
 
 
@@ -72,7 +73,7 @@ def yes_no(value: object) -> str:
 
 def safe_text(value: object) -> str:
     """Normalize free text for compact CSV-friendly rendering."""
-    text = str(value or "").replace("\r", " ").replace("\n", " ")
+    text = str("" if value is None else value).replace("\r", " ").replace("\n", " ")
     return " ".join(text.split()).strip()
 
 
@@ -94,7 +95,7 @@ def protect_excel(value: object) -> str:
             re.match(r"^\d+(\.\d+)?e[+-]?\d+$", text, flags=re.I),
         )
     )
-    return f"'{text}" if risky else text
+    return f"'{text}" if risky else spreadsheet_text(text)
 
 
 def export_rows_to_csv(rows: list[BaseModel]) -> str:

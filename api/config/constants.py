@@ -6,7 +6,6 @@ import os
 import re
 from typing import Iterable
 
-from api.config.assay_groups import ASP_GROUP_OPTIONS
 from api.config.clinical_vocabulary import CENTER_CLINICAL_CONTRACT, CLINICAL_VOCABULARY
 from api.config.contracts.governance import PERMISSION_CATALOG
 from api.config.contracts.ingest import ANALYSIS_PRELOAD_CONTRACT
@@ -228,8 +227,8 @@ def _ensure_in_options(
 
 
 def normalize_asp_group(value: object) -> str:
-    """Normalize and validate an ASP group identifier."""
-    return _ensure_in_options(value, options=ASP_GROUP_OPTIONS, label="asp_group")
+    """Validate group-key syntax; registration is checked by management services."""
+    return normalize_clinical_identifier(value, label="asp_group")
 
 
 def normalize_asp_family(value: object) -> str:

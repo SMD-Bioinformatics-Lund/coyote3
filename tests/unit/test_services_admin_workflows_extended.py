@@ -14,7 +14,7 @@ from api.app.container import util as shared_util
 from api.application.accounts.permissions import PermissionManagementService
 from api.application.accounts.roles import RoleManagementService
 from api.application.accounts.users import UserManagementService
-from api.config.constants import ASP_GROUP_OPTIONS, AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
+from api.config.constants import AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
 from api.domain.core.exceptions import AppError
 
 
@@ -181,6 +181,7 @@ def _build_store(repo: _Repo) -> SimpleNamespace:
             delete_policy=repo.delete_permission,
         ),
         assay_panel_repository=SimpleNamespace(
+            group_options=lambda: ["hematology", "solid", "custom-group"],
             get_all_asp_groups=repo.get_asp_groups,
             get_all_asps=lambda is_active=None: [{"_id": "WGS", "asp_group": "dna"}],
         ),
@@ -188,6 +189,7 @@ def _build_store(repo: _Repo) -> SimpleNamespace:
 
 
 def _patch_admin_stores(monkeypatch, repo: _Repo) -> None:
+    monkeypatch.setattr(user_module, "notify_user_change", lambda **_: {})
     store = _build_store(repo)
     monkeypatch.setattr(user_module, "store", store, raising=False)
     monkeypatch.setattr(role_module, "store", store, raising=False)
@@ -225,6 +227,30 @@ def test_admin_user_list_payload_contains_pagination(monkeypatch):
     assert payload["pagination"]["page"] == 2
 
 
+@pytest.mark.parametrize(
+    "method,payload",
+    [
+        ("update_own_profile", {"firstname": "Synthetic"}),
+        ("update_own_ui_settings", {"table_page_size": 30}),
+    ],
+)
+def test_self_service_validation_does_not_disclose_stored_values(monkeypatch, method, payload):
+    repo = _Repo()
+    repo.user_with_id = repo.get_user
+    service = _user_service(repo)
+
+    def reject_document(collection, document):
+        raise ValueError("stored password hash: synthetic-private-hash")
+
+    monkeypatch.setattr(user_module, "normalize_collection_document", reject_document)
+    with pytest.raises(AppError) as failure:
+        getattr(service, method)(username="tester", payload=payload)
+    assert failure.value.status_code == 400
+    assert "synthetic-private-hash" not in failure.value.message
+    assert "stored password" not in failure.value.message
+    assert repo.updated_user is None
+
+
 def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     repo = _Repo()
     store = _build_store(repo)
@@ -241,7 +267,11 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     assert payload["form"]["fields"]["roles"]["default"] == ["user"]
     assert payload["form"]["fields"]["auth_type"]["options"] == list(AUTH_TYPE_OPTIONS)
     assert payload["form"]["fields"]["environments"]["options"] == list(ENVIRONMENT_OPTIONS)
-    assert payload["form"]["fields"]["asp_groups"]["options"] == list(ASP_GROUP_OPTIONS)
+    assert payload["form"]["fields"]["asp_groups"]["options"] == [
+        "hematology",
+        "solid",
+        "custom-group",
+    ]
 
     service.create_user(
         payload={

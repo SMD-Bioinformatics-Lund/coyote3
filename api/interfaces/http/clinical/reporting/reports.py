@@ -13,11 +13,17 @@ from api.app.deps.services import (
 )
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import current_username
+from api.application.reporting.preview_consistency import require_current_preview
 from api.application.reporting.report_builder import ReportAnalyte, ReportService
 from api.application.reporting.report_library import ReportLibraryService
 from api.application.reporting.report_renderer import render_pdf_bytes, render_report_html
 from api.config.security import to_bool
-from api.contracts.reports import ReportLibraryPayload, ReportPreviewPayload, ReportSavePayload
+from api.contracts.reports import (
+    ReportLibraryPayload,
+    ReportPreviewPayload,
+    ReportSavePayload,
+    ReportSaveRequest,
+)
 from api.interfaces.http.tags import TAG_REPORTING
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
@@ -292,6 +298,8 @@ def preview_report(
     )
     snapshot_rows = snapshot_rows or []
     html = render_report_html(
+        organization_name=str(runtime_app.config.get("ORGANIZATION_NAME") or ""),
+        generated_by=user.fullname or user.username,
         template_name=template_name,
         template_context=template_context,
         snapshot_rows=snapshot_rows,
@@ -336,6 +344,8 @@ def preview_report_pdf(
         include_snapshot=to_bool(include_snapshot, default=True),
     )
     html = render_report_html(
+        organization_name=str(runtime_app.config.get("ORGANIZATION_NAME") or ""),
+        generated_by=user.fullname or user.username,
         template_name=template_name,
         template_context=template_context,
         snapshot_rows=snapshot_rows or [],
@@ -359,20 +369,18 @@ def preview_report_pdf(
 def save_report(
     sample_id: str,
     report_type: ReportAnalyte,
+    payload: ReportSaveRequest,
     user: ApiUser = Depends(require_access(permission="report:create")),
 ):
     """Create a saved report from the current sample review state.
 
     Requires `report:create` and sample access. Persists the report record,
     rendered artifacts and finding snapshots. The returned payload identifies
-    the created report; preview the report before submitting this operation.
+    the created report. Submit the preview fingerprint; changed inputs return 409
+    before any report artifact is created and require another review.
     """
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs(report_type, sample, assay_config)
-
-    report_num = _next_report_num(report_type, sample)
-    report_id, report_path, report_file = _build_report_location(report_type, sample, assay_config)
-    _prepare_report_output(report_type, report_path, report_file)
 
     template_name, template_context, snapshot_rows = _build_preview_report(
         report_type,
@@ -381,11 +389,17 @@ def save_report(
         save=True,
         include_snapshot=True,
     )
+    require_current_preview(payload.preview_fingerprint, template_name, template_context)
+    report_num = _next_report_num(report_type, sample)
+    report_id, report_path, report_file = _build_report_location(report_type, sample, assay_config)
+    _prepare_report_output(report_type, report_path, report_file)
     template_sample = template_context.get("sample")
     if isinstance(template_sample, dict):
         template_sample["report_num"] = max(int(report_num) - 1, 0)
     snapshot_rows = snapshot_rows or []
     html = render_report_html(
+        organization_name=str(runtime_app.config.get("ORGANIZATION_NAME") or ""),
+        generated_by=user.fullname or user.username,
         template_name=template_name,
         template_context=template_context,
         snapshot_rows=snapshot_rows,

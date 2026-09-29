@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from api.config.assay_groups import ASP_GROUP_OPTIONS
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
 from api.config.constants import (
     analysis_type_for_file_key,
@@ -41,21 +40,11 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     )
 
 
-def test_assay_groups_are_software_owned_not_center_vocabulary():
-    """Persistent clinical scope identifiers stay outside center TOML."""
+def test_assay_groups_are_database_owned_not_center_vocabulary():
+    """Persistent scope choices come from the registry, not center TOML."""
     vocabulary = load_clinical_vocabulary()
 
     assert not hasattr(vocabulary, "assay_groups")
-    assert ASP_GROUP_OPTIONS == (
-        "hematology",
-        "myeloid",
-        "lymphoid",
-        "solid",
-        "pgx",
-        "tumwgs",
-        "wts",
-        "fusion",
-    )
 
 
 def test_manifest_preload_bindings_follow_configured_file_keys():

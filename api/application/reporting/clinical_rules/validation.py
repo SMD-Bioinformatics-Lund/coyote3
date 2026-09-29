@@ -22,7 +22,8 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleValidationResult,
 )
 
-ENGINE_VERSION = 1
+ENGINE_VERSION = 2
+REPORT_METADATA_SECTIONS = frozenset({"report_header_suffix", "clinical_question"})
 MAX_CONDITION_DEPTH = 6
 
 
@@ -137,6 +138,14 @@ def validate_rule_set(document: ClinicalRuleSetDoc) -> ClinicalRuleValidationRes
 
     section_headings: dict[str, bool] = {}
     for block in document.blocks:
+        if block.section in REPORT_METADATA_SECTIONS:
+            if document.minimum_engine_version < 2:
+                errors.append("Report metadata sections require minimum_engine_version 2")
+            if block.evaluation.mode != "once" or block.analysis or block.show_heading:
+                errors.append(
+                    f"Section '{block.section}' must evaluate once for the whole report "
+                    "without a section heading"
+                )
         previous = section_headings.setdefault(block.section, block.show_heading)
         if previous != block.show_heading:
             errors.append(f"Section '{block.section}' mixes heading visibility")

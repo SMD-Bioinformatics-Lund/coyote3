@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from api.application.public.catalog_gene_views import PublicCatalogGeneViewsMixin
+from api.application.resources.availability import available_panels
 from api.config.constants import ASP_CATEGORY_OPTIONS, DEFAULT_ENVIRONMENT, SUBPANEL_BASE_ID
+from api.contracts.schemas.public_catalog import clean_catalog_html
 from api.domain.common.errors import api_error
 
 
@@ -92,6 +94,49 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "sample_database_versions": self.sample_repository.get_observed_database_versions(),
             "vep_metadata": self.vep_metadata_repository.list_versions(),
         }
+
+    def vep_reference_versions(self) -> dict:
+        """Return installed numeric major releases without reading sample data.
+
+        Returns:
+            Major-release identifiers sorted newest first.
+        """
+        versions = self.vep_metadata_repository.list_versions()
+        return {"versions": sorted((v for v in versions if v.isdecimal()), key=int, reverse=True)}
+
+    def vep_reference(self, release: str) -> dict:
+        """Return one installed public VEP reference without substituting another release.
+
+        Args:
+            release: Major release selected by the caller.
+
+        Returns:
+            Public reference definitions, provenance and an optional stored diagram.
+
+        Raises:
+            APIError: The selected release is not installed.
+        """
+        document = self.vep_metadata_repository.get_public_reference(release)
+        if not document:
+            raise api_error(404, "VEP reference release is not installed")
+        return document
+
+    def vep_diagram(self, release: str) -> dict:
+        """Return a release's binary diagram independently of its reference tables.
+
+        Args:
+            release: Exact installed major release.
+
+        Returns:
+            Original image bytes, MIME type and content digest.
+
+        Raises:
+            APIError: No diagram is installed for this release.
+        """
+        diagram = self.vep_metadata_repository.get_diagram(release)
+        if not diagram:
+            raise api_error(404, "VEP diagram is not installed")
+        return diagram
 
     def _load_catalog_document(self) -> dict[str, Any]:
         """Return center-owned presentation metadata from the primary database."""
@@ -208,7 +253,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         Returns:
             Dict[str, Any]: Catalog data in the UI contract shape.
         """
-        active_asps = self.assay_panel_repository.get_all_asps(is_active=True) or []
+        active_asps = available_panels(self.assay_panel_repository)
         active_isgls = self.gene_list_repository.get_all_isgl(
             is_active=True, is_public=True, adhoc=False
         )
@@ -422,6 +467,8 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             for raw_key, raw_category in category_items:
                 if not isinstance(raw_category, dict):
                     continue
+                if str(raw_category.get("asp_id") or "").strip() not in asp_by_id:
+                    continue
                 category_key = str(raw_category.get("category_key") or raw_key)
                 categories[category_key] = self._overlay_category_payload(
                     category_key=category_key,
@@ -497,7 +544,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "catalog_id": category_overlay.get("catalog_id") or category_key,
             "label": category_overlay.get("label") or category_overlay.get("title") or category_key,
             "title": category_overlay.get("title") or category_overlay.get("label") or category_key,
-            "description": category_overlay.get("description") or asp.get("description") or "",
+            "description": clean_catalog_html(
+                category_overlay.get("description") or asp.get("description") or ""
+            ),
             "subheading": category_overlay.get("subheading"),
             "family": family,
             "assay_group": assay_group,
@@ -576,7 +625,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "key": isgl_id,
             "catalog_id": item.get("catalog_id") or isgl_id,
             "label": item.get("label") or isgl.get("displayname") or isgl.get("name") or isgl_id,
-            "description": item.get("description") or isgl.get("description") or "",
+            "description": clean_catalog_html(
+                item.get("description") or isgl.get("description") or ""
+            ),
             "diagnosis": item.get("diagnosis") or isgl.get("diagnosis") or [],
             "subpanel_id": item.get("subpanel_id")
             or isgl.get("subpanel_id")
@@ -895,8 +946,10 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 "key": asp_id,
                 "catalog_id": asp_id,
                 "label": category_overlay.get("covered_genes_label") or "All covered genes",
-                "description": category_overlay.get("covered_genes_description")
-                or f"All genes targeted by {display_name}.",
+                "description": clean_catalog_html(
+                    category_overlay.get("covered_genes_description")
+                    or f"All genes targeted by {display_name}."
+                ),
                 "list_type": ["covered_genes"],
                 "tat": category_overlay.get("tat"),
             }
@@ -914,7 +967,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                     or isgl.get("displayname")
                     or isgl.get("name")
                     or isgl_id,
-                    "description": list_overlay.get("description") or isgl.get("description") or "",
+                    "description": clean_catalog_html(
+                        list_overlay.get("description") or isgl.get("description") or ""
+                    ),
                     "diagnosis": isgl.get("diagnosis") or [],
                     "subpanel_id": subpanel_id,
                     "list_type": isgl.get("list_type") or [],
@@ -930,10 +985,12 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "catalog_id": catalog_id,
             "label": display_name,
             "title": display_name,
-            "description": category_overlay.get("description")
-            or (aspc or {}).get("description")
-            or asp.get("description")
-            or "",
+            "description": clean_catalog_html(
+                category_overlay.get("description")
+                or (aspc or {}).get("description")
+                or asp.get("description")
+                or ""
+            ),
             "subheading": category_overlay.get("subheading"),
             "family": family,
             "assay_group": assay_group,

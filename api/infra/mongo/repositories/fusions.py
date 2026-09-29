@@ -144,37 +144,6 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
 
         return list(out.values())
 
-    def get_fusion_annotations(self, fusion: list) -> tuple:
-        """
-        Retrieve annotations and the latest classification for a given fusion.
-
-        This method processes the fusion data to extract annotations and determine
-        the most recent classification based on the `annotations_collection`.
-
-        Returns:
-            tuple: A tuple containing:
-                - annotations_list (list): A list of annotation documents.
-                - latest_classification (dict): The most recent classification document.
-        """
-        selected_call = self.get_selected_fusioncall(fusion)
-        if selected_call and "breakpoint1" in selected_call and "breakpoint2" in selected_call:
-            variant = f"{selected_call['breakpoint1']}^{selected_call['breakpoint2']}"
-            annotations_cursor = self.adapter.annotations_collection.find(
-                {"variant": variant}
-            ).sort("time_created", 1)
-        else:
-            annotations_cursor = []
-
-        latest_classification = {"class": 999}
-        annotations_list = []
-
-        for annotation in annotations_cursor:
-            if "class" in annotation:
-                latest_classification = annotation
-            elif "text" in annotation:
-                annotations_list.append(annotation)
-        return annotations_list, latest_classification
-
     def get_fusion(self, id: str) -> dict:
         """
         Retrieve a fusion variant by its ID.

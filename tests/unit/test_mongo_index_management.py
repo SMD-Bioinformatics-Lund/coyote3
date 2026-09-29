@@ -6,6 +6,7 @@ import pytest
 
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.mongo.index_management import build_index_plan, retire_index
+from api.infra.mongo.repositories.assay_setup import AssaySetupRepository
 
 
 class FakeCollection:
@@ -78,6 +79,31 @@ def test_index_plan_reports_option_conflicts():
     plan = build_index_plan(adapter_for(FakeRepository(collection)))
 
     assert plan[0]["state"] == "conflict"
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_assay_setup_index_plan_is_read_only(existing):
+    """Inspect assay setup reservations through the API startup index recorder."""
+    indexes = [
+        {"name": "setup_assay_unique", "key": {"asp_id": 1}, "unique": True},
+        {"name": "setup_status_updated", "key": {"status": 1, "updated_at": -1}},
+    ]
+    collection = FakeCollection("assay_setups", indexes if existing else [])
+    repository = AssaySetupRepository(SimpleNamespace(assay_setups_collection=collection))
+
+    # No create_index method on FakeCollection: inspection must never write indexes.
+    plan = build_index_plan(adapter_for(repository))
+
+    assert [(item["name"], item["keys"], item["state"]) for item in plan[:2]] == [
+        ("setup_assay_unique", (("asp_id", 1),), "present" if existing else "missing"),
+        (
+            "setup_status_updated",
+            (("status", 1), ("updated_at", -1)),
+            "present" if existing else "missing",
+        ),
+    ]
+    assert plan[0]["options"] == {"unique": True}
+    assert repository.get_collection() is collection
 
 
 def test_oncokb_index_plan_only_reads_all_three_collections():

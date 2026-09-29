@@ -69,7 +69,7 @@ or delete installed definitions. Catalog updates use the controlled installation
 | --- | --- | --- |
 | `audit_log:view` | View audit logs | Read administrative and clinical workflow audit events within the caller.s authorized scope. |
 | `dashboard.admin:view` | View administrative dashboard insights | View global operational dashboard metrics that are not limited to the current clinical scope. |
-| `internal.task:view` | View internal task status | View Celery state and result details for internal background tasks. |
+| `internal.task:view` | View internal task status | View durable ingest job status and results, limited to the submitter or a superuser. |
 | `ui.route_audit:view` | View UI route audit | Review the frontend route inventory, API dependencies, and consumed response fields. |
 
 ## Clinical Reporting Rules

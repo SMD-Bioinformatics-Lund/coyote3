@@ -81,7 +81,16 @@
         ]
       }
     ],
-    "test_cases": [],
+    "test_cases": [{
+      "test_id": "demo_dna_base", "name": "DNA Base report without findings",
+      "facts": {
+        "sample": {"name": "SYNTHETIC_DNA", "asp_id": "assay_1", "subpanel_id": "base", "environment": "testing", "omics_layer": "dna"},
+        "asp": {"asp_id": "assay_1"},
+        "aspc": {"aspc_id": "assay_1_base_testing", "asp_id": "assay_1", "subpanel_id": "base", "environment": "testing", "reporting": {"language": "sv", "report_sections": ["SNV", "CNV"]}}
+      },
+      "expected_rule_ids": ["demo_dna_intro_text"],
+      "expected_sections": {"Report introduction": ["DNA was extracted from the submitted specimen and analysed using the configured assay."]}
+    }],
     "references": [],
     "change_summary": "Initial demo rule set",
     "review": {
@@ -106,7 +115,7 @@
     "published_at": "2026-01-01T00:00:00+00:00",
     "published_by": "system.bootstrap",
     "effective_from": "2026-01-01T00:00:00+00:00",
-    "content_hash": "5ef78bafdb6cf0fc5df50a815ba13d429c7a3c41f1d1c4fb61005854a956af38"
+    "content_hash": "2f042a2d4573fad3ffd9a32e9cc85b041ef307d175aaac22366a58999513a6be"
   },
   {
     "rule_set_id": "assay_rna_1__base__sv",
@@ -158,7 +167,16 @@
         ]
       }
     ],
-    "test_cases": [],
+    "test_cases": [{
+      "test_id": "demo_rna_base", "name": "RNA Base report without findings",
+      "facts": {
+        "sample": {"name": "SYNTHETIC_RNA", "asp_id": "assay_rna_1", "subpanel_id": "base", "environment": "testing", "omics_layer": "rna"},
+        "asp": {"asp_id": "assay_rna_1"},
+        "aspc": {"aspc_id": "assay_rna_1_base_testing", "asp_id": "assay_rna_1", "subpanel_id": "base", "environment": "testing", "reporting": {"language": "sv", "report_sections": ["FUSION"]}}
+      },
+      "expected_rule_ids": ["demo_rna_summary_text"],
+      "expected_sections": {"Report summary": ["RNA was extracted from the submitted specimen and analysed for reportable gene fusions."]}
+    }],
     "references": [],
     "change_summary": "Initial demo rule set",
     "review": {
@@ -183,6 +201,6 @@
     "published_at": "2026-01-01T00:00:00+00:00",
     "published_by": "system.bootstrap",
     "effective_from": "2026-01-01T00:00:00+00:00",
-    "content_hash": "6f958149ba3c7b146a90c53e8b47d720acc865649d8b427458e0e80a99d74618"
+    "content_hash": "42a9865d1e84073903731dde6ede4b17c59645f62a91fb4216491a4938ed308d"
   }
 ]

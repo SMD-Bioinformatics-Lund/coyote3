@@ -12,6 +12,7 @@ from api.application.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
+from api.application.reporting.eligibility import reportable_tiers
 from api.application.reporting.snapshot_rows import (
     build_biomarker_snapshot_rows,
     build_cnv_snapshot_rows,
@@ -32,7 +33,6 @@ from api.domain.common.reporting import (
     TIER_SHORT_DESC,
     VARIANT_CLASS_TRANSLATION,
     get_plot,
-    get_report_header,
 )
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
@@ -104,12 +104,21 @@ def hotspot_variant(variants: list) -> list[dict]:
 def filter_variants_for_report(
     variants: list,
     filter_genes: list,
-    assay: str,
+    allowed_tiers: list[int],
     *,
     restrict_to_genes: bool = False,
 ) -> list:
-    """
-    Filter and sort variants included in report output.
+    """Select reportable SNVs and sort them by tier.
+
+    Args:
+        variants: Hydrated findings with scope-matched classifications.
+        filter_genes: Selected report gene symbols.
+        allowed_tiers: ASPC tier policy; an empty list excludes all findings.
+        restrict_to_genes: Treat an empty selected gene list as an empty scope
+            instead of an unrestricted report.
+
+    Returns:
+        Nonblacklisted findings within the gene and tier selection.
     """
     return sorted(
         [
@@ -121,12 +130,7 @@ def filter_variants_for_report(
             )
             and not var.get("blacklist")
             and var.get("classification")
-            and var.get("classification", {}).get("class", 0) not in [4, 999]
-            and not (
-                (assay == "gmsonco" and var.get("classification", {}).get("class", 0) == 3)
-                if assay != "tumwgs"
-                else False
-            )
+            and var.get("classification", {}).get("class") in allowed_tiers
         ],
         key=lambda var: var.get("classification", {}).get("class", 0),
     )
@@ -596,7 +600,7 @@ def build_dna_report_payload(
     variants = filter_variants_for_report(
         variants,
         filter_genes,
-        assay_group,
+        reportable_tiers(assay_config["reporting"], "SNV"),
         restrict_to_genes=has_sample_gene_restriction(
             sample,
             assay_panel_doc,
@@ -658,7 +662,7 @@ def build_dna_report_payload(
         germline_variants = filter_variants_for_report(
             germline_variants,
             filter_genes,
-            assay_group,
+            reportable_tiers(assay_config["reporting"], "SNV"),
             restrict_to_genes=has_sample_gene_restriction(
                 sample,
                 assay_panel_doc,
@@ -830,11 +834,6 @@ def build_dna_report_payload(
             [],
         )
 
-    assay_config["reporting"]["report_header"] = get_report_header(
-        assay_group,
-        sample,
-        assay_config["reporting"].get("report_header", "Unknown"),
-    )
     vep_variant_class_meta = vep_metadata_repository.get_variant_class_translations(
         sample_vep_version
     )

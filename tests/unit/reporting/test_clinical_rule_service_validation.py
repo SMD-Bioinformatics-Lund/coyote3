@@ -13,6 +13,7 @@ from api.application.reporting.clinical_rules.registry import (
 )
 from api.application.reporting.clinical_rules.service import ClinicalRuleService, rendered_summary
 from api.application.reporting.clinical_rules.validation import (
+    ENGINE_VERSION,
     MAX_CONDITION_DEPTH,
     _validate_condition,
     content_hash,
@@ -44,8 +45,8 @@ def test_service_from_store_and_resolution_failure_matrix() -> None:
         def __init__(self, result):
             self.result = result
 
-        def get_active(self, _rule_set_id):
-            return deepcopy(self.result)
+        def list_active_for_assay(self, _asp_id, **_scope):
+            return [deepcopy(self.result)] if self.result else []
 
     assert isinstance(
         ClinicalRuleService.from_store(
@@ -54,15 +55,10 @@ def test_service_from_store_and_resolution_failure_matrix() -> None:
         ClinicalRuleService,
     )
 
-    missing_binding = _context()
-    missing_binding.aspc.reporting.clinical_rule_set_id = ""
-    with pytest.raises(ValueError, match="does not define"):
-        ClinicalRuleService(Repository(None)).resolve(context=missing_binding)
-
     with pytest.raises(ValueError, match="No active published"):
         ClinicalRuleService(Repository(None)).resolve(context=_context())
 
-    too_new = valid.model_copy(update={"minimum_engine_version": 2})
+    too_new = valid.model_copy(update={"minimum_engine_version": ENGINE_VERSION + 1})
     with pytest.raises(ValueError, match="requires engine version"):
         ClinicalRuleService(Repository(too_new.model_dump(mode="python", by_alias=True))).resolve(
             context=_context()
@@ -71,7 +67,7 @@ def test_service_from_store_and_resolution_failure_matrix() -> None:
     wrong_analyte = valid.model_copy(deep=True)
     wrong_analyte.scope.analyte = "rna"
     wrong_analyte.content_hash = content_hash(wrong_analyte)
-    with pytest.raises(ValueError, match="analyte does not match"):
+    with pytest.raises(ValueError, match="No active published"):
         ClinicalRuleService(
             Repository(wrong_analyte.model_dump(mode="python", by_alias=True))
         ).resolve(context=_context())
@@ -89,9 +85,9 @@ def test_service_rejects_undeclared_sections_and_delegates_valid_evaluation() ->
         "Repository",
         (),
         {
-            "get_active": lambda self, _rule_set_id: document.model_dump(
-                mode="python", by_alias=True
-            )
+            "list_active_for_assay": lambda self, _asp_id, **_scope: [
+                document.model_dump(mode="python", by_alias=True)
+            ]
         },
     )()
     context = _context()
@@ -110,9 +106,11 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
             "Repository",
             (),
             {
-                "get_active": lambda self, _id: _document(
-                    status="published", active=True
-                ).model_dump(mode="python", by_alias=True)
+                "list_active_for_assay": lambda self, _id, **_scope: [
+                    _document(status="published", active=True).model_dump(
+                        mode="python", by_alias=True
+                    )
+                ]
             },
         )()
     ).evaluate(aspc={}, context=_context())
@@ -127,7 +125,7 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
 
 def test_validation_reports_structural_condition_and_embedded_case_failures(monkeypatch) -> None:
     document = _document()
-    document.minimum_engine_version = 2
+    document.minimum_engine_version = ENGINE_VERSION + 1
     document.analysis_declarations["CNV"].narrative = "enabled"
     document.blocks[1].section = document.blocks[0].section
     document.blocks[0].rules[0].output[1].path = "sample.secret"
@@ -229,7 +227,7 @@ def test_preparation_handles_invalid_fallback_values_and_structural_edge_shapes(
             "asp_id": "assay_1",
             "subpanel_id": "base",
             "environment": "testing",
-            "reporting": {"clinical_rule_set_id": "assay_1__base__sv"},
+            "reporting": {"language": "sv"},
         },
         analyte="dna",
         applied_gene_lists=[{"isgl_id": "list", "list_type": "snv"}],
@@ -272,7 +270,7 @@ def test_preparation_handles_invalid_fallback_values_and_structural_edge_shapes(
             "aspc_id": "c",
             "asp_id": "assay_1",
             "environment": "testing",
-            "reporting": {"clinical_rule_set_id": "assay_1__base__sv"},
+            "reporting": {"language": "sv"},
         },
         analyte="dna",
         applied_gene_lists=[{"isgl_id": "list", "list_type": ["snv"]}],

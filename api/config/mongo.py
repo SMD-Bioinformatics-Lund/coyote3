@@ -38,13 +38,11 @@ class MongoEndpoint:
 def configured_mongo_uri(config: Mapping[str, Any], service: str) -> str:
     """Resolve deployment values without implicit local defaults for maintenance CLIs."""
     uri_key, _ = MONGO_SERVICES[service]
-    return str(
-        config.get(uri_key) or config.get("COYOTE3_MONGO_URI") or config.get("MONGO_URI") or ""
-    ).strip()
+    return str(config.get(uri_key) or config.get("COYOTE3_MONGO_URI") or "").strip()
 
 
 def mongo_uri(config: Mapping[str, Any], service: str) -> str:
-    """Resolve an explicit endpoint, then the app endpoint, then the legacy URI.
+    """Resolve an explicit service endpoint or its shared application endpoint.
 
     URI paths and authSource are left intact: neither selects the logical database.
     All environments require a configured URI; local examples belong in env templates.

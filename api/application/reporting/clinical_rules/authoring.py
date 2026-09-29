@@ -8,8 +8,13 @@ from typing import Any
 
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
-from api.config.constants import ENVIRONMENT_OPTIONS
+from api.application.reporting.clinical_rules.validation import (
+    REPORT_METADATA_SECTIONS,
+    content_hash,
+    validate_rule_set,
+)
+from api.application.resources.availability import require_active_group
+from api.config.constants import ENVIRONMENT_OPTIONS, SUBPANEL_BASE_ID
 from api.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
@@ -85,6 +90,8 @@ class ClinicalRuleAuthoringService:
             revision_repository=store.clinical_rule_revision_repository,
             audit_service=audit_service,
             assay_panel_repository=store.assay_panel_repository,
+            assay_subpanel_repository=store.assay_subpanel_repository,
+            assay_setup_repository=getattr(store, "assay_setup_repository", None),
             user_repository=getattr(store, "user_repository", None),
             role_repository=getattr(store, "role_repository", None),
         )
@@ -96,6 +103,8 @@ class ClinicalRuleAuthoringService:
         revision_repository: Any | None = None,
         audit_service: Any | None = None,
         assay_panel_repository: Any | None = None,
+        assay_subpanel_repository: Any | None = None,
+        assay_setup_repository: Any | None = None,
         user_repository: Any | None = None,
         role_repository: Any | None = None,
         notification_service: Any | None = None,
@@ -107,6 +116,8 @@ class ClinicalRuleAuthoringService:
             revision_repository: Reads revision history; None disables history lookup.
             audit_service: Optional lifecycle event recorder.
             assay_panel_repository: Optional active-assay validation and option source.
+            assay_subpanel_repository: Registered scopes; required when validating an assay.
+            assay_setup_repository: Unpublished setup scopes available only to rule authoring.
             user_repository: Optional active-user lookup for assignments.
             role_repository: Optional permission-to-role lookup for assignments.
             notification_service: Optional sender of review and publication requests.
@@ -115,16 +126,18 @@ class ClinicalRuleAuthoringService:
         self.revision_repository = revision_repository
         self.audit_service = audit_service
         self.assay_panel_repository = assay_panel_repository
+        self.assay_subpanel_repository = assay_subpanel_repository
+        self.assay_setup_repository = assay_setup_repository
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.notification_service = notification_service
 
     def authoring_options(self) -> dict[str, Any]:
-        """Return active assay scopes available for new rule sets."""
+        """Return active and setup-draft assay scopes available for new rule sets."""
         if self.assay_panel_repository is None:
             return {"assays": [], "condition_values": {}, **self.reviewer_options()}
         assays = []
-        for panel in self.assay_panel_repository.get_all_asps(is_active=True):
+        for panel in self._authoring_panels():
             analyte = str(panel.get("asp_category") or "").lower()
             if analyte not in {"dna", "rna"}:
                 continue
@@ -136,19 +149,17 @@ class ClinicalRuleAuthoringService:
                     "asp_id": asp_id,
                     "display_name": str(panel.get("display_name") or asp_id),
                     "analyte": analyte,
+                    "subpanels": [
+                        {"subpanel_id": scope["subpanel_id"], "display_name": scope["display_name"]}
+                        for scope in self._registered_subpanels(asp_id)
+                    ],
                 }
             )
-        rows, _ = self.repository.list_rule_sets(limit=200)
         subpanels = sorted(
-            {"base", *(str(row.get("scope", {}).get("subpanel_id") or "").strip() for row in rows)}
-            - {""}
+            {scope["subpanel_id"] for assay in assays for scope in assay["subpanels"]}
         )
         groups = sorted(
-            {
-                str(panel.get("asp_group") or "").strip()
-                for panel in self.assay_panel_repository.get_all_asps(is_active=True)
-            }
-            - {""}
+            {str(panel.get("asp_group") or "").strip() for panel in self._authoring_panels()} - {""}
         )
         return {
             "assays": sorted(assays, key=lambda item: (item["display_name"], item["asp_id"])),
@@ -161,23 +172,62 @@ class ClinicalRuleAuthoringService:
             **self.reviewer_options(),
         }
 
+    def _authoring_panels(self) -> list[dict[str, Any]]:
+        """Combine active assays with reserved setup drafts, without changing runtime lookup."""
+        panels = list(self.assay_panel_repository.get_all_asps(is_active=True))
+        if self.assay_setup_repository is not None:
+            for setup in self.assay_setup_repository.authoring_scopes():
+                panel = setup["content"]["panel"]
+                if not self.assay_panel_repository.get_asp(panel["asp_id"]):
+                    panels.append({**panel, "is_active": True})
+        return panels
+
+    def _registered_subpanels(self, asp_id: str) -> list[dict[str, Any]]:
+        """Return active registered scopes; fail closed when the repository is not configured."""
+        if self.assay_subpanel_repository is None:
+            raise RuntimeError("Assay subpanel repository is required for rule authoring")
+        if self.assay_setup_repository is not None and not self.assay_panel_repository.get_asp(
+            asp_id
+        ):
+            for setup in self.assay_setup_repository.authoring_scopes():
+                if setup["content"]["panel"]["asp_id"] == asp_id:
+                    definitions = self.assay_subpanel_repository.list_definitions()
+                    return [{"subpanel_id": SUBPANEL_BASE_ID, "display_name": "Base"}] + [
+                        d
+                        for d in definitions
+                        if d["subpanel_id"] in setup["content"]["scopes"] and d["is_active"]
+                    ]
+        return [{"subpanel_id": SUBPANEL_BASE_ID, "display_name": "Base"}] + [
+            row
+            for row in self.assay_subpanel_repository.list_for_assay(asp_id, active_only=True)
+            if row["subpanel_id"] != SUBPANEL_BASE_ID
+        ]
+
     def _validate_new_scope(self, payload: ClinicalRuleDraftCreate) -> None:
-        """Check a draft scope against its active assay when lookup is configured.
+        """Check a draft scope against an active assay or reserved setup draft.
 
         Args:
             payload: Draft request; an absent scope skips validation here.
 
         Raises:
-            AppError: With status 409 for an absent/inactive assay or analyte mismatch.
+            AppError: With status 409 for an unavailable assay/setup or analyte mismatch.
         """
         if self.assay_panel_repository is None or payload.scope is None:
             return
         panel = self.assay_panel_repository.get_asp(payload.scope.asp_id)
+        if panel is None and self.assay_setup_repository is not None:
+            panel = next(
+                (p for p in self._authoring_panels() if p["asp_id"] == payload.scope.asp_id), None
+            )
         if not panel or panel.get("is_active") is False:
             raise api_error(409, "Clinical rule sets require an active assay panel")
         analyte = str(panel.get("asp_category") or "").lower()
         if analyte != payload.scope.analyte:
             raise api_error(409, "Clinical rule-set analyte does not match the assay panel")
+        if payload.scope.subpanel_id not in {
+            scope["subpanel_id"] for scope in self._registered_subpanels(payload.scope.asp_id)
+        }:
+            raise api_error(409, "Select an active registered subpanel for this assay")
 
     def _document(self, document_id: str) -> ClinicalRuleSetDoc:
         """Load and parse a stored rule version.
@@ -593,11 +643,14 @@ class ClinicalRuleAuthoringService:
             ValidationError: The proposed document fails canonical validation.
         """
         changes = payload.model_dump(exclude={"revision"}, exclude_none=True, mode="python")
+        if any(block["section"] in REPORT_METADATA_SECTIONS for block in changes.get("blocks", [])):
+            changes["minimum_engine_version"] = max(
+                2, self._document(document_id).minimum_engine_version
+            )
         changes.update({"updated_at": _now(), "updated_by": actor, "content_hash": None})
-        candidate = self._document(document_id).model_copy(
-            update={**deepcopy(changes), "revision": payload.revision + 1}
-        )
-        ClinicalRuleSetDoc.model_validate(candidate.model_dump(mode="python", by_alias=True))
+        candidate = self._document(document_id).model_dump(mode="python", by_alias=True)
+        candidate.update({**deepcopy(changes), "revision": payload.revision + 1})
+        ClinicalRuleSetDoc.model_validate(candidate)
         updated = self.repository.update_draft(
             document_id,
             expected_revision=payload.revision,
@@ -882,6 +935,12 @@ class ClinicalRuleAuthoringService:
             raise api_error(409, "Clinical approval must be independent of the latest editor")
         if document.review.publisher != actor:
             raise api_error(409, "This publication is assigned to another user")
+        panel = next(
+            (p for p in self._authoring_panels() if p["asp_id"] == document.scope.asp_id), None
+        )
+        if panel is None:
+            raise api_error(409, "Assay is unavailable for publication")
+        require_active_group(self.assay_panel_repository, panel["asp_group"])
         now = _now()
         digest = content_hash(document)
         event = {

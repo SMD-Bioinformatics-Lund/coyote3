@@ -23,7 +23,13 @@ from api.infra.mongo.connections import MongoConnections
 from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from api.infra.mongo.repositories.assay_groups import AssayGroupRepository
 from api.infra.mongo.repositories.assay_panels import ASPRepository
+from api.infra.mongo.repositories.assay_setup import (
+    AssaySetupRepository,
+    AssaySetupRevisionRepository,
+)
+from api.infra.mongo.repositories.assay_subpanels import AssaySubpanelRepository
 from api.infra.mongo.repositories.bam_records import BamServiceRepository
 from api.infra.mongo.repositories.biomarkers import BiomarkerRepository
 from api.infra.mongo.repositories.blacklist import BlacklistRepository
@@ -72,6 +78,10 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),
     ("finding_comment_repository", FindingCommentsRepository, "finding_comments"),
     ("assay_panel_repository", ASPRepository, "asp"),
+    ("assay_subpanel_repository", AssaySubpanelRepository, "assay_subpanels"),
+    ("assay_setup_repository", AssaySetupRepository, "assay_setups"),
+    ("assay_group_repository", AssayGroupRepository, "assay_groups"),
+    ("assay_setup_revision_repository", AssaySetupRevisionRepository, "assay_setup_revisions"),
     ("blacklist_repository", BlacklistRepository, "blacklist"),
     ("expression_repository", ExpressionRepository, "expression"),
     ("bam_record_repository", BamServiceRepository, "bam_service"),

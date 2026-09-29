@@ -138,6 +138,7 @@ def _store_stub(sample_docs=None):
                 },
             ]
         ),
+        "assay_groups": _Col([{"group_id": "hematology", "is_active": True}]),
         "assay_specific_panels": _Col(
             [
                 {
@@ -223,6 +224,7 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
                 "rna_qc": store_stub.rna_quality_repository.get_collection(),
                 "asp_configs": store_stub.coyote_db["asp_configs"],
                 "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
+                "assay_groups": store_stub.coyote_db["assay_groups"],
                 "hgnc_genes": store_stub.coyote_db["hgnc_genes"],
                 "anno_vep": store_stub.coyote_db["anno_vep"],
             }
@@ -717,6 +719,7 @@ def test_assay_file_policy_normalizes_pipeline_asp_identifier(monkeypatch):
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
             "asp_id": "hema_gmsv1",
+            "asp_group": "hematology",
             "is_active": True,
             "asp_category": "dna",
             "expected_files": ["vcf_files", "cnv"],

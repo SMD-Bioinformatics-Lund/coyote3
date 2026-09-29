@@ -122,6 +122,7 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
         OSError: Reading or decompressing a selected file fails.
     """
     supported_pack = {
+        "assay_groups": "assay_groups.seed.ndjson",
         "permissions": "permissions.seed.ndjson",
         "roles": "roles.seed.ndjson",
         "hgnc_genes": "hgnc_genes.seed.ndjson",
@@ -415,6 +416,9 @@ def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> 
             if collection == "clinical_rule_revisions":
                 continue
             normalized_doc["created_by"] = seed_actor
+            if collection == "assay_groups":
+                normalized_doc["created_on"] = seed_time
+                continue
             normalized_doc["updated_by"] = seed_actor
             if collection == "clinical_rule_sets":
                 normalized_doc["created_at"] = seed_time

@@ -96,7 +96,21 @@ def database():
 @pytest.fixture
 def service(database, monkeypatch):
     gateway = IngestCollectionGateway(
-        collections={name: database[name] for name in ("samples", "variants", "cnvs", "anno_vep")}
+        collections={
+            name: database[name]
+            for name in (
+                "samples",
+                "variants",
+                "cnvs",
+                "anno_vep",
+                "assay_specific_panels",
+                "assay_groups",
+            )
+        }
+    )
+    database.assay_groups.insert_one({"group_id": "demo", "is_active": True})
+    database.assay_specific_panels.insert_one(
+        {"asp_id": "synthetic", "asp_group": "demo", "asp_category": "dna", "is_active": True}
     )
     service = InternalIngestService(
         collection_gateway=gateway,

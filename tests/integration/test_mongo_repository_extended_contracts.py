@@ -50,6 +50,7 @@ def emulated_repository_transactions(monkeypatch):
         return operation(None)
 
     monkeypatch.setattr("api.infra.mongo.repositories.base.run_transaction", execute)
+    monkeypatch.setattr("api.infra.mongo.repositories.assay_panels.run_transaction", execute)
     monkeypatch.setattr("api.infra.mongo.repositories.revision_rotation.run_transaction", execute)
 
 
@@ -66,6 +67,7 @@ def _adapter():
         "permissions_collection": "permissions",
         "assay_panels_collection": "assay_panels",
         "asp_collection": "assay_panels",
+        "assay_groups_collection": "assay_groups",
         "assay_configurations_collection": "assay_configurations",
         "aspc_collection": "assay_configurations",
         "insilico_genelist_collection": "insilico_genelists",
@@ -429,19 +431,9 @@ def test_fusion_repository_selection_annotations_matching_and_mutations(monkeypa
             "fp": True,
         }
     )
-    adapter.annotations_collection.insert_many(
-        [
-            {"variant": "1:10:+^2:20:-", "text": "note", "time_created": 1},
-            {"variant": "1:10:+^2:20:-", "class": 2, "time_created": 2},
-        ]
-    )
-
     fusion = repository.get_fusion(str(fusion_a))
     assert repository.get_selected_fusioncall(fusion)["spanreads"] == 4
     assert repository.get_selected_fusioncall({"calls": []}) is None
-    notes, classification = repository.get_fusion_annotations(fusion)
-    assert notes[0]["text"] == "note" and classification["class"] == 2
-    assert repository.get_fusion_annotations({"calls": []}) == ([], {"class": 999})
     assert repository.get_total_fusion_count() == 2
     assert repository.get_unique_fusion_count() == 1
 
@@ -521,6 +513,9 @@ def test_structural_repositories_normalize_query_and_mutate_records() -> None:
 
 def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> None:
     adapter = _adapter()
+    adapter.assay_groups_collection.insert_many(
+        [{"group_id": key} for key in ("hematology", "solid", "demo")]
+    )
     repository = ASPRepository(adapter)
     monkeypatch.setattr(
         "api.infra.mongo.repositories.base.invalidate_dashboard_metrics",
@@ -564,7 +559,7 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     rows, total = repository.search_asps(q="illumina", page=0, per_page=500)
     assert total == 1 and rows[0]["asp_id"] == "hema_gmsv1"
     assert repository.get_all_asps_unique_gene_count() == 3
-    assert set(repository.get_all_asp_groups()) == {"hematology", "solid"}
+    assert set(repository.get_all_asp_groups()) == {"hematology", "solid", "demo"}
     assert set(repository.get_all_assays(True)) == {"hema_gmsv1", "solid_gmsv3"}
     assert repository.get_asp_genes("hema_gmsv1") == (["TP53", "FLT3", ""], ["CEBPA"])
     assert repository.get_asp_genes("missing") == ([], [])

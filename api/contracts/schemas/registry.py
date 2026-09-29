@@ -14,6 +14,8 @@ from api.contracts.schemas.assay import (
     BlacklistDoc,
     InsilicoGenelistsDoc,
 )
+from api.contracts.schemas.assay_groups import AssayGroupDoc
+from api.contracts.schemas.assay_setup import AssaySetupDoc, AssaySetupRevisionDoc
 from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 from api.contracts.schemas.dna import (
     BiomarkersDoc,
@@ -51,6 +53,7 @@ from api.contracts.schemas.reference import (
     OncoKbGenesDoc,
     OncoKbGenesPublicDoc,
     OncoKbPublicDoc,
+    VepDiagramAssetDoc,
     VepMetadataDoc,
 )
 from api.contracts.schemas.rna import FusionsDoc, RnaClassificationDoc, RnaExpressionDoc, RnaQcDoc
@@ -60,8 +63,16 @@ from api.contracts.schemas.samples import (
     SampleReportRecordDoc,
     SamplesDoc,
 )
+from api.contracts.schemas.subpanels import (
+    SubpanelAssociationDoc,
+    SubpanelDefinitionDoc,
+)
 
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
+    "assay_setups": TypeAdapter(AssaySetupDoc),
+    "assay_setup_revisions": TypeAdapter(AssaySetupRevisionDoc),
+    "subpanels": TypeAdapter(SubpanelDefinitionDoc),
+    "subpanel_associations": TypeAdapter(SubpanelAssociationDoc),
     "ingest_jobs": TypeAdapter(IngestJobDoc),
     "samples": TypeAdapter(SamplesDoc),
     "sample_comments": TypeAdapter(SampleCommentRecordDoc),
@@ -130,7 +141,9 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "oncokb_cancer_genes_public": TypeAdapter(OncoKbCancerGenesPublicDoc),
     "clinpgx_genes_public": TypeAdapter(ClinPgxGenesPublicDoc),
     "vep_metadata": TypeAdapter(VepMetadataDoc),
+    "vep_diagrams": TypeAdapter(VepDiagramAssetDoc),
     "asp_to_groups": TypeAdapter(AssayPanelToAssayGroupMappingDoc),
+    "assay_groups": TypeAdapter(AssayGroupDoc),
     "app_controls": TypeAdapter(AppControlsDoc),
 }
 

@@ -6,6 +6,7 @@
     ],
     "name": "List A",
     "displayname": "List A",
+    "aliases": [],
     "list_type": [
       "snv",
       "cnv",

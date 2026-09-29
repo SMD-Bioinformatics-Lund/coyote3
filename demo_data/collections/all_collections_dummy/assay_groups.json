@@ -1,0 +1,16 @@
+[
+  {
+    "group_id": "demo",
+    "display_name": "Demo",
+    "description": "",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": "2026-01-01T10:00:00+00:00",
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": ""
+  }
+]

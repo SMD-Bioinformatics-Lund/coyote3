@@ -16,6 +16,7 @@ def test_user_assay_options_follow_active_groups():
     service = object.__new__(UserManagementService)
     service._common_util = SimpleNamespace(create_assay_group_map=create_assay_group_map)
     service.assay_panel_repository = Mock()
+    service.assay_panel_repository.group_options.return_value = ["hematology", "solid"]
     service.assay_panel_repository.get_all_asps.return_value = [
         {"asp_id": "heme_a", "asp_group": "hematology", "display_name": "Heme A"},
         {"asp_id": "solid_a", "asp_group": "solid", "display_name": "Solid A"},

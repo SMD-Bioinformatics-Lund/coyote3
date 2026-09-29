@@ -34,6 +34,7 @@ class IngestCollectionGateway:
                 "reported_variants": store.reported_variant_repository.get_collection(),
                 "asp_configs": store.assay_configuration_repository.get_collection(),
                 "assay_specific_panels": store.assay_panel_repository.get_collection(),
+                "assay_groups": store.assay_group_repository.get_collection(),
                 "insilico_genelists": store.gene_list_repository.get_collection(),
                 "blacklist": store.blacklist_repository.get_collection(),
                 "brcaexchange": store.brca_repository.get_collection(),

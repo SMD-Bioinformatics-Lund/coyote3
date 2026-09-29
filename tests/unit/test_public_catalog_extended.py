@@ -8,6 +8,9 @@ from api.application.public.catalog import PublicCatalogService
 
 
 class _AspRepository:
+    def group_options(self):
+        return ["solid", "wts"]
+
     def __init__(self) -> None:
         self.asps = [
             {
@@ -43,6 +46,42 @@ class _AspRepository:
 
     def get_asp(self, asp_id):
         return next((item for item in self.asps if item["asp_id"] == asp_id), None)
+
+
+def test_inactive_group_is_hidden_from_public_catalog_but_not_repository_reads():
+    service = _service()
+    service.assay_panel_repository.group_options = lambda: ["wts"]
+    catalog = service.load_catalog()
+    assert "panel_a" not in str(catalog)
+    assert service.assay_panel_repository.get_asp("panel_a") is not None
+    with pytest.raises(Exception, match="Public assay is unavailable"):
+        service.asp_genes_payload("panel_a")
+
+
+@pytest.mark.parametrize("overlay", [False, True])
+def test_public_catalog_sanitizes_assay_and_genelist_fallback_html(overlay):
+    """Resource descriptions retain formatting but cannot inject executable HTML."""
+    service = _service()
+    unsafe = '<b>Clinical description</b><img src=x onerror="alert(1)"><a href="javascript:alert(1)">link</a>'
+    service.assay_panel_repository.asps[0]["description"] = unsafe
+    service.gene_list_repository.docs["solid_list"]["description"] = unsafe
+    if overlay:
+        service.public_assay_catalog_repository.document = {
+            "modalities": {
+                "panel-dna": {
+                    "categories": {
+                        "panel_a": {
+                            "asp_id": "panel_a",
+                            "gene_lists": [{"isgl_id": "solid_list"}],
+                        }
+                    }
+                }
+            },
+        }
+    catalog = str(service.load_catalog())
+    assert "<b>Clinical description</b>" in catalog
+    assert "onerror" not in catalog
+    assert "javascript:" not in catalog
 
 
 class _AspcRepository:
@@ -482,6 +521,28 @@ def test_public_gene_list_projects_only_public_fields_and_sanitizes_html():
     document = service.genelist_view_context("solid_list")["genelist"]
     assert "private_context" not in document
     assert document["description"] == "<p>Public description</p>"
+
+
+@pytest.mark.parametrize("family", ["wgs", "wts"])
+def test_genome_and_transcriptome_genelists_are_not_restricted_to_panel_genes(family):
+    service = _service()
+    service.assay_panel_repository.asps[0].update(asp_family=family, covered_genes=[])
+    context = service.genelist_view_context("solid_list", assay="panel_a")
+    assert sorted(context["filtered_genes"]) == ["EGFR", "TP53"]
+
+
+def test_public_assay_genes_preserve_covered_symbols_without_hgnc_metadata(monkeypatch):
+    service = _service()
+    monkeypatch.setattr(
+        service.hgnc_repository,
+        "get_metadata_by_symbols",
+        lambda symbols: [{"hgnc_symbol": "TP53"}],
+    )
+    payload = service.asp_genes_payload("panel_a")
+    assert [row["display_symbol"] for row in payload["gene_details"]] == ["BRCA1", "TP53"]
+    assert payload["gene_details"][0]["status"] == "Unresolved"
+    assert payload["gene_details"][0]["hgnc_id"] is None
+    assert payload["stats"]["displayed_total"] == 2
 
 
 def test_gene_table_resolution_and_public_gene_payloads(monkeypatch):

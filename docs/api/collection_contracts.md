@@ -116,6 +116,55 @@ Required keys:
 Optional keys:
 - None
 
+## `assay_groups`
+
+Required keys:
+- `group_id` (str)
+- `display_name` (str)
+- `created_by` (str)
+- `created_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `description` (str)
+- `system_managed` (bool)
+- `is_active` (bool)
+- `version` (int)
+- `publication_serial` (int)
+- `updated_by` (str | None)
+- `updated_on` (datetime.datetime | None)
+- `status_reason` (str)
+
+## `assay_setup_revisions`
+
+Required keys:
+- `setup_id` (str)
+- `revision` (int)
+- `action` (str)
+- `document` (AssaySetupDoc)
+
+Optional keys:
+- `id_` (Any | None)
+
+## `assay_setups`
+
+Required keys:
+- `asp_id` (str)
+- `content` (AssaySetupContent)
+- `content_editors` (list[str])
+- `created_by` (str)
+- `created_at` (datetime)
+- `updated_by` (str)
+- `updated_at` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `status` (Literal['draft', 'submitted', 'published'])
+- `revision` (int)
+- `review_reason` (str)
+- `published_by` (str | None)
+- `review_dependencies` (str | None)
+
 ## `assay_specific_panels`
 
 Required keys:
@@ -725,6 +774,7 @@ Required keys:
 Optional keys:
 - `id_` (Any | None)
 - `diagnosis` (list[str])
+- `aliases` (list[str])
 - `list_type` (list[str])
 - `adhoc` (bool)
 - `is_public` (bool)
@@ -1153,6 +1203,35 @@ Optional keys:
 - `latest_report_on` (datetime.datetime | None)
 - `time_added` (datetime)
 
+## `subpanel_associations`
+
+Required keys:
+- `asp_id` (str)
+- `subpanel_id` (str)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `is_active` (bool)
+- `version` (int)
+- `is_current` (bool)
+
+## `subpanels`
+
+Required keys:
+- `display_name` (str)
+- `subpanel_id` (str)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `description` (str)
+- `is_active` (bool)
+- `version` (int)
+- `is_current` (bool)
+
 ## `translocations`
 
 Required keys:
@@ -1245,6 +1324,16 @@ Optional keys:
 - `irrelevant` (str | bool)
 - `interesting` (str | bool)
 
+## `vep_diagrams`
+
+Required keys:
+- `id_` (str)
+- `data` (bytes)
+- `mime_type` (Literal['image/jpeg', 'image/png', 'image/svg+xml'])
+
+Optional keys:
+- None
+
 ## `vep_metadata`
 
 Required keys:
@@ -1260,7 +1349,7 @@ Required keys:
 - `consequence_groups` (Dict[str, list[str]])
 
 Optional keys:
-- None
+- `consequence_diagram` (api.contracts.schemas.reference.VepConsequenceDiagramDoc | None)
 
 ## `versions`
 

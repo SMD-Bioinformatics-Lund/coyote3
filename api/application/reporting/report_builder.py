@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from api.application.reporting.preview_consistency import preview_fingerprint
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 
 ReportAnalyte = Literal["dna", "rna"]
@@ -61,6 +62,7 @@ class ReportService:
                 "request_path": request_path,
                 "include_snapshot": include_snapshot,
                 "snapshot_count": len(snapshot_rows),
+                "preview_fingerprint": preview_fingerprint(template_name, template_context),
                 "template_status": {
                     "status": "ready" if has_html else "unavailable",
                     "template": template_name,

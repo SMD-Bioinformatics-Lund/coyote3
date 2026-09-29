@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from api.application.resources.availability import available_panels
 from api.config.constants import ALL_ANALYSIS_TYPE_OPTIONS
 from api.contracts.schemas.public_catalog import (
     PublicAssayCatalogDoc,
@@ -112,9 +113,7 @@ class PublicAssayCatalogManagementService:
     def source_options(self) -> dict[str, list[dict[str, Any]]]:
         """Expose safe identifiers and labels used by the catalog builder."""
         panels = (
-            self.assay_panel_repository.get_all_asps(is_active=True)
-            if self.assay_panel_repository
-            else []
+            available_panels(self.assay_panel_repository) if self.assay_panel_repository else []
         )
         configurations = (
             list(self.assay_configuration_repository.get_all_aspc())

@@ -6,19 +6,23 @@ from typing import Any
 
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.application.reporting.clinical_rules.validation import ENGINE_VERSION, content_hash
+from api.application.reporting.clinical_rules.resolution import resolve_published_rule_set
+from api.application.reporting.clinical_rules.validation import (
+    ENGINE_VERSION,
+    REPORT_METADATA_SECTIONS,
+)
 from api.config.constants import normalize_analysis_type
 from api.contracts.schemas.clinical_rules import ClinicalRuleEvaluation, ClinicalRuleSetDoc
 
 
 class ClinicalRuleService:
-    """Resolve the explicitly bound active release and evaluate prepared facts."""
+    """Resolve a published release by scope and evaluate prepared facts."""
 
     def __init__(self, repository: Any, evaluator: ClinicalRuleEvaluator | None = None) -> None:
         """Configure release lookup and rule evaluation.
 
         Args:
-            repository: Provides active published rule documents by logical ID.
+            repository: Provides active published rule documents by assay.
             evaluator: Evaluation engine; None creates ClinicalRuleEvaluator.
         """
         self.repository = repository
@@ -37,34 +41,25 @@ class ClinicalRuleService:
         return cls(store.clinical_rule_set_repository)
 
     def resolve(self, *, context: PreparedReportContext) -> ClinicalRuleSetDoc:
-        """Resolve and integrity-check the active release bound in prepared ASPC facts.
+        """Resolve and integrity-check the sample scope's active release.
 
         Args:
-            context: Report facts providing the rule binding and sample analyte.
+            context: Report facts providing sample scope, analyte and reporting language.
 
         Returns:
             Parsed active rule version with a verified canonical content hash.
 
         Raises:
-            ValueError: Binding/release is absent, schema or engine version is
+            ValueError: Release is absent or ambiguous, schema or engine version is
                 unsupported, analyte differs, or the content hash does not match.
         """
-        rule_set_id = context.aspc.reporting.clinical_rule_set_id
-        if not rule_set_id:
-            raise ValueError("ASPC does not define reporting.clinical_rule_set_id")
-        document = self.repository.get_active(rule_set_id)
-        if document is None:
-            raise ValueError(f"No active published clinical rule set exists for '{rule_set_id}'")
-        rule_set = ClinicalRuleSetDoc.model_validate(document)
-        if rule_set.minimum_engine_version > ENGINE_VERSION:
-            raise ValueError(
-                f"Clinical rule set requires engine version {rule_set.minimum_engine_version}"
-            )
-        if rule_set.scope.analyte != context.sample.omics_layer:
-            raise ValueError("Clinical rule-set analyte does not match the report context")
-        if rule_set.content_hash != content_hash(rule_set):
-            raise ValueError("Published clinical rule-set content failed integrity validation")
-        return rule_set
+        return resolve_published_rule_set(
+            self.repository,
+            asp_id=context.sample.asp_id,
+            subpanel_id=context.sample.subpanel_id,
+            analyte=context.sample.omics_layer,
+            language=context.aspc.reporting.language,
+        )
 
     @staticmethod
     def _report_sections(context: PreparedReportContext) -> set[str]:
@@ -88,7 +83,7 @@ class ClinicalRuleService:
         aspc: dict[str, Any],
         context: PreparedReportContext,
     ) -> ClinicalRuleEvaluation:
-        """Resolve the bound release and evaluate the prepared reporting sections.
+        """Resolve the scoped release and evaluate the prepared reporting sections.
 
         Args:
             aspc: Accepted but unused; configuration is read from context.aspc.
@@ -140,6 +135,8 @@ def rendered_summary(evaluation: ClinicalRuleEvaluation | None) -> str:
         return ""
     paragraphs: list[str] = []
     for section, texts in evaluation.sections.items():
+        if section in REPORT_METADATA_SECTIONS:
+            continue
         if not texts:
             continue
         if evaluation.section_headings.get(section, True):

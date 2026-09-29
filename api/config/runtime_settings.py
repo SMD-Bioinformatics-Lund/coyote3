@@ -160,7 +160,6 @@ class MailSettings:
 class PersistenceSettings:
     """MongoDB connection and configured collection-mapping settings."""
 
-    MONGO_URI = os.getenv("MONGO_URI", "").strip()
     COYOTE3_MONGO_URI = os.getenv("COYOTE3_MONGO_URI", "").strip()
     IDENTITY_MONGO_URI = os.getenv("IDENTITY_MONGO_URI", "").strip()
     KNOWLEDGEBASE_MONGO_URI = os.getenv("KNOWLEDGEBASE_MONGO_URI", "").strip()
@@ -222,6 +221,10 @@ class CelerySettings:
 
 class IngestSettings:
     """Ingest workspace and watched-manifest settings shared by API and workers."""
+
+    INGEST_COLLECTION_UPLOAD_MAX_BYTES = int(
+        os.getenv("INGEST_COLLECTION_UPLOAD_MAX_BYTES", str(64 * 1024 * 1024))
+    )
 
     COYOTE3_INGEST_WATCH_ENABLED = _environment_bool("COYOTE3_INGEST_WATCH_ENABLED")
     COYOTE3_INGEST_WATCH_FILENAME = os.getenv("COYOTE3_INGEST_WATCH_FILENAME", "coyote3.yaml")

@@ -22,6 +22,13 @@ class ReportPreviewMeta(BaseModel):
     include_snapshot: bool
     snapshot_count: int
     template_status: dict[str, Any]
+    preview_fingerprint: str
+
+
+class ReportSaveRequest(BaseModel):
+    """Require the reviewed preview's input fingerprint when creating a report."""
+
+    preview_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class ReportPreviewBody(BaseModel):

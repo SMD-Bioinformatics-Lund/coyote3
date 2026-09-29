@@ -24,7 +24,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
             "environment": "production",
             "reporting": {
                 "report_sections": ["results"],
-                "clinical_rule_set_id": "assay_1__base__sv",
+                "language": "sv",
             },
         },
         analyte="dna",

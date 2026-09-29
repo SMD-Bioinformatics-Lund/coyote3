@@ -516,7 +516,6 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
             dict(tier_four_interesting_fusion),
         ],
         hydrate_finding_comments_many=lambda rows: rows,
-        get_fusion_annotations=lambda fusion: ([{"text": "a"}], fusion.get("classification")),
     )
 
     monkeypatch.setattr(rna_workflow, "utc_now", lambda: "NOW")
@@ -526,8 +525,16 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         lambda **kwargs: kwargs["report_id"],
     )
 
+    def scoped_annotations(fusion, group, subpanel):
+        assert group == "hema"
+        assert subpanel == "selected-panel"
+        return [], fusion["classification"], [], {group: {"text": "a"}}
+
     workflow = _rna_workflow(
         fusion_repository=fusion_repository,
+        annotation_repository=SimpleNamespace(
+            get_global_annotations=scoped_annotations,
+        ),
         gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda _ids: {}),
         assay_panel_repository=SimpleNamespace(get_asp=lambda _asp: {}),
         sample_repository=SimpleNamespace(get_latest_sample_comment=lambda _sample_id: None),
@@ -549,6 +556,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
             "_id": "S1",
             "name": "S1",
             "asp_id": "fusion",
+            "subpanel_id": "selected-panel",
             "omics_layer": "rna",
             "analysis_intents": ["somatic"],
             "filters": {

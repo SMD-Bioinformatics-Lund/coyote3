@@ -11,6 +11,8 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
+
 from api.config.database_versions import vep_metadata_release
 from api.infra.mongo.repositories.base import BaseRepository
 
@@ -55,17 +57,34 @@ class VEPMetaRepository(BaseRepository):
             dict: The metadata document if found, otherwise an empty dictionary.
         """
         release = vep_metadata_release(vep_version)
-        doc = self.get_collection().find_one({"vep_id": release})
+        doc = self.get_collection().find_one({"vep_id": release}, {"consequence_diagram": 0})
         if not doc and release:
             # Older imports may store the equivalent release with a .0 suffix.
-            doc = self.get_collection().find_one({"vep_id": release + ".0"})
+            doc = self.get_collection().find_one(
+                {"vep_id": release + ".0"}, {"consequence_diagram": 0}
+            )
         if not doc:
             self.adapter.app.logger.warning("VEP version %s not found in metadata.", vep_version)
         return doc or {}
 
     def _get_latest_metadata(self):
-        """Return the latest VEP metadata document when no version is specified."""
-        doc = self.get_collection().find_one(sort=[("vep_id", -1)])
+        """Return the numerically latest release, ignoring invalid version identifiers.
+
+        Returns:
+            The complete metadata document, or an empty dictionary when no numeric
+            release is available. Version components are compared as integers.
+        """
+        versions = [
+            value
+            for value in self.get_collection().distinct("vep_id")
+            if isinstance(value, str) and re.fullmatch(r"\d+(?:\.\d+)*", value)
+        ]
+        latest = max(versions, key=lambda value: tuple(map(int, value.split("."))), default=None)
+        doc = (
+            self.get_collection().find_one({"vep_id": latest}, {"consequence_diagram": 0})
+            if latest
+            else None
+        )
         if not doc:
             self.adapter.app.logger.warning("No VEP metadata found in database.")
         return doc or {}
@@ -80,6 +99,50 @@ class VEPMetaRepository(BaseRepository):
         """
         doc = self._get_metadata(vep_version)
         return doc.get("variant_class_translations", {})
+
+    def get_public_reference(self, release: str) -> dict:
+        """Read one exact release, projecting only public reference fields.
+
+        Args:
+            release: Installed release identifier; no latest-version fallback is used.
+
+        Returns:
+            Public reference fields, or an empty dictionary if the release is absent.
+        """
+        return (
+            self.get_collection().find_one(
+                {"vep_id": release},
+                {
+                    "_id": 0,
+                    "vep_id": 1,
+                    "source": 1,
+                    "vc_translation_source": 1,
+                    "conseq_translation_source": 1,
+                    "db_info": 1,
+                    "variant_class_translations": 1,
+                    "conseq_translations": 1,
+                    "consequence_groups": 1,
+                    "consequence_diagram": 1,
+                },
+            )
+            or {}
+        )
+
+    def get_diagram(self, release: str) -> dict:
+        """Read the binary asset referenced by an exact installed release.
+
+        Args:
+            release: Major release identifier; no fallback is permitted.
+
+        Returns:
+            Binary data, MIME type and digest, or an empty dictionary if absent.
+        """
+        metadata = self.get_collection().find_one({"vep_id": release}, {"consequence_diagram": 1})
+        descriptor = (metadata or {}).get("consequence_diagram") or {}
+        digest = descriptor.get("sha256")
+        if not digest:
+            return {}
+        return self.adapter.vep_diagrams_collection.find_one({"_id": digest}) or {}
 
     def get_conseq_translations(self, vep_version: str) -> dict:
         """

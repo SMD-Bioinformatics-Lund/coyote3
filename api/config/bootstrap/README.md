@@ -9,7 +9,7 @@ Python package does not write these documents.
 | Directory | Collections | Authority | First-deployment behavior |
 | --- | --- | --- | --- |
 | `rbac/` | `permissions`, `roles` | Coyote3 application release | Installed before the first local superuser is created. Bundled records cannot be deleted through the UI. Roles may be deactivated or revised through their normal managed workflow. |
-| `reference/` | `hgnc_genes`, `vep_metadata` | Bundled reference snapshot | Imported only when the corresponding destination collection is empty. Existing reference collections are never merged or replaced by first-run bootstrap. |
+| `reference/` | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Bundled reference snapshot in `KNOWLEDGEBASE_DB` | Imported only when the corresponding destination collection is empty. Existing reference collections are never merged or replaced by first-run bootstrap. |
 | `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists` | Synthetic demonstration configuration | Optional smoke-test baseline for a new installation. These records cannot be deleted, but may be deactivated. Add center-approved definitions before clinical use. |
 
 The compressed reference files use newline-delimited JSON. Compression keeps
@@ -36,6 +36,14 @@ Application upgrades use dedicated synchronization or release procedures:
 
 - RBAC additions are applied with `scripts/sync_rbac_catalog.py`.
 - HGNC and VEP releases are loaded as an intentional reference-data operation.
+- `scripts/update_vep_metadata.py` downloads release-specific Ensembl website
+  tables. The bundled VEP seed covers releases 98 through 116, with release 103
+  preserved from the existing snapshot. `reference/vep_metadata.sources.json`
+  records source commits and hashes; `reference/NOTICE.txt` records attribution.
+- `reference/vep_diagrams/` contains original binary images named by SHA-256.
+  Keep these assets with the reference pack. Bootstrap checks their hashes and
+  installs them as BSON binary in `vep_diagrams`; VEP metadata contains only
+  compact descriptors, never embedded base64 image strings.
 - ASP, ASPC, and ISGL revisions are created through their managed versioned
   workflows.
 

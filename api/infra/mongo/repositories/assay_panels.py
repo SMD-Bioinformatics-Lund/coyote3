@@ -18,6 +18,7 @@ from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
+from api.infra.mongo.transactions import run_transaction
 
 
 # -------------------------------------------------------------------------
@@ -39,6 +40,14 @@ class ASPRepository(BaseRepository):
     It is a core MongoDB repository component, facilitating efficient
     and organized access to assay specific panel information.
     """
+
+    def group_options(self, *, active_only: bool = True) -> list[str]:
+        """Return registered scope keys, excluding inactive groups for new assignments."""
+        return sorted(
+            self.adapter.assay_groups_collection.distinct(
+                "group_id", {"is_active": True} if active_only else {}
+            )
+        )
 
     def __init__(self, adapter):
         """
@@ -242,9 +251,14 @@ class ASPRepository(BaseRepository):
         Returns:
             Structured write result for the insert.
         """
-        operation = OperationResult.from_insert_one(
-            self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
-        )
+        panel = self.ensure_asp_id(dict(data))
+
+        def create(session):
+            """Create the assay; its default scope requires no separate record."""
+            inserted = self.get_collection().insert_one(panel, session=session)
+            return OperationResult.from_insert_one(inserted)
+
+        operation = run_transaction(self.get_collection().database.client, create)
         self.invalidate_dashboard_metrics()
         return operation
 
@@ -395,16 +409,8 @@ class ASPRepository(BaseRepository):
         )
 
     def get_all_asp_groups(self) -> list:
-        """
-        Fetch distinct groups across all assay specific asp.
-
-        This method queries the database collection to retrieve a list of unique
-        values for the `asp_group` field, which represents the grouping of asp.
-
-        Returns:
-            list: A list of unique panel group names.
-        """
-        return self.get_collection().distinct("asp_group")
+        """Return registered group identifiers, including groups without an ASP yet."""
+        return self.group_options(active_only=False)
 
     def get_all_assays(self, is_active: bool | None = None) -> list:
         """

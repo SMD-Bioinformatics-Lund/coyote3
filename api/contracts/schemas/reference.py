@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase
+from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
 from api.contracts.schemas.normalizers import normalize_ampersand_terms
 from api.domain.core.annotation_identity import (
     NOMENCLATURE_FIELDS,
@@ -1049,6 +1050,10 @@ class VepDbInfoDoc(_DocBase):
     genomes_1000: str = Field(alias="1000_genomes")
     nhlbi_esp: str
     gnomad: str
+    published_sources: dict[str, str] | None = Field(
+        default=None,
+        description="Original source labels and values from this release's Ensembl cache table.",
+    )
 
     @field_validator("ensembl_version", mode="before")
     @classmethod
@@ -1089,6 +1094,41 @@ class VepConsequenceDoc(_DocBase):
     group: str
 
 
+class VepDiagramAssetDoc(_StrictCollectionDocBase):
+    """Content-addressed image stored as BSON binary in the knowledgebase."""
+
+    id_: str = Field(alias="_id", pattern=r"^[a-f0-9]{64}$")
+    data: bytes = Field(
+        max_length=2_000_000, description="Original image bytes, BSON binary subtype 0."
+    )
+    mime_type: Literal["image/jpeg", "image/png", "image/svg+xml"]
+
+    @model_validator(mode="after")
+    def verify_digest(self):
+        """Reject image data whose SHA-256 differs from its content-addressed ID.
+
+        Returns:
+            The validated binary asset.
+
+        Raises:
+            ValueError: Image content differs from its declared digest.
+        """
+        if hashlib.sha256(self.data).hexdigest() != self.id_:
+            raise ValueError("VEP diagram checksum mismatch")
+        return self
+
+
+class VepConsequenceDiagramDoc(_StrictDocBase):
+    """Compact Ensembl diagram descriptor; sha256 identifies a separate binary asset."""
+
+    mime_type: Literal["image/jpeg", "image/png", "image/svg+xml"]
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    source_url: str
+    release: str
+
+
 class VepMetadataDoc(_DocBase):
     """Versioned VEP database metadata, display translations, and consequence groups."""
 
@@ -1105,6 +1145,7 @@ class VepMetadataDoc(_DocBase):
     variant_class_translations: Dict[str, VepVariantClassDoc]
     conseq_translations: Dict[str, VepConsequenceDoc]
     consequence_groups: Dict[str, list[str]]
+    consequence_diagram: VepConsequenceDiagramDoc | None = None
 
     @field_validator("vep_id", mode="before")
     @classmethod

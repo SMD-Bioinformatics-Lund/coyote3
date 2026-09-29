@@ -43,6 +43,7 @@ def test_from_store_uses_repository_database_bindings() -> None:
         "reported_variant_repository",
         "assay_configuration_repository",
         "assay_panel_repository",
+        "assay_group_repository",
         "gene_list_repository",
         "blacklist_repository",
         "brca_repository",

@@ -4,7 +4,69 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from api.application.reporting.report_renderer import render_report_html
+
+
+@pytest.mark.parametrize(
+    "analyte,template", [("dna", "dna_report.html"), ("rna", "report_fusion.html")]
+)
+def test_report_metadata_is_escaped_and_absent_destinations_are_omitted(analyte, template):
+    context = {
+        "sample": {"name": "synthetic", "case": {}, "control": {}},
+        "assay_config": {"reporting": {"report_header": "Report"}},
+        "report_header": "Report",
+        "report_sections": [],
+        "report_sections_data": {},
+        "fusions": [],
+        "genes_covered_in_panel": {},
+    }
+
+    def render():
+        return render_report_html(
+            template_name=template,
+            template_context=context,
+            snapshot_rows=[],
+            analyte=analyte,
+            preview=True,
+        )
+
+    assert "Frågeställning" not in render()
+    context["clinical_rule_evaluation"] = {
+        "sections": {"clinical_question": ["<Question>"], "report_header_suffix": [": <paired>"]}
+    }
+    html = render()
+    assert "&lt;Question&gt;" in html
+    assert "Report: &lt;paired&gt;" in html
+    assert "<Question>" not in html
+
+
+@pytest.mark.parametrize(
+    "analyte,template", [("dna", "dna_report.html"), ("rna", "report_fusion.html")]
+)
+def test_report_identity_comes_from_explicit_runtime_values(analyte, template):
+    """Both report formats escape runtime identities instead of assuming a center or user."""
+    html = render_report_html(
+        template_name=template,
+        template_context={
+            "sample": {"name": "synthetic", "case": {}, "control": {}},
+            "assay_config": {"reporting": {}},
+            "report_sections": [],
+            "report_sections_data": {},
+            "fusions": [],
+            "genes_covered_in_panel": {},
+        },
+        snapshot_rows=[],
+        analyte=analyte,
+        preview=True,
+        organization_name="Example Lab <research>",
+        generated_by="Reviewer <one>",
+    )
+    assert "Example Lab &lt;research&gt;" in html
+    assert "Reviewer &lt;one&gt;" in html
+    assert "Centrum för molekylär diagnostik" not in html
+    assert "$SCRIPT_ROOT" not in html
 
 
 def test_dna_report_renderer_uses_master_style_template():

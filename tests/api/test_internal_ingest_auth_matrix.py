@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import gzip
 import io
+import json
 from types import SimpleNamespace
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import mongomock
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from starlette.requests import Request
 
 from api.application.ingest.service import InternalIngestService
@@ -43,6 +45,97 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
         asp_map={},
         auth_type=["local"],
     )
+
+
+@pytest.mark.parametrize("acknowledge", [False, True])
+def test_unexpected_ingest_error_preserves_trace_without_exposing_details(monkeypatch, acknowledge):
+    recorded = []
+    monkeypatch.setattr(
+        internal_router,
+        "_record_upload_error",
+        lambda user, exc, *, error_id: recorded.append((exc, error_id)),
+    )
+    failure = RuntimeError("mongodb://synthetic:secret@private.invalid /private/input.vcf")
+    response = internal_router._ingest_failure(
+        _user(role="developer", level=50),
+        failure,
+        acknowledge=acknowledge,
+    )
+    body = json.loads(response.body)
+    assert response.status_code == 500
+    assert recorded == [(failure, body["request_id"])]
+    assert "secret" not in response.body.decode()
+    assert "private.invalid" not in response.body.decode()
+    assert "input.vcf" not in response.body.decode()
+
+
+@pytest.mark.parametrize("compressed", [False, True])
+def test_collection_upload_rejects_oversized_content(monkeypatch, compressed):
+    monkeypatch.setattr(internal_router.DefaultConfig, "INGEST_COLLECTION_UPLOAD_MAX_BYTES", 64)
+    content = b'"' + b"x" * 1000 + b'"'
+    payload = gzip.compress(content) if compressed else content
+    with pytest.raises(HTTPException) as failure:
+        internal_router._parse_uploaded_collection_payload(
+            "synthetic.json.gz" if compressed else "synthetic.json",
+            payload,
+        )
+    assert failure.value.status_code == 413
+
+
+@pytest.mark.parametrize("compressed", [False, True])
+def test_collection_upload_accepts_content_at_limit(monkeypatch, compressed):
+    content = b'"' + b"x" * 126 + b'"'
+    monkeypatch.setattr(
+        internal_router.DefaultConfig, "INGEST_COLLECTION_UPLOAD_MAX_BYTES", len(content)
+    )
+    assert (
+        internal_router._parse_uploaded_collection_payload(
+            "synthetic.json.gz" if compressed else "synthetic.json",
+            gzip.compress(content) if compressed else content,
+        )
+        == "x" * 126
+    )
+
+
+def test_truncated_collection_gzip_is_rejected_and_closed(monkeypatch):
+    monkeypatch.setattr(internal_router, "_enforce_collection_permission", lambda **kwargs: None)
+    upload = UploadFile(filename="synthetic.json.gz", file=io.BytesIO(gzip.compress(b"{}")[:-5]))
+    with pytest.raises(HTTPException) as failure:
+        internal_router.ingest_collection_upload_internal(
+            collection="samples",
+            mode="insert",
+            documents_file=upload,
+            user=_user(role="developer", level=50),
+            ingest_service=SimpleNamespace(),
+        )
+    assert failure.value.status_code == 400
+    assert upload.file.closed
+
+
+def test_collection_permissions_are_checked_before_reading_upload(monkeypatch):
+    reads = []
+
+    class UnreadableUpload(io.BytesIO):
+        def read(self, *args):
+            reads.append(args)
+            raise AssertionError("Unauthorized data must not be parsed")
+
+    def deny(**kwargs):
+        raise HTTPException(403, "Forbidden")
+
+    monkeypatch.setattr(internal_router, "_enforce_collection_permission", deny)
+    upload = UploadFile(filename="synthetic.json", file=UnreadableUpload(b"{}"))
+    with pytest.raises(HTTPException) as failure:
+        internal_router.ingest_collection_upload_internal(
+            collection="samples",
+            mode="insert",
+            documents_file=upload,
+            user=_user(role="developer", level=50),
+            ingest_service=SimpleNamespace(),
+        )
+    assert failure.value.status_code == 403
+    assert not reads
+    assert upload.file.closed
 
 
 @pytest.mark.parametrize(
@@ -388,6 +481,7 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(
     )
     data_archive = _zip_upload(("case.vcf", b"##fileformat=VCFv4.2\n"))
     service = SimpleNamespace(
+        preflight_sample_name=lambda payload, **kwargs: None,
         parse_yaml_payload=lambda _raw: {
             "name": "SAMPLE_1",
             "asp_id": "assay_1",
@@ -442,37 +536,34 @@ def test_upload_ignores_excluded_file_without_resolving_it(tmp_path):
     ]
 
 
-def test_internal_task_status_payload_success(monkeypatch):
-    """Task status endpoint returns successful Celery result payloads."""
-
-    class _Result:
-        state = "SUCCESS"
-        result = {"status": "ok"}
-
-        def __init__(self, task_id, app=None):
-            self.task_id = task_id
-            self.app = app
-
-        def ready(self):
-            return True
-
-        def successful(self):
-            return True
-
-    monkeypatch.setattr(internal_router, "AsyncResult", _Result)
+def test_internal_task_status_payload_success(ingest_jobs):
+    """Submitters can read completed durable results without staged input or lease data."""
+    identity = ingest_jobs.submit(source_payload={"private": "input"}, submitted_by="user1")
+    job = ingest_jobs.claim(identity, lease_seconds=60)
+    ingest_jobs.complete(identity, job["lease_token"], {"status": "ok"}, session=None)
     response = internal_router.get_internal_task_status(
-        task_id="task-123",
+        task_id=identity,
         _user=_user(role="developer", level=50),
     )
 
     assert response == {
         "status": "ok",
-        "task_id": "task-123",
+        "task_id": identity,
         "state": "SUCCESS",
         "ready": True,
         "successful": True,
         "result": {"status": "ok"},
     }
+
+
+@pytest.mark.parametrize("role,level", [("developer", 50), ("superuser", 100)])
+def test_task_status_requires_durable_job(role, level):
+    """Unknown task IDs cannot bypass ownership through the Celery result backend."""
+    with pytest.raises(HTTPException) as error:
+        internal_router.get_internal_task_status(
+            task_id="untracked-task", _user=_user(role=role, level=level)
+        )
+    assert error.value.status_code == 404
 
 
 def test_durable_job_status_is_limited_to_submitter_or_superuser(ingest_jobs):

@@ -1,0 +1,18 @@
+Ensembl reference metadata
+
+The VEP seed contains diagrams, descriptions, ontology accessions, impact ratings and
+cache-version information derived from Ensembl's public-plugins and
+ensembl-webcode repositories, distributed under the Apache License, Version 2.0.
+See the project's LICENSE.txt and https://www.apache.org/licenses/LICENSE-2.0.
+
+Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European
+Bioinformatics Institute.
+Copyright [2016-2026] EMBL-European Bioinformatics Institute.
+
+Coyote3 transforms these reference tables into its document schema and adds
+application-specific short labels and logical consequence groups. The original
+release-specific source URLs and SHA-256 digests are recorded in
+vep_metadata.sources.json. Release 103 is retained from the existing reference
+snapshot and is not part of that download manifest.
+Each diagram additionally records its release-specific source URL and SHA-256
+digest in consequence_diagram, including the diagram for release 103.

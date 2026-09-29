@@ -76,12 +76,12 @@ def stream_ingest(operation: Callable[[], Any]) -> StreamingResponse:
                     "status_code": exc.status_code,
                     "data": {"detail": exc.detail},
                 }
-            except Exception as exc:
+            except Exception:
                 logging.getLogger("api.application.ingest").exception("Ingest stream failed")
                 terminal = {
                     "event": "error",
                     "status_code": 500,
-                    "data": {"error": f"{type(exc).__name__}: {exc}"},
+                    "data": {"error": "Ingest failed. Contact an administrator for details."},
                 }
             finally:
                 for logger in loggers:

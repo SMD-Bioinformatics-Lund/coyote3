@@ -35,6 +35,14 @@ def assay_file_policy(
     panel = panel_collection.find_one({"asp_id": asp_id, "is_active": True})
     if not isinstance(panel, dict):
         raise ValueError(f"No active ASP is configured for assay '{asp_id}'")
+    group = collection("assay_groups").find_one(
+        {
+            "group_id": panel.get("asp_group"),
+            "is_active": True,
+        }
+    )
+    if not isinstance(group, dict):
+        raise ValueError("Assay group is inactive or unregistered; sample ingest is unavailable")
     asp_category = str(panel.get("asp_category") or default_category).strip().lower()
     allowed = set(SAMPLE_FILE_KEYS.get(asp_category, expected_file_keys(default_category)))
     expected = (

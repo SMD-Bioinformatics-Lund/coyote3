@@ -14,7 +14,6 @@ from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
-    ASP_GROUP_OPTIONS,
     AUTH_TYPE_OPTIONS,
     DNA_ANALYSIS_TYPE_OPTIONS,
     ENVIRONMENT_OPTIONS,
@@ -140,7 +139,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "igv-config",
             "default": None,
         },
-        "asp_group": {"display_type": "select", "options": list(ASP_GROUP_OPTIONS)},
+        "asp_group": {"display_type": "select", "options": []},
         "asp_family": {
             "display_type": "select",
             "options": list(ASP_FAMILY_OPTIONS),
@@ -210,7 +209,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Subpanel",
             "options": [SUBPANEL_BASE_ID],
             "default": SUBPANEL_BASE_ID,
-            "help": "Select one ASPC subpanel identity derived from the diagnosis tags of gene lists linked to the selected ASP. Use base for an assay-wide configuration.",
+            "help": "Select an active subpanel registered under the selected ASP. Use base for an assay-wide configuration.",
         },
         "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
@@ -263,6 +262,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "groups": [
                 {
                     "title": "Somatic SNV Thresholds",
+                    "category": "Somatic SNV",
                     "requires_analysis": ["SNV"],
                     "requires_intent": ["somatic"],
                     "fields": [
@@ -306,6 +306,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Germline SNV Thresholds",
+                    "category": "Germline SNV",
                     "requires_analysis": ["SNV"],
                     "requires_intent": ["germline"],
                     "fields": [
@@ -343,6 +344,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Somatic CNV Thresholds",
+                    "category": "Somatic CNV",
                     "requires_analysis": ["CNV"],
                     "requires_intent": ["somatic"],
                     "fields": [
@@ -374,6 +376,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Somatic SNV Scope And Consequences",
+                    "category": "Somatic SNV",
                     "requires_analysis": ["SNV"],
                     "requires_intent": ["somatic"],
                     "fields": [
@@ -394,6 +397,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Germline SNV Scope And Consequences",
+                    "category": "Germline SNV",
                     "requires_analysis": ["SNV"],
                     "requires_intent": ["germline"],
                     "fields": [
@@ -414,6 +418,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Somatic CNV Scope",
+                    "category": "Somatic CNV",
                     "requires_analysis": ["CNV"],
                     "requires_intent": ["somatic"],
                     "fields": [
@@ -434,6 +439,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Somatic DNA Fusion And Translocation Scope",
+                    "category": "Somatic DNA Fusion / Translocation",
                     "requires_analysis": ["TRANSLOCATION"],
                     "requires_intent": ["somatic"],
                     "fields": [
@@ -447,6 +453,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Somatic Coverage Thresholds",
+                    "category": "Somatic Coverage",
                     "requires_analysis": ["COVERAGE"],
                     "requires_intent": ["somatic"],
                     "fields": [
@@ -503,10 +510,10 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "default": "DNA panel summary report",
                         },
                         {
-                            "key": "clinical_rule_set_id",
-                            "label": "Clinical Rule Set",
+                            "key": "language",
+                            "label": "Reporting Language",
                             "type": "select",
-                            "default": "",
+                            "default": "sv",
                         },
                     ],
                 },
@@ -556,7 +563,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Subpanel",
             "options": [SUBPANEL_BASE_ID],
             "default": SUBPANEL_BASE_ID,
-            "help": "Select one ASPC subpanel identity derived from the diagnosis tags of gene lists linked to the selected ASP. Use base for an assay-wide configuration.",
+            "help": "Select an active subpanel registered under the selected ASP. Use base for an assay-wide configuration.",
         },
         "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
@@ -603,6 +610,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "groups": [
                 {
                     "title": "Somatic Fusion Thresholds",
+                    "category": "Somatic RNA Fusion",
                     "requires_analysis": ["FUSION"],
                     "fields": [
                         {
@@ -621,6 +629,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
                 {
                     "title": "Somatic Fusion Scope",
+                    "category": "Somatic RNA Fusion",
                     "requires_analysis": ["FUSION"],
                     "fields": [
                         {
@@ -684,10 +693,10 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "default": "RNA fusion summary report",
                         },
                         {
-                            "key": "clinical_rule_set_id",
-                            "label": "Clinical Rule Set",
+                            "key": "language",
+                            "label": "Reporting Language",
                             "type": "select",
-                            "default": "",
+                            "default": "sv",
                         },
                     ],
                 },
@@ -736,15 +745,21 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             },
             "help": "Choose the clinical analysis domain. Ad-hoc lists expose only ad-hoc list types; curated lists expose only standard list types.",
         },
+        "aliases": {
+            "label": "Alternative names",
+            "display_type": "textarea",
+            "help": "Readable names for this gene list, separated by commas or new lines. Names are searchable; references always use isgl_id.",
+        },
         "diagnosis": {
             "label": "Diagnosis / Subpanel IDs",
-            "display_type": "textarea",
-            "placeholder": "endometrie, breast, colon",
-            "help": "Clinical diagnosis or in-silico subpanel identifiers. Enter multiple values separated by commas or new lines.",
+            "display_type": "checkbox-group",
+            "options": [],
+            "default": [SUBPANEL_BASE_ID],
+            "help": "Select registered subpanels associated with the selected assays. Base means no named subpanel.",
         },
         "asp_groups": {
             "display_type": "checkbox-group",
-            "options": list(ASP_GROUP_OPTIONS),
+            "options": [],
             "help": "Select one or more assay groups to expose the ASPs that may use this gene list.",
         },
         "asp_ids": {
@@ -808,7 +823,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "options": list(ENVIRONMENT_OPTIONS),
         },
-        "asp_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
+        "asp_groups": {"display_type": "checkbox-group", "options": []},
         "asp_ids": {"display_type": "checkbox-group"},
         "must_change_password": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
@@ -945,7 +960,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ),
     ],
     "isgl": [
-        ("list identity", ["isgl_id", "name", "displayname", "list_type", "diagnosis"]),
+        ("list identity", ["isgl_id", "name", "displayname", "aliases", "list_type", "diagnosis"]),
         ("clinical scope", ["asp_groups", "asp_ids"]),
         ("curated gene content", ["genes", "germline_genes"]),
         ("availability", ["adhoc", "is_public", "system_managed", "is_active"]),
@@ -1108,6 +1123,22 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         fields["analysis_types"]["show_unavailable_options"] = True
         fields["analysis_types"]["help"] = (
             "Available analyses depend on the ASP expected input files."
+        )
+        tier_analysis = "FUSION" if spec.key == "aspc_rna" else "SNV"
+        fields["reporting"]["groups"].append(
+            {
+                "title": "Reportable tiers",
+                "fields": [
+                    {
+                        "key": f"reportable_tiers.{tier_analysis}",
+                        "label": f"{tier_analysis} reportable tiers",
+                        "type": "checkbox-group",
+                        "options": ["1", "2", "3", "4"],
+                        "default": [1, 2, 3],
+                        "help": "No selected tiers excludes all findings of this type.",
+                    }
+                ],
+            }
         )
         for group in fields["reporting"].get("groups", []):
             for field in group["fields"]:

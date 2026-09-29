@@ -69,7 +69,10 @@ def service():
         versions=MemoryVersions(live),
         users=users,
         roles=SimpleNamespace(get_all_roles_plus_permissions=lambda: roles),
-        assay_panel_repository=SimpleNamespace(get_all_asps=lambda **kw: [{"asp_id": "assay"}]),
+        assay_panel_repository=SimpleNamespace(
+            get_all_asps=lambda **kw: [{"asp_id": "assay", "asp_group": "demo"}],
+            group_options=lambda: ["demo"],
+        ),
         assay_configuration_repository=SimpleNamespace(
             get_all_aspc=lambda: [
                 {

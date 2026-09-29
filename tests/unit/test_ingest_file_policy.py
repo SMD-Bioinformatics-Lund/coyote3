@@ -29,6 +29,7 @@ class FakeCollection:
 
 def resolver(*, panels: list[dict], configurations: list[dict]):
     collections = {
+        "assay_groups": FakeCollection([{"group_id": "demo", "is_active": True}]),
         "assay_specific_panels": FakeCollection(panels),
         "asp_configs": FakeCollection(configurations),
     }
@@ -38,6 +39,7 @@ def resolver(*, panels: list[dict], configurations: list[dict]):
 def dna_panel(**overrides):
     return {
         "asp_id": "panel_a",
+        "asp_group": "demo",
         "asp_category": "dna",
         "is_active": True,
         "expected_files": ["vcf_files", "cnv"],
@@ -56,6 +58,17 @@ def active_aspc(**overrides):
         "is_active": True,
         **overrides,
     }
+
+
+def test_inactive_group_blocks_ingest_without_modifying_assay():
+    panel = dna_panel()
+    collections = {
+        "assay_specific_panels": FakeCollection([panel]),
+        "assay_groups": FakeCollection([{"group_id": "demo", "is_active": False}]),
+    }
+    with pytest.raises(ValueError, match="Assay group is inactive"):
+        assay_file_policy(collections.__getitem__, assay_name="panel_a", omics_layer="dna")
+    assert panel["is_active"] is True
 
 
 def test_assay_file_policy_requires_registered_consistent_asp():

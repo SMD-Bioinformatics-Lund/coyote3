@@ -15,6 +15,7 @@ from urllib.parse import unquote
 
 from bson import ObjectId
 
+from api.config.constants import SUBPANEL_BASE_ID
 from api.contracts.operations import OperationResult
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.core.annotation_identity import (
@@ -26,6 +27,11 @@ from api.domain.core.dna.variant_identity import build_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import literal_text_query, utc_now
 from api.infra.request_context import current_username
+
+
+def _named_subpanel(value: str | None) -> bool:
+    """Require exact subpanel matching unless the sample uses the implicit Base scope."""
+    return bool(value and value.strip() and value.strip().lower() != SUBPANEL_BASE_ID)
 
 
 def _annotation_object_id(oid: object) -> ObjectId | None:
@@ -338,8 +344,8 @@ class AnnotationsRepository(BaseRepository):
                             'CHROM', 'POS', 'REF', 'ALT', and 'INFO' with
                             'selected_CSQ' data.
             assay_group (str): The type of assay being used (e.g., 'solid').
-            subpanel (str): The subpanel identifier for further filtering when
-                            assay is 'solid'.
+            subpanel (str): Exact named scope, or Base/empty for the latest
+                annotation in the assay group regardless of subpanel.
 
         Returns:
             tuple: A tuple containing:
@@ -369,7 +375,7 @@ class AnnotationsRepository(BaseRepository):
             annotations = (
                 self.get_collection()
                 .find({"gene": selected_CSQ["SYMBOL"], "$or": identity_clauses})
-                .sort("time_created", 1)
+                .sort([("time_created", 1), ("_id", 1)])
             )
         elif "breakpoint1" in variant and "breakpoint2" in variant:
             fusion_query: dict[str, Any] = {
@@ -377,7 +383,9 @@ class AnnotationsRepository(BaseRepository):
                 "variant": f"{variant['breakpoint1']}^{variant['breakpoint2']}",
             }
             fusion_query.update(annotation_context_fields(nomenclature="f", source=variant))
-            annotations = self.get_collection().find(fusion_query).sort("time_created", 1)
+            annotations = (
+                self.get_collection().find(fusion_query).sort([("time_created", 1), ("_id", 1)])
+            )
         else:
             annotations = []
 
@@ -387,16 +395,13 @@ class AnnotationsRepository(BaseRepository):
         annotations_interesting = {}
 
         for anno in annotations:
-            ## collect latest for current assay (if latest not assigned pick that)
-            ## also collect latest anno for all other assigned assays (including non-assays)
-            ## special rule for assays with subpanels, solid, tumwgs maybe lymph?
             anno_class = _annotation_class_value(anno.get("class"))
             if anno_class is not None:
                 anno["class"] = anno_class
                 assay = anno["assay"]
-                sub = anno["subpanel"]
+                sub = anno.get("subpanel")
                 ass_sub = f"{assay}:{sub}"
-                if assay_group == "solid":
+                if _named_subpanel(subpanel):
                     if assay == assay_group and sub == subpanel:
                         latest_classification = anno
                     else:
@@ -407,12 +412,10 @@ class AnnotationsRepository(BaseRepository):
                     latest_classification_other[ass_sub] = anno["class"]
             if "text" in anno:
                 assay = anno["assay"]
-                sub = anno["subpanel"]
+                sub = anno.get("subpanel")
                 ass_sub = f"{assay}:{sub}"
-                if assay_group == "solid" and assay == assay_group and sub == subpanel:
-                    annotations_interesting[ass_sub] = anno
-                elif assay == assay_group:
-                    annotations_interesting[assay] = anno
+                if assay == assay_group and (not _named_subpanel(subpanel) or sub == subpanel):
+                    annotations_interesting[ass_sub if _named_subpanel(subpanel) else assay] = anno
                 annotations_arr.append(anno)
 
         latest_other_arr = []
@@ -474,7 +477,7 @@ class AnnotationsRepository(BaseRepository):
             "class": {"$in": [1, 2, 3, 4]},
             "$or": transcript_clauses,
         }
-        if assay_group == "solid":
+        if _named_subpanel(subpanel):
             query["subpanel"] = subpanel
 
         latest_by_transcript: dict[str, dict[str, Any]] = {}
@@ -492,12 +495,12 @@ class AnnotationsRepository(BaseRepository):
         Retrieve additional classifications for a given variant based on specified assay and subpanel.
         This method constructs a query to search for classifications in the database that match the
         provided variant's genes, transcripts, and nomenclature variants (HGVSp and HGVSc). If the
-        assay type is 'solid', it further filters the results by assay and subpanel.
+        sample has a named subpanel, it further filters by that exact subpanel.
         Args:
             variant (dict): A dictionary containing variant details including 'transcripts', 'HGVSp',
                             'HGVSc', and 'genes'.
             assay_group (str): The type of assay being used (e.g., 'solid').
-            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+            subpanel (str): Exact named scope; Base or empty uses assay group alone.
         Returns:
             list: A list of annotations that match the query criteria, sorted by the time they were created.
 
@@ -519,20 +522,22 @@ class AnnotationsRepository(BaseRepository):
                 "gene": {"$in": genes},
                 "$or": identity_clauses,
                 "assay": assay_group,
-                "class": {"$exists": True},
+                "class": {"$in": [1, 2, 3, 4]},
             }
         else:
             query = {
                 "nomenclature": "f",
                 "variant": f"{breakpoint1}^{breakpoint2}",
                 "assay": assay_group,
-                "class": {"$exists": True},
+                "class": {"$in": [1, 2, 3, 4]},
             }
             query.update(annotation_context_fields(nomenclature="f", source=variant))
-        if assay_group == "solid":
+        if _named_subpanel(subpanel):
             query["subpanel"] = subpanel
 
-        return list(self.get_collection().find(query).sort("time_created", -1).limit(1))
+        return list(
+            self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)]).limit(1)
+        )
 
     def insert_classified_variant(
         self,

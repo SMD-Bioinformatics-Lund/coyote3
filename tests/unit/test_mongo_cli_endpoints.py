@@ -82,8 +82,7 @@ def test_migration_targets_independent_endpoints_or_explicit_shared_uri(
     )
 
 
-def test_importer_prefers_knowledgebase_uri_over_primary_and_legacy(monkeypatch):
-    monkeypatch.setenv("MONGO_URI", "mongodb://legacy:27017")
+def test_importer_prefers_knowledgebase_uri_over_primary(monkeypatch):
     monkeypatch.setenv("COYOTE3_MONGO_URI", "mongodb://app:27017")
     monkeypatch.setenv("KNOWLEDGEBASE_MONGO_URI", "mongodb://kb:27017")
     parser = argparse.ArgumentParser()

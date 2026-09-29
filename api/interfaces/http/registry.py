@@ -12,6 +12,7 @@ from api.interfaces.http.admin.permissions import router as permissions_router
 from api.interfaces.http.admin.public_assay_catalog import router as public_assay_catalog_router
 from api.interfaces.http.admin.resources.asp import router as resource_asp_router
 from api.interfaces.http.admin.resources.aspc import router as resource_aspc_router
+from api.interfaces.http.admin.resources.assay_setup import router as assay_setup_router
 from api.interfaces.http.admin.resources.genelists import router as resource_genelists_router
 from api.interfaces.http.admin.resources.samples import router as resource_samples_router
 from api.interfaces.http.admin.roles import router as roles_router
@@ -54,6 +55,7 @@ ROUTERS = (
     RouterRegistration(admin_operations_router),
     RouterRegistration(app_controls_router),
     RouterRegistration(resource_asp_router),
+    RouterRegistration(assay_setup_router),
     RouterRegistration(resource_aspc_router),
     RouterRegistration(resource_genelists_router),
     RouterRegistration(resource_samples_router),

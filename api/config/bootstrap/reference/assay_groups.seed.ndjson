@@ -1,0 +1,9 @@
+{"group_id":"hematology","display_name":"Hematology","description":"Hematological assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"myeloid","display_name":"Myeloid","description":"Myeloid assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"lymphoid","display_name":"Lymphoid","description":"Lymphoid assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"solid","display_name":"Solid tumors","description":"Solid tumor assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"pgx","display_name":"Pharmacogenomics","description":"Pharmacogenomic assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"tumwgs","display_name":"Tumor WGS","description":"Tumor whole-genome assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"wts","display_name":"Whole transcriptome","description":"Whole-transcriptome assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"fusion","display_name":"Fusion","description":"Fusion assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}
+{"group_id":"demo","display_name":"Demo","description":"Demonstration and training assays","system_managed":true,"created_by":"system","created_on":"2026-01-01T00:00:00Z"}

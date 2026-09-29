@@ -20,6 +20,7 @@ from api.application.common.protected_records import (
     reject_system_managed_change,
     reject_system_managed_delete,
 )
+from api.application.resources.availability import available_panels
 from api.config.constants import (
     AUTH_PROVIDER_LOCAL,
     DEFAULT_AUTH_PROVIDER,
@@ -151,8 +152,9 @@ class UserManagementService:
 
     def _configure_assay_choices(self, form: dict[str, Any]) -> dict[str, Any]:
         """Offer active assay checkboxes only within the selected assay groups."""
-        groups = self.common_util.create_assay_group_map(
-            self.assay_panel_repository.get_all_asps(is_active=True)
+        form["fields"]["asp_groups"]["options"] = self.assay_panel_repository.group_options()
+        groups: dict[str, Any] = dict(
+            self.common_util.create_assay_group_map(available_panels(self.assay_panel_repository))
         )
         form["fields"]["asp_ids"].update(
             {
@@ -176,6 +178,16 @@ class UserManagementService:
             }
         )
         return groups
+
+    def _validate_new_assay_assignments(
+        self, values: dict[str, Any], previous: dict[str, Any] | None = None
+    ) -> None:
+        """Reject newly assigned assays under inactive groups; retain historical assignments."""
+        added = set(values.get("asp_ids") or []) - set((previous or {}).get("asp_ids") or [])
+        if added:
+            available = {p["asp_id"] for p in available_panels(self.assay_panel_repository)}
+            if added - available:
+                raise api_error(422, "Select active assays belonging to active assay groups")
 
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
         """Build a new-user form with available roles and assay access choices.
@@ -290,6 +302,11 @@ class UserManagementService:
             raise api_error(403, "Only a superuser may assign the superuser role")
 
         user_data = normalize_managed_form_payload(self._spec, form_data)
+        self._validate_new_assay_assignments(user_data)
+        if set(user_data.get("asp_groups") or []) - set(
+            self.assay_panel_repository.group_options()
+        ):
+            raise api_error(422, "Select registered assay groups")
         username = _sanitize_username(user_data.get("username"))
         email = lower(user_data.get("email"))
         if not username:
@@ -323,7 +340,7 @@ class UserManagementService:
         try:
             user_data = normalize_collection_document(self._spec.collection, user_data)
         except Exception as exc:
-            raise api_error(400, f"Invalid user payload: {exc}") from exc
+            raise api_error(400, "Invalid user payload") from exc
         self.user_repository.create_user(user_data)
         response: dict[str, Any] = change_payload(
             resource="user", resource_id=username, action="create"
@@ -400,8 +417,15 @@ class UserManagementService:
         for scope_field in ("asp_ids", "asp_groups", "environments"):
             if scope_field not in form_data:
                 updated_user[scope_field] = list(user_doc.get(scope_field) or [])
+        if "asp_groups" in form_data and (
+            set(updated_user.get("asp_groups") or [])
+            - set(user_doc.get("asp_groups") or [])
+            - set(self.assay_panel_repository.group_options())
+        ):
+            raise api_error(422, "Select registered assay groups")
         actor = current_actor(actor_username)
         updated_user["updated_on"] = utc_now()
+        self._validate_new_assay_assignments(updated_user, previous=user_doc)
         updated_user["updated_by"] = actor
         updated_user["auth_type"] = _normalize_allowed_auth_types(
             updated_user.get("auth_type") or user_doc.get("auth_type")
@@ -417,7 +441,7 @@ class UserManagementService:
         try:
             updated_user = normalize_collection_document(self._spec.collection, updated_user)
         except Exception as exc:
-            raise api_error(400, f"Invalid user payload: {exc}") from exc
+            raise api_error(400, "Invalid user payload") from exc
         self.user_repository.update_user(user_id, updated_user)
         response: dict[str, Any] = change_payload(
             resource="user", resource_id=user_id, action="update"
@@ -463,7 +487,7 @@ class UserManagementService:
         try:
             updated_user = normalize_collection_document(self._spec.collection, updated_user)
         except Exception as exc:
-            raise api_error(400, f"Invalid profile payload: {exc}") from exc
+            raise api_error(400, "Invalid profile payload") from exc
         self.user_repository.update_user(username, updated_user)
         return {
             "status": "ok",
@@ -504,7 +528,7 @@ class UserManagementService:
         try:
             updated_user = normalize_collection_document(self._spec.collection, updated_user)
         except Exception as exc:
-            raise api_error(400, f"Invalid UI settings payload: {exc}") from exc
+            raise api_error(400, "Invalid UI settings payload") from exc
         self.user_repository.update_user(username, updated_user)
         return {"status": "ok", "ui_settings": dict(updated_user["ui_settings"])}
 

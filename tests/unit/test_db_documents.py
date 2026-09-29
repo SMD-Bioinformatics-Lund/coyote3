@@ -188,7 +188,7 @@ def test_collection_validator_accepts_vep_metadata_with_grouped_consequences():
     payload = _load_reference_seed_list("vep_metadata.seed.ndjson.gz")[0]
     validate_collection_document("vep_metadata", payload)
     normalized = normalize_collection_document("vep_metadata", payload)
-    assert normalized["vep_id"] == "103"
+    assert normalized["vep_id"] == payload["vep_id"]
     consequence = payload["conseq_translations"]["missense_variant"]
     assert consequence["group"] == "missense"
     assert "missense_variant" in payload["consequence_groups"]["missense"]
@@ -704,15 +704,15 @@ def test_collection_validator_rejects_invalid_aspc_identifier():
         )
 
 
-def test_collection_validator_rejects_unknown_asp_group():
-    """ASP and ASPC docs should only allow known assay-group values."""
+def test_collection_validator_rejects_malformed_asp_group():
+    """Contracts validate scope syntax; services enforce database registration."""
     with pytest.raises(ValueError):
         normalize_collection_document(
             "assay_specific_panels",
             {
                 "asp_id": "assay_unknown",
                 "assay_name": "assay_unknown",
-                "asp_group": "custom-group",
+                "asp_group": "custom group",
                 "asp_family": "panel-dna",
                 "asp_category": "dna",
                 "display_name": "Assay Unknown",
@@ -763,7 +763,7 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
                 "report_header": "Header",
                 "report_method": "Method",
                 "report_description": "Description",
-                "clinical_rule_set_id": "assay_1__base__sv",
+                "language": "sv",
                 "plots_path": "/tmp",
                 "report_folder": "reports",
             },
@@ -799,7 +799,7 @@ def test_collection_validator_requires_translocation_filter_scope() -> None:
                     "report_header": "Header",
                     "report_method": "Method",
                     "report_description": "Description",
-                    "clinical_rule_set_id": "assay_1__base__sv",
+                    "language": "sv",
                     "plots_path": "/tmp",
                     "report_folder": "reports",
                 },

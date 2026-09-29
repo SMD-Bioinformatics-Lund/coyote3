@@ -90,6 +90,9 @@ def test_same_database_name_on_separate_endpoints_keeps_logical_mapping(connecti
         adapter.civic_variants_collection.database.client is pool.databases["knowledgebase"].client
     )
     assert adapter.samples_collection.database.client is pool.databases["primary"].client
+    for collection in (adapter.hgnc_collection, adapter.vep_metadata_collection):
+        assert collection.database.client is pool.databases["knowledgebase"].client
+    assert not hasattr(adapter, "assay_subpanels_collection")
 
 
 def test_database_selection_does_not_rewrite_uri_path_or_auth_source(connections):
@@ -102,11 +105,14 @@ def test_database_selection_does_not_rewrite_uri_path_or_auth_source(connections
     assert "synthetic" not in repr(pool.endpoints)
 
 
-def test_explicit_uri_precedence_and_legacy_fallback():
-    legacy = "mongodb://legacy:27017/?replicaSet=legacy-rs"
+def test_explicit_service_uri_precedence_and_shared_application_endpoint():
+    shared = "mongodb://shared:27017/?replicaSet=shared-rs"
     explicit = "mongodb://explicit:27017/?replicaSet=other-rs"
-    assert mongo_uri(config(COYOTE3_MONGO_URI="", MONGO_URI=legacy), "identity") == legacy
-    assert mongo_uri(config(MONGO_URI=legacy, COYOTE3_MONGO_URI=explicit), "identity") == explicit
+    assert mongo_uri(config(COYOTE3_MONGO_URI=shared), "identity") == shared
+    assert (
+        mongo_uri(config(COYOTE3_MONGO_URI=shared, IDENTITY_MONGO_URI=explicit), "identity")
+        == explicit
+    )
 
 
 @pytest.mark.parametrize("uri", ["", "https://mongo.invalid", "mongodb://"])

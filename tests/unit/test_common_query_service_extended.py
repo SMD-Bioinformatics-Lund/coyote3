@@ -153,7 +153,7 @@ def test_from_store_copies_required_and_optional_repositories() -> None:
     assert service.civic_repository is None
 
 
-def test_resolve_gene_uses_hgnc_alias_and_legacy_symbol_lookup() -> None:
+def test_resolve_gene_uses_hgnc_identifiers_and_aliases() -> None:
     service = _service()
     gene, query = service._resolve_gene("HGNC:11998")
     assert gene["hgnc_symbol"] == "TP53"
@@ -162,13 +162,6 @@ def test_resolve_gene_uses_hgnc_alias_and_legacy_symbol_lookup() -> None:
     gene, query = service._resolve_gene("P53")
     assert gene["hgnc_symbol"] == "TP53"
     assert query["symbol_changed"] is True
-
-    legacy = _service(
-        hgnc_repository=SimpleNamespace(
-            get_metadata_by_symbol=lambda symbol: {"symbol": symbol.upper()}
-        )
-    )
-    assert legacy._resolve_gene("brca1")[0]["symbol"] == "BRCA1"
 
 
 @pytest.mark.parametrize(
@@ -489,6 +482,7 @@ def test_gene_cohort_requires_an_exact_approved_gene_symbol() -> None:
         hgnc_repository=SimpleNamespace(
             get_metadata_by_hgnc_id=lambda hgnc_id: None,
             get_metadata_by_symbol=lambda symbol: None,
+            get_metadata_by_symbol_or_alias=lambda symbol: None,
         )
     )
 

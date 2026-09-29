@@ -20,6 +20,73 @@ from api.domain.core.exceptions import AppError
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 
+def test_reserved_setup_scopes_validate_new_rules_and_ignore_existing_assays():
+    panel = {"asp_id": "assay_1", "asp_category": "dna", "asp_group": "demo"}
+    existing = {"asp_id": "existing", "asp_category": "dna", "asp_group": "demo"}
+    panels = SimpleNamespace(
+        get_all_asps=lambda **_: [existing],
+        get_asp=lambda identity: existing if identity == "existing" else None,
+        group_options=lambda: ["demo"],
+    )
+    setups = SimpleNamespace(
+        authoring_scopes=lambda: [
+            {"content": {"panel": existing, "scopes": ["base"]}},
+            {"content": {"panel": panel, "scopes": ["base", "named"]}},
+        ]
+    )
+    subpanels = SimpleNamespace(
+        list_definitions=lambda: [
+            {"subpanel_id": "named", "display_name": "Named", "is_active": True},
+            {"subpanel_id": "unused", "display_name": "Unused", "is_active": True},
+        ],
+        list_for_assay=lambda *args, **kwargs: [],
+    )
+    service = ClinicalRuleAuthoringService(
+        Repository(),
+        assay_panel_repository=panels,
+        assay_setup_repository=setups,
+        assay_subpanel_repository=subpanels,
+    )
+    assert len(service._authoring_panels()) == 2
+    assert [row["subpanel_id"] for row in service._registered_subpanels("assay_1")] == [
+        "base",
+        "named",
+    ]
+    assert service._registered_subpanels("unknown") == [
+        {"subpanel_id": "base", "display_name": "Base"}
+    ]
+    service._validate_new_scope(
+        ClinicalRuleDraftCreate(
+            scope={"asp_id": "assay_1", "subpanel_id": "named", "analyte": "dna"},
+            name="New rule",
+        )
+    )
+
+
+def test_metadata_edit_raises_required_engine_version():
+    document = _document(status="draft", active=False)
+    blocks = document.model_dump(mode="python")["blocks"]
+    blocks[0]["section"] = "clinical_question"
+    blocks[0]["analysis"] = None
+    service = ClinicalRuleAuthoringService(Repository(document))
+    updated = service.update_draft(
+        "id",
+        ClinicalRuleDraftUpdate(revision=document.revision, blocks=blocks),
+        actor="author",
+    )
+    assert updated["minimum_engine_version"] == 2
+
+
+def test_publish_rejects_an_assay_no_longer_available():
+    document = _document(status="approved", active=False)
+    document.review.clinical_reviewer = "reviewer"
+    document.review.publisher = "publisher"
+    service = governed_service(Repository(document))
+    service.assay_panel_repository.get_all_asps = lambda **_: []
+    with pytest.raises(AppError, match="Assay is unavailable"):
+        service.publish("id", ClinicalRuleTransition(), actor="publisher")
+
+
 class Repository:
     def __init__(self, document=None):
         self.document = (document or _document(status="published", active=True)).model_dump(
@@ -117,7 +184,13 @@ class UserRepository:
 
 def governed_service(repository):
     return ClinicalRuleAuthoringService(
-        repository, user_repository=UserRepository(), role_repository=RoleRepository()
+        repository,
+        user_repository=UserRepository(),
+        role_repository=RoleRepository(),
+        assay_panel_repository=SimpleNamespace(
+            get_all_asps=lambda **_: [{"asp_id": "assay_1", "asp_group": "demo"}],
+            group_options=lambda: ["demo"],
+        ),
     )
 
 
@@ -201,6 +274,7 @@ def test_from_store_list_versions_get_and_audit() -> None:
             get_revision=lambda _document_id, _revision: None,
         ),
         assay_panel_repository=SimpleNamespace(get_all_asps=lambda is_active: []),
+        assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
     )
     service = ClinicalRuleAuthoringService.from_store(store, audit_service=audit)
 
@@ -226,7 +300,13 @@ def test_authoring_options_use_identifier_as_missing_display_name() -> None:
             {"asp_id": "assay_1", "asp_category": "DNA", "display_name": ""}
         ]
     )
-    service = ClinicalRuleAuthoringService(Repository(), assay_panel_repository=panels)
+    service = ClinicalRuleAuthoringService(
+        Repository(),
+        assay_panel_repository=panels,
+        assay_subpanel_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        ),
+    )
     assert service.authoring_options()["assays"][0]["display_name"] == "assay_1"
     service._validate_new_scope(ClinicalRuleDraftCreate())
 
@@ -255,7 +335,13 @@ def test_new_draft_creation_validates_assay_and_persists_scope() -> None:
             "is_active": True,
         }
     )
-    service = ClinicalRuleAuthoringService(repository, assay_panel_repository=panels)
+    service = ClinicalRuleAuthoringService(
+        repository,
+        assay_panel_repository=panels,
+        assay_subpanel_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        ),
+    )
     result = service.create_draft(
         ClinicalRuleDraftCreate(
             scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
@@ -303,7 +389,13 @@ def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
     panels = SimpleNamespace(
         get_asp=lambda _asp_id: {"asp_id": "assay_1", "asp_category": "DNA", "is_active": True}
     )
-    result = ClinicalRuleAuthoringService(repository, assay_panel_repository=panels).import_draft(
+    result = ClinicalRuleAuthoringService(
+        repository,
+        assay_panel_repository=panels,
+        assay_subpanel_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        ),
+    ).import_draft(
         ClinicalRuleImportRequest(
             document=source,
             scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
@@ -420,6 +512,4 @@ def test_publication_rejects_invalid_unapproved_nonindependent_and_stale(monkeyp
     repository = Repository(approved)
     repository.fail_publish = True
     with pytest.raises(AppError, match="Only an approved"):
-        ClinicalRuleAuthoringService(repository).publish(
-            "id", ClinicalRuleTransition(), actor="publisher"
-        )
+        governed_service(repository).publish("id", ClinicalRuleTransition(), actor="publisher")

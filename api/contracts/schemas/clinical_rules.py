@@ -517,6 +517,8 @@ class ClinicalRuleSourceRef(_StrictModel):
     content_hash: str
     language: str
     effective_from: datetime | None = None
+    requested_subpanel_id: str | None = None
+    resolved_subpanel_id: str | None = None
 
 
 class ClinicalConditionTraceNode(_StrictModel):
@@ -658,6 +660,7 @@ class ClinicalRuleAssayOption(_StrictModel):
     asp_id: str
     display_name: str
     analyte: Literal["dna", "rna"]
+    subpanels: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ClinicalRuleAuthoringOptionsPayload(_StrictModel):

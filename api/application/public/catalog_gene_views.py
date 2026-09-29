@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from api.application.resources.availability import available_panels
 from api.config.constants import SUBPANEL_BASE_ID
 from api.contracts.schemas.public_catalog import clean_catalog_html
 from api.infra.observability.operations import measured_operation
@@ -22,6 +23,10 @@ class PublicCatalogGeneViewsMixin:
             or document.get("adhoc")
         ):
             return {}
+        available = {panel["asp_id"] for panel in available_panels(self.assay_panel_repository)}
+        if not available.intersection(document.get("asp_ids") or []):
+            return {}
+        document = {**document, "asp_ids": [key for key in document["asp_ids"] if key in available]}
         return {
             key: clean_catalog_html(value)
             if key == "description" and isinstance(value, str)
@@ -52,6 +57,8 @@ class PublicCatalogGeneViewsMixin:
             Tuple[List[str], List[str]]: Covered and germline gene symbols.
         """
         if not asp_id:
+            return [], []
+        if asp_id not in {p["asp_id"] for p in available_panels(self.assay_panel_repository)}:
             return [], []
         genes, germline = self.assay_panel_repository.get_asp_genes(asp_id)
         return list(genes or []), list(germline or [])
@@ -334,6 +341,8 @@ class PublicCatalogGeneViewsMixin:
         selected_assay = assay
         all_genes = genelist.get("genes", [])
         asp_ids = genelist.get("asp_ids", [])
+        if selected_assay and selected_assay not in asp_ids:
+            return None
 
         filtered_genes = all_genes
         germline_genes: list[str] = []
@@ -343,7 +352,7 @@ class PublicCatalogGeneViewsMixin:
             germline_genes = panel.get("germline_genes", []) if panel else []
             filtered_genes = (
                 sorted(set(all_genes).intersection(panel_genes))
-                if panel and panel.get("asp_family") not in ["WGS", "WTS"]
+                if panel and panel.get("asp_family") not in {"wgs", "wts"}
                 else all_genes
             )
 
@@ -358,10 +367,15 @@ class PublicCatalogGeneViewsMixin:
 
     def asp_genes_payload(self, asp_id: str) -> dict[str, Any]:
         """Return public gene metadata for an assay panel."""
-        gene_symbols, germline_gene_symbols = self.assay_panel_repository.get_asp_genes(asp_id)
+        if asp_id not in {p["asp_id"] for p in available_panels(self.assay_panel_repository)}:
+            from api.domain.common.errors import api_error
+
+            raise api_error(404, "Public assay is unavailable")
+        gene_symbols, germline_gene_symbols = self._covered_genes(asp_id)
         gene_details = list(
             self.hgnc_repository.get_metadata_by_symbols(list(gene_symbols or [])) or []
         )
+        gene_details = self._merge_with_placeholders(gene_symbols, gene_details)
         asp = self.assay_panel_repository.get_asp(asp_id) or {}
         asp = {**asp, "description": clean_catalog_html(str(asp.get("description") or ""))}
         catalog = self._catalog_category_for_asp(asp_id)

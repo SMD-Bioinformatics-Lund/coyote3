@@ -1,0 +1,12 @@
+[
+  {
+    "display_name": "Demo subpanel",
+    "description": "Synthetic scope",
+    "is_active": true,
+    "subpanel_id": "demo-subpanel",
+    "version": 1,
+    "is_current": true,
+    "updated_by": "fixture.author",
+    "updated_on": "2026-01-01T10:00:00+00:00"
+  }
+]

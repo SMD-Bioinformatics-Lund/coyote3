@@ -12,6 +12,7 @@ from api.application.accounts.common import (
     utc_now,
 )
 from api.application.common.protected_records import reject_system_managed_delete
+from api.application.resources.availability import require_active_group
 from api.application.resources.helpers import _validated_doc
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.errors import api_error
@@ -59,7 +60,9 @@ class AspService:
         Returns:
             dict[str, Any]: Form payload for the create view.
         """
-        return {"form": build_managed_form(self._spec, actor_username=actor_username)}
+        form = build_managed_form(self._spec, actor_username=actor_username)
+        form["fields"]["asp_group"]["options"] = self.assay_panel_repository.group_options()
+        return {"form": form}
 
     def context_payload(self, *, panel_id: str) -> dict[str, Any]:
         """Return form context for editing an assay panel.
@@ -74,6 +77,7 @@ class AspService:
         if not panel:
             raise api_error(404, "Panel not found")
         form = build_managed_form(self._spec)
+        form["fields"]["asp_group"]["options"] = self.assay_panel_repository.group_options()
         if form.get("fields", {}).get("asp_group"):
             form["fields"]["asp_group"]["default"] = panel.get("asp_group", "")
         return {"panel": panel, "form": form}
@@ -111,6 +115,8 @@ class AspService:
         config.pop("gene_count", None)
         config["version"] = 1
         config = _validated_doc(self._spec.collection, config)
+        if config["asp_group"] not in self.assay_panel_repository.group_options():
+            raise api_error(422, "Register the assay group before creating an assay")
         self.assay_panel_repository.create_panel(config)
         result = change_payload(
             resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create"
@@ -153,6 +159,8 @@ class AspService:
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
+        if updated_doc["asp_group"] not in self.assay_panel_repository.group_options():
+            raise api_error(422, "Select a registered assay group")
         operation = self.assay_panel_repository.rotate_asp(
             panel_id,
             updated_doc,
@@ -187,6 +195,8 @@ class AspService:
         if not panel:
             raise api_error(404, "Panel not found")
         new_status = not bool(panel.get("is_active"))
+        if new_status:
+            require_active_group(self.assay_panel_repository, panel["asp_group"])
         self.assay_panel_repository.toggle_asp_active(panel_id, new_status)
         payload = change_payload(resource="asp", resource_id=panel_id, action="toggle")
         payload["meta"]["is_active"] = new_status

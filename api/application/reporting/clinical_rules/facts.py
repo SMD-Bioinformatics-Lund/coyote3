@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from api.contracts.schemas.assay import ReportableTiersDoc
+
 
 class _FactModel(BaseModel):
     """Strict base for data exposed to clinical rules."""
@@ -40,7 +42,8 @@ class PreparedAspcReportingFacts(_FactModel):
     """Stable ASPC reporting facts."""
 
     report_sections: list[str] = Field(default_factory=list)
-    clinical_rule_set_id: str
+    language: str = "sv"
+    reportable_tiers: ReportableTiersDoc = Field(default_factory=ReportableTiersDoc)
 
 
 class PreparedAspcFacts(_FactModel):
@@ -122,6 +125,7 @@ class PreparedAggregateFacts(_FactModel):
     tier_1_count: int = 0
     tier_2_count: int = 0
     tier_3_count: int = 0
+    tier_4_count: int = 0
     tier_summaries: list[PreparedTierSummaryFacts] = Field(default_factory=list)
     has_tiered_snvs: bool = False
     has_reportable_findings: bool = False

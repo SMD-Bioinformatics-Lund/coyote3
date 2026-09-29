@@ -31,9 +31,12 @@ from api.application.reporting.report_library import ReportLibraryService
 from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.application.resources.asp import AspService
 from api.application.resources.aspc import AspcService
+from api.application.resources.assay_groups import AssayGroupService
+from api.application.resources.assay_setup import AssaySetupService
 from api.application.resources.isgl import IsglService
 from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
 from api.application.resources.sample import ResourceSampleService
+from api.application.resources.subpanels import SubpanelService
 from api.application.rna.expression_analysis import RnaService
 from api.application.sample.catalog import SampleCatalogService
 from api.application.sample.coverage import CoverageService
@@ -71,6 +74,21 @@ def get_permission_management_service() -> PermissionManagementService:
 def get_admin_panel_service() -> AspService:
     """Return the assay-panel management service."""
     return AspService.from_store(get_store())
+
+
+def get_admin_subpanel_service() -> SubpanelService:
+    """Build the assay-owned subpanel management service."""
+    return SubpanelService.from_store(get_store())
+
+
+def get_admin_assay_group_service() -> AssayGroupService:
+    """Build registry administration against the operational database."""
+    return AssayGroupService(get_store().assay_group_repository)
+
+
+def get_assay_setup_service() -> AssaySetupService:
+    """Build the governed draft-first assay setup service."""
+    return AssaySetupService(get_store(), common_util=util.common)
 
 
 @lru_cache

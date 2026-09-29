@@ -96,10 +96,8 @@ class CommonQueryService:
         normalized_gene_id = str(gene_id or "").strip()
         if normalized_gene_id.isnumeric() or normalized_gene_id.upper().startswith("HGNC:"):
             gene = self.hgnc_repository.get_metadata_by_hgnc_id(hgnc_id=normalized_gene_id)
-        elif hasattr(self.hgnc_repository, "get_metadata_by_symbol_or_alias"):
-            gene = self.hgnc_repository.get_metadata_by_symbol_or_alias(symbol=normalized_gene_id)
         else:
-            gene = self.hgnc_repository.get_metadata_by_symbol(symbol=normalized_gene_id)
+            gene = self.hgnc_repository.get_metadata_by_symbol_or_alias(symbol=normalized_gene_id)
         symbol = (gene or {}).get("hgnc_symbol") or (gene or {}).get("symbol") or normalized_gene_id
         query = {
             "input": normalized_gene_id,
@@ -243,6 +241,7 @@ class CommonQueryService:
         hgvsc: str | None = None,
         hgvsp: str | None = None,
         assay_group: str = "dna",
+        genome_build: int | None = None,
     ) -> dict[str, Any]:
         """Return local knowledgebase context for one variant identity."""
         selected_csq = {
@@ -270,7 +269,7 @@ class CommonQueryService:
             )
             if hgvsp_candidates
             else [],
-            "brca_exchange": self.brca_repository.get_brca_data(variant, assay_group)
+            "brca_exchange": self.brca_repository.get_brca_data(variant, genome_build)
             if self.brca_repository is not None
             else None,
             "iarc_tp53": self.iarc_tp53_repository.find_iarc_tp53(variant)

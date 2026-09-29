@@ -49,6 +49,7 @@ def _single_source_variant_payload(
     hgvsc: str | None,
     hgvsp: str | None,
     assay_group: str,
+    genome_build: int | None = None,
 ) -> dict:
     """Return a variant-evidence payload narrowed to one knowledgebase family."""
     payload = service.knowledgebase_variant_payload(
@@ -60,6 +61,7 @@ def _single_source_variant_payload(
         hgvsc=hgvsc,
         hgvsp=hgvsp,
         assay_group=assay_group,
+        genome_build=genome_build,
     )
     sources = {key: payload["sources"].get(key) for key in source_keys}
     payload["sources"] = sources
@@ -262,6 +264,7 @@ def knowledgebase_variant_evidence_read(
     hgvsc: str | None = None,
     hgvsp: str | None = None,
     assay_group: str = "dna",
+    genome_build: int | None = None,
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
@@ -277,6 +280,7 @@ def knowledgebase_variant_evidence_read(
             hgvsc=hgvsc,
             hgvsp=hgvsp,
             assay_group=assay_group,
+            genome_build=genome_build,
         )
     )
 
@@ -295,6 +299,7 @@ def knowledgebase_civic_variant_evidence_read(
     hgvsc: str | None = None,
     hgvsp: str | None = None,
     assay_group: str = "dna",
+    genome_build: int | None = None,
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
@@ -312,6 +317,7 @@ def knowledgebase_civic_variant_evidence_read(
             hgvsc=hgvsc,
             hgvsp=hgvsp,
             assay_group=assay_group,
+            genome_build=genome_build,
         )
     )
 
@@ -330,6 +336,7 @@ def knowledgebase_brca_exchange_variant_evidence_read(
     hgvsc: str | None = None,
     hgvsp: str | None = None,
     assay_group: str = "dna",
+    genome_build: int | None = None,
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
@@ -347,6 +354,7 @@ def knowledgebase_brca_exchange_variant_evidence_read(
             hgvsc=hgvsc,
             hgvsp=hgvsp,
             assay_group=assay_group,
+            genome_build=genome_build,
         )
     )
 
@@ -365,6 +373,7 @@ def knowledgebase_iarc_tp53_variant_evidence_read(
     hgvsc: str | None = None,
     hgvsp: str | None = None,
     assay_group: str = "dna",
+    genome_build: int | None = None,
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
@@ -382,6 +391,7 @@ def knowledgebase_iarc_tp53_variant_evidence_read(
             hgvsc=hgvsc,
             hgvsp=hgvsp,
             assay_group=assay_group,
+            genome_build=genome_build,
         )
     )
 

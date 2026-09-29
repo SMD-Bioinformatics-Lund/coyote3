@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from copy import deepcopy
 from typing import Any
 
 import bleach
 import markdown
 from jinja2 import DictLoader, Environment, select_autoescape
 
+from api.application.reporting.clinical_rules.validation import REPORT_METADATA_SECTIONS
 from api.domain.common.reporting import TIER_NAME
 
 REPORT_LAYOUT_TEMPLATE = r"""<!doctype html>
@@ -276,9 +277,6 @@ REPORT_LAYOUT_TEMPLATE = r"""<!doctype html>
 </head>
 
 <body>
-<script type=text/javascript>
-  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-</script>
 
 <div class="page">
   {% block body %}{% endblock %}
@@ -311,22 +309,18 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
     {% endif %}
     <tr><td class="top_report_key">Registreringsdatum</td><td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td></tr>
     <tr><td class="top_report_key">Provtyp</td><td class="top_report_val">&lt;TUMOR_SAMPLE_TYPE&gt;</td></tr>
-    {% if assay_group not in ["swea", "gmsonco"] %}
+    {% if clinical_question %}
     <tr>
       <td class="top_report_key">Frågeställning</td>
       <td class="top_report_val">
-        {% if assay_group in ["myeloid", "hematology"] %}
-          {% if sample.sample_no == 2 %}Hematologisk neoplasi{% else %}&lt;DIAGNOSIS&gt;{% endif %}
-        {% elif assay_group == "solid" %}
-          {% if sample.subpanel %}{% if sample.subpanel == "BP" %}Bröst-Pilot{% else %}{{ sample.subpanel }}{% endif %}{% endif %}
-        {% endif %}
+        {{ clinical_question }}
       </td>
     </tr>
     {% endif %}
     <tr><td class="top_report_key">Rapportdatum</td><td class="top_report_val">{{ report_date }}</td></tr>
     <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val">{{ assay_config.reporting.report_method }}</td></tr>
-    <tr><td class="top_report_key">Analys genomförd av</td><td class="top_report_val">Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi</td></tr>
-    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ current_user.fullname }}</td></tr>
+    {% if organization_name %}<tr><td class="top_report_key">Analys genomförd av</td><td class="top_report_val">{{ organization_name }}</td></tr>{% endif %}
+    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ generated_by or "Unknown" }}</td></tr>
     <tr>
       {% set report_name = sample.get("case_id", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
       {% if sample.control_id %}
@@ -591,11 +585,13 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
     <tr><td class="top_report_key">Prov-ID</td><td class="top_report_val">{{ sample.name }}</td></tr>
     <tr><td class="top_report_key">Registreringsdatum</td><td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td></tr>
     <tr><td class="top_report_key">Provtyp</td><td class="top_report_val">&lt;SAMPLE_TYPE&gt; / RNA</td></tr>
-    <tr><td class="top_report_key">Frågeställning</td><td class="top_report_val">Fusionsgenanalys</td></tr>
+    {% if clinical_question %}
+    <tr><td class="top_report_key">Frågeställning</td><td class="top_report_val">{{ clinical_question }}</td></tr>
+    {% endif %}
     <tr><td class="top_report_key">Rapportdatum</td><td class="top_report_val">{{ report_date }}</td></tr>
     <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val">{{ assay_config.reporting.report_method }}</td></tr>
-    <tr><td class="top_report_key">Analys genomförd av</td><td class="top_report_val">Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi</td></tr>
-    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ current_user.fullname }}</td></tr>
+    {% if organization_name %}<tr><td class="top_report_key">Analys genomförd av</td><td class="top_report_val">{{ organization_name }}</td></tr>{% endif %}
+    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ generated_by or "Unknown" }}</td></tr>
     <tr><td class="top_report_key">Rapport-ID</td><td class="top_report_val">{{ sample.name }}.{{ sample.report_num + 1 if sample.report_num is defined else 1 }}</td></tr>
   </table>
 </div>
@@ -756,27 +752,27 @@ def _format_comment(value: Any) -> str:
     )
 
 
-def _clinical_report_user() -> SimpleNamespace:
-    """Return the default user context for server-rendered clinical reports."""
-    return SimpleNamespace(fullname="Coyote3", get_fullname=lambda: "Coyote3")
-
-
-def _clinical_report_request() -> SimpleNamespace:
-    """Return the default request context for server-rendered clinical reports."""
-    return SimpleNamespace(script_root="")
-
-
 def _template_defaults(context: dict[str, Any], *, analyte: str, preview: bool) -> dict[str, Any]:
     """Add clinical report globals and missing optional fields."""
     sample = dict(context.get("sample") or {})
     sample.setdefault("comments", [])
     sample.setdefault("report_num", 0)
     context = dict(context)
+    sections = (context.get("clinical_rule_evaluation") or {}).get("sections", {})
+    for field in REPORT_METADATA_SECTIONS:
+        values = sections.get(field, [])
+        if len(values) > 1:
+            raise ValueError(f"Clinical rules produced multiple values for {field}")
+        context[field] = values[0] if values else ""
+    context["assay_config"] = deepcopy(context.get("assay_config") or {})
+    reporting = context["assay_config"].setdefault("reporting", {})
+    reporting["report_header"] = (
+        str(reporting.get("report_header") or "") + context["report_header_suffix"]
+    )
+    context["report_header"] = (
+        str(context.get("report_header") or "") + context["report_header_suffix"]
+    )
     context["sample"] = sample
-    context.setdefault("current_user", _clinical_report_user())
-    context.setdefault("request", _clinical_report_request())
-    context.setdefault("has_access", lambda *_args, **_kwargs: False)
-    context.setdefault("url_for", lambda endpoint, **_kwargs: f"#{endpoint}")
     context.setdefault("germline", False)
     context.setdefault("pdf", 0 if preview else 1)
     context["save"] = 0 if preview else 1
@@ -790,10 +786,26 @@ def render_report_html(
     snapshot_rows: list[dict[str, Any]],
     analyte: str,
     preview: bool,
+    organization_name: str = "",
+    generated_by: str = "",
 ) -> str:
-    """Render report HTML from the canonical workflow context."""
+    """Render report HTML with explicitly supplied institutional and user identity.
+
+    Args:
+        template_name: DNA or RNA report template identifier.
+        template_context: Validated workflow data and clinical text.
+        snapshot_rows: Finding snapshots retained by the caller, not rendered directly.
+        analyte: DNA or RNA workflow used to select the default template.
+        preview: Whether to display the preview marker.
+        organization_name: Configured performing institution; empty omits the row.
+        generated_by: Authenticated user's display name or username; empty shows Unknown.
+
+    Returns:
+        Escaped HTML suitable for browser preview and PDF rendering.
+    """
     _ = snapshot_rows
     context = _template_defaults(template_context, analyte=analyte, preview=preview)
+    context.update(organization_name=organization_name, generated_by=generated_by)
     selected_template = "report_fusion.html" if analyte == "rna" else "dna_report.html"
     if template_name in {"dna_report.html", "report_fusion.html"}:
         selected_template = template_name

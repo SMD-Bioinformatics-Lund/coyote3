@@ -421,29 +421,6 @@ class CommonUtility:
         return serialization.tuple_to_dict(t)
 
     @staticmethod
-    def get_report_header(assay: str, sample: dict, header: str) -> str:
-        """Get the report header string based on the assay type and sample data.
-
-        If the assay is "myeloid" and the sample's ``subpanel_id`` is ``hem-snabb``, the header is modified:
-        - If "sample_no" is 2, appends ": fullständig parad analys" (full paired analysis).
-        - Otherwise, appends ": preliminär oparad analys" (preliminary unpaired analysis).
-
-        Args:
-            assay (str): The assay name.
-            sample (dict): The sample data dictionary.
-            header (str): The initial header string.
-
-        Returns:
-            str: The formatted report header.
-        """
-        if assay == "myeloid" and sample.get("subpanel_id") == "hem-snabb":
-            if sample.get("sample_no") == 2:
-                header += ": fullständig parad analys"
-            else:
-                header += ": preliminär oparad analys"
-        return header
-
-    @staticmethod
     def write_report(report_data: str, report_path: str) -> bool:
         """Write UTF-8 report text, creating parent directories as needed.
 
@@ -753,7 +730,6 @@ hash_password = CommonUtility.hash_password
 get_simple_id = CommonUtility.get_simple_id
 nl_num = CommonUtility.nl_num
 nl_join = CommonUtility.nl_join
-get_report_header = CommonUtility.get_report_header
 write_report = CommonUtility.write_report
 get_base64_image = CommonUtility.get_base64_image
 get_plot = CommonUtility.get_plot

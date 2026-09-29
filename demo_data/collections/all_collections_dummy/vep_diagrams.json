@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "e06f13947b5b874579c03ea047e8daa221f17af0355eadeea5a0d9b377e22f4e",
+    "data": {
+      "$binary": {
+        "base64": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IndoaXRlIi8+PC9zdmc+",
+        "subType": "00"
+      }
+    },
+    "mime_type": "image/svg+xml"
+  }
+]

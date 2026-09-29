@@ -34,8 +34,9 @@ def test_ingest_failure_reports_any_unexpected_exception(monkeypatch, failure):
     response = internal._ingest_failure(_admin_user(), failure, acknowledge=True)
     body = json.loads(response.body)
     assert response.status_code == 500
-    assert type(failure).__name__ in body["error"]
-    assert str(failure) in body["error"]
+    assert type(failure).__name__ not in body["error"]
+    assert str(failure) not in body["error"]
+    assert recorded[0][0] is failure
     assert body["request_id"] == recorded[0][1]["error_id"]
     assert body["status"] != "failed"
 

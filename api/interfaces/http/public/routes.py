@@ -8,7 +8,7 @@ import io
 from typing import Any
 
 import yaml
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
 from api.app import http
 from api.app.container import util
@@ -32,11 +32,58 @@ from api.contracts.public import (
     PublicGeneSymbolsPayload,
     PublicKnowledgebaseStatusPayload,
     PublicModulesPayload,
+    PublicVepReferencePayload,
+    PublicVepVersionsPayload,
 )
+from api.domain.common.csv_safety import spreadsheet_text
 from api.interfaces.http.tags import TAG_PUBLIC
 
 router = APIRouter(tags=[TAG_PUBLIC])
 __all__ = ["router", "PublicCatalogService"]
+
+
+@router.get("/api/v1/public/vep", response_model=PublicVepVersionsPayload)
+def public_vep_versions_read():
+    """List installed VEP reference releases. Public access; no sample data is returned."""
+    return get_public_catalog_service().vep_reference_versions()
+
+
+@router.get("/api/v1/public/vep/{release}", response_model=PublicVepReferencePayload)
+def public_vep_reference_read(release: str):
+    """Read consequence definitions and diagram for an exact installed VEP release.
+
+    Public access. An unavailable release returns 404 rather than newer metadata.
+
+    Args:
+        release: Installed major Ensembl release identifier.
+
+    Returns:
+        Reference tables, groups, source links and an optional locally stored diagram.
+    """
+    return get_public_catalog_service().vep_reference(release)
+
+
+@router.get("/api/v1/public/vep/{release}/diagram", response_class=Response)
+def public_vep_diagram_read(release: str):
+    """Return the locally installed Ensembl diagram. Public, read-only access.
+
+    Args:
+        release: Exact installed major Ensembl release.
+
+    Returns:
+        Image bytes with their MIME type and content digest; 404 if absent.
+    """
+    diagram = get_public_catalog_service().vep_diagram(release)
+    return Response(
+        content=bytes(diagram["data"]),
+        media_type=diagram["mime_type"],
+        headers={
+            "ETag": f'"{diagram["_id"]}"',
+            "Cache-Control": "public, max-age=300",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
+        },
+    )
 
 
 def _load_filter_flag_metadata() -> dict:
@@ -311,13 +358,16 @@ def public_assay_catalog_genes_csv_context_read(
     for gene in rows:
         writer.writerow(
             [
-                (gene.get("hgnc_id") or "").replace("HGNC:", "HGNC:"),
-                gene.get("hgnc_symbol") or gene.get("symbol") or "",
-                gene.get("chromosome") or "",
-                gene.get("start") or "",
-                gene.get("end") or "",
-                ",".join(gene.get("gene_type") or []),
-                gene.get("drug_target") or "",
+                spreadsheet_text(value)
+                for value in [
+                    gene.get("hgnc_id") or "",
+                    gene.get("hgnc_symbol") or gene.get("symbol") or "",
+                    gene.get("chromosome") or "",
+                    gene.get("start"),
+                    gene.get("end"),
+                    ",".join(gene.get("gene_type") or []),
+                    gene.get("drug_target") or "",
+                ]
             ]
         )
     dt = datetime.date.today().isoformat()

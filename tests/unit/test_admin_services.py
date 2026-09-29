@@ -25,13 +25,13 @@ from api.application.resources.sample import ResourceSampleService
 from api.config.constants import (
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
-    ASP_GROUP_OPTIONS,
     PLATFORM_OPTIONS,
     SAMPLE_FILE_KEYS,
 )
 from api.config.contracts.governance import PERMISSION_CATALOG
 from api.contracts.operations import OperationResult
 from api.domain.core.exceptions import AppError
+from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 
 
 class _AdminRepoStub:
@@ -406,6 +406,7 @@ class _AdminRepoStub:
             "asp_group": "dna",
             "is_active": False,
             "covered_genes": ["TP53"],
+            "expected_files": ["vcf_files"],
             "germline_genes": ["BRCA1"],
         }
 
@@ -873,6 +874,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             get_consequence_group_options=lambda vep=None: ["missense", "splicing"],
         ),
         assay_panel_repository=SimpleNamespace(
+            group_options=lambda: ["hematology", "solid", "custom-group", "dna"],
             search_asps=repo.search_panels,
             get_all_asp_groups=repo.get_asp_groups,
             get_all_asps=lambda is_active=None: [repo.get_panel("WGS")],
@@ -904,6 +906,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             delete_genelist=repo.delete_genelist,
         ),
         assay_configuration_repository=SimpleNamespace(
+            build_aspc_id=ASPConfigRepository.build_aspc_id,
             search_aspcs=repo.search_assay_configs,
             get_aspc=repo.get_assay_config,
             get_aspc_with_id=repo.get_assay_config,
@@ -937,7 +940,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
         oncokb_public_cache_repository=SimpleNamespace(),
         clinical_rule_set_repository=SimpleNamespace(
             get_active=active_rule_set,
-            list_active_for_assay=lambda asp_id: [],
+            list_active_for_assay=lambda asp_id, **_scope: [],
         ),
     )
 
@@ -974,6 +977,7 @@ def _asp_service(repo: _AdminRepoStub) -> AspService:
 def _isgl_service(repo: _AdminRepoStub) -> IsglService:
     store = _build_store(repo)
     return IsglService(
+        assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
         gene_list_repository=store.gene_list_repository,
         assay_panel_repository=store.assay_panel_repository,
     )
@@ -982,6 +986,12 @@ def _isgl_service(repo: _AdminRepoStub) -> IsglService:
 def _aspc_service(repo: _AdminRepoStub) -> AspcService:
     store = _build_store(repo)
     return AspcService(
+        assay_subpanel_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [
+                {"subpanel_id": "base", "display_name": "Base"},
+                {"subpanel_id": "aml", "display_name": "AML"},
+            ]
+        ),
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
@@ -1014,6 +1024,7 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
 
 
 def _patch_admin_stores(monkeypatch, repo: _AdminRepoStub) -> None:
+    monkeypatch.setattr(admin_user_service_module, "notify_user_change", lambda **_: {})
     store = _build_store(repo)
     for module in (
         admin_user_service_module,
@@ -1415,7 +1426,7 @@ def test_admin_panel_service_create_context_populates_asp_group_dropdown(monkeyp
 
     field = payload["form"]["fields"]["asp_group"]
     assert field["display_type"] == "select"
-    assert field["options"] == list(ASP_GROUP_OPTIONS)
+    assert field["options"] == ["hematology", "solid", "custom-group", "dna"]
     assert payload["form"]["fields"]["asp_family"]["options"] == list(ASP_FAMILY_OPTIONS)
     assert payload["form"]["fields"]["asp_category"]["options"] == list(ASP_CATEGORY_OPTIONS)
     assert payload["form"]["fields"]["platform"]["options"] == list(PLATFORM_OPTIONS)
@@ -1438,7 +1449,7 @@ def test_admin_panel_service_edit_context_keeps_current_asp_group_selected(monke
     field = payload["form"]["fields"]["asp_group"]
     assert field["display_type"] == "select"
     assert field["default"] == payload["panel"]["asp_group"]
-    assert field["options"] == list(ASP_GROUP_OPTIONS)
+    assert field["options"] == ["hematology", "solid", "custom-group", "dna"]
 
 
 def test_admin_genelist_service_view_context_filters_genes(monkeypatch):
@@ -1545,7 +1556,7 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     assert analysis_options_by_asp["field"] == "asp_id"
     assert "SNV" in analysis_options_by_asp["values"]["wgs"]
     assert subpanel_options_by_asp["field"] == "asp_id"
-    assert subpanel_options_by_asp["values"]["wgs"][0] == "base"
+    assert subpanel_options_by_asp["values"]["wgs"][0]["value"] == "base"
     assert "somatic.snv.snvlists" in filter_keys
     assert "somatic.cnv.cnvlists" in filter_keys
     assert "somatic.fusion.fusionlists" not in filter_keys
@@ -1562,7 +1573,8 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     assert "PGX" in report_section_options
     assert "report_sections" in reporting_field_keys
     assert "analysis" not in reporting_field_keys
-    assert "clinical_rule_set_id" in reporting_field_keys
+    assert "language" in reporting_field_keys
+    assert "clinical_rule_set_id" not in reporting_field_keys
 
 
 def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
@@ -1578,16 +1590,22 @@ def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
 
     AspcService._validate_analysis_types_for_panel(
         {"analysis_types": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"]},
-        {"asp_family": "wts"},
+        {
+            "asp_family": "wts",
+            "asp_category": "rna",
+            "expected_files": ["fusion_files", "expression_path", "classification_path", "qc"],
+        },
     )
 
-    assert AspcService._analysis_types_for_panel({"asp_family": "panel-rna"}, category="RNA") == [
+    assert AspcService._analysis_types_for_panel(
+        {"asp_family": "panel-rna", "expected_files": ["fusion_files", "qc", "pgx"]}, category="RNA"
+    ) == [
         "FUSION",
         "QC",
         "PGX",
     ]
     assert "EXPRESSION" in AspcService._analysis_types_for_panel(
-        {"asp_family": "wts"}, category="RNA"
+        {"asp_family": "wts", "expected_files": ["expression_path"]}, category="RNA"
     )
 
 
@@ -1602,7 +1620,11 @@ def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):
     service = _aspc_service(repo)
 
     with pytest.raises(AppError) as exc:
-        service.create(payload={"config": {"aspc_id": "WGS:prod"}})
+        service.create(
+            payload={
+                "config": {"asp_id": "wgs", "environment": "production", "subpanel_id": "base"}
+            }
+        )
 
     assert exc.value.status_code == 409
 

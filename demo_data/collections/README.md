@@ -27,6 +27,9 @@ Contract rules:
 - Application-owned first-load data is maintained under `api/config/bootstrap/`.
 - Seed files use plain JSON scalar values for IDs/timestamps (for example ISO-8601 datetime strings),
   not Mongo Extended JSON wrappers such as `$date` / `$oid`.
+- Binary assets use Extended JSON `$binary` with subtype `00`; load these with
+  `bson.json_util.loads` to obtain bytes, not a base64 string in MongoDB.
+  The demo VEP image is a synthetic one-pixel placeholder, not a clinical diagram.
 - Per-collection required/optional keys are generated from Pydantic contracts into
   `docs/api/collection_contracts.md` via:
   - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/export_collection_contracts_doc.py`
