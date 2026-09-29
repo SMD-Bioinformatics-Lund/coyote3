@@ -13,7 +13,6 @@ from api.application.reporting.clinical_rules.registry import (
 )
 from api.application.reporting.clinical_rules.service import ClinicalRuleService, rendered_summary
 from api.application.reporting.clinical_rules.validation import (
-    ENGINE_VERSION,
     MAX_CONDITION_DEPTH,
     _validate_condition,
     content_hash,
@@ -58,8 +57,8 @@ def test_service_from_store_and_resolution_failure_matrix() -> None:
     with pytest.raises(ValueError, match="No active published"):
         ClinicalRuleService(Repository(None)).resolve(context=_context())
 
-    too_new = valid.model_copy(update={"minimum_engine_version": ENGINE_VERSION + 1})
-    with pytest.raises(ValueError, match="requires engine version"):
+    too_new = valid.model_copy(update={"schema_version": 999})
+    with pytest.raises(ValueError, match="schema_version"):
         ClinicalRuleService(Repository(too_new.model_dump(mode="python", by_alias=True))).resolve(
             context=_context()
         )
@@ -125,7 +124,6 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
 
 def test_validation_reports_structural_condition_and_embedded_case_failures(monkeypatch) -> None:
     document = _document()
-    document.minimum_engine_version = ENGINE_VERSION + 1
     document.analysis_declarations["CNV"].narrative = "enabled"
     document.blocks[1].section = document.blocks[0].section
     document.blocks[0].rules[0].output[1].path = "sample.secret"
@@ -145,7 +143,6 @@ def test_validation_reports_structural_condition_and_embedded_case_failures(monk
     assert "Unsupported clinical condition" in unsupported_errors[0]
     result = validate_rule_set(document)
     assert result.valid is False
-    assert any("engine version" in error for error in result.errors)
     assert any("enabled but has no enabled" in warning for warning in result.warnings)
     assert any("mixes heading visibility" in error for error in result.errors)
     assert any("sample.secret" in error for error in result.errors)

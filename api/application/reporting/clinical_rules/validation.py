@@ -22,7 +22,6 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleValidationResult,
 )
 
-ENGINE_VERSION = 2
 REPORT_METADATA_SECTIONS = frozenset({"report_header_suffix", "clinical_question"})
 MAX_CONDITION_DEPTH = 6
 
@@ -37,7 +36,6 @@ def canonical_content(document: ClinicalRuleSetDoc) -> dict[str, Any]:
             "content_version",
             "scope",
             "name",
-            "minimum_engine_version",
             "analysis_declarations",
             "terminology",
             "blocks",
@@ -104,11 +102,14 @@ def _validate_condition(
     errors.append(f"Unsupported clinical condition node: {type(condition).__name__}")
 
 
-def validate_rule_set(document: ClinicalRuleSetDoc) -> ClinicalRuleValidationResult:
+def validate_rule_set(
+    document: ClinicalRuleSetDoc, *, require_tests: bool = False
+) -> ClinicalRuleValidationResult:
     """Validate rule semantics and execute embedded cases when structure permits.
 
     Args:
         document: Parsed rule set with blocks, declarations, and optional test cases.
+        require_tests: Reject missing embedded cases at submission and publication.
 
     Returns:
         Validity, errors, and warnings. Embedded cases compare ordered matched
@@ -116,11 +117,6 @@ def validate_rule_set(document: ClinicalRuleSetDoc) -> ClinicalRuleValidationRes
     """
     errors: list[str] = []
     warnings: list[str] = []
-    if document.minimum_engine_version > ENGINE_VERSION:
-        errors.append(
-            f"Rule set requires engine version {document.minimum_engine_version}; "
-            f"this service provides version {ENGINE_VERSION}"
-        )
     if not document.blocks:
         errors.append("At least one rule block is required")
     enabled_analyses = {
@@ -137,10 +133,40 @@ def validate_rule_set(document: ClinicalRuleSetDoc) -> ClinicalRuleValidationRes
             warnings.append(f"Analysis '{analysis}' is enabled but has no enabled rule block")
 
     section_headings: dict[str, bool] = {}
+    conflict_scopes: dict[str, tuple[str, str | None]] = {}
     for block in document.blocks:
+        if block.conflict_group:
+            scope = (block.evaluation.mode, block.evaluation.collection)
+            previous_scope = conflict_scopes.setdefault(block.conflict_group, scope)
+            if scope != previous_scope:
+                errors.append(
+                    f"Conflict group '{block.conflict_group}' must use the same evaluation "
+                    "mode and collection in every block"
+                )
+            if block.match_strategy not in {"exactly_one", "at_most_one"}:
+                errors.append(
+                    f"Block '{block.block_id}' in a conflict group must use exactly_one "
+                    "or at_most_one"
+                )
+        enabled_rules = [rule for rule in block.rules if rule.enabled]
+        if block.match_strategy in {"first_match", "all_matches"} and len(enabled_rules) > 1:
+            warnings.append(
+                f"Block '{block.block_id}' allows overlapping conditions: "
+                f"{block.match_strategy}. Use a strict match strategy for alternative conclusions."
+            )
+        if block.match_strategy in {"exactly_one", "at_most_one"}:
+            for index, rule in enumerate(enabled_rules):
+                for other in enabled_rules[index + 1 :]:
+                    if (
+                        rule.condition is None
+                        or other.condition is None
+                        or rule.condition == other.condition
+                    ):
+                        warnings.append(
+                            f"Block '{block.block_id}' has potentially overlapping rules "
+                            f"'{rule.rule_id}' and '{other.rule_id}'; test their shared cases."
+                        )
         if block.section in REPORT_METADATA_SECTIONS:
-            if document.minimum_engine_version < 2:
-                errors.append("Report metadata sections require minimum_engine_version 2")
             if block.evaluation.mode != "once" or block.analysis or block.show_heading:
                 errors.append(
                     f"Section '{block.section}' must evaluate once for the whole report "
@@ -171,7 +197,8 @@ def validate_rule_set(document: ClinicalRuleSetDoc) -> ClinicalRuleValidationRes
                     except ValueError as exc:
                         errors.append(str(exc))
     if not document.test_cases:
-        warnings.append("No embedded clinical rule test cases are configured")
+        target = errors if require_tests else warnings
+        target.append("No embedded clinical rule test cases are configured")
     elif not errors:
         from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
         from api.application.reporting.clinical_rules.facts import PreparedReportContext

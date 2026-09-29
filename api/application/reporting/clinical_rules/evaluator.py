@@ -444,12 +444,28 @@ class ClinicalRuleEvaluator:
         Notes:
             first_match stops after the first nonblank matched output for each
             candidate. Disabled rules and excluded analyses have no trace entries.
+            Strict strategies count true conditions even when their output is
+            blank. Conflict groups enforce exclusivity across blocks for the same
+            candidate and require identical evaluation scopes. Evaluation errors
+            prevent returning partially rendered sections.
         """
         sections: dict[str, list[str]] = {}
         section_headings: dict[str, bool] = {}
         trace: list[ClinicalRuleTraceEntry] = []
+        conflict_matches: dict[tuple[str, str | None], str] = {}
+        conflict_scopes: dict[str, tuple[str, str | None]] = {}
         blocks = sorted(rule_set.blocks, key=lambda block: (block.section_order, block.block_order))
         for block in blocks:
+            if block.conflict_group:
+                scope_key = (block.evaluation.mode, block.evaluation.collection)
+                if conflict_scopes.setdefault(block.conflict_group, scope_key) != scope_key:
+                    raise ValueError(
+                        f"Conflict group '{block.conflict_group}' mixes evaluation scopes"
+                    )
+                if block.match_strategy not in {"exactly_one", "at_most_one"}:
+                    raise ValueError(
+                        f"Conflict group '{block.conflict_group}' requires strict matching"
+                    )
             if block.analysis and block.analysis not in reporting_analyses:
                 continue
             if block.evaluation.mode == "each_finding":
@@ -469,6 +485,7 @@ class ClinicalRuleEvaluator:
             for finding, item, item_identity in candidates:
                 scope = context.evaluation_scope(finding=finding, item=item)
                 matches: list[tuple[ClinicalRule, str]] = []
+                matched_rules: list[str] = []
                 candidate_trace: list[ClinicalRuleTraceEntry] = []
                 for rule in sorted(block.rules, key=lambda candidate: candidate.order):
                     if not rule.enabled:
@@ -480,6 +497,17 @@ class ClinicalRuleEvaluator:
                     else:
                         matched, missing = condition_matches(rule.condition, scope)
                         condition_trace = None
+                    if matched:
+                        matched_rules.append(rule.rule_id)
+                        if block.conflict_group:
+                            key = (block.conflict_group, item_identity)
+                            previous_rule = conflict_matches.get(key)
+                            if previous_rule is not None:
+                                raise ValueError(
+                                    f"Conflict group '{block.conflict_group}' matched rules "
+                                    f"'{previous_rule}' and '{rule.rule_id}' for candidate {item_identity!r}"
+                                )
+                            conflict_matches[key] = rule.rule_id
                     rendered = (
                         render_rule(rule, scope=scope, terminology=rule_set.terminology)
                         if matched
@@ -502,15 +530,20 @@ class ClinicalRuleEvaluator:
                         if block.match_strategy == "first_match":
                             break
                 trace.extend(candidate_trace)
-                if block.match_strategy == "exactly_one" and len(matches) != 1:
+                if block.match_strategy == "exactly_one" and len(matched_rules) != 1:
                     raise ValueError(
                         f"Clinical rule block '{block.block_id}' required exactly one match; "
-                        f"found {len(matches)}"
+                        f"found {len(matched_rules)}: {matched_rules}"
                     )
-                if block.match_strategy == "at_most_one" and len(matches) > 1:
+                if block.match_strategy == "at_most_one" and len(matched_rules) > 1:
                     raise ValueError(
                         f"Clinical rule block '{block.block_id}' permits at most one match; "
-                        f"found {len(matches)}"
+                        f"found {len(matched_rules)}: {matched_rules}"
+                    )
+                if block.match_strategy == "exactly_one" and not matches:
+                    raise ValueError(
+                        f"Clinical rule block '{block.block_id}' matched '{matched_rules[0]}' "
+                        "but produced blank text"
                     )
                 for _rule, text in matches:
                     existing = section_headings.get(block.section)

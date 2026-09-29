@@ -206,7 +206,7 @@ const newRuleBlock = (blocks: RuleBlock[]): RuleBlock => {
     section_order: nextOrder(blocks.map((item) => item.section_order), 100),
     block_order: nextOrder(blocks.map((item) => item.block_order), 10),
     show_heading: true,
-    match_strategy: "first_match",
+    match_strategy: "at_most_one",
     rules: [],
   }
   const existingRuleIds = blocks.flatMap((item) => item.rules.map((rule) => rule.rule_id))
@@ -652,14 +652,20 @@ export function ClinicalRulesPage() {
                         current.analysis = null
                         current.evaluation = { mode: "once", collection: null }
                         current.match_strategy = "at_most_one"
-                        document.minimum_engine_version = Math.max(2, document.minimum_engine_version)
                       }
                     })}><option value="summary">Report summary</option><option value="report_header_suffix">Header suffix</option><option value="clinical_question">Clinical question</option></select></label>
                     <label className="type-label">Section<Input className="mt-1" disabled={["report_header_suffix", "clinical_question"].includes(block.section)} value={block.section} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].section = event.target.value; document.blocks[selectedBlock].name = event.target.value })} /></label>
                     <label className="type-label">Section identifier<Input className="mt-1" value={block.block_id} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].block_id = event.target.value })} /></label>
                     <label className="type-label">Analysis<select disabled={metadataOutput} className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.analysis || ""} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].analysis = event.target.value || null })}><option value="">Whole report</option>{Object.keys(draft.analysis_declarations).map((analysis) => <option key={analysis} value={analysis}>{analysis}</option>)}</select></label>
                     <label className="type-label">Evaluate<select disabled={metadataOutput} className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.evaluation.mode} onChange={(event) => mutateDraft((document) => { const mode = event.target.value as RuleBlock["evaluation"]["mode"]; document.blocks[selectedBlock].evaluation = mode === "each_item" ? { mode, collection: "findings" } : { mode, collection: null } })}><option value="once">Once per report</option><option value="each_finding">For each finding</option><option value="each_item">For each collection item</option></select></label>
-                    <label className="type-label">Match behavior<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.match_strategy} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].match_strategy = event.target.value as RuleBlock["match_strategy"] })}><option value="first_match">First match</option><option value="all_matches">All matches</option><option value="exactly_one">Exactly one</option><option value="at_most_one">At most one</option></select></label>
+                    <label className="type-label">Match behavior<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.match_strategy} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].match_strategy = event.target.value as RuleBlock["match_strategy"] })}><option value="first_match" disabled={!!block.conflict_group}>First match</option><option value="all_matches" disabled={!!block.conflict_group}>All matches</option><option value="exactly_one">Exactly one</option><option value="at_most_one">At most one</option></select></label>
+                    <label className="type-label">Conflict group (optional)<Input className="mt-1" value={block.conflict_group || ""} onChange={(event) => mutateDraft((document) => {
+                      const current = document.blocks[selectedBlock]
+                      current.conflict_group = event.target.value || null
+                      if (current.conflict_group) {
+                        if (!["exactly_one", "at_most_one"].includes(current.match_strategy)) current.match_strategy = "at_most_one"
+                      }
+                    })} /></label>
                   </div>}
                   {editableDraft && block.evaluation.mode === "each_item" && <label className="type-label block max-w-xs">Collection<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.evaluation.collection || "findings"} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].evaluation.collection = event.target.value as NonNullable<RuleBlock["evaluation"]["collection"]> })}><option value="findings">Findings</option><option value="biomarkers">Biomarkers</option><option value="applied_gene_lists">Applied gene lists</option><option value="tier_summaries">Tier summaries</option></select></label>}
                   {editableDraft && <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={metadataOutput} checked={block.show_heading} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].show_heading = event.target.checked })} /> Show section heading</label>}

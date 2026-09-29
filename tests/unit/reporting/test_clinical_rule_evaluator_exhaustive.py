@@ -486,6 +486,128 @@ def test_evaluator_rejects_invalid_match_cardinality(strategy, rules, message) -
         )
 
 
+@pytest.mark.parametrize("strategy", ["exactly_one", "at_most_one"])
+def test_strict_matching_counts_blank_outputs(strategy):
+    """True conditions cannot evade exclusivity by producing whitespace."""
+    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+
+    rules = [_rule("blank", "   "), {**_rule("text", "Text"), "order": 20}]
+    with pytest.raises(ValueError, match="found 2.*blank.*text"):
+        ClinicalRuleEvaluator().evaluate(
+            _context(),
+            _document([_block(strategy=strategy, rules=rules)]),
+            reporting_analyses={"SNV"},
+        )
+
+
+def test_exactly_one_rejects_blank_only_match():
+    """A required conclusion must not silently disappear."""
+    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+
+    with pytest.raises(ValueError, match="produced blank text"):
+        ClinicalRuleEvaluator().evaluate(
+            _context(),
+            _document([_block(strategy="exactly_one", rules=[_rule("blank", " ")])]),
+            reporting_analyses={"SNV"},
+        )
+
+
+def test_optional_conflict_group_preserves_existing_content_hash():
+    """Absent conflict groups must not invalidate stored rule content hashes."""
+    from api.application.reporting.clinical_rules.validation import canonical_content
+
+    document = _document([_block()])
+    assert "conflict_group" not in canonical_content(document)["blocks"][0]
+
+
+def test_conflict_failure_in_embedded_case_blocks_validation():
+    from api.application.reporting.clinical_rules.validation import validate_rule_set
+    from api.contracts.schemas.clinical_rules import ClinicalRuleTestCase
+
+    blocks = [
+        {
+            **_block(strategy="at_most_one", section=name, rules=[_rule(name, name)]),
+            "conflict_group": "classification",
+        }
+        for name in ("first", "second")
+    ]
+    document = _document(blocks)
+    document.test_cases = [
+        ClinicalRuleTestCase(
+            test_id="overlap",
+            name="Overlapping alternatives",
+            facts=_context().model_dump(mode="json"),
+            expected_rule_ids=[],
+            expected_sections={},
+        )
+    ]
+    validation = validate_rule_set(document)
+    assert not validation.valid
+    assert any("Conflict group" in error for error in validation.errors)
+
+
+@pytest.mark.parametrize("mode", ["once", "each_finding", "each_item"])
+def test_conflict_groups_reject_cross_block_matches(mode):
+    """Alternative conclusions conflict even across report sections."""
+    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+
+    blocks = [
+        {
+            **_block(mode=mode, strategy="at_most_one", section=name, rules=[_rule(name, name)]),
+            "conflict_group": "classification",
+        }
+        for name in ("first", "second")
+    ]
+    with pytest.raises(ValueError, match="Conflict group.*first.*second"):
+        ClinicalRuleEvaluator().evaluate(_context(), _document(blocks), reporting_analyses={"SNV"})
+
+
+def test_conflict_groups_do_not_conflict_across_findings_or_excluded_analyses():
+    """Each finding has its own conflict boundary, and excluded analyses emit nothing."""
+    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+
+    blocks = [
+        {
+            **_block(mode="each_finding", strategy="at_most_one", rules=[_rule("a", "A")]),
+            "conflict_group": "classification",
+        },
+        {
+            **_block(
+                mode="each_finding",
+                strategy="at_most_one",
+                section="Excluded",
+                analysis="CNV",
+                rules=[_rule("b", "B")],
+            ),
+            "conflict_group": "classification",
+        },
+    ]
+    result = ClinicalRuleEvaluator().evaluate(
+        _context(), _document(blocks), reporting_analyses={"SNV"}
+    )
+    assert result.sections == {"Summary": ["A", "A"]}
+
+
+@pytest.mark.parametrize(
+    "mode,strategy", [("once", "first_match"), ("each_finding", "at_most_one")]
+)
+def test_conflict_group_validation_rejects_unsafe_configuration(mode, strategy):
+    from api.application.reporting.clinical_rules.validation import validate_rule_set
+
+    blocks = [
+        {
+            **_block(strategy="at_most_one", section="First", rules=[_rule("a", "A")]),
+            "conflict_group": "classification",
+        },
+        {
+            **_block(mode=mode, strategy=strategy, section="Second", rules=[_rule("b", "B")]),
+            "conflict_group": "classification",
+        },
+    ]
+    document = _document(blocks)
+    assert not validate_rule_set(document).valid
+
+
 def test_evaluator_rejects_mixed_heading_modes_at_runtime() -> None:
     from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 

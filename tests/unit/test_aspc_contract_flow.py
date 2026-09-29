@@ -55,7 +55,7 @@ def _clinical_rule_repository(
     "change, message",
     [
         ({"content_hash": "invalid"}, "integrity"),
-        ({"minimum_engine_version": 999}, "engine version"),
+        ({"schema_version": 999}, "schema_version"),
     ],
 )
 def test_aspc_readiness_rejects_unusable_release(change, message):

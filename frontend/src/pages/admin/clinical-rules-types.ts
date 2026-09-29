@@ -81,6 +81,7 @@ export type RuleBlock = {
   block_order: number
   show_heading: boolean
   match_strategy: "all_matches" | "first_match" | "exactly_one" | "at_most_one"
+  conflict_group?: string | null
   rules: ClinicalRule[]
 }
 
@@ -94,7 +95,6 @@ export type ClinicalRuleSet = {
   name: string
   status: RuleStatus
   active: boolean
-  minimum_engine_version: number
   analysis_declarations: Record<string, { narrative: "enabled" | "none" }>
   terminology: Record<string, unknown>
   blocks: RuleBlock[]

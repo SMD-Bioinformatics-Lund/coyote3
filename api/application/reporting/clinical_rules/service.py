@@ -8,7 +8,6 @@ from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvalu
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
 from api.application.reporting.clinical_rules.resolution import resolve_published_rule_set
 from api.application.reporting.clinical_rules.validation import (
-    ENGINE_VERSION,
     REPORT_METADATA_SECTIONS,
 )
 from api.config.constants import normalize_analysis_type
@@ -50,7 +49,7 @@ class ClinicalRuleService:
             Parsed active rule version with a verified canonical content hash.
 
         Raises:
-            ValueError: Release is absent or ambiguous, schema or engine version is
+            ValueError: Release is absent or ambiguous, schema version is
                 unsupported, analyte differs, or the content hash does not match.
         """
         return resolve_published_rule_set(
@@ -108,10 +107,6 @@ class ClinicalRuleService:
         include_condition_trace: bool = False,
     ) -> ClinicalRuleEvaluation:
         """Evaluate an explicitly selected rule version against prepared report facts."""
-        if rule_set.minimum_engine_version > ENGINE_VERSION:
-            raise ValueError(
-                f"Clinical rule set requires engine version {rule_set.minimum_engine_version}"
-            )
         if rule_set.scope.analyte != context.sample.omics_layer:
             raise ValueError("Clinical rule-set analyte does not match the report context")
         report_sections = self._report_sections(context)

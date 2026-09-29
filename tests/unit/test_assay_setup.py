@@ -324,7 +324,7 @@ def test_group_deactivation_after_readiness_blocks_publication(setup_service):
     "change, message",
     [
         ({"content_hash": "invalid"}, "integrity"),
-        ({"minimum_engine_version": 999}, "engine version"),
+        ({"schema_version": 999}, "schema_version"),
     ],
 )
 def test_setup_readiness_rejects_unusable_rule_release(setup_service, change, message):

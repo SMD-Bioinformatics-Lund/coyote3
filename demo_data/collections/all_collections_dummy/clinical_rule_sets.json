@@ -13,7 +13,6 @@
     "name": "Synthetic clinical rule draft",
     "status": "draft",
     "active": false,
-    "minimum_engine_version": 1,
     "analysis_declarations": {},
     "terminology": {},
     "blocks": [],

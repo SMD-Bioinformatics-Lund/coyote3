@@ -12,7 +12,6 @@ const ruleSet = {
   name: "Assay 1 report rules",
   status: "draft",
   active: false,
-  minimum_engine_version: 1,
   analysis_declarations: { SNV: { narrative: "enabled" } },
   terminology: {},
   blocks: [{
@@ -24,7 +23,8 @@ const ruleSet = {
     section_order: 100,
     block_order: 10,
     show_heading: true,
-    match_strategy: "first_match",
+    match_strategy: "at_most_one",
+    conflict_group: null as string | null,
     rules: [{ rule_id: "summary", name: "Summary", order: 10, enabled: true, condition: null, output: [{ type: "text", value: "No reportable findings." }], references: [] }],
   }],
   test_cases: [],
@@ -39,7 +39,7 @@ test("clinical rule panes fill the workspace and reflow into selectable rails", 
   let savedRuleSet = structuredClone(ruleSet)
   await installApiFixtures(page, (path, _url, route) => {
     if (path === "/api/v1/admin/clinical-rule-sets/drafts/rule-version-1") {
-      savedRuleSet = { ...savedRuleSet, ...route.request().postDataJSON(), revision: savedRuleSet.revision + 1, minimum_engine_version: 2 }
+      savedRuleSet = { ...savedRuleSet, ...route.request().postDataJSON(), revision: savedRuleSet.revision + 1 }
       return { json: savedRuleSet }
     }
     if (path === "/api/v1/auth/whoami") return { json: { username: "admin", role: "admin", roles: ["admin"], access_level: 99_999, permissions: ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:test"] } }
@@ -74,6 +74,12 @@ test("clinical rule panes fill the workspace and reflow into selectable rails", 
   await expect(page.getByRole("combobox", { name: "Analysis", exact: true })).toBeDisabled()
   await expect(page.getByRole("combobox", { name: "Evaluate", exact: true })).toBeDisabled()
   await expect(page.getByLabel("Show section heading")).toBeDisabled()
+  await page.getByLabel("Conflict group (optional)").fill("clinical_question")
+  await expect.poll(() => savedRuleSet.blocks[0].conflict_group).toBe("clinical_question")
+  await page.reload()
+  await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+  await expect(page.getByLabel("Conflict group (optional)")).toHaveValue("clinical_question")
+  await expect(page.getByLabel("Match behavior")).toHaveValue("at_most_one")
   await page.screenshot({ path: "test-results/clinical-rule-metadata-desktop.png", fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.getByLabel("Output destination")).toBeVisible()

@@ -157,7 +157,6 @@ def metadata_draft(source: dict, *, group: str, version: int, actor: str) -> dic
         revision=1,
         status="draft",
         active=False,
-        minimum_engine_version=max(2, document["minimum_engine_version"]),
         created_at=now,
         updated_at=now,
         created_by=actor,

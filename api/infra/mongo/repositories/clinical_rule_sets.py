@@ -548,6 +548,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         self,
         document_id: Any,
         *,
+        expected_revision: int,
         from_statuses: set[str],
         changes: dict[str, Any],
         event: dict[str, Any],
@@ -556,6 +557,7 @@ class ClinicalRuleSetRepository(BaseRepository):
 
         Args:
             document_id: Rule version ObjectId or its serialized form.
+            expected_revision: Revision validated and authorized by the caller.
             from_statuses: Statuses eligible for this update.
             changes: Fields to set, including the caller-selected destination status.
             event: Lifecycle entry with action, actor, occurred_at, and optional reason.
@@ -586,7 +588,11 @@ class ClinicalRuleSetRepository(BaseRepository):
                 Updated rule version, or ``None`` if no source status matches.
             """
             updated = self.get_collection().find_one_and_update(
-                {"_id": object_id, "status": {"$in": sorted(from_statuses)}},
+                {
+                    "_id": object_id,
+                    "revision": expected_revision,
+                    "status": {"$in": sorted(from_statuses)},
+                },
                 {"$set": changes, "$push": {"lifecycle": event}, "$inc": {"revision": 1}},
                 return_document=ReturnDocument.AFTER,
                 session=session,
@@ -608,6 +614,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         self,
         document_id: Any,
         *,
+        expected_revision: int,
         changes: dict[str, Any],
         event: dict[str, Any],
     ) -> dict[str, Any] | None:
@@ -615,6 +622,7 @@ class ClinicalRuleSetRepository(BaseRepository):
 
         Args:
             document_id: Approved rule version ObjectId or its serialized form.
+            expected_revision: Revision whose content and review were validated.
             changes: Publication fields to set on the approved candidate.
             event: Lifecycle entry with action, actor, occurred_at, and optional reason.
 
@@ -653,7 +661,8 @@ class ClinicalRuleSetRepository(BaseRepository):
                     or a snapshot cannot extend the revision chain.
             """
             candidate = self.get_collection().find_one(
-                {"_id": object_id, "status": "approved"}, session=session
+                {"_id": object_id, "status": "approved", "revision": expected_revision},
+                session=session,
             )
             if candidate is None:
                 return None
@@ -695,7 +704,7 @@ class ClinicalRuleSetRepository(BaseRepository):
                     session=session,
                 )
             result = self.get_collection().find_one_and_update(
-                {"_id": object_id, "status": "approved"},
+                {"_id": object_id, "status": "approved", "revision": expected_revision},
                 {
                     "$set": changes,
                     "$push": {"lifecycle": event},

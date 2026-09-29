@@ -41,9 +41,8 @@ row is omitted. Neither output is repeated in the narrative.
 
 Metadata text is HTML-escaped; it is not an HTML template. Rule traces retain the
 selected rule and text. Saved report artifacts retain their original wording.
-Rules using these destinations require engine version 2. Saving a metadata block
-through the draft API sets this minimum automatically. JSON imports must declare
-`minimum_engine_version: 2` or higher; validation rejects incompatible documents.
+Metadata destinations are part of the current rule schema, as are conflict groups.
+There is no separate reporting-engine version counter.
 
 Finding eligibility is configured in the ASPC, not in these output rules. See
 [annotation scope and report eligibility](reporting_workflow_and_variant_snapshots.md#annotation-scope-and-report-eligibility).
@@ -312,6 +311,35 @@ through normal governance.
 
 ## Blocks And Rules
 
+### Version fields and development data
+
+`schema_version` identifies the document format; the current contract accepts `1`.
+`content_version` identifies an authored release for an assay/subpanel/language scope.
+`revision` identifies successive edits and workflow changes within that release.
+The Coyote3 application version identifies the software deployment. There is no
+separate engine-version setting to configure or increment for individual features.
+
+Development definitions created before this cleanup may contain the removed
+`minimum_engine_version` field. Strict import validation rejects that field; remove it
+from exported authoring JSON before importing. For a database containing such records,
+do not simply unset the field: it contributes to content and revision hashes.
+
+Before starting the updated application, stop application writers, back up the
+development database, and run the dedicated migration using an explicitly configured
+`COYOTE3_MONGO_URI` and `COYOTE3_DB`:
+
+```bash
+.venv/bin/python scripts/remove_clinical_engine_version.py
+.venv/bin/python scripts/remove_clinical_engine_version.py --apply
+```
+
+The first command only plans changes. The second atomically removes the obsolete field
+and rebuilds affected content hashes and revision chains after checking their original
+integrity. It preserves rule identities, content versions, revisions and workflow state.
+The migration refuses to change any database containing saved reports; it is only for
+unreleased development data, not a way to rewrite issued-report provenance. Revalidate
+development rules and restart any pending review that relied on the previous hashes.
+
 A block controls where and how a group of rules is evaluated.
 
 | Field | Meaning |
@@ -323,11 +351,160 @@ A block controls where and how a group of rules is evaluated.
 | `evaluation.collection` | Required for `each_item`; selects a prepared collection. |
 | `show_heading` | Whether the flattened Markdown contains a section heading. |
 | `match_strategy` | `all_matches`, `first_match`, `exactly_one`, or `at_most_one`. |
+| `conflict_group` | Optional shared identifier preventing competing conditions across blocks for the same evaluated candidate. |
 
 Rules within a block have a stable `rule_id`, display name, order, optional condition,
 typed output sequence, rationale, and references. Rules with no condition always match.
 `first_match` provides ordered fallback behavior. `exactly_one` and `at_most_one` make
 ambiguous rule sets fail visibly instead of silently combining unintended wording.
+
+### Choosing match behavior
+
+| UI choice | Result for one evaluated candidate |
+| --- | --- |
+| At most one | Zero or one true condition is allowed. Two true conditions reject evaluation, even if one renders blank text. |
+| Exactly one | Exactly one condition must be true, and its output must be nonblank. Zero or multiple matches reject evaluation. |
+| All matches | Append every nonblank matching output in rule order. Use only for independent, additive statements. |
+| First match | Use the first true condition that produces nonblank text, in rule order. Later rules are not evaluated or included in the trace. |
+
+New sections created in the builder and the API starter block default to **At most one**. Existing rules keep
+their configured behavior. A block's rule order is explicit and cannot contain
+duplicate order values. Matching is sequential, not a contest between worker completion
+times. First-match output is deterministic for the same facts, rule content and engine,
+but it can hide overlapping conditions; deterministic does not mean clinically correct.
+
+Strict cardinality counts conditions, not rendered outputs. Older definitions that
+relied on blank output to avoid a conflict must be corrected and reviewed. No published
+document is rewritten automatically. Previously saved report text is not regenerated
+by this change.
+
+### Cross-section conflict groups
+
+In a draft, select a section and enter **Conflict group (optional)**, for example
+`molecular_classification`. Enter that same identifier on alternative sections.
+Identifiers start with a lowercase letter and contain lowercase letters, digits,
+underscores or hyphens, up to 64 characters. The builder switches non-strict match
+behavior to **At most one**. Conflict groups use the same current schema as other
+reporting features, including definitions imported as JSON.
+
+All blocks in a group must use **Exactly one** or **At most one**, and the same
+evaluation mode and collection. Validation rejects incompatible definitions; runtime
+checks also reject mixed scopes or non-strict strategies. A second true condition in
+the group rejects evaluation with the group and both rule identifiers. Blank output
+does not suppress the conflict. Blocks excluded by the enabled report analyses do not
+participate.
+
+Use **At most one** on alternative blocks: selecting **Exactly one** on each of two
+alternative blocks requires both to match locally, but their shared conflict group
+forbids that combination. To require exactly one conclusion from several alternatives,
+place them in a single **Exactly one** block instead.
+
+For **Once per report**, a group permits at most one true condition across its blocks
+for the report. For **For each finding**, the restriction applies separately to each
+prepared finding; different findings may select different conclusions. For **For each
+collection item**, it applies separately to each item of the selected collection.
+Groups do not span rule sets, and do not compare different findings or collections.
+
+### Building and testing conditions in the UI
+
+1. Open **Administration > Clinical Report Rules** and create or open a draft for the
+   intended assay, subpanel and language. Check those scope values before authoring.
+2. Add a section, select its analysis and evaluation mode, then choose match behavior.
+   Use **For each finding** for finding-level predicates; use **Once per report** for
+   report-level conclusions and collection queries.
+3. Add rules with meaningful names and stable identifiers. Under **When this text
+   applies**, use **Match all** for AND and **Match any** for OR. Nest a group when
+   combining them; visual indentation determines which conditions belong together.
+4. Select facts from the registered catalog and use the offered operators and typed
+   values. Do not use report-rule conditions to compensate for incorrect upstream
+   filtering or an incorrectly selected assay configuration.
+5. Compose the output, record the clinical rationale and references, and inspect the
+   preview. Use conflict groups only for explicitly competing conclusions.
+6. Validate the draft. Resolve errors and review overlap warnings. Use the clinical
+   rule testing workspace with authorized samples and inspect the condition trace,
+   not only the final paragraph. Preserve repeatable cases as embedded test cases
+   through the supported rule definition/import format.
+7. Test boundary, missing-data, negative and overlapping cases before submitting for
+   independent review. Publication does not prove that all possible facts were tested.
+
+### Worked condition patterns
+
+The following are synthetic authoring examples, not approved clinical interpretation
+criteria. A center must approve its thresholds and report wording.
+
+**Disjoint numeric ranges.** Suppose alternative statements distinguish Case VAF of
+5% to below 10%, and 10% or above. In one **Exactly one** block use separate rules:
+
+| Rule | Conditions combined with Match all | Example output |
+| --- | --- | --- |
+| `vaf_below_5` | Case VAF less than `5` | Observed case VAF is below 5%. |
+| `vaf_5_to_10` | Case VAF greater than or equal to `5`; less than `10` | Observed case VAF is 5% to below 10%. |
+| `vaf_at_least_10` | Case VAF greater than or equal to `10` | Observed case VAF is at least 10%. |
+| `vaf_unknown` | Case VAF is unknown | Case VAF is unavailable. |
+
+The rule fact `finding.case_vaf_percent` uses percentage points: `5` means 5%, not
+`0.05`. Test `4.99`, `5`, `9.99`, `10`, `10.01` and null. `between` includes both
+endpoints, so ranges `[5, 10]` and `[10, 20]` overlap at 10. An unknown rule handles
+a present null value; a missing path is a separate case described below.
+
+**AND containing OR.** To select an SNV in either TP53 or KRAS, use an outer
+**Match all** with Finding type equal to `snv` and a nested **Match any** containing
+Gene equal to `TP53` and Gene equal to `KRAS`. Putting all three predicates under
+**Match any** would also select every SNV in other genes. Putting both gene
+equalities under **Match all** would never match a scalar gene value.
+
+**List membership.** Exon is a list-valued fact. To match any exon from 9 through
+14, use **overlaps** with the string values `9, 10, 11, 12, 13, 14`. It is not a
+numeric interval comparison. For a single gene use the scalar Gene fact; for a
+multi-gene finding use Genes with **contains** or **overlaps**. Verify that the
+prepared facts have the expected representation in the testing workspace.
+
+**Same finding versus two different findings.** A whole-report rule that asks for
+any TP53 finding and any tier-1 finding can match TP53 at tier 2 plus KRAS at tier 1.
+To require TP53 itself to be tier 1, put both predicates inside one collection
+condition with quantifier **any**, combined with AND for the same `item`. Alternatively,
+use **For each finding** and combine Gene and Tier predicates there.
+
+**Positive and negative report statements.** For alternative statements that an
+eligible finding is present or absent, use one once-per-report strict block with
+collection quantifiers **any** and **none** over the same predicate. An empty prepared
+collection makes **any** false and **none** true. It does not establish that testing
+was performed successfully or that every biological variant is absent: check the
+analysis gate and the meaning of the prepared collection first.
+
+**Intentional fallback wording.** A first-match block can contain a specific
+condition followed by an unconditional general statement. Put the fallback last.
+Do not copy that unconditional fallback into an exactly-one block: it overlaps
+with every specific condition that matches. Under strict matching, express the
+fallback as explicit complementary conditions and handle unknown values separately.
+
+### Missing data and limits
+
+- Missing and null are different. `exists` tests whether a path is present, including
+  a present null. `is_unknown` matches a present null or the string `unknown`; it does
+  not match an absent path. To handle absence, use `exists` with false. Typed prepared
+  facts commonly expose optional values as null.
+- NOT is not a substitute for a missing-data branch. Negation with a reported missing
+  path does not match. An OR group can match a known true branch while retaining
+  missing paths from another branch in its trace; inspect both the result and trace.
+- Collection conditions fail closed when a child reports missing paths, including
+  `any`, `none` and count queries. **All** over an empty collection is false; **none**
+  over an empty collection is true. Write explicit tests for empty and incomplete data.
+- Exactly-one is checked per evaluated candidate. An empty collection gives an
+  each-finding or each-item block no candidates, so it emits nothing; it does not raise
+  a zero-match error. Add a once-per-report rule if an empty-results statement is required.
+- Grouping does not detect contradictory prose automatically. Independent blocks
+  without a shared conflict group may both emit text. Review wording and assign groups
+  deliberately; do not group independent supporting statements.
+- Validation warns about identical or unconditional conditions in strict blocks and
+  multiple rules in permissive blocks. It does not solve arbitrary numeric, nested or
+  collection predicates to prove non-overlap. Embedded cases that encounter a conflict
+  fail validation; passing a finite test set is not a proof for every future sample.
+- Strict runtime checks reject ambiguous evaluation rather than returning a selected
+  conclusion. They cannot establish biological correctness, rescue absent input facts,
+  or replace clinical review. A changed engine, rule release or prepared context may
+  change a new preview; saved report provenance and text remain the reference for an
+  already issued report.
 
 ## Conditions
 
@@ -547,7 +724,7 @@ persistence. It requires
 
 Validation checks the complete rule set before submission and again before publication:
 
-- engine-version compatibility;
+- current document-schema compatibility;
 - non-empty blocks and unique block/rule identifiers and ordering;
 - analysis declarations and enabled block consistency;
 - condition depth, registered fact scope, and type-compatible operators;
@@ -555,8 +732,26 @@ Validation checks the complete rule set before submission and again before publi
 - consistent heading behavior per report section;
 - every embedded test case against exact matched rule identifiers and rendered sections.
 
-Warnings identify review gaps, such as enabled analyses without blocks or no embedded
-test cases. Structural or exact-output failures block release.
+Incomplete drafts can be saved and inspected. The builder's **Validate** action checks
+submission readiness, including the presence of embedded cases. Submission and publication
+require at least one embedded case and rerun every case. Missing cases, structural errors
+and exact-output failures block those transitions. Enabled analyses without blocks remain
+review warnings. Lower-level content validation used outside these readiness gates treats
+missing cases as a warning.
+
+Embedded cases travel in the rule-set JSON `test_cases` list; use the JSON import
+workflow to supply synthetic facts, ordered `expected_rule_ids` and exact
+`expected_sections`. The visual builder preserves those cases when saving, but does
+not currently provide a dedicated case editor. Live sample-backed previews are
+read-only and do not create embedded cases or satisfy this publication requirement.
+Do not copy patient identifiers or other sensitive sample data into reusable fixtures.
+One passing case is a minimum gate, not complete coverage: reviewers must include
+negative, boundary, overlap and missing-data cases relevant to the rule set.
+
+Lifecycle writes compare the current revision with the revision that was validated
+and authorized. An intervening edit causes HTTP 409 instead of submitting or publishing
+different content. Reload and revalidate after a conflict; the application does not
+silently retry approval against changed rules.
 
 Embedded cases use the same `PreparedReportContext` contract as production evaluation.
 Include positive, negative, boundary, missing-value, precedence, and multi-finding cases
@@ -636,7 +831,7 @@ applied gene lists, ASP, and ASPC used for that report. The service then:
 
 1. resolves the exact sample scope, or assay Base, for the ASPC reporting language;
 2. requires the active published release and matching analyte;
-3. verifies the release content hash and engine compatibility;
+3. verifies the release content hash and document schema;
 4. checks all selected report sections are declared;
 5. evaluates blocks in deterministic order;
 6. returns rendered sections and a per-rule trace.

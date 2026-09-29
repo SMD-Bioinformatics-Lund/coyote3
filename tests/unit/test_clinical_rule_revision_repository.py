@@ -70,7 +70,10 @@ def test_publish_returns_committed_callback_result(monkeypatch, candidate_availa
     }
 
     result = repository.publish(
-        candidate["_id"], changes={"status": "published", "active": True}, event=event
+        candidate["_id"],
+        expected_revision=candidate["revision"],
+        changes={"status": "published", "active": True},
+        event=event,
     )
 
     assert result is committed

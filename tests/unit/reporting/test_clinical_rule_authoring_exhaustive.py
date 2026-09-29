@@ -63,7 +63,7 @@ def test_reserved_setup_scopes_validate_new_rules_and_ignore_existing_assays():
     )
 
 
-def test_metadata_edit_raises_required_engine_version():
+def test_metadata_edit_preserves_schema_version():
     document = _document(status="draft", active=False)
     blocks = document.model_dump(mode="python")["blocks"]
     blocks[0]["section"] = "clinical_question"
@@ -74,7 +74,22 @@ def test_metadata_edit_raises_required_engine_version():
         ClinicalRuleDraftUpdate(revision=document.revision, blocks=blocks),
         actor="author",
     )
-    assert updated["minimum_engine_version"] == 2
+    assert updated["schema_version"] == 1
+
+
+def test_conflict_group_edit_preserves_schema_version():
+    document = _document(status="draft", active=False)
+    blocks = document.model_dump(mode="python")["blocks"]
+    blocks[0]["conflict_group"] = "classification"
+    blocks[0]["match_strategy"] = "at_most_one"
+    service = ClinicalRuleAuthoringService(Repository(document))
+    updated = service.update_draft(
+        "id",
+        ClinicalRuleDraftUpdate(revision=document.revision, blocks=blocks),
+        actor="author",
+    )
+    assert updated["schema_version"] == 1
+    assert updated["blocks"][0]["conflict_group"] == "classification"
 
 
 def test_publish_rejects_an_assay_no_longer_available():
@@ -85,6 +100,37 @@ def test_publish_rejects_an_assay_no_longer_available():
     service.assay_panel_repository.get_all_asps = lambda **_: []
     with pytest.raises(AppError, match="Assay is unavailable"):
         service.publish("id", ClinicalRuleTransition(), actor="publisher")
+
+
+@pytest.mark.parametrize("operation,status", [("submit", "draft"), ("publish", "approved")])
+def test_review_gates_require_embedded_tests(operation, status):
+    document = _document(status=status, active=False)
+    document.test_cases = []
+    service = governed_service(Repository(document))
+    readiness = service.validate("id")
+    assert readiness["valid"] is False
+    assert "No embedded clinical rule test cases are configured" in readiness["errors"]
+    with pytest.raises(AppError) as failure:
+        getattr(service, operation)(
+            "id", ClinicalRuleTransition(assignee="reviewer"), actor="author"
+        )
+    assert failure.value.status_code == 422
+    assert service.repository.document["status"] == status
+
+
+def test_submit_rejects_edit_after_validation(monkeypatch):
+    service = governed_service(Repository(_document(status="draft", active=False)))
+
+    def assign(*args, **kwargs):
+        service.repository.document["revision"] += 1
+        service.repository.document["blocks"][0]["rules"][0]["output"] = []
+        return "reviewer"
+
+    monkeypatch.setattr(service, "_validate_assignee", assign)
+    with pytest.raises(AppError) as failure:
+        service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    assert failure.value.status_code == 409
+    assert service.repository.document["status"] == "draft"
 
 
 class Repository:
@@ -130,8 +176,12 @@ class Repository:
         self.deleted_document = deleted
         return deleted
 
-    def transition(self, _document_id, *, from_statuses, changes, event):
-        if self.fail_transition or self.document["status"] not in from_statuses:
+    def transition(self, _document_id, *, expected_revision, from_statuses, changes, event):
+        if (
+            self.fail_transition
+            or self.document["status"] not in from_statuses
+            or self.document["revision"] != expected_revision
+        ):
             return None
         for key, value in changes.items():
             if "." in key:
@@ -143,11 +193,15 @@ class Repository:
         self.document.setdefault("lifecycle", []).append(event)
         return deepcopy(self.document)
 
-    def publish(self, document_id, *, changes, event):
+    def publish(self, document_id, *, expected_revision, changes, event):
         if self.fail_publish:
             return None
         return self.transition(
-            document_id, from_statuses={"approved"}, changes=changes, event=event
+            document_id,
+            expected_revision=expected_revision,
+            from_statuses={"approved"},
+            changes=changes,
+            event=event,
         )
 
 
@@ -354,6 +408,7 @@ def test_new_draft_creation_validates_assay_and_persists_scope() -> None:
     assert result["rule_set_id"] == "assay_1__base__sv"
     assert result["lifecycle"][0]["action"] == "draft_created"
     assert result["blocks"][0]["block_id"] == "report_section_1"
+    assert result["blocks"][0]["match_strategy"] == "at_most_one"
     assert result["blocks"][0]["rules"][0]["enabled"] is False
     assert repository.insert_metadata[:2] == ("draft_created", "author")
 
@@ -385,6 +440,8 @@ def test_clone_rejects_nonreleased_source() -> None:
 
 def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
     source = _document(status="published", active=True).model_dump(mode="python", by_alias=True)
+    source["blocks"][0]["conflict_group"] = "classification"
+    source["blocks"][0]["match_strategy"] = "at_most_one"
     repository = Repository()
     panels = SimpleNamespace(
         get_asp=lambda _asp_id: {"asp_id": "assay_1", "asp_category": "DNA", "is_active": True}
@@ -408,6 +465,9 @@ def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
     assert result["active"] is False
     assert result["provenance"]["source"] == "import"
     assert result["lifecycle"][0]["action"] == "draft_imported"
+    assert result["blocks"][0]["conflict_group"] == "classification"
+    assert result["blocks"][0]["match_strategy"] == "at_most_one"
+    assert result["test_cases"] == source["test_cases"]
 
 
 def test_validate_preview_and_update_audit_paths() -> None:

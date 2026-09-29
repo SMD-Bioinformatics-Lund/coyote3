@@ -234,16 +234,11 @@ def test_preview_rejects_wrong_assay_and_missing_evaluation(monkeypatch) -> None
         )
 
 
-def test_explicit_version_evaluation_rejects_engine_and_analyte_mismatches() -> None:
+def test_explicit_version_evaluation_rejects_analyte_mismatches() -> None:
     runtime = ClinicalRuleService(repository=object())
     context = _context()
     document = ClinicalRuleSetDoc.model_validate(_document())
 
-    with pytest.raises(ValueError, match="requires engine version"):
-        runtime.evaluate_document(
-            rule_set=document.model_copy(update={"minimum_engine_version": 999}),
-            context=context,
-        )
     with pytest.raises(ValueError, match="analyte does not match"):
         runtime.evaluate_document(
             rule_set=document.model_copy(

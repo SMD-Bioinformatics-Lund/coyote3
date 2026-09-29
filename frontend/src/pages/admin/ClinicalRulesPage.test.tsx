@@ -44,7 +44,6 @@ const existingDraft = {
   name: "Existing solid rules",
   status: "draft",
   active: false,
-  minimum_engine_version: 1,
   analysis_declarations: {},
   terminology: {},
   blocks: [],
@@ -223,6 +222,11 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Section identifier")).toHaveValue("report_section_1")
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("Report section 1 rule 1")
     expect(screen.getByLabelText("Rule identifier")).toHaveValue("report_section_1_rule_1")
+    expect(screen.getByLabelText("Match behavior")).toHaveValue("at_most_one")
+    await user.selectOptions(screen.getByLabelText("Match behavior"), "first_match")
+    await user.type(screen.getByLabelText("Conflict group (optional)"), "classification")
+    expect(screen.getByLabelText("Match behavior")).toHaveValue("at_most_one")
+    expect(screen.getByRole("option", { name: "First match" })).toBeDisabled()
 
     await user.clear(screen.getByLabelText("Rule identifier"))
     await user.type(screen.getByLabelText("Rule identifier"), "custom_result_rule")

@@ -9,7 +9,7 @@
     "occurred_at": "2026-01-01T10:00:00+00:00",
     "reason": "Synthetic immutable baseline",
     "previous_revision_hash": null,
-    "revision_hash": "ca2827de3e1644b916ae27e256021d6e6e74212665320129aa5884af399506b6",
+    "revision_hash": "275b07fa5869239a4c35a8b77d66869fc9ec9162697bc98ed218f0ec7fde3eed",
     "document": {
       "_id": "507f1f77bcf86cd799439011",
       "rule_set_id": "assay_1__base__sv",
@@ -25,7 +25,6 @@
       "name": "Synthetic clinical rule draft",
       "status": "draft",
       "active": false,
-      "minimum_engine_version": 1,
       "analysis_declarations": {},
       "terminology": {},
       "blocks": [],

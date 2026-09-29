@@ -77,7 +77,7 @@ def test_metadata_migration_preserves_conditional_outputs(
     assert parsed.status == "draft"
     assert not parsed.active
     assert parsed.review.clinical_reviewer is None
-    assert parsed.minimum_engine_version == 2
+    assert parsed.schema_version == 1
     assert validate_rule_set(parsed).valid
     context = _context()
     context.sample.subpanel_id = subpanel
@@ -107,8 +107,6 @@ def test_metadata_sections_reject_ambiguous_outputs_and_invalid_modes():
         ClinicalRuleEvaluator().evaluate(_context(), document, reporting_analyses=set())
     block.show_heading = True
     assert not validate_rule_set(document).valid
-    document.minimum_engine_version = 1
-    assert any("minimum_engine_version" in error for error in validate_rule_set(document).errors)
 
 
 def test_renderer_does_not_mutate_aspc_or_duplicate_metadata_in_summary():

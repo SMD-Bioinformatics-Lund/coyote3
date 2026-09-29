@@ -13,7 +13,6 @@
     "name": "Demo DNA assay report rules",
     "status": "published",
     "active": true,
-    "minimum_engine_version": 1,
     "analysis_declarations": {
       "SNV": { "narrative": "enabled" },
       "CNV": { "narrative": "none" }
@@ -115,7 +114,7 @@
     "published_at": "2026-01-01T00:00:00+00:00",
     "published_by": "system.bootstrap",
     "effective_from": "2026-01-01T00:00:00+00:00",
-    "content_hash": "2f042a2d4573fad3ffd9a32e9cc85b041ef307d175aaac22366a58999513a6be"
+    "content_hash": "371ba84a81dafac5b8bc3bcc383df0d0ae3c1b97b09089a5d68fae4137258045"
   },
   {
     "rule_set_id": "assay_rna_1__base__sv",
@@ -131,7 +130,6 @@
     "name": "Demo RNA assay report rules",
     "status": "published",
     "active": true,
-    "minimum_engine_version": 1,
     "analysis_declarations": {
       "FUSION": { "narrative": "enabled" },
       "EXPRESSION": { "narrative": "none" },
@@ -201,6 +199,6 @@
     "published_at": "2026-01-01T00:00:00+00:00",
     "published_by": "system.bootstrap",
     "effective_from": "2026-01-01T00:00:00+00:00",
-    "content_hash": "42a9865d1e84073903731dde6ede4b17c59645f62a91fb4216491a4938ed308d"
+    "content_hash": "c611939bba47e9c8416a26cd8825946f4b97bd966659d2c90fbd80457688a787"
   }
 ]

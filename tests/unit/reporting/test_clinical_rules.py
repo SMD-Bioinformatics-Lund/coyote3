@@ -192,7 +192,18 @@ def _document(*, status: str = "draft", active: bool = False) -> ClinicalRuleSet
                     ],
                 },
             ],
-            "test_cases": [],
+            "test_cases": [
+                {
+                    "test_id": "tp53_positive",
+                    "name": "Synthetic TP53 finding",
+                    "facts": _context().model_dump(mode="json"),
+                    "expected_rule_ids": ["tp53_exon", "positive"],
+                    "expected_sections": {
+                        "Findings": ["Finding in TP53."],
+                        "Summary": ["Positive."],
+                    },
+                }
+            ],
             "created_at": now,
             "created_by": "author",
             "updated_at": now,
@@ -293,8 +304,11 @@ class _MemoryRepository:
         self.document["revision"] += 1
         return deepcopy(self.document)
 
-    def transition(self, _document_id, *, from_statuses, changes, event):
-        if self.document["status"] not in from_statuses:
+    def transition(self, _document_id, *, expected_revision, from_statuses, changes, event):
+        if (
+            self.document["status"] not in from_statuses
+            or self.document["revision"] != expected_revision
+        ):
             return None
         for key, value in changes.items():
             if "." in key:
@@ -306,9 +320,13 @@ class _MemoryRepository:
         self.document.setdefault("lifecycle", []).append(event)
         return deepcopy(self.document)
 
-    def publish(self, document_id, *, changes, event):
+    def publish(self, document_id, *, expected_revision, changes, event):
         return self.transition(
-            document_id, from_statuses={"approved"}, changes=changes, event=event
+            document_id,
+            expected_revision=expected_revision,
+            from_statuses={"approved"},
+            changes=changes,
+            event=event,
         )
 
 

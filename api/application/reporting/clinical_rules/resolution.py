@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from api.application.reporting.clinical_rules.validation import ENGINE_VERSION, content_hash
+from api.application.reporting.clinical_rules.validation import content_hash
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
 
@@ -23,8 +23,8 @@ def resolve_published_rule_set(
 
     Raises:
         ValueError: No release matches, a selected scope is ambiguous, or stored
-            rule content violates its contract, hash, or engine requirements. An invalid exact release never
-            causes a silent switch to Base.
+            rule content violates its contract or hash. An invalid exact release
+            never causes a silent switch to Base.
     """
     scope = subpanel_id or "base"
     candidates = [
@@ -46,10 +46,6 @@ def resolve_published_rule_set(
             )
         if matches:
             rule_set = ClinicalRuleSetDoc.model_validate(matches[0])
-            if rule_set.minimum_engine_version > ENGINE_VERSION:
-                raise ValueError(
-                    f"Clinical rule set requires engine version {rule_set.minimum_engine_version}"
-                )
             if rule_set.content_hash != content_hash(rule_set):
                 raise ValueError("Published clinical rule-set content failed integrity validation")
             return rule_set

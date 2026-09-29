@@ -347,7 +347,6 @@ Optional keys:
 - `id_` (Any | None)
 - `schema_version` (Literal[1])
 - `active` (bool)
-- `minimum_engine_version` (int)
 - `analysis_declarations` (dict[str, api.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration])
 - `terminology` (dict[str, Any])
 - `blocks` (list[api.contracts.schemas.clinical_rules.ClinicalRuleBlock])

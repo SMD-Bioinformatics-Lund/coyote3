@@ -304,6 +304,7 @@ class ClinicalRuleBlock(_StrictModel):
     block_order: int = Field(ge=0)
     show_heading: bool = True
     match_strategy: Literal["all_matches", "first_match", "exactly_one", "at_most_one"]
+    conflict_group: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_-]{0,63}$")
     rules: list[ClinicalRule] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -420,7 +421,6 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
     name: str = Field(min_length=1, max_length=160)
     status: ClinicalRuleStatus
     active: bool = False
-    minimum_engine_version: int = Field(default=1, ge=1)
     analysis_declarations: dict[str, ClinicalAnalysisDeclaration] = Field(default_factory=dict)
     terminology: dict[str, Any] = Field(default_factory=dict)
     blocks: list[ClinicalRuleBlock] = Field(default_factory=list)

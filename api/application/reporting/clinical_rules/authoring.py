@@ -9,7 +9,6 @@ from typing import Any
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
 from api.application.reporting.clinical_rules.validation import (
-    REPORT_METADATA_SECTIONS,
     content_hash,
     validate_rule_set,
 )
@@ -53,7 +52,7 @@ def _new_rule_set_blocks() -> list[dict[str, Any]]:
             "section_order": 100,
             "block_order": 10,
             "show_heading": True,
-            "match_strategy": "first_match",
+            "match_strategy": "at_most_one",
             "rules": [
                 {
                     "rule_id": "report_section_1_rule_1",
@@ -533,7 +532,6 @@ class ClinicalRuleAuthoringService:
                 "name": payload.name,
                 "status": "draft",
                 "active": False,
-                "minimum_engine_version": 1,
                 "analysis_declarations": {},
                 "terminology": {},
                 "blocks": _new_rule_set_blocks(),
@@ -643,10 +641,6 @@ class ClinicalRuleAuthoringService:
             ValidationError: The proposed document fails canonical validation.
         """
         changes = payload.model_dump(exclude={"revision"}, exclude_none=True, mode="python")
-        if any(block["section"] in REPORT_METADATA_SECTIONS for block in changes.get("blocks", [])):
-            changes["minimum_engine_version"] = max(
-                2, self._document(document_id).minimum_engine_version
-            )
         changes.update({"updated_at": _now(), "updated_by": actor, "content_hash": None})
         candidate = self._document(document_id).model_dump(mode="python", by_alias=True)
         candidate.update({**deepcopy(changes), "revision": payload.revision + 1})
@@ -692,7 +686,9 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 404 when the version is absent.
         """
-        return validate_rule_set(self._document(document_id)).model_dump(mode="python")
+        return validate_rule_set(self._document(document_id), require_tests=True).model_dump(
+            mode="python"
+        )
 
     def preview(self, document_id: str, facts: dict[str, Any]) -> dict[str, Any]:
         """Evaluate supplied facts against a version without persisting a report.
@@ -722,6 +718,7 @@ class ClinicalRuleAuthoringService:
         self,
         document_id: str,
         *,
+        expected_revision: int,
         actor: str,
         reason: str,
         from_statuses: set[str],
@@ -732,6 +729,7 @@ class ClinicalRuleAuthoringService:
 
         Args:
             document_id: Version to transition.
+            expected_revision: Revision read during validation and authorization.
             actor: Login recorded on the lifecycle and audit events.
             reason: Event explanation; blank is stored as None.
             from_statuses: Permitted current statuses passed to the repository.
@@ -753,7 +751,11 @@ class ClinicalRuleAuthoringService:
             "reason": reason or None,
         }
         updated = self.repository.transition(
-            document_id, from_statuses=from_statuses, changes=changes, event=event
+            document_id,
+            expected_revision=expected_revision,
+            from_statuses=from_statuses,
+            changes=changes,
+            event=event,
         )
         if updated is None:
             raise api_error(409, f"Clinical rule set cannot transition to {status.value}")
@@ -764,7 +766,7 @@ class ClinicalRuleAuthoringService:
     def submit(
         self, document_id: str, payload: ClinicalRuleTransition, *, actor: str
     ) -> dict[str, Any]:
-        """Validate a draft, assign an independent reviewer, and request review.
+        """Validate a tested draft, assign an independent reviewer, and request review.
 
         Args:
             document_id: Draft version identifier.
@@ -777,8 +779,13 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 404 for a missing version, 422 for rule errors,
                 400 for no reviewer, or 409 for an invalid assignment or transition.
+
+        Notes:
+            At least one passing embedded case is required. The write is fenced
+            by the validated revision so a concurrent edit cannot enter review.
         """
-        validation = validate_rule_set(self._document(document_id))
+        document = self._document(document_id)
+        validation = validate_rule_set(document, require_tests=True)
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
         now = _now()
@@ -790,6 +797,7 @@ class ClinicalRuleAuthoringService:
         )
         result = self._transition(
             document_id,
+            expected_revision=document.revision,
             actor=actor,
             reason=payload.reason,
             from_statuses={"draft"},
@@ -832,6 +840,7 @@ class ClinicalRuleAuthoringService:
             raise api_error(409, "This clinical review is assigned to another user")
         result = self._transition(
             document_id,
+            expected_revision=document.revision,
             actor=actor,
             reason=payload.reason,
             from_statuses={"submitted"},
@@ -874,6 +883,7 @@ class ClinicalRuleAuthoringService:
         now = _now()
         result = self._transition(
             document_id,
+            expected_revision=document.revision,
             actor=actor,
             reason=payload.reason,
             from_statuses={"in_clinical_review"},
@@ -924,9 +934,10 @@ class ClinicalRuleAuthoringService:
 
         Notes:
             Audits publication and notifies the creator when different from the publisher.
+            Requires passing embedded cases and an unchanged validated revision.
         """
         document = self._document(document_id)
-        validation = validate_rule_set(document)
+        validation = validate_rule_set(document, require_tests=True)
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
         if not document.review.clinical_reviewer:
@@ -951,6 +962,7 @@ class ClinicalRuleAuthoringService:
         }
         updated = self.repository.publish(
             document_id,
+            expected_revision=document.revision,
             changes={
                 "status": "published",
                 "active": True,
@@ -997,6 +1009,7 @@ class ClinicalRuleAuthoringService:
         now = _now()
         return self._transition(
             document_id,
+            expected_revision=self._document(document_id).revision,
             actor=actor,
             reason=payload.reason,
             from_statuses={"published"},
