@@ -186,6 +186,39 @@ def test_disabled_execution_leaves_job_pending(jobs, monkeypatch):
     assert jobs.get(identity)["attempts"] == 0
 
 
+def test_reclaimed_attempt_does_not_notify_failure_or_remove_staging(jobs, monkeypatch, tmp_path):
+    """An expired worker cannot acknowledge or report the replacement worker's job."""
+    staging = tmp_path / "input"
+    staging.mkdir()
+    identity = jobs.submit(source_payload={}, staging_dir=str(staging), submitted_by="synthetic")
+    audit = Mock()
+    notifications = Mock()
+    monkeypatch.setattr(ingest, "_record_ingest_audit", audit)
+    monkeypatch.setattr(ingest, "get_notification_service", lambda: notifications)
+
+    def reclaimed(*args, record_completion, **kwargs):
+        jobs.get_collection().update_one(
+            {"_id": identity},
+            {"$set": {"lease_until": datetime.now(timezone.utc) - timedelta(seconds=1)}},
+        )
+        assert jobs.claim(identity, lease_seconds=30) is not None
+        record_completion({"status": "ok"}, None)
+
+    monkeypatch.setattr(
+        ingest,
+        "get_internal_ingest_service",
+        lambda: SimpleNamespace(ingest_sample_bundle=reclaimed),
+    )
+    assert ingest.ingest_sample_bundle_task.run(job_id=identity) == {
+        "status": "busy",
+        "job_id": identity,
+    }
+    assert jobs.get(identity)["state"] == "running"
+    assert staging.exists()
+    audit.assert_not_called()
+    notifications.create_notification.assert_not_called()
+
+
 def test_dispatcher_only_publishes_identifiers(jobs, monkeypatch):
     identity = jobs.submit(source_payload={"name": "synthetic"}, submitted_by="synthetic")
     published = []

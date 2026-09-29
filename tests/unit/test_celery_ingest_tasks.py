@@ -193,3 +193,42 @@ def test_ingest_watch_directory_once_skips_when_another_scan_is_active(tmp_path,
         result = ingest.ingest_watch_directory_once.run()
 
     assert result == {"status": "skipped", "reason": "already_running"}
+
+
+@pytest.mark.parametrize("failed", [False, True])
+@pytest.mark.parametrize("replacement", [False, True])
+def test_watch_preserves_manifest_changed_during_execution(
+    tmp_path, monkeypatch, failed, replacement
+):
+    """Success and failure of an old payload must not consume its replacement."""
+    manifest = tmp_path / "coyote3.yaml"
+    manifest.write_text("name: SYNTHETIC_A\n")
+    new_contents = "name: SYNTHETIC_B\n"
+    jobs = IngestJobsRepository(
+        SimpleNamespace(ingest_jobs_collection=mongomock.MongoClient().test.ingest_jobs)
+    )
+
+    def execute(identity):
+        if replacement:
+            incoming = tmp_path / "replacement.yaml"
+            incoming.write_text(new_contents)
+            incoming.replace(manifest)
+        else:
+            manifest.write_text(new_contents)
+        if failed:
+            raise ValueError("Synthetic validation failure")
+        return {"status": "ok", "sample_id": "synthetic"}
+
+    monkeypatch.setattr(ingest, "WATCH_INGEST_DIRECTORY", tmp_path)
+    monkeypatch.setattr(ingest, "get_ingest_jobs_repository", lambda: jobs)
+    monkeypatch.setattr(ingest, "_execute_ingest_job", execute)
+    monkeypatch.setattr(
+        ingest,
+        "get_internal_ingest_service",
+        lambda: SimpleNamespace(parse_yaml_payload=lambda raw: {"name": "SYNTHETIC_A"}),
+    )
+    result = ingest._run_watch_directory_once(SimpleNamespace(request=SimpleNamespace(id="scan")))
+    assert result["ingested"] == []
+    assert result["failed"] == []
+    assert manifest.read_text() == new_contents
+    assert not list(tmp_path.glob("coyote3.yaml.*"))

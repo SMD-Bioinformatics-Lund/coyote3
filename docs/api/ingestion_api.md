@@ -481,6 +481,18 @@ manifest are preserved for a later enabled run. A disabled or busy result produc
 neither a success marker nor a success audit event. A `.done` acknowledgement follows
 successful processing, including recovery of an already-committed receipt.
 
+Write each manifest under a temporary filename, then rename it to the watched
+filename only after all referenced input files are ready. Do not edit or replace
+that manifest until it has been acknowledged. The watcher rechecks file identity,
+size and timestamps before writing a success or failure marker; a change detected
+during processing leaves the current file for a later scan. This check and the
+marker rename are separate filesystem operations, so they cannot protect against
+a producer replacing the file at that exact boundary.
+
+If an expired worker loses its job lease to another worker, it cannot mark the
+manifest as failed or send a failure notification for the replacement attempt.
+The worker holding the current lease determines the job outcome.
+
 ### Ingest load validation
 
 The [optional load-testing workflow](../testing/load_testing.md) treats ingest as an

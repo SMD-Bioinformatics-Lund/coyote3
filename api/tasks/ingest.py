@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import shutil
 from hashlib import sha256
+from os import stat_result
 from pathlib import Path
 from typing import Any
 
@@ -166,6 +167,30 @@ def _resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path)
     return resolved
 
 
+def _manifest_unchanged(path: Path, expected: stat_result | None) -> bool:
+    """Check that a watched manifest still matches the file read by this scan.
+
+    Args:
+        path: Manifest awaiting acknowledgement.
+        expected: File metadata captured before reading, or None if reading failed.
+
+    Returns:
+        False for an unread, missing, inaccessible, replaced, or modified manifest.
+
+    Notes:
+        This detects changes during processing, not concurrent writes between
+        this check and rename. Producers must not modify a submitted manifest.
+    """
+    if expected is None:
+        return False
+    try:
+        current = path.stat()
+    except OSError:
+        return False
+    fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+    return all(getattr(current, field) == getattr(expected, field) for field in fields)
+
+
 def _run_watch_directory_once(self) -> dict[str, Any]:
     """Discover stable manifests and execute their durable ingest jobs.
 
@@ -199,6 +224,7 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
     failed: list[dict[str, str]] = []
 
     for manifest_path in manifests:
+        before = None
         try:
             task_context = {"task_id": self.request.id, "manifest": str(manifest_path)}
             with timed_operation("ingest.manifest_parse", **task_context):
@@ -228,6 +254,9 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
                 result = _execute_ingest_job(identity)
                 if result.get("status") in {"busy", "disabled"}:
                     continue
+            if not _manifest_unchanged(manifest_path, before):
+                logger.warning("Manifest changed during ingest; acknowledgement deferred")
+                continue
             done_path = _unique_marker_path(manifest_path, done_suffix, self.request.id)
             try:
                 manifest_path.rename(done_path)
@@ -258,6 +287,9 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
         except Exception as exc:  # pragma: no cover - defensive logging path
             logger.exception("celery_ingest_watch_failed manifest=%s", manifest_path)
             if _retryable_ingest_error(exc):
+                continue
+            if not _manifest_unchanged(manifest_path, before):
+                logger.warning("Manifest changed during ingest; failure marker deferred")
                 continue
             failed_path = _unique_marker_path(manifest_path, failed_suffix, self.request.id)
             try:
@@ -392,10 +424,14 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
         retryable = _retryable_ingest_error(exc)
         error = _ingest_failure_message(exc, retryable=retryable)
         logger.exception("Ingest task %s failed: %s", job_id, error)
-        repository.fail(job_id, job["lease_token"], retryable=retryable, error=error)
+        recorded_failure = repository.fail(
+            job_id, job["lease_token"], retryable=retryable, error=error
+        )
         committed = repository.get(job_id)
         if committed is not None and committed["state"] == "succeeded":
             result = committed["result"]
+        elif not recorded_failure:
+            return {"status": "busy", "job_id": job_id}
         else:
             _record_ingest_audit(
                 "ingest.bundle.failed",

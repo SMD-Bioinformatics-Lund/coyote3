@@ -140,9 +140,20 @@ class IngestJobsRepository(BaseRepository):
         if updated.matched_count != 1:
             raise RuntimeError("Ingest job lease changed before commit")
 
-    def fail(self, job_id, lease_token, *, retryable, error=None):
-        """Never overwrite a committed success after a lost acknowledgement."""
-        self.get_collection().update_one(
+    def fail(self, job_id, lease_token, *, retryable, error=None) -> bool:
+        """Record an attempt failure only while the caller owns the job lease.
+
+        Args:
+            job_id: Durable job identifier.
+            lease_token: Token returned when this attempt claimed the job.
+            retryable: Whether to return the job to the pending queue.
+            error: Safe failure description, or None for a generic description.
+
+        Returns:
+            True if this attempt recorded the failure; False if its lease was
+            replaced or the job already reached a terminal state.
+        """
+        updated = self.get_collection().update_one(
             {"_id": job_id, "state": "running", "lease_token": lease_token},
             {
                 "$set": {
@@ -159,6 +170,7 @@ class IngestJobsRepository(BaseRepository):
                 }
             },
         )
+        return updated.matched_count == 1
 
     def pending(self, *, limit=100, kinds=None):
         """List deliverable job IDs in oldest-created-first order.
