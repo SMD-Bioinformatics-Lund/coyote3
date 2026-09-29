@@ -80,9 +80,16 @@ Scope note:
 - `PUT /api/v1/internal/ingest/collection`
 - `PUT /api/v1/internal/ingest/collection/async`
 - `POST /api/v1/internal/ingest/collection/upload`
+
 - `GET /api/v1/internal/ingest/collections`
 - `GET /api/v1/internal/tasks/{task_id}`
 - `GET /api/v1/internal/metrics`
+
+Collection uploads enforce `INGEST_COLLECTION_UPLOAD_MAX_BYTES` (default 67108864,
+64 MiB) on both uploaded and gzip-expanded bytes. An oversized upload returns
+HTTP 413 before inserting documents. Split large imports into bounded batches or
+use a supported maintenance importer. Increasing the limit also increases possible
+JSON parsing memory usage. Collection permissions are checked before parsing.
 
 ## Celery-backed async ingest
 
@@ -149,6 +156,10 @@ GET /api/v1/internal/tasks/{task_id}
 
 and displays worker state, completion status, errors, and the final ingest result.
 This is the supported browser workflow for manual operator-triggered ingestion.
+The endpoint requires `internal.task:view` and permits access only to the submitter
+or a superuser. Status comes from the durable ingest job, not arbitrary Celery
+results. Unknown, expired, or historical task IDs without a durable job return
+`404`; jobs belonging to another user return `403`.
 
 ## Remote manifest acknowledgement
 
@@ -716,7 +727,7 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
-      "clinical_rule_set_id": "assay_1__base__sv",
+      "language": "sv",
       "plots_path": "reports/plots",
       "report_folder": "reports/output"
     },
@@ -812,7 +823,7 @@ curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
-      "clinical_rule_set_id": "assay_1__base__sv",
+      "language": "sv",
       "plots_path": "reports/plots",
       "report_folder": "reports/output"
     },
@@ -959,7 +970,7 @@ Use this order for a clean deployment at a new center.
 1. Provision the MongoDB application user outside Coyote3.
 2. Run `scripts/bootstrap_database.py` against the empty application and identity databases.
    - It creates the first superuser and loads `permissions` and `roles` into
-     `IDENTITY_DB`, and `hgnc_genes` and `vep_metadata` into `COYOTE3_DB`.
+     `IDENTITY_DB`, and `hgnc_genes` and `vep_metadata` into `KNOWLEDGEBASE_DB`.
    - Add `--with-demo-center` only for the synthetic ASP, ASPC, and ISGL
      demonstration configuration.
 3. Start Coyote3 services.
@@ -1011,18 +1022,16 @@ Managed-admin form source:
 
 Assay-group contract:
 
-- `asp_group` is a fixed software taxonomy defined in
-  `api/config/assay_groups.py`.
-- Allowed values are `tumwgs`, `wts`, `hematology`, `myeloid`, `lymphoid`,
-  `solid`, `fusion`, and `pgx`.
+- `asp_group` is a stable identifier registered in the application's
+  [`assay_groups` collection](../configuration/assay-groups.md).
+- Bundled system groups are `tumwgs`, `wts`, `hematology`, `myeloid`, `lymphoid`,
+  `solid`, `fusion`, and `pgx`; administrators can register additional groups.
 - `asp_family` is separate: use `panel-dna`, `panel-rna`, `wgs`, or `wts` for
   sequencing-design classification. `asp_category` is separately `dna` or
   `rna`, and `subpanel_id` identifies the in-silico target subset within the
   selected design panel.
-- Centers may register any ASP they need, but each ASP and ASPC must use one
-  of the fixed assay groups.
-- Adding a group requires a reviewed product release and migration of affected
-  clinical records; it is not an admin-side data change.
+- Register the group before creating an ASP. ASPCs use their parent ASP's group.
+- Adding a group does not rewrite clinical records or introduce custom query logic.
 
 Other fixed admin/runtime vocabularies:
 

@@ -437,7 +437,26 @@ color inputs, and resource selectors for bounded values instead of free text.
 | Clinical route or layout | Playwright test for supported analysis availability and user interaction. |
 | Deployment change | Compose render plus disposable full-stack validation. |
 
-### Common commands
+### Retiring code and tests
+
+Remove a compatibility path only after checking its production callers, stored-data
+contract, configuration examples, deployment scripts, and supported upgrade paths.
+Update those consumers together. Do not keep runtime branches solely to accommodate
+old test doubles; fixtures must implement the current repository contract.
+
+Tests should verify supported behavior and observable failure modes. Delete a test
+when its only purpose is to exercise a removed interface. Preserve coverage of
+authorization, clinical interpretation, report reproducibility, transaction rollback,
+data loss prevention, and credential handling. A negative test rejecting an obsolete
+input is still useful when it protects a current validation boundary.
+
+Migration commands are operational tools, not runtime compatibility layers. Retire
+one only when every supported upgrade path no longer needs it, including restoring
+older backups. Keep dry-run, collision, idempotency, and rollback tests while the
+command remains available. Docker Compose 1.29.2 deployment support is also an
+explicit product requirement; its contract tests are not obsolete shim tests.
+
+### Verification commands
 
 ```bash
 # Backend tests and coverage

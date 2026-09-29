@@ -192,6 +192,13 @@ All clinical tables use the same interaction model.
 | Export CSV | Exports normalized, non-duplicated values for the current table scope. |
 | Open detail | Opens the finding and preserves the table state in the URL for return navigation. |
 
+CSV exports preserve numeric zero. Text that begins with a spreadsheet formula
+prefix is prefixed with an apostrophe so it is treated as text when opened in a
+spreadsheet. The apostrophe can remain visible in a plain-text CSV reader; it is
+not part of the stored finding. Numeric measurements, including negative values,
+remain numeric text. Existing protection for date-like identifiers also applies
+to server-generated finding exports.
+
 Mutation actions require confirmation. After a successful change, the
 application invalidates the affected cached query and reloads persisted state.
 

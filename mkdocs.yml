@@ -45,6 +45,9 @@ nav:
   - Administer Coyote3:
       - Management guide: user_guide/management_guide.md
       - ASPC file dependencies: configuration/aspc-file-dependencies.md
+      - Assay subpanels: configuration/assay-subpanels.md
+      - Assay groups: configuration/assay-groups.md
+      - Assay setup: configuration/assay-setup.md
       - Public assay catalog: product/public_assay_catalog.md
       - Administration UI map: product/ui_map_and_user_flows.md
       - Permissions and access: developer/permissions_naming.md
@@ -66,6 +69,7 @@ nav:
       - Functional matrix: product/ui_functionality_matrix.md
       - Clinical vocabulary: operations/clinical_vocabulary.md
       - Knowledgebase evidence: product/knowledgebase_evidence.md
+      - VEP reference library: product/vep_reference.md
       - OncoKB integration: product/oncokb_integration.md
       - ClinPGx integration: product/clinpgx_integration.md
       - Sample YAML manifest: api/sample_yaml.md
@@ -99,7 +103,6 @@ nav:
           - Local password lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
           - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
   - Deploy and operate Coyote3:
-      - Release readiness: operations/release_readiness.md
       - Dependency advisories: operations/dependency_advisories.md
       - Target-center acceptance: operations/target_center_acceptance.md
       - Center deployment: operations/center_deployment_guide.md
@@ -114,7 +117,9 @@ nav:
       - Minimum production baseline: operations/minimum_production_baseline.md
       - Observability and alerts: operations/observability_slos_and_alerts.md
       - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
+      - Reference database migration: operations/reference_database_migration.md
       - Knowledgebase snapshot updates: operations/knowledgebase_updates.md
+      - VEP metadata updates: operations/vep_metadata_updates.md
       - Maintenance and quality: operations/maintenance_and_quality.md
       - Repository scripts: operations/script_reference.md
   - Test and validate Coyote3:

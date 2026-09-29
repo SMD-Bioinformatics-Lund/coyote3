@@ -118,7 +118,7 @@ arbitrary data from report text. The report service:
 2. selects reportable SNVs, CNVs, structural findings, fusions, biomarkers, and
    other enabled analyses;
 3. prepares aggregates such as tier summaries;
-4. resolves and evaluates the active published rule set explicitly bound by the ASPC;
+4. resolves and evaluates the active published rule set resolved by assay, subpanel, analyte and language;
 5. renders the preview; and
 6. saves immutable report context and typed reported-finding rows when asked.
 

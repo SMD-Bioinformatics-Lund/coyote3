@@ -38,8 +38,3 @@ Trade-offs:
 
 - User data quality is now critical for auth routing.
 - Migration paths must ensure historical users get explicit/default `auth_type`.
-
-## Follow-ups
-
-- Add IdP adapters (for example SSO) using the same `auth_type` contract.
-- Extend admin UX to make provider transitions safer and auditable.

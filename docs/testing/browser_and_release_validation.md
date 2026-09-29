@@ -89,8 +89,8 @@ COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
 For release promotion, set the required env vars and run `cd frontend && npm run test:e2e:real`
 directly. All five env vars (`COYOTE3_E2E_BASE_URL`, `COYOTE3_E2E_USERNAME`,
 `COYOTE3_E2E_PASSWORD`, `COYOTE3_E2E_DNA_SAMPLE`, `COYOTE3_E2E_RNA_SAMPLE`) must be
-exported before running. The complete promotion checklist is maintained in
-[Release readiness](../operations/release_readiness.md).
+exported before running. Deployment acceptance checks are maintained in
+[Target-center acceptance](../operations/target_center_acceptance.md).
 
 Record the execution date, target environment, test-account scope, and evidence
 with each release candidate. This repository provides the procedure and test

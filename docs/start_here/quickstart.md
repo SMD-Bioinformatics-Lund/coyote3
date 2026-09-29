@@ -72,7 +72,7 @@ sample.
 ```
 
 This creates one local superuser and one named system administrator, and initializes `permissions` and `roles`
-in `IDENTITY_DB`, plus `hgnc_genes` and `vep_metadata` in `COYOTE3_DB`. It stops
+in `IDENTITY_DB`, plus `hgnc_genes` and `vep_metadata` in `KNOWLEDGEBASE_DB`. It stops
 rather than mixing data into a partially initialized identity database. To
 install the synthetic ASP, ASPC, and ISGL demonstration catalog for a
 nonclinical local environment, add `--with-demo-center`.

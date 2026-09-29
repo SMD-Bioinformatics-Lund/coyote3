@@ -14,8 +14,7 @@ replica-set name, or filesystem path from a database name.
 | `bam` | `BAM_MONGO_URI` | `BAM_DB` | Configured BAM-service records. |
 
 Each service uses its explicit URI when supplied. An omitted auxiliary URI uses
-`COYOTE3_MONGO_URI`. The legacy `MONGO_URI` remains an input fallback when the app
-URI is absent; explicit service settings take precedence. All environments require
+`COYOTE3_MONGO_URI`; explicit service settings take precedence. All environments require
 a configured URI. Local connection examples are provided in
 `deploy/env/example.mongo-local.env`; runtime code does not select a default host
 or replica set. Maintenance commands also require a configured or explicit URI.
@@ -167,8 +166,8 @@ replace this guard with non-transactional completion receipts.
 ## Configuration migration
 
 1. Set `COYOTE3_MONGO_URI`; preserve the existing authentication path/options.
-2. Set identity, knowledgebase, and BAM URIs independently where needed. Existing
-   `MONGO_URI` deployments can retain the shared fallback during configuration rollout.
+2. Set identity, knowledgebase, and BAM URIs independently where needed. Rename
+   `MONGO_URI` to `COYOTE3_MONGO_URI` before upgrading; the old alias is not read.
 3. Keep existing database names unless data has been intentionally relocated.
    `coyote3_knowledgebase` is not automatically renamed to `coyote3_knowledgebases`.
 4. Custom TOML collection files keep their existing logical sections. Python
@@ -194,7 +193,11 @@ processes. A live topology check rejects alias-based self-copy; when separation
 cannot be established (for example, different mongos routers), use distinct
 destination names or a cluster-aware migration procedure. Stop writers throughout
 copy and verification, even when a topology check confirms separate deployments.
-Bootstrap accepts `--identity-mongo-uri` independently of its primary `--mongo-uri`.
+Bootstrap accepts `--identity-mongo-uri` and `--knowledgebase-mongo-uri`
+independently of its primary `--mongo-uri`. HGNC and VEP reference seeds use
+`--knowledgebase-db` or `KNOWLEDGEBASE_DB`; they are not application collections.
+See [reference migration](../operations/reference_database_migration.md) for
+moving existing references and retiring the superseded subpanel collection.
 
 Capacity snapshots include a logical `service` label, so identically named
 databases on separate hosts remain distinguishable without exposing URIs. Index

@@ -64,7 +64,7 @@ background tasks, or reporting.
 - Keep commits coherent and avoid unrelated generated-file changes.
 - Use versioned immutable images for releases.
 - Record user-visible changes in the changelog.
-- Retain the evidence required by the release-readiness guide.
+- Retain the evidence required by the target-center acceptance procedure.
 
-See [release readiness](../operations/release_readiness.md) for the complete
-release decision.
+See [target-center acceptance](../operations/target_center_acceptance.md) for
+deployment validation and evidence requirements.

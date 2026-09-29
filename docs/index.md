@@ -104,7 +104,7 @@ The following pages define the most commonly used reference material:
 | Collection fields and validation | [Generated Collection Contracts](api/collection_contracts.md) |
 | Authentication and authorization | [Security Model](architecture/security_model.md) |
 | Deployment and reverse proxy topology | [Deployment Guide](operations/deployment_guide.md) |
-| Release evidence and required checks | [Release Readiness](operations/release_readiness.md) |
+| Deployment acceptance and evidence | [Target-center acceptance](operations/target_center_acceptance.md) |
 
 The collection-contract page is generated from Pydantic schemas. Change the
 schema and regenerate the reference rather than editing that page directly.

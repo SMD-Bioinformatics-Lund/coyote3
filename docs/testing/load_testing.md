@@ -280,7 +280,7 @@ to a capacity loop without a separate reviewed test design.
 
 See [testing and quality](testing_and_quality.md),
 [observability](../operations/observability_slos_and_alerts.md), and
-[release readiness](../operations/release_readiness.md) for related checks.
+[target-center acceptance](../operations/target_center_acceptance.md) for related checks.
 Locust documents [HTTP workflows](https://docs.locust.io/en/stable/writing-a-locustfile.html),
 [command-line options](https://docs.locust.io/en/stable/configuration.html), and
 [distributed execution](https://docs.locust.io/en/stable/running-distributed.html).

@@ -107,6 +107,14 @@ to the draft. Review results notify the creator, approval notifies the assigned
 publisher, and publication notifies the creator. The workspace displays the
 assigned users, review reason, and lifecycle events.
 
+## Gene metadata
+
+Assay gene pages retain every covered gene even when HGNC metadata is unavailable.
+Those rows are marked **Unresolved** and have no fabricated HGNC identifier.
+For targeted panels, assay-specific gene-list views intersect the list with the
+panel's covered genes. WGS and WTS views retain the complete associated public
+gene list rather than applying a targeted-panel intersection.
+
 ## Permissions and roles
 
 | Bundled role | Permissions |

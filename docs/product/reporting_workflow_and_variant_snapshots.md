@@ -1,5 +1,47 @@
 # Reporting Workflow And Variant Snapshots
 
+## Report Identity
+
+DNA and RNA report previews and saved artifacts use `ORGANIZATION_NAME` for the
+performing institution. Set this deployment value to the institution that should
+appear on reports. An empty value omits the institution row; the renderer does not
+substitute a center name. The generating operator is the authenticated user's full
+name, or username when no full name is available. These values are HTML-escaped.
+Previously saved report artifacts retain their original content.
+
+Clinical result wording, conditional header suffixes, and the clinical question
+come from the scope-selected published clinical rule set. The renderer does not infer text
+from assay group names. See [report metadata outputs](clinical_reporting_rules.md#report-metadata-outputs).
+
+## Annotation scope and report eligibility
+
+Annotation `assay` identifies an assay group, not an ASP identifier. For a sample
+with a named `subpanel_id`, classifications and annotation text match that group
+and exact subpanel. There is no fallback to another subpanel when no match exists.
+For Base, absent, null, or empty subpanel, the latest annotation in the group is
+used regardless of its subpanel. Ordering is by `time_created`, then MongoDB `_id`
+to break timestamp ties. The same selection applies to transcript classifications.
+Historical annotation documents are not renamed or rewritten.
+
+The effective ASPC's `reporting.reportable_tiers` selects report candidates:
+
+| Key | Applies to | Default |
+| --- | --- | --- |
+| `SNV` | Somatic and germline SNVs | `[1, 2, 3]` |
+| `FUSION` | RNA fusions | `[1, 2, 3]` |
+
+Each list accepts tiers 1 through 4. An empty list excludes all findings of that
+type; it does not restore defaults. Gene-list and review-state exclusions still
+apply. CNVs and translocations retain their review-selection behavior and are not
+filtered by these tier settings. No assay group name changes the tier policy.
+
+Eligibility is applied before preparing clinical-rule facts, table rows and finding
+snapshots. The rule engine determines wording from those candidates; it does not
+reinstate excluded findings. Prepared facts retain the effective tier policy.
+The ASPC editor exposes tier selections under **Reportable tiers**.
+When enabling tier 4, review the resolved rule set as well: a structured tier summary
+needs its tier-4 terminology and any tier-specific conditions authored and tested.
+
 ## Save guarantees
 
 Saving requires a transaction-capable MongoDB deployment, including a single-node
@@ -202,6 +244,17 @@ Endpoint:
 ```text
 POST /api/v1/samples/{sample_id}/reports/{report_type}
 ```
+
+Send a JSON body containing `preview_fingerprint` from the reviewed preview's
+`meta.preview_fingerprint`. This required SHA-256 value identifies the prepared
+report inputs and template, including clinical-rule provenance. Generation time
+and the preview/save flag are excluded.
+
+The backend prepares the current inputs and compares the fingerprint before
+allocating a report number or creating artifacts. A mismatch returns HTTP 409:
+refresh the preview, review the changed content, then save again. A missing or
+malformed fingerprint returns HTTP 422. API clients must obtain a preview first;
+the fingerprint is a concurrency check, not an authorization credential.
 
 Rules:
 

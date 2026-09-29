@@ -66,10 +66,10 @@ docker compose -f <your-v3-compose-file> down
 ## Step 3 — Verify canonical clinical reporting rules
 
 Ensure `clinical_rule_sets` is populated in the target database before app startup,
-and verify that each ASPC binding points to an active published rule set:
+and check that ASPCs have reporting languages and published rules are present:
 
 ```bash
-mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).asp_configs.countDocuments({ "reporting.clinical_rule_set_id": { $exists: true, $ne: "" } })'
+mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).asp_configs.countDocuments({ "reporting.language": { $exists: true, $ne: "" } })'
 ```
 
 ```bash
@@ -77,8 +77,10 @@ mongosh "$COYOTE3_MONGO_URI" --eval 'db.getSiblingDB(process.env.COYOTE3_DB).cli
 ```
 
 If either value is zero, restore from the canonical rules snapshot source or apply
-your approved migration package before continuing. If any ASPC is not bound to an active
-published rule-set document, stop and repair before deployment.
+your approved migration package before continuing. These counts do not prove scope
+coverage. Verify report previews for each enabled assay/subpanel/analyte/language;
+each must resolve an exact published release or its assay Base release. For existing
+explicit bindings, run the [scope-selection migration](../product/clinical_reporting_rules.md#deploying-scope-based-selection).
 
 The previous generator narrative branches (`CNV`, `DNA translocation`, `HRD`, and `MSI`)
 are intentionally explicit `narrative: none` in the canonical workflow until clinically
@@ -92,31 +94,16 @@ PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
 
 ## Step 4 — Normalize clinical configuration
 
-This step normalizes ASP, ASPC, ISGL, sample, and user-scope documents to the
-Coyote3 field contract. Place the reviewed migration script in
-`migration_scripts/` (ignored by Git) and run it with `--dry-run` first.
+Validate ASP, ASPC, ISGL, sample, and user-scope documents against the current
+[collection contracts](../api/collection_contracts.md) on a restored staging copy.
+There is no bundled general-purpose v3 clinical-configuration conversion script.
+Do not proceed on the assumption that startup will normalize these documents.
 
-> **Caution**
->
-> Run `--dry-run` and inspect the output completely before applying.
-> The script removes retired keys after writing the normalized replacement.
-> Restore the backup from Step 1 to roll back.
->
-
-```bash
-# Dry run — inspect output before applying
-PYTHONPATH=. python migration_scripts/20260729_normalize_clinical_configuration.py \
-  --uri "${COYOTE3_MONGO_URI}" \
-  --database "${COYOTE3_DB}" \
-  --dry-run
-
-# Apply — run during the maintenance window only
-PYTHONPATH=. python migration_scripts/20260729_normalize_clinical_configuration.py \
-  --uri "${COYOTE3_MONGO_URI}" \
-  --database "${COYOTE3_DB}"
-```
-
-The script resolves collection names from `api/config/center/collections.toml`.
+Use the supported commands in the [script reference](script_reference.md) for the
+specific transitions they document. Any remaining center-specific conversion needs
+a reviewed migration package with a dry run, before/after counts, clinical scope
+checks, and a tested backup restoration procedure. Keep private conversion scripts
+outside the application runtime. Deployment remains blocked until those checks pass.
 
 ---
 

@@ -1,5 +1,16 @@
 # Configuration And Environments
 
+## Assays And Subpanels
+
+Use **Admin > Assay setup** for a new assay. Base is selected by default; named
+scopes are optional. The [setup workflow](../configuration/assay-setup.md) stages
+the ASP, gene lists and configurations for independent review before activation.
+
+Create shared scopes under **Admin > Subpanel definitions**, then manage each
+assay's availability under **Admin > Assay subpanel associations**. See
+[Assay Subpanels](../configuration/assay-subpanels.md) for creation order,
+permissions, retirement, persistence and existing-installation setup.
+
 ## Annotation vocabulary and sample profiles
 
 `reporting.annotation_tumor_types` in `api/config/center/clinical_vocabulary.toml`
@@ -80,7 +91,7 @@ as a clinical/configuration change rather than hidden in application code.
 | File | Format | Detailed field reference | Purpose |
 | --- | --- | --- | --- |
 | `center/contact.toml` | TOML | [Contact table](../operations/center_configuration_files.md#contacttoml) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
-| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups and sequencing-platform capabilities are fixed software workflow identifiers. |
+| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups are managed in the database registry, not this file. |
 | `center/clinical_query_policy.toml` | TOML | [Query-policy table](../operations/center_configuration_files.md#clinical_query_policytoml) | Released SNV evidence models plus independent typed CNV, translocation, fusion, and PGX exception scopes. |
 | `center/collections.toml` | TOML | [Collection table](../operations/center_configuration_files.md#collectionstoml) | Database and collection names used by the persistence adapter. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../operations/center_configuration_files.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |
@@ -294,7 +305,6 @@ registration is not configurable through an environment variable.
 | `IDENTITY_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent identity endpoint, with its own authentication and replica-set options. |
 | `KNOWLEDGEBASE_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent shared knowledgebase endpoint. Prefer a reader account for normal application access. |
 | `BAM_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent BAM-service endpoint. |
-| `MONGO_URI` | Legacy input only | MongoDB URI | Fallback when the explicit app URI is absent; explicit logical-service URIs take precedence. |
 | `MONGO_MAX_POOL_SIZE` | No | Positive integer; default `100` | Maximum PyMongo connections per application process. Size this with `API_WORKERS` and MongoDB capacity. |
 | `MONGO_MIN_POOL_SIZE` | No | Non-negative integer; default `0` | Minimum idle PyMongo connections retained per process. |
 | `MONGO_CONNECT_TIMEOUT_MS` | No | Milliseconds; default `10000` | Maximum time allowed to establish a MongoDB socket. |
@@ -351,6 +361,7 @@ registration is not configurable through an environment variable.
 | `CELERY_INSPECTION_TIMEOUT_SECONDS` | No | Seconds; default `1.5` | Maximum wait for each Celery worker-inspection request shown in application controls. |
 | `COYOTE3_MAINTENANCE_HOUR` | No | `0` to `23`; default `2` | Local hour for scheduled maintenance. |
 | `COYOTE3_INGEST_WATCH_ENABLED` | No | `1` or `0` | Enables scheduled watch-folder ingest. |
+| `INGEST_COLLECTION_UPLOAD_MAX_BYTES` | No | Positive byte count; default `67108864` | Maximum collection-upload size, applied to compressed and expanded bytes. Oversized JSON/NDJSON uploads return HTTP 413. |
 | `COYOTE3_INGEST_WATCH_FILENAME` | No | File name or glob | Manifest name pattern, for example `coyote3.yaml` or `*.yaml`. |
 | `COYOTE3_INGEST_DONE_SUFFIX` | No | File suffix | Suffix applied after successful watch-folder ingest. |
 | `COYOTE3_INGEST_FAILED_SUFFIX` | No | File suffix | Suffix applied after failed watch-folder ingest. |
@@ -482,7 +493,7 @@ The following values are intentionally derived or internal:
 | Repository and issue links | `api/config/application_metadata.py`; these are repository-owned product links. |
 | API session and audit collection names | The `api_sessions_collection` and `audit_events_collection` mappings under `[identity]` in `center/collections.toml`. Both collections are stored in `IDENTITY_DB`. |
 | Container data root | Fixed container path `/data`; only the host root is configurable. |
-| MANE transcript reference data | The `hgnc_collection` in the configured application database. It supplies MANE and clinical transcript metadata used by transcript selection; no environment variable or filesystem path is required. |
+| MANE transcript reference data | The `hgnc_collection` in `KNOWLEDGEBASE_DB`. It supplies MANE and clinical transcript metadata used by transcript selection; the database endpoint is configured with `KNOWLEDGEBASE_MONGO_URI`. |
 
 ## Timestamp Display
 

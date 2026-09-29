@@ -37,9 +37,12 @@ application accesses them through repositories and never joins them by a sample
 identifier. `oncokb_public` must not contain sample names, sample identifiers,
 or patient data.
 
-`hgnc_genes` remains in `COYOTE3_DB`. It is the authoritative gene identity and
+`hgnc_genes` is stored in `KNOWLEDGEBASE_DB`. It is the authoritative gene identity and
 transcript reference used to normalize approved, previous, and alias symbols
-before knowledgebase lookup; it is not an external knowledgebase collection.
+before knowledgebase lookup. `vep_metadata` shares that database and provides
+release-specific consequence groups, translations and source database metadata.
+Sample annotation results and their recorded database versions remain in the
+application database. See the [reference relocation procedure](../operations/reference_database_migration.md).
 
 ### Shared and non-COSMIC collections
 
@@ -58,6 +61,11 @@ before knowledgebase lookup; it is not an external knowledgebase collection.
 | `oncokb_actionable` | Historical local drug/actionability rows matched by gene and alteration. | `Rx` markers, small-variant details, and gene-level context. | Optional historical evidence; not a replacement for current licensed therapeutic data. |
 | `oncokb_genes` | Historical local gene records and fallback gene metadata. | Gene-level context and a fallback when the maintained public cache has no record. | Optional legacy reference. Prefer maintained public caches for new deployments. |
 | `oncokb_public` | Stores de-duplicated public variant-query responses by query hash. No current clinical page reads this collection as evidence. On-demand detail lookup calls the public API directly. | No current clinical UI consumer. | Optional infrastructure; do not load sample-linked records. |
+
+BRCA Exchange uses the sample's `genome_build` (37 or 38), never the assay or
+group name. Direct variant-evidence API requests must supply `genome_build` to
+receive BRCA coordinate evidence. If the build is absent or unsupported, BRCA
+evidence is not queried; an empty result is not evidence that the variant is benign.
 
 The public OncoKB gene refresh populates `oncokb_cancer_genes_public` and
 `oncokb_genes_public` from the public gene catalogues after HGNC resolution. It

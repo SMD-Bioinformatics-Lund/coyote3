@@ -19,7 +19,10 @@ For the complete cross-layer source/build gate, use:
 PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
 ```
 
-The full gate is deliberately read-only with respect to MongoDB. Run the
+Without test MongoDB URIs, the full gate skips database integration tests. When
+configured, those tests create, mutate, and remove isolated fixture databases;
+point them only at a disposable test replica set, never an application database.
+Run the
 [Browser And Release Validation](../testing/browser_and_release_validation.md)
 procedure separately with controlled fixtures before promoting a release.
 
@@ -85,8 +88,9 @@ For a maintenance validation run:
 
 1. Record the pre-run audit-event and log-file state.
 2. Queue maintenance from **Admin > Application Controls**.
-3. Keep the returned task id and check its state through the internal task
-   status endpoint as an authorized operator.
+3. Keep the returned task id and correlate it with worker logs and the
+   maintenance audit events. The internal task-status endpoint is for durable
+   ingest jobs; it does not expose arbitrary maintenance task results.
 4. Confirm the task outcome in worker logs and inspect configured retention
    effects in the test environment.
 5. Preserve the corresponding audit-event identifiers in release evidence.

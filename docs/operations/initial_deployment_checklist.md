@@ -68,7 +68,7 @@ ingest any sample.
 
 It creates one local `superuser` and one named `sys_admin`, and loads bundled `permissions` and
 `roles` into `IDENTITY_DB`, then loads `hgnc_genes` and `vep_metadata` into
-`COYOTE3_DB`. A partially initialized identity database is rejected rather
+`KNOWLEDGEBASE_DB`. A partially initialized identity database is rejected rather
 than modified. A database that already has a superuser is reported and left
 unchanged.
 

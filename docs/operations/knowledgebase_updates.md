@@ -5,6 +5,9 @@ Coyote3. Their local collections are full snapshots used for fast, reproducible
 clinical lookup. Updates are deliberate operator actions; the application does
 not download or replace these datasets automatically.
 
+VEP metadata uses a separate [release-specific reference importer](vep_metadata_updates.md).
+It retains multiple Ensembl releases together rather than replacing the entire collection.
+
 ## Release management model
 
 Each upstream release replaces the complete active collection for that source.

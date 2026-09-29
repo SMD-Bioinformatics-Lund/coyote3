@@ -39,7 +39,7 @@ Interpretation notes:
 
 - ASP is the assay anchor used by both ingest and read paths.
 - ASPC is the assay-plus-subpanel-plus-environment strategy contract. The base ASPC uses `subpanel_id=base`.
-- ASPC `subpanel_id` is singular because one configuration resolves one reporting and filtering context. Its selectable non-base values come from the `diagnosis[]` tags on active ISGLs linked to that ASP.
+- ASPC `subpanel_id` is singular because one configuration resolves one reporting and filtering context. Choices come from active [registered subpanels](../configuration/assay-subpanels.md) owned by the selected ASP, independently of ISGL diagnosis tags.
 - ISGL does not store `subpanel_id`. One gene list can be tagged to several diagnosis/subpanel contexts through `diagnosis[]`.
 - ISGL is optional and becomes active only when selected into `sample.filters`.
 - Fusion-compatible ISGLs contain one gene symbol per line. A fusion matches
@@ -285,7 +285,7 @@ findings. This single reportable set is used for all three outputs:
    fusion sections.
 
 The sample's recorded ASPC revision provides the report header, method, and analysis description.
-The explicitly bound published rule set provides the approved assay/subpanel wording. Fusion
+The scope-selected published rule set provides the approved assay/subpanel wording. Fusion
 caller selection and filtering occur before rule evaluation, so report rules
 cannot silently select a different call or reintroduce an excluded fusion.
 

@@ -22,7 +22,8 @@ execution classes below.
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
-| `bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes `IDENTITY_DB` with the first local superuser and bundled RBAC, and initializes `COYOTE3_DB` with HGNC, VEP, and optional synthetic center data |
+| `bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes `IDENTITY_DB` with initial administrators and RBAC, `KNOWLEDGEBASE_DB` with HGNC/VEP references, and `COYOTE3_DB` with optional synthetic center data |
+| `migrate_reference_database.py` | Manual maintenance | Existing deployments | Backs up and moves HGNC/VEP to the knowledgebase database; removes the superseded subpanel collection only after checking current replacements |
 | `center_preflight.sh` | Manual operation | Initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, and optional seed or ingest inputs without writing data |
 | `build_seed_bundle.py` | Internal helper | Tests and controlled seed preparation | Normalizes center seed sources into deterministic collection documents |
 | `center_check.sh` | Manual operation | Composed CI verification | Runs authenticated health, baseline-resource, manifest-validation, and ingest checks after services are online |

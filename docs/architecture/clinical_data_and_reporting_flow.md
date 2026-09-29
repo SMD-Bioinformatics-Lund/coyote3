@@ -98,8 +98,8 @@ configuration.
 | `reporting.report_header` | Report heading |
 | `reporting.report_method` | Method description |
 | `reporting.report_description` | Assay description |
-| `reporting.clinical_rule_set_id` | Explicit stable identity of the active published clinical rule set |
-| Published rule source | MongoDB `clinical_rule_sets` version resolved by the explicit ASPC binding; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
+| `reporting.language` | Language for exact assay/subpanel/analyte rule selection, with assay Base fallback |
+| Published rule source | MongoDB `clinical_rule_sets` release resolved by assay, subpanel, analyte and language, with assay Base fallback; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
 | `reporting.plots_path` | Approved source directory for report plots |
 | `reporting.report_folder` | Approved report output directory |
 

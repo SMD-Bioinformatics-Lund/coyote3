@@ -54,7 +54,7 @@ not_important = ["1000genomes", "banned", "matched-normal", "readthrough"]
 context = ["distance100kbp", "duplicates", "healthy", "short_distance"]
 
 [reporting]
-required_aspc_fields = ["report_header", "report_method", "clinical_rule_set_id"]
+required_aspc_fields = ["report_header", "report_method", "language"]
 transcript_selection_order = [
   "ncbi_mane_plus_clinical",
   "ensembl_mane_plus_clinical",
@@ -271,13 +271,14 @@ VCF. They remain distinct analysis sections downstream.
 11. `analysis.allowed_by_family` must define every assay family and may only
     reference analysis types implemented for that family's omics category.
 
-## Fixed Assay-Group Taxonomy
+## Assay-Group Registry
 
 Assay groups are deliberately absent from this TOML file. They are not local
 labels: an assay group is a persistent clinical scope used by ASPs, ASPCs,
 ISGLs, annotations, user access assignments, dashboards, and future
-cross-assay queries. Changing one without a software release would create
-ambiguous historical data.
+cross-assay queries. System and center-owned groups are registered in the
+[application database](../configuration/assay-groups.md). Existing keys must
+remain stable; display names are not clinical join keys.
 
 | Identifier | Workflow scope | Use it for | Do not use it for |
 | --- | --- | --- | --- |
@@ -294,15 +295,15 @@ The related fields have different responsibilities:
 
 | Field | Examples | Meaning |
 | --- | --- | --- |
-| `asp_group` | `hematology`, `solid`, `tumwgs`, `myeloid` | Fixed assay/workflow scope used to link ASPs, ASPCs, ISGLs, annotations, user access, and query logic. |
+| `asp_group` | `hematology`, `solid`, `tumwgs`, `myeloid` | Registered assay/workflow scope used to link ASPs, ASPCs, ISGLs, annotations, user access, and query logic. |
 | `asp_family` | `panel-dna`, `wgs`, `panel-rna`, `wts` | Sequencing design family. It is not an assay group. |
 | `asp_category` | `dna`, `rna` | Omics category that selects the allowed manifest and analysis vocabulary. |
 | `subpanel_id` | `base`, `endometrie`, `breast`, `colon` | In-silico clinical target subset within a design panel. `base` means no named subpanel. |
 
-Administrators select an assay group from this fixed list in the ASP, ASPC,
-ISGL, and user-scope forms. A new group is introduced only through a reviewed
-software release with schema validation, query-policy review, tests, and a
-data migration for any affected documents.
+Administrators register additional groups in **Admin > Assay groups** before
+selecting them in ASP, ISGL and user-scope forms. ASPCs inherit their ASP's group.
+New groups use existing default clinical query behavior unless an explicit
+group-specific query policy is configured and reviewed.
 
 ## Runtime Resolution
 

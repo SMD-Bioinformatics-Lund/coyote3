@@ -7,9 +7,9 @@ wording. They do not select transcripts, filter findings, assign tiers, or modif
 findings. Those decisions are complete before rule evaluation begins.
 
 The authoritative rule source is the `clinical_rule_sets` collection in the primary
-application database. Each ASPC binds explicitly to one stable rule-set identity with
-`reporting.clinical_rule_set_id`. Runtime report generation does not load rule files,
-evaluate arbitrary templates, or fall back to another assay or subpanel.
+application database. Report generation selects the active published rules by sample
+assay, subpanel, analyte and ASPC `reporting.language`. Runtime report generation
+does not load rule files or evaluate arbitrary templates.
 
 ![Clinical report generation flow](../assets/diagrams/report_generation_flow.svg)
 
@@ -19,7 +19,74 @@ evaluate arbitrary templates, or fall back to another assay or subpanel.
 > bulk Tier III classification remains finding annotation behavior and is not read
 > from an ASPC or clinical rule set.
 
-## Rule-Set Identity And Binding
+## Report metadata outputs
+
+Sections have one of three destinations. In the visual builder, choose **Output
+destination** before adding conditions and output text.
+
+| Destination | Section key | Report behavior |
+| --- | --- | --- |
+| Report summary | Author-defined name | Narrative, with optional section heading. |
+| Header suffix | `report_header_suffix` | Appended verbatim to the ASPC report header. Include any leading space or punctuation in the rule text. |
+| Clinical question | `clinical_question` | Populates the clinical-question row in DNA and RNA reports. |
+
+Metadata blocks evaluate **once per report**, use **Whole report** rather than an
+analysis, and have no section heading. Their conditions and text use the same fact
+catalog, operators, output nodes, review process and revision history as narrative
+rules. The builder initially selects **At most one** match for these destinations.
+Each destination may produce zero or one nonblank output across the entire rule
+set. More than one output fails evaluation, including testing, rather than choosing
+an arbitrary result. With no matching output the suffix is empty or the question
+row is omitted. Neither output is repeated in the narrative.
+
+Metadata text is HTML-escaped; it is not an HTML template. Rule traces retain the
+selected rule and text. Saved report artifacts retain their original wording.
+Rules using these destinations require engine version 2. Saving a metadata block
+through the draft API sets this minimum automatically. JSON imports must declare
+`minimum_engine_version: 2` or higher; validation rejects incompatible documents.
+
+Finding eligibility is configured in the ASPC, not in these output rules. See
+[annotation scope and report eligibility](reporting_workflow_and_variant_snapshots.md#annotation-scope-and-report-eligibility).
+
+### Deploying report policy configuration
+
+`scripts/migrate_reporting_policy.py` reads the configured application database.
+Supply `COYOTE3_MONGO_URI` and `COYOTE3_DB` through the deployment environment; it
+does not load a private environment file implicitly or print credentials.
+
+```bash
+# Read-only plan. Use an operator identity for the resulting revisions.
+.venv/bin/python scripts/migrate_reporting_policy.py --actor "$USER"
+
+# Explicitly create ASPC revisions and rule drafts in a MongoDB transaction.
+.venv/bin/python scripts/migrate_reporting_policy.py --actor "$USER" --apply
+```
+
+The migration creates new versions of active ASPCs missing a tier policy. SNVs
+retain tiers 1 and 2 for the former `gmsonco` policy, otherwise 1 through 3; RNA
+fusions retain tiers 1 through 3. Explicit policies, including empty selections,
+are not overwritten. Superseded ASPCs remain as inactive history.
+
+For each applicable published rule set, the script creates a draft with the
+existing content and ordinary metadata blocks reproducing the former question and
+header decisions. It uses canonical `sample.paired` and `sample.subpanel_id` facts.
+Solid Base has no named clinical question. Existing embedded test assertions are
+retained and extended with metadata expectations. Drafts receive immutable revision
+snapshots; published source documents are unchanged.
+
+An existing open draft/review version is counted as `open_rule_drafts` and is not
+overwritten. Resolve those versions in the builder, adding the required metadata
+blocks there or closing the draft before rerunning the script. Reruns do not
+duplicate open migration drafts. The script does not approve or publish content.
+
+Before enabling report generation after deployment, review tier selections, test
+each draft with paired/unpaired and Base/named-subpanel cases where applicable,
+then obtain independent approval and publish. Keep report generation paused during
+this rollout: the renderer has no hardcoded text fallback, and unconverted releases
+produce no metadata text. Scope identities do not need to change.
+Annotations, samples and saved reports are not modified by the migration.
+
+## Rule-Set Identity And Selection
 
 The stable identity is:
 
@@ -29,33 +96,111 @@ The stable identity is:
 
 For example, `hema_gmsv1__base__sv` identifies Swedish reporting rules for the base
 subpanel of `hema_gmsv1`. Environment and ASPC version are not part of the identity.
-Production, validation, and development ASPCs may bind the same approved rule set when
-their clinical wording is identical.
+Production, validation, and development ASPCs resolve the same published scope within
+their application database. There is no cross-database or cross-assay lookup.
 
-An ASPC is valid only when all of the following are true:
+An active ASPC with reporting enabled is valid only when all of the following are true:
 
-- `reporting.clinical_rule_set_id` names an active published rule set.
+- Its scope resolves an active published rule set for `reporting.language` (default `sv`).
 - The rule-set analyte matches the ASPC category.
 - Every entry in `reporting.report_sections` has an explicit analysis declaration.
 - A declaration is either `enabled`, meaning rule blocks may produce wording, or
   `none`, meaning no narrative is intentionally produced for that analysis.
 
-There is no implicit `base` fallback. A subpanel that uses base wording binds the base
-rule-set identifier explicitly.
+Selection follows this order for the same assay, analyte and language:
 
-Samples do not store `clinical_rule_set_id`. Existing and newly ingested samples resolve
-their effective ASPC by assay, subpanel, and environment; the ASPC then supplies the
-binding. Legacy sample documents therefore require no reporting-rule backfill. Historical
-ASPC versions are migrated as well as active versions so their configuration remains
-self-describing.
+| Priority | Scope | Result |
+| --- | --- | --- |
+| 1 | Exact sample subpanel | Use its sole active published release |
+| 2 | Assay `base` | Use Base only when no exact active published release exists |
+| 3 | Neither | Stop report generation with a configuration error |
 
-In **Admin > Assay Configurations**, the Clinical Rule Set control is a dropdown of active
-published releases for the selected assay. Selecting an assay chooses its `base` release
-by default. Selecting a subpanel chooses the exact subpanel release when one exists, or
-the explicitly listed base release otherwise. All available releases for that assay stay
-visible so an authorized administrator can deliberately choose another compatible
-release. Save-time validation still rejects a missing, unpublished, inactive, or
-analyte-incompatible selection.
+Missing subpanel means `base`. Other named subpanels, languages, analytes and assays
+are never substituted. Ambiguous matches fail; an invalid exact release does not
+trigger Base fallback. Content hashes, engine support and analysis declarations
+are checked before rendering. A partial unique index enforces one active published
+release per exact scope. Draft, review and approved-but-unpublished versions are
+not eligible.
+
+ASPC readiness and assay setup review use the same content-hash and minimum-engine
+checks as report generation. An unusable release blocks readiness rather than
+being accepted for configuration and rejected only when a report is opened.
+
+In **Admin > Assay Configurations**, select **Reporting Language**, not a ruleset.
+Publishing a subpanel release makes it apply to subsequent report generation
+without editing ASPCs. Publishing Base affects scopes without a published exact
+release. Retiring an exact release returns those scopes to Base if available;
+retiring Base can block scopes that depend on it. Review these effects before
+publication or retirement.
+
+The preview identifies the resolved rule identity, content version, language and
+Base selection. Saved reports retain the selected identity, hash, version, requested
+and resolved subpanel, matched rules and rendered text. They are not re-evaluated
+when a release changes. A fresh report generation can use a different release from
+an earlier preview; review the current preview before saving.
+
+### Deploying Scope-Based Selection
+
+Pause application/configuration writers, back up the application database, and run
+the migration before starting the updated application. Export its
+`COYOTE3_MONGO_URI` and `COYOTE3_DB` without placing credentials on the command line:
+
+```bash
+.venv/bin/python scripts/migrate_reporting_rule_resolution.py
+.venv/bin/python scripts/migrate_reporting_rule_resolution.py --apply
+```
+
+The first command is read-only. The second replaces obsolete
+`reporting.clinical_rule_set_id` fields with languages derived from their referenced
+rules, across ASPC revisions and editable assay setup drafts, then installs the scope
+uniqueness index. Unknown references, conflicting languages and duplicate published
+scopes stop preflight. Return pending assay setups to draft first. Configuration
+updates use a transaction and optimistic checks; index creation follows the commit,
+so keep writers stopped until the command completes successfully.
+Center overrides of `required_aspc_fields` must replace `clinical_rule_set_id` with
+`language`; the application template already uses the current key.
+
+Samples and saved reports are never rewritten. Embedded test facts no longer accept
+`clinical_rule_set_id`. The migration removes that field from rule documents and
+revision snapshots, derives the reporting language, and rebuilds affected content
+hashes and revision chains together. It verifies the original revision checksums
+and chains first and refuses to rewrite history referenced by saved reports.
+Checksum failures require investigation; rerunning is not a way to repair them.
+
+Preflight also checks active ASPCs with report sections against the selected
+published release, its content hash and declared analyses. It reports configurations
+whose selected rule identity changes. Review those changes before applying:
+an exact subpanel release takes precedence even when the old binding selected Base.
+The command is idempotent after a successful migration.
+
+### Repairing Draft Revision Checksums
+
+`scripts/repair_clinical_rule_revision_hashes.py` repairs one specific serialization
+failure: a draft update hashed `content_hash: null` before omitting that null field
+from its stored snapshot. The repair reconstructs that exact input and requires
+its digest to match the original. Unknown checksum failures, broken chains and
+references from saved reports stop the operation without writes.
+
+With `COYOTE3_MONGO_URI` and `COYOTE3_DB` set explicitly, first run:
+
+```bash
+.venv/bin/python scripts/repair_clinical_rule_revision_hashes.py
+```
+
+Before applying, stop rule writers and back up the application database. Supply a
+new file in a protected backup directory:
+
+```bash
+.venv/bin/python scripts/repair_clinical_rule_revision_hashes.py \
+  --apply --backup-file /secure-backups/clinical-rule-revisions.bson
+```
+
+The command writes original affected revisions to an exclusive BSON file with
+owner-only permissions before replacing snapshots transactionally. It rebuilds
+downstream links without changing rule text or lifecycle metadata. Keep the backup
+outside Git and public storage. Rerun the dry run to confirm zero replacements,
+then run the scope-selection migration above and restart writers with the corrected
+application code. The runtime verifier does not accept the faulty serialization.
 
 ## Document Model
 
@@ -267,7 +412,8 @@ cannot address arbitrary MongoDB fields.
 | `aggregates.finding_count` | integer | all | Number of prepared findings. |
 | `aggregates.snv_count`, `cnv_count`, `fusion_count`, `translocation_count` | integer | all | Prepared finding counts by analysis. |
 | `aggregates.biomarker_count` | integer | all | Number of prepared biomarker result documents. |
-| `aggregates.has_tiered_snvs` | boolean | all | Whether a Tier I-III SNV summary exists. |
+| `aggregates.has_tiered_snvs` | boolean | all | Whether a reportable Tier I-IV SNV summary exists. |
+| `aggregates.tier_4_count` | integer | all | Reportable Tier IV SNVs; normally zero unless the ASPC explicitly includes tier 4. |
 | `aggregates.has_reportable_findings` | boolean | all | Whether any prepared finding or biomarker exists. |
 | `item.kind`, `item.gene`, `item.genes`, `item.tier` | typed by field | each item | Current member during `collection_match` or `each_item` evaluation. |
 
@@ -322,10 +468,10 @@ The editor marks an invalid value with an error border and an explanation before
 an authoring aid only: the API validates the complete typed document on import, draft save,
 submission, and publication.
 
-Assay and subpanel scope are selected when the rule set is created. The ASPC form independently
-offers active published rule sets for its selected assay, then selects the matching subpanel
-release where available. Report-time resolution always uses the ASPC binding, not a rule selected
-ad hoc from a sample or report page.
+Assay and subpanel scope are selected when the rule set is created. The ASPC supplies
+the reporting language. Report-time resolution uses the scope precedence above, not
+an ad hoc rule selection on the sample page. The rule-testing workspace can explicitly
+evaluate a draft without changing production resolution or the sample.
 
 ### Templates, Import, And Export
 
@@ -488,7 +634,7 @@ and retry behavior with focused correctness tests, separately from HTTP timing.
 Report preparation creates facts only from the exact filtered findings, biomarkers,
 applied gene lists, ASP, and ASPC used for that report. The service then:
 
-1. resolves the explicit ASPC binding;
+1. resolves the exact sample scope, or assay Base, for the ASPC reporting language;
 2. requires the active published release and matching analyte;
 3. verifies the release content hash and engine compatibility;
 4. checks all selected report sections are declared;

@@ -117,13 +117,13 @@ file. The transcript selector names are implemented software contracts, but
 their released order is center configuration and is validated strictly at
 startup.
 
-> **Important: Assay groups are software-defined**
+> **Important: Assay groups are registered in the database**
 >
 >
-> Assay groups are not center configuration. They define persisted access,
-> annotation, query, ASP, ASPC, and ISGL scope. The supported identifiers are
-> `hematology`, `solid`, `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`,
-> `fusion`, and `pgx`. Assay family (`panel-dna`, `wgs`, `panel-rna`,
+> Assay groups are not TOML configuration. They define persisted access,
+> annotation, query, ASP, ASPC, and ISGL scope. Manage system and custom groups
+> through [Admin > Assay groups](../configuration/assay-groups.md).
+> Assay family (`panel-dna`, `wgs`, `panel-rna`,
 > `wts`) and subpanel (for example `endometrie` or `breast`) are separate
 > concepts.
 >
@@ -263,8 +263,8 @@ uses the default for all supported assay groups.
 | `snv.default_somatic_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline policy for a somatic assay group that has no explicit override. Production default is `paired`. |
 | `snv.default_germline_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline germline policy. Production configuration uses `exception_only`, so only approved `admit` exceptions return germline findings. |
 | `snv.population_frequency_fields` | Yes | Array of unique strings | Stored scalar population-frequency field names, for example `gnomad_frequency` | Each numeric value must be at or below the sample `max_popfreq`; absent, null, and non-numeric values remain eligible. Use the exact stored field spelling. |
-| `[snv.assay_group_policies]` | No | Table | Zero or more software-owned assay-group identifiers | Overrides the somatic default for named assay groups. |
-| `snv.assay_group_policies.<assay_group>` | No, repeatable | String value within the table | `paired`, `case_only`, `exception_only` | Applies only to somatic retrieval in that exact normalized assay group. The key is a supported software-owned assay-group identifier, such as `solid` or `hematology`. |
+| `[snv.assay_group_policies]` | No | Table | Zero or more registered assay-group identifiers | Overrides the somatic default for named assay groups. |
+| `snv.assay_group_policies.<assay_group>` | No, repeatable | String value within the table | `paired`, `case_only`, `exception_only` | Applies only to somatic retrieval in that exact normalized assay group. Use a registered assay-group identifier, such as `solid` or `hematology`. |
 
 ### Exception Keys
 
@@ -716,7 +716,7 @@ does not define a document schema and it does not move data.
 | Sample and reporting workflow | `samples_collection`, `sample_comments_collection`, `finding_comments_collection`, `reports_collection`, `reported_variants_collection`, `blacklist_collection` | Sample lifecycle records, sample-level comments, finding-level comments, reports, report snapshots, and blacklist state. |
 | DNA findings | `variants_collection`, `annotations_collection`, `anno_vep_collection`, `cnvs_collection`, `fusions_collection`, `transloc_collection`, `biomarkers_collection` | Parsed small variants and their annotations, CNVs, fusions, translocations, and biomarkers. |
 | Coverage and RNA results | `coverage_collection`, `groupcov_collection`, `rna_expression_collection`, `rna_qc_collection`, `rna_classification_collection` | Coverage, grouped coverage, RNA expression, RNA quality control, and RNA classification data in the primary database. |
-| Reference annotations | `hgnc_collection`, `vep_metadata_collection` | HGNC identity/transcript data and VEP metadata in the primary database. |
+| Reference annotations | `hgnc_collection`, `vep_metadata_collection` | HGNC identity/transcript data and release-specific VEP metadata in the knowledgebase database. |
 | Knowledgebases | CIViC, OncoKB, ClinPGx, BRCA Exchange, TP53, COSMIC product, version-manifest, and HPA expression keys under `[knowledgebase]` | External reference datasets in the dedicated knowledgebase database. `oncokb_public` contains query and response data only, never sample identifiers. COSMIC products remain separate collections and `knowledgebase_versions_collection` records their provenance in `versions`. |
 
 > **Caution: Changing names is not a migration**

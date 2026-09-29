@@ -8,6 +8,25 @@ is required to review audit records.
 
 ![Coyote3 administration workspace](../assets/screenshots/admin.png)
 
+## Finding an administrative page
+
+The administration home groups permitted destinations into **Assays and subpanels**,
+**Reporting and catalog**, **Identity and access**, and **Application operations**.
+Use the category tabs or search by page name and description. **Clear filters**
+returns to all permitted destinations. Search never exposes pages outside your
+permissions. An access-loading error offers a retry instead of reporting that
+permissions are missing.
+
+Group and subpanel pages include an **Administration** link back to this home.
+Opening a subpanel definition replaces its table with the editor; **Save** or
+**Cancel** returns to the list with its search preserved. Existing assay
+associations stay locked while new associations can be selected.
+
+Group availability changes require a reason and an affected-assay check. A failed
+check or changed group revision blocks confirmation; the dialog can still be
+closed. Confirmation dialogs keep keyboard navigation inside the dialog and
+return focus to the initiating control when closed.
+
 ## 1. Users, roles, and permissions
 
 Manage the identities of clinical and technical staff authorized to access the platform.

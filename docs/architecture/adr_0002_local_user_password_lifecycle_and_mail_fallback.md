@@ -38,8 +38,3 @@ Trade-offs:
 
 - Manual URL handoff is operationally less convenient than successful email.
 - Monitoring/alerting is needed to detect degraded mail delivery quickly.
-
-## Follow-ups
-
-- Add center-level mail health dashboard and alert rules.
-- Add LDAP/IdP-native password change UX where provider policy allows.
