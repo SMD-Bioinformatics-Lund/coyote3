@@ -73,7 +73,7 @@ if [[ "$DROP_FLAG" -eq 1 ]]; then
   drop_opt="--drop"
 fi
 
-echo "[warn] restore target uri=${MONGO_URI}"
+echo "[warn] restore will use the supplied MongoDB endpoint (credentials omitted)"
 echo "[warn] archive=${ARCHIVE_PATH}"
 echo "[warn] this restores the complete MongoDB archive, including the oplog. Use a dedicated recovery target."
 echo "[info] starting restore"

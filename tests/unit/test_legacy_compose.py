@@ -268,10 +268,7 @@ def test_legacy_application_tracks_modern_service_contract():
     for service in modern["services"].values():
         service.pop("extra_hosts", None)
     modern_text = yaml.safe_dump(modern)
-    modern_text = modern_text.replace(
-        "${COYOTE3_MONGO_URI:-${MONGO_URI:-}}",
-        "${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}",
-    ).replace("./nginx/", "../compose/nginx/")
+    modern_text = modern_text.replace("./nginx/", "../compose/nginx/")
     assert yaml.safe_load(modern_text) == legacy
 
 

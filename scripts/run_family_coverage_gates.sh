@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
 reuse_coverage=0
 if [[ "${1:-}" == "--from-existing" ]]; then
   reuse_coverage=1
@@ -14,6 +17,8 @@ fi
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
     PYTHON_BIN="${VIRTUAL_ENV}/bin/python"
+  elif [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+    PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
   elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python3)"
   elif command -v python >/dev/null 2>&1; then

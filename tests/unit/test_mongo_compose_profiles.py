@@ -31,7 +31,11 @@ def render(*profiles, backup_mount=False, backup_root=None):
     if backup_mount:
         command.extend(["-f", "deploy/compose/docker-compose.mongo-backup.yml"])
     environment = {
-        **os.environ,
+        **{
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith(("COYOTE3_", "IDENTITY_", "KNOWLEDGEBASE_", "BAM_", "MONGO_"))
+        },
         "COYOTE3_VERSION": "4.0.0",
         "COYOTE3_IMAGE_TAG": "4.0.0-prod",
         "MONGO_UID": "12345",

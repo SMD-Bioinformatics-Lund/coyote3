@@ -1,9 +1,50 @@
 from __future__ import annotations
 
+import gzip
+import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize("selection", ["repository", "active", "explicit"])
+def test_family_coverage_uses_project_root_and_selected_interpreter(tmp_path, selection):
+    """Running from outside the repo preserves interpreter precedence and coverage location."""
+    root = tmp_path / "project"
+    scripts = root / "scripts"
+    scripts.mkdir(parents=True)
+    script = scripts / "run_family_coverage_gates.sh"
+    script.write_text(
+        (REPOSITORY_ROOT / "scripts/run_family_coverage_gates.sh").read_text(), encoding="utf-8"
+    )
+    (root / ".coverage").touch()
+    interpreters = {}
+    for name in ("repository", "active", "explicit"):
+        path = root / (".venv" if name == "repository" else name) / "bin/python"
+        path.parent.mkdir(parents=True)
+        path.write_text(f'#!/bin/sh\nprintf "%s\\n" "{name}:$PWD:$*"\n', encoding="utf-8")
+        path.chmod(0o700)
+        interpreters[name] = path
+    env = {
+        key: value for key, value in os.environ.items() if key not in {"PYTHON_BIN", "VIRTUAL_ENV"}
+    }
+    if selection in {"active", "explicit"}:
+        env["VIRTUAL_ENV"] = str(interpreters["active"].parents[1])
+    if selection == "explicit":
+        env["PYTHON_BIN"] = str(interpreters["explicit"])
+    result = subprocess.run(
+        ["bash", str(script), "--from-existing"],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count(f"{selection}:{root}:-m coverage report") == 5
 
 
 def _run_script(script: str, *arguments: str) -> subprocess.CompletedProcess[str]:
@@ -51,6 +92,30 @@ def test_public_proxy_applies_browser_security_headers() -> None:
     assert "add_header Content-Security-Policy" in script
     assert "Strict-Transport-Security" in script
     assert r"proxy_set_header X-Forwarded-Proto \$forwarded_proto;" in script
+
+
+def test_restore_does_not_print_database_credentials(tmp_path: Path, monkeypatch) -> None:
+    """Exercise restore logging without contacting Docker or a database."""
+    archive = tmp_path / "synthetic.archive.gz"
+    archive.write_bytes(gzip.compress(b"synthetic archive"))
+    docker = tmp_path / "docker"
+    docker.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    docker.chmod(0o700)
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
+    uri = "mongodb://restore-user:synthetic-password@example.invalid:27017/admin"
+    result = _run_script(
+        "mongo_restore_archive.sh",
+        "--mongo-uri",
+        uri,
+        "--archive",
+        str(archive),
+        "--confirm",
+        "RESTORE_PATIENT_DATA",
+    )
+    assert result.returncode == 0, result.stderr
+    assert "restore complete" in result.stdout
+    assert uri not in result.stdout + result.stderr
+    assert "synthetic-password" not in result.stdout + result.stderr
 
 
 def test_preflight_checks_runtime_mount_write_access() -> None:

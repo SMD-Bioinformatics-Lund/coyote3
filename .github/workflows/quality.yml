@@ -249,10 +249,10 @@ jobs:
         working-directory: frontend
         run: npm ci --ignore-scripts
 
-      - name: Audit frontend runtime dependencies
+      - name: Audit frontend runtime and build dependencies
         if: steps.scope.outputs.frontend == 'true'
         working-directory: frontend
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --audit-level=moderate
 
       - name: Frontend lint, unit coverage, and production build
         if: steps.scope.outputs.frontend == 'true'

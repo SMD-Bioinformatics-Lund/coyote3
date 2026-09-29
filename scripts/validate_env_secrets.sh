@@ -34,15 +34,11 @@ required=(
   INTERNAL_API_TOKEN
   PASSWORD_TOKEN_SALT
   REDIS_PASSWORD
+  COYOTE3_MONGO_URI
 )
 
-# The explicit app URI supersedes the shared legacy value. Auxiliary URIs may
+# Auxiliary URIs may
 # intentionally inherit it, but every supplied URI must be free of placeholders.
-if grep -qE '^COYOTE3_MONGO_URI=.+$' "$ENV_FILE"; then
-  required+=(COYOTE3_MONGO_URI)
-else
-  required+=(MONGO_URI)
-fi
 for key in IDENTITY_MONGO_URI KNOWLEDGEBASE_MONGO_URI BAM_MONGO_URI; do
   if grep -qE "^${key}=.+$" "$ENV_FILE"; then
     required+=("$key")
