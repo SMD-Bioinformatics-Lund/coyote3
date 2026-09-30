@@ -202,8 +202,8 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                 {(right.catalog_id || right.asp_id || right.aspc_id || right.subpanel_id) && (
                   <div className="flex max-w-full flex-wrap justify-end gap-1.5">
                     {right.catalog_id && <CatalogBadge label="Catalog" value={right.catalog_id} />}
-                    {right.asp_id && <CatalogBadge label="ASP" value={right.asp_id} />}
-                    {right.aspc_id && <CatalogBadge label="ASPC" value={right.aspc_id} />}
+                    {right.asp_id && <CatalogBadge label="Assay" value={right.asp_id} />}
+                    {right.aspc_id && <CatalogBadge label="Configuration" value={right.aspc_id} />}
                     {right.subpanel_id && right.subpanel_id !== "base" && <CatalogBadge label="Subpanel" value={right.subpanel_id} />}
                   </div>
                 )}

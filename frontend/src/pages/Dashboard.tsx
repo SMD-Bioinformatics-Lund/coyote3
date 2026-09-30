@@ -479,7 +479,7 @@ export function Dashboard() {
               <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-center">
                 <p className="text-sm font-semibold text-foreground">No active panel gene counts available</p>
                 <p className="mt-1 max-w-md text-xs text-muted-foreground">
-                  Active ASP documents need populated covered_genes or germline_genes arrays before the coverage chart can be drawn.
+                  Active assay definitions need populated covered_genes or germline_genes arrays before the coverage chart can be drawn.
                 </p>
               </div>
             )}
@@ -521,14 +521,14 @@ export function Dashboard() {
         {isUnavailable("clinical_configuration") ? <MetricUnavailable label="Clinical configuration" /> : (
         <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-            <Metric title="Unique active genes" value={data?.unique_gene_count_all_panels} sub="Across active ASPs" />
-            <Metric title="Public ISGLs" value={isglVisibility.public_total} sub={`${fmt(isglVisibility.public_only)} public only`} />
-            <Metric title="Private ISGLs" value={isglVisibility.private_total} sub={`${fmt(isglVisibility.private_only)} private only`} />
+            <Metric title="Unique active genes" value={data?.unique_gene_count_all_panels} sub="Across active assays" />
+            <Metric title="Public gene lists" value={isglVisibility.public_total} sub={`${fmt(isglVisibility.public_only)} public only`} />
+            <Metric title="Private gene lists" value={isglVisibility.private_total} sub={`${fmt(isglVisibility.private_only)} private only`} />
             <Metric title="Ad-hoc lists" value={isglVisibility.adhoc_total} sub={`${fmt(isglVisibility.overlap_total)} overlapping`} />
           </div>
           <div className="dashboard-subcard p-2.5">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <h3 className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Top Assay ISGL Associations</h3>
+              <h3 className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Top Assay Gene List Associations</h3>
               <Link to="/public/catalog" className="link-text type-meta font-medium">Open catalog</Link>
             </div>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -547,7 +547,7 @@ export function Dashboard() {
                     <span className="rounded-md bg-warn/10 px-1.5 py-0.5 type-label font-medium text-warn">{fmt(row.adhoc_count)} ad-hoc</span>
                   </div>
                 </div>
-              )) : <p className="text-xs text-muted-foreground">No assay-to-ISGL associations configured.</p>}
+              )) : <p className="text-xs text-muted-foreground">No assay-to-gene-list associations configured.</p>}
             </div>
           </div>
         </div>

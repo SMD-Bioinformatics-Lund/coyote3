@@ -107,8 +107,8 @@ describe("FiltersSidebar", () => {
     })
     await expand(user)
 
-    expect(screen.getByText(/ASPC:/)).toHaveTextContent("hema_gmsv1_hem_production v2")
-    await user.click(screen.getByRole("button", { name: "Apply latest ASPC" }))
+    expect(screen.getByText(/Configuration:/)).toHaveTextContent("hema_gmsv1_hem_production v2")
+    await user.click(screen.getByRole("button", { name: "Apply latest configuration" }))
 
     await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(
       "/samples/CASE_001/aspc/apply-latest",

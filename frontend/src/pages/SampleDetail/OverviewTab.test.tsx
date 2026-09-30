@@ -50,7 +50,7 @@ const sample = {
   aspc_resolution: {
     used_base_configuration: true,
     requested_subpanel_id: "mpn",
-    warning: "No subpanel-specific ASPC is active.",
+    warning: "No subpanel-specific assay configuration is active.",
   },
   reports: [{ _id: "REPORT_1", report_name: "Clinical report", created_at: "2026-08-01T10:00:00Z" }],
 }
@@ -132,9 +132,9 @@ describe("sample overview presentation", () => {
       />,
     )
 
-    expect(screen.getByText(/ASPC: hema_gmsv1_base_production v1/)).toBeVisible()
-    expect(screen.getByText(/Newer ASPC available: hema_gmsv1_base_production v2/)).toBeVisible()
-    expect(screen.getByRole("button", { name: "Apply latest ASPC" })).toBeVisible()
+    expect(screen.getByText(/Configuration: hema_gmsv1_base_production v1/)).toBeVisible()
+    expect(screen.getByText(/Newer assay configuration available: hema_gmsv1_base_production v2/)).toBeVisible()
+    expect(screen.getByRole("button", { name: "Apply latest configuration" })).toBeVisible()
   })
 
   it("shows only RNA fusion filters for an RNA sample", () => {

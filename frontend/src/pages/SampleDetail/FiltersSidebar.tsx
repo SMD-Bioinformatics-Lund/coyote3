@@ -357,13 +357,13 @@ export function FiltersSidebar({
       await refetchActiveTable(queryClient, activeTab, sampleId)
       const applied = result?.meta?.applied_aspc
       notifySuccess(
-        "Latest ASPC applied",
+        "Latest assay configuration applied",
         `${sampleName} now uses ${applied?.aspc_id || "the latest assay configuration"}${applied?.version ? ` v${applied.version}` : ""}.`,
         "Assay configuration",
         { type: "sample", id: sampleId, name: sampleName, sampleName },
       )
     },
-    onError: (error) => notifyActionError("Unable to apply latest ASPC", error, "Assay configuration", {
+    onError: (error) => notifyActionError("Unable to apply latest assay configuration", error, "Assay configuration", {
       type: "sample", id: sampleId, name: sampleName, sampleName,
     }),
   })
@@ -388,7 +388,7 @@ export function FiltersSidebar({
           <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
           {sample?.current_aspc_key && (
             <p className="mt-0.5 type-label text-muted-foreground">
-              ASPC: <span className="font-semibold text-foreground">{sample.current_aspc_key}</span>
+              Configuration: <span className="font-semibold text-foreground">{sample.current_aspc_key}</span>
               {sample?.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}
             </p>
           )}
@@ -411,14 +411,14 @@ export function FiltersSidebar({
               type="button"
               disabled={applyLatestAspc.isPending}
               onClick={() => {
-                if (window.confirm("Apply the latest ASPC? This replaces this sample's saved filters and analysis configuration.")) {
+                if (window.confirm("Apply the latest assay configuration? This replaces this sample's saved filters and analysis configuration.")) {
                   applyLatestAspc.mutate()
                 }
               }}
               className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              {applyLatestAspc.isPending ? "Applying..." : "Apply latest ASPC"}
+              {applyLatestAspc.isPending ? "Applying..." : "Apply latest configuration"}
             </button>
           </section>
         )}

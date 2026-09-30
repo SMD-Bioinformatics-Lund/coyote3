@@ -51,13 +51,13 @@ describe("Admin navigation permissions", () => {
   it("shows only permitted resources", () => {
     state.permissions = ["catalog:view"]
     show()
-    expect(screen.getByRole("link", { name: /Public Assay Catalog/ })).toHaveAttribute("href", "/admin/assay-catalog")
-    expect(screen.queryByRole("link", { name: /Clinical Report Rules/ })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Assay Catalog/ })).toHaveAttribute("href", "/admin/assay-catalog")
+    expect(screen.queryByRole("link", { name: /Reporting Rule Sets/ })).not.toBeInTheDocument()
   })
   it("allows superusers but respects disabled modules", () => {
     state.roles = ["superuser"]; state.ingest = false
     show()
-    expect(screen.getByRole("link", { name: /Clinical Report Rules/ })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Reporting Rule Sets/ })).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /Ingest Workspace/ })).not.toBeInTheDocument()
   })
   it("links assay viewers to subpanel administration", () => {
@@ -84,7 +84,7 @@ describe("Admin navigation permissions", () => {
     expect(within(assays).getByRole("link", { name: /^Assay groups/ })).toBeInTheDocument()
     expect(within(assays).getByRole("link", { name: /^Subpanel definitions/ })).toBeInTheDocument()
     const reporting = screen.getByRole("region", { name: "Reporting and catalog" })
-    expect(within(reporting).getByRole("link", { name: /^Clinical Report Rules/ })).toBeInTheDocument()
+    expect(within(reporting).getByRole("link", { name: /^Reporting Rule Sets/ })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Identity and access" })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Application operations" })).toBeInTheDocument()
     const destinations = screen.getAllByRole("link").map((link) => link.getAttribute("href"))

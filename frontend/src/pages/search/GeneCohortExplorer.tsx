@@ -594,7 +594,7 @@ export function GeneCohortExplorer() {
               involving {gene}, divided by the number of eligible samples that profiled {gene},
               multiplied by 100. Eligible samples are ready and visible to your account. For each
               enabled SNV, CNV, fusion, or translocation target, the denominator uses the
-              sample&apos;s selected target-specific gene list and then the ASP covered-gene scope;
+              sample&apos;s selected target-specific gene list and then the assay covered-gene scope;
               a target with no gene restriction is treated as profiling every gene.{" "}
               {includeHistory
                 ? `Findings are read from all saved report versions. Repeated occurrences of the same typed finding in multiple reports for one sample count once.`

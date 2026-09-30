@@ -573,7 +573,7 @@ export function GeneCoverageChart({
   return (
     <ChartPanel
       title="Gene coverage per assay"
-      description="Covered and germline gene scope from active ASP definitions."
+      description="Covered and germline gene scope from active assay definitions."
       filename="gene_coverage_per_assay"
       data={data}
     >

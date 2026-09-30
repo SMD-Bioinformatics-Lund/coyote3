@@ -74,14 +74,14 @@ const utilityModules = [
     permission: "assay.panel:view",
   },
   {
-    title: "Public Assay Catalog",
+    title: "Assay Catalog",
     description: "Manage public assay narrative, modality structure, and portable JSON imports and exports.",
     href: "/admin/assay-catalog",
     icon: FilePenLine,
     permission: "catalog:view",
   },
   {
-    title: "Clinical Report Rules",
+    title: "Reporting Rule Sets",
     description: "Author, review, validate, and publish governed clinical report wording.",
     href: "/admin/clinical-rules",
     icon: BookOpenCheck,

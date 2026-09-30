@@ -587,9 +587,9 @@ export function ClinicalRulesPage() {
     reader.readAsText(file)
   }
 
-  if (listQuery.isLoading || factsQuery.isLoading || optionsQuery.isLoading) return <PageShell eyebrow="Clinical reporting" title="Report Rules"><AppLoader label="Loading clinical rules" /></PageShell>
+  if (listQuery.isLoading || factsQuery.isLoading || optionsQuery.isLoading) return <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets"><AppLoader label="Loading clinical rules" /></PageShell>
   return (
-    <PageShell eyebrow="Clinical reporting" title="Report Rules" description="Author, review, validate, and publish governed report wording." actions={<>{dirty || saveMutation.isPending ? <Badge variant="outline"><Save /> {saveMutation.isPending ? "Saving" : "Unsaved"}</Badge> : draft?.status === "draft" ? <Badge variant="outline"><Check /> Saved</Badge> : null}{can("clinical_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to="/admin/clinical-rules/testing" />}><Beaker /> Test rules</Button>}{can("clinical_rules:draft") && !creating && <Button variant="outline" disabled={!workflowReady} onClick={beginCreation}><Plus /> New rule set</Button>}{draft?.status !== "draft" && draft && can("clinical_rules:draft") && <Button onClick={createRevision}><CopyPlus /> Create revision</Button>}</>}>
+    <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets" description="Author, review, validate, and publish governed report wording." actions={<>{dirty || saveMutation.isPending ? <Badge variant="outline"><Save /> {saveMutation.isPending ? "Saving" : "Unsaved"}</Badge> : draft?.status === "draft" ? <Badge variant="outline"><Check /> Saved</Badge> : null}{can("clinical_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to="/admin/clinical-rules/testing" />}><Beaker /> Test rules</Button>}{can("clinical_rules:draft") && !creating && <Button variant="outline" disabled={!workflowReady} onClick={beginCreation}><Plus /> New rule set</Button>}{draft?.status !== "draft" && draft && can("clinical_rules:draft") && <Button onClick={createRevision}><CopyPlus /> Create revision</Button>}</>}>
       {creating && (
         <section className="surface-panel mb-3 p-4" aria-label="Create clinical rule set">
           <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Draft creation method">

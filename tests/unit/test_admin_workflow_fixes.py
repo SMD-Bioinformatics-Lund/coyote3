@@ -12,6 +12,22 @@ from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.assay_filters import create_assay_group_map
 
 
+@pytest.mark.parametrize(
+    "resource,key,label",
+    [
+        ("asp", "asp_id", "Assay ID"),
+        ("asp", "asp_group", "Assay group"),
+        ("aspc_dna", "aspc_id", "Configuration ID"),
+        ("aspc_dna", "asp_id", "Assay"),
+        ("isgl", "isgl_id", "Gene list ID"),
+    ],
+)
+def test_managed_form_resource_labels(resource, key, label):
+    """Forms use clinical names while retaining their API field keys."""
+    form = build_form_spec(managed_resource_spec(resource))
+    assert form["fields"][key]["label"] == label
+
+
 def test_user_assay_options_follow_active_groups():
     service = object.__new__(UserManagementService)
     service._common_util = SimpleNamespace(create_assay_group_map=create_assay_group_map)

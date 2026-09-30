@@ -421,9 +421,9 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sample", sampleId] })
       queryClient.invalidateQueries({ queryKey: ["samples"] })
-      notifySuccess("Latest ASPC applied", "The sample now uses the latest assay configuration.", "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId })
+      notifySuccess("Latest assay configuration applied", "The sample now uses the latest assay configuration.", "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId })
     },
-    onError: (error) => notifyActionError("Unable to apply latest ASPC", error, "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId }),
+    onError: (error) => notifyActionError("Unable to apply latest assay configuration", error, "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId }),
   })
   const verificationSample = context?.verification_sample_used || sample?.verification_sample_used
   const files = fileItems(context)
@@ -450,7 +450,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           <div className="min-w-0">
             <strong className="text-warn">Base configuration in use.</strong>{" "}
             <span className="text-muted-foreground">
-              {sample.aspc_resolution.warning || "No subpanel-specific ASPC is active."}{" "}
+              {sample.aspc_resolution.warning || "No subpanel-specific assay configuration is active."}{" "}
               Requested subpanel: <strong className="text-foreground">{sample.aspc_resolution.requested_subpanel_id}</strong>.
             </span>
           </div>
@@ -466,8 +466,8 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             {sample?.sequencing_scope && <StatusPill tone="blue">{sample.sequencing_scope}</StatusPill>}
             {sample?.genome_build && <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill>}
             {sample?.environment && <StatusPill tone="yellow">{sample.environment}</StatusPill>}
-            {sample?.asp_id && <StatusPill tone="blue">ASP: {sample.asp_id}</StatusPill>}
-            {sample?.current_aspc_key && <StatusPill tone="blue">ASPC: {sample.current_aspc_key}{sample.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}</StatusPill>}
+            {sample?.asp_id && <StatusPill tone="blue">Assay: {sample.asp_id}</StatusPill>}
+            {sample?.current_aspc_key && <StatusPill tone="blue">Configuration: {sample.current_aspc_key}{sample.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}</StatusPill>}
             {sample?.pipeline && <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
             {sampleReported(sample) && <StatusPill tone="blue">Reported</StatusPill>}
           </div>
@@ -481,17 +481,17 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           </div>
           {context?.aspc_update?.available && (
             <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
-              <p className="text-xs font-semibold">Newer ASPC available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
+              <p className="text-xs font-semibold">Newer assay configuration available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
               <button
                 type="button"
                 disabled={applyLatestAspc.isPending}
                 onClick={() => {
-                  if (window.confirm("Apply the latest ASPC? This replaces this sample's saved filters and analysis configuration.")) applyLatestAspc.mutate()
+                  if (window.confirm("Apply the latest assay configuration? This replaces this sample's saved filters and analysis configuration.")) applyLatestAspc.mutate()
                 }}
                 className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                {applyLatestAspc.isPending ? "Applying..." : "Apply latest ASPC"}
+                {applyLatestAspc.isPending ? "Applying..." : "Apply latest configuration"}
               </button>
             </div>
           )}
@@ -598,17 +598,17 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           <div className="divide-y divide-border/60">
             {omics === "dna" && (
               <section className="py-3 first:pt-0">
-                <h3 className="type-label text-pass">Selected SNV ISGLs</h3>
+                <h3 className="type-label text-pass">Selected SNV gene lists</h3>
                 <div className="type-body-sm mt-2 flex flex-wrap gap-2">
-                  {(snvFilters.snvlists || []).length ? snvFilters.snvlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No ISGLs selected for this sample.</p>}
+                  {(snvFilters.snvlists || []).length ? snvFilters.snvlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No gene lists selected for this sample.</p>}
                 </div>
               </section>
             )}
             {omics === "dna" && (
               <section className="py-3">
-                <h3 className="type-label text-warn">Selected CNV ISGLs</h3>
+                <h3 className="type-label text-warn">Selected CNV gene lists</h3>
                 <div className="type-body-sm mt-2 flex flex-wrap gap-2">
-                  {(cnvFilters.cnvlists || []).length ? cnvFilters.cnvlists.map((name: string) => <StatusPill key={name} tone="yellow">{name}</StatusPill>) : <p className="text-muted-foreground">No CNV ISGLs selected for this sample.</p>}
+                  {(cnvFilters.cnvlists || []).length ? cnvFilters.cnvlists.map((name: string) => <StatusPill key={name} tone="yellow">{name}</StatusPill>) : <p className="text-muted-foreground">No CNV gene lists selected for this sample.</p>}
                 </div>
               </section>
             )}
@@ -622,9 +622,9 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             )}
             {omics === "dna" && (
               <section className="py-3">
-                <h3 className="type-label text-tier3">Selected DNA Fusion / Translocation ISGLs</h3>
+                <h3 className="type-label text-tier3">Selected DNA Fusion / Translocation gene lists</h3>
                 <div className="type-body-sm mt-2 flex flex-wrap gap-2">
-                  {(translocationFilters.fusionlists || []).length ? translocationFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="blue">{name}</StatusPill>) : <p className="text-muted-foreground">No DNA fusion or translocation ISGLs selected for this sample.</p>}
+                  {(translocationFilters.fusionlists || []).length ? translocationFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="blue">{name}</StatusPill>) : <p className="text-muted-foreground">No DNA fusion or translocation gene lists selected for this sample.</p>}
                 </div>
               </section>
             )}

@@ -100,10 +100,10 @@ export function PublicAssayCatalogPage() {
   })
   const [snapshot, setSnapshot] = useState<Version | null>(null)
   useEffect(() => { setSnapshot(null) }, [id, version?.revision])
-  if (access.isLoading) return <PageShell title="Public Assay Catalog"><AppLoader label="Loading permissions" /></PageShell>
-  if (!allowed("catalog:view")) return <PageShell title="Public Assay Catalog"><p>Catalog access is required.</p></PageShell>
-  if (workspace.isError || versionQuery.isError) return <PageShell title="Public Assay Catalog"><p role="alert">The catalog could not be loaded.</p><Button onClick={() => { void workspace.refetch(); void versionQuery.refetch() }}>Retry</Button></PageShell>
-  if (!draft || !workspace.data || (id && !version)) return <PageShell title="Public Assay Catalog"><AppLoader label="Loading catalog" /></PageShell>
+  if (access.isLoading) return <PageShell title="Assay Catalog"><AppLoader label="Loading permissions" /></PageShell>
+  if (!allowed("catalog:view")) return <PageShell title="Assay Catalog"><p>Catalog access is required.</p></PageShell>
+  if (workspace.isError || versionQuery.isError) return <PageShell title="Assay Catalog"><p role="alert">The catalog could not be loaded.</p><Button onClick={() => { void workspace.refetch(); void versionQuery.refetch() }}>Retry</Button></PageShell>
+  if (!draft || !workspace.data || (id && !version)) return <PageShell title="Assay Catalog"><AppLoader label="Loading catalog" /></PageShell>
   const data = workspace.data
   const displayedCatalog = snapshot?.catalog || draft
   const busy = mutation.isPending
@@ -111,7 +111,7 @@ export function PublicAssayCatalogPage() {
   const username = access.data?.username
   const independent = !editors.includes(username || "")
   const order = [...new Set([...draft.layout.order, ...Object.keys(draft.modalities)])].filter((key) => draft.modalities[key])
-  return <PageShell className="rounded-lg bg-background" title="Public Assay Catalog" eyebrow="Administration" actions={<>
+  return <PageShell className="rounded-lg bg-background" title="Assay Catalog" eyebrow="Administration" actions={<>
     <input aria-label="Import catalog file" ref={upload} type="file" accept=".json,application/json" className="hidden" onChange={importFile} />
     <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><FileUp /> Import draft</Button>
     <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", displayedCatalog)}><Download /> Export catalog</Button>

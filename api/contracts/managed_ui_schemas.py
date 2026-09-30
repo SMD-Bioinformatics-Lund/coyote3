@@ -128,7 +128,7 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
         "asp_id": {
-            "label": "ASP ID",
+            "label": "Assay ID",
             "display_type": "input",
             "readonly_mode": ["edit"],
             "help": "Unique assay identifier. Existing IDs are retained because samples and configurations reference them.",
@@ -201,7 +201,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "aspc_dna": {
         "asp_id": {
             "display_type": "select",
-            "label": "ASP",
+            "label": "Assay",
             "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
         },
         "subpanel_id": {
@@ -209,7 +209,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Subpanel",
             "options": [SUBPANEL_BASE_ID],
             "default": SUBPANEL_BASE_ID,
-            "help": "Select an active subpanel registered under the selected ASP. Use base for an assay-wide configuration.",
+            "help": "Select an active subpanel registered under the selected assay. Use base for an assay-wide configuration.",
         },
         "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
@@ -217,7 +217,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "platform": {"readonly": True},
         "use_diagnosis_genelist": {
             "display_type": "checkbox",
-            "label": "Auto Select Diagnosis/Sub Panel Genelists",
+            "label": "Automatically select diagnosis/subpanel gene lists",
             "default": True,
         },
         "environment": {
@@ -239,7 +239,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "data_type": "json",
             "label": "Public Catalog",
             "display_type": "catalog-structured",
-            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Public Assay Catalog.",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Assay Catalog.",
             "groups": [
                 {
                     "title": "Visibility",
@@ -555,7 +555,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "aspc_rna": {
         "asp_id": {
             "display_type": "select",
-            "label": "ASP",
+            "label": "Assay",
             "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
         },
         "subpanel_id": {
@@ -563,7 +563,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Subpanel",
             "options": [SUBPANEL_BASE_ID],
             "default": SUBPANEL_BASE_ID,
-            "help": "Select an active subpanel registered under the selected ASP. Use base for an assay-wide configuration.",
+            "help": "Select an active subpanel registered under the selected assay. Use base for an assay-wide configuration.",
         },
         "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
@@ -571,7 +571,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "platform": {"readonly": True},
         "use_diagnosis_genelist": {
             "display_type": "checkbox",
-            "label": "Auto Select Diagnosis/Sub Panel Genelists",
+            "label": "Automatically select diagnosis/subpanel gene lists",
             "default": True,
         },
         "environment": {
@@ -587,7 +587,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "data_type": "json",
             "label": "Public Catalog",
             "display_type": "catalog-structured",
-            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Public Assay Catalog.",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are managed in Admin > Assay Catalog.",
             "groups": [
                 {
                     "title": "Visibility",
@@ -760,11 +760,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "asp_groups": {
             "display_type": "checkbox-group",
             "options": [],
-            "help": "Select one or more assay groups to expose the ASPs that may use this gene list.",
+            "help": "Select one or more assay groups to expose the assays that may use this gene list.",
         },
         "asp_ids": {
             "display_type": "checkbox-group",
-            "help": "Select one or more assay groups first, then select the specific ASPs that may use this gene list.",
+            "help": "Select one or more assay groups first, then select the specific assays that may use this gene list.",
         },
         "genes": {
             "display_type": "jsoneditor-or-upload",
@@ -1048,13 +1048,33 @@ def _section_payload(spec_key: str, fields: dict[str, dict[str, Any]]) -> dict[s
 
 
 def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
-    """Build a form payload from the managed Pydantic contract."""
+    """Build editable fields and readable labels without renaming contract keys.
+
+    Args:
+        spec: Registered resource whose collection supplies the Pydantic model.
+
+    Returns:
+        Form fields, defaults, sections and resource-specific UI instructions.
+
+    Raises:
+        ValueError: If the collection adapter has no resolvable model.
+    """
     adapter = COLLECTION_MODEL_ADAPTERS[spec.collection]
     model_cls = getattr(adapter, "_type", None)
     if model_cls is None:
         raise ValueError(f"Cannot resolve model for collection '{spec.collection}'")
 
     fields: dict[str, dict[str, Any]] = {}
+    resource_labels = {
+        "asp_id": "Assay ID",
+        "asp_ids": "Assays",
+        "asp_category": "Assay category",
+        "asp_group": "Assay group",
+        "asp_groups": "Assay groups",
+        "asp_family": "Assay family",
+        "aspc_id": "Configuration ID",
+        "isgl_id": "Gene list ID",
+    }
     model_fields = getattr(model_cls, "model_fields", {})
     excluded_fields = RESOURCE_EXCLUDED_FIELDS.get(spec.key, set())
     for field_name, field_info in model_fields.items():
@@ -1064,12 +1084,13 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
             continue
         data_type, options = _field_data_type(field_info.annotation)
         display_type = _default_display_type(data_type, options)
+        label = resource_labels.get(field_name, field_name.replace("_", " ").title())
         field_payload: dict[str, Any] = {
-            "label": field_name.replace("_", " ").title(),
+            "label": label,
             "data_type": data_type,
             "display_type": display_type,
             "required": bool(field_info.is_required()),
-            "placeholder": f"Enter {field_name.replace('_', ' ')}",
+            "placeholder": f"Enter {label.lower()}",
         }
         if options:
             field_payload["options"] = options
@@ -1118,11 +1139,11 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         fields[identity_field].pop("derive_from", None)
     if spec.key.startswith("aspc_"):
         fields["aspc_id"]["help"] = (
-            "Generated automatically from the ASP, subpanel, and environment."
+            "Generated automatically from the assay, subpanel, and environment."
         )
         fields["analysis_types"]["show_unavailable_options"] = True
         fields["analysis_types"]["help"] = (
-            "Available analyses depend on the ASP expected input files."
+            "Available analyses depend on the assay expected input files."
         )
         tier_analysis = "FUSION" if spec.key == "aspc_rna" else "SNV"
         fields["reporting"]["groups"].append(

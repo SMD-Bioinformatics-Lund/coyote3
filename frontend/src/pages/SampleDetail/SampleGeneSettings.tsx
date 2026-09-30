@@ -209,7 +209,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No {target.toUpperCase()} ISGLs selected.</p>
+              <p className="text-sm text-muted-foreground">No {target.toUpperCase()} gene lists selected.</p>
             )}
           </div>
 
@@ -218,7 +218,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
               <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
                 <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
                   <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Choose {target.toUpperCase()} ISGLs</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Choose {target.toUpperCase()} gene lists</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">{selectedIds.length} selected from {items.length} available lists</p>
                   </div>
                   <button
@@ -352,7 +352,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
         <div className="rounded-xl border border-border bg-background/70 p-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Effective genes</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            {effective.length} effective gene(s), {effectiveGenes.data?.asp_covered_genes_count ?? 0} covered by assay panel.
+            {effective.length} effective gene(s), {effectiveGenes.data?.asp_covered_genes_count ?? 0} covered by assay.
           </p>
           <div className="mt-2 max-h-36 overflow-auto rounded-lg border border-border bg-card/70 p-2">
             <div className="flex flex-wrap gap-1">

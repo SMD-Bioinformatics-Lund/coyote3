@@ -116,8 +116,8 @@ export const specs: Record<string, AdminResourceSpec> = {
   },
   asp: {
     key: "asp",
-    title: "Assay Panels",
-    description: "Manage assay panel definitions and panel-level metadata.",
+    title: "Assays",
+    description: "Manage assay definitions and metadata.",
     endpoint: "/resources/asp",
     listKey: "panels",
     idKeys: ["asp_id", "assay_name", "_id"],

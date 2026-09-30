@@ -17,6 +17,16 @@ export function valueLabel(value: unknown) {
 
 export function titleize(value: string) {
   if (value === "record_provenance") return "Created by / Installed by"
+  const resourceLabels: Record<string, string> = {
+    asp_id: "Assay ID",
+    asp_ids: "Assays",
+    asp_category: "Assay category",
+    asp_group: "Assay group",
+    asp_family: "Assay family",
+    aspc_id: "Configuration ID",
+    isgl_id: "Gene list ID",
+  }
+  if (resourceLabels[value]) return resourceLabels[value]
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
@@ -190,17 +200,17 @@ export function resourceListFilters(resourceKey: string): ResourceListFilter[] {
       { field: "category", label: "Category", allLabel: "All categories" },
     ],
     asp: [
-      { field: "asp_category", label: "ASP category", allLabel: "All ASP categories" },
+      { field: "asp_category", label: "Assay category", allLabel: "All assay categories" },
       { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
     ],
     aspc: [
-      { field: "asp_category", label: "ASP category", allLabel: "All ASP categories" },
+      { field: "asp_category", label: "Assay category", allLabel: "All assay categories" },
       { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
-      { field: "asp_id", label: "Assay panel", allLabel: "All assay panels" },
+      { field: "asp_id", label: "Assay", allLabel: "All assays" },
     ],
     genelists: [
       { field: "asp_groups", label: "Assay group", allLabel: "All assay groups" },
-      { field: "asp_ids", label: "Assay panel", allLabel: "All assay panels" },
+      { field: "asp_ids", label: "Assay", allLabel: "All assays" },
     ],
     samples: [
       { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
