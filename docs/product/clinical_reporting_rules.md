@@ -870,14 +870,10 @@ Review the count, remove `--dry-run`, and run the same command. It is idempotent
 earlier overwritten draft revisions cannot be reconstructed and the command reports this limit.
 New database bootstrap creates baselines for bundled demo rule sets automatically.
 
-The previous generator also contained CNV, DNA translocation, HRD, and MSI text branches.
-They are deliberately declared with `narrative: none` in the initial canonical releases.
-Those branches coupled wording to legacy record shapes and embedded interpretation
-thresholds, including HRD and MSI cutoffs, that are not approved clinical-rule facts in the
-current contracts. Do not copy or activate them as part of migration. Introduce each one as
-a reviewed new content version after its result fields, units, thresholds, exact wording,
-and regression cases are approved. The underlying CNV, translocation, and biomarker report
-tables remain unaffected by this narrative decision.
+Bundled CNV, DNA translocation, HRD, and MSI scopes use `narrative: none`.
+Enabling narrative text requires a reviewed content version with approved result
+fields, units, thresholds, wording and regression cases. Report tables for these
+findings remain available independently of narrative text.
 
 Apply the repository index contract before application startup:
 

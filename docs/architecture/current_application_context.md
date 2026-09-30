@@ -369,28 +369,11 @@ Hidden/unhidden actions are audited and visible according to user permissions.
 Deleting a sample also deletes all `finding_comments` records linked by sample
 identifier before the sample document is removed.
 
-### Moving legacy embedded comments
-
-Older finding documents may contain a `comments` array. Moving those comments
-to `finding_comments` is a guarded data migration, not a direct `$unset`.
-
-| Phase | Required behavior |
-| --- | --- |
-| Inventory | Read every embedded comment from `variants`, `cnvs`, `fusions`, and `translocations`. Resolve the owning sample and validate the comment text, author, identifier, visibility state, and timestamps. |
-| Write | Create one `finding_comments` record per source comment. Preserve the legacy comment `_id` when present and add `sample_oid`, `sample_name`, `finding_oid`, and `finding_type`. Re-running the write must produce the same records. |
-| Verify | Compare the expected and written record counts, then compare every destination record with its normalized source content and finding identity. Stop on missing samples, duplicate comment identifiers, conflicting destination records, invalid comments, count differences, or content differences. |
-| Remove | Re-read every inventoried source and confirm that its complete comment array still matches the inventory. Remove an embedded array only after all source and destination checks pass. The removal query also includes the original array so a concurrent source change cannot be discarded. |
-| Final check | Search all four finding collections for any remaining embedded `comments` field, then repeat the destination-content comparison. |
-
-An interrupted run is resumable. Destination records already written with the
-same content are accepted; conflicting records stop the run. Findings whose
-arrays were already removed are not rewritten. A database backup is required
-before applying the migration, and the read-only inventory must be reviewed
-before the write phase is enabled.
-
-After migration, `finding_comments` is the only persistence owner. API
-responses may still contain a `comments` field because repositories hydrate it
-at the read boundary; that field is not stored in a finding document.
+`finding_comments` is the persistence owner for finding comments. API responses
+contain a hydrated `comments` field; finding documents do not store that array.
+Importing an older database with embedded comments requires a separately reviewed
+data migration. Do not remove embedded arrays before verifying that all comments,
+authors, timestamps, visibility states and finding identities are preserved.
 
 ## Access Control
 

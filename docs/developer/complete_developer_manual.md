@@ -101,8 +101,10 @@ when adding a value.
 
 | Value type | Source | Examples |
 | --- | --- | --- |
-| Fixed software vocabulary | Python constants/config modules | Analysis types, assay groups, auth providers, nomenclature fields, collection keys. |
-| Center-owned content | `api/config/center/*` | Contacts, catalog narrative, clinical vocabulary, query policy. |
+| Fixed software vocabulary | Python constants/config modules | Analysis types, supported auth providers, nomenclature fields, collection keys. |
+| Center-owned configuration | `api/config/center/*` | Contacts, clinical vocabulary, query policy. |
+| Assay groups and subpanels | MongoDB registries | Shared identifiers, display names, availability and assay associations. |
+| Public catalog content | Governed MongoDB catalog documents | Published assay descriptions, modality structure and draft revisions. |
 | Deployment or secret | Environment variable | Mongo URI, database names, LDAP/SMTP credentials, public URL, host mount paths. |
 | Runtime administrative switch | MongoDB `app_controls` | Released module availability, background work, maintenance, and retention controls. |
 | Clinical assay definition | Versioned ASP/ASPC/ISGL document | Platform, covered genes, enabled analyses, filters, and report sections. |
@@ -112,6 +114,18 @@ when adding a value.
 Do not add a fallback environment variable for a repository-owned URL or fixed
 product value. Do not hardcode a center-owned term in a service. Do not put UI
 labels or icons in API contracts unless they are part of a public data contract.
+
+Shared filter formatting and gene coverage are implemented in
+`api/domain/common/assay_filters.py`; report formatting helpers belong in
+`api/domain/common/reporting.py`. Request payload serialization uses
+`api/app/utilities/serialization.py`. The runtime utility container delegates to
+these implementations rather than maintaining separate algorithms.
+
+Sample filter initialization and clinical profile normalization are distinct
+operations. Initialization preserves the stored filter values and copies defaults
+only when filters are absent or empty. Domain normalization produces intent-aware
+profiles. Choose the operation required by the workflow; do not substitute one for
+the other as an import cleanup.
 
 ## MongoDB contracts
 

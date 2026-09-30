@@ -255,8 +255,8 @@ IGV links are separate per alignment, use `merge=true`, and pass `index` only wh
 an index is supplied. This keeps automatic index discovery for the other alignment.
 If a BAI is supplied without a BAM, it is applied only when the fallback resolves
 exactly one BAM for that role; multiple fallback matches cannot safely share an
-unidentified index. The planned retirement of catalog-derived filenames is
-tracked in `scripts/TODO.md`; existing lookup remains supported for older samples.
+unidentified index. Existing filename lookup remains supported for samples
+without explicit BAM filenames.
 
 See [IGV external control](https://igv.org/doc/desktop/UserGuide/advanced/external_control/)
 and its [HTTP command implementation](https://github.com/igvteam/igv/blob/main/src/main/java/org/igv/batch/CommandListener.java).
