@@ -64,7 +64,7 @@ export function AssayGroupsPage() {
     },
     onError: (error) => notifyActionError("Create assay group", error),
   })
-  const validId = /^[a-z0-9][a-z0-9_-]{0,99}$/.test(values.group_id)
+  const validId = /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(values.group_id)
   const rows = (groups.data ?? []).filter((group) => `${group.group_id} ${group.display_name} ${group.description}`.toLowerCase().includes(search.toLowerCase()))
   return <PageShell eyebrow="Admin" title="Assay groups" actions={<AdminHomeLink />}>
     <ConfirmationDialog open={Boolean(target)} title={`${target?.is_active ? "Deactivate" : "Activate"} ${target?.display_name ?? "assay group"}`} confirmLabel={target?.is_active ? "Deactivate group" : "Activate group"} isPending={status.isPending}
@@ -91,9 +91,9 @@ export function AssayGroupsPage() {
         <h2 className="type-section-title md:col-span-2">New assay group</h2>
         <label className="type-label">Display name<Input required maxLength={200} value={values.display_name} onChange={(event) => {
           const name = event.target.value
-          setValues({ ...values, display_name: name, ...(!idEdited ? { group_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100) } : {}) })
+          setValues({ ...values, display_name: name, ...(!idEdited ? { group_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 100).replace(/^_|_$/g, "") } : {}) })
         }} /></label>
-        <label className="type-label">Group identifier<Input required maxLength={100} value={values.group_id} aria-invalid={Boolean(values.group_id) && !validId} aria-describedby="group-id-help" onChange={(event) => { setIdEdited(true); setValues({ ...values, group_id: event.target.value }) }} /><span id="group-id-help" className={values.group_id && !validId ? "text-destructive" : "text-muted-foreground"}>Lowercase letters, numbers, hyphens or underscores. Cannot be renamed after creation.</span></label>
+        <label className="type-label">Group identifier<Input required maxLength={100} value={values.group_id} aria-invalid={Boolean(values.group_id) && !validId} aria-describedby="group-id-help" onChange={(event) => { setIdEdited(true); setValues({ ...values, group_id: event.target.value }) }} /><span id="group-id-help" className={values.group_id && !validId ? "text-destructive" : "text-muted-foreground"}>Lowercase letters, numbers, single underscores between words. Cannot be renamed after creation.</span></label>
         <label className="type-label md:col-span-2">Description<textarea className="paper-inset mt-1 w-full rounded-md border border-border p-3" maxLength={4000} rows={3} value={values.description} onChange={(event) => setValues({ ...values, description: event.target.value })} /></label>
         {save.error && <p role="alert" className="text-destructive md:col-span-2">{save.error.message}</p>}
         <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={save.isPending || !validId || !values.display_name.trim()}><Save className="h-4 w-4" />Save group</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setCreating(false)}><X className="h-4 w-4" />Cancel</Button></div>

@@ -34,7 +34,7 @@ it("creates a custom group with an editable generated identifier", async () => {
   mount()
   fireEvent.click(screen.getByRole("button", { name: "Create group" }))
   fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "New group" } })
-  expect(screen.getByLabelText(/Group identifier/)).toHaveValue("new-group")
+  expect(screen.getByLabelText(/Group identifier/)).toHaveValue("new_group")
   fireEvent.change(screen.getByLabelText(/Group identifier/), { target: { value: "custom" } })
   fireEvent.click(screen.getByRole("button", { name: "Save group" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/assay-groups", { group_id: "custom", display_name: "New group", description: "" }))

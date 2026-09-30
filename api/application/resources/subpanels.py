@@ -4,6 +4,7 @@ from typing import Any
 
 from api.application.accounts.common import change_payload, utc_now
 from api.application.resources.availability import require_active_group
+from api.application.resources.helpers import require_new_identifier
 from api.config.constants import SUBPANEL_BASE_ID, normalize_clinical_identifier
 from api.contracts.schemas.subpanels import (
     SharedSubpanelCreate,
@@ -64,6 +65,7 @@ class SubpanelService:
         """
         if payload.subpanel_id == SUBPANEL_BASE_ID:
             raise api_error(409, "Base is implicit")
+        require_new_identifier(payload.subpanel_id, label="subpanel_id")
         assays = [self._assay(asp_id) for asp_id in payload.asp_ids]
         for asp_id in assays:
             require_active_group(self.panels, self.panels.get_asp(asp_id)["asp_group"])
@@ -166,6 +168,8 @@ class SubpanelService:
         """
         asp_id = self._assay(asp_id)
         expected = payload.expected_version if isinstance(payload, SubpanelUpdate) else None
+        if isinstance(payload, SubpanelCreate):
+            require_new_identifier(payload.subpanel_id, label="subpanel_id")
         if payload.is_active:
             require_active_group(self.panels, self.panels.get_asp(asp_id)["asp_group"])
         values = payload.model_dump(exclude={"expected_version"})

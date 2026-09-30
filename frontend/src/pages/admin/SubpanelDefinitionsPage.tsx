@@ -62,7 +62,7 @@ export function SubpanelDefinitionsPage() {
     },
     onError: (error) => notifyActionError("Save shared subpanel", error),
   })
-  const validId = /^[a-z0-9][a-z0-9_-]{0,99}$/.test(values.subpanel_id) && values.subpanel_id !== "base"
+  const validId = editing !== "new" || /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(values.subpanel_id) && values.subpanel_id !== "base"
   const rows = (definitions.data ?? []).filter((row) => `${row.display_name} ${row.subpanel_id}`.toLowerCase().includes(search.toLowerCase()))
   return <PageShell eyebrow="Admin" title="Subpanel definitions" actions={<AdminHomeLink />}>
     <section aria-label="Subpanel registry" className="glass-card min-w-0 space-y-3 p-3">
@@ -89,10 +89,10 @@ export function SubpanelDefinitionsPage() {
         {editing !== "new" && <p className="type-body md:col-span-2" role="status">Changes apply to every associated assay.</p>}
         <label className="type-label">Display name<Input autoFocus required maxLength={200} value={values.display_name} onChange={(event) => {
           const name = event.target.value
-          setValues({ ...values, display_name: name, ...(editing === "new" && !idEdited ? { subpanel_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100) } : {}) })
+          setValues({ ...values, display_name: name, ...(editing === "new" && !idEdited ? { subpanel_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 100).replace(/^_|_$/g, "") } : {}) })
         }} /></label>
         <label className="type-label">Subpanel identifier<Input required readOnly={editing !== "new"} maxLength={100} value={values.subpanel_id} aria-invalid={Boolean(values.subpanel_id) && !validId} onChange={(event) => { setIdEdited(true); setValues({ ...values, subpanel_id: event.target.value }) }} />
-          {values.subpanel_id && !validId && <span className="text-destructive">Use lowercase letters, numbers, hyphens or underscores. Base is implicit.</span>}
+          {values.subpanel_id && !validId && <span className="text-destructive">Use lowercase letters, numbers, single underscores between words. Base is implicit.</span>}
         </label>
         <label className="type-label md:col-span-2">Description<textarea className="paper-inset mt-1 w-full rounded-md border border-border p-3" rows={3} maxLength={4000} value={values.description} onChange={(event) => setValues({ ...values, description: event.target.value })} /></label>
         <label className="flex items-center gap-2 type-body"><input type="checkbox" checked={values.is_active} onChange={(event) => setValues({ ...values, is_active: event.target.checked })} />Globally available</label>

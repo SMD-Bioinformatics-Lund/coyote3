@@ -207,7 +207,8 @@ the admin UI. New demo bootstraps derive registry records from their seed scopes
 
 `isgl_id` is the stable gene-list business key across revisions. MongoDB `_id`
 identifies an individual revision. Keep identifiers lowercase with no spaces;
-hyphens and underscores are accepted and remain distinct. `displayname` is the
+new identifiers require single underscores between words. Existing hyphenated
+identifiers remain unchanged and distinct from underscore spellings. `displayname` is the
 preferred readable name. `aliases` contains additional searchable names, with
 spaces and mixed case allowed. Edit aliases in the gene-list administration form.
 Aliases are not unique keys and never resolve configuration references.

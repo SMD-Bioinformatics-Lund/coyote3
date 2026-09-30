@@ -3,6 +3,7 @@
 from typing import Any
 
 from api.application.accounts.common import change_payload, utc_now
+from api.application.resources.helpers import require_new_identifier
 from api.contracts.schemas.assay_groups import AssayGroupCreate, AssayGroupDoc, AssayGroupStatus
 from api.domain.common.errors import api_error
 
@@ -57,6 +58,7 @@ class AssayGroupService:
         Returns:
             Standard managed-resource change metadata.
         """
+        require_new_identifier(payload.group_id, label="group_id")
         document = AssayGroupDoc(
             **payload.model_dump(), system_managed=False, created_by=actor, created_on=utc_now()
         )

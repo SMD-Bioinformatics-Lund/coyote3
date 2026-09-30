@@ -26,11 +26,11 @@ it("creates one definition with multiple selected assays", async () => {
   mount()
   fireEvent.click(screen.getByRole("button", { name: "Create subpanel" }))
   fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "New scope" } })
-  expect(screen.getByLabelText("Subpanel identifier")).toHaveValue("new-scope")
+  expect(screen.getByLabelText("Subpanel identifier")).toHaveValue("new_scope")
   fireEvent.click(await screen.findByRole("checkbox", { name: /Panel A/ }))
   fireEvent.click(screen.getByRole("checkbox", { name: /Panel B/ }))
   fireEvent.click(screen.getByRole("button", { name: "Save subpanel" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/subpanels", expect.objectContaining({ subpanel_id: "new-scope", asp_ids: ["panel-a", "panel-b"] })))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/subpanels", expect.objectContaining({ subpanel_id: "new_scope", asp_ids: ["panel-a", "panel-b"] })))
 })
 it("lists a shared definition only once and edits global metadata separately", async () => {
   mount()

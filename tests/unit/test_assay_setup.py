@@ -146,6 +146,15 @@ def test_base_is_default_and_cannot_be_removed():
     assert content(scopes=["base", "Myeloid", "myeloid"]).scopes == ["base", "myeloid"]
 
 
+def test_setup_registration_rejects_hyphenated_assay_id(setup_service):
+    service, db = setup_service
+    draft = content()
+    draft.panel.asp_id = "new-assay"
+    with pytest.raises(AppError, match="Invalid asp_id"):
+        service.save(draft, actor="author")
+    assert db.assay_setups.count_documents({}) == 0
+
+
 def test_draft_isolation_and_atomic_publication_bundle(setup_service):
     service, db = setup_service
     draft = service.save(content(), actor="author")

@@ -1,5 +1,46 @@
 # Assay Setup
 
+## Names And Identifiers
+
+Administration uses **Assay group**, **Assay**, **Subpanel**, **Assay configuration**,
+**Gene list**, **Reporting rule set**, and **Assay catalog**. ASP, ASPC and ISGL
+remain technical names in API fields and storage; changing a display label does
+not change an endpoint, permission or database reference.
+
+Assay groups are center-defined. WGS, WTS and Fusion may be both group names and
+registered assays at a center; they are not forced into a clinical-specialty
+classification. Group membership and assay family are separate configuration fields.
+
+Use lowercase ASCII letters and digits with **underscores between words for new
+database identifiers**: `solid_gmsv3`, `breast_cancer`, `mpn_diagnostic_genes`.
+Use **hyphens for URL path segments**, such as `/assay-groups`. JSON/Python field
+names use underscores (`asp_id`, `subpanel_id`). These are conventions for different
+kinds of names, not instructions to translate a stored identifier in a URL.
+
+New assay groups, assays, shared subpanels and gene lists must use lowercase
+letters and digits separated by single underscores. Creation rejects hyphens,
+spaces, and leading, trailing or repeated underscores with HTTP 422. The rule
+also applies to assay setup registration and gene lists created through setup,
+and to imported new definitions submitted through the same creation services.
+
+Existing identifiers and references retain their original separators. Editing
+metadata does not register a new identity. `breast-cancer` and `breast_cancer`
+remain different keys, not aliases; lookups do not try alternative spellings.
+Generated configuration and reporting keys continue to derive from their scope
+identifiers, using their established underscore separators without renaming an
+existing assay or subpanel reference. Do not create duplicate definitions solely
+to change punctuation. Renaming stored identities requires a reference migration.
+
+Display names may contain spaces, punctuation and clinical capitalization, such
+as **Breast Cancer** or **Hematology GMSv1**. Gene-list aliases provide alternative
+readable names; references still use the stable gene-list identifier. Keep release
+versions in version fields rather than changing the identifier on each publication.
+An established assay name may contain a generation marker, such as `gmsv1`; that
+is distinct from its configuration revision. `base` remains the implicit default
+scope and must not be registered as a separate subpanel.
+
+## Starting A Setup
+
 Register an [assay group](assay-groups.md) before starting a new assay setup.
 The assay form uses the database registry, including center-owned groups.
 An inactive group blocks new setup saves, submission and activation. Existing

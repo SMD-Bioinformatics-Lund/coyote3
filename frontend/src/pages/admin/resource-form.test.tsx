@@ -4,6 +4,19 @@ import { AdminManagedForm, FormControl } from "./resource-form"
 import type { AdminResourceSpec, FormSpec, FormField } from "./resource-specs"
 
 describe("Resource Form UI", () => {
+  it("validates new identifiers without restricting existing reference choices", () => {
+    const props = { name: "asp_id", field: { label: "Assay ID" }, value: "old-assay", mode: "create" as const, onChange: vi.fn() }
+    const { rerender } = render(<FormControl {...props} />)
+    expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true")
+    rerender(<FormControl {...props} value="new_assay" />)
+    expect(screen.getByRole("textbox")).not.toHaveAttribute("aria-invalid")
+    rerender(<FormControl {...props} mode="edit" />)
+    expect(screen.getByRole("textbox")).not.toHaveAttribute("pattern")
+    rerender(<FormControl {...props} field={{ label: "Assay", display_type: "select", options: ["old-assay"] }} />)
+    expect(screen.getByRole("combobox", { name: "Assay" })).toHaveValue("old-assay")
+    expect(screen.queryByText(/Use lowercase letters/)).not.toBeInTheDocument()
+  })
+
   it("derives a read-only ASPC ID live instead of retaining a copied ID", () => {
     const field: FormField = {
       label: "ASPC ID", readonly: true,

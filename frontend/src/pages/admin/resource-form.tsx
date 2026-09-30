@@ -360,6 +360,8 @@ export function FormControl({
     value = parts.every(Boolean) ? parts.join("_") : ""
   }
   const label = fieldLabel(name, field)
+  const newIdentifier = mode === "create" && !readOnly && !field.options && (!field.display_type || field.display_type === "input") && ["asp_id", "isgl_id"].includes(name)
+  const identifierError = newIdentifier && Boolean(value) && !/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(value))
   const commonClass = "w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
 
   if (field.display_type === "user-settings") {
@@ -471,7 +473,10 @@ export function FormControl({
         onChange={(event) => onChange(event.target.value)}
         disabled={readOnly}
         placeholder={field.placeholder}
-        className={commonClass}
+        pattern={newIdentifier ? "[a-z0-9]+(?:_[a-z0-9]+)*" : undefined}
+        aria-label={newIdentifier ? label : undefined}
+        aria-invalid={identifierError || undefined}
+        className={cn(commonClass, identifierError && "border-destructive")}
       />
     )
   }
@@ -483,6 +488,7 @@ export function FormControl({
         {field.required && !readOnly && <span className="text-destructive">*</span>}
       </span>
       {control}
+      {newIdentifier && <span className={cn("block text-xs font-normal normal-case tracking-normal", identifierError ? "text-destructive" : "text-muted-foreground")}>Use lowercase letters and digits with single underscores between words.</span>}
       {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
     </label>
   )

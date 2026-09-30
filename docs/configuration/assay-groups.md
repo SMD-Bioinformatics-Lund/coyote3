@@ -9,7 +9,9 @@ to the application database; each environment manages its own registry.
 Open **Admin > Assay groups** (`/admin/assay-groups`). Search the registry or
 select **Create group**, enter a display name and description, review the
 suggested identifier, and save. Identifiers use lowercase letters,
-numbers, hyphens or underscores. Spaces are allowed in display names, not keys.
+numbers and single underscores between words. Hyphens, spaces and leading,
+trailing or repeated underscores are rejected for new groups. Existing group
+identifiers are not renamed. Spaces are allowed in display names, not keys.
 
 | Operation | Permission |
 | --- | --- |

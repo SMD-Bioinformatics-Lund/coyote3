@@ -13,7 +13,7 @@ from api.application.accounts.common import (
 )
 from api.application.common.protected_records import reject_system_managed_delete
 from api.application.resources.availability import require_active_group
-from api.application.resources.helpers import _validated_doc
+from api.application.resources.helpers import _validated_doc, require_new_identifier
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.errors import api_error
 
@@ -101,6 +101,7 @@ class AspService:
         config["asp_id"] = config.get("asp_id")
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
+        require_new_identifier(config["asp_id"], label="asp_id")
         existing_panel = self.assay_panel_repository.get_asp(str(config["asp_id"]))
         if isinstance(existing_panel, dict) and (
             existing_panel.get("asp_id") or existing_panel.get("_id")

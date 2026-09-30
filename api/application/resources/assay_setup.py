@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from api.application.accounts.common import build_managed_form
 from api.application.reporting.clinical_rules.resolution import resolve_published_rule_set
 from api.application.resources.aspc import AspcService
+from api.application.resources.helpers import require_new_identifier
 from api.application.resources.isgl import IsglService
 from api.config.constants import ENVIRONMENT_OPTIONS
 from api.contracts.managed_resources import managed_resource_spec
@@ -166,6 +167,8 @@ class AssaySetupService:
     ) -> dict:
         """Create or revise a draft; operational assay resources remain untouched."""
         previous = self.get(identifier) if identifier else None
+        if previous is None:
+            require_new_identifier(content.panel.asp_id, label="asp_id")
         if previous and (previous["status"] != "draft" or previous["revision"] != revision):
             raise api_error(409, "Only the current draft revision can be edited")
         if previous and previous["asp_id"] != content.panel.asp_id:

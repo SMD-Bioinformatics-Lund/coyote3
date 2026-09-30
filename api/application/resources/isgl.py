@@ -13,7 +13,7 @@ from api.application.accounts.common import (
 )
 from api.application.common.protected_records import reject_system_managed_delete
 from api.application.resources.availability import available_panels
-from api.application.resources.helpers import _validated_doc
+from api.application.resources.helpers import _validated_doc, require_new_identifier
 from api.config.constants import SUBPANEL_BASE_ID
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.assay_filters import create_assay_group_map
@@ -238,6 +238,7 @@ class IsglService:
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
             raise api_error(400, "Missing isgl_id")
+        require_new_identifier(config["isgl_id"], label="isgl_id")
         existing_genelist = self.gene_list_repository.get_isgl(str(config["isgl_id"]))
         if isinstance(existing_genelist, dict) and (
             existing_genelist.get("isgl_id") or existing_genelist.get("_id")

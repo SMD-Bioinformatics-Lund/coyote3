@@ -85,6 +85,31 @@ def test_scope_identity_and_history(service, repository):
     assert previous["is_current"] is False
 
 
+def test_existing_hyphenated_definition_can_be_revised(service, repository):
+    repository.create_definition(
+        {
+            "subpanel_id": "existing-scope",
+            "display_name": "Existing scope",
+            "description": "",
+            "is_active": True,
+            "version": 1,
+            "is_current": True,
+            "updated_by": "author",
+            "updated_on": datetime.now(timezone.utc),
+        },
+        ["panel-a"],
+    )
+    service.revise_definition(
+        "existing-scope",
+        SharedSubpanelUpdate(display_name="Updated name", expected_version=1),
+        actor="editor",
+    )
+    row = repository.definitions.find_one({"subpanel_id": "existing-scope", "is_current": True})
+    assert row["display_name"] == "Updated name"
+    assert row["version"] == 2
+    assert repository.definitions.count_documents({"subpanel_id": "existing_scope"}) == 0
+
+
 def test_inactive_definition_creates_inactive_assay_links(service, repository):
     """Reactivating shared metadata must not silently activate previously disabled links."""
     service.create_definition(

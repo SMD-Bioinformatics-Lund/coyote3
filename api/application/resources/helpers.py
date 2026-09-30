@@ -2,11 +2,40 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from api.config.constants import normalize_asp_category
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
+
+
+def require_new_identifier(value: object, *, label: str) -> str:
+    """Require lowercase words separated by single underscores for a new identity.
+
+    Args:
+        value: Proposed business identifier, not a reference to an existing record.
+        label: Contract field name included in the validation response.
+
+    Returns:
+        The unchanged identifier when it meets the creation policy.
+
+    Raises:
+        AppError: With status 422 for blanks, uppercase, whitespace, hyphens,
+            non-ASCII characters or leading, trailing or repeated underscores.
+
+    Notes:
+        Call only when registering an identity, never when reading or revising
+        an existing one. This function does not translate or alias identifiers.
+    """
+    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)*", value):
+        raise api_error(
+            422,
+            f"Invalid {label}",
+            details=f"{label} must use lowercase letters and digits with single underscores between words.",
+            category="validation",
+        )
+    return value
 
 
 def _normalize_asp_category(value: Any) -> str:
