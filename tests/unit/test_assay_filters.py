@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from api.app.utilities.assay_filters import (
-    format_assay_config,
-    get_sample_effective_genes,
-    merge_sample_settings_with_assay_config,
-)
+from api.app.utilities.assay_filters import merge_sample_settings_with_assay_config
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
-from api.domain.common.assay_filters import has_sample_gene_restriction
+from api.domain.common.assay_filters import (
+    format_assay_config,
+    get_sample_effective_genes,
+    has_sample_gene_restriction,
+)
 from api.domain.common.sample_filters import normalize_sample_filters
 
 

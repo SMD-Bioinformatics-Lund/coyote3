@@ -28,6 +28,7 @@ from api.config.constants import (
 )
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.schemas.registry import normalize_collection_document
+from api.domain.common.assay_filters import create_assay_group_map
 from api.domain.common.errors import api_error
 from api.security.password_flows import issue_password_token_for_user, notify_user_change
 
@@ -154,7 +155,7 @@ class UserManagementService:
         """Offer active assay checkboxes only within the selected assay groups."""
         form["fields"]["asp_groups"]["options"] = self.assay_panel_repository.group_options()
         groups: dict[str, Any] = dict(
-            self.common_util.create_assay_group_map(available_panels(self.assay_panel_repository))
+            create_assay_group_map(available_panels(self.assay_panel_repository))
         )
         form["fields"]["asp_ids"].update(
             {

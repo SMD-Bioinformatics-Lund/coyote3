@@ -92,7 +92,7 @@ class BlacklistRepository(BaseRepository):
 
         Args:
             var (dict): A dictionary containing variant details. If `simple_id` is not
-                        present, it will be generated using `CommonUtility.get_simple_id`.
+                        present, it will be generated from canonical variant coordinates.
             assay (str): The assay type to associate with the variant.
 
         Returns:

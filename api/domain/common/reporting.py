@@ -105,17 +105,6 @@ def nl_join(arr: list, joiner: str) -> str:
     return ""
 
 
-def write_report(report_data: str, report_path: str) -> bool:
-    """Write rendered report HTML to disk."""
-    try:
-        Path(report_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(report_path, "w", encoding="utf-8") as report_file:
-            report_file.write(report_data)
-        return True
-    except OSError:
-        return False
-
-
 def get_base64_image(image_path: str) -> str:
     """Return a base64-encoded image payload."""
     with open(image_path, "rb") as image_file:

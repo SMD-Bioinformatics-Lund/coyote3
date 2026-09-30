@@ -29,15 +29,7 @@ def test_list_roles_read_with_fake_store(monkeypatch):
 
 
 def test_create_role_context_read_with_fake_store(monkeypatch):
-    """Test create role context read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(roles.util.common, "utc_now", lambda: "NOW")
+    """Return the service's role form without rebuilding its metadata in the route."""
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",

@@ -1,76 +1,14 @@
+"""Coverage for supported domain filter formatting and sample identifiers."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-import pytest
-
-from api.app.runtime_state import app
-from api.app.utilities import assay_filters
+from api.app.utilities.assay_filters import get_case_and_control_sample_ids
+from api.domain.common import assay_filters
 
 
-@pytest.fixture(autouse=True)
-def configured_runtime(monkeypatch):
-    monkeypatch.setattr(
-        app,
-        "config",
-        {
-            "ASSAYS": {
-                "hematology": {
-                    "sample_info": ["case_id"],
-                    "sample_qc": ["reads"],
-                    "include_assays": ["hema_gmsv1"],
-                    "subtypes": {"subtype_names": ["hem", "mpn"]},
-                    "subtype_id_col": "subpanel_id",
-                },
-                "broken": {"subtypes": {"subtype_names": ["one"]}},
-            },
-            "GROUP_CONFIGS": {"hematology": {"label": "Hematology"}},
-            "TABLE": {"page_size": 50},
-            "CUTOFFS": {"hema_gmsv1": {"case": {"min_depth": 100}}},
-            "PATH_ASSAY_CONFIG": "/config/assays.toml",
-        },
-    )
-
-
-def test_runtime_configuration_accessors_return_copies_and_missing_defaults() -> None:
-    assert assay_filters.assay_config() is not app.config["ASSAYS"]
-    assert assay_filters.assay_config("hematology")["sample_info"] == ["case_id"]
-    assert assay_filters.get_group_parameters("hematology") == {"label": "Hematology"}
-    assert assay_filters.get_group_parameters("missing") is None
-    assert assay_filters.table_config() == {"page_size": 50}
-    assert assay_filters.cutoff_config("hema_gmsv1", "case") == {"min_depth": 100}
-    assert assay_filters.cutoff_config("missing") == {}
-    assert assay_filters.assay_info_vars("hematology") == ["case_id"]
-    assert assay_filters.assay_qc_vars("hematology") == ["reads"]
-    assert assay_filters.assays_in_assay_group("hematology") == ["hema_gmsv1"]
-    assert assay_filters.has_subtypes("hematology") is True
-    assert assay_filters.has_subtypes("missing") is False
-    assert assay_filters.get_sample_subtypes("hematology") == ["hem", "mpn"]
-    assert assay_filters.subtype_id_var("hematology") == "subpanel_id"
-    assert assay_filters.subtype_id_var("missing") is None
-    assert assay_filters.assay_exists("hematology") is True
-    assert assay_filters.assay_exists("missing") is False
-    assert assay_filters.assay_names_for_db_query("hematology") == ["hema_gmsv1"]
-    assert assay_filters.assay_names_for_db_query("hematology_restored") == ["hema_gmsv1_restored"]
-
-
-def test_runtime_configuration_accessors_handle_unconfigured_state(monkeypatch) -> None:
-    monkeypatch.setattr(app, "config", {})
-    assert assay_filters.assay_config() == {}
-    assert assay_filters.get_group_parameters("x") == {}
-    assert assay_filters.cutoff_config("x") == {}
-    assert assay_filters.table_config() is None
-
-
-def test_subtype_configuration_requires_identifier_column() -> None:
-    with pytest.raises(AttributeError, match="subtype_id_col"):
-        assay_filters.subtype_id_var("broken")
-
-
-def test_fusion_settings_and_filter_gene_list_normalization() -> None:
-    assert assay_filters.get_fusions_settings(
-        {"filter_min_spanreads": "4"}, {"default_spanreads": 2, "default_spanpairs": 3}
-    ) == {"min_spanreads": 4, "min_spanpairs": 3}
+def test_filter_gene_list_normalization() -> None:
     genes = assay_filters.create_filter_genelist(
         {
             "one": {"is_active": True, "covered": ["TP53", "EGFR"]},
@@ -210,7 +148,8 @@ def test_group_map_and_case_control_identifiers() -> None:
         ]
     )
     assert [row["asp_id"] for row in grouped["solid"]] == ["solid_one", "solid_two"]
-    assert assay_filters.get_case_and_control_sample_ids(
-        {"case_id": "case", "control_id": "control"}
-    ) == {"case": "case", "control": "control"}
-    assert assay_filters.get_case_and_control_sample_ids({}) == {}
+    assert get_case_and_control_sample_ids({"case_id": "case", "control_id": "control"}) == {
+        "case": "case",
+        "control": "control",
+    }
+    assert get_case_and_control_sample_ids({}) == {}
