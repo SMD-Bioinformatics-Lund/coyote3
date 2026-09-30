@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, CalendarDays, Database, Dna, ExternalLink, Fingerprint, Link2, MapPinned, Tags, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
+import { sanitizeRichText } from "@/lib/safe-html"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -131,7 +132,7 @@ function HtmlText({ value, className = "" }: { value: unknown; className?: strin
   return (
     <div
       className={`prose prose-sm max-w-none text-sm leading-relaxed text-muted-foreground dark:prose-invert prose-a:text-primary ${className}`}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeRichText(html) }}
     />
   )
 }

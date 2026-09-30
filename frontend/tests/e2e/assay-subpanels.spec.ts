@@ -18,7 +18,7 @@ for (const width of [1440, 390]) {
         return { json: { subpanels: [...definitions, { subpanel_id: "unassociated", display_name: "Unassociated scope", description: "", is_active: true, version: 1 }] } }
       }
       if (path === "/api/v1/resources/asp/assay_1/subpanels") return { json: { subpanels: definitions.map((row) => ({ ...row, is_active: active, definition_is_active: true })) } }
-      if (path.endsWith("/myeloid-review/status")) {
+      if (path.endsWith("/myeloid_review/status")) {
         active = route.request().postDataJSON().is_active
         return { json: {} }
       }
@@ -30,7 +30,7 @@ for (const width of [1440, 390]) {
     await page.getByRole("checkbox", { name: /Assay 1/ }).check()
     await page.screenshot({ path: testInfo.outputPath(`definitions-${width}.png`), fullPage: true })
     await page.getByRole("button", { name: "Save subpanel" }).click()
-    await expect(page.getByRole("cell", { name: "Myeloid review myeloid-review", exact: true })).toBeVisible()
+    await expect(page.getByRole("cell", { name: "Myeloid review myeloid_review", exact: true })).toBeVisible()
     await page.getByRole("tab", { name: "Assay associations", exact: true }).click()
     await expect(page).toHaveURL(/\/admin\/assay-subpanels$/)
     await page.getByLabel("Assay", { exact: true }).selectOption("assay_1")

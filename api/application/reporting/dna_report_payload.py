@@ -2,7 +2,6 @@
 
 import json
 import logging
-import os
 from copy import deepcopy
 from datetime import datetime, timezone
 from pprint import pformat
@@ -713,10 +712,7 @@ def build_dna_report_payload(
 
     if "CNV_PROFILE" in report_sections and not clinical_rule_only:
         report_sections_data["cnv_profile_base64"] = get_plot(
-            os.path.basename(
-                _sample_file_path(sample, primary_analysis_file_key("dna", "CNV_PROFILE"))
-            ),
-            assay_config,
+            _sample_file_path(sample, primary_analysis_file_key("dna", "CNV_PROFILE"))
         )
 
     if "BIOMARKER" in report_sections:

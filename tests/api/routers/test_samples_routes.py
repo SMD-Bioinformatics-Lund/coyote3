@@ -104,6 +104,9 @@ def test_saved_report_files_are_served_with_correct_disposition(
         file_type=file_type,
     )
     assert response.media_type == ("application/pdf" if file_type == "pdf" else "text/html")
+    assert response.headers["cache-control"] == "no-store"
+    if file_type != "pdf":
+        assert "sandbox;" in response.headers["content-security-policy"]
     if attachment:
         assert "attachment" in response.headers["content-disposition"]
     else:
@@ -125,25 +128,48 @@ def test_missing_saved_report_files_return_not_found(monkeypatch, tmp_path, miss
     assert exc.value.status_code == 404
 
 
-def test_plot_file_resolution_rejects_symlink_escape(tmp_path):
-    base = tmp_path / "plots"
-    base.mkdir()
-    private = tmp_path / "outside.txt"
-    private.write_text("synthetic", encoding="utf-8")
-    (base / "plot.txt").symlink_to(private)
+@pytest.mark.parametrize("requested", ["other.png", "../registered.png", "absent.png"])
+def test_plot_download_rejects_unregistered_names(monkeypatch, tmp_path, requested):
+    registered = tmp_path / "registered.png"
+    registered.write_bytes(b"synthetic")
+    (tmp_path / "other.png").write_bytes(b"other sample")
+    monkeypatch.setattr(
+        samples,
+        "_get_sample_for_api",
+        lambda *_: {"files": {"cnvprofile": {"path": str(registered)}}},
+    )
     with pytest.raises(AppError) as exc:
-        samples._safe_file_under(str(base), "plot.txt")
-    assert exc.value.status_code == 400
+        samples.sample_plot_read("authorized", requested, user=fx.api_user())
+    assert exc.value.status_code == 404
 
 
-def test_plot_file_resolution_requires_existing_configured_file(tmp_path):
-    for base in (None, str(tmp_path)):
+def test_plot_download_requires_registered_artifact(monkeypatch):
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda *_: {"files": {}})
+    with pytest.raises(AppError) as exc:
+        samples.sample_plot_read("authorized", "other.png", user=fx.api_user())
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.parametrize("suffix,expected", [("png", 200), ("html", 415), ("svg", 415)])
+def test_plot_download_allows_only_registered_raster_images(
+    monkeypatch, tmp_path, suffix, expected
+):
+    registered = tmp_path / f"registered.{suffix}"
+    registered.write_bytes(b"synthetic")
+    monkeypatch.setattr(
+        samples,
+        "_get_sample_for_api",
+        lambda *_: {"files": {"cnvprofile": {"path": str(registered)}}},
+    )
+    if expected == 415:
         with pytest.raises(AppError) as exc:
-            samples._safe_file_under(base, "absent.txt")
-        assert exc.value.status_code == 404
-    file = tmp_path / "plot.txt"
-    file.write_text("synthetic", encoding="utf-8")
-    assert samples._safe_file_under(str(tmp_path), "plot.txt") == file
+            samples.sample_plot_read("authorized", registered.name, user=fx.api_user())
+        assert exc.value.status_code == 415
+    else:
+        response = samples.sample_plot_read("authorized", registered.name, user=fx.api_user())
+        assert response.path == registered
+        assert response.media_type == "image/png"
+        assert response.headers["cache-control"] == "no-store"
 
 
 def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):

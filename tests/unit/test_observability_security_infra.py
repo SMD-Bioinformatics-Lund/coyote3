@@ -12,11 +12,24 @@ from api.infra.observability.logging import (
     JsonFormatter,
     RequestContext,
     bind_request_context,
+    request_context_from_request,
     reset_request_context,
 )
 from api.infra.security.sessions import MongoApiSessionRepository
 from api.security import audit_events
 from api.security.tokens import token_hash
+
+
+def test_log_identity_uses_resolved_client_not_raw_forwarded_header():
+    request = SimpleNamespace(
+        headers={"X-Forwarded-For": "198.51.100.77"},
+        client=SimpleNamespace(host="192.0.2.10"),
+        method="GET",
+        url=SimpleNamespace(path="/api/v1/auth/session"),
+    )
+    assert request_context_from_request(request).client_ip == "192.0.2.10"
+    request.client = None
+    assert request_context_from_request(request).client_ip is None
 
 
 class _InsertResult:

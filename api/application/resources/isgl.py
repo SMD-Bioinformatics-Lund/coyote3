@@ -225,9 +225,13 @@ class IsglService:
 
         Args:
             payload: Submitted config payload.
+            actor_username: Authenticated caller used when no current actor is bound.
 
         Returns:
-            dict[str, Any]: Normalized change response payload.
+            Change response identifying the new gene list.
+
+        Notes:
+            Creation provenance and system ownership are assigned by the server.
         """
         config = payload.get("config", {})
         if not config:
@@ -246,8 +250,8 @@ class IsglService:
             raise api_error(409, "Genelist already exists")
         actor = current_actor(actor_username)
         now = utc_now()
-        config.setdefault("created_by", actor)
-        config.setdefault("created_on", now)
+        config["created_by"] = actor
+        config["created_on"] = now
         config["updated_by"] = actor
         config["updated_on"] = now
         config["version"] = 1

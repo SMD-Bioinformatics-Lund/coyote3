@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Activity, Check, Download, Grid2X2, Info, ListTree, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
+import { sanitizeRichText } from "@/lib/safe-html"
 import { downloadText } from "@/lib/browser-download"
 import { rowsToCsv } from "@/lib/chart-export"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -313,7 +314,7 @@ function formatScalar(value: unknown) {
 function HtmlText({ html, className }: { html: unknown; className?: string }) {
   const text = String(html ?? "").trim()
   if (!text) return null
-  return <div className={className} dangerouslySetInnerHTML={{ __html: text }} />
+  return <div className={className} dangerouslySetInnerHTML={{ __html: sanitizeRichText(text) }} />
 }
 
 function CatalogField({ label, children }: { label: string; children: ReactNode }) {

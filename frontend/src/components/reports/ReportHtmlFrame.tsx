@@ -10,6 +10,7 @@ type ReportHtmlFrameProps = {
 export function ReportHtmlFrame({ title, html, minHeight = 320, className = "" }: ReportHtmlFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const resizeFrameRef = useRef<number | null>(null)
   const [height, setHeight] = useState(minHeight)
 
   const updateHeight = useCallback(() => {
@@ -21,12 +22,12 @@ export function ReportHtmlFrame({ title, html, minHeight = 320, className = "" }
     const root = doc.documentElement
     const nextHeight = Math.max(
       minHeight,
-      body?.scrollHeight ?? 0,
-      body?.offsetHeight ?? 0,
+      (body?.scrollHeight ?? 0) + 4,
+      (body?.offsetHeight ?? 0) + 4,
       root?.scrollHeight ?? 0,
       root?.offsetHeight ?? 0,
     )
-    setHeight(nextHeight + 4)
+    setHeight(nextHeight)
   }, [minHeight])
 
   const handleLoad = useCallback(() => {
@@ -37,14 +38,23 @@ export function ReportHtmlFrame({ title, html, minHeight = 320, className = "" }
     const doc = iframe?.contentDocument
     if (!doc || typeof ResizeObserver === "undefined") return
 
-    resizeObserverRef.current = new ResizeObserver(updateHeight)
+    resizeObserverRef.current = new ResizeObserver(() => {
+      if (resizeFrameRef.current !== null) cancelAnimationFrame(resizeFrameRef.current)
+      resizeFrameRef.current = requestAnimationFrame(() => {
+        resizeFrameRef.current = null
+        updateHeight()
+      })
+    })
     if (doc.body) resizeObserverRef.current.observe(doc.body)
     if (doc.documentElement) resizeObserverRef.current.observe(doc.documentElement)
   }, [updateHeight])
 
   useEffect(() => {
     setHeight(minHeight)
-    return () => resizeObserverRef.current?.disconnect()
+    return () => {
+      resizeObserverRef.current?.disconnect()
+      if (resizeFrameRef.current !== null) cancelAnimationFrame(resizeFrameRef.current)
+    }
   }, [html, minHeight])
 
   return (
@@ -52,6 +62,7 @@ export function ReportHtmlFrame({ title, html, minHeight = 320, className = "" }
       ref={iframeRef}
       title={title}
       srcDoc={html}
+      sandbox="allow-same-origin"
       scrolling="no"
       onLoad={handleLoad}
       className={`w-full rounded-lg border border-border bg-white ${className}`}

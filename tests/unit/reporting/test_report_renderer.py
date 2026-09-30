@@ -9,6 +9,38 @@ import pytest
 from api.application.reporting.report_renderer import render_report_html
 
 
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_report_description_preserves_formatting_but_rejects_active_html(analyte):
+    html = render_report_html(
+        template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
+        template_context={
+            "sample": {"name": "synthetic", "case": {}, "control": {}},
+            "assay_config": {
+                "reporting": {
+                    "report_description": (
+                        '<p onclick="attack()">Method <strong>validated</strong> H<sub>2</sub>O</p>'
+                        '<img src=x onerror="attack()"><svg onload="attack()"></svg>'
+                        '<a href="javascript:attack()">bad link</a><script>attack()</script>'
+                        '<a href="https://example.org">Reference</a>'
+                    )
+                }
+            },
+            "report_sections": [],
+            "report_sections_data": {},
+            "fusions": [],
+            "genes_covered_in_panel": {},
+        },
+        snapshot_rows=[],
+        analyte=analyte,
+        preview=True,
+    )
+    assert "<strong>validated</strong>" in html
+    assert "H<sub>2</sub>O" in html
+    assert 'href="https://example.org"' in html
+    for unsafe in ("onclick=", "onerror=", "onload=", "javascript:", "<script", "<svg"):
+        assert unsafe not in html
+
+
 @pytest.mark.parametrize(
     "analyte,template", [("dna", "dna_report.html"), ("rna", "report_fusion.html")]
 )
@@ -102,7 +134,7 @@ def test_dna_report_renderer_uses_master_style_template():
                         "chr": "13",
                         "pos": 28608258,
                         "var_type": "snv",
-                        "protein_changes": ["p.Asp835Tyr"],
+                        "protein_changes": ["p.Asp835Tyr", '<img src=x onerror="alert(1)">'],
                         "global_annotations": [],
                         "annotations_interesting": {},
                     }
@@ -139,6 +171,8 @@ def test_dna_report_renderer_uses_master_style_template():
     assert "table.report_general" in html
     assert "Latest sample conclusion" in html
     assert "Clinical conclusion" not in html
+    assert '<img src=x onerror="alert(1)">' not in html
+    assert "&lt;img src=x" in html
 
 
 def test_rna_report_renderer_leaves_conclusion_empty_without_sample_comment():

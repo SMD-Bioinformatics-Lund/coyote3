@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -123,12 +122,18 @@ def get_base64_image(image_path: str) -> str:
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 
-def get_plot(fn: str, assay_config: dict | None = None) -> str | bool:
-    """Return a configured plot image as base64 when available."""
-    assay_config = assay_config or {}
-    plot_dir = assay_config.get("REPORT", {}).get("plots_path", "")
-    if plot_dir and fn:
-        image_path = os.path.join(plot_dir, f"{fn}")
-        if os.path.exists(image_path):
-            return get_base64_image(image_path)
+def get_plot(image_path: str) -> str | bool:
+    """Read a plot from the path registered on the authorized sample.
+
+    Args:
+        image_path: Sample artifact path, or an empty string when not registered.
+
+    Returns:
+        Base64 image content, or False when the path is absent or not a file.
+
+    Raises:
+        OSError: The registered file exists but cannot be read.
+    """
+    if image_path and Path(image_path).is_file():
+        return get_base64_image(image_path)
     return False

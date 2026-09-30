@@ -62,6 +62,32 @@ forms, frames, and connections restricted to their supported origins.
 Roles, permissions, environments, assay groups, assays, and `superuser`
 visibility are resolved in the API security layer before request handlers run.
 
+## Report content and artifact access
+
+Report descriptions and Markdown comments are sanitized during HTML rendering.
+Basic text formatting, lists, tables and HTTP, HTTPS or mailto links are allowed;
+scripts, event handlers, embedded images and arbitrary styles are removed.
+Biological values, including protein changes, are escaped as plain text.
+Public assay details and catalog rich text are also sanitized in the browser
+before insertion, including content read from older database records.
+Report previews use a sandboxed iframe without script permission. Saved HTML
+responses also carry a sandbox content-security policy, including for reports
+generated before these rendering restrictions. Downloaded HTML opened outside
+Coyote3 is outside that response policy; do not treat old exported files as trusted.
+
+Plot downloads require access to the sample and an exact match to its registered
+CNV profile filename. They do not search a shared assay directory. Unregistered
+or missing files return `404`; registered files outside the supported PNG, JPEG,
+GIF, WebP and TIFF formats return `415`. Report generation reads the registered
+sample path directly. Report and plot responses use `Cache-Control: no-store`.
+
+Assay, assay configuration and gene-list creation assigns `created_by` and
+`created_on` on the server. Submitted provenance cannot replace the authenticated
+actor or server timestamp. New versions record the creator of that version.
+Diagnostic logs take the client address from the ASGI request, not directly from
+`X-Forwarded-For`. Configure trusted proxy addresses narrowly so only the intended
+ingress can influence the resolved client address.
+
 ## Package boundaries
 
 Coyote3 keeps security code in two deliberately separate packages:

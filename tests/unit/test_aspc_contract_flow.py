@@ -168,6 +168,8 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
                 "subpanel_id": "base",
                 "environment": "production",
                 "display_name": "Demo ASPC",
+                "created_by": "forged-author",
+                "created_on": "forged-time",
                 "aspc_id": "copied_source_id",
                 "analysis_types": ["SNV"],
                 "reporting": {
@@ -187,6 +189,8 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
     assert created[0]["asp_category"] == "dna"
     assert created[0]["platform"] == "illumina"
     assert created[0]["aspc_id"] == "hema_gmsv1_base_production"
+    assert created[0]["created_by"] == "actor"
+    assert created[0]["created_on"] == "now"
     assert created[0]["filters"]["somatic"]["snv"]["min_alt_reads"] == 5
     assert created[0]["version"] == 1
     assert "version_history" not in created[0]

@@ -491,7 +491,7 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
           <td class="report_key">Proteinförändring</td>
           <td class="var_report_val">
             {% if var.indel_size < 20 %}
-              {% if var.protein_changes %}{% for p_change in var.protein_changes %}{{ p_change|safe }}<br>{% endfor %}{% endif %}
+              {% if var.protein_changes %}{% for p_change in var.protein_changes %}{{ p_change }}<br>{% endfor %}{% endif %}
             {% else %}
               {{ var.cdna }}
             {% endif %}
@@ -525,7 +525,7 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ assay_config.reporting.report_description|safe }}
+  {{ assay_config.reporting.report_description|sanitize_report_html|safe }}
 
   {% set ns = namespace(table_no=1) %}
   <div>
@@ -662,7 +662,7 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ assay_config.reporting.report_description|safe }}
+  {{ assay_config.reporting.report_description|sanitize_report_html|safe }}
   <p><b>Tabell: Förklaring av klassificering</b></p>
   <table class="info">
     <tr><td>Tier I</td><td>Variant av stark klinisk signifikans (innefattar varianter i gener som finns med i internationella/nationella riktlinjer)</td></tr>
@@ -693,6 +693,7 @@ def _environment() -> Environment:
     env.filters["perc_no_dec"] = _perc_no_dec
     env.filters["unesc"] = _unesc
     env.filters["format_comment"] = _format_comment
+    env.filters["sanitize_report_html"] = _sanitize_report_html
     env.filters["format_tier"] = _format_tier
     return env
 
@@ -724,8 +725,20 @@ def _format_comment(value: Any) -> str:
     """Render a stored comment safely for report output."""
     text = str(value or "")
     html = markdown.markdown(text, extensions=["extra", "sane_lists"])
+    return _sanitize_report_html(html)
+
+
+def _sanitize_report_html(value: Any) -> str:
+    """Retain report formatting without executable content or embedded resources.
+
+    Args:
+        value: Authored HTML; null produces empty text.
+
+    Returns:
+        Allowlisted HTML safe for insertion into a report's body, not attributes.
+    """
     return bleach.clean(
-        html,
+        str(value or ""),
         tags=[
             "p",
             "br",
@@ -746,8 +759,22 @@ def _format_comment(value: Any) -> str:
             "tr",
             "th",
             "td",
+            "div",
+            "span",
+            "u",
+            "sub",
+            "sup",
+            "h2",
+            "h3",
+            "h4",
+            "hr",
         ],
-        attributes={"a": ["href", "title"]},
+        attributes={
+            "a": ["href", "title"],
+            "td": ["colspan", "rowspan"],
+            "th": ["colspan", "rowspan"],
+        },
+        protocols={"http", "https", "mailto"},
         strip=True,
     )
 

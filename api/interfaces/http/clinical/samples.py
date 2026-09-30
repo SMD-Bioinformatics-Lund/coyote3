@@ -281,24 +281,15 @@ def _sample_report_file_response(
     if not path.exists() or not path.is_file():
         raise api_error(404, "Report file not found")
     filename = filename or path.name
-    if file_type == "pdf":
-        return FileResponse(path, filename=filename, media_type=media_type)
-    if as_attachment:
-        return FileResponse(path, filename=filename, media_type=media_type)
-    return HTMLResponse(path.read_text(encoding="utf-8", errors="replace"))
-
-
-def _safe_file_under(base_dir: str | None, filename: str) -> Path:
-    """Resolve a user-facing file name inside a configured directory."""
-    if not base_dir:
-        raise api_error(404, "Plot directory is not configured")
-    base = Path(base_dir).expanduser().resolve()
-    path = (base / Path(filename).name).resolve()
-    if base not in path.parents and path != base:
-        raise api_error(400, "Invalid plot file path")
-    if not path.exists() or not path.is_file():
-        raise api_error(404, "Plot file not found")
-    return path
+    headers = {"Cache-Control": "no-store"}
+    if file_type != "pdf":
+        headers["Content-Security-Policy"] = (
+            "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+            "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        )
+    if file_type == "pdf" or as_attachment:
+        return FileResponse(path, filename=filename, media_type=media_type, headers=headers)
+    return HTMLResponse(path.read_text(encoding="utf-8", errors="replace"), headers=headers)
 
 
 @router.get("/api/v1/samples/{sample_id}/plots/{filename}", response_class=FileResponse)
@@ -308,26 +299,38 @@ def sample_plot_read(
     rotated: bool = Query(default=False),
     user: ApiUser = Depends(require_access()),
 ):
-    """Serve a configured sample plot image."""
+    """Serve only the registered CNV profile belonging to the authorized sample.
+
+    Args:
+        sample_id: Sample whose access scope is checked before resolving artifacts.
+        filename: Exact basename recorded in that sample's CNV profile path.
+        rotated: Reserved display option; does not change the selected artifact.
+        user: Authenticated caller checked against the sample's scope.
+
+    Returns:
+        Non-cacheable raster image response for the registered file.
+
+    Raises:
+        AppError: If sample access is denied, the registered file is absent or
+            mismatched (404), or the media type is not a raster image (415).
+    """
     _ = rotated
     sample = _get_sample_for_api(sample_id, user)
     sample_files = sample.get("files") if isinstance(sample.get("files"), dict) else {}
     cnv_profile = sample_files.get(primary_analysis_file_key("dna", "CNV_PROFILE"))
-    if isinstance(cnv_profile, dict) and cnv_profile.get("path"):
-        cnv_profile_path = Path(str(cnv_profile["path"])).expanduser().resolve()
-        if cnv_profile_path.name == Path(filename).name:
-            if not cnv_profile_path.exists() or not cnv_profile_path.is_file():
-                raise api_error(404, "CNV profile image file is not available")
-            media_type = (
-                mimetypes.guess_type(cnv_profile_path.name)[0] or "application/octet-stream"
-            )
-            return FileResponse(cnv_profile_path, media_type=media_type)
-    assay_config = get_formatted_assay_config(sample)
-    reporting = assay_config.get("reporting") or assay_config.get("REPORT") or {}
-    plot_path = reporting.get("plots_path") or reporting.get("plot_path")
-    path = _safe_file_under(plot_path, filename)
-    media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
-    return FileResponse(path, media_type=media_type, filename=path.name)
+    if not isinstance(cnv_profile, dict) or not cnv_profile.get("path"):
+        raise api_error(404, "No CNV profile is registered for this sample")
+    path = Path(str(cnv_profile["path"])).expanduser()
+    if path.name != filename or not path.is_file():
+        raise api_error(404, "Registered CNV profile image file is not available")
+    media_type = mimetypes.guess_type(path.name)[0]
+    if media_type not in {"image/png", "image/jpeg", "image/gif", "image/webp", "image/tiff"}:
+        raise api_error(415, "The registered CNV profile must be a raster image")
+    return FileResponse(
+        path.resolve(),
+        media_type=media_type,
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
 
 
 @router.get("/api/v1/samples/{sample_id}/reports/{report_id}/html", response_class=HTMLResponse)

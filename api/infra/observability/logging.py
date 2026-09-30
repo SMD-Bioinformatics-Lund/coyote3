@@ -224,11 +224,19 @@ def configure_json_logging(
 
 
 def request_context_from_request(request: Any) -> RequestContext:
-    """Build a request context from a Starlette/FastAPI request-like object."""
-    forwarded_for = (request.headers.get("X-Forwarded-For") or "").strip()
-    client_ip = forwarded_for.split(",", 1)[0].strip() if forwarded_for else None
-    if not client_ip and getattr(request, "client", None):
-        client_ip = request.client.host
+    """Build log context using the client address resolved by ASGI middleware.
+
+    Args:
+        request: Request-like object with headers, URL, method and optional client.
+
+    Returns:
+        Context with a validated request identifier and no client IP when unavailable.
+
+    Notes:
+        Forwarding headers are not trusted here. Proxy trust belongs to the ASGI server.
+    """
+    # ASGI proxy middleware resolves trusted forwarding headers before this point.
+    client_ip = request.client.host if getattr(request, "client", None) else None
     identity = (request.headers.get("X-Request-ID") or "").strip()
     if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", identity):
         identity = str(uuid.uuid4())
