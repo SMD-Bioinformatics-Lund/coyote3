@@ -40,6 +40,61 @@ script.onload = async () => {
         },
       }, document.getElementById("api-renderer"), (err) => err ? fail() : loaded());
     } else {
+      const navigation = document.getElementById("resource-navigation");
+      const counts = new Map();
+      let endpointCount = 0;
+      for (const item of Object.values(schema.paths || {})) {
+        for (const [method, operation] of Object.entries(item)) {
+          if (!["get", "post", "put", "patch", "delete", "options", "head", "trace"].includes(method)) continue;
+          endpointCount += 1;
+          for (const tag of operation.tags?.length ? operation.tags : ["default"]) {
+            counts.set(tag, (counts.get(tag) || 0) + 1);
+          }
+        }
+      }
+      document.getElementById("endpoint-count").textContent = `${endpointCount} endpoints`;
+      const groups = [...(schema["x-tagGroups"] || [])];
+      const grouped = new Set(groups.flatMap((group) => group.tags));
+      const remaining = [...counts.keys()].filter((tag) => !grouped.has(tag));
+      if (remaining.length) groups.push({ name: "Other resources", tags: remaining });
+      for (const group of groups) {
+        const section = document.createElement("section");
+        const heading = document.createElement("h2");
+        heading.textContent = group.name;
+        section.append(heading);
+        for (const tag of group.tags) {
+          if (!counts.has(tag)) continue;
+          const link = document.createElement("a");
+          link.href = `#/${encodeURIComponent(tag)}`;
+          link.dataset.resource = tag.toLowerCase();
+          link.dataset.tag = tag;
+          const label = document.createElement("span");
+          label.textContent = tag;
+          const count = document.createElement("span");
+          count.className = "resource-count";
+          count.textContent = counts.get(tag);
+          link.append(label, count);
+          section.append(link);
+        }
+        if (section.querySelector("a")) navigation.append(section);
+      }
+      const markActiveResource = () => {
+        for (const link of navigation.querySelectorAll("a")) {
+          const active = location.hash === link.hash || location.hash.startsWith(`${link.hash}/`);
+          if (active) link.setAttribute("aria-current", "location");
+          else link.removeAttribute("aria-current");
+        }
+      };
+      window.addEventListener("hashchange", markActiveResource);
+      markActiveResource();
+      document.getElementById("resource-search").addEventListener("input", (event) => {
+        const query = event.target.value.trim().toLowerCase();
+        for (const section of navigation.children) {
+          for (const link of section.querySelectorAll("a")) link.hidden = !link.dataset.resource.includes(query);
+          section.hidden = !section.querySelector("a:not([hidden])");
+        }
+        document.getElementById("resource-empty").hidden = !!navigation.querySelector("a:not([hidden])");
+      });
       const csrfInput = document.getElementById("csrf-token");
       const csrfHelp = document.getElementById("csrf-help");
       const loadBrowserSession = async () => {
@@ -59,7 +114,7 @@ script.onload = async () => {
         }
       };
       await loadBrowserSession();
-      SwaggerUIBundle({
+      const explorer = SwaggerUIBundle({
         spec: schema,
         dom_id: "#api-renderer",
         deepLinking: true,
@@ -83,8 +138,34 @@ script.onload = async () => {
         },
         supportedSubmitMethods: ["get", "post", "put", "patch", "delete"],
         presets: [SwaggerUIBundle.presets.apis],
+        plugins: [() => ({
+          wrapComponents: {
+            InfoContainer: () => () => null,
+          },
+        })],
         layout: "BaseLayout",
         onComplete: loaded,
+      });
+      navigation.addEventListener("click", (event) => {
+        const link = event.target.closest("a[data-tag]");
+        if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        const { layoutActions } = explorer.getSystem();
+        const resourceKey = ["operations-tag", link.dataset.tag];
+        layoutActions.updateFilter("");
+        layoutActions.show(resourceKey, true);
+        layoutActions.scrollTo(resourceKey);
+        // An already-open group may not rerender, so its scroll callback will not run.
+        requestAnimationFrame(() => {
+          const heading = [...document.querySelectorAll("#api-renderer .opblock-tag")]
+            .find((element) => element.dataset.tag === link.dataset.tag);
+          if (heading) {
+            heading.scrollIntoView({ block: "start" });
+            heading.tabIndex = -1;
+            heading.focus({ preventScroll: true });
+          }
+        });
+        markActiveResource();
       });
     }
   } catch { fail(); }

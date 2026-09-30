@@ -7,21 +7,34 @@ from fastapi import FastAPI, Request
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from starlette.responses import HTMLResponse
 
-API_DESCRIPTION = """Coyote3 is a clinical genomics application for reviewing sample
-findings, recording interpretations and preparing reports. The API provides access
-to the sample data, annotations and assay configuration used in the application.
+PRODUCT_OVERVIEW = (
+    "Coyote3 is a clinical genomics application developed by the bioinformatics team at "
+    "the Section for Molecular Diagnostics (SMD), Lund, within Region Sk\u00e5ne's "
+    "clinical laboratory service.",
+    "Clinical geneticists, bioinformaticians and laboratory staff use Coyote3 to ingest "
+    "DNA and RNA samples, review genomic findings, record classifications and comments, "
+    "and prepare reports. Assay configuration determines which analyses and filters are "
+    "available. Saved reports retain finding snapshots and the reporting context used "
+    "to produce them.",
+)
 
-## Working with Coyote3
+API_DESCRIPTION = (
+    "\n\n".join(PRODUCT_OVERVIEW)
+    + """
 
-Start with a sample to review its small variants, copy-number changes, fusions,
-biomarkers and coverage. Finding endpoints provide the annotations and knowledgebase
-evidence used during review. Reporting endpoints let you preview the report before
-creating a saved report with its finding snapshots.
+## API scope
 
-For assay setup, use the administration endpoints for panels (ASP), analysis
-configuration (ASPC) and gene lists (ISGL). Clinical reporting rules have their own
-draft, review and publication workflow. The API applies the same permissions and
-sample access checks as the Coyote3 interface.
+The API serves the Coyote3 interface and integrations with laboratory pipelines.
+Sample and finding endpoints provide access to small variants, copy-number changes,
+fusions, translocations, biomarkers and coverage, subject to the sample's assay
+configuration. Review operations record classifications and comments. Reporting
+operations generate previews and save reports with their finding snapshots.
+
+Administration endpoints manage assays, assay configurations (ASPC), in-silico gene
+lists (ISGL), reporting rules and the public assay catalog. Clinical reporting rules
+follow a draft, independent review and publication workflow. API access is subject
+to the same permissions and assay, environment and sample-access restrictions as
+the application; using an integration does not bypass those checks.
 
 ## Authentication
 
@@ -63,6 +76,7 @@ a tier or creating a report here changes the same records you see in the applica
 Use a non-production environment and synthetic samples when testing. Keep patient
 data and session tokens out of shared examples, tickets and screenshots.
 """
+)
 
 _TEMPLATES = Path(__file__).with_name("templates")
 _ENVIRONMENT = Environment(
@@ -108,6 +122,7 @@ def register_api_documentation(app: FastAPI, *, environment: str) -> None:
                 prefix=prefix,
                 schema_url=f"{prefix}{app.openapi_url}",
                 logo=logo,
+                product_overview=PRODUCT_OVERVIEW,
             ),
             headers={"Cache-Control": "no-store"},
         )

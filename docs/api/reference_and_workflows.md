@@ -14,6 +14,24 @@ OpenAPI groups describe the product API and are intentionally kept stable even
 if Python module names change. See [API Organization](api_organization.md) for
 the full grouping model.
 
+## Documentation views
+
+Open `/api/v1/redoc` for the reference or `/api/v1/docs` for the interactive
+explorer, under the installation's URL prefix. Both use the same OpenAPI schema.
+The explorer groups resources by clinical and operational responsibility and
+shows an endpoint count for each resource. Resource search filters navigation;
+the endpoint filter searches the operation list. Resource links support direct
+navigation through URL fragments.
+Selecting a resource expands its endpoint group, clears any operation filter that
+would hide it, and scrolls to the group heading. Selecting the same resource again
+returns to that heading.
+
+The explorer's **API overview and authentication** section appears above the
+endpoint workspace and is expanded initially. It describes API scope, access
+requirements, and request handling; collapse it to focus on endpoints. **Authorize**
+and the browser-session settings apply to requests made against the installation,
+not a simulation. Changing the presentation does not change endpoint permissions.
+
 ## Health Endpoint
 
 Use the health endpoint to check that the API is up:

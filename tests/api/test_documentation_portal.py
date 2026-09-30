@@ -7,9 +7,10 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from fastapi.routing import iter_route_contexts
+from markupsafe import escape
 from starlette.requests import Request
 
-from api.app.documentation import register_api_documentation
+from api.app.documentation import API_DESCRIPTION, PRODUCT_OVERVIEW, register_api_documentation
 from api.app.main import create_api_app
 from api.interfaces.http.tags import OPENAPI_TAG_NAMES
 
@@ -34,6 +35,12 @@ def test_documentation_colors_match_application_light_theme():
         "chrome-control-hover",
         "status-warning-soft",
         "status-warning-foreground",
+        "status-info-soft",
+        "status-info-foreground",
+        "status-success-soft",
+        "status-success-foreground",
+        "status-danger-soft",
+        "status-danger-foreground",
     )
     for name in names:
         pattern = rf"--{re.escape(name)}:\s*([^;]+);"
@@ -86,6 +93,13 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
     assert "persistAuthorization: false" in html
     assert "disableGoogleFont: true" in html
     assert "localStorage" not in html
+    assert '<section class="endpoint-workspace" aria-label="API endpoints">' in html
+    assert ('id="resource-navigation"' in html) is (path == "/api/v1/docs")
+    assert ('id="resource-search"' in html) is (path == "/api/v1/docs")
+    if path == "/api/v1/docs":
+        assert 'id="overview-product"' in html
+        for paragraph in PRODUCT_OVERVIEW:
+            assert str(escape(paragraph)) in html
 
 
 @pytest.mark.asyncio
@@ -111,6 +125,9 @@ def test_documentation_groups_include_every_tag_once(monkeypatch):
     assert "/api/v1/docs" not in schema["paths"]
     assert "/api/v1/redoc" not in schema["paths"]
     assert schema["servers"] == [{"url": app.root_path or "/"}]
+    assert API_DESCRIPTION in schema["info"]["description"]
+    for paragraph in PRODUCT_OVERVIEW:
+        assert paragraph in schema["info"]["description"]
     assert schema["paths"]["/api/v1/samples"]["get"]["security"]
     sync_security = schema["paths"]["/api/v1/internal/ingest/sample-bundle/upload"]["post"][
         "security"

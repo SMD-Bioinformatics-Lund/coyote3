@@ -29,7 +29,7 @@
   <section class="portal-heading" aria-labelledby="page-title">
     <div>
       <div class="heading-title"><h1 id="page-title">Coyote3 API</h1><span class="badge">v{{ version }}</span><span class="badge">API v1</span><span class="badge">{{ environment | capitalize }}</span></div>
-      <p>Review findings, record interpretations and prepare sample reports.</p>
+      <p>Sample analysis, clinical interpretation, reporting and assay administration.</p>
     </div>
     <nav class="view-tabs" aria-label="API documentation views">
       <a href="{{ prefix }}/api/v1/redoc" {% if view == 'reference' %}aria-current="page"{% endif %}>Reference</a>
@@ -37,19 +37,58 @@
     </nav>
   </section>
   {% if view == 'explorer' %}
-  <aside class="request-notice"><span class="badge access-badge">Connected to Coyote3</span> Requests here use the same records as the application. Changes are not a simulation.</aside>
+  <details class="api-overview" open>
+    <summary>API overview and authentication</summary>
+    <section class="product-introduction" aria-labelledby="overview-product">
+      <h2 id="overview-product">About Coyote3</h2>
+      {% for paragraph in product_overview %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+    </section>
+    <div class="overview-content">
+      <section aria-labelledby="overview-scope">
+        <h2 id="overview-scope">API scope</h2>
+        <p>The API serves the Coyote3 interface and integrations with laboratory pipelines. It provides sample ingestion, finding review, reference evidence, classification and reporting operations.</p>
+        <p>Administration endpoints manage assays, assay configurations, gene lists, reporting rules and the public catalog. The same permissions and assay, environment and sample-access restrictions apply to API clients and the application.</p>
+      </section>
+      <section aria-labelledby="overview-access">
+        <h2 id="overview-access">Authentication and access</h2>
+        <p><strong>Browser:</strong> sign in to Coyote3. The explorer uses your session cookie and retrieves the CSRF token required for changes.</p>
+        <p><strong>Scripts and integrations:</strong> send an opaque session token as <code>Authorization: Bearer &lt;session-token&gt;</code>. Bearer-authenticated requests do not require a CSRF header.</p>
+        <p>Public endpoints and pipeline ingestion tokens have operation-specific access requirements. Check the selected endpoint before sending a request.</p>
+      </section>
+      <section aria-labelledby="overview-requests">
+        <h2 id="overview-requests">Requests and support</h2>
+        <p>Use this installation's URL prefix and the endpoint's documented parameters. Review validation details for rejected requests; do not retry a timed-out write without checking its outcome.</p>
+        <p>Include the response's <code>X-Request-ID</code> when reporting a failure. Keep patient data, credentials and session tokens out of support tickets and shared examples.</p>
+        <a href="{{ prefix }}/docs-site/api/authentication/">Authentication reference</a>
+      </section>
+    </div>
   <details class="session-settings">
-    <summary>Using your browser session</summary>
+    <summary>Browser session settings</summary>
     <label for="csrf-token">Session CSRF token</label>
     <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
     <p id="csrf-help">The explorer retrieves CSRF protection from your signed-in browser session automatically. You can also enter your session's CSRF token here. It stays in this page. For a bearer token, use Authorize.</p>
   </details>
+  </details>
+  <aside class="request-notice"><span class="badge access-badge">Live API connection</span> Changes affect this installation's records. Use synthetic data in a non-production environment for integration testing.</aside>
   {% endif %}
-  <main id="api-content" tabindex="-1">
+  <main id="api-content" class="api-workspace {{ view }}" tabindex="-1">
+    {% if view == 'explorer' %}
+    <aside class="resource-sidebar" aria-label="API resources">
+      <div class="resource-heading">Resources <span id="endpoint-count" class="badge"></span></div>
+      <label class="resource-search-label" for="resource-search">Find a resource</label>
+      <input id="resource-search" type="search" placeholder="Search resources" autocomplete="off">
+      <nav id="resource-navigation" aria-label="Endpoint groups"></nav>
+      <p id="resource-empty" hidden>No matching resources.</p>
+    </aside>
+    {% endif %}
+    <section class="endpoint-workspace" aria-label="API endpoints">
     <div id="docs-loading" role="status">Loading API {{ view }}...</div>
     <div id="docs-error" role="alert" hidden>The API documentation could not load. Reload this page or <a href="{{ schema_url }}">open the OpenAPI schema</a>.</div>
     <div id="api-renderer"></div>
     <noscript>JavaScript is required for the interactive reference. <a href="{{ schema_url }}">Open the OpenAPI schema</a>.</noscript>
+    </section>
   </main>
   <script>
     const schemaUrl = {{ schema_url | tojson }};
