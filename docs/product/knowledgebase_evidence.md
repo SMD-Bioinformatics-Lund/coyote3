@@ -77,7 +77,7 @@ context without writing sample data into a knowledgebase collection.
 
 | Collection | Lookup and contribution | Where it is shown | Deployment priority |
 | --- | --- | --- | --- |
-| `cosmic_cancer_gene_census` | Gene symbol to tier, role, mutation types, tumour scope, and somatic/germline status. | Knowledgebase Details aggregate chart; `CGC` markers on every finding table; all applicable finding details; Gene Information; Gene Cohort Explorer. | Highest-value general COSMIC collection. |
+| `cosmic_cancer_gene_census` | Gene symbol to tier, role, mutation types, tumour scope, and somatic/germline status. | Knowledgebase Details aggregate chart; `CGC` markers on every finding table; all applicable finding details; Gene Information; Gene Cohort Explorer. | Gene-level COSMIC reference. |
 | `cosmic_cgc_hallmarks` | Gene symbol to curated hallmark descriptions and publications. | Optional Knowledgebase Details hallmark summary; finding details and gene-level context. | Recommended companion to Cancer Gene Census. |
 | `cosmic_mutation_census` | Exact GRCh38 allele or COSV identifier to driver tier, disease, ClinVar, and tested/mutated counts. | Small-variant COSMIC evidence. | Recommended small-variant baseline. |
 | `cosmic_targeted_variants` | Exact chromosome, position, reference, alternate, or COSV identifier. | Small-variant COSMIC evidence. | Recommended for targeted-panel review. |
@@ -99,17 +99,17 @@ case-level phenotype identifiers are not returned to the browser.
 
 | Collection | Retained purpose | Current status |
 | --- | --- | --- |
-| `cosmic_gene_expression` | Raw COSMIC expression product for a future validated aggregate by gene and cancer type. | Not queried by current pages; do not confuse it with `hpaexpr` or sample `rna_expression`. |
+| `cosmic_gene_expression` | Raw COSMIC expression source product. | Not queried by current pages; do not confuse it with `hpaexpr` or sample `rna_expression`. |
 | `cosmic_methylation` | Differential methylation source product. | Not queried by current finding pages. |
 | `cosmic_classification_papers` | Paper-specific phenotype hierarchy. | Imported and versioned, but current phenotype resolution uses `cosmic_classifications`. |
 | `cosmic_genes` | COSMIC gene identifier mapping. | Imported and versioned; no current runtime join. |
 | `cosmic_transcripts` | COSMIC transcript-to-gene mapping. | Imported and versioned; no current runtime join. |
-| `cosmic_signature_sbs` | SBS96 reference signature profiles. | Not shown until a sample-level signature interpretation workflow is implemented. |
-| `cosmic_signature_dbs` | DBS78 reference signature profiles. | Not shown until a sample-level signature interpretation workflow is implemented. |
-| `cosmic_signature_sv` | SV32 reference signature profiles. | Not shown until a sample-level signature interpretation workflow is implemented. |
+| `cosmic_signature_sbs` | SBS96 reference signature profiles. | Imported reference; no sample-level signature interpretation view. |
+| `cosmic_signature_dbs` | DBS78 reference signature profiles. | Imported reference; no sample-level signature interpretation view. |
+| `cosmic_signature_sv` | SV32 reference signature profiles. | Imported reference; no sample-level signature interpretation view. |
 
 These importers remain supported so centers can retain licensed source products
-for future workflows. Installing them does not make data appear in the current
+as versioned references. Installing them does not make data appear in the current
 clinical interface. They should be omitted when the center has no defined use,
 especially when storage cost is material.
 

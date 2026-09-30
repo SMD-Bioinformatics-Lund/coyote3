@@ -15,9 +15,9 @@ This page summarizes how to contribute safely and efficiently.
 ## Required checks before PR
 
 ```bash
-PYTHONPATH=. ruff check api coyote tests scripts
-PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
-PYTHONPATH=. pytest -q
+PYTHONPATH=. .venv/bin/ruff check api tests scripts
+PYTHONPATH=. .venv/bin/ruff format --check api tests scripts
+scripts/run_quality_suite.sh
 ```
 
 ## Shared editor settings
@@ -35,6 +35,14 @@ If you change behavior, configuration, deployment, or API contracts, update corr
 Write documentation from the reader's perspective. Describe the supported
 behaviour, configuration, and limits. Keep change notes in release notes and
 keep data-transition instructions in a dedicated migration procedure.
+
+Reference pages describe current behavior, ownership, prerequisites, inputs, outputs,
+errors, and limitations. Verify technical claims against the implementation. Do not
+include task status, completed-work summaries, cleanup notes, speculative features,
+or claims of quality unsupported by tests or operational evidence. Keep internal
+planning outside the published documentation. Deployment and recovery procedures
+may use ordered steps and checklists when they describe actions an operator must take.
+Generated contract pages must be updated through their source schemas and generators.
 
 Use standard Markdown callouts so they render in both GitHub and MkDocs:
 

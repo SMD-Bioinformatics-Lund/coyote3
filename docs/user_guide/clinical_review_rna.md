@@ -3,8 +3,7 @@
 Use the RNA sample workspace to review the analyses enabled by the sample's
 recorded ASPC revision. Coyote3 shows only the analysis areas that apply to the sample and for which
 the required data is available. An RNA sample therefore does not display DNA
-SNV, CNV, translocation, or coverage tabs unless a future assay contract
-explicitly supports them.
+SNV, CNV, translocation, or coverage tabs.
 
 ## Open an RNA sample
 

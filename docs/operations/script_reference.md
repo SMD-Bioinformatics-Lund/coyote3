@@ -1,9 +1,8 @@
 # Repository Script Reference
 
 The `scripts/` directory contains executable maintenance and validation tools for the
-FastAPI, React, MongoDB, Celery, and center-deployment architecture. It does not contain
-the retired Flask runtime scripts. Every tracked script belongs to one of four supported
-execution classes below.
+FastAPI, React, MongoDB, Celery, and center deployments. Run operator commands
+from the repository root with the target environment explicitly configured.
 
 > **Info:** A script can be operationally supported without being called automatically.
 > Backup, restore, reference synchronization, and one-time seed imports are intentionally
@@ -11,12 +10,12 @@ execution classes below.
 
 ## Execution classes
 
-| Class | Meaning | Removal rule |
-| --- | --- | --- |
-| Automated | Called by CI, pre-commit, package scripts, or another tracked script | Remove only with its caller and replacement validation |
-| Orchestrator | Coordinates several supported scripts into one workflow | Remove only after replacing the documented workflow |
-| Manual operation | Run deliberately by an administrator for maintenance or reference data | Remove only when the capability is retired or moved into the application |
-| Internal helper | Imported or invoked by another script; not a primary operator command | Remove together with its parent workflow |
+| Class | Execution responsibility |
+| --- | --- |
+| Automated | Invoked by CI, hooks, package commands, or another script. |
+| Orchestrator | Runs several validation or deployment steps; inspect the individual results. |
+| Manual operation | Requires an operator to select the target and follow the relevant runbook. |
+| Internal helper | Used by another script rather than invoked as an operator command. |
 
 ## First deployment and center validation
 
@@ -49,7 +48,6 @@ started through `bootstrap_database.py`.
 | `check_markdown_links.py` | Internal helper | `check_contract_integrity.sh`; tests | Rejects broken repository-local Markdown links |
 | `check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
 | `export_collection_contracts_doc.py` | Automated | contract integrity | Regenerates the collection-contract reference from Pydantic schemas |
-| `verify_composed_workflow.py` | — | — | **Removed.** Sample readiness is now verified inline in the CI workflow via `curl` against the public proxy port. |
 | `sync-package-version.js` | Automated | frontend package lifecycle | Synchronizes the frontend package version with `api/version.py` |
 
 ## Deployment and database operations
@@ -77,17 +75,15 @@ started through `bootstrap_database.py`.
 | `update_cosmic.py` | Manual operation | Knowledgebase snapshot update guide | Streams and publishes one explicitly selected licensed COSMIC product archive |
 | `knowledgebase_update_common.py` | Internal helper | Knowledgebase updater scripts | Owns source provenance, staging, batch insertion, indexes, publication rollback, and release manifests |
 
-## Deciding whether a script can be removed
+## Operational prerequisites
 
-1. Search CI, pre-commit, package scripts, Compose, documentation, and script-to-script calls.
-2. Confirm that no supported manual capability depends on it.
-3. Replace its callers with the equivalent direct command or inline step.
-4. Remove or replace its tests and documentation in the same change.
-5. Run `check_shell_quality.sh`, focused script tests, contract integrity, and strict MkDocs.
-6. Record the retirement in the changelog when it changes deployment or operator behavior.
+Database maintenance commands require the target URI and database name, suitable
+credentials, and any backup or writer-pause conditions stated in their runbook.
+Inspect a read-only plan before applying a migration where the command supports it.
+Do not assume that index creation, filesystem writes, or operations against different
+MongoDB deployments share one transaction.
 
-> **Warning**
->
-> A script with no automatic caller is not necessarily unused. Database
-> restore and reference import scripts are intentionally operator-invoked;
-> their documented procedure is the supported entry point.
+Use the [database recovery guide](mongodb_deployment_and_recovery.md) for backups and
+restores, [reference database migration](reference_database_migration.md) for HGNC/VEP
+relocation, and [knowledgebase updates](knowledgebase_updates.md) for controlled imports.
+Keep credentials, exports, and backup files outside the repository.

@@ -35,14 +35,13 @@ The test suite is grouped by runtime boundary:
 
 - **Unit Logic (`tests/unit`)**: pure functions, domain logic, contracts, and services.
 - **REST Interface (`tests/api/routers`)**: HTTP boundary behavior and typed payload handling.
-- **Integration Layer (`tests/integration`)**: cross-component checks that are still worth keeping.
+- **Integration Layer (`tests/integration`)**: cross-component contracts, architecture boundaries, and recovery behavior.
 - **Frontend (`frontend`)**: TypeScript build, linting, Vitest unit coverage,
   and Playwright route/API contract checks.
 
 ### API coverage organisation
 
-API tests are grouped by the behavior they protect rather than by temporary
-implementation or migration work:
+API tests are grouped by the behavior they protect:
 
 | Location | Scope |
 | --- | --- |
@@ -51,10 +50,8 @@ implementation or migration work:
 | `tests/api` | Cross-router authentication, authorization matrices, OpenAPI taxonomy, route contracts, audit behavior, and rate limits. |
 | `tests/integration` | Architecture boundaries and selected multi-component seams. |
 
-The backend architecture guardrail is intentionally named for the boundary it
-protects. It prevents new direct persistence coupling in HTTP and domain-core
-layers; it is not a migration test and does not preserve retired migration
-behavior.
+`tests/integration/test_api_architecture_boundaries.py` checks import direction
+and persistence boundaries in HTTP, application, and domain modules.
 
 ### UI coverage organisation
 
@@ -65,8 +62,7 @@ depending on a live clinical database or external services.
 Unit tests live beside the TypeScript modules they protect as
 `*.test.ts`. Vitest writes terminal, JSON summary, and LCOV reports to
 `frontend/coverage/`. The report includes frontend library modules even when a
-module currently has no tests, so the percentage remains an honest expansion
-metric rather than only measuring files that already have coverage.
+module has no tests; coverage is calculated over the configured source scope.
 
 Vitest runs at most four workers to bound simultaneous jsdom instances and avoid
 CPU contention on shared runners. A developer can override the limit explicitly
@@ -80,7 +76,7 @@ scope must bring tests with them, and the floors should rise only after the
 measured suite has enough deterministic margin to remain stable across local
 and CI environments.
 
-The frontend suite uses four complementary levels:
+The frontend suite uses five complementary levels:
 
 | Level | Location | What it verifies |
 | --- | --- | --- |
@@ -110,7 +106,7 @@ to a clear boundary:
 | --- | --- |
 | API client | Typed envelope unwrapping, JSON and form requests, structured validation errors, non-JSON gateway failures, and expired-session redirects. |
 | Finding actions | Single and bulk mutation endpoints, tier changes, per-finding CNV requests, cache keys, and empty-selection rejection. |
-| Sample and finding normalization | Current and legacy payload shapes, intent-specific filters, tab-to-analysis mapping, fusion/translocation fields, flags, tiers, and caller labels. |
+| Sample and finding normalization | Supported payload shapes, intent-specific filters, tab-to-analysis mapping, fusion/translocation fields, flags, tiers, and caller labels. |
 | Notifications | Persistence limits, malformed storage recovery, duplicate suppression, and subscriber updates. |
 | Clinical comment formatting | HTML escaping, safe links, headings, code, lists, quotes, tables, and horizontal rules. |
 | External links and configured values | URL encoding, disabled integrations, case-insensitive metadata lookup, and semantic badge classes. |
@@ -370,15 +366,14 @@ never silently promoted to clinical evidence after a failed or malformed request
 PYTHONPATH=. .venv/bin/pytest tests/unit tests/api tests/integration -q
 
 # Full browser route suite with deterministic API fixtures
-cd frontend && npm run test:e2e
+npm --prefix frontend run test:e2e
 
 # One focused sample analysis availability contract
-cd frontend && npm run test:e2e -- sample-analysis-tabs.spec.ts
+npm --prefix frontend run test:e2e -- sample-analysis-tabs.spec.ts
 
 # Real deployment and reverse-proxy smoke checks
-cd frontend && \
 COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
-npm run test:e2e:real
+npm --prefix frontend run test:e2e:real
 ```
 
 ## Standards for New Feature Development

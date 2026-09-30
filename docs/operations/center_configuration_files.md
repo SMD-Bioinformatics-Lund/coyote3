@@ -600,10 +600,9 @@ phenotype, and medication concepts rather than SNV genotype thresholds.
 # phenotypes = ["intermediate metabolizer"]
 ```
 
-The loader validates this namespace now so PGX policy cannot be misplaced
-under `[snv]`. The current application does not yet expose a persisted PGX
-finding table, so deployed PGX exceptions must remain empty until that query
-workflow is implemented and tested.
+The loader validates the PGX namespace separately from `[snv]`. The application
+does not expose a persisted PGX finding table. Deployed PGX exceptions must remain
+empty; configuring an exception does not enable PGX finding retrieval.
 
 ### Safe authoring protocol
 

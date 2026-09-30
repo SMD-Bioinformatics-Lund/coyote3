@@ -290,8 +290,8 @@ read by a finding knowledgebase card:
 | `cosmic_gene_expression` | Large sample-level expression dataset; it must be aggregated by gene and cancer type before any UI use |
 | `cosmic_methylation` | Differential methylation source data; no current finding-level interpretation consumes it |
 | `cosmic_classification_papers` | Paper-specific phenotype hierarchy; current finding views resolve the main classification product |
-| `cosmic_genes`, `cosmic_transcripts` | Source identifier mappings retained for future cross-product workflows |
-| `cosmic_signature_sbs`, `cosmic_signature_dbs`, `cosmic_signature_sv` | Reference signature profiles for a future sample-level signature workflow |
+| `cosmic_genes`, `cosmic_transcripts` | Source identifier mappings; no current runtime join |
+| `cosmic_signature_sbs`, `cosmic_signature_dbs`, `cosmic_signature_sv` | Reference signature profiles; no current sample-level interpretation view |
 
 These collections are not interchangeable with variant evidence. Methylation and
 gene-expression rows must not be attached to a finding merely because they share

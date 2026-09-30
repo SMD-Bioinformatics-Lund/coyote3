@@ -1,6 +1,6 @@
 # Coyote3 Clinical Genomics Platform
 
-This is the public, authoritative documentation for Coyote3. It covers clinical
+Coyote3 documentation describes supported workflows, configuration, and operations. It covers clinical
 use, administration, deployment, data contracts, APIs, and engineering. The
 site is organised by the work being done: start, use, administer, reference,
 develop, operate, and validate.
@@ -43,7 +43,7 @@ The platform separates browser, API, background, and persistence responsibilitie
 - **FastAPI service** validates requests, enforces authorization, and coordinates domain services.
 - **Celery workers and scheduler** run ingestion and maintenance work.
 - **MongoDB** stores clinical, configuration, identity, audit, and operational documents.
-- **Redis** supports background task delivery, sessions, and non-clinical caching.
+- **Redis** provides the task broker, task results, and application cache. API sessions are stored in the environment-specific identity database.
 - **Reverse proxy** exposes the UI, API, and documentation through one public origin.
 
 ---

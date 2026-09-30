@@ -72,7 +72,7 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 > that an enabled analysis returned zero rows.
 >
 
-> **Note: PGX is not yet a sample-review workflow**
+> **Note: PGX configuration does not enable a sample-review workflow**
 >
 > `PGX` is a valid configuration analysis type, but it currently has no
 > sample-detail tab, filter form, table query, or report renderer. Enabling
@@ -136,7 +136,7 @@ For SNV, the ordinary query is built from the resolved sample filters and the
 selected `paired`, `case_only`, or `exception_only` evidence model. CNV, DNA
 translocation, and RNA fusion each retain their own ordinary ASPC-driven query
 and consume only the exceptions in their matching policy namespace. PGX also
-has a separate typed namespace, reserved for its future persisted finding
+has a separate typed namespace that is not consumed by a persisted finding
 query. Rules never cross analysis boundaries.
 
 | Concern | Source | Purpose |
@@ -198,7 +198,7 @@ silently include either class of finding.
 
 This separation is intentional: `fp` and `irrelevant` are review states, not
 default analytical exclusion predicates. The report workflow applies its
-exclusion before invoking the reporting rules engine, so a YAML template never
+exclusion before invoking the reporting rules engine, so a reporting rule never
 receives false-positive or irrelevant findings as reportable evidence.
 
 ### SNV Baseline Semantics
@@ -461,12 +461,8 @@ truth rather than deriving syntax from the abbreviated examples on this page.
 | RNA fusion | `filters.somatic.fusion`, selected fusion ISGLs, and `[[fusion.exceptions]]` | RNA-only. Applies configured supporting-read/pair thresholds, selected effects, selected callers, known/Mitelman list markers, and optional fusion-gene scope. The Arriba caller intentionally has no spanning-pair predicate. Admissions extend the ordinary query with a typed partner, pair, caller, effect, or description rule; exclusions are subtracted last. | global annotation enrichment, policy exclusions, text search, multi-column sorting, pagination, and report summary preparation |
 
 DNA translocation records do not currently have validated cross-caller numeric
-thresholds equivalent to RNA spanning-read filters. The old production query
-also retrieved these records by sample identity. The supported DNA filter is
-therefore the typed, target-specific gene scope. If a future caller contract
-introduces evidence thresholds, each threshold must be added to the typed ASPC
-and sample schema, query implementation, UI schema, documentation, and tests
-before it can affect finding visibility.
+thresholds equivalent to RNA spanning-read filters. The supported DNA filter is
+the typed, target-specific gene scope and configured structural exceptions.
 
 ## Query Execution Protocol
 

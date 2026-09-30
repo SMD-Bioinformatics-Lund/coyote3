@@ -181,8 +181,8 @@ or independently decide which findings are reportable.
 
 > **Warning**
 >
-> A future configurable text rules engine may select and render clinical
-> wording from this context. It must not query MongoDB, apply filters, assign
+> The clinical rule evaluator renders wording from this prepared context.
+> Evaluation does not query MongoDB, apply filters, assign
 > tiers, choose transcripts, call external knowledgebases, or mutate clinical
 > data.
 >
@@ -202,7 +202,7 @@ Rules:
 - Preview does not write report metadata.
 - Preview does not write `reported_variants`.
 - Preview uses the current sample filters.
-- Preview resolves the current ASPC at request time.
+- Preview uses the sample's recorded ASPC revision when `current_aspc_id` is present.
 - Preview renders the same clinical report HTML used for PDF/save.
 - Preview can include `snapshot_rows` for UI inspection when requested.
 
@@ -722,32 +722,20 @@ The flow fails during persistence when:
 - report metadata cannot be inserted
 - reported snapshot bulk write fails
 
-The intended order is:
+## Save transaction and artifact handling
 
-1. validate sample and ASPC
-2. calculate next report number
-3. calculate report path and id
-4. verify output paths are available
-5. build save-mode report context
-6. render HTML
-7. write HTML
-8. write PDF
-9. insert `reports`
-10. update `samples`
-11. insert `reported_variants`
+The save pipeline renders the PDF before writing either output. HTML and PDF files
+are created exclusively, so an existing artifact is not overwritten. The repository
+then saves report metadata, the sample report pointer, and finding snapshots in a
+MongoDB transaction.
 
-## Design Benefits
+Filesystem writes are not part of that transaction. A known failure removes files
+created by the current attempt. If MongoDB's commit outcome is uncertain, the files
+are retained: deleting them could destroy artifacts belonging to a committed report.
+Reconcile database state and artifact paths before retrying an uncertain save.
 
-This design gives Coyote3:
-
-- fast report-history lookups
-- reliable cross-sample variant mapping
-- immutable clinical evidence snapshots
-- dashboard metrics based on reported clinical output
-- stable report artifacts on disk
-- clear separation between temporary review state and saved report state
-- a path to regenerate previews without mutating historical evidence
-- reproducibility for clinical sign-out review
+Saved reports retain their filters, configuration provenance, selected rules, and
+finding snapshots. Opening a historical report does not evaluate current rules.
 
 ## Operational behaviour
 
@@ -757,6 +745,5 @@ This design gives Coyote3:
   rendering mechanism is not part of the product contract; the artifact format
   is.
 - Preview PDF is for review. Saved PDF is created only during report save.
-- Conditional clinical text is currently composed by the reporting
-  application. A YAML-driven text rules engine is a planned extension and must
-  consume only the prepared report context described above.
+- Conditional clinical text comes from governed, published MongoDB rule sets.
+  The evaluator consumes prepared report facts, not source finding collections.

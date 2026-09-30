@@ -170,9 +170,8 @@ The small-variant document contains gnomad_frequency, gnomad_max, exac_frequency
 > payload is moved to `anno_vep` before the compact variant record is saved.
 > These values are not calculated from the selected transcript or aggregated
 > across all applicable transcripts. The source VCF must therefore use a
-> stable CSQ order. A future parser revision should resolve allele-level
-> values across applicable CSQs deterministically before this becomes an
-> assay-independent clinical protocol.
+> stable CSQ order. Changing that order can change stored population frequencies
+> and resulting filter decisions even when the selected transcript is unchanged.
 >
 
 ### CNVs

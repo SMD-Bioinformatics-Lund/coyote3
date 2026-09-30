@@ -452,10 +452,14 @@ UI visibility
   -> API remains authoritative for all mutations and protected reads
 ```
 
-### Planned hardening items
+### External identity and email boundaries
 
-- Add LDAP/IdP-native self-service password change integration endpoint/UI where supported by center policy.
-- Harden email delivery with center-approved SMTP/API provider configuration and monitoring.
+LDAP passwords are managed by the center's identity provider, not by Coyote3's
+local-account password workflow. Direct users to the center's password service.
+
+Email delivery requires a configured, reachable SMTP relay. Operators must verify
+relay acceptance and monitor delivery failures; an in-app notification does not
+prove that its email was delivered. See [email and notifications](../operations/email_and_notifications.md).
 
 ## Internal routes
 

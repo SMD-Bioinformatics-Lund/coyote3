@@ -189,7 +189,7 @@ MongoDB document shapes are defined in `api/contracts/schemas/`. They are groupe
 - `app_controls.py`: runtime control document
 - `registry.py`: collection-to-contract registry
 
-All write paths should validate against these contracts before insertion or update. This applies to ingest, admin resource management, internal collection writes, and future migration scripts.
+All write paths should validate against these contracts before insertion or update. This applies to ingest, admin resource management, internal collection writes, and database maintenance scripts.
 
 ## Clinical Configuration Resources
 
@@ -499,7 +499,7 @@ Route-level contract coverage should verify every page in `frontend/src/lib/rout
 > **Info: Frontend contract tests**
 >
 >
-> The route registry is the source checklist for page-level API contract tests. When a frontend test runner is added, each route entry should have a matching test that mocks the listed API dependencies and verifies the fields listed in `dataUsed`.
+> The route registry records page-level API dependencies and consumed fields in `dataUsed`. Vitest page tests and Playwright browser tests verify request dispatch, rendering, and error states. See [testing and quality](../testing/testing_and_quality.md) for test boundaries and commands.
 >
 
 ## Developer Rules

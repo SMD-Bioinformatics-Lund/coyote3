@@ -1,574 +1,390 @@
-# Complete developer manual
+# Developer manual
 
-This is the authoritative engineering guide for Coyote3. It explains how to
-change the application without breaking clinical, security, API, configuration,
-or persistence contracts. It is for backend developers, frontend developers,
-test engineers, and maintainers. Deployment operators should also read the
-[deployment guide](../operations/center_deployment_guide.md).
+This manual describes Coyote3's application structure, runtime dependencies,
+data contracts and development interfaces. It covers the FastAPI backend,
+React frontend, background workers and their shared persistence services.
 
-Use this manual to choose the correct layer and workflow before changing code.
-The linked architecture, contract, API, testing, and operations pages define
-the detailed rules for each area.
+Installation and deployment procedures are maintained in
+[First installation](../start_here/first_installation.md) and
+[Center deployment](../operations/center_deployment_guide.md). Clinical rule
+authoring is documented in [Clinical reporting rules](../product/clinical_reporting_rules.md).
 
-## Development rules
+## Development environment
 
-Use these rules before choosing an implementation:
+Backend dependencies and Python tooling are declared in `pyproject.toml`.
+Frontend dependencies, the Node.js requirement and npm scripts are declared in
+`frontend/package.json`; `frontend/package-lock.json` records resolved versions.
+Use the Python version of the target API image when reproducing runtime behavior.
+Shared scripts and security tooling retain Python 3.12-compatible syntax.
 
-1. Read the existing contract and workflow before editing code.
-2. Keep one source of truth for each fixed value or configurable value.
-3. Put clinical decisions in application/domain services, not HTTP routes or UI components.
-4. Validate MongoDB writes with the registered Pydantic document contract.
-5. Access collections through repositories, not directly from routes.
-6. Keep API response normalization in shared frontend API and domain helpers.
-7. Add tests at the lowest useful boundary and a browser test for a changed user workflow.
-8. Update the authoritative document for changed behavior.
+The application requires configured MongoDB endpoints and Redis. MongoDB workflows
+that use transactions require a replica set, including for local development.
+A single-member replica set can host the logical databases on one local instance.
 
-## Repository map
+### Local stack
 
-| Path | Responsibility |
+The development stack uses the base Compose definition with the development overlay:
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_dev_env \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.dev.yml \
+  up -d --build
+```
+
+Before running this command, populate the environment file from
+`deploy/env/example.env`, provision the configured databases and host storage,
+and create the application network. The base stack connects to configured MongoDB
+endpoints; it does not require a local MongoDB container. Container provisioning,
+optional database profiles and storage permissions are covered in
+[MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
+Docker Compose 1.29.2 uses the separate definitions under `deploy/legacy`.
+
+Local environment files contain deployment settings and secrets and are not
+version-controlled. Development and test databases must be separate from production.
+Use synthetic samples for local verification and browser fixtures.
+
+## Application structure
+
+| Location | Responsibility |
 | --- | --- |
-| `api/app` | FastAPI creation, lifecycle, middleware, dependencies, and runtime assembly. |
-| `api/interfaces/http` | HTTP routers, request/response models, tags, and exception translation. |
-| `api/application` | Use cases that coordinate authorization, domain logic, repositories, integrations, and audit. |
-| `api/domain` | Pure clinical and product rules that do not depend on HTTP or MongoDB. |
-| `api/contracts/schemas` | Pydantic contracts for persisted MongoDB documents. |
-| `api/infra/mongo` | MongoDB adapter, repositories, indexes, and persistence details. |
-| `api/infra/integrations` | LDAP, mail, BAM service, and other infrastructure adapters. |
-| `api/infra/knowledgebase` | External and database-backed knowledgebase adapters. |
-| `api/config` | Fixed product values, center configuration loaders, runtime settings, and bootstrap data. |
-| `api/tasks` | Celery task entry points and schedules. |
-| `frontend/src/pages` | Route-level React pages. |
-| `frontend/src/components` | Shared UI, tables, filters, plots, comments, reports, and admin components. |
-| `frontend/src/hooks` | Reusable React state and query behavior. |
-| `frontend/src/lib` | API client, normalizers, route registry, permissions, exports, links, and shared domain display helpers. |
-| `frontend/src/styles` | Theme and component-level style layers. |
-| `tests` | Backend unit, API, and integration tests. |
-| `frontend/tests` | Playwright browser and deployment tests. |
-| `docs` | User, developer, architecture, API, testing, and operations documentation. |
-| `deploy` | Compose files, images, proxy configuration, and environment examples. |
-| `scripts` | Bootstrap, quality, deployment, database, and contract maintenance commands. |
+| `api/app/` | FastAPI composition, lifecycle, middleware and dependency wiring. |
+| `api/interfaces/http/` | HTTP routes, transport contracts and access dependencies. |
+| `api/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
+| `api/domain/` | Domain rules, identity logic, query policies and repository protocols. |
+| `api/contracts/` | Request, response, collection and managed-resource contracts. |
+| `api/infra/` | MongoDB persistence, cache, integrations, notifications and observability. |
+| `api/security/` | Authentication, authorization and password workflows. |
+| `api/config/` | Runtime settings, center configuration, software constants and bootstrap catalogs. |
+| `api/tasks/` | Celery task entry points. |
+| `frontend/src/pages/` | Route-level React views. |
+| `frontend/src/components/` | Shared layouts, forms, tables and clinical display components. |
+| `frontend/src/hooks/` | Shared state and query hooks. |
+| `frontend/src/lib/` | HTTP client, route registry and display utilities. |
+| `tests/` | Backend unit, API and integration coverage. |
+| `frontend/tests/e2e/` | Playwright browser coverage. |
+| `scripts/` | Bootstrap, maintenance, contract generation and verification commands. |
+| `deploy/` | Container builds, Compose definitions, proxy configuration and environment templates. |
 
-## Runtime architecture
+The API entry points are `api/app/main.py`, `asgi.py` and `run_api.py`.
+Celery is configured through `api/celery_app.py`. The frontend starts at
+`frontend/src/main.tsx`.
+
+### Dependency boundaries
+
+HTTP routes declare transport models, dependencies and permissions, then delegate
+to application services. Application services coordinate the operation; domain
+modules supply clinical and identity rules. Repositories own MongoDB queries,
+indexes and driver interactions.
+
+Domain and application modules do not import FastAPI, Starlette or application
+assembly from `api.app`. The frontend consumes HTTP contracts, not Python modules
+or database documents directly. These boundaries are checked by
+`tests/integration/test_api_architecture_boundaries.py`.
+
+## Runtime services
 
 ![Runtime topology](../assets/diagrams/runtime_topology.svg)
 
-| Service | Owns | Does not own |
-| --- | --- | --- |
-| Frontend | Navigation, display state, form state, query cache, table state, and user interaction. | Clinical rules, permissions, or persisted truth. |
-| API | Authentication, authorization, validation, workflows, reporting, and repository coordination. | Long-running scheduled execution. |
-| Worker | Ingest, knowledgebase refresh, and maintenance tasks. | HTTP response handling. |
-| Beat | Periodic task scheduling. | Clinical data persistence logic. |
-| MongoDB | Application, identity/security, knowledgebase, and BAM-service documents in separate configured databases. | Application decisions outside stored configuration. |
-| Redis | Celery broker/results and enabled non-clinical caches. | Clinical source data or API session truth. |
-| Reverse proxy | Deployment prefix, TLS boundary, and service routing. | Application authorization. |
-
-### HTTP request flow
-
-```text
-browser or API client
-  -> reverse proxy
-  -> FastAPI middleware
-  -> authentication and CSRF/rate checks
-  -> route dependency authorization
-  -> application service
-  -> domain policy and repository
-  -> typed response
-  -> frontend query cache and UI
-```
-
-Routes should parse and validate transport input, call one application-level
-operation, and translate known errors. A route should not construct MongoDB
-queries or reproduce clinical filtering logic.
-
-### Background task flow
-
-```text
-Celery beat or authorized API action
-  -> small task entry point
-  -> shared runtime initialization
-  -> application service
-  -> repository/integration operations
-  -> audit and task result
-```
-
-Task entry points must remain small. The same application service should be
-usable from a task and, where appropriate, an authorized HTTP operation.
-
-## Sources of truth
-
-Choosing the wrong configuration layer creates hidden behavior. Use this table
-when adding a value.
-
-| Value type | Source | Examples |
-| --- | --- | --- |
-| Fixed software vocabulary | Python constants/config modules | Analysis types, supported auth providers, nomenclature fields, collection keys. |
-| Center-owned configuration | `api/config/center/*` | Contacts, clinical vocabulary, query policy. |
-| Assay groups and subpanels | MongoDB registries | Shared identifiers, display names, availability and assay associations. |
-| Public catalog content | Governed MongoDB catalog documents | Published assay descriptions, modality structure and draft revisions. |
-| Deployment or secret | Environment variable | Mongo URI, database names, LDAP/SMTP credentials, public URL, host mount paths. |
-| Runtime administrative switch | MongoDB `app_controls` | Released module availability, background work, maintenance, and retention controls. |
-| Clinical assay definition | Versioned ASP/ASPC/ISGL document | Platform, covered genes, enabled analyses, filters, and report sections. |
-| User preference | `users.ui_settings` | Layout, page size, and other account-owned display choices. |
-| Visual token | Frontend theme/Tailwind configuration | Surface, text, border, badge, link, and chart colors. |
-
-Do not add a fallback environment variable for a repository-owned URL or fixed
-product value. Do not hardcode a center-owned term in a service. Do not put UI
-labels or icons in API contracts unless they are part of a public data contract.
-
-Shared filter formatting and gene coverage are implemented in
-`api/domain/common/assay_filters.py`; report formatting helpers belong in
-`api/domain/common/reporting.py`. Request payload serialization uses
-`api/app/utilities/serialization.py`. The runtime utility container delegates to
-these implementations rather than maintaining separate algorithms.
-
-Sample filter initialization and clinical profile normalization are distinct
-operations. Initialization preserves the stored filter values and copies defaults
-only when filters are absent or empty. Domain normalization produces intent-aware
-profiles. Choose the operation required by the workflow; do not substitute one for
-the other as an import cleanup.
-
-## MongoDB contracts
-
-Every supported collection has a Pydantic document model registered in
-`api/contracts/schemas/registry.py`. The generated field reference is
-[collection contracts](../api/collection_contracts.md).
-
-### Write rule
-
-```text
-external or UI input
-  -> request/manifest validation
-  -> application normalization
-  -> Pydantic collection contract
-  -> repository write
-  -> audit where required
-```
-
-Use `model_dump(exclude_none=True)` only when absent and explicit `null` have
-the same meaning for that document. If the contract requires the key to exist
-with a nullable value, preserve it explicitly.
-
-### Business identity and MongoDB identity
-
-| Identity | Use |
+| Service | Responsibility |
 | --- | --- |
-| MongoDB `_id` | Internal immutable document reference. Do not expose it as the primary user label. |
-| Business ID | Stable resource identity such as `asp_id`, `aspc_id`, `isgl_id`, sample name, or report ID. |
-| Version | Revision of a versioned clinical or governance resource. |
-| Active state | Selects the revision available for new work. Historical references remain valid. |
+| Frontend | Navigation, forms, clinical display and browser query state. |
+| API | Authentication, authorization, validation and application workflows. |
+| Celery worker | Queued ingest and maintenance operations. |
+| Celery beat | Periodic task scheduling. |
+| MongoDB | Persistent application, identity, knowledgebase and BAM-service records. |
+| Redis | Celery broker, results and configured caches. |
+| Nginx | Browser-facing service routing and response headers. |
 
-ASP, ASPC, and ISGL updates create a new version under the same business ID and
-make the previous version inactive. Samples and reports retain the recorded
-version. Roles and permissions retain traceable version changes according to
-their contracts. Audit records provide action history and are not a replacement
-for versioned clinical configuration.
+An HTTP request passes through middleware and access dependencies before the
+application service runs. API access remains authoritative even when a frontend
+control is hidden or disabled. Background tasks initialize their runtime and
+invoke application services without an HTTP request context.
 
-### Repository indexes
+## Configuration ownership
 
-Repositories declare the indexes required by their query patterns. Runtime
-initialization calls `ensure_indexes()`. MongoDB compares requested index names
-and definitions; an existing matching index is not rebuilt on every startup.
-Large data backfills and new index definitions must still be planned and tested
-as database operations. See
-[MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
+| Configuration | Runtime source |
+| --- | --- |
+| Database endpoints, credentials, service URLs and host mounts | Deployment environment. |
+| Contacts, clinical vocabulary and query policy | Supported files under `api/config/center/`. |
+| Assay groups, subpanel definitions and assay associations | MongoDB registries. |
+| Assays, assay configurations and gene lists | Versioned ASP, ASPC and ISGL documents. |
+| Clinical reporting rules | Governed rule-set documents in the application database. |
+| Public catalog structure and narrative | Governed catalog documents in the application database. |
+| Runtime module and maintenance controls | `app_controls`. |
+| Roles, permissions and user assignments | Identity database records. |
+| Durable user display preferences | `users.ui_settings`. |
+| UI colors, typography and surfaces | Frontend theme tokens and shared components. |
+
+Bootstrap catalogs supply installation data; they do not replace the runtime
+registry. The configuration keys, defaults and deployment requirements are listed
+in the [configuration reference](../start_here/configuration.md). Center file
+schemas are documented in [Center configuration files](../operations/center_configuration_files.md).
+
+## Database access
+
+### Logical databases
+
+Each MongoDB service has an independently configured URI and database name:
+
+| Service | URI setting | Database setting |
+| --- | --- | --- |
+| Application | `COYOTE3_MONGO_URI` | `COYOTE3_DB` |
+| Identity | `IDENTITY_MONGO_URI` | `IDENTITY_DB` |
+| Knowledgebase | `KNOWLEDGEBASE_MONGO_URI` | `KNOWLEDGEBASE_DB` |
+| BAM service | `BAM_MONGO_URI` | `BAM_DB` |
+
+`api/config/mongo.py` resolves endpoint configuration.
+`api/infra/mongo/connections.py` owns connection pools for the runtime process.
+Services with identical URIs share a `MongoClient`; different endpoints can use
+different hosts and replica-set names. Database names do not determine hosts or
+filesystem paths.
+
+### Contracts and transactions
+
+Collection models are registered in `api/contracts/schemas/registry.py`.
+The [collection reference](../api/collection_contracts.md) describes their fields.
+Request validation, application normalization and collection validation serve
+different boundaries; a valid HTTP request does not by itself establish that a
+document is ready to persist.
+
+Related writes use the transaction boundary of their owning workflow. A MongoDB
+session belongs to its originating client and cannot be passed to another
+`MongoClient`. Filesystem operations, mail delivery and writes on separate MongoDB
+deployments are not covered by a single database transaction. Their recovery and
+delivery behavior is specified in
+[Transactions and ingest recovery](../architecture/transactions_and_ingest_recovery.md).
+
+Missing fields and explicit `null` values are distinct where the collection model
+defines them that way. Serialization must preserve that distinction.
+
+### Identity and revisions
+
+Business identifiers such as `asp_id`, `aspc_id` and `isgl_id` identify resources.
+MongoDB `_id` values identify individual persisted documents. Versioned resources
+retain prior revisions so existing references can be resolved independently of
+the currently active revision.
+
+Sample configuration resolution is implemented in
+`api/application/common/assay_config.py`. When `current_aspc_id` is present,
+normal resolution uses that exact revision. Active configuration lookup applies
+to ingestion, unassigned samples and explicit configuration updates. Saved report
+snapshots are not reconstructed from the current active configuration.
+
+### Index administration
+
+Repositories declare their index contracts. API startup inspects those contracts
+and logs missing or conflicting indexes without creating, replacing or dropping them.
+Index changes are explicit maintenance operations:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py status
+PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py plan
+```
+
+With the target database configured and the plan reviewed, `apply` creates missing
+compatible indexes. It does not drop conflicting indexes:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+```
 
 ## Clinical configuration
 
-### ASP
-
-An ASP defines the assay independent of one sample.
-
-| Field group | Purpose |
+| Resource | Purpose |
 | --- | --- |
-| Identity | `asp_id`, display name, assay group, family, and category. |
-| Sequencing | Platform and valid read modes. Read technology follows the platform. |
-| Gene scope | Covered genes and germline genes. |
-| Input policy | Supported, expected, and required analysis files. |
-| Catalog | Public visibility and reviewed assay information. |
+| Assay group | Clinical grouping and availability of associated assays. |
+| Assay (ASP) | Assay identity, sequencing attributes, physical gene coverage and input-file policy. |
+| Subpanel | Shared interpretation scope associated with one or more assays. Availability can be controlled per association. |
+| Assay configuration (ASPC) | Assay, subpanel and environment-specific analyses, filter profiles and reporting settings. |
+| Gene list (ISGL) | Named gene selection offered to the analysis types declared by `list_type`. |
 
-### ASPC
+`base` is the default interpretation scope when no named subpanel is selected.
+Named subpanel choices come from the selected assay's associations.
 
-An ASPC is identified by `asp_id`, `subpanel_id`, and `environment`. It defines
-enabled analyses, analysis intents, filters, and report sections. Somatic and
-germline filters can coexist in one document. Germline support is restricted to
-released analysis types.
+Filter profiles separate analysis intent and finding type. An SNV gene-list
+selection does not implicitly restrict CNVs or fusions. Selected lists and
+ad-hoc genes are resolved against the assay's coverage policy; without a selected
+restriction, assay coverage applies. An empty broad-assay scope can mean no gene
+predicate, whereas a selected list with no overlap must remain restrictive.
 
-The sample receives a filter snapshot during ingest. Updating the ASPC does not
-silently rewrite an existing sample. An explicit workflow can resolve a sample
-to a newer compatible ASPC while preserving the user's current filter values.
+The backend applies clinical predicates before sorting and pagination. UI tables
+display the resulting records and do not independently decide clinical inclusion.
+See [Query and filter strategy](../product/aspc_driven_query_strategy.md) for filter
+composition, supported operators and scope examples.
 
-### ISGL
-
-An ISGL defines genes that can be selected independently for SNV, CNV, fusion,
-expression, or PGX filtering. `list_type` controls where the list is offered;
-the list restricts an analysis only when it is selected for that analysis.
-
-The runtime gene rule is:
-
-1. selected ISGL genes for the analysis;
-2. otherwise ASP covered genes;
-3. otherwise no gene predicate.
-
-Detailed field and option tables are in the
-[center configuration reference](../operations/center_configuration_files.md)
-and [query strategy](../product/aspc_driven_query_strategy.md).
-
-## Ingest development
+## Ingestion
 
 ![Sample ingest workflow](../assets/diagrams/celery_ingest_flow.svg)
 
-Ingest readiness is checked at the sample-bundle level: every declared file must be read
-and its dependent documents must pass their collection contracts before the
-sample is committed as ready. Optional files may be absent only when they were
-not declared.
+Ingest reads a sample manifest, resolves its assay configuration, validates the
+declared files and parses analysis data into collection-ready documents. A declared
+file must be readable and valid even when that file type is optional for the assay.
 
-Fresh creation and updates use required MongoDB transactions for the sample and
-its declared evidence. Async completion receipts join those transactions. Parsing,
-filesystem operations, and cache invalidation remain outside the transaction.
-See the [persistence and recovery boundaries](../api/ingestion_api.md#persistence-and-recovery-boundaries)
-and [transaction rules](../architecture/transactions_and_ingest_recovery.md)
-before changing write ordering or defining recovery procedures.
+| Stage | Result |
+| --- | --- |
+| Manifest validation | Supported pipeline keys and sample metadata. |
+| Configuration resolution | Applicable assay and environment-specific configuration. |
+| File validation and parsing | Validated analysis records and sample counts. |
+| Persistence | Sample, declared evidence and applicable async completion receipt committed together. |
+| Completion | Staging cleanup, watcher acknowledgement and audit delivery. |
 
-### Manifest processing
+Parsing and filesystem work occur outside the clinical database transaction.
+A parsing failure prevents clinical writes. A failure after a confirmed commit
+does not make the committed sample disappear. The
+[ingestion API](../api/ingestion_api.md) defines submission, failure and recovery
+behavior. Parser input formats are specified in
+[Sample input files](../api/sample_input_files.md) and [Sample YAML](../api/sample_yaml.md).
 
-| Stage | Responsibility | Failure result |
-| --- | --- | --- |
-| Parse | Read YAML and normalize supported top-level pipeline keys. | Manifest rejected. |
-| Resolve | Find ASP and subpanel/base ASPC for the environment. | No sample committed. |
-| Validate files | Check declared paths, mounts, readability, and required-file policy. | No sample committed. |
-| Parse analysis | Convert VCF, CNV, coverage, fusion, expression, classification, QC, and biomarkers. | No clinical writes started. |
-| Normalize | Apply collection-specific field and identity rules. | Contract error recorded. |
-| Persist | Commit sample, dependent collections, and async completion receipt together. | Transaction aborts; previous clinical state remains unchanged. |
-| Complete | Remove successful upload staging, acknowledge watched manifest, and deliver audit outcome. | Retain committed result; a marker or audit failure cannot undo it. |
-
-When adding an input:
-
-1. define its analysis and file-key policy in the correct configuration source;
-2. add or update the persisted document contract;
-3. implement a parser that returns contract-ready values;
-4. bind the target repository and indexes;
-5. include the data in rollback and sample deletion ownership;
-6. update sample counts, tabs, reports, and exports where applicable;
-7. add valid, missing, malformed, and rollback tests;
-8. update [sample input files](../api/sample_input_files.md) and
-   [sample YAML](../api/sample_yaml.md).
-
-Do not add compatibility parsing for a format that the product does not support.
-If a pipeline format changes, define the accepted format and fail clearly for
-invalid input.
-
-## Query development
-
-Clinical result queries have three layers:
-
-1. **Availability**: sample omics and ASPC analysis types decide whether an analysis exists.
-2. **Baseline policy**: typed filters apply depth, frequency, size, effect, caller, or other general rules.
-3. **Exceptions**: center policy can admit or exclude a narrow typed subset for an assay group, ASP, or subpanel.
-
-The backend applies all predicates before sorting and pagination. UI tables
-must not reimplement clinical inclusion rules. False-positive and irrelevant
-records can remain visible in analysis views when requested; report selection
-excludes them.
-
-Each analysis has its own query block and allowed keys. Do not use an SNV
-exception block for CNV or fusion logic. See
-[query and filter strategy](../product/aspc_driven_query_strategy.md) for the
-full grammar, operators, composition rules, and examples.
-
-## Reporting development
+## Reporting
 
 ![Reporting workflow](../assets/diagrams/report_generation_flow.svg)
 
-Report rules are static YAML released with the application. A rule set maps to
-`asp_id` and `subpanel_id`; changing approved rule text requires an application
-release and a rule-set version change.
+Clinical rule sets are stored in MongoDB and follow the authoring, review and
+publication workflow. Publishing approved rule content does not require a new
+application build.
 
-### Report stages
+`api/application/reporting/clinical_rules/resolution.py` selects an active published
+release using the assay, sample subpanel, analyte and reporting language. An exact
+subpanel release takes precedence; assay Base is used only when no exact release
+exists. Selection does not cross assays, analytes or languages. Ambiguous releases,
+invalid content and checksum mismatches produce an error rather than a silent
+switch to another rule set.
 
-| Stage | Input | Output |
-| --- | --- | --- |
-| Fact preparation | Sample, ASP, ASPC, applied gene lists, filtered findings, biomarkers, and comments. | Typed report facts and aggregates. |
-| Rule evaluation | Explicitly bound active published rule set and prepared facts. | Ordered report sections, text, and evaluation trace. |
-| Preview | Current state, without persistence. | Temporary HTML/PDF context and finding rows. |
-| Save | Confirmed preview context. | Report, artifacts, filter/config snapshots, rule-set identity/version, and typed reported findings. |
-
-Rules use a typed condition tree and typed output nodes. They cannot execute
-templates, Python, database queries, filesystem access, or network calls.
-
-The report summary comes from the latest visible sample comment. Preview and
-save do not generate a replacement comment. See
-[clinical reporting rules](../product/clinical_reporting_rules.md) for the
-document contract, authoring workflow, available facts, and release controls.
-
-## Authentication, authorization, and audit
-
-### Authentication
-
-The deployment may enable local, LDAP, or both providers. Provider availability
-is returned by the API. Missing LDAP connection details must not prevent a
-local-provider deployment from starting, but LDAP attempts fail with a clear
-provider error.
-
-Browser sessions use the configured session cookie. State-changing cookie
-requests use the application's CSRF protection. API clients may use the
-supported bearer-session flow. Do not bypass these paths in a new route.
-
-### Authorization
-
-Permissions are data-backed policies installed from the bootstrap catalog on
-first deployment. System policies are locked from deletion. Routes and actions
-must enforce the specific permission at the API boundary; hiding a UI control
-is not authorization.
-
-The bootstrap NDJSON files are the release source for system permission and
-role definitions. MongoDB is the runtime source used for authorization. The
-bootstrap and catalog-sync scripts bridge those two responsibilities:
-
-| Stage | Source | Result |
-| --- | --- | --- |
-| First installation | `api/config/bootstrap/rbac/*.seed.ndjson` | Installs the system catalog and one local `superuser` plus one named `sys_admin` in an identity transaction. Credentials are supplied by the operator; both accounts must change their password on first sign-in. |
-| Runtime | MongoDB `permissions`, `roles`, and `users` | Resolves active grants for each authenticated request. |
-| Upgrade | `scripts/sync_rbac_catalog.py` | Adds newly shipped permissions, marks bundled IDs as system-managed, and unions new grants into bundled roles without removing center-owned grants or roles. |
-| Documentation | `scripts/export_permissions_reference.py` | Generates the permission catalog from the same permission seed. |
-
-Installed permission, role, and bootstrap-user definitions cannot be edited,
-deactivated, or deleted through administrative or ingest APIs. Dedicated password
-flows, authentication state, and UI preferences remain available. Demo clinical
-configuration retains its normal edit and activation controls but cannot be deleted.
-New records created through the API are center-owned; clients cannot set
-`system_managed`. Use center-owned roles for local permission bundles.
-
-For a new protected action:
-
-1. define or reuse one precise permission in bootstrap data;
-2. assign it to appropriate system roles;
-3. enforce it in the HTTP dependency/application operation;
-4. use the same permission to present the frontend action;
-5. test allowed, unauthenticated, and forbidden cases;
-6. add an audit event when the action changes critical state.
-
-### Audit
-
-Audit critical authentication, user/role/permission administration, ASP/ASPC/
-ISGL changes, ingest outcomes, sample deletion, clinical curation, and report
-creation. Use the sample name or business ID as the visible resource label and
-keep MongoDB IDs in structured detail. Traceability records use their retention
-classification and must not be deleted by ordinary retention cleanup.
-
-## Frontend development
-
-### Route and API boundaries
-
-`frontend/src/App.tsx` declares routes. The route registry under
-`frontend/src/lib/routes` records module and API dependencies for audit and
-tests. A new page must define its success, empty, loading, forbidden, disabled,
-and failed behavior.
-
-The admin UI route audit reads this registry. It is current only when every
-route added to `App.tsx` is added to the registry with its module, permission,
-API dependency, and consumed payload fields. Contract tests compare the
-registry against both the React route tree and FastAPI's registered routes.
-Do not maintain a separate hand-written route list.
-
-Use the shared API client so session expiry, validation errors, gateway HTML,
-request IDs, and notifications are handled consistently. Use React Query for
-server state and mutation invalidation. Do not copy API results into a second
-global store without a demonstrated need.
-
-### Tables
-
-| Layer | Responsibility |
+| Stage | Responsibility |
 | --- | --- |
-| `DataTable` | Rendering, headers, row selection, pagination, and export access. |
-| TanStack Table | Column definitions, sorting, filtering, and table state. |
-| `useClinicalTableState` | URL-backed server pagination, search, and multi-sort. |
-| React Query | Request cache, deduplication, stale time, and invalidation. |
-| Backend query | Full-result filtering and sorting before pagination. |
+| Fact preparation | Build typed facts from the sample, configuration, findings, gene lists and comments. |
+| Evaluation | Apply typed conditions and output nodes, producing report text and an evaluation trace. |
+| Preview | Render HTML/PDF without saving a report. |
+| Save | Persist report metadata, artifacts, resolved rule provenance and applicable finding snapshots. |
 
-Column definitions should use shared badges, tooltips, tier indicators, action
-components, and export helpers. Keep compact fixed widths only for icon or
-boolean columns. Give clinical identity and measurement columns enough space to
-remain readable, then allow wrapping before enabling horizontal scrolling.
+Rule conditions and outputs are data, not executable Python or arbitrary templates.
+Report descriptions and formatted comments are sanitized; biological values are
+escaped. Browser report previews are sandboxed. Stored reports retain the provenance
+of their generation rather than selecting a newly published release when viewed.
 
-### Design and accessibility
+The [reporting workflow](../product/reporting_workflow_and_variant_snapshots.md)
+defines snapshot behavior. The [clinical rule reference](../product/clinical_reporting_rules.md)
+defines matching, ordering, governance and authoring constraints.
 
-Use semantic theme tokens from the Tailwind/theme configuration. Do not add
-literal application colors to page components. Hyperlinks use the link token.
-Clinical status colors must not reuse the brand color as data meaning.
+## Security and observability
 
-Use the shared icon set, tooltip, dialog, badge, form, card, and page-shell
-components. Every icon-only control needs an accessible label. Keyboard focus,
-disabled state, contrast, and reduced-motion behavior are part of the component
-contract.
+### Authentication and authorization
 
-### User settings
+Deployments can enable local authentication, LDAP or both. Browser sessions use
+the configured session cookie; state-changing cookie-authenticated requests require
+the session CSRF token. Supported bearer authentication is handled at the API boundary.
 
-Store durable user-owned display choices under `users.ui_settings`. Use local
-component state for temporary interaction such as an open menu. Before adding a
-setting, define its default, allowed values, API update path, and behavior when
-an older user document lacks the key.
+Roles bundle permissions. API access checks combine the required permission with
+applicable assay and environment scope. Frontend visibility is not an authorization
+decision. Bootstrap permissions and roles are installed from
+`api/config/bootstrap/rbac/`; MongoDB holds runtime assignments.
 
-## Adding an API operation
+System-managed identity definitions are protected by their resource policies.
+Password changes, session state and user preferences use their dedicated operations.
+Detailed account, session and authorization behavior is specified in the
+[security model](../architecture/security_model.md).
 
-| Step | Required work |
+### Errors, logs and audit
+
+Application services raise established application or domain errors. Centralized
+HTTP handling produces client responses; unexpected exception details belong in
+server logs, not user-facing messages. The frontend API client handles transport
+failures, session expiry and validation responses consistently.
+
+Diagnostic logs record execution failures and request context. Audit records capture
+accountable actions such as access administration, clinical configuration changes,
+curation, ingestion and report creation. Logs and audit records serve different
+purposes and are not interchangeable. Retention and delivery behavior is documented
+in [Audit and logging](../operations/audit-and-logging.md).
+
+## Frontend interfaces
+
+`frontend/src/App.tsx` declares React routes. The registry under
+`frontend/src/lib/routes/` records route, module and API dependencies for the admin
+route audit and contract tests. API access uses the shared client; React Query owns
+server-state caching and mutation invalidation.
+
+| Interface | Responsibility |
 | --- | --- |
-| Contract | Define request and response models; decide public OpenAPI visibility. |
-| Authorization | Select the exact permission and target-resource rule. |
-| Application | Implement the use case outside the route. |
-| Persistence | Add repository behavior and indexes if needed. |
-| Audit | Record critical state changes and failure outcomes. |
-| Error handling | Return a specific domain/HTTP error, not an unexpected 500. |
-| Tests | Add service, route success, validation, unauthenticated, and forbidden tests. |
-| Docs | Update the API/workflow reference and examples. |
+| `PageFrame` and `PageShell` | Route width, gutters, headings and page actions. |
+| Shared form components | Typed input, validation feedback and resource selection. |
+| `DataTable` and TanStack Table | Column definitions, selection and table presentation. |
+| `useClinicalTableState` | URL-backed server pagination, search and sorting. |
+| Theme tokens | Consistent colors, typography, surfaces and interaction states. |
+| `users.ui_settings` | Persisted user-owned display preferences. |
 
-Internal service routes and health checks remain callable but are hidden from
-the supported OpenAPI client contract. OpenAPI visibility is not a security
-control; authentication, permissions, tokens, proxy policy, and audit still
-apply.
+Views distinguish loading, empty, forbidden, disabled and failed states. Icon-only
+controls have accessible names. Keyboard focus, disabled behavior and reduced-motion
+support belong to shared component contracts. Clinical meaning must remain readable
+without relying on color alone.
 
-## Adding or changing an admin resource
+## Code and contract documentation
 
-The generic admin form engine is driven by backend resource metadata and schema
-contracts. Keep database-owned fields read-only. Use dropdowns, checkboxes,
-color inputs, and resource selectors for bounded values instead of free text.
+Python interfaces use type annotations and Google-style docstrings. Docstrings
+describe behavior, parameter semantics, returned values and expected failures;
+transaction boundaries or external side effects belong in `Notes:` when relevant.
+FastAPI descriptions present client behavior and permissions before internal
+dependency details.
 
-1. Update the persisted contract and resource metadata.
-2. Define list columns, filters, view fields, create fields, and edit fields.
-3. Mark system-managed and database-owned fields correctly.
-4. Enforce create/view/edit/delete permissions independently.
-5. Test import/export JSON, live validation, versioning, and invalid payloads.
-6. Update the management and field reference documentation.
+TypeScript API and component types describe the values used by the UI. Persisted
+document models, transport contracts and display models have separate ownership.
+Generated references are produced from their source contracts:
 
-## Tests
+```bash
+PYTHONPATH=. .venv/bin/python scripts/export_collection_contracts_doc.py
+PYTHONPATH=. .venv/bin/python scripts/export_permissions_reference.py
+```
 
-| Change | Minimum useful tests |
-| --- | --- |
-| Pure normalizer or policy | Unit tests for valid, boundary, missing, and invalid inputs. |
-| Repository query | Unit/integration tests for predicates, sorting, pagination, and indexes. |
-| API route | Success, validation, unauthenticated, forbidden, not found, and service failure. |
-| React component | Render, interaction, accessibility, disabled, empty, and error states. |
-| Page workflow | Request parameters, navigation, mutation invalidation, and recoverable failures. |
-| Clinical route or layout | Playwright test for supported analysis availability and user interaction. |
-| Deployment change | Compose render plus disposable full-stack validation. |
+## Verification
 
-### Retiring code and tests
+Backend tests cover domain rules, application services, HTTP contracts and repository
+behavior. Vitest covers frontend components and state; Playwright covers browser
+workflows. Transaction tests require explicitly configured disposable MongoDB
+replica sets. Skipped infrastructure tests do not establish transaction correctness.
 
-Remove a compatibility path only after checking its production callers, stored-data
-contract, configuration examples, deployment scripts, and supported upgrade paths.
-Update those consumers together. Do not keep runtime branches solely to accommodate
-old test doubles; fixtures must implement the current repository contract.
-
-Tests should verify supported behavior and observable failure modes. Delete a test
-when its only purpose is to exercise a removed interface. Preserve coverage of
-authorization, clinical interpretation, report reproducibility, transaction rollback,
-data loss prevention, and credential handling. A negative test rejecting an obsolete
-input is still useful when it protects a current validation boundary.
-
-Migration commands are operational tools, not runtime compatibility layers. Retire
-one only when every supported upgrade path no longer needs it, including restoring
-older backups. Keep dry-run, collision, idempotency, and rollback tests while the
-command remains available. Docker Compose 1.29.2 deployment support is also an
-explicit product requirement; its contract tests are not obsolete shim tests.
-
-### Verification commands
+Run commands from the repository root with the development dependencies installed:
 
 ```bash
 # Backend tests and coverage
-PYTHONPATH=. .venv/bin/python -m pytest -q \
+PYTHONPATH=. .venv/bin/python -m pytest -q tests/unit tests/api tests/integration \
   --cov=api --cov-config=.coveragerc --cov-report=term-missing
 
-# Python lint and configured strict typing boundary
+# Python lint, formatting and configured type-check scope
 PYTHONPATH=. .venv/bin/python -m ruff check api tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff format --check api tests scripts
 PYTHONPATH=. .venv/bin/python -m mypy
 
-# Frontend checks
+# Frontend verification
 npm --prefix frontend run lint
 npm --prefix frontend run test:coverage
 npm --prefix frontend run build
 npm --prefix frontend run test:e2e
 
-# Documentation
+# Documentation verification
 npm run docs:lint
 .venv/bin/python scripts/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 
-# Complete repository gate
+# Combined repository checks
 PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
 ```
 
-The authoritative test scopes, coverage gates, and deployment validation are in
-[testing and quality](../testing/testing_and_quality.md).
+Mypy checks the modules configured in `pyproject.toml`, not the entire Python tree.
+Coverage thresholds, clinical family gates and deployment checks are specified in
+[Testing and quality](../testing/testing_and_quality.md). Optional
+[Locust workloads](../testing/load_testing.md) run against an explicitly approved
+synthetic deployment and do not replace browser or clinical acceptance testing.
 
-For measured HTTP behavior, use the optional
-[self-hosted Locust workload](../testing/load_testing.md) after deploying a synthetic,
-isolated stack. Load dependencies are separate from runtime and ordinary test
-dependencies. Extend request groups alongside the relevant API contracts and verify
-authorization and response semantics before interpreting timings. Locust does not
-render React; retain Playwright coverage for the user workflow. Transaction retries
-and watcher acknowledgement guarantees require focused regression tests, not just
-successful HTTP response counts.
-
-## Documentation
-
-Write for the person performing the task. Start with the outcome, then list
-prerequisites, steps, expected result, and failure handling. Use a table for a
-fixed set of fields or options. Do not describe visual implementation details
-such as CSS classes in a user guide.
-
-| Change | Update |
-| --- | --- |
-| User-visible workflow | Complete user manual and the focused user guide. |
-| API contract | API reference and OpenAPI metadata. |
-| Persisted field | Pydantic model, generated collection contracts, and owning workflow document. |
-| Center configuration | Center configuration reference with key, type, allowed values, default, and effect. |
-| Architecture boundary | Architecture page and an ADR when the decision needs a durable rationale. |
-| Deployment behavior | Deployment or operations procedure, including rollback. |
-
-Regenerate collection documentation after contract changes:
-
-```bash
-PYTHONPATH=. .venv/bin/python scripts/export_collection_contracts_doc.py
-```
-
-## Pull request checklist
-
-Before requesting review:
-
-1. The change has one clear owner and does not duplicate an existing helper.
-2. Contracts, indexes, permissions, audit, cache invalidation, and deletion ownership were considered.
-3. Tests cover success, failure, and authorization boundaries.
-4. User and developer documentation describes current behavior, not change history.
-5. Generated contracts are current and the worktree contains no secrets or clinical identifiers.
-6. The relevant local quality commands pass.
-
-## Release checklist
-
-| Check | Evidence |
-| --- | --- |
-| Source quality | Repository quality suite passes. |
-| Backend | Tests and clinical family coverage gates pass. |
-| Frontend | Lint, unit coverage, build, and Playwright pass. |
-| Documentation | Markdown lint, internal links, and strict MkDocs build pass. |
-| Images | Immutable versioned API, frontend, and docs images build. |
-| Database | Bootstrap/upgrade procedure and index impact reviewed. |
-| Security | No secrets or clinical identifiers; auth and permission cases tested. |
-| Operations | Backup restore, proxy path, health, cache, worker, and audit checked. |
-| Clinical workflow | Approved synthetic DNA and RNA samples pass disposable validation. |
-
-## Detailed references
+## Reference index
 
 | Subject | Reference |
 | --- | --- |
-| Architecture | [Application architecture](../architecture/current_application_context.md) |
-| Security | [Security model](../architecture/security_model.md) |
-| Collection schemas | [Collection contracts](../api/collection_contracts.md) |
-| Ingest | [Ingestion API](../api/ingestion_api.md) |
-| Sample files | [Sample input files](../api/sample_input_files.md) |
-| Queries | [Query and filter strategy](../product/aspc_driven_query_strategy.md) |
-| Reporting | [Clinical reporting rules](../product/clinical_reporting_rules.md) |
-| Permissions | [Permission naming](permissions_naming.md) |
-| System permission IDs and descriptions | [System permission catalog](permission_catalog.md) |
-| First database installation | [First installation](../start_here/first_installation.md) |
-| Testing | [Testing and quality](../testing/testing_and_quality.md) |
+| Application architecture | [Application context](../architecture/current_application_context.md) |
+| Environment settings | [Configuration reference](../start_here/configuration.md) |
+| Collection fields | [Collection contracts](../api/collection_contracts.md) |
+| Permissions | [Permission naming](permissions_naming.md) and [Permission catalog](permission_catalog.md) |
+| API compatibility | [API versioning and compatibility](../api/versioning_and_compatibility.md) |
 | Deployment | [Center deployment](../operations/center_deployment_guide.md) |
-| Operations | [Maintenance and quality](../operations/maintenance_and_quality.md) |
+| Operational procedures | [Maintenance and quality](../operations/maintenance_and_quality.md) |

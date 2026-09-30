@@ -1,9 +1,8 @@
 # Clinical Data Preparation And Reporting Flow
 
 This guide defines how Coyote3 turns an ingested sample into reviewable
-findings, a report preview, and an immutable saved report. It is the
-authoritative technical description of the implemented data flow and the
-boundary planned for configurable clinical report text.
+findings, a report preview, and an immutable saved report. It describes data
+ownership, preparation boundaries, rule evaluation, and persistence failures.
 
 The intended audience is:
 
@@ -725,9 +724,10 @@ A saved report preserves:
 - selected annotation references;
 - data-version context available at creation time.
 
-The report also preserves the static clinical-rule source identity, canonical
-content hash, and matched rule IDs. Static YAML is selected by the effective
-ASP and subpanel; it is not copied into an ASPC or stored as a MongoDB release.
+The report also preserves the selected published MongoDB rule-set identity,
+content version, canonical content hash, and matched rule IDs. Selection uses
+assay, subpanel, analyte, and reporting language, with Base used only when no
+exact active published release exists. See [clinical reporting rules](../product/clinical_reporting_rules.md#rule-set-identity-and-selection).
 
 ## 10. Collection Relationships
 

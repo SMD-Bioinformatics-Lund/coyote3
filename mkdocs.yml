@@ -117,6 +117,7 @@ nav:
       - Minimum production baseline: operations/minimum_production_baseline.md
       - Observability and alerts: operations/observability_slos_and_alerts.md
       - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
+      - Clinical-rule data maintenance: operations/clinical_rule_data_migration.md
       - Reference database migration: operations/reference_database_migration.md
       - Knowledgebase snapshot updates: operations/knowledgebase_updates.md
       - VEP metadata updates: operations/vep_metadata_updates.md

@@ -46,7 +46,7 @@ The Small Variants table is the primary DNA review table for SNVs and indels.
 | Type | Compact variant class such as `SNV`, `DEL`, `INS`, `INDEL`, or `SUB`. |
 | Consequence | VEP consequence badges. Hover shows VEP metadata and impact. |
 | PopFreq (%) | Public population frequency as a percentage, displayed with up to six decimal places. A recorded zero is shown as `0`; unavailable values are shown as `-`. |
-| Hotspot | Indicates existing hotspot metadata attached to the variant. Hover shows the available source and identifiers. When several COSMIC identifiers occur for one source, the latest identifier is shown. The same marker appears on the variant detail page. The future hotspot-list contract and filtering behavior are not defined yet. |
+| Hotspot | Indicates existing hotspot metadata attached to the variant. Hover shows the available source and identifiers. When several COSMIC identifiers occur for one source, the latest identifier is shown. The same marker appears on the variant detail page. |
 | Tier | Current clinical tier. Clicking an assigned tier opens reported-variant context when available. |
 | Chr:Pos | Neutral chromosome coordinate link for IGV. |
 | Flags | Configured filter flag badges from the VCF `FILTER` field. |

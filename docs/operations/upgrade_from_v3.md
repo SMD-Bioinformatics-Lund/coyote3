@@ -80,7 +80,7 @@ If either value is zero, restore from the canonical rules snapshot source or app
 your approved migration package before continuing. These counts do not prove scope
 coverage. Verify report previews for each enabled assay/subpanel/analyte/language;
 each must resolve an exact published release or its assay Base release. For existing
-explicit bindings, run the [scope-selection migration](../product/clinical_reporting_rules.md#deploying-scope-based-selection).
+explicit bindings, run the [scope-selection migration](clinical_rule_data_migration.md#deploying-scope-based-selection).
 
 The previous generator narrative branches (`CNV`, `DNA translocation`, `HRD`, and `MSI`)
 are intentionally explicit `narrative: none` in the canonical workflow until clinically

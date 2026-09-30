@@ -77,7 +77,7 @@ administrator cannot compensate for a missing parent by entering an arbitrary id
 | 2 | User accounts | Required roles and permissions | Clinical authoring, review, publication, configuration, and sample operations. |
 | 3 | ASP | None in clinical configuration | Clinical rule sets, ISGL scope, ASPCs, and sample ingest. The ASP defines analyte, assay family, files, physical gene coverage, and accreditation. |
 | 4 | Clinical rule set draft | Active ASP | Clinical review and publication. The selected analyte must match the ASP. |
-| 5 | Published clinical rule set | Valid draft, independent clinical reviewer, and publisher | Creating an active ASPC with report sections. Draft, submitted, review, approved, and retired versions cannot be bound. |
+| 5 | Published clinical rule set | Valid draft, independent clinical reviewer, and publisher | Required when activating an ASPC with report sections. Only an active published release can satisfy scope-based selection. |
 | 6 | ISGL | Active ASP directly through `asp_ids`, or an applicable active ASP group | Selecting optional SNV, CNV, fusion, expression, or PGx gene scopes in an ASPC or sample. ISGLs are optional and can be created before or after rule publication. |
 | 7 | ASPC | Active ASP and active published clinical rule set; any referenced ISGLs must already exist and support the selected analysis | Sample ingest for its assay, subpanel, and environment. |
 | 8 | Sample | Resolvable active ASP and ASPC; required files declared by the ASP | Findings, comments, classifications, coverage review, and reports. |
