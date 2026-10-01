@@ -216,7 +216,18 @@ class ASPRepository(BaseRepository):
         per_page: int = 30,
         is_active: bool | None = True,
     ) -> tuple[list[dict], int]:
-        """Search assay panels directly in MongoDB and return paged results."""
+        """Search assay panels and return a page with gene counts, not gene lists.
+
+        Args:
+            q: Case-insensitive literal search across assay metadata; empty matches all.
+            page: One-based page number, clamped to at least one.
+            per_page: Page size, clamped to between one and 200.
+            is_active: Active-state filter; None includes active and inactive records.
+
+        Returns:
+            Panel documents and total matching count. Each document includes
+            covered_genes_count; absent or null gene lists count as zero.
+        """
         query: dict = {}
         if is_active is not None:
             query["is_active"] = is_active
@@ -234,10 +245,24 @@ class ASPRepository(BaseRepository):
         page = max(1, int(page or 1))
         per_page = max(1, min(int(per_page or 30), 200))
         skip = (page - 1) * per_page
-        projection = {"covered_genes": 0}
         col = self.get_collection()
         total = int(col.count_documents(query))
-        docs = list(col.find(query, projection).sort("created_on", -1).skip(skip).limit(per_page))
+        docs = list(
+            col.aggregate(
+                [
+                    {"$match": query},
+                    {"$sort": {"created_on": -1}},
+                    {"$skip": skip},
+                    {"$limit": per_page},
+                    {
+                        "$addFields": {
+                            "covered_genes_count": {"$size": {"$ifNull": ["$covered_genes", []]}}
+                        }
+                    },
+                    {"$project": {"covered_genes": 0}},
+                ]
+            )
+        )
         return docs, total
 
     def create_panel(self, data: dict) -> OperationResult:

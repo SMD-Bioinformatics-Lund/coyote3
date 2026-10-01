@@ -563,6 +563,10 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     assert len(repository.get_all_asps(True)) == 2
     rows, total = repository.search_asps(q="illumina", page=0, per_page=500)
     assert total == 1 and rows[0]["asp_id"] == "hema_gmsv1"
+    assert rows[0]["covered_genes_count"] == 3
+    assert "covered_genes" not in rows[0]
+    retired, _ = repository.search_asps(q="retired", is_active=None)
+    assert retired[0]["covered_genes_count"] == 0
     assert repository.get_all_asps_unique_gene_count() == 3
     assert set(repository.get_all_asp_groups()) == {"hematology", "solid", "demo"}
     assert set(repository.get_all_assays(True)) == {"hema_gmsv1", "solid_gmsv3"}
