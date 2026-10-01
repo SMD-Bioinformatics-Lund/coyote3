@@ -301,6 +301,65 @@ in [Audit and logging](../operations/audit-and-logging.md).
 
 ## Frontend interfaces
 
+Admin routes in `frontend/src/App.tsx` name their resource pages explicitly.
+Each resource has a feature directory under `frontend/src/pages/admin/` containing
+its list page, editor page, and `resource.ts` configuration. The list page composes
+its table columns, toolbar, row actions, and additional panels. The editor page
+owns the form layout and resource-specific behavior. Assay creation uses
+`AssaySetupPage.tsx` rather than the ordinary resource editor.
+
+| Directory | List page | Editor page |
+| --- | --- | --- |
+| `assays/` | `AssaysPage` | `AssayEditorPage` |
+| `assay-configurations/` | `AssayConfigurationsPage` | `AssayConfigurationEditorPage` |
+| `gene-lists/` | `GeneListsPage` | `GeneListEditorPage` |
+| `users/` | `UsersPage` | `UserEditorPage` |
+| `roles/` | `RolesPage` | `RoleEditorPage` |
+| `permissions/` | `PermissionsPage` | `PermissionEditorPage` |
+| `samples/` | `AdminSamplesPage` | `AdminSampleEditorPage` |
+
+To change assay columns or filters, edit `assays/resource.ts`; to change an assay
+cell, action, or table layout, edit `assays/AssaysPage.tsx`. Assay subpanel
+associations belong to `AssayEditorPage.tsx`. DNA/RNA schema selection belongs to
+the configuration editor, and account-assignment restrictions belong to the user
+editor. Sample administration uses the JSON document editor.
+
+`useAdminList` and `useAdminEditor` share request, mutation, and form-state
+mechanics. Their callers supply resource endpoints, permissions, document keys,
+request envelopes, and additional cache invalidations. Shared toolbar, action,
+confirmation, and loading controls do not select behavior by resource name.
+`resource-specs.ts` collects resource metadata for navigation; it does not own
+table layouts or resource-specific forms.
+
+`AdminControlsPage.tsx`, `AdminAuditPage.tsx`, and `AdminIngestPage.tsx` each own a
+separate operational workflow. Keep route metadata in `ui-route-registry.ts`
+synchronized with page ownership and API dependencies.
+
+Public routes also have dedicated modules: `PublicCatalogPage.tsx`,
+`PublicCatalogMatrixPage.tsx`, `GeneInfoPage.tsx`, `PublicGenelistPage.tsx`,
+`PublicAspGenesPage.tsx`, and `CoverageBlacklistPage.tsx`. About, contact,
+not-found, password-request, and password-reset routes each have their own page.
+Route modules are loaded independently through `App.tsx`.
+
+Pages own route parameters, queries, mutations, and top-level composition.
+Keep cohesive editors, viewers, and presentation helpers beside their owning
+feature instead of adding unrelated routes to one module:
+
+| Feature | Supporting modules |
+| --- | --- |
+| Clinical rules | `RuleConditionBuilder`, `RuleOutputEditor`, `RuleEditor`, and condition/authoring helpers. |
+| Admin resource forms | `AdminManagedForm`, `FormControl`, `CheckboxGroup`, and `ObjectFieldEditor`. |
+| Sample overview | `PanelSummary`, `AnalysisStatusStrip`, and overview data helpers. |
+| Coverage | `CoverageGeneView` and coverage presentation helpers. |
+| Small-variant detail | `VariantEvidencePanel` owns knowledgebase presentation and on-demand public lookups. |
+| Sample and gene-cohort tables | `useSampleColumns`, `useSampleExportColumns`, and `useCohortColumns`. |
+| Public matrix | `AssayMatrixTable` and matrix layout helpers. |
+
+Share form controls and presentation components without duplicating resource
+workflows. Keep pure helpers separate from React components so they can be tested
+without rendering a page. Page tests cover query state, permissions, navigation,
+and mutations; component tests cover local editing and display behavior.
+
 `frontend/src/App.tsx` declares React routes. The registry under
 `frontend/src/lib/routes/` records route, module and API dependencies for the admin
 route audit and contract tests. API access uses the shared client; React Query owns

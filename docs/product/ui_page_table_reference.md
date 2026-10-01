@@ -753,14 +753,28 @@ Gene pages present HGNC-centered gene context.
 Routes:
 
 * `/admin`
-* `/admin/:resource`
-* `/admin/:resource/create`
-* `/admin/:resource/:id/view`
-* `/admin/:resource/:id/edit`
+* `/admin/asp`, `/admin/aspc`, `/admin/genelists`
+* `/admin/users`, `/admin/roles`, `/admin/permissions`, `/admin/samples`
 * `/admin/audit`
 * `/admin/controls`
 * `/admin/ingest`
 * `/admin/ui-routes`
+
+Each resource has explicit list, `/create`, `/:id/view`, and `/:id/edit` routes.
+Assay creation at `/admin/asp/create` opens the assay setup workflow. Sample
+creation is handled through ingestion, not the admin document editor. Unknown
+admin resource URLs show the not-found page.
+
+Administrative lists use one **Installed by** column for record provenance.
+A shield icon identifies system-installed records; its accessible label and
+tooltip explain the symbol. Custom records show the recorded creator's username
+or email. Missing creator information appears as **Unknown**, not the current user
+or last editor. CSV exports use **System** in place of the icon.
+
+This column combines the display of `system_managed` and `created_by`; it does not
+rename database fields. The system-management flag still controls protected
+operations. Active status, update timestamps, audit actors, and approval identities
+remain separate because they describe different properties or events.
 
 Normal administration workflows use typed forms generated from explicit contracts. Admin Samples is the deliberate exception: users with global sample-edit permission can inspect or edit the complete sample document in a JSON editor. The editor checks JSON syntax continuously, while the API validates the document against the persisted sample contract before replacing it.
 
