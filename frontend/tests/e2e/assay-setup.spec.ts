@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
-for (const width of [1440, 390]) {
+for (const width of [1440, 1024, 390]) {
   test(`assay setup starts with Base and resumes saved scope selections at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
     let saved: Record<string, unknown> | null = null
@@ -45,8 +45,19 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole("checkbox", { name: "Myeloid", exact: true })).toBeChecked()
     await page.screenshot({ path: testInfo.outputPath(`setup-scopes-${width}.png`), fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    for (const [number, name] of [[3, "Gene lists"], [4, "Reporting rules"], [5, "Configurations"]] as const) {
+      await page.getByRole("button", { name: `${number}. ${name}`, exact: true }).click()
+      const next = page.getByRole("button", { name: "Next", exact: true })
+      await expect(next).toBeVisible()
+      const bounds = await next.boundingBox()
+      expect(bounds).not.toBeNull()
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+      await page.screenshot({ path: testInfo.outputPath(`setup-step-${number}-${width}.png`), fullPage: true })
+    }
     await page.getByRole("button", { name: "6. Review", exact: true }).click()
     await expect(page.getByRole("button", { name: "Submit for review" })).toBeDisabled()
     await expect(page.getByText("Missing ASPCs: base/development", { exact: true })).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath(`setup-review-${width}.png`), fullPage: true })
   })
 }

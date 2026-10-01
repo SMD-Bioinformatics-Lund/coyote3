@@ -1,417 +1,51 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Link } from "react-router-dom"
-import {
-  Beaker,
-  BookOpenCheck,
-  Check,
-  CirclePlus,
-  CopyPlus,
-  Download,
-  FileCheck2,
-  GitCompareArrows,
-  GripVertical,
-  History,
-  ListFilter,
-  Plus,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Save,
-  Search,
-  Send,
-  ShieldCheck,
-  Trash2,
-} from "lucide-react"
-
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Input } from "@/components/ui/input"
-import { api } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  Beaker,
+  Check,
+  CirclePlus,
+  CopyPlus,
+  Download,
+  FileCheck2,
+  GitCompareArrows,
+  History,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Save,
+  Search,
+  Send,
+  ShieldCheck,
+  Trash2
+} from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { Link } from "react-router-dom"
+import { ANALYSES, clone, emptyRuleSetScope, generatedRuleSetName, newRule, newRuleBlock, type CreationMode, type NewRuleSetScope } from "./clinical-rule-authoring"
 import type {
-  ClinicalRule,
   ClinicalRuleAssayOption,
   ClinicalRuleReviewerOption,
   ClinicalRuleRevision,
   ClinicalRuleSet,
-  Condition,
   FactDefinition,
-  OutputNode,
-  RuleBlock,
+  RuleBlock
 } from "./clinical-rules-types"
 import {
   CLINICAL_RULE_STATUS_LABELS,
-  clinicalConditionTone,
-  clinicalRuleSectionTone,
+  clinicalRuleSectionTone
 } from "./clinical-rules-visuals"
 import { ClinicalRuleStatusBadge } from "./ClinicalRuleStatusBadge"
-
-const OPERATOR_LABELS: Record<string, string> = {
-  eq: "is",
-  ne: "is not",
-  in: "is one of",
-  not_in: "is not one of",
-  contains: "contains",
-  overlaps: "overlaps",
-  exists: "is available",
-  gt: "is greater than",
-  gte: "is at least",
-  lt: "is less than",
-  lte: "is at most",
-  between: "is between",
-  is_empty: "is empty",
-  is_unknown: "is unknown",
-}
-
-const ANALYSES = {
-  dna: ["SNV", "CNV", "TRANSLOCATION", "BIOMARKER", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"],
-  rna: ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
-} as const
-
-const clone = <T,>(value: T): T => structuredClone(value)
-
-function storedWidth(key: string, fallback: number) {
-  if (typeof window === "undefined") return fallback
-  try {
-    const value = Number(window.localStorage.getItem(key))
-    return Number.isFinite(value) && value > 0 ? value : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function ResizeDivider({
-  label,
-  width,
-  setWidth,
-  min,
-  max,
-  direction = 1,
-}: {
-  label: string
-  width: number
-  setWidth: (width: number) => void
-  min: number
-  max: number
-  direction?: 1 | -1
-}) {
-  const start = useRef({ x: 0, width })
-  const clamp = (value: number) => Math.min(max, Math.max(min, value))
-  const update = (value: number) => {
-    const nextWidth = clamp(value)
-    setWidth(nextWidth)
-    try {
-      window.localStorage.setItem(`clinical-rules-width:${label}`, String(nextWidth))
-    } catch {
-      // Resizing remains available when browser storage is disabled.
-    }
-  }
-  const finish = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return
-    event.preventDefault()
-    const delta = event.key === 'ArrowRight' ? 16 : -16
-    update(width + delta * direction)
-  }
-  return <div role="separator" aria-label={label} aria-orientation="vertical" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(width)} tabIndex={0} className="clinical-rules-divider" onKeyDown={onKeyDown} onPointerDown={(event) => { if (event.pointerType === "mouse" && event.button !== 0) return; start.current = { x: event.clientX, width }; event.currentTarget.setPointerCapture(event.pointerId) }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) update(start.current.width + (event.clientX - start.current.x) * direction) }} onPointerUp={finish} onPointerCancel={finish}><GripVertical /></div>
-}
-
-type NewRuleSetScope = {
-  asp_id: string
-  subpanel_id: string
-  analyte: "dna" | "rna"
-  language: string
-  name: string
-}
-
-type CreationMode = "blank" | "template" | "import"
-
-const emptyRuleSetScope = (): NewRuleSetScope => ({
-  asp_id: "",
-  subpanel_id: "base",
-  analyte: "dna",
-  language: "sv",
-  name: "",
-})
-
-const identifierPart = (value: string) => value
-  .normalize("NFKD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g, "_")
-  .replace(/^_+|_+$/g, "")
-
-const nextIdentifier = (base: string, used: Iterable<string>) => {
-  const normalized = identifierPart(base) || "rule"
-  const existing = new Set(used)
-  if (!existing.has(normalized)) return normalized
-  let suffix = 2
-  while (existing.has(`${normalized}_${suffix}`)) suffix += 1
-  return `${normalized}_${suffix}`
-}
-
-const nextOrdinal = (prefix: string, used: Iterable<string>) => {
-  const existing = new Set(used)
-  let ordinal = 1
-  while (existing.has(`${prefix} ${ordinal}`)) ordinal += 1
-  return ordinal
-}
-
-const nextOrder = (used: number[], interval: number) =>
-  used.length ? Math.max(...used) + interval : interval
-
-const generatedRuleSetName = (
-  assay: ClinicalRuleAssayOption | undefined,
-  subpanelId: string,
-) => {
-  if (!assay) return ""
-  const subpanel = subpanelId.trim()
-  const scope = subpanel && subpanel !== "base" ? ` - ${subpanel}` : ""
-  return `${assay.display_name}${scope} clinical report rules`
-}
-
-const newRule = (
-  block: Pick<RuleBlock, "block_id" | "section" | "rules">,
-  allRuleIds: string[],
-): ClinicalRule => {
-  const namePrefix = `${block.section} rule`
-  const ordinal = nextOrdinal(namePrefix, block.rules.map((rule) => rule.name))
-  return {
-    rule_id: nextIdentifier(`${block.block_id}_rule_${ordinal}`, allRuleIds),
-    name: `${namePrefix} ${ordinal}`,
-    order: nextOrder(block.rules.map((rule) => rule.order), 10),
-    enabled: true,
-    condition: null,
-    output: [{ type: "text", value: "New clinical report text" }],
-    references: [],
-  }
-}
-
-const newRuleBlock = (blocks: RuleBlock[]): RuleBlock => {
-  const ordinal = nextOrdinal("Report section", blocks.map((block) => block.section))
-  const section = `Report section ${ordinal}`
-  const blockId = nextIdentifier(section, blocks.map((block) => block.block_id))
-  const block: RuleBlock = {
-    block_id: blockId,
-    name: section,
-    analysis: null,
-    evaluation: { mode: "once", collection: null },
-    section,
-    section_order: nextOrder(blocks.map((item) => item.section_order), 100),
-    block_order: nextOrder(blocks.map((item) => item.block_order), 10),
-    show_heading: true,
-    match_strategy: "at_most_one",
-    rules: [],
-  }
-  const existingRuleIds = blocks.flatMap((item) => item.rules.map((rule) => rule.rule_id))
-  block.rules.push(newRule(block, existingRuleIds))
-  return block
-}
-
-function newPredicate(facts: FactDefinition[]): Condition {
-  const fact = facts[0]
-  return { type: "predicate", fact: fact?.path || "finding.gene", operator: fact?.operators[0] || "eq", value: "" }
-}
-
-function parseValue(value: string, operator: string, fact?: FactDefinition): unknown {
-  if (fact?.kind === "boolean") return value === "true"
-  if (fact?.kind === "integer" || fact?.kind === "number") return Number(value)
-  if (fact?.kind === "string_list" || ["in", "not_in", "overlaps", "between"].includes(operator)) {
-    return value.split(",").map((item) => item.trim()).filter(Boolean)
-  }
-  return value
-}
-
-function valueError(value: unknown, operator: string, fact?: FactDefinition) {
-  const text = valueText(value).trim()
-  if (!text) return "A value is required for this condition."
-  const values = Array.isArray(value) ? value : [value]
-  if (["integer", "number"].includes(fact?.kind || "") && values.some((item) => !Number.isFinite(Number(item)))) {
-    return `Enter ${fact?.kind === "integer" ? "whole numbers" : "numeric values"}.`
-  }
-  if (fact?.kind === "integer" && values.some((item) => !Number.isInteger(Number(item)))) return "Enter whole numbers."
-  if (fact?.value_format === "gene" && values.some((item) => !/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(String(item)))) {
-    return "Use HGNC gene symbols, separated by commas where multiple values are accepted."
-  }
-  if (fact?.value_options?.length && values.some((item) => !fact.value_options?.includes(String(item)))) {
-    return "Select one of the configured values."
-  }
-  if (operator === "between" && Array.isArray(value) && value.length !== 2) return "Enter exactly two comma-separated values."
-  return ""
-}
-
-function valueText(value: unknown) {
-  return Array.isArray(value) ? value.join(", ") : String(value ?? "")
-}
-
-function ConditionBuilder({
-  value,
-  facts,
-  allFacts = facts,
-  onChange,
-  onRemove,
-  depth = 0,
-  controlledValues = {},
-}: {
-  value: Condition
-  facts: FactDefinition[]
-  allFacts?: FactDefinition[]
-  onChange: (value: Condition) => void
-  onRemove?: () => void
-  depth?: number
-  controlledValues?: Record<string, string[]>
-}) {
-  const replaceType = (type: Condition["type"]) => {
-    if (type === "predicate") onChange(newPredicate(facts))
-    else if (type === "all" || type === "any") onChange({ type, children: [newPredicate(facts)] })
-    else if (type === "not") onChange({ type, child: newPredicate(facts) })
-    else onChange({ type, collection: "findings", quantifier: "any", where: newPredicate(facts) })
-  }
-  return (
-    <div className={cn("rounded-r-lg border-l-2 p-3", clinicalConditionTone(value.type), depth > 0 && "mt-2")}>
-      <div className="flex flex-wrap items-center gap-2">
-        <select className="paper-inset responsive-control-height rounded-lg px-2 text-sm" value={value.type} onChange={(event) => replaceType(event.target.value as Condition["type"])}>
-          <option value="predicate">Condition</option>
-          <option value="all">Match all</option>
-          <option value="any">Match any</option>
-          <option value="not">Exclude when</option>
-          <option value="collection_match">Find in collection</option>
-        </select>
-        {onRemove && <Button type="button" variant="ghost" size="icon-sm" title="Remove condition" onClick={onRemove}><Trash2 /></Button>}
-      </div>
-      {value.type === "predicate" && (
-        <PredicateEditor value={value} facts={facts} controlledValues={controlledValues} onChange={onChange} />
-      )}
-      {(value.type === "all" || value.type === "any") && (
-        <div className="mt-2 space-y-2">
-          {value.children.map((child, index) => (
-            <ConditionBuilder
-              key={index}
-              value={child}
-              facts={facts}
-              allFacts={allFacts}
-              depth={depth + 1}
-              controlledValues={controlledValues}
-              onChange={(next) => onChange({ ...value, children: value.children.map((item, childIndex) => childIndex === index ? next : item) })}
-              onRemove={value.children.length > 1 ? () => onChange({ ...value, children: value.children.filter((_, childIndex) => childIndex !== index) }) : undefined}
-            />
-          ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, children: [...value.children, newPredicate(facts)] })}><Plus /> Add condition</Button>
-        </div>
-      )}
-      {value.type === "not" && <ConditionBuilder value={value.child} facts={facts} allFacts={allFacts} depth={depth + 1} controlledValues={controlledValues} onChange={(child) => onChange({ ...value, child })} />}
-      {value.type === "collection_match" && (
-        <div className="mt-2 space-y-2">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="type-label">Collection<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={value.collection} onChange={(event) => onChange({ ...value, collection: event.target.value as typeof value.collection })}><option value="findings">Findings</option><option value="biomarkers">Biomarkers</option><option value="applied_gene_lists">Applied gene lists</option><option value="tier_summaries">Tier summaries</option></select></label>
-            <label className="type-label">Match<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={value.quantifier} onChange={(event) => onChange({ ...value, quantifier: event.target.value as typeof value.quantifier })}><option value="any">At least one</option><option value="none">None</option><option value="all">Every item</option><option value="count">A specific count</option></select></label>
-          </div>
-          {value.quantifier === "count" && (
-            <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
-              <label className="type-label">Comparison<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={value.count?.operator || "gte"} onChange={(event) => onChange({ ...value, count: { operator: event.target.value as NonNullable<typeof value.count>["operator"], value: value.count?.value ?? 1 } })}><option value="eq">Exactly</option><option value="ne">Not equal to</option><option value="gt">More than</option><option value="gte">At least</option><option value="lt">Fewer than</option><option value="lte">At most</option></select></label>
-              <label className="type-label">Number<Input className="mt-1" type="number" min={0} value={value.count?.value ?? 1} onChange={(event) => onChange({ ...value, count: { operator: value.count?.operator || "gte", value: Number(event.target.value) } })} /></label>
-            </div>
-          )}
-          <ConditionBuilder value={value.where} facts={allFacts.filter((fact) => fact.scopes.includes("each_item"))} allFacts={allFacts} depth={depth + 1} controlledValues={controlledValues} onChange={(where) => onChange({ ...value, where })} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PredicateEditor({ value, facts, controlledValues, onChange }: { value: Extract<Condition, { type: "predicate" }>; facts: FactDefinition[]; controlledValues: Record<string, string[]>; onChange: (value: Condition) => void }) {
-  const fact = facts.find((item) => item.path === value.fact) || facts[0]
-  const operators = fact?.operators || ["eq"]
-  const noValue = ["is_empty", "is_unknown"].includes(value.operator)
-  const options = controlledValues[value.fact] || fact?.value_options || []
-  const error = noValue ? "" : valueError(value.value, value.operator, { ...fact, value_options: options })
-  return (
-    <div className="mt-2 grid gap-2 lg:grid-cols-[1.2fr_1fr_1.4fr]">
-      <select className="paper-inset rounded-lg p-2 text-sm" value={value.fact} onChange={(event) => { const selected = facts.find((item) => item.path === event.target.value); onChange({ type: "predicate", fact: event.target.value, operator: selected?.operators[0] || "eq", value: selected?.kind === "boolean" ? true : "" }) }}>
-        {facts.map((item) => <option key={item.path} value={item.path}>{item.label}</option>)}
-      </select>
-      <select className="paper-inset rounded-lg p-2 text-sm" value={value.operator} onChange={(event) => onChange({ ...value, operator: event.target.value })}>
-        {operators.map((operator) => <option key={operator} value={operator}>{OPERATOR_LABELS[operator] || operator}</option>)}
-      </select>
-      {!noValue && (fact?.kind === "boolean" || value.operator === "exists" ? (
-        <select className="paper-inset rounded-lg p-2 text-sm" value={String(value.value ?? true)} onChange={(event) => onChange({ ...value, value: event.target.value === "true" })}><option value="true">Yes</option><option value="false">No</option></select>
-      ) : options.length && !["in", "not_in", "overlaps", "between"].includes(value.operator) ? (
-        <select className="paper-inset rounded-lg p-2 text-sm" value={String(value.value ?? "")} onChange={(event) => onChange({ ...value, value: event.target.value })}>
-          <option value="">Select value</option>
-          {options.map((option) => <option key={option} value={option}>{option}</option>)}
-        </select>
-      ) : (
-        <div className="relative"><Input aria-label="Condition value" aria-invalid={Boolean(error)} title={error || undefined} value={valueText(value.value)} onChange={(event) => onChange({ ...value, value: parseValue(event.target.value, value.operator, fact) })} className={cn(error && "border-destructive focus-visible:ring-destructive/30")} />{fact?.unit && <span className="absolute right-2 top-2 text-xs text-muted-foreground">{fact.unit}</span>}{error && <span className="mt-1 block text-xs text-destructive">{error}</span>}</div>
-      ))}
-    </div>
-  )
-}
-
-function OutputEditor({ nodes, facts, onChange }: { nodes: OutputNode[]; facts: FactDefinition[]; onChange: (nodes: OutputNode[]) => void }) {
-  const replace = (index: number, node: OutputNode) => onChange(nodes.map((item, itemIndex) => itemIndex === index ? node : item))
-  const scalarFacts = facts.filter((fact) => !["string_list", "object_list"].includes(fact.kind))
-  const listFacts = facts.filter((fact) => fact.kind === "string_list")
-  const numberFacts = facts.filter((fact) => ["integer", "number"].includes(fact.kind))
-  return (
-    <div className="space-y-2">
-      {nodes.map((node, index) => (
-        <div key={index} className="flex items-start gap-2 rounded-lg border border-border/70 bg-background/70 p-2">
-          <div className="min-w-0 flex-1">
-            {node.type === "text" && <textarea className="paper-inset min-h-24 w-full resize-y rounded-lg p-2 text-sm" value={node.value} onChange={(event) => replace(index, { ...node, value: event.target.value })} />}
-            {node.type === "fact" && <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"><select className="paper-inset rounded-lg p-2 text-sm" value={node.path} onChange={(event) => replace(index, { ...node, path: event.target.value })}>{scalarFacts.map((fact) => <option key={fact.path} value={fact.path}>{fact.label}</option>)}</select><select aria-label="Value format" className="paper-inset rounded-lg p-2 text-sm" value={node.formatter} onChange={(event) => replace(index, { ...node, formatter: event.target.value as typeof node.formatter })}><option value="text">As entered</option><option value="gene_symbol">Gene symbol</option><option value="upper">Uppercase</option><option value="lower">Lowercase</option></select><select aria-label="Missing value behavior" className="paper-inset rounded-lg p-2 text-sm" value={node.missing} onChange={(event) => replace(index, { ...node, missing: event.target.value as typeof node.missing })}><option value="error">Require value</option><option value="omit">Omit if missing</option></select></div>}
-            {node.type === "list" && <div className="grid gap-2 sm:grid-cols-[1fr_9rem_auto]"><select className="paper-inset rounded-lg p-2 text-sm" value={node.path} onChange={(event) => replace(index, { ...node, path: event.target.value })}>{listFacts.map((fact) => <option key={fact.path} value={fact.path}>{fact.label}</option>)}</select><Input aria-label="List conjunction" value={node.conjunction} onChange={(event) => replace(index, { ...node, conjunction: event.target.value })} /><select aria-label="Missing list behavior" className="paper-inset rounded-lg p-2 text-sm" value={node.missing} onChange={(event) => replace(index, { ...node, missing: event.target.value as typeof node.missing })}><option value="error">Require list</option><option value="omit">Omit if missing</option></select></div>}
-            {node.type === "number" && <div className="grid gap-2 sm:grid-cols-[1fr_7rem_7rem_auto]"><select className="paper-inset rounded-lg p-2 text-sm" value={node.path} onChange={(event) => replace(index, { ...node, path: event.target.value })}>{numberFacts.map((fact) => <option key={fact.path} value={fact.path}>{fact.label}</option>)}</select><label className="type-label">Decimals<Input className="mt-1" type="number" min={0} max={6} value={node.precision} onChange={(event) => replace(index, { ...node, precision: Number(event.target.value) })} /></label><label className="type-label">Unit<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={node.unit} onChange={(event) => replace(index, { ...node, unit: event.target.value as typeof node.unit })}><option value="">None</option><option value="%">%</option><option value="x">x</option></select></label><select aria-label="Missing number behavior" className="paper-inset self-end rounded-lg p-2 text-sm" value={node.missing} onChange={(event) => replace(index, { ...node, missing: event.target.value as typeof node.missing })}><option value="error">Require number</option><option value="omit">Omit if missing</option></select></div>}
-            {node.type === "message" && <div className="grid gap-2"><select className="paper-inset rounded-lg p-2 text-sm" value={node.count_path} onChange={(event) => replace(index, { ...node, count_path: event.target.value })}>{numberFacts.map((fact) => <option key={fact.path} value={fact.path}>{fact.label}</option>)}</select><Input aria-label="Text when count is one" placeholder="Text when count is one" value={node.one} onChange={(event) => replace(index, { ...node, one: event.target.value })} /><Input aria-label="Text for other counts" placeholder="Text for other counts" value={node.other} onChange={(event) => replace(index, { ...node, other: event.target.value })} /></div>}
-            {node.type === "renderer" && <select className="paper-inset w-full rounded-lg p-2 text-sm" value={node.name} onChange={(event) => replace(index, { type: "renderer", name: event.target.value as typeof node.name })}><option value="dna_report_intro">DNA analysis introduction</option><option value="tier_summary">Tiered variant summary</option><option value="fusion_summary">Fusion summary</option></select>}
-            {node.type === "paragraph_break" && <p className="py-2 text-xs font-medium text-muted-foreground">Paragraph break</p>}
-          </div>
-          <Button type="button" variant="ghost" size="icon-sm" title="Remove output part" disabled={nodes.length === 1} onClick={() => onChange(nodes.filter((_, itemIndex) => itemIndex !== index))}><Trash2 /></Button>
-        </div>
-      ))}
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "text", value: "New report text" }])}><Plus /> Text</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!scalarFacts.length} onClick={() => onChange([...nodes, { type: "fact", path: scalarFacts[0]?.path || "finding.gene", formatter: "text", missing: "error" }])}><CirclePlus /> Value</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!listFacts.length} onClick={() => onChange([...nodes, { type: "list", path: listFacts[0]?.path || "finding.genes", conjunction: "and", formatter: "text", missing: "error" }])}><ListFilter /> List</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!numberFacts.length} onClick={() => onChange([...nodes, { type: "number", path: numberFacts[0]?.path || "aggregates.finding_count", precision: 0, unit: "", missing: "error" }])}><CirclePlus /> Number</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!numberFacts.length} onClick={() => onChange([...nodes, { type: "message", count_path: numberFacts[0]?.path || "aggregates.finding_count", one: "One finding", other: "Multiple findings" }])}><CirclePlus /> Singular / plural</Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "paragraph_break" }])}><BookOpenCheck /> Paragraph</Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "renderer", name: "tier_summary" }])}><ListFilter /> Structured summary</Button>
-      </div>
-    </div>
-  )
-}
-
-function outputPreview(nodes: OutputNode[], facts: FactDefinition[]) {
-  return nodes.map((node) => {
-    if (node.type === "text") return node.value
-    if (node.type === "paragraph_break") return "\n\n"
-    if (node.type === "renderer") return `[${node.name.replaceAll("_", " ")}]`
-    const path = "count_path" in node ? node.count_path : "path" in node ? node.path : ""
-    return `[${facts.find((fact) => fact.path === path)?.label || path}]`
-  }).join("")
-}
-
-function RuleEditor({ rule, block, facts, controlledValues, change }: { rule: ClinicalRule; block: RuleBlock; facts: FactDefinition[]; controlledValues: Record<string, string[]>; change: (rule: ClinicalRule) => void }) {
-  const scopedFacts = facts.filter((fact) => fact.scopes.includes(block.evaluation.mode))
-  return (
-    <div className="space-y-5 p-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="type-label">Clinical rule name<Input className="mt-1" value={rule.name} onChange={(event) => change({ ...rule, name: event.target.value })} /></label>
-        <label className="type-label">Rule identifier<Input className="mt-1" value={rule.rule_id} onChange={(event) => change({ ...rule, rule_id: event.target.value })} /></label>
-      </div>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rule.enabled} onChange={(event) => change({ ...rule, enabled: event.target.checked })} /> Include this rule in generated report text</label>
-      <section><h3 className="type-section-title mb-2">When this text applies</h3>{rule.condition ? <ConditionBuilder value={rule.condition} facts={scopedFacts} allFacts={facts} controlledValues={controlledValues} onChange={(condition) => change({ ...rule, condition })} onRemove={() => change({ ...rule, condition: null })} /> : <Button type="button" variant="outline" onClick={() => change({ ...rule, condition: newPredicate(scopedFacts) })}><Plus /> Add condition</Button>}</section>
-      <section><h3 className="type-section-title mb-2">Report text</h3><OutputEditor nodes={rule.output} facts={scopedFacts} onChange={(output) => change({ ...rule, output })} /></section>
-      <label className="type-label block">Clinical rationale<textarea className="paper-inset mt-1 min-h-20 w-full rounded-lg p-2 text-sm" value={rule.rationale || ""} onChange={(event) => change({ ...rule, rationale: event.target.value || null })} /></label>
-    </div>
-  )
-}
+import { outputPreview } from "./rule-output-preview"
+import { storedWidth } from "./rule-workspace-storage"
+import { RuleEditor } from "./RuleEditor"
+import { ResizeDivider } from "./RuleWorkspaceDivider"
 
 export function ClinicalRulesPage() {
   const queryClient = useQueryClient()

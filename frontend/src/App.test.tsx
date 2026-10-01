@@ -12,21 +12,36 @@ vi.mock("./components/admin/AdminPermissionBoundary", () => ({
   ),
 }))
 vi.mock("./pages/auth/Login", () => ({ Login: () => <div>Login page</div> }))
+vi.mock("./pages/admin/assays/AssaysPage", () => ({ AssaysPage: () => <div>Assays list</div> }))
+vi.mock("./pages/admin/assays/AssayEditorPage", () => ({ AssayEditorPage: ({ mode }: { mode: string }) => <div>Assays {mode}</div> }))
+vi.mock("./pages/admin/assay-configurations/AssayConfigurationsPage", () => ({ AssayConfigurationsPage: () => <div>Assay Configurations list</div> }))
+vi.mock("./pages/admin/assay-configurations/AssayConfigurationEditorPage", () => ({ AssayConfigurationEditorPage: ({ mode }: { mode: string }) => <div>Assay Configurations {mode}</div> }))
+vi.mock("./pages/admin/gene-lists/GeneListsPage", () => ({ GeneListsPage: () => <div>Gene Lists list</div> }))
+vi.mock("./pages/admin/gene-lists/GeneListEditorPage", () => ({ GeneListEditorPage: ({ mode }: { mode: string }) => <div>Gene Lists {mode}</div> }))
+vi.mock("./pages/admin/users/UsersPage", () => ({ UsersPage: () => <div>Users list</div> }))
+vi.mock("./pages/admin/users/UserEditorPage", () => ({ UserEditorPage: ({ mode }: { mode: string }) => <div>Users {mode}</div> }))
+vi.mock("./pages/admin/roles/RolesPage", () => ({ RolesPage: () => <div>Roles list</div> }))
+vi.mock("./pages/admin/roles/RoleEditorPage", () => ({ RoleEditorPage: ({ mode }: { mode: string }) => <div>Roles {mode}</div> }))
+vi.mock("./pages/admin/permissions/PermissionsPage", () => ({ PermissionsPage: () => <div>Permission Policies list</div> }))
+vi.mock("./pages/admin/permissions/PermissionEditorPage", () => ({ PermissionEditorPage: ({ mode }: { mode: string }) => <div>Permission Policies {mode}</div> }))
+vi.mock("./pages/admin/samples/AdminSamplesPage", () => ({ AdminSamplesPage: () => <div>Admin Samples list</div> }))
+vi.mock("./pages/admin/samples/AdminSampleEditorPage", () => ({ AdminSampleEditorPage: ({ mode }: { mode: string }) => <div>Admin Samples {mode}</div> }))
 vi.mock("./pages/Dashboard", () => ({ Dashboard: () => <div>Dashboard page</div> }))
 vi.mock("./pages/KnowledgebaseDetails", () => ({ KnowledgebaseDetails: () => <div>Knowledgebase details page</div> }))
 vi.mock("./pages/SampleDetail", () => ({ SampleDetail: () => {
   const { id } = useParams()
   return <div>Sample detail {id}</div>
 } }))
-vi.mock("./pages/admin/AdminUtilityPages", () => ({
-  AdminAuditPage: () => <div>Audit page</div>,
-  AdminControlsPage: () => <div>Controls page</div>,
-  AdminIngestPage: () => <div>Ingest page</div>,
-  AdminSchemasPage: () => <div>Schemas page</div>,
-}))
-vi.mock("./pages/static/StaticPages", () => ({
+vi.mock("./pages/admin/AdminAuditPage", () => ({ AdminAuditPage: () => <div>Audit page</div> }))
+vi.mock("./pages/admin/AdminControlsPage", () => ({ AdminControlsPage: () => <div>Controls page</div> }))
+vi.mock("./pages/admin/AdminIngestPage", () => ({ AdminIngestPage: () => <div>Ingest page</div> }))
+vi.mock("./pages/static/AboutPage", () => ({
   AboutPage: () => <div>About page</div>,
+}))
+vi.mock("./pages/static/ContactPage", () => ({
   ContactPage: () => <div>Contact page</div>,
+}))
+vi.mock("./pages/static/NotFoundPage", () => ({
   NotFoundPage: () => <div>Not found page</div>,
 }))
 
@@ -40,6 +55,21 @@ function navigate(path: string) {
 
 describe("App route wiring", () => {
   beforeEach(() => window.history.replaceState({}, "", "/"))
+
+  describe.each([
+    ["asp", "Assays"],
+    ["aspc", "Assay Configurations"],
+    ["genelists", "Gene Lists"],
+    ["users", "Users"],
+    ["roles", "Roles"],
+    ["permissions", "Permission Policies"],
+    ["samples", "Admin Samples"],
+  ])("%s resource routes", (resource, title) => {
+    it.each(["list", "view", "edit"])("opens its own %s page", async (mode) => {
+      navigate(`/admin/${resource}${mode === "list" ? "" : `/record/${mode}`}`)
+      expect(await screen.findByText(`${title} ${mode}`)).toBeVisible()
+    })
+  })
 
   it("renders login outside the authenticated layout", () => {
     navigate("/login")
@@ -67,8 +97,8 @@ describe("App route wiring", () => {
     )
   })
 
-  it("uses the not-found route for unknown authenticated paths", async () => {
-    navigate("/unknown/path")
+  it.each(["/unknown/path", "/admin/unknown-resource", "/admin/unknown-resource/create", "/admin/unknown-resource/id/edit"])("uses the not-found route for %s", async (path) => {
+    navigate(path)
     expect(await screen.findByText("Not found page")).toBeVisible()
     expect(screen.getByTestId("layout")).toBeVisible()
   })

@@ -1,33 +1,26 @@
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { api } from "@/lib/api"
+import { useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
-import { api } from "@/lib/api"
-import { SegmentedControl } from "@/components/ui/segmented-control"
 
-import { OverviewTab, PanelSummary } from "./OverviewTab"
-import { SampleDetailHero } from "./SampleDetailHero"
-import { VariantsTab } from "./VariantsTab"
-import { CNVTab } from "./CNVTab"
-import { FusionsTab } from "./FusionsTab"
-import { TranslocationsTab } from "./TranslocationsTab"
-import { ReportsTab } from "./ReportsTab"
-import { CoverageTab } from "./CoverageTab"
-import { RnaAnalysisTab } from "./RnaAnalysisTabs"
-import { FiltersSidebar } from "./FiltersSidebar"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
-import { PageFrame } from "@/components/layout/PageFrame"
 import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
-import { hasSampleFile } from "@/lib/sample-shape"
-import { sampleUrlKey } from "@/lib/sample-routing"
-import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
+import { PageFrame } from "@/components/layout/PageFrame"
 import { useCurrentUserAccess } from "@/lib/access-control"
+import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
+import { sampleUrlKey } from "@/lib/sample-routing"
+import { hasSampleFile } from "@/lib/sample-shape"
 import {
   analysisLayoutForUser,
   analysisModernViewTriedForUser,
   useUpdateUiSettings,
   type AnalysisLayout,
 } from "@/lib/user-settings"
+import { CNVTab } from "./CNVTab"
+import { CoverageTab } from "./CoverageTab"
+import { FiltersSidebar } from "./FiltersSidebar"
 import {
   ClassicAnalysisFiltersSidebar,
   FILTERABLE_ANALYSIS_SECTIONS,
@@ -36,6 +29,14 @@ import {
   type FindingSection,
   type FindingSectionId,
 } from "./FindingsTab"
+import { FusionsTab } from "./FusionsTab"
+import { OverviewTab } from "./OverviewTab"
+import { PanelSummary } from "./PanelSummary"
+import { ReportsTab } from "./ReportsTab"
+import { RnaAnalysisTab } from "./RnaAnalysisTabs"
+import { SampleDetailHero } from "./SampleDetailHero"
+import { TranslocationsTab } from "./TranslocationsTab"
+import { VariantsTab } from "./VariantsTab"
 
 const TABS = [
   { id: "overview", label: "Overview" },

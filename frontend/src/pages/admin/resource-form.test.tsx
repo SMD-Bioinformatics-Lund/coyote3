@@ -1,7 +1,8 @@
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
-import { AdminManagedForm, FormControl } from "./resource-form"
-import type { AdminResourceSpec, FormSpec, FormField } from "./resource-specs"
+import { AdminManagedForm } from "./AdminManagedForm"
+import { FormControl } from "./FormControl"
+import type { AdminResourceSpec, FormField, FormSpec } from "./resource-specs"
 
 describe("Resource Form UI", () => {
   it("validates new identifiers without restricting existing reference choices", () => {

@@ -25,7 +25,9 @@ vi.mock("@/lib/access-control", async (importOriginal) => {
   return { ...actual, useCurrentUserAccess: () => mocks.access }
 })
 
-import { AdminAuditPage, AdminControlsPage, AdminIngestPage } from "./AdminUtilityPages"
+import { AdminAuditPage } from "./AdminAuditPage"
+import { AdminControlsPage } from "./AdminControlsPage"
+import { AdminIngestPage } from "./AdminIngestPage"
 import AdminSchemasPage from "./AdminSchemasPage"
 
 function renderPage(page: ReactNode) {

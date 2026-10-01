@@ -1,8 +1,8 @@
-import { useState } from "react"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { useState } from "react"
 import { describe, expect, it } from "vitest"
-import { AdminManagedForm } from "./resource-form"
+import { AdminManagedForm } from "./AdminManagedForm"
 import { specs, type FormSpec } from "./resource-specs"
 
 function ScopedForm({ multiple = false }: { multiple?: boolean }) {

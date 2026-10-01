@@ -8,6 +8,22 @@ import {
 } from "./ui-route-registry"
 
 describe("UI route registry", () => {
+  it.each([
+    ["asp", "AssaysPage", "AssayEditorPage"],
+    ["aspc", "AssayConfigurationsPage", "AssayConfigurationEditorPage"],
+    ["genelists", "GeneListsPage", "GeneListEditorPage"],
+    ["users", "UsersPage", "UserEditorPage"],
+    ["roles", "RolesPage", "RoleEditorPage"],
+    ["permissions", "PermissionsPage", "PermissionEditorPage"],
+    ["samples", "AdminSamplesPage", "AdminSampleEditorPage"],
+  ])("assigns explicit routes to %s", (resource, page, editor) => {
+    for (const suffix of ["", "/:id/view", "/:id/edit", "/create"]) {
+      expect(uiRouteRegistry.find((entry) => entry.path === `/admin/${resource}${suffix}`))
+        .toMatchObject({ page: resource === "asp" && suffix === "/create" ? "AssaySetupPage" : suffix ? editor : page })
+    }
+    expect(uiRouteRegistry.some((entry) => entry.path.includes(":resource"))).toBe(false)
+  })
+
   it("contains unique route entries with an explicit page and area", () => {
     const paths = uiRouteRegistry.map((route) => route.path)
     expect(new Set(paths).size).toBe(paths.length)

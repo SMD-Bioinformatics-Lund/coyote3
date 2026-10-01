@@ -9,7 +9,8 @@ const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), del
 vi.mock("@/lib/api", () => ({ api: mocks }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 
-import { OverviewTab, PanelSummary } from "./OverviewTab"
+import { OverviewTab } from "./OverviewTab"
+import { PanelSummary } from "./PanelSummary"
 
 function wrapper(ui: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })

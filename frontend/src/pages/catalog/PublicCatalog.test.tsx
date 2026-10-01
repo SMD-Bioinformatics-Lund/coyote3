@@ -4,7 +4,8 @@ import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api"
-import { PublicCatalog, PublicCatalogMatrix } from "./PublicCatalog"
+import { PublicCatalogMatrix } from "./PublicCatalogMatrixPage"
+import { PublicCatalog } from "./PublicCatalogPage"
 
 beforeEach(() => localStorage.clear())
 

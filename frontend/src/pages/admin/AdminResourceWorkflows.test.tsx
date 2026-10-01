@@ -37,10 +37,44 @@ vi.mock("@/lib/notifications", () => ({
   notifyActionError: mocks.error,
 }))
 
-import { AdminResourceEditorPage, AdminResourcePage } from "./AdminResourcePages"
+import { AssaysPage } from "./assays/AssaysPage"
+import { AssayEditorPage } from "./assays/AssayEditorPage"
+import { AssayConfigurationsPage } from "./assay-configurations/AssayConfigurationsPage"
+import { AssayConfigurationEditorPage } from "./assay-configurations/AssayConfigurationEditorPage"
+import { GeneListsPage } from "./gene-lists/GeneListsPage"
+import { GeneListEditorPage } from "./gene-lists/GeneListEditorPage"
+import { UsersPage } from "./users/UsersPage"
+import { UserEditorPage } from "./users/UserEditorPage"
+import { RolesPage } from "./roles/RolesPage"
+import { RoleEditorPage } from "./roles/RoleEditorPage"
+import { PermissionsPage } from "./permissions/PermissionsPage"
+import { PermissionEditorPage } from "./permissions/PermissionEditorPage"
+import { AdminSamplesPage } from "./samples/AdminSamplesPage"
+import { AdminSampleEditorPage } from "./samples/AdminSampleEditorPage"
+import type { AdminFormMode } from "./resource-specs"
+
+const resourcePages: Record<string, React.ComponentType> = {
+  asp: AssaysPage,
+  aspc: AssayConfigurationsPage,
+  genelists: GeneListsPage,
+  users: UsersPage,
+  roles: RolesPage,
+  permissions: PermissionsPage,
+  samples: AdminSamplesPage,
+}
+const resourceEditors: Record<string, React.ComponentType<{ mode: AdminFormMode }>> = {
+  asp: AssayEditorPage,
+  aspc: AssayConfigurationEditorPage,
+  genelists: GeneListEditorPage,
+  users: UserEditorPage,
+  roles: RoleEditorPage,
+  permissions: PermissionEditorPage,
+  samples: AdminSampleEditorPage,
+}
 import { adminCell } from "./resource-list"
 
 function renderResource(resource: string, children?: ReactNode) {
+  const ResourcePage = resourcePages[resource]
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -48,7 +82,7 @@ function renderResource(resource: string, children?: ReactNode) {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[`/admin/${resource}`]}>
         <Routes>
-          <Route path="/admin/:resource" element={<AdminResourcePage />} />
+          <Route path="/admin/:resource" element={<ResourcePage />} />
           <Route path="*" element={children || <div>Destination</div>} />
         </Routes>
       </MemoryRouter>
@@ -57,6 +91,7 @@ function renderResource(resource: string, children?: ReactNode) {
 }
 
 function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "", copiedDocument?: Record<string, unknown>) {
+  const ResourcePage = resourceEditors[resource]
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -65,9 +100,9 @@ function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[{ pathname: path, state: { copiedDocument } }]}>
         <Routes>
-          <Route path="/admin/:resource/create" element={<AdminResourceEditorPage mode="create" />} />
-          <Route path="/admin/:resource/:id/edit" element={<AdminResourceEditorPage mode="edit" />} />
-          <Route path="/admin/:resource/:id/view" element={<AdminResourceEditorPage mode="view" />} />
+          <Route path="/admin/:resource/create" element={<ResourcePage mode="create" />} />
+          <Route path="/admin/:resource/:id/edit" element={<ResourcePage mode="edit" />} />
+          <Route path="/admin/:resource/:id/view" element={<ResourcePage mode="view" />} />
           <Route path="/admin/:resource" element={<div>Resource list</div>} />
         </Routes>
       </MemoryRouter>
@@ -75,7 +110,7 @@ function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "
   )
 }
 
-describe("AdminResourcePage", () => {
+describe("Managed admin resource workflows", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.access.isLoading = false
@@ -165,7 +200,7 @@ describe("AdminResourcePage", () => {
     expect(screen.getByRole("link", { name: "custom:review" })).toHaveAttribute("href", "/admin/permissions/custom%3Areview/edit")
     const systemRow = screen.getByTitle("sample:view").closest("tr")
     expect(systemRow).not.toBeNull()
-    expect(within(systemRow as HTMLElement).getByTitle(/cannot be edited, disabled, or deleted/)).toBeVisible()
+    expect(within(systemRow as HTMLElement).getByRole("img", { name: "System installed" })).toBeVisible()
     expect(within(systemRow as HTMLElement).queryByTitle("Toggle active")).not.toBeInTheDocument()
     expect(within(systemRow as HTMLElement).queryByTitle("Edit")).not.toBeInTheDocument()
     expect(within(systemRow as HTMLElement).queryByTitle("Delete")).not.toBeInTheDocument()
@@ -183,7 +218,7 @@ describe("AdminResourcePage", () => {
     expect(within(row).queryByTitle("Edit")).not.toBeInTheDocument()
     expect(within(row).queryByTitle("Toggle active")).not.toBeInTheDocument()
     expect(within(row).queryByTitle("Delete")).not.toBeInTheDocument()
-    expect(within(row).getByTitle(/cannot be edited, disabled, or deleted/)).toBeVisible()
+    expect(within(row).getByRole("img", { name: "System installed" })).toBeVisible()
   })
 
   it("requires confirmation before deleting a resource and reports success", async () => {
@@ -215,7 +250,7 @@ describe("AdminResourcePage", () => {
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={["/admin/roles"]}>
         <SwitchResource />
-        <Routes><Route path="/admin/:resource" element={<AdminResourcePage />} /></Routes>
+        <Routes><Route path="/admin/roles" element={<RolesPage />} /><Route path="/admin/users" element={<UsersPage />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>)
     fireEvent.change(screen.getByPlaceholderText("Search roles..."), { target: { value: "reviewer" } })

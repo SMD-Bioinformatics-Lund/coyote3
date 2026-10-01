@@ -1,12 +1,12 @@
 /* eslint-disable react/only-export-components -- shared admin renderers and value helpers are intentionally colocated */
 import { TableBadge } from "@/components/ui/table-badge"
 import { TimeDisplay } from "@/components/ui/time-display"
-import { RecordProvenance } from "./RecordProvenance"
-import { provenanceLabel } from "./record-provenance"
-import { cn } from "@/lib/utils"
 import { accentColor, configuredValueDescription, valueBadgeClass } from "@/lib/badge-colors"
 import { fullDateTime, shortCount } from "@/lib/detail-formatters"
-import type { AdminResourceSpec, FormField, FormSpec, AdminFormMode } from "@/pages/admin/resource-specs"
+import { cn } from "@/lib/utils"
+import type { AdminFormMode, AdminResourceSpec, FormField, FormSpec } from "@/pages/admin/resource-specs"
+import { RecordProvenance } from "./RecordProvenance"
+import { provenanceLabel } from "./record-provenance"
 
 export function valueLabel(value: unknown) {
   if (Array.isArray(value)) return value.join(", ")
@@ -16,7 +16,7 @@ export function valueLabel(value: unknown) {
 }
 
 export function titleize(value: string) {
-  if (value === "record_provenance") return "Created by / Installed by"
+  if (value === "record_provenance") return "Installed by"
   const resourceLabels: Record<string, string> = {
     asp_id: "Assay ID",
     asp_ids: "Assays",
@@ -141,19 +141,6 @@ export function mutationResourceId(result: any, fallback: string) {
   return String(data?.meta?.sample_oid || data?.resource_id || fallback)
 }
 
-export function resourceDocFromContext(context: any, spec: AdminResourceSpec) {
-  const keys = {
-    users: "user_doc",
-    roles: "role",
-    permissions: "permission",
-    asp: "panel",
-    aspc: "assay_config",
-    genelists: "genelist",
-    samples: "sample",
-  } as Record<string, string>
-  return context?.[keys[spec.key]] || null
-}
-
 export function defaultForField(field: FormField) {
   if (field.default !== undefined) return field.default
   if (field.display_type === "checkbox") return false
@@ -183,41 +170,10 @@ export function normalizeList(value: any) {
   return []
 }
 
-type ResourceListFilter = {
+export type ResourceListFilter = {
   field: string
   label: string
   allLabel: string
-}
-
-export function resourceListFilters(resourceKey: string): ResourceListFilter[] {
-  const filters: Record<string, ResourceListFilter[]> = {
-    users: [
-      { field: "roles", label: "Role", allLabel: "All roles" },
-      { field: "auth_type", label: "Authentication", allLabel: "All authentication types" },
-      { field: "is_active", label: "Status", allLabel: "All statuses" },
-    ],
-    permissions: [
-      { field: "category", label: "Category", allLabel: "All categories" },
-    ],
-    asp: [
-      { field: "asp_category", label: "Assay category", allLabel: "All assay categories" },
-      { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
-    ],
-    aspc: [
-      { field: "asp_category", label: "Assay category", allLabel: "All assay categories" },
-      { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
-      { field: "asp_id", label: "Assay", allLabel: "All assays" },
-    ],
-    genelists: [
-      { field: "asp_groups", label: "Assay group", allLabel: "All assay groups" },
-      { field: "asp_ids", label: "Assay", allLabel: "All assays" },
-    ],
-    samples: [
-      { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
-      { field: "asp_id", label: "Assay", allLabel: "All assays" },
-    ],
-  }
-  return filters[resourceKey] || []
 }
 
 export function resourceFilterValues(row: any, field: string) {
@@ -310,39 +266,9 @@ export function parseCellValue(value: string) {
   return trimmed
 }
 
-export function defaultAdminFields(resourceKey: string) {
-  const fields: Record<string, string[]> = {
-    users: ["username", "fullname", "email", "roles", "auth_type", "system_managed", "is_active", "last_login", "updated_on"],
-    roles: ["role_id", "label", "level", "permissions", "system_managed", "is_active", "version", "updated_on"],
-    permissions: ["permission_id", "label", "category", "description", "tags", "system_managed", "is_active", "version", "updated_on"],
-    asp: ["asp_id", "display_name", "asp_category", "asp_group", "asp_family", "platform", "system_managed", "is_active", "version", "updated_on"],
-    aspc: ["aspc_id", "asp_id", "subpanel_id", "environment", "asp_category", "analysis_types", "system_managed", "is_active", "version", "updated_on"],
-    genelists: ["isgl_id", "name", "list_type", "diagnosis", "asp_ids", "asp_groups", "is_public", "system_managed", "is_active", "version", "updated_on"],
-    samples: [
-      "name",
-      "case_id",
-      "case_clarity_id",
-      "control_id",
-      "control_clarity_id",
-      "asp_group",
-      "asp_id",
-      "subpanel_id",
-      "environment",
-      "omics_layer",
-      "paired",
-      "ingest_status",
-      "reported",
-      "time_added",
-    ],
-    generic: ["name", "username", "email", "role_id", "permission_id", "asp_id", "aspc_id", "is_active", "updated_on"],
-  }
-  return fields[resourceKey] || fields.generic
-}
-
-export function adminFields(resourceKey: string, rows: any[]) {
-  const preferred = defaultAdminFields(resourceKey)
+export function adminFields(preferred: string[], rows: any[]) {
   const seen = new Set<string>()
-  const hidden = new Set(["_id", "id", "version_history", "created_by"])
+  const hidden = new Set(["_id", "id", "version_history", "created_by", "installed_by", "system_managed", "record_provenance"])
   const rowHas = (key: string) => rows.some((row) => row?.[key] !== undefined)
   const selected = preferred.filter((key) => !hidden.has(key) && rowHas(key) && !seen.has(key) && seen.add(key))
   if (selected.length >= 5) return [...selected, "record_provenance"]
@@ -368,19 +294,6 @@ export function adminCell(
     return <TimeDisplay value={value} className="text-sm font-normal" />
   }
   if (field === "is_active") return <StatusBadge value={value} />
-  if (field === "system_managed") {
-    return (
-      <ValueBadge
-        value={value ? "System" : "Custom"}
-        kind={value ? "status" : "neutral"}
-        title={
-          value
-            ? "Installed with Coyote3. Available operations depend on the resource's protection policy."
-            : "Created and managed by this center."
-        }
-      />
-    )
-  }
   if (field === "paired") {
     return <ValueBadge value={value ? "Paired" : "Unpaired"} kind={value ? "status" : "warning"} />
   }

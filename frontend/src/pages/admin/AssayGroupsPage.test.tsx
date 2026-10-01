@@ -27,7 +27,7 @@ it("shows protected system entries without edit or delete actions", async () => 
   expect(registry).toHaveClass("glass-card")
   expect(registry).toContainElement(screen.getByRole("textbox", { name: "Search assay groups" }))
   expect(registry).toContainElement(screen.getByRole("table"))
-  expect(screen.getByText("System")).toBeVisible()
+  expect(screen.getByRole("img", { name: "System installed" })).toBeVisible()
   expect(screen.queryByRole("button", { name: /Edit|Delete/ })).not.toBeInTheDocument()
 })
 it("creates a custom group with an editable generated identifier", async () => {

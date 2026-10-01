@@ -75,7 +75,7 @@ export function SubpanelDefinitionsPage() {
       {definitions.isLoading && <p role="status">Loading subpanels...</p>}
       {definitions.error && <p role="alert" className="text-destructive">Unable to load shared subpanels.</p>}
       {!editing && !definitions.isLoading && !definitions.error && <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full text-left text-sm">
-        <thead className="bg-muted"><tr><th className="p-3">Subpanel</th><th className="p-3">Description</th><th className="p-3">Global status</th><th className="p-3">Created by / Installed by</th><th className="p-3">Actions</th></tr></thead>
+        <thead className="bg-muted"><tr><th className="p-3">Subpanel</th><th className="p-3">Description</th><th className="p-3">Global status</th><th className="p-3">Installed by</th><th className="p-3">Actions</th></tr></thead>
         <tbody>{rows.map((row) => <tr className="border-b border-border" key={row.subpanel_id}>
           <td className="max-w-64 break-words p-3"><div className="font-medium">{row.display_name}</div><span className="type-meta text-muted-foreground">{row.subpanel_id}</span></td>
           <td className="max-w-96 whitespace-pre-wrap break-words p-3">{row.description || "-"}</td>

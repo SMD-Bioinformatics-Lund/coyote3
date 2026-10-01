@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { PublicCatalog, PublicCatalogMatrix } from "@/pages/catalog/PublicCatalog"
+import { PublicCatalogMatrix } from "../catalog/PublicCatalogMatrixPage"
+import { PublicCatalog } from "../catalog/PublicCatalogPage"
 import type { Catalog } from "./catalog-types"
 
 export function CatalogPreview({ catalog }: { catalog: Catalog }) {

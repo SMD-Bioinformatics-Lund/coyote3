@@ -47,7 +47,7 @@ export function AssaySubpanels({ aspId, canEdit }: { aspId: string; canEdit: boo
     {error && <p role="alert" className="text-destructive">Unable to load subpanel associations.</p>}
     {mutation.error && <p role="alert" className="text-destructive">{mutation.error.message}</p>}
     {!loading && !error && <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full text-left text-sm">
-      <thead className="bg-muted"><tr><th className="p-3">Subpanel</th><th className="p-3">Shared status</th><th className="p-3">Assay status</th><th className="p-3">Created by / Installed by</th><th className="p-3">Actions</th></tr></thead>
+      <thead className="bg-muted"><tr><th className="p-3">Subpanel</th><th className="p-3">Shared status</th><th className="p-3">Assay status</th><th className="p-3">Installed by</th><th className="p-3">Actions</th></tr></thead>
       <tbody>{rows.map((association) => {
         const active = association.is_active
         return <tr key={association.subpanel_id} className="border-b border-border">

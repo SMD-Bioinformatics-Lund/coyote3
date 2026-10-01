@@ -8,7 +8,9 @@ vi.mock("@/lib/api", () => ({ api: { get: mocks.get } }))
 vi.mock("@/lib/runtime-config", () => ({ runtimeConfig: { organizationName: "Fallback Center" } }))
 vi.mock("@/lib/runtime-paths", () => ({ appPath: (path: string) => `/coyote3${path}` }))
 
-import { AboutPage, ContactPage, NotFoundPage } from "./StaticPages"
+import { AboutPage } from "./AboutPage"
+import { ContactPage } from "./ContactPage"
+import { NotFoundPage } from "./NotFoundPage"
 
 function mount(ui: React.ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })

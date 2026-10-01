@@ -1,29 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Link, useSearchParams } from "react-router-dom"
-import type { ColumnDef, SortingState } from "@tanstack/react-table"
-import { api } from "@/lib/api"
-import { Badge } from "@/components/ui/badge"
-import { TableBadge } from "@/components/ui/table-badge"
-import { Button } from "@/components/ui/button"
-import { TimeDisplay } from "@/components/ui/time-display"
-import { FileText, Dna, Search as SearchIcon } from "lucide-react"
-import { SegmentedControl } from "@/components/ui/segmented-control"
-import { Input } from "@/components/ui/input"
-import { AppLoader } from "@/components/layout/AppLoader"
-import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
-import { PageShell } from "@/components/layout/PageShell"
-import { fullDateTime, shortCount } from "@/lib/detail-formatters"
-import { sampleDetailPath } from "@/lib/sample-routing"
-import { sampleSubpanel } from "@/lib/sample-shape"
-import { FILE_ANALYSIS_LABELS } from "@/lib/sample-artifact-ui"
-import { DataTable, type CsvExportColumn } from "@/components/data-table/DataTable"
+import { DataTable } from "@/components/data-table/DataTable"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
-import { valueBadgeClass } from "@/lib/badge-colors"
-import { useUrlTableState } from "@/hooks/useUrlTableState"
-import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
-import { useCurrentUserAccess } from "@/lib/access-control"
 import {
   DateRangeFilter,
 } from "@/components/filters/DateRangeFilter"
@@ -32,6 +9,18 @@ import {
   parseDateRangePreset,
   resolveDateRange,
 } from "@/components/filters/date-range"
+import { AppLoader } from "@/components/layout/AppLoader"
+import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
+import { PageShell } from "@/components/layout/PageShell"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { useUrlTableState } from "@/hooks/useUrlTableState"
+import { useCurrentUserAccess } from "@/lib/access-control"
+import { api } from "@/lib/api"
+import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { shortCount } from "@/lib/detail-formatters"
 import {
   sampleListLayoutForUser,
   sampleListModernViewTriedForUser,
@@ -39,114 +28,12 @@ import {
   useUpdateUiSettings,
   type SampleListLayout,
 } from "@/lib/user-settings"
-
-type SampleTab = "live" | "reported"
-
-const DEFAULT_LIVE_SORTING: SortingState = [{ id: "added", desc: true }]
-const DEFAULT_REPORTED_SORTING: SortingState = [{ id: "latest_reported", desc: true }]
-
-const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
-  cov: "Cov",
-  biomarkers: "Biomarkers",
-  qc: "QC",
-  classification: "Classification",
-  rna_expr: "Expr",
-  rna_expression: "Expr",
-  rna_class: "Class",
-  rna_classification: "Class",
-  rna_qc: "QC",
-}
-
-const STANDARD_DATA_EXPORT_COLUMNS = [
-  { key: "snvs", aliases: ["snvs"] },
-  { key: "cnvs", aliases: ["cnvs"] },
-  { key: "fusions", aliases: ["fusions"] },
-  { key: "transloc", aliases: ["transloc", "translocations"] },
-  { key: "cov", aliases: ["cov"] },
-  { key: "biomarkers", aliases: ["biomarkers"] },
-  { key: "pgx", aliases: ["pgx"] },
-  { key: "rna_expr", aliases: ["rna_expr", "rna_expression"] },
-  { key: "rna_class", aliases: ["rna_class", "rna_classification"] },
-  { key: "rna_qc", aliases: ["rna_qc", "qc"] },
-] as const
-
-const DATA_EXPORT_LABELS: Record<string, string> = {
-  snvs: "SNV count",
-  cnvs: "CNV count",
-  fusions: "Fusion count",
-  transloc: "Translocation count",
-  translocations: "Translocation count",
-  cov: "Coverage loaded",
-  biomarkers: "Biomarkers loaded",
-  pgx: "PGx loaded",
-  rna_expr: "Expression loaded",
-  rna_expression: "Expression loaded",
-  rna_class: "Classification loaded",
-  rna_classification: "Classification loaded",
-  rna_qc: "QC loaded",
-  qc: "QC loaded",
-}
-
-function exportScalar(value: unknown) {
-  if (typeof value === "boolean") return value ? "Yes" : "No"
-  return value ?? ""
-}
-
-function firstDefinedValue(record: Record<string, unknown>, keys: readonly string[]) {
-  for (const key of keys) {
-    if (record[key] !== undefined) return record[key]
-  }
-  return undefined
-}
-
-function countBadges(sample: any) {
-  const counts = sample?.data_counts || {}
-  const missing = new Set(sample?.missing_expected_files || [])
-  const translocations = counts.transloc ?? counts.translocations
-  const numericBadges = [
-    counts.snvs !== undefined && !missing.has("vcf_files") ? { label: "SNV", value: shortCount(counts.snvs), className: "matte-badge-pass" } : null,
-    counts.cnvs !== undefined && !missing.has("cnv") ? { label: "CNV", value: shortCount(counts.cnvs), className: "matte-badge-pass" } : null,
-    counts.fusions !== undefined && !missing.has("fusion_files") ? { label: "Fusion", value: shortCount(counts.fusions), className: "matte-badge-pass" } : null,
-    translocations !== undefined && !missing.has("transloc") ? { label: "SV", value: shortCount(translocations), className: "matte-badge-pass" } : null,
-  ].filter(Boolean)
-  const fileForCount: Record<string, string> = {
-    rna_expr: "expression_path", rna_expression: "expression_path",
-    rna_class: "classification_path", rna_classification: "classification_path", rna_qc: "qc",
-  }
-  const booleanBadges = Object.entries(counts)
-    .filter(([key, value]) => typeof value === "boolean" && !missing.has(fileForCount[key] || key))
-    .map(([key, value]) => ({
-      label: BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ").toUpperCase(),
-      className: value ? "matte-badge-pass" : "matte-badge-fail",
-    }))
-
-  const missingBadges = (sample?.missing_expected_files || []).map((key: string) => ({
-    label: key === "transloc" ? "Transloc" : FILE_ANALYSIS_LABELS[key] || key,
-    title: `${FILE_ANALYSIS_LABELS[key] || key} not available`,
-    className: "matte-badge-fail",
-  }))
-  return [...numericBadges, ...booleanBadges, ...missingBadges]
-}
-
-function positivePage(value: string | null) {
-  const parsed = Number(value)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
-}
-
-function resetSamplePagination(params: URLSearchParams) {
-  params.delete("live_page")
-  params.delete("reported_page")
-}
-
-function sampleFindingTotal(sample: any) {
-  const counts = sample?.data_counts || {}
-  return (
-    Number(counts.snvs || 0) +
-    Number(counts.cnvs || 0) +
-    Number(counts.fusions || 0) +
-    Number(counts.transloc ?? counts.translocations ?? 0)
-  )
-}
+import { useQuery } from "@tanstack/react-query"
+import { Dna, Search as SearchIcon } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
+import { DEFAULT_LIVE_SORTING, DEFAULT_REPORTED_SORTING, positivePage, resetSamplePagination, type SampleTab } from "./sample-list-presentation"
+import { useSampleColumns, useSampleExportColumns } from "./useSampleColumns"
 
 export function Samples() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -262,150 +149,7 @@ export function Samples() {
     else newParams.set(key, String(pageNumber))
     setSearchParams(newParams)
   }
-  const columns = useMemo<ColumnDef<any, any>[]>(() => [
-    {
-      id: "sample",
-      header: "Sample",
-      accessorFn: (sample) => sample.name || sample.case_id || "",
-      cell: ({ row }) => {
-        const sample = row.original
-        return (
-          <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-semibold">
-            <div className="rounded-lg bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
-              <FileText className="h-4 w-4" />
-            </div>
-            {sample.name || sample.case_id}
-          </Link>
-        )
-      },
-      meta: {
-        exportValue: (sample: any) => sample.name || sample.case_id || "",
-        cellClassName: "min-w-[180px]",
-      },
-    },
-    {
-      id: "case_id",
-      header: "Case ID",
-      accessorFn: (sample) => sample.case_id || sample.case?.id || "",
-      cell: ({ row }) => <span className="font-semibold">{row.original.case_id || row.original.case?.id || "-"}</span>,
-    },
-    {
-      id: "case_clarity",
-      header: "Case Clarity",
-      accessorFn: (sample) => sample.case?.clarity_id || "",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.case?.clarity_id || "-"}</span>,
-    },
-    {
-      id: "control",
-      header: "Control",
-      accessorFn: (sample) => sample.control_id || sample.control?.id || "",
-      cell: ({ row }) => <span className="font-semibold">{row.original.control_id || row.original.control?.id || "-"}</span>,
-    },
-    {
-      id: "control_clarity",
-      header: "Control Clarity",
-      accessorFn: (sample) => sample.control?.clarity_id || "",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.control?.clarity_id || "-"}</span>,
-    },
-    {
-      id: "environment",
-      header: "Profile",
-      accessorFn: (sample) => sample.environment || "",
-      cell: ({ row }) => (
-        <TableBadge className={`${valueBadgeClass(row.original.environment || "")} uppercase`}>
-          {row.original.environment[0] || "-"}
-        </TableBadge>
-      ),
-    },
-    {
-      id: "asp_id",
-      header: "Assay",
-      accessorFn: (sample) => sample.asp_id || "",
-      cell: ({ row }) => <span className="font-normal">{row.original.asp_id || "-"}</span>,
-    },
-    {
-      id: "subpanel",
-      header: "Subpanel",
-      accessorFn: (sample) => sampleSubpanel(sample) || "",
-      cell: ({ row }) => <span className="font-normal">{sampleSubpanel(row.original) || "-"}</span>,
-    },
-    {
-      id: "pipeline",
-      header: "Pipeline",
-      accessorFn: (sample) =>
-        [sample.pipeline, sample.pipeline_version].filter(Boolean).join(" "),
-      cell: ({ row }) => {
-        const { pipeline, pipeline_version: version } = row.original
-
-        return (
-          <span className="font-normal">
-            {pipeline ? `${pipeline}${version ? ` (${version})` : ""}` : "-"}
-          </span>
-        )
-      },
-    },
-    {
-      id: "data",
-      header: "Data",
-      enableSorting: false,
-      accessorFn: sampleFindingTotal,
-      cell: ({ row }) => {
-        const badges = countBadges(row.original)
-        return (
-          <div className="flex flex-wrap gap-1">
-            {badges.length ? badges.map((item: any) => (
-              <TableBadge key={item.label} className={item.className} title={item.title} aria-label={item.title}>
-                {item.value === undefined ? item.label : `${item.label} ${item.value}`}
-              </TableBadge>
-            )) : <span className="text-muted-foreground">-</span>}
-          </div>
-        )
-      },
-      meta: {
-        exportValue: (sample: any) => {
-          const counts = sample?.data_counts || {}
-          return [
-            counts.snvs !== undefined ? `SNV ${counts.snvs}` : "",
-            counts.cnvs !== undefined ? `CNV ${counts.cnvs}` : "",
-            counts.fusions !== undefined ? `Fusion ${counts.fusions}` : "",
-            (counts.transloc ?? counts.translocations) !== undefined ? `SV ${counts.transloc ?? counts.translocations}` : "",
-            ...Object.entries(counts)
-              .filter(([, value]) => value === true)
-              .map(([key]) => BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ")),
-            ...(sample?.missing_expected_files || []).map((key: string) =>
-              `${FILE_ANALYSIS_LABELS[key] || key} not available`),
-          ].filter(Boolean).join("; ")
-        },
-        cellClassName: "min-w-[220px]",
-      },
-    },
-    {
-      id: "added",
-      header: "Added",
-      accessorFn: (sample) => sample.time_added ? new Date(sample.time_added).getTime() : 0,
-      cell: ({ row }) => (
-        <TimeDisplay value={row.original.time_added} className="font-normal" />
-      ),
-      meta: {
-        exportValue: (sample: any) => fullDateTime(sample.time_added),
-        cellClassName: "whitespace-nowrap",
-      },
-    },
-    {
-      id: "latest_reported",
-      header: "Latest reported",
-      accessorFn: (sample) => sample.latest_report_on ? new Date(sample.latest_report_on).getTime() : 0,
-      cell: ({ row }) => (
-        <TimeDisplay value={row.original.latest_report_on} className="font-normal" />
-      ),
-      meta: {
-        exportValue: (sample: any) => sample.latest_report_on
-          ? fullDateTime(sample.latest_report_on)
-          : "",
-        cellClassName: "whitespace-nowrap",
-      },
-    }
-  ], [])
+  const columns = useSampleColumns()
   const liveColumns = useMemo(
     () => columns.filter((column) => column.id !== "latest_reported"),
     [columns],
@@ -415,49 +159,7 @@ export function Samples() {
   const liveTotal = Number(data?.live_total ?? liveSamples.length)
   const reportedTotal = Number(data?.done_total ?? reportedSamples.length)
   const samples = activeTab === "reported" ? reportedSamples : liveSamples
-  const sampleExportColumns = useMemo<CsvExportColumn<any>[]>(() => {
-    const loadedSamples = [...liveSamples, ...reportedSamples]
-    const knownDataKeys = new Set<string>(
-      STANDARD_DATA_EXPORT_COLUMNS.flatMap(({ aliases }) => [...aliases]),
-    )
-    const extraDataKeys = [...new Set(
-      loadedSamples.flatMap((sample: any) => Object.keys(sample?.data_counts || {})),
-    )].filter((key) => !knownDataKeys.has(key)).sort()
-    const biomarkerKeys = [...new Set(
-      loadedSamples.flatMap((sample: any) => Object.keys(sample?.biomarker_values || {})),
-    )].sort()
-
-    return [
-      { header: "Sample", value: (sample) => sample.name || sample.case_id || "" },
-      { header: "Case ID", value: (sample) => sample.case_id || sample.case?.id || "" },
-      { header: "Case Clarity", value: (sample) => sample.case?.clarity_id || "" },
-      { header: "Control ID", value: (sample) => sample.control_id || sample.control?.id || "" },
-      { header: "Control Clarity", value: (sample) => sample.control?.clarity_id || "" },
-      { header: "Profile", value: (sample) => sample.environment || "" },
-      { header: "Assay", value: (sample) => sample.asp_id || "" },
-      { header: "Subpanel", value: (sample) => sampleSubpanel(sample) || "" },
-      { header: "Pipeline", value: (sample) => sample.pipeline || "" },
-      { header: "Pipeline version", value: (sample) => sample.pipeline_version ?? "" },
-      { header: "Analysis status", value: (sample) => sample.ingest_status || "" },
-      { header: "Report status", value: (sample) => sample.reported ? "Reported" : "Unreported" },
-      ...STANDARD_DATA_EXPORT_COLUMNS.map(({ key, aliases }) => ({
-        header: DATA_EXPORT_LABELS[key],
-        value: (sample: any) => exportScalar(
-          firstDefinedValue(sample?.data_counts || {}, aliases),
-        ),
-      })),
-      ...extraDataKeys.map((key) => ({
-        header: DATA_EXPORT_LABELS[key] || key.replaceAll("_", " "),
-        value: (sample: any) => exportScalar(sample?.data_counts?.[key]),
-      })),
-      ...biomarkerKeys.map((key) => ({
-        header: `Biomarker ${key}`,
-        value: (sample: any) => exportScalar(sample?.biomarker_values?.[key]),
-      })),
-      { header: "Added", value: (sample) => fullDateTime(sample.time_added) },
-      { header: "Latest reported", value: (sample) => sample.latest_report_on ? fullDateTime(sample.latest_report_on) : "" },
-    ]
-  }, [liveSamples, reportedSamples])
+  const sampleExportColumns = useSampleExportColumns(liveSamples, reportedSamples)
 
   const renderSampleTable = (rows: any[], state: SampleTab) => (
     <DataTable

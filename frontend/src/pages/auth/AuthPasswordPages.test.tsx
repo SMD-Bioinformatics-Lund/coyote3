@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api"
 import { renderWithRouter } from "@/test/render"
-import { ForgotPassword, ResetPassword } from "./AuthPasswordPages"
+import { ForgotPassword } from "./ForgotPasswordPage"
+import { ResetPassword } from "./ResetPasswordPage"
 
 vi.mock("@/lib/api", () => ({ api: { post: vi.fn() } }))
 

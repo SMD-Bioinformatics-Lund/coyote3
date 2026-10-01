@@ -1,9 +1,9 @@
-import { useState } from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { useState } from "react"
 import { describe, expect, it } from "vitest"
 
-import { CheckboxGroup } from "./resource-form"
+import { CheckboxGroup } from "./CheckboxGroup"
 
 function AssayChoices() {
   const [asp, setAsp] = useState("dna")

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react"
 import { expect, it } from "vitest"
-import { StructuredObjectField } from "./resource-form"
+import { StructuredObjectField } from "./FormControl"
 
 it("separates applicable filter groups with named sections and theme headers", () => {
   render(<StructuredObjectField field={{ display_type: "filters-structured", groups: [

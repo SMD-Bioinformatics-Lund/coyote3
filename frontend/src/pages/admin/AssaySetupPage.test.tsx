@@ -70,3 +70,18 @@ it("preserves the reserved assay identifier when saving the assay form", async (
   fireEvent.click(screen.getByRole("button", { name: "Save" }))
   await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ revision: 3, content: expect.objectContaining({ panel: expect.objectContaining({ asp_id: "assay_1", display_name: "Updated display name" }) }) })))
 })
+it("keeps gene lists and configurations in named workspaces with explicit empty states", async () => {
+  setup.status = "draft"
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "3. Gene lists" }))
+  expect(screen.getByRole("region", { name: "Gene list workspace" })).toBeVisible()
+  expect(screen.getByText("No staged gene lists")).toBeVisible()
+  expect(screen.getByRole("button", { name: "Add gene list" })).toBeDisabled()
+  fireEvent.click(screen.getByRole("button", { name: "Next" }))
+  expect(screen.getByRole("region", { name: "Reporting rule workspace" })).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Next" }))
+  expect(screen.getByRole("region", { name: "Configuration workspace" })).toBeVisible()
+  expect(screen.getByRole("table", { name: "Configuration coverage by scope and environment" })).toBeVisible()
+  expect(screen.getByText("No configurations saved")).toBeVisible()
+  expect(screen.getByRole("button", { name: "5. Configurations" })).toHaveAttribute("aria-current", "step")
+})

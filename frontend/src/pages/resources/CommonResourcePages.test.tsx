@@ -15,7 +15,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get, delete: mocks.delete } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: mocks.success, notifyActionError: mocks.error }))
 
-import { CoverageBlacklistPage, GeneInfoPage, PublicAspGenesPage, PublicGenelistPage } from "./CommonResourcePages"
+import { CoverageBlacklistPage } from "./CoverageBlacklistPage"
+import { GeneInfoPage } from "./GeneInfoPage"
+import { PublicAspGenesPage } from "./PublicAspGenesPage"
+import { PublicGenelistPage } from "./PublicGenelistPage"
 
 function renderRoute(path: string, route: string, page: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })

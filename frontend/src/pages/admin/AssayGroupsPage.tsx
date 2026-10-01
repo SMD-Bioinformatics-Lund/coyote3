@@ -100,7 +100,7 @@ export function AssayGroupsPage() {
       </form>}
       {!groups.isLoading && !groups.error && <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full text-left type-body">
-          <thead className="bg-muted"><tr><th className="p-3">Group</th><th className="p-3">Description</th><th className="p-3">Status</th><th className="p-3">Created by / Installed by</th><th className="p-3">Actions</th></tr></thead>
+          <thead className="bg-muted"><tr><th className="p-3">Group</th><th className="p-3">Description</th><th className="p-3">Status</th><th className="p-3">Installed by</th><th className="p-3">Actions</th></tr></thead>
           <tbody>{rows.map((group) => <tr key={group.group_id} className="border-b border-border">
             <td className="max-w-64 break-words p-3"><div className="font-medium">{group.display_name}</div><div className="type-meta text-muted-foreground">{group.group_id}</div></td>
             <td className="max-w-96 whitespace-pre-wrap break-words p-3">{group.description || "-"}</td>

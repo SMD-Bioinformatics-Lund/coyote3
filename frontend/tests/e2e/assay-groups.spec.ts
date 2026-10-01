@@ -29,7 +29,7 @@ for (const width of [1440, 390]) {
     await page.screenshot({ path: testInfo.outputPath(`admin-home-${width}.png`), fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
     await page.getByRole("link", { name: /^Assay groups/ }).click()
-    await expect(page.getByRole("cell", { name: "System", exact: true })).toBeVisible()
+    await expect(page.getByRole("img", { name: "System installed" })).toBeVisible()
     await page.getByRole("button", { name: "Create group" }).click()
     await page.getByLabel("Display name", { exact: true }).fill("Methylation")
     await expect(page.getByLabel("Group identifier", { exact: false })).toHaveValue("methylation")
