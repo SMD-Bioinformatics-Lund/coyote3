@@ -25,7 +25,6 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { SegmentedControl } from "@/components/ui/segmented-control"
 import {
   ADMIN_UTILITY_PERMISSIONS,
   hasPermission,
@@ -142,7 +141,6 @@ export function AdminHubPage() {
   const accessQuery = useCurrentUserAccess()
   const modulesQuery = useApplicationModules()
   const [search, setSearch] = useState("")
-  const [category, setCategory] = useState("all")
   const user = accessQuery.data
   const visibleResources = Object.values(specs).filter((spec) => hasPermission(user, spec.permissions.list))
   const authorizedUtilities = utilityModules.filter((module) =>
@@ -162,7 +160,7 @@ export function AdminHubPage() {
     items: section.paths.flatMap(path => links.filter(link => link.href === `/admin/${path}`)),
   })).filter(section => section.items.length > 0)
   const needle = search.trim().toLowerCase()
-  const matching = sections.filter(section => category === "all" || section.id === category).map(section => ({
+  const matching = sections.map(section => ({
     ...section,
     items: section.items.filter(item => `${section.title} ${item.title} ${item.description}`.toLowerCase().includes(needle)),
   })).filter(section => section.items.length > 0)
@@ -198,15 +196,9 @@ export function AdminHubPage() {
               </div>
               <span role="status" className="type-meta text-muted-foreground">{matching.reduce((total, section) => total + section.items.length, 0)} destinations</span>
             </div>
-            <div className="max-w-full overflow-x-auto">
-              <SegmentedControl ariaLabel="Administration categories" value={category} onValueChange={setCategory} className="w-max" items={[
-                { value: "all", label: "All" },
-                ...sections.map(section => ({ value: section.id, label: section.title })),
-              ]} />
-            </div>
           </div>
           {modulesQuery.isError && hasPermission(user, ADMIN_UTILITY_PERMISSIONS.ingestManage) && <div role="alert" className="flex flex-wrap items-center gap-3 type-body-sm"><p>Ingest availability could not be checked.</p><Button variant="outline" onClick={() => void modulesQuery.refetch()}><RefreshCw className="size-4" />Retry module status</Button></div>}
-          {!matching.length && <div className="py-6 text-center"><p className="type-body text-muted-foreground">No administrative pages match these filters.</p><Button className="mt-3" variant="outline" onClick={() => { setSearch(""); setCategory("all") }}><X className="size-4" />Clear filters</Button></div>}
+          {!matching.length && <div className="py-6 text-center"><p className="type-body text-muted-foreground">No administrative pages match this search.</p><Button className="mt-3" variant="outline" onClick={() => setSearch("")}><X className="size-4" />Clear search</Button></div>}
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {matching.map((section) => {
             const items = section.items

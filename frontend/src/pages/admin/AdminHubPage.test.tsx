@@ -30,17 +30,17 @@ describe("Admin navigation permissions", () => {
     expect(screen.queryByRole("link", { name: /Ingest Workspace/ })).not.toBeInTheDocument()
     expect(screen.getByRole("alert")).toHaveTextContent("Ingest availability")
   })
-  it("filters authorized destinations by category and search and clears them", () => {
+  it("searches across all groups without category tabs and clears the search", () => {
     state.roles = ["superuser"]
     show()
-    fireEvent.click(screen.getByRole("tab", { name: "Reporting and catalog" }))
-    expect(screen.getAllByRole("link")).toHaveLength(3)
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument()
+    expect(screen.getAllByRole("link")).toHaveLength(19)
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: " testing " } })
     expect(screen.getAllByRole("link")).toHaveLength(1)
     expect(screen.getByRole("link", { name: /Clinical Rule Testing/ })).toBeVisible()
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: "no match" } })
     expect(screen.queryAllByRole("link")).toHaveLength(0)
-    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }))
+    fireEvent.click(screen.getAllByRole("button", { name: "Clear search" })[1])
     expect(screen.getAllByRole("link")).toHaveLength(19)
   })
   it("does not expose links without permission", () => {
