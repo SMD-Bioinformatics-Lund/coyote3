@@ -1,0 +1,39 @@
+{
+  "genes": {
+    "GENE1": {
+      "covered_by_panel": true,
+      "transcript": {
+        "chr": "1",
+        "start": 10000,
+        "end": 20000,
+        "transcript_id": "ENST000001"
+      },
+      "exons": {
+        "1": {
+          "chr": "1",
+          "start": 10000,
+          "end": 10100,
+          "nbr": 1,
+          "cov": 120.5
+        }
+      },
+      "CDS": {
+        "1": {
+          "chr": "1",
+          "start": 10020,
+          "end": 10100,
+          "nbr": 1,
+          "cov": 118.0
+        }
+      },
+      "probes": {
+        "p1": {
+          "chr": "1",
+          "start": 10000,
+          "end": 10050,
+          "cov": null
+        }
+      }
+    }
+  }
+}

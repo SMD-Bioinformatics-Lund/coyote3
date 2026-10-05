@@ -72,8 +72,8 @@ echo "[check] docs internal links"
 echo "[check] regenerate collection contracts doc"
 preexisting_doc_changes=0
 if command -v git >/dev/null 2>&1; then
-  if ! git diff --quiet -- docs/api/collection_contracts.md || \
-     ! git diff --cached --quiet -- docs/api/collection_contracts.md; then
+  if ! git diff --quiet -- docs/reference/mongodb-collections.md || \
+     ! git diff --cached --quiet -- docs/reference/mongodb-collections.md; then
     preexisting_doc_changes=1
   fi
 fi
@@ -81,12 +81,12 @@ fi
 
 if command -v git >/dev/null 2>&1; then
   if [[ "$preexisting_doc_changes" -eq 1 ]]; then
-    echo "[warn] docs/api/collection_contracts.md had preexisting local changes; skip clean-tree diff check."
+    echo "[warn] docs/reference/mongodb-collections.md had preexisting local changes; skip clean-tree diff check."
   else
     echo "[check] collection contract doc is committed"
-    if ! git diff --quiet -- docs/api/collection_contracts.md; then
-      echo "ERROR: docs/api/collection_contracts.md changed. Commit regenerated contracts." >&2
-      git --no-pager diff -- docs/api/collection_contracts.md >&2 || true
+    if ! git diff --quiet -- docs/reference/mongodb-collections.md; then
+      echo "ERROR: docs/reference/mongodb-collections.md changed. Commit regenerated contracts." >&2
+      git --no-pager diff -- docs/reference/mongodb-collections.md >&2 || true
       exit 1
     fi
   fi
@@ -95,8 +95,8 @@ fi
 echo "[check] regenerate system permission catalog"
 preexisting_permission_doc_changes=0
 if command -v git >/dev/null 2>&1; then
-  if ! git diff --quiet -- docs/developer/permission_catalog.md || \
-     ! git diff --cached --quiet -- docs/developer/permission_catalog.md; then
+  if ! git diff --quiet -- docs/administration/permission-catalog.md || \
+     ! git diff --cached --quiet -- docs/administration/permission-catalog.md; then
     preexisting_permission_doc_changes=1
   fi
 fi
@@ -104,12 +104,12 @@ fi
 
 if command -v git >/dev/null 2>&1; then
   if [[ "$preexisting_permission_doc_changes" -eq 1 ]]; then
-    echo "[warn] docs/developer/permission_catalog.md had preexisting local changes; skip clean-tree diff check."
+    echo "[warn] docs/administration/permission-catalog.md had preexisting local changes; skip clean-tree diff check."
   else
     echo "[check] system permission catalog is committed"
-    if ! git diff --quiet -- docs/developer/permission_catalog.md; then
-      echo "ERROR: docs/developer/permission_catalog.md changed. Commit the regenerated catalog." >&2
-      git --no-pager diff -- docs/developer/permission_catalog.md >&2 || true
+    if ! git diff --quiet -- docs/administration/permission-catalog.md; then
+      echo "ERROR: docs/administration/permission-catalog.md changed. Commit the regenerated catalog." >&2
+      git --no-pager diff -- docs/administration/permission-catalog.md >&2 || true
       exit 1
     fi
   fi

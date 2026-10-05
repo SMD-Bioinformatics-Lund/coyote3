@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="900" viewBox="0 0 1360 900" role="img" aria-labelledby="title desc">
+<title id="title">Recovery coverage: database records are only one part</title>
+<desc id="desc">Plan a coordinated recovery set and validate it on a dedicated recovery target. MongoDB archives do not contain report files. Preserve broker/staging state; Redis volumes are not a disposable cache.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="900" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Recovery coverage: database records are only one part</text>
+<text x="40" y="84" class="subtitle">Plan a coordinated recovery set and validate it on a dedicated recovery target. MongoDB archives do not contain report files. Preserve</text>
+<text x="40" y="108" class="subtitle">broker/staging state; Redis volumes are not a disposable cache.</text>
+<path d="M240 420 L240 560" class="edge" data-source="0" data-target="3"/>
+<path d="M680 400 L680 560" class="edge" data-source="1" data-target="4"/>
+<path d="M1120 420 L1120 560" class="edge" data-source="2" data-target="5"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="200" rx="10"/>
+<text x="100" y="254" class="name">MongoDB services</text>
+<text x="100" y="299" class="detail">Primary clinical/configuration</text>
+<text x="100" y="322" class="detail">data</text>
+<text x="100" y="345" class="detail">Identity, sessions, roles, audit</text>
+<text x="100" y="368" class="detail">Knowledgebase and BAM as</text>
+<text x="100" y="391" class="detail">deployed</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">Mounted files and staging</text>
+<text x="540" y="299" class="detail">Saved report HTML and PDF</text>
+<text x="540" y="322" class="detail">Pending/failed ingest source</text>
+<text x="540" y="345" class="detail">inputs</text>
+<text x="540" y="368" class="detail">Required registered analysis files</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="200" rx="10"/>
+<text x="980" y="254" class="name">Deployment configuration</text>
+<text x="980" y="299" class="detail">Exact application release / images</text>
+<text x="980" y="322" class="detail">Environment, secrets, mounts,</text>
+<text x="980" y="345" class="detail">routing</text>
+<text x="980" y="368" class="detail">Center configuration and service</text>
+<text x="980" y="391" class="detail">URIs</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="560" width="320" height="200" rx="10"/>
+<text x="100" y="594" class="name">Validate restored records</text>
+<text x="100" y="639" class="detail">Clinical identities and report</text>
+<text x="100" y="662" class="detail">metadata</text>
+<text x="100" y="685" class="detail">Ingest receipts and reference</text>
+<text x="100" y="708" class="detail">releases</text>
+<text x="100" y="731" class="detail">Do not discard replay protection</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="560" width="320" height="220" rx="10"/>
+<text x="540" y="594" class="name">Validate files against</text>
+<text x="540" y="619" class="name">records</text>
+<text x="540" y="664" class="detail">Restore paths and subdirectories</text>
+<text x="540" y="687" class="detail">Check referenced HTML/PDF</text>
+<text x="540" y="710" class="detail">access</text>
+<text x="540" y="733" class="detail">Inspect mismatches before</text>
+<text x="540" y="756" class="detail">cleanup</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="560" width="320" height="180" rx="10"/>
+<text x="980" y="594" class="name">Validate application</text>
+<text x="980" y="619" class="name">behavior</text>
+<text x="980" y="664" class="detail">Identity and intended access scope</text>
+<text x="980" y="687" class="detail">Review and saved report retrieval</text>
+<text x="980" y="710" class="detail">Worker, beat, broker, and routing</text>
+</g>
+<g class="edge-label"><rect x="176" y="476" width="127" height="28" rx="5"/>
+<text x="184" y="494" class="label">restore + check</text>
+</g>
+<g class="edge-label"><rect x="638" y="457" width="83" height="46" rx="5"/>
+<text x="646" y="475" class="label">restore +</text>
+<text x="646" y="493" class="label">reconcile</text>
+</g>
+<g class="edge-label"><rect x="1048" y="476" width="143" height="28" rx="5"/>
+<text x="1056" y="494" class="label">configure + verify</text>
+</g>
+
+</svg>

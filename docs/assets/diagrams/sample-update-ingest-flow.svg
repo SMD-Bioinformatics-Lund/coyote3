@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="820" viewBox="0 0 1360 820" role="img" aria-labelledby="title desc">
+<title id="title">Updating an existing sample bundle</title>
+<desc id="desc">The existing sample remains the parent identity for replacement analysis evidence. Replacement evidence keeps SAMPLE_ID links to the same sample anchor; failures do not leave partial writes.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="820" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Updating an existing sample bundle</text>
+<text x="40" y="84" class="subtitle">The existing sample remains the parent identity for replacement analysis evidence. Replacement evidence keeps SAMPLE_ID links to the same</text>
+<text x="40" y="108" class="subtitle">sample anchor; failures do not leave partial writes.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 500" class="edge" data-source="2" data-target="5"/>
+<path d="M960 580 L900 580 L900 600 L840 600" class="edge" data-source="5" data-target="4"/>
+<path d="M520 600 L460 600 L460 580 L400 580" class="edge" data-source="4" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">1 · Resolve existing sample</text>
+<text x="100" y="299" class="detail">Look up the stable sample name</text>
+<text x="100" y="322" class="detail">Preserve its sample identity</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
+<text x="540" y="254" class="name">2 · Validate the update</text>
+<text x="540" y="299" class="detail">Check existing DNA / RNA modality</text>
+<text x="540" y="322" class="detail">Validate manifest and declared</text>
+<text x="540" y="345" class="detail">files</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Resolve configuration</text>
+<text x="980" y="299" class="detail">Check ASP file policy and ASPC</text>
+<text x="980" y="322" class="detail">Record resolved configuration</text>
+<text x="980" y="345" class="detail">context</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="180" rx="10"/>
+<text x="100" y="534" class="name">6 · Commit or abort</text>
+<text x="100" y="579" class="detail">Success: ready sample with new</text>
+<text x="100" y="602" class="detail">data</text>
+<text x="100" y="625" class="detail">Failure: preserve prior clinical</text>
+<text x="100" y="648" class="detail">state</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="200" rx="10"/>
+<text x="540" y="534" class="name">5 · Replace dependent</text>
+<text x="540" y="559" class="name">evidence</text>
+<text x="540" y="604" class="detail">Write sample-linked analysis</text>
+<text x="540" y="627" class="detail">records</text>
+<text x="540" y="650" class="detail">Use the clinical ingest</text>
+<text x="540" y="673" class="detail">transaction</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="160" rx="10"/>
+<text x="980" y="534" class="name">4 · Preserve filter</text>
+<text x="980" y="559" class="name">authority</text>
+<text x="980" y="604" class="detail">Keep existing sample filter state</text>
+<text x="980" y="627" class="detail">Seed ASPC defaults only if missing</text>
+</g>
+
+
+</svg>

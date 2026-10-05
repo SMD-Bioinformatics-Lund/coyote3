@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1564" viewBox="0 0 1360 1564" role="img" aria-labelledby="title desc">
+<title id="title">Coyote3 request lifecycle</title>
+<desc id="desc">A supported request passes through proxy routing, frontend API helpers, FastAPI middleware, authentication, module and permission checks, typed routes and services, repositories, MongoDB, response validation, audit, and React Query rendering.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1564" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Coyote3 request lifecycle</text>
+<text x="40" y="84" class="subtitle">A supported request passes through proxy routing, frontend API helpers, FastAPI middleware, authentication, module and permission checks,</text>
+<text x="40" y="108" class="subtitle">typed routes and services, repositories, MongoDB, response validation, audit, and React Query rendering.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 340 L1120 400 L240 400 L240 480" class="edge" data-source="2" data-target="3"/>
+<path d="M400 540 L520 540" class="edge" data-source="3" data-target="4"/>
+<path d="M840 540 L960 540" class="edge" data-source="4" data-target="5"/>
+<path d="M1120 620 L1120 680 L240 680 L240 760" class="edge" data-source="5" data-target="6"/>
+<path d="M680 600 L680 760" class="edge optional" data-source="4" data-target="7"/>
+<path d="M1120 620 L1120 700 L680 700 L680 760" class="edge optional" data-source="5" data-target="7"/>
+<path d="M400 820 L460 820 L460 720 L900 720 L900 820 L960 820" class="edge" data-source="6" data-target="8"/>
+<path d="M1120 880 L1120 940 L240 940 L240 1040" class="edge" data-source="8" data-target="9"/>
+<path d="M400 1100 L520 1100" class="edge" data-source="9" data-target="10"/>
+<path d="M840 1100 L960 1100" class="edge" data-source="10" data-target="11"/>
+<path d="M680 1160 L680 1220 L240 1220 L240 1300" class="edge" data-source="10" data-target="12"/>
+<path d="M400 1360 L520 1360" class="edge" data-source="12" data-target="13"/>
+<path d="M840 1360 L960 1360" class="edge" data-source="13" data-target="14"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">1 · User action</text>
+
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">2 · React API helper</text>
+<text x="540" y="299" class="detail">typed payload + query key</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">3 · Reverse proxies</text>
+<text x="980" y="299" class="detail">prefix + /api/v1 routing</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="480" width="320" height="120" rx="10"/>
+<text x="100" y="514" class="name">4 · Middleware</text>
+<text x="100" y="559" class="detail">request ID · CSRF</text>
+<text x="100" y="582" class="detail">session/bearer principal</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="480" width="320" height="120" rx="10"/>
+<text x="540" y="514" class="name">5 · Module gate</text>
+<text x="540" y="559" class="detail">feature enabled?</text>
+<text x="540" y="582" class="detail">disabled → 503</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="480" width="320" height="140" rx="10"/>
+<text x="980" y="514" class="name">6 · Access policy</text>
+<text x="980" y="559" class="detail">active DB permission</text>
+<text x="980" y="582" class="detail">role assignment + scope</text>
+<text x="980" y="605" class="detail">assay · group · environment</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="760" width="320" height="140" rx="10"/>
+<text x="100" y="794" class="name">7 · Typed route</text>
+<text x="100" y="839" class="detail">path/query/body validation</text>
+<text x="100" y="862" class="detail">dependency injection</text>
+<text x="100" y="885" class="detail">application service call</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="760" width="320" height="120" rx="10"/>
+<text x="540" y="794" class="name">Denied</text>
+<text x="540" y="839" class="detail">401 · 403 · 404</text>
+<text x="540" y="862" class="detail">422 · 503</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="760" width="320" height="120" rx="10"/>
+<text x="980" y="794" class="name">8 · Domain workflow</text>
+<text x="980" y="839" class="detail">query, mutation, reporting</text>
+</g>
+<g class="card" data-node="9"><rect x="80" y="1040" width="320" height="120" rx="10"/>
+<text x="100" y="1074" class="name">9 · Repository</text>
+<text x="100" y="1119" class="detail">collection-specific access</text>
+</g>
+<g class="card" data-node="10"><rect x="520" y="1040" width="320" height="120" rx="10"/>
+<text x="540" y="1074" class="name">10 · MongoDB</text>
+<text x="540" y="1119" class="detail">validated documents</text>
+</g>
+<g class="card" data-node="11"><rect x="960" y="1040" width="320" height="120" rx="10"/>
+<text x="980" y="1074" class="name">Audit + cache effects</text>
+<text x="980" y="1119" class="detail">critical event · invalidation</text>
+</g>
+<g class="card" data-node="12"><rect x="80" y="1300" width="320" height="120" rx="10"/>
+<text x="100" y="1334" class="name">11 · Response-model</text>
+<text x="100" y="1359" class="name">serialization</text>
+
+</g>
+<g class="card" data-node="13"><rect x="520" y="1300" width="320" height="120" rx="10"/>
+<text x="540" y="1334" class="name">12 · React Query cache</text>
+<text x="540" y="1359" class="name">update</text>
+
+</g>
+<g class="card" data-node="14"><rect x="960" y="1300" width="320" height="120" rx="10"/>
+<text x="980" y="1334" class="name">13 · UI renders state</text>
+
+</g>
+
+<text x="40" y="1524" class="note">Request boundaries: client and edge; FastAPI policy; application and data; response and interface update.</text>
+</svg>

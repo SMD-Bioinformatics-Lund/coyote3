@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1180" viewBox="0 0 1360 1180" role="img" aria-labelledby="title desc">
+<title id="title">Database-backed RBAC and scoped access decision</title>
+<desc id="desc">An authenticated principal is resolved against active database permissions and roles, then Casbin evaluates action permission and optional assay, assay-group, and environment scope before allowing or denying a request and recording an audit decision.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1180" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Database-backed RBAC and scoped access decision</text>
+<text x="40" y="84" class="subtitle">An authenticated principal is resolved against active database permissions and roles, then Casbin evaluates action permission and optional</text>
+<text x="40" y="108" class="subtitle">assay, assay-group, and environment scope before allowing or denying a request and recording an audit decision.</text>
+<path d="M400 280 L460 280 L460 320 L520 320" class="edge" data-source="0" data-target="1"/>
+<path d="M840 320 L900 320 L900 300 L960 300" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 400 L1120 460 L240 460 L240 560" class="edge" data-source="2" data-target="3"/>
+<path d="M400 660 L460 660 L460 680 L520 680" class="edge" data-source="3" data-target="4"/>
+<path d="M840 680 L900 680 L900 620 L960 620" class="edge" data-source="4" data-target="5"/>
+<path d="M680 800 L680 940" class="edge optional" data-source="4" data-target="7"/>
+<path d="M1120 680 L1120 840 L240 840 L240 940" class="edge" data-source="5" data-target="6"/>
+<path d="M520 1000 L400 1000" class="edge" data-source="7" data-target="6"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">1 · Authenticated principal</text>
+<text x="100" y="299" class="detail">session cookie or bearer token</text>
+<text x="100" y="322" class="detail">user ID + assigned role IDs</text>
+<text x="100" y="345" class="detail">active account required</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="200" rx="10"/>
+<text x="540" y="254" class="name">2 · Persisted role documents</text>
+<text x="540" y="299" class="detail">active role · permission IDs</text>
+<text x="540" y="322" class="detail">role level · display metadata</text>
+<text x="540" y="345" class="detail">scope comes from user account</text>
+<text x="540" y="368" class="detail">system records protected from</text>
+<text x="540" y="391" class="detail">deletion</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="180" rx="10"/>
+<text x="980" y="254" class="name">3 · Active permissions</text>
+<text x="980" y="299" class="detail">application bootstrap catalog</text>
+<text x="980" y="322" class="detail">persisted in MongoDB</text>
+<text x="980" y="345" class="detail">unknown/inactive permission</text>
+<text x="980" y="368" class="detail">denied</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="560" width="320" height="200" rx="10"/>
+<text x="100" y="594" class="name">4 · Route requirement</text>
+<text x="100" y="639" class="detail">for example assay.config:edit</text>
+<text x="100" y="662" class="detail">or variant.classification:edit</text>
+<text x="100" y="685" class="detail">resource context loaded where</text>
+<text x="100" y="708" class="detail">needed</text>
+<text x="100" y="731" class="detail">assay · group · environment</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="560" width="320" height="240" rx="10"/>
+<text x="540" y="594" class="name">5 · Casbin policy decision</text>
+<text x="540" y="639" class="detail">is permission assigned through a</text>
+<text x="540" y="662" class="detail">role?</text>
+<text x="540" y="685" class="detail">is the permission active and</text>
+<text x="540" y="708" class="detail">known?</text>
+<text x="540" y="731" class="detail">does resource fit the user scope?</text>
+<text x="540" y="754" class="detail">superuser bypass is explicit</text>
+<text x="540" y="777" class="detail">default result is deny</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="560" width="320" height="120" rx="10"/>
+<text x="980" y="594" class="name">6A · Allow</text>
+<text x="980" y="639" class="detail">execute service and return typed</text>
+<text x="980" y="662" class="detail">response</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="940" width="320" height="120" rx="10"/>
+<text x="100" y="974" class="name">Access audit / metrics</text>
+<text x="100" y="1019" class="detail">principal · permission · scope ·</text>
+<text x="100" y="1042" class="detail">outcome</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="940" width="320" height="120" rx="10"/>
+<text x="540" y="974" class="name">6B · Deny</text>
+<text x="540" y="1019" class="detail">403 with structured user-facing</text>
+<text x="540" y="1042" class="detail">reason</text>
+</g>
+
+
+</svg>

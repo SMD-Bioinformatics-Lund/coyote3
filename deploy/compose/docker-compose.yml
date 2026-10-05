@@ -148,6 +148,7 @@ services:
       network: host
       args:
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
+        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
     depends_on:
       monitor: {condition: service_started}
 

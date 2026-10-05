@@ -1,6 +1,6 @@
 # Released analysis-specific query policy. This file never contains MongoDB query syntax.
 # Add clinical exceptions only through the typed fields documented in
-# docs/product/aspc_driven_query_strategy.md.
+# docs/reference/assay-filtering.md.
 
 [snv]
 default_somatic_policy = "paired"

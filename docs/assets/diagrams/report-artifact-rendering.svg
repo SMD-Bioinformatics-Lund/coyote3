@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="480" viewBox="0 0 1360 480" role="img" aria-labelledby="title desc">
+<title id="title">One report context, shared HTML and PDF rendering</title>
+<desc id="desc">Preview and saved-artifact access follow their own permission and persistence rules. A temporary preview is not a saved report; confirmation persists the report and finding snapshots.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="480" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">One report context, shared HTML and PDF rendering</text>
+<text x="40" y="84" class="subtitle">Preview and saved-artifact access follow their own permission and persistence rules. A temporary preview is not a saved report; confirmation</text>
+<text x="40" y="108" class="subtitle">persists the report and finding snapshots.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">Clinical workflow context</text>
+<text x="100" y="299" class="detail">Prepared findings and generated</text>
+<text x="100" y="322" class="detail">text</text>
+<text x="100" y="345" class="detail">Configuration and rule provenance</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">Clinical report HTML</text>
+<text x="540" y="299" class="detail">Render the report layout</text>
+<text x="540" y="322" class="detail">Embed report CSS and evidence</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">PDF artifact</text>
+<text x="980" y="299" class="detail">Render PDF from the same HTML</text>
+<text x="980" y="322" class="detail">Preserve the report presentation</text>
+</g>
+
+
+</svg>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1500" viewBox="0 0 1360 1500" role="img" aria-labelledby="title desc">
+<title id="title">ASP, ASPC, and ISGL update flow</title>
+<desc id="desc">An authorized administrator loads a managed form contract, edits an ASP, ASPC, or ISGL, passes canonical identity and document validation, creates a successor revision, retires the previous revision, records a permanent traceability event, and affects future sample resolution while saved reports remain unchanged.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1500" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">ASP, ASPC, and ISGL update flow</text>
+<text x="40" y="84" class="subtitle">An authorized administrator loads a managed form contract, edits an ASP, ASPC, or ISGL, passes canonical identity and document validation,</text>
+<text x="40" y="108" class="subtitle">creates a successor revision, retires the previous revision, records a permanent traceability event, and affects future sample resolution</text>
+<text x="40" y="132" class="subtitle">while saved reports remain unchanged.</text>
+<path d="M400 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L960 300" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 420 L240 420 L240 500" class="edge" data-source="2" data-target="3"/>
+<path d="M400 560 L520 560" class="edge" data-source="3" data-target="4"/>
+<path d="M840 560 L900 560 L900 600 L960 600" class="edge" data-source="4" data-target="5"/>
+<path d="M1120 700 L1120 760 L240 760 L240 840" class="edge" data-source="5" data-target="6"/>
+<path d="M400 900 L460 900 L460 920 L520 920" class="edge" data-source="6" data-target="7"/>
+<path d="M400 900 L460 900 L460 800 L900 800 L900 940 L960 940" class="edge optional" data-source="6" data-target="8"/>
+<path d="M1120 1060 L1120 1120 L240 1120 L240 1200" class="edge optional" data-source="8" data-target="9"/>
+<g class="card" data-node="0"><rect x="80" y="240" width="320" height="120" rx="10"/>
+<text x="100" y="274" class="name">1 · Open resource</text>
+<text x="100" y="319" class="detail">ASP · ASPC · ISGL</text>
+<text x="100" y="342" class="detail">view or edit route</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="240" width="320" height="120" rx="10"/>
+<text x="540" y="274" class="name">2 · Permission check</text>
+<text x="540" y="319" class="detail">resource-specific action</text>
+<text x="540" y="342" class="detail">and assigned scope</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="240" width="320" height="120" rx="10"/>
+<text x="980" y="274" class="name">3 · Managed form context</text>
+<text x="980" y="319" class="detail">schema + allowed options</text>
+<text x="980" y="342" class="detail">current document values</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="120" rx="10"/>
+<text x="100" y="534" class="name">4 · Submit change</text>
+<text x="100" y="579" class="detail">typed API payload</text>
+<text x="100" y="602" class="detail">actor identity</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="140" rx="10"/>
+<text x="540" y="534" class="name">5 · Normalize and validate</text>
+<text x="540" y="579" class="detail">canonical lowercase identifier</text>
+<text x="540" y="602" class="detail">allowed characters and vocabulary</text>
+<text x="540" y="625" class="detail">Pydantic collection contract</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="200" rx="10"/>
+<text x="980" y="534" class="name">6 · Cross-resource checks</text>
+<text x="980" y="579" class="detail">ASPC references an active ASP</text>
+<text x="980" y="602" class="detail">ASP-derived</text>
+<text x="980" y="625" class="detail">group/category/platform</text>
+<text x="980" y="648" class="detail">analysis, filters, report sections</text>
+<text x="980" y="671" class="detail">ISGL associations remain valid</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="840" width="320" height="140" rx="10"/>
+<text x="100" y="874" class="name">7 · Rotate revision</text>
+<text x="100" y="919" class="detail">insert version + 1 as active</text>
+<text x="100" y="942" class="detail">retire previous active revision</text>
+<text x="100" y="965" class="detail">preserve stable business key</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="840" width="320" height="180" rx="10"/>
+<text x="540" y="874" class="name">8 · Record traceability</text>
+<text x="540" y="899" class="name">event</text>
+<text x="540" y="944" class="detail">actor · old/new revision ·</text>
+<text x="540" y="967" class="detail">resource key</text>
+<text x="540" y="990" class="detail">immutable · no expiry timestamp</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="840" width="320" height="220" rx="10"/>
+<text x="980" y="874" class="name">Future sample resolution</text>
+<text x="980" y="919" class="detail">ASP + requested subpanel +</text>
+<text x="980" y="942" class="detail">environment</text>
+<text x="980" y="965" class="detail">exact ASPC or explicit base</text>
+<text x="980" y="988" class="detail">fallback</text>
+<text x="980" y="1011" class="detail">sample receives filters and</text>
+<text x="980" y="1034" class="detail">analysis scope</text>
+</g>
+<g class="card" data-node="9"><rect x="80" y="1200" width="320" height="180" rx="10"/>
+<text x="100" y="1234" class="name">Saved reports unchanged</text>
+<text x="100" y="1279" class="detail">configuration/filter/finding</text>
+<text x="100" y="1302" class="detail">snapshots</text>
+<text x="100" y="1325" class="detail">plus clinical-rule identity and</text>
+<text x="100" y="1348" class="detail">hash</text>
+</g>
+
+
+</svg>

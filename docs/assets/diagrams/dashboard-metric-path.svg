@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1052" viewBox="0 0 1360 1052" role="img" aria-labelledby="title desc">
+<title id="title">Dashboard metric data path</title>
+<desc id="desc">Independent dashboard requests read Redis metric entries. Cache misses and stale entries are rebuilt from MongoDB by the service or a Celery background task. Relevant collection writes invalidate only dependent metrics.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1052" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Dashboard metric data path</text>
+<text x="40" y="84" class="subtitle">Independent dashboard requests read Redis metric entries. Cache misses and stale entries are rebuilt from MongoDB by the service or a Celery</text>
+<text x="40" y="108" class="subtitle">background task. Relevant collection writes invalidate only dependent metrics.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 340 L1120 400 L240 400 L240 480" class="edge" data-source="2" data-target="3"/>
+<path d="M1120 340 L1120 480" class="edge optional" data-source="2" data-target="5"/>
+<path d="M960 540 L840 540" class="edge" data-source="5" data-target="4"/>
+<path d="M680 480 L680 340" class="edge" data-source="4" data-target="1"/>
+<path d="M240 740 L240 660 L1120 660 L1120 600" class="edge" data-source="6" data-target="5"/>
+<path d="M240 740 L240 600" class="edge optional" data-source="6" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">Dashboard sections</text>
+<text x="100" y="299" class="detail">six independent requests</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">Metric API endpoint</text>
+<text x="540" y="299" class="detail">one domain payload</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">Redis metric cache</text>
+<text x="980" y="299" class="detail">fresh, stale, or missing</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="480" width="320" height="120" rx="10"/>
+<text x="100" y="514" class="name">Immediate section render</text>
+<text x="100" y="559" class="detail">partial failures remain isolated</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="480" width="320" height="120" rx="10"/>
+<text x="540" y="514" class="name">Dashboard service</text>
+<text x="540" y="559" class="detail">build only requested metric</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="480" width="320" height="120" rx="10"/>
+<text x="980" y="514" class="name">MongoDB</text>
+<text x="980" y="559" class="detail">authoritative collections</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="740" width="320" height="120" rx="10"/>
+<text x="100" y="774" class="name">Celery refresh</text>
+<text x="100" y="819" class="detail">scheduled, stale, or manual</text>
+</g>
+
+<text x="40" y="964" class="note">cache miss</text>
+<text x="40" y="988" class="note">stale value returned first</text>
+<text x="40" y="1012" class="note">Collection writes advance dependency markers; only affected metric entries become stale.</text>
+</svg>

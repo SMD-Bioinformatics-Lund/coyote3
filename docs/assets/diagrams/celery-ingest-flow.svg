@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1460" viewBox="0 0 1360 1460" role="img" aria-labelledby="title desc">
+<title id="title">Celery sample ingest flow</title>
+<desc id="desc">A watched or manually submitted YAML manifest is queued through Redis, validated and parsed by a Celery worker, committed in one MongoDB transaction, audited, and renamed done or failed. Required files must be readable; unavailable optional expected files are recorded. Dashed paths indicate validation or transaction failure.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1460" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Celery sample ingest flow</text>
+<text x="40" y="84" class="subtitle">A watched or manually submitted YAML manifest is queued through Redis, validated and parsed by a Celery worker, committed in one MongoDB</text>
+<text x="40" y="108" class="subtitle">transaction, audited, and renamed done or failed. Required files must be readable; unavailable optional expected files are recorded. Dashed</text>
+<text x="40" y="132" class="subtitle">paths indicate validation or transaction failure.</text>
+<path d="M400 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L960 300" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 380 L1120 440 L240 440 L240 520" class="edge" data-source="2" data-target="3"/>
+<path d="M400 620 L460 620 L460 600 L520 600" class="edge" data-source="3" data-target="4"/>
+<path d="M840 600 L900 600 L900 620 L960 620" class="edge" data-source="4" data-target="5"/>
+<path d="M1120 740 L1120 800 L240 800 L240 880" class="edge" data-source="5" data-target="6"/>
+<path d="M400 960 L460 960 L460 980 L520 980" class="edge" data-source="6" data-target="7"/>
+<path d="M240 740 L240 820 L1120 820 L1120 880" class="edge optional" data-source="3" data-target="8"/>
+<path d="M680 700 L680 780 L1120 780 L1120 880" class="edge optional" data-source="4" data-target="8"/>
+<path d="M1120 740 L1120 880" class="edge optional" data-source="5" data-target="8"/>
+<path d="M400 960 L460 960 L460 840 L900 840 L900 960 L960 960" class="edge optional" data-source="6" data-target="8"/>
+<path d="M680 1080 L680 1140 L240 1140 L240 1220" class="edge" data-source="7" data-target="9"/>
+<path d="M1120 1060 L1120 1160 L240 1160 L240 1220" class="edge" data-source="8" data-target="9"/>
+<g class="card" data-node="0"><rect x="80" y="240" width="320" height="140" rx="10"/>
+<text x="100" y="274" class="name">1 · Ingest trigger</text>
+<text x="100" y="319" class="detail">Celery beat watch scan</text>
+<text x="100" y="342" class="detail">or Admin upload / queue action</text>
+<text x="100" y="365" class="detail">module and ingest gates enforced</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="240" width="320" height="120" rx="10"/>
+<text x="540" y="274" class="name">2 · Durable job</text>
+<text x="540" y="319" class="detail">MongoDB receipt + queue ID</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="240" width="320" height="140" rx="10"/>
+<text x="980" y="274" class="name">3 · Celery worker</text>
+<text x="980" y="319" class="detail">single bundle orchestration</text>
+<text x="980" y="342" class="detail">task state and structured errors</text>
+<text x="980" y="365" class="detail">tokenized execution lease</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="520" width="320" height="220" rx="10"/>
+<text x="100" y="554" class="name">4 · Parse manifest</text>
+<text x="100" y="599" class="detail">DNA/RNA contract + canonical</text>
+<text x="100" y="622" class="detail">keys</text>
+<text x="100" y="645" class="detail">host paths preserved in</text>
+<text x="100" y="668" class="detail">documents</text>
+<text x="100" y="691" class="detail">container paths used for reading</text>
+<text x="100" y="714" class="detail">ASP determines required files</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="520" width="320" height="180" rx="10"/>
+<text x="540" y="554" class="name">5 · Resolve configuration</text>
+<text x="540" y="599" class="detail">active ASP file policy</text>
+<text x="540" y="622" class="detail">exact ASPC or base fallback</text>
+<text x="540" y="645" class="detail">analysis types + report sections</text>
+<text x="540" y="668" class="detail">default filters and intents</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="520" width="320" height="220" rx="10"/>
+<text x="980" y="554" class="name">6 · Parse readable resources</text>
+<text x="980" y="599" class="detail">VCF → variants + versioned CSQs</text>
+<text x="980" y="622" class="detail">CNV · profile · coverage</text>
+<text x="980" y="645" class="detail">translocations · fusions ·</text>
+<text x="980" y="668" class="detail">biomarkers</text>
+<text x="980" y="691" class="detail">counts and references verified</text>
+<text x="980" y="714" class="detail">transcript priority applied</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="880" width="320" height="180" rx="10"/>
+<text x="100" y="914" class="name">7 · One transaction</text>
+<text x="100" y="959" class="detail">sample anchor + dependents</text>
+<text x="100" y="982" class="detail">typed repository writes</text>
+<text x="100" y="1005" class="detail">evidence + completion receipt</text>
+<text x="100" y="1028" class="detail">before ready state</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="880" width="320" height="200" rx="10"/>
+<text x="540" y="914" class="name">8A · Commit success</text>
+<text x="540" y="959" class="detail">sample enters samples collection</text>
+<text x="540" y="982" class="detail">ingest_status = ready</text>
+<text x="540" y="1005" class="detail">post-commit audit delivery</text>
+<text x="540" y="1028" class="detail">acknowledgement retried if</text>
+<text x="540" y="1051" class="detail">needed</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="880" width="320" height="180" rx="10"/>
+<text x="980" y="914" class="name">8B · Abort transaction</text>
+<text x="980" y="959" class="detail">no partial clinical writes</text>
+<text x="980" y="982" class="detail">previous clinical state preserved</text>
+<text x="980" y="1005" class="detail">retryable jobs remain pending</text>
+<text x="980" y="1028" class="detail">permanent failures need review</text>
+</g>
+<g class="card" data-node="9"><rect x="80" y="1220" width="320" height="120" rx="10"/>
+<text x="100" y="1254" class="name">Ingest status</text>
+<text x="100" y="1299" class="detail">Admin Ingest Workspace</text>
+<text x="100" y="1322" class="detail">Task status and runtime controls</text>
+</g>
+
+
+</svg>

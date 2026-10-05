@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="764" viewBox="0 0 1360 764" role="img" aria-labelledby="title desc">
+<title id="title">First-deployment bootstrap data flow</title>
+<desc id="desc">Application RBAC, reference snapshots, and optional demo configuration are validated and inserted only into empty MongoDB collections.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="764" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">First-deployment bootstrap data flow</text>
+<text x="40" y="84" class="subtitle">Application RBAC, reference snapshots, and optional demo configuration are validated and inserted only into empty MongoDB collections.</text>
+<path d="M400 260 L460 260 L460 160 L900 160 L900 260 L960 260" class="edge" data-source="0" data-target="2"/>
+<path d="M840 260 L960 260" class="edge" data-source="1" data-target="2"/>
+<path d="M680 480 L680 400 L1120 400 L1120 340" class="edge" data-source="4" data-target="2"/>
+<path d="M1120 340 L1120 420 L240 420 L240 480" class="edge" data-source="2" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="200" width="320" height="120" rx="10"/>
+<text x="100" y="234" class="name">Application RBAC</text>
+<text x="100" y="279" class="detail">permissions + built-in roles</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="200" width="320" height="120" rx="10"/>
+<text x="540" y="234" class="name">Reference snapshots</text>
+<text x="540" y="279" class="detail">HGNC genes + VEP metadata</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="200" width="320" height="140" rx="10"/>
+<text x="980" y="234" class="name">Normalize and validate</text>
+<text x="980" y="279" class="detail">Pydantic contracts</text>
+<text x="980" y="302" class="detail">cross-resource identities</text>
+<text x="980" y="325" class="detail">audit metadata</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="480" width="320" height="140" rx="10"/>
+<text x="100" y="514" class="name">Collection occupancy gate</text>
+<text x="100" y="559" class="detail">empty: insert validated documents</text>
+<text x="100" y="582" class="detail">nonempty: skip without mutation</text>
+<text x="100" y="605" class="detail">MongoDB remains authoritative</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="480" width="320" height="120" rx="10"/>
+<text x="540" y="514" class="name">Demo center (optional)</text>
+<text x="540" y="559" class="detail">ASP + ASPC + ISGL</text>
+</g>
+
+<text x="40" y="724" class="note">Samples, annotations, reports, credentials, and patient identifiers are never application bootstrap data.</text>
+</svg>

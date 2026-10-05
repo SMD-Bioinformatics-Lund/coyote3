@@ -14,9 +14,9 @@ section. Deploy API, worker, and scheduler with the same directory revision.
 
 Repository identity, supported workflow semantics, authorization semantics, and
 runtime code do not belong here. See the complete field-level protocol in
-[`docs/operations/center_configuration_files.md`](../../../docs/operations/center_configuration_files.md)
+[`docs/deployment/center-configuration.md`](../../../docs/deployment/center-configuration.md)
 and the vocabulary contract in
-[`docs/operations/clinical_vocabulary.md`](../../../docs/operations/clinical_vocabulary.md).
+[`docs/administration/clinical-vocabulary.md`](../../../docs/administration/clinical-vocabulary.md).
 
 The public assay catalog is not a mounted configuration file. Manage it in the
 **Admin > Public Assay Catalog** builder. It is stored in the primary database;

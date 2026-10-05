@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1160" viewBox="0 0 1360 1160" role="img" aria-labelledby="title desc">
+<title id="title">Configuration changes: what changes and what stays historical</title>
+<desc id="desc">Availability controls, revision changes, sample filter edits, and saved reports have different effects. Historical evidence is not recomputed from a later mutable view. Scope changes require their own validated workflows.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1160" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Configuration changes: what changes and what stays historical</text>
+<text x="40" y="84" class="subtitle">Availability controls, revision changes, sample filter edits, and saved reports have different effects. Historical evidence is not</text>
+<text x="40" y="108" class="subtitle">recomputed from a later mutable view. Scope changes require their own validated workflows.</text>
+<path d="M240 360 L240 540" class="edge" data-source="0" data-target="3"/>
+<path d="M680 400 L680 540" class="edge" data-source="1" data-target="4"/>
+<path d="M1120 400 L1120 540" class="edge" data-source="2" data-target="5"/>
+<path d="M1120 720 L1120 780 L680 780 L680 860" class="edge" data-source="5" data-target="7"/>
+<path d="M400 920 L460 920 L460 940 L520 940" class="edge" data-source="6" data-target="7"/>
+<path d="M840 940 L960 940" class="edge" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">Group availability change</text>
+<text x="100" y="299" class="detail">Disable or reactivate parent group</text>
+<text x="100" y="322" class="detail">Blocks new governed operations</text>
+<text x="100" y="345" class="detail">Does not rewrite child statuses</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">Subpanel availability change</text>
+<text x="540" y="299" class="detail">Shared definition has global</text>
+<text x="540" y="322" class="detail">status</text>
+<text x="540" y="345" class="detail">Each assay link has its own status</text>
+<text x="540" y="368" class="detail">Both required for new selection</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="180" rx="10"/>
+<text x="980" y="254" class="name">Clinical resource revision</text>
+<text x="980" y="299" class="detail">ASP / ASPC / ISGL new revision</text>
+<text x="980" y="322" class="detail">Validate cross-resource</text>
+<text x="980" y="345" class="detail">references</text>
+<text x="980" y="368" class="detail">Record actor and version history</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="180" rx="10"/>
+<text x="100" y="574" class="name">Existing clinical records</text>
+<text x="100" y="619" class="detail">Samples and reports remain</text>
+<text x="100" y="642" class="detail">stored</text>
+<text x="100" y="665" class="detail">Review uses existing access policy</text>
+<text x="100" y="688" class="detail">No cascading clinical deletion</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="180" rx="10"/>
+<text x="540" y="574" class="name">New scope resolution</text>
+<text x="540" y="619" class="detail">Exclude inactive named</text>
+<text x="540" y="642" class="detail">associations</text>
+<text x="540" y="665" class="detail">Preserve historic scope identities</text>
+<text x="540" y="688" class="detail">No implicit sibling reactivation</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="180" rx="10"/>
+<text x="980" y="574" class="name">Sample configuration state</text>
+<text x="980" y="619" class="detail">Read recorded ASPC revision</text>
+<text x="980" y="642" class="detail">Persist sample filters separately</text>
+<text x="980" y="665" class="detail">Updates/reset are explicit</text>
+<text x="980" y="688" class="detail">operations</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="860" width="320" height="140" rx="10"/>
+<text x="100" y="894" class="name">Published rule release</text>
+<text x="100" y="939" class="detail">Separate review and publication</text>
+<text x="100" y="962" class="detail">Exact scope then permitted Base</text>
+<text x="100" y="985" class="detail">Version + content hash recorded</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="860" width="320" height="180" rx="10"/>
+<text x="540" y="894" class="name">Live report preview</text>
+<text x="540" y="939" class="detail">Prepared from current review</text>
+<text x="540" y="962" class="detail">state</text>
+<text x="540" y="985" class="detail">Effective configuration and rules</text>
+<text x="540" y="1008" class="detail">Temporary until confirmed</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="860" width="320" height="180" rx="10"/>
+<text x="980" y="894" class="name">Saved report</text>
+<text x="980" y="939" class="detail">Preserved finding/config</text>
+<text x="980" y="962" class="detail">snapshots</text>
+<text x="980" y="985" class="detail">Rule identity and content hash</text>
+<text x="980" y="1008" class="detail">Later changes do not rewrite it</text>
+</g>
+<g class="edge-label"><rect x="196" y="436" width="87" height="28" rx="5"/>
+<text x="204" y="454" class="label">preserves</text>
+</g>
+<g class="edge-label"><rect x="652" y="456" width="56" height="28" rx="5"/>
+<text x="660" y="474" class="label">gates</text>
+</g>
+<g class="edge-label"><rect x="1049" y="456" width="142" height="28" rx="5"/>
+<text x="1057" y="474" class="label">versioned context</text>
+</g>
+<g class="edge-label"><rect x="829" y="757" width="142" height="46" rx="5"/>
+<text x="837" y="775" class="label">prepare effective</text>
+<text x="837" y="793" class="label">state</text>
+</g>
+<g class="edge-label"><rect x="412" y="906" width="83" height="28" rx="5"/>
+<text x="420" y="924" class="label">evaluates</text>
+</g>
+<g class="edge-label"><rect x="864" y="926" width="72" height="28" rx="5"/>
+<text x="872" y="944" class="label">confirm</text>
+</g>
+
+</svg>

@@ -59,7 +59,7 @@ It uses native Compose settings and the shared application Dockerfiles.
 
 Use `deploy/env/example.env` as the starting point for a private env file.
 Complete all secrets, public URL, database names, and storage paths as described
-in the [configuration reference](../../docs/start_here/configuration.md).
+in the [configuration reference](../../docs/deployment/configuration-reference.md).
 Never commit a completed environment file.
 
 | Setting | Legacy requirement |
@@ -76,9 +76,9 @@ Copy `deploy/legacy/docker-compose.storage.example.yml` to the Git-ignored
 `.coyote3_storage.yml` and edit that local copy for your mounts. Pass it as the
 last `-f` file on deployment commands. Git pulls leave this private override
 untouched; do not edit tracked Compose files for center-specific paths. See
-[center storage mounts](../../docs/operations/deployment_guide.md#center-storage-mounts)
+[center storage mounts](../../docs/deployment/containers-and-reverse-proxy.md#center-storage-mounts)
 for examples.
-Existing installations must follow the [storage migration instructions](../../docs/start_here/configuration.md#migrating-existing-application-storage)
+Existing installations must follow the [storage migration instructions](../../docs/deployment/configuration-reference.md#migrating-existing-application-storage)
 before deploying this layout. Updating the env file does not migrate files or
 stored absolute paths. Log and MongoDB storage settings remain independent.
 

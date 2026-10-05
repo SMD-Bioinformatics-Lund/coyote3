@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="880" viewBox="0 0 1360 880" role="img" aria-labelledby="title desc">
+<title id="title">Durable ingest receipt states and recovery</title>
+<desc id="desc">Read the existing receipt before interpreting a client timeout or missing file acknowledgement. Only pending, running, succeeded, and failed are receipt states. The other boxes describe recovery conditions.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="880" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Durable ingest receipt states and recovery</text>
+<text x="40" y="84" class="subtitle">Read the existing receipt before interpreting a client timeout or missing file acknowledgement. Only pending, running, succeeded, and failed</text>
+<text x="40" y="108" class="subtitle">are receipt states. The other boxes describe recovery conditions.</text>
+<path d="M400 280 L460 280 L460 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 320 L960 320" class="edge" data-source="1" data-target="2"/>
+<path d="M680 400 L680 560" class="edge" data-source="1" data-target="4"/>
+<path d="M680 400 L680 460 L240 460 L240 560" class="edge" data-source="1" data-target="3"/>
+<path d="M240 560 L240 500 L220 500 L220 420 L240 420 L240 360" class="edge" data-source="3" data-target="0"/>
+<path d="M1120 420 L1120 560" class="edge" data-source="2" data-target="5"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">pending</text>
+<text x="100" y="299" class="detail">Request durably accepted</text>
+<text x="100" y="322" class="detail">Await worker claim / delivery</text>
+<text x="100" y="345" class="detail">Check family, beat, worker, Redis</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">running</text>
+<text x="540" y="299" class="detail">Tokenized worker lease</text>
+<text x="540" y="322" class="detail">Only lease owner can commit</text>
+<text x="540" y="345" class="detail">Inspect progress before</text>
+<text x="540" y="368" class="detail">intervening</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="200" rx="10"/>
+<text x="980" y="254" class="name">succeeded</text>
+<text x="980" y="299" class="detail">Data + receipt committed</text>
+<text x="980" y="322" class="detail">together</text>
+<text x="980" y="345" class="detail">Stored result is replay-safe</text>
+<text x="980" y="368" class="detail">Verify sample visibility and</text>
+<text x="980" y="391" class="detail">evidence</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="560" width="320" height="180" rx="10"/>
+<text x="100" y="594" class="name">Retryable interruption</text>
+<text x="100" y="639" class="detail">Transient connection /</text>
+<text x="100" y="662" class="detail">transaction</text>
+<text x="100" y="685" class="detail">Expired lease permits redelivery</text>
+<text x="100" y="708" class="detail">Keep receipt and source inputs</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="560" width="320" height="200" rx="10"/>
+<text x="540" y="594" class="name">failed</text>
+<text x="540" y="639" class="detail">Terminal validation / write</text>
+<text x="540" y="662" class="detail">failure</text>
+<text x="540" y="685" class="detail">Investigate and correct the input</text>
+<text x="540" y="708" class="detail">Submit corrected input as a new</text>
+<text x="540" y="731" class="detail">job</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="560" width="320" height="200" rx="10"/>
+<text x="980" y="594" class="name">Post-commit</text>
+<text x="980" y="619" class="name">acknowledgement</text>
+<text x="980" y="664" class="detail">Watched marker or client</text>
+<text x="980" y="687" class="detail">response</text>
+<text x="980" y="710" class="detail">Failure does not undo the commit</text>
+<text x="980" y="733" class="detail">Use receipt to resolve uncertainty</text>
+</g>
+<g class="edge-label"><rect x="412" y="266" width="53" height="28" rx="5"/>
+<text x="420" y="284" class="label">claim</text>
+</g>
+<g class="edge-label"><rect x="853" y="286" width="69" height="28" rx="5"/>
+<text x="861" y="304" class="label">commit</text>
+</g>
+<g class="edge-label"><rect x="616" y="466" width="128" height="28" rx="5"/>
+<text x="624" y="484" class="label">terminal failure</text>
+</g>
+<g class="edge-label"><rect x="418" y="446" width="83" height="28" rx="5"/>
+<text x="426" y="464" class="label">retryable</text>
+</g>
+<g class="edge-label"><rect x="174" y="446" width="91" height="28" rx="5"/>
+<text x="182" y="464" class="label">redispatch</text>
+</g>
+<g class="edge-label"><rect x="1068" y="476" width="104" height="28" rx="5"/>
+<text x="1076" y="494" class="label">acknowledge</text>
+</g>
+
+</svg>

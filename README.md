@@ -1,8 +1,21 @@
 # Coyote3
 
-### Build & Release
+Clinical genomics review, assay configuration, and reporting for DNA and RNA
+workflows. Developed by the Section for Molecular Diagnostics (SMD), Lund.
+
+[Get started](docs/getting-started/local-quickstart.md) ·
+[User guide](docs/user-guide/README.md) ·
+[Deployment](docs/deployment/README.md) ·
+[Architecture](docs/architecture/README.md) ·
+[API integration](docs/api/README.md) ·
+[Contributing](CONTRIBUTING.md)
+
+## Project Status and Technology
+
+### Build and validation
 
 [![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
+[![Bootstrap and Ingest](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml)
 ![Coyote3 4.0.0](https://img.shields.io/badge/Coyote3-4.0.0-4F46A5)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-2E7D32)
 
@@ -17,6 +30,12 @@
 ![Celery](https://img.shields.io/badge/Tasks-Celery-37814A?logo=celery&logoColor=white)
 ![Redis](https://img.shields.io/badge/Broker%20%26%20Cache-Redis-DC382D?logo=redis&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)
+![Vite](https://img.shields.io/badge/Build-Vite-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)
+![MkDocs](https://img.shields.io/badge/Documentation-MkDocs-624080)
+![pytest](https://img.shields.io/badge/Backend%20tests-pytest-0A9EDC?logo=pytest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Frontend%20tests-Vitest-6E9F18?logo=vitest&logoColor=white)
+![Playwright](https://img.shields.io/badge/Browser%20tests-Playwright-2EAD33)
 
 ### Domain & Capabilities
 
@@ -31,6 +50,9 @@
 ![Casbin RBAC](https://img.shields.io/badge/Security-Casbin%20RBAC-2E8B57)
 ![Audit Logging](https://img.shields.io/badge/Audit-Enabled-2E8B57)
 
+Workflow badges link to execution results. Technology and capability badges describe
+the repository; they are not clinical validation or compliance certifications.
+
 ## Overview
 
 Coyote3 is a clinical genomics application developed by the bioinformatics team at
@@ -41,6 +63,31 @@ Clinical geneticists, bioinformaticians and laboratory staff use it to ingest
 samples, review genomic findings, record classifications and comments, and prepare
 reports. Assay configuration determines the available analyses and filters. Saved
 reports retain finding snapshots and the reporting context used to produce them.
+
+The application connects four areas of laboratory work:
+
+| Area | What users manage | Result |
+| --- | --- | --- |
+| Assay configuration | Assay groups, physical assays, shared subpanels, gene lists, analysis settings, and reporting rules. | A reviewed configuration that controls ingest, review, and reporting for an assay and environment. |
+| Data ingestion | Sample manifests and declared analysis files from laboratory pipelines. | Validated sample records and linked findings, with job status and ingestion provenance. |
+| Clinical interpretation | Sample filters, evidence, classifications, finding actions, and comments. | A review state shared by authorized users and used to prepare report content. |
+| Reporting and operations | Published clinical rules, saved reports, accounts, audit events, notifications, and reference releases. | Preserved reporting evidence and the operational context needed to run the installation. |
+
+### From assay setup to a saved report
+
+1. Register an assay group and prepare an assay setup with its scopes and configurations.
+2. Publish compatible clinical rules and obtain independent setup approval.
+3. Activate the assay resources, then ingest a sample bundle through the supported workflow.
+4. Review the available DNA or RNA analyses using the recorded configuration and sample filters.
+5. Curate findings and inspect the report preview, including reporting warnings.
+6. Confirm the report to save finding snapshots, configuration provenance, and rendered content.
+
+![Clinical resources and saved evidence](docs/assets/diagrams/collection-relationships.svg)
+
+ASP is the physical assay, ASPC is its analysis configuration, and ISGL is an optional
+gene list. A sample records the configuration used for its review. See
+[resource relationships](docs/architecture/resource-relationships.md) for subpanels,
+cardinality, scope resolution, and dependencies.
 
 ## Key Capabilities
 
@@ -83,6 +130,8 @@ Coyote3 separates clinical review, configuration and deployment responsibilities
 
 ## Architecture
 
+![Runtime and service boundaries](docs/assets/diagrams/runtime-topology.svg)
+
 | Component | Responsibility |
 | --- | --- |
 | `frontend/` | React interface, route workflows, shared tables, and API query state. |
@@ -92,8 +141,18 @@ Coyote3 separates clinical review, configuration and deployment responsibilities
 | Redis | Task delivery, task results, rate limits and caches; API sessions are stored in MongoDB. |
 | Reverse proxy | One public origin for the UI, API, public pages, and documentation. |
 
+The backend separates HTTP transport, application workflows, domain rules, typed
+contracts, and persistence. MongoDB access stays in repositories. The frontend
+uses shared API/query abstractions, and Celery executes background work outside
+the HTTP request lifecycle.
+
+Four logical MongoDB services separate primary clinical data, identity and audit,
+knowledgebase references, and BAM-service records. Each has an independent
+URI/database pair. Redis carries tasks and caches; it does not hold the clinical
+record or API sessions.
+
 For the complete component and request flow, see
-[Application Architecture](docs/architecture/current_application_context.md).
+[Application Architecture](docs/architecture/application-architecture.md).
 
 ## Repository Layout
 
@@ -129,6 +188,10 @@ Review the copied file and replace every `CHANGE_ME` value. Set `COYOTE3_MONGO_U
 the MongoDB instance the containers should use, and configure the host data and
 log roots for the local machine.
 
+Provision the external application network selected by `COYOTE3_APP_NETWORK`
+before starting Compose. The [local quickstart](docs/getting-started/local-quickstart.md)
+includes the network setup and MongoDB prerequisites.
+
 Start the development stack:
 
 ```bash
@@ -141,13 +204,13 @@ Start the development stack:
 App, identity, knowledgebase, and BAM services have independent MongoDB URI/name
 pairs. The base stack starts no MongoDB. Include the optional Mongo overlay and
 enable `mongo` and/or `mongo-kb` only for repository-managed database containers.
-See [service topology](docs/architecture/mongodb_topology.md) for local and split deployments.
+See [service topology](docs/architecture/mongodb-topology.md) for local and split deployments.
 
-See [MongoDB deployment and recovery](docs/operations/mongodb_deployment_and_recovery.md)
+See [MongoDB deployment and recovery](docs/deployment/mongodb-setup-and-recovery.md)
 for replica-set initialization, backups, and recovery testing.
 
 Capacity testing uses a separate, optional Locust service, not the API image.
-The [load-testing guide](docs/testing/load_testing.md) covers isolated test data,
+The [load-testing guide](docs/testing/load-and-capacity-testing.md) covers isolated test data,
 authenticated workflows, the `loadtest` Compose profile, and how to interpret
 latency, error rates and background-job completion. Its CI smoke test runs only
 against an in-process synthetic HTTP server; it does not certify deployment capacity.
@@ -164,8 +227,8 @@ development value `/coyote3_dev`, the standard endpoints are:
 
 For first deployment, baseline RBAC data, the initial superuser, demo
 configuration, and synthetic sample ingestion, follow the
-[Quickstart](docs/start_here/quickstart.md). Production deployments must follow
-the [Initial Deployment Checklist](docs/operations/initial_deployment_checklist.md).
+[Quickstart](docs/getting-started/local-quickstart.md). Production deployments must follow
+the [Initial Deployment Checklist](docs/deployment/installation-checklist.md).
 
 ## Configuration Model
 
@@ -178,29 +241,69 @@ Coyote3 separates configuration by ownership:
   query policy;
 - ASP, ASPC, and ISGL are versioned clinical configuration resources, while
   roles and users are managed as operational identity resources;
-- published clinical report rules are governed in MongoDB and bound explicitly
-  from each ASPC;
+- published clinical report rules are governed in MongoDB and resolved for the
+  assay, subpanel, analyte, and reporting language, with an explicit Base fallback;
 - fixed product behavior remains in Python and frontend theme configuration.
 
-Start with the [Configuration Guide](docs/start_here/configuration.md) and
-[Center Configuration Files](docs/operations/center_configuration_files.md).
+Start with the [Configuration Guide](docs/deployment/configuration-reference.md) and
+[Center Configuration Files](docs/deployment/center-configuration.md).
+
+### Resource governance
+
+| Resource | Lifecycle and responsibility |
+| --- | --- |
+| Assay setup | Draft, readiness validation, independent review, and transactional activation. |
+| ASP / ASPC / ISGL | Stable business identities with versioned clinical configuration. |
+| Named subpanel | Shared definition plus independently managed assay associations; Base is implicit. |
+| Clinical rule set | Authoring, tests, clinical review, publication, and immutable release provenance. |
+| Public assay catalog | Separate publication workflow referencing eligible assay and gene-list resources. |
+| Sample and findings | Validated ingestion, recorded configuration, review state, and actor/source provenance. |
+| Saved report | Confirmed finding snapshots and the configuration and rules used to render the report. |
+| Identity and audit | Managed users and roles, application permission catalog, sessions, and recorded actions. |
+
+See [assay administration](docs/administration/README.md) and the
+[database resource map](docs/architecture/mongodb-topology.md) for ownership boundaries.
+
+## Production Deployment and Operations
+
+Use the [first-installation guide](docs/deployment/first-installation.md),
+[production deployment guide](docs/deployment/production-deployment.md), and
+[acceptance checklist](docs/deployment/acceptance-checklist.md) as the installation procedure.
+The quickstart above is a local entry point.
+
+| Responsibility | Operator reference |
+| --- | --- |
+| Service endpoints, secrets, mounts, and routing | [Deployment configuration](docs/deployment/configuration-reference.md) |
+| MongoDB topology and transaction support | [MongoDB setup and recovery](docs/deployment/mongodb-setup-and-recovery.md) |
+| Backups and recovery exercises | [Backup and recovery](docs/operations/backup-and-recovery.md) |
+| Audit records and application logs | [Audit and logging](docs/operations/audit-and-logging.md) |
+| Monitoring and background task health | [Monitoring and alerts](docs/operations/monitoring-and-alerts.md) |
+| Reference dataset installation and updates | [Knowledgebase updates](docs/operations/knowledgebase-updates.md) |
+| Existing installations and data changes | [Migration procedures](docs/operations/migrations/README.md) |
 
 ## Documentation
 
+Browse the [documentation directory](docs/README.md) for a guide organized by
+task. Each section has a README with its scope, reading order, and page descriptions.
+Start with [deployment](docs/deployment/README.md),
+[clinical use](docs/user-guide/README.md),
+[administration](docs/administration/README.md), or
+[development](docs/development/README.md).
+
 | Reader or task | Documentation |
 | --- | --- |
-| First local run | [Quickstart](docs/start_here/quickstart.md) |
-| Clinical use and administration | [Complete User Manual](docs/user_guide/complete_user_manual.md) |
-| Clinical review | [Clinical Workflow](docs/user_guide/clinical_workflow_guide.md) |
-| ASP, ASPC, ISGL, samples, and findings | [Core Concepts](docs/product/core_concepts.md) |
-| System relationships | [System Overview](docs/product/complete_application_manual.md) |
-| Center deployment | [Center Deployment Guide](docs/operations/center_deployment_guide.md) |
-| Environment and secrets | [Environment and Secrets](docs/operations/environments_and_secrets.md) |
-| Sample manifest and input contracts | [Sample YAML Manifest](docs/api/sample_yaml.md) and [Sample Input Files](docs/api/sample_input_files.md) |
-| API organization and authentication | [API Organization](docs/api/api_organization.md) and [Authentication](docs/api/authentication.md) |
-| Architecture | [Application Architecture](docs/architecture/current_application_context.md) |
-| Development | [Complete Developer Manual](docs/developer/complete_developer_manual.md) |
-| Testing and release checks | [Testing and Quality](docs/testing/testing_and_quality.md) |
+| First local run | [Quickstart](docs/getting-started/local-quickstart.md) |
+| Clinical use and administration | [Application User Guide](docs/user-guide/application-guide.md) |
+| Clinical review | [Clinical Workflow](docs/user-guide/clinical-review-workflow.md) |
+| ASP, ASPC, ISGL, samples, and findings | [Core Concepts](docs/reference/clinical-concepts.md) |
+| System relationships | [System Overview](docs/reference/application-overview.md) |
+| Center deployment | [First installation](docs/deployment/first-installation.md) and [deployment checklist](docs/deployment/installation-checklist.md) |
+| Environment and secrets | [Environment and Secrets](docs/deployment/environments-and-secrets.md) |
+| Sample manifest and input contracts | [Sample YAML Manifest](docs/reference/sample-manifest.md) and [Sample Input Files](docs/reference/sample-file-formats.md) |
+| API organization and authentication | [API Organization](docs/api/route-groups.md) and [Authentication](docs/api/authentication.md) |
+| Architecture | [Application Architecture](docs/architecture/application-architecture.md) |
+| Development | [Developer Guide](docs/development/developer-guide.md) |
+| Testing and release checks | [Testing and Quality](docs/testing/test-strategy-and-quality-gates.md) |
 | Operational troubleshooting | [Troubleshooting](docs/operations/troubleshooting.md) |
 
 The documentation site is built with MkDocs. Its table of contents is defined
@@ -209,7 +312,7 @@ in `mkdocs.yml`.
 ## Development and Quality
 
 Install the backend development dependencies and frontend packages using the
-procedures in [Local Development](docs/start_here/local_development.md). Run the
+procedures in [Local Development](docs/getting-started/developer-environment.md). Run the
 complete repository quality suite with:
 
 ```bash
@@ -224,7 +327,7 @@ and manually dispatched runs retain backend XML and frontend LCOV coverage
 artifacts for seven days.
 
 Contributions must follow the [Contributing Guide](docs/project/contributing.md)
-and [Engineering and Refactoring Standards](docs/maintainers/refactor_guidelines.md).
+and [Engineering and Refactoring Standards](docs/development/refactoring-standards.md).
 
 ## Security and Clinical Use
 
@@ -237,11 +340,18 @@ and [Engineering and Refactoring Standards](docs/maintainers/refactor_guidelines
 - Each deploying organization is responsible for local validation, clinical
   governance, access policy, infrastructure security, and regulatory approval.
 
-See the [Security Model](docs/architecture/security_model.md),
+See the [Security Model](docs/architecture/security-model.md),
 [Governance](docs/project/governance.md), and [NOTICE](NOTICE.txt) before using
 the software in a clinical environment.
 
 ## Project and License
+
+For reproducible bugs and feature requests, use the
+[repository issue tracker](https://github.com/SMD-Bioinformatics-Lund/coyote3/issues).
+Include the application version, affected workflow, and synthetic reproduction steps.
+Keep credentials, patient information, and private operational data out of issues and attachments.
+Contribution and review expectations are in [CONTRIBUTING.md](CONTRIBUTING.md);
+release responsibilities are in the [maintainer guide](docs/project/maintainer-guide.md).
 
 Coyote3 is developed and maintained by the bioinformatics team at the
 **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with

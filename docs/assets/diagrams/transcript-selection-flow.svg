@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1420" viewBox="0 0 1360 1420" role="img" aria-labelledby="title desc">
+<title id="title">Small-variant transcript selection flow</title>
+<desc id="desc">Variant CSQ rows are resolved to an HGNC gene and evaluated through configured RefSeq-first MANE stages, then VEP canonical protein-coding and fallback stages, with impact used only within a stage. Dashed arrows advance only when the preceding stage has no eligible transcript.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1420" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Small-variant transcript selection flow</text>
+<text x="40" y="84" class="subtitle">Variant CSQ rows are resolved to an HGNC gene and evaluated through configured RefSeq-first MANE stages, then VEP canonical protein-coding</text>
+<text x="40" y="108" class="subtitle">and fallback stages, with impact used only within a stage. Dashed arrows advance only when the preceding stage has no eligible transcript.</text>
+<path d="M400 320 L520 320" class="edge" data-source="0" data-target="1"/>
+<path d="M840 320 L900 320 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 520 L240 520 L240 580" class="edge" data-source="2" data-target="3"/>
+<path d="M400 640 L520 640" class="edge optional" data-source="3" data-target="4"/>
+<path d="M840 640 L960 640" class="edge optional" data-source="4" data-target="5"/>
+<path d="M1120 700 L1120 760 L240 760 L240 840" class="edge optional" data-source="5" data-target="6"/>
+<path d="M400 900 L520 900" class="edge optional" data-source="6" data-target="7"/>
+<path d="M840 900 L960 900" class="edge optional" data-source="7" data-target="8"/>
+<path d="M1120 960 L1120 1020 L240 1020 L240 1120" class="edge optional" data-source="8" data-target="9"/>
+<path d="M1120 960 L1120 1060 L680 1060 L680 1120" class="edge" data-source="8" data-target="10"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="220" rx="10"/>
+<text x="100" y="254" class="name">1 · VEP CSQ rows</text>
+<text x="100" y="299" class="detail">native transcript namespaces</text>
+<text x="100" y="322" class="detail">retained</text>
+<text x="100" y="345" class="detail">NM/NR and ENST rows remain</text>
+<text x="100" y="368" class="detail">separate</text>
+<text x="100" y="391" class="detail">stored in versioned VEP</text>
+<text x="100" y="414" class="detail">annotations</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="200" rx="10"/>
+<text x="540" y="254" class="name">2 · Resolve HGNC gene</text>
+<text x="540" y="299" class="detail">HGNC ID first</text>
+<text x="540" y="322" class="detail">approved symbol, previous symbol,</text>
+<text x="540" y="345" class="detail">aliases</text>
+<text x="540" y="368" class="detail">displayed source symbol is</text>
+<text x="540" y="391" class="detail">preserved</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Load configured order</text>
+<text x="980" y="299" class="detail">transcript_selection.priority</text>
+<text x="980" y="322" class="detail">from center clinical vocabulary</text>
+<text x="980" y="345" class="detail">selectors are validated at startup</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="580" width="320" height="120" rx="10"/>
+<text x="100" y="614" class="name">1 · NCBI MANE Plus</text>
+<text x="100" y="659" class="detail">matching NM/NR accession</text>
+<text x="100" y="682" class="detail">from HGNC metadata</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="580" width="320" height="120" rx="10"/>
+<text x="540" y="614" class="name">2 · Ensembl MANE Plus</text>
+<text x="540" y="659" class="detail">matching ENST accession</text>
+<text x="540" y="682" class="detail">from HGNC metadata</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="580" width="320" height="120" rx="10"/>
+<text x="980" y="614" class="name">3 · NCBI MANE Select</text>
+<text x="980" y="659" class="detail">matching NM/NR accession</text>
+<text x="980" y="682" class="detail">RefSeq remains preferred</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="840" width="320" height="120" rx="10"/>
+<text x="100" y="874" class="name">4 · Ensembl MANE Select</text>
+<text x="100" y="919" class="detail">matching ENST accession</text>
+<text x="100" y="942" class="detail">used after RefSeq stages</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="840" width="320" height="140" rx="10"/>
+<text x="540" y="874" class="name">5 · VEP canonical</text>
+<text x="540" y="919" class="detail">protein-coding candidate</text>
+<text x="540" y="942" class="detail">preferred</text>
+<text x="540" y="965" class="detail">after all MANE stages</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="840" width="320" height="120" rx="10"/>
+<text x="980" y="874" class="name">6 · First protein coding</text>
+<text x="980" y="919" class="detail">native row with coding biotype</text>
+<text x="980" y="942" class="detail">used only if earlier stages miss</text>
+</g>
+<g class="card" data-node="9"><rect x="80" y="1120" width="320" height="120" rx="10"/>
+<text x="100" y="1154" class="name">7 · First available row</text>
+<text x="100" y="1199" class="detail">deterministic final fallback</text>
+<text x="100" y="1222" class="detail">saved as selected_CSQ</text>
+</g>
+<g class="card" data-node="10"><rect x="520" y="1120" width="320" height="180" rx="10"/>
+<text x="540" y="1154" class="name">Within-stage tie breaking</text>
+<text x="540" y="1199" class="detail">HIGH → MODERATE → LOW →</text>
+<text x="540" y="1222" class="detail">MODIFIER</text>
+<text x="540" y="1245" class="detail">Impact ranks candidates only</text>
+<text x="540" y="1268" class="detail">within the same selection stage.</text>
+</g>
+
+
+</svg>

@@ -31,7 +31,7 @@ Contract rules:
   `bson.json_util.loads` to obtain bytes, not a base64 string in MongoDB.
   The demo VEP image is a synthetic one-pixel placeholder, not a clinical diagram.
 - Per-collection required/optional keys are generated from Pydantic contracts into
-  `docs/api/collection_contracts.md` via:
+  `docs/reference/mongodb-collections.md` via:
   - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/export_collection_contracts_doc.py`
 - Small-variant records contain only the selected consequence needed for the
   clinical table. Complete transcript consequences are stored in `anno_vep`,

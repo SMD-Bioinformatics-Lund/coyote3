@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1204" viewBox="0 0 1360 1204" role="img" aria-labelledby="title desc">
+<title id="title">Gene lists: eligibility, type, selection, and effective genes</title>
+<desc id="desc">A gene list being available does not apply it. The sample must select it in the matching analysis filter. SNV, CNV, RNA fusion and DNA translocation each retain their own selection. Configuration types do not create review workflows.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1204" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Gene lists: eligibility, type, selection, and effective genes</text>
+<text x="40" y="84" class="subtitle">A gene list being available does not apply it. The sample must select it in the matching analysis filter. SNV, CNV, RNA fusion and DNA</text>
+<text x="40" y="108" class="subtitle">translocation each retain their own selection. Configuration types do not create review workflows.</text>
+<path d="M400 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M240 400 L240 540" class="edge" data-source="0" data-target="3"/>
+<path d="M680 400 L680 540" class="edge" data-source="1" data-target="4"/>
+<path d="M400 600 L460 600 L460 620 L520 620" class="edge" data-source="3" data-target="4"/>
+<path d="M840 620 L960 620" class="edge" data-source="4" data-target="5"/>
+<path d="M680 720 L680 780 L240 780 L240 860" class="edge" data-source="4" data-target="6"/>
+<path d="M1120 720 L1120 800 L680 800 L680 860" class="edge" data-source="5" data-target="7"/>
+<path d="M1120 720 L1120 860" class="edge" data-source="5" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
+<text x="100" y="254" class="name">1 · Eligible ISGL</text>
+<text x="100" y="299" class="detail">Active list with matching assay</text>
+<text x="100" y="322" class="detail">asp_ids[] or asp_groups[]</text>
+<text x="100" y="345" class="detail">Diagnosis/subpanel choices</text>
+<text x="100" y="368" class="detail">validated</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">2 · Standard list types</text>
+<text x="540" y="299" class="detail">snv · cnv · fusion</text>
+<text x="540" y="322" class="detail">expression · pgx</text>
+<text x="540" y="345" class="detail">One ISGL may declare several</text>
+<text x="540" y="368" class="detail">types</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">Ad-hoc list types</text>
+<text x="980" y="299" class="detail">adhoc_snv · adhoc_cnv</text>
+<text x="980" y="322" class="detail">adhoc_fusion · adhoc_expression</text>
+<text x="980" y="345" class="detail">adhoc_pgx · separate adhoc mode</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="140" rx="10"/>
+<text x="100" y="574" class="name">3 · ASPC defaults</text>
+<text x="100" y="619" class="detail">Per-analysis, per-intent filters</text>
+<text x="100" y="642" class="detail">May select compatible list IDs</text>
+<text x="100" y="665" class="detail">Seed sample filters when absent</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="180" rx="10"/>
+<text x="540" y="574" class="name">4 · Sample selection</text>
+<text x="540" y="619" class="detail">SNV → snvlists</text>
+<text x="540" y="642" class="detail">CNV → cnvlists</text>
+<text x="540" y="665" class="detail">RNA fusion → fusionlists</text>
+<text x="540" y="688" class="detail">DNA translocation → fusionlists</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="180" rx="10"/>
+<text x="980" y="574" class="name">5 · Selected gene set</text>
+<text x="980" y="619" class="detail">Resolve compatible selected ISGLs</text>
+<text x="980" y="642" class="detail">Add sample ad-hoc genes</text>
+<text x="980" y="665" class="detail">Do not share selection across</text>
+<text x="980" y="688" class="detail">domains</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="860" width="320" height="200" rx="10"/>
+<text x="100" y="894" class="name">No compatible selection</text>
+<text x="100" y="939" class="detail">Use ASP.covered_genes baseline</text>
+<text x="100" y="962" class="detail">Empty baseline → unrestricted</text>
+<text x="100" y="985" class="detail">genes</text>
+<text x="100" y="1008" class="detail">Each domain keeps its own</text>
+<text x="100" y="1031" class="detail">selection</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="860" width="320" height="180" rx="10"/>
+<text x="540" y="894" class="name">Panel-style assay</text>
+<text x="540" y="939" class="detail">Intersect selected gene set</text>
+<text x="540" y="962" class="detail">with physical assay coverage</text>
+<text x="540" y="985" class="detail">Then apply domain filter</text>
+<text x="540" y="1008" class="detail">thresholds</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="860" width="320" height="180" rx="10"/>
+<text x="980" y="894" class="name">Broad assay · WGS / WTS</text>
+<text x="980" y="939" class="detail">Use selected genes directly</text>
+<text x="980" y="962" class="detail">Then apply domain filter</text>
+<text x="980" y="985" class="detail">thresholds</text>
+<text x="980" y="1008" class="detail">Stored types do not create UI tabs</text>
+</g>
+<g class="edge-label"><rect x="424" y="286" width="72" height="28" rx="5"/>
+<text x="432" y="304" class="label">validate</text>
+</g>
+<g class="edge-label"><rect x="852" y="286" width="83" height="28" rx="5"/>
+<text x="860" y="304" class="label">or ad-hoc</text>
+</g>
+<g class="edge-label"><rect x="195" y="456" width="90" height="28" rx="5"/>
+<text x="203" y="474" class="label">eligible IDs</text>
+</g>
+<g class="edge-label"><rect x="612" y="456" width="136" height="28" rx="5"/>
+<text x="620" y="474" class="label">type must match</text>
+</g>
+<g class="edge-label"><rect x="411" y="586" width="56" height="28" rx="5"/>
+<text x="419" y="604" class="label">seeds</text>
+</g>
+<g class="edge-label"><rect x="862" y="606" width="76" height="28" rx="5"/>
+<text x="870" y="624" class="label">resolves</text>
+</g>
+<g class="edge-label"><rect x="404" y="766" width="111" height="28" rx="5"/>
+<text x="412" y="784" class="label">none selected</text>
+</g>
+<g class="edge-label"><rect x="874" y="786" width="52" height="28" rx="5"/>
+<text x="882" y="804" class="label">panel</text>
+</g>
+<g class="edge-label"><rect x="1092" y="776" width="56" height="28" rx="5"/>
+<text x="1100" y="794" class="label">broad</text>
+</g>
+<text x="40" y="1164" class="note">SNV, CNV, RNA fusion and DNA translocation keep separate selections. Configuration types do not create review workflows.</text>
+</svg>

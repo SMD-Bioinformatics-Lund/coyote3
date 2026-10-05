@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1380" viewBox="0 0 1360 1380" role="img" aria-labelledby="title desc">
+<title id="title">Clinical report generation and persistence</title>
+<desc id="desc">Filtered analysis domains, ASP and ASPC context, gene lists, curation and comments are prepared into typed report facts; the scope-selected published rule set renders preview text and saving persists immutable report snapshots and artifacts.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1380" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Clinical report generation and persistence</text>
+<text x="40" y="84" class="subtitle">Filtered analysis domains, ASP and ASPC context, gene lists, curation and comments are prepared into typed report facts; the scope-selected</text>
+<text x="40" y="108" class="subtitle">published rule set renders preview text and saving persists immutable report snapshots and artifacts.</text>
+<path d="M400 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 380 L960 380" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 540 L1120 600 L240 600 L240 680" class="edge" data-source="2" data-target="3"/>
+<path d="M400 780 L460 780 L460 760 L520 760" class="edge" data-source="3" data-target="4"/>
+<path d="M1120 540 L1120 620 L680 620 L680 680" class="edge" data-source="2" data-target="4"/>
+<path d="M840 760 L900 760 L900 780 L960 780" class="edge" data-source="4" data-target="5"/>
+<path d="M680 860 L680 920 L240 920 L240 1020" class="edge" data-source="4" data-target="6"/>
+<path d="M1120 880 L1120 940 L680 940 L680 1020" class="edge" data-source="5" data-target="7"/>
+<path d="M840 1140 L900 1140 L900 1080 L960 1080" class="edge" data-source="7" data-target="8"/>
+<path d="M1280 780 L1340 780 L1340 940 L1120 940 L1120 880" class="edge optional" data-source="5" data-target="5"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
+<text x="100" y="254" class="name">1 · Current review state</text>
+<text x="100" y="299" class="detail">somatic and germline SNVs</text>
+<text x="100" y="322" class="detail">CNVs · fusions · translocations</text>
+<text x="100" y="345" class="detail">biomarkers · coverage · PGx</text>
+<text x="100" y="368" class="detail">tiers · actions · comments</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">2 · Clinical configuration</text>
+<text x="540" y="299" class="detail">ASP physical assay context</text>
+<text x="540" y="322" class="detail">ASPC filters + report_sections</text>
+<text x="540" y="345" class="detail">applied typed ISGLs + ad-hoc genes</text>
+<text x="540" y="368" class="detail">sample and reference versions</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="320" rx="10"/>
+<text x="980" y="254" class="name">3 · Prepare typed report</text>
+<text x="980" y="279" class="name">facts</text>
+<text x="980" y="324" class="detail">filtered reportable findings by</text>
+<text x="980" y="347" class="detail">domain</text>
+<text x="980" y="370" class="detail">intent-separated tier aggregates</text>
+<text x="980" y="393" class="detail">selected transcripts and HGVS</text>
+<text x="980" y="416" class="detail">identity</text>
+<text x="980" y="439" class="detail">sample, ASP, ASPC, gene-list</text>
+<text x="980" y="462" class="detail">context</text>
+<text x="980" y="485" class="detail">missing enabled domain becomes</text>
+<text x="980" y="508" class="detail">warning fact</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="680" width="320" height="200" rx="10"/>
+<text x="100" y="714" class="name">4 · Published clinical rules</text>
+<text x="100" y="759" class="detail">assay + subpanel + analyte +</text>
+<text x="100" y="782" class="detail">language</text>
+<text x="100" y="805" class="detail">immutable version + content hash</text>
+<text x="100" y="828" class="detail">analysis block must permit text</text>
+<text x="100" y="851" class="detail">independent clinical approval</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="680" width="320" height="180" rx="10"/>
+<text x="540" y="714" class="name">5 · Rule evaluation</text>
+<text x="540" y="759" class="detail">verify schema, version, and hash</text>
+<text x="540" y="782" class="detail">evaluate typed condition tree</text>
+<text x="540" y="805" class="detail">render typed approved output</text>
+<text x="540" y="828" class="detail">merge sections deterministically</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="680" width="320" height="200" rx="10"/>
+<text x="980" y="714" class="name">6 · Temporary preview</text>
+<text x="980" y="759" class="detail">HTML layout + generated text</text>
+<text x="980" y="782" class="detail">finding snapshot rows</text>
+<text x="980" y="805" class="detail">auto-refreshes after</text>
+<text x="980" y="828" class="detail">filters/actions</text>
+<text x="980" y="851" class="detail">no report collection write yet</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="1020" width="320" height="120" rx="10"/>
+<text x="100" y="1054" class="name">Blocking review warning</text>
+<text x="100" y="1099" class="detail">ASPC permits a report section but</text>
+<text x="100" y="1122" class="detail">the release cannot generate it</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="1020" width="320" height="240" rx="10"/>
+<text x="540" y="1054" class="name">7 · Confirm and save</text>
+<text x="540" y="1099" class="detail">reported variants + report</text>
+<text x="540" y="1122" class="detail">document</text>
+<text x="540" y="1145" class="detail">filters + gene lists + ASPC</text>
+<text x="540" y="1168" class="detail">resolution</text>
+<text x="540" y="1191" class="detail">rule identity/hash + rendered</text>
+<text x="540" y="1214" class="detail">HTML</text>
+<text x="540" y="1237" class="detail">audit event and report status</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="1020" width="320" height="120" rx="10"/>
+<text x="980" y="1054" class="name">8 · Stable outputs</text>
+<text x="980" y="1099" class="detail">saved preview · PDF · CSV</text>
+<text x="980" y="1122" class="detail">searchable reported collections</text>
+</g>
+
+
+</svg>

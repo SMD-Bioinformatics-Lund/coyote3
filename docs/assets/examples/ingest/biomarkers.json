@@ -1,0 +1,19 @@
+{
+  "name": "SYNTHETIC-T",
+  "MSIS": {
+    "tot": 100,
+    "som": 4,
+    "per": 4.0
+  },
+  "MSIP": {
+    "tot": 200,
+    "som": 6,
+    "per": 3.0
+  },
+  "HRD": {
+    "tai": 2,
+    "hrd": 3,
+    "lst": 4,
+    "sum": 9
+  }
+}

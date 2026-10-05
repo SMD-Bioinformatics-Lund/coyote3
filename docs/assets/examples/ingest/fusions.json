@@ -1,0 +1,20 @@
+[
+  {
+    "gene1": "BCR",
+    "gene2": "ABL1",
+    "genes": "BCR-ABL1",
+    "calls": [
+      {
+        "selected": 1,
+        "caller": "arriba",
+        "spanpairs": 20,
+        "spanreads": 42,
+        "longestanchor": 30,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "desc": "synthetic_example"
+      }
+    ]
+  }
+]

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1124" viewBox="0 0 1360 1124" role="img" aria-labelledby="title desc">
+<title id="title">Login provider resolution</title>
+<desc id="desc">Login flow from configured provider availability and selected provider through user lookup, per-user authorization, local or LDAP verification, session creation, and failure handling.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1124" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Login provider resolution</text>
+<text x="40" y="84" class="subtitle">Login flow from configured provider availability and selected provider through user lookup, per-user authorization, local or LDAP</text>
+<text x="40" y="108" class="subtitle">verification, session creation, and failure handling.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 420 L240 420 L240 500" class="edge" data-source="2" data-target="3"/>
+<path d="M400 580 L460 580 L460 560 L520 560" class="edge" data-source="3" data-target="4"/>
+<path d="M400 580 L460 580 L460 680 L900 680 L900 600 L960 600" class="edge" data-source="3" data-target="5"/>
+<path d="M680 640 L680 860" class="edge" data-source="4" data-target="7"/>
+<path d="M1120 720 L1120 800 L680 800 L680 860" class="edge" data-source="5" data-target="7"/>
+<path d="M240 680 L240 860" class="edge optional" data-source="3" data-target="6"/>
+<path d="M1120 720 L1120 860" class="edge optional" data-source="5" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">1 · Effective providers</text>
+<text x="100" y="299" class="detail">center config, optionally</text>
+<text x="100" y="322" class="detail">overridden</text>
+<text x="100" y="345" class="detail">by AUTHENTICATION_PROVIDERS</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
+<text x="540" y="254" class="name">2 · Login screen</text>
+<text x="540" y="299" class="detail">shows Local and/or LDAP</text>
+<text x="540" y="322" class="detail">unconfigured LDAP may remain</text>
+<text x="540" y="345" class="detail">selectable</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Submitted provider</text>
+<text x="980" y="299" class="detail">explicit provider from login</text>
+<text x="980" y="322" class="detail">request</text>
+<text x="980" y="345" class="detail">plus normalized identifier</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="180" rx="10"/>
+<text x="100" y="534" class="name">4 · Resolve active user</text>
+<text x="100" y="559" class="name">document</text>
+<text x="100" y="604" class="detail">Local: username · LDAP: email</text>
+<text x="100" y="627" class="detail">provider must be listed in</text>
+<text x="100" y="650" class="detail">user.auth_type[]</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="140" rx="10"/>
+<text x="540" y="534" class="name">5A · Local verification</text>
+<text x="540" y="579" class="detail">validate stored password hash</text>
+<text x="540" y="602" class="detail">no LDAP configuration required</text>
+<text x="540" y="625" class="detail">rate limits and audit still apply</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="220" rx="10"/>
+<text x="980" y="534" class="name">5B · LDAP verification</text>
+<text x="980" y="579" class="detail">validate LDAP runtime</text>
+<text x="980" y="602" class="detail">configuration</text>
+<text x="980" y="625" class="detail">bind/authenticate against</text>
+<text x="980" y="648" class="detail">directory</text>
+<text x="980" y="671" class="detail">configuration error is returned at</text>
+<text x="980" y="694" class="detail">login</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="860" width="320" height="120" rx="10"/>
+<text x="100" y="894" class="name">Structured login failure</text>
+<text x="100" y="939" class="detail">inactive · not allowed · invalid ·</text>
+<text x="100" y="962" class="detail">unavailable</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="860" width="320" height="120" rx="10"/>
+<text x="540" y="894" class="name">6 · Create API session</text>
+<text x="540" y="939" class="detail">roles + permissions + assay scope</text>
+<text x="540" y="962" class="detail">+ last login</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="860" width="320" height="120" rx="10"/>
+<text x="980" y="894" class="name">Provider configuration</text>
+<text x="980" y="919" class="name">failure</text>
+<text x="980" y="964" class="detail">application remains available</text>
+</g>
+
+<text x="40" y="1084" class="note">ldap</text>
+</svg>

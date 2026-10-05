@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1220" viewBox="0 0 1360 1220" role="img" aria-labelledby="title desc">
+<title id="title">How an ingested sample acquires its review configuration</title>
+<desc id="desc">Configuration resolution, stored filter state, and data availability are separate decisions. A ready bundle does not mean every analysis is present. Resetting filters is an explicit user operation.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1220" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">How an ingested sample acquires its review configuration</text>
+<text x="40" y="84" class="subtitle">Configuration resolution, stored filter state, and data availability are separate decisions. A ready bundle does not mean every analysis is</text>
+<text x="40" y="108" class="subtitle">present. Resetting filters is an explicit user operation.</text>
+<path d="M400 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 320 L960 320" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 420 L1120 560" class="edge" data-source="2" data-target="5"/>
+<path d="M960 660 L900 660 L900 620 L840 620" class="edge" data-source="5" data-target="4"/>
+<path d="M520 620 L460 620 L460 640 L400 640" class="edge" data-source="4" data-target="3"/>
+<path d="M240 740 L240 900" class="edge" data-source="3" data-target="6"/>
+<path d="M400 1000 L460 1000 L460 960 L520 960" class="edge" data-source="6" data-target="7"/>
+<path d="M840 960 L900 960 L900 1000 L960 1000" class="edge" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
+<text x="100" y="254" class="name">Manifest identity</text>
+<text x="100" y="299" class="detail">Sample name and DNA/RNA</text>
+<text x="100" y="322" class="detail">modality</text>
+<text x="100" y="345" class="detail">asp_id + requested subpanel</text>
+<text x="100" y="368" class="detail">Target environment and input files</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">Assay and group checks</text>
+<text x="540" y="299" class="detail">Resolve active ASP and parent</text>
+<text x="540" y="322" class="detail">group</text>
+<text x="540" y="345" class="detail">Validate declared / required files</text>
+<text x="540" y="368" class="detail">Check allowed sample modality</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="200" rx="10"/>
+<text x="980" y="254" class="name">Resolve active ASPC</text>
+<text x="980" y="299" class="detail">Exact</text>
+<text x="980" y="322" class="detail">assay/subpanel/environment</text>
+<text x="980" y="345" class="detail">Permitted fallback to assay Base</text>
+<text x="980" y="368" class="detail">Missing configuration blocks</text>
+<text x="980" y="391" class="detail">ingest</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="560" width="320" height="180" rx="10"/>
+<text x="100" y="594" class="name">Persist sample + findings</text>
+<text x="100" y="639" class="detail">One clinical ingest transaction</text>
+<text x="100" y="662" class="detail">Dependent evidence links to sample</text>
+<text x="100" y="685" class="detail">Ready only after successful</text>
+<text x="100" y="708" class="detail">commit</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="560" width="320" height="140" rx="10"/>
+<text x="540" y="594" class="name">Record configuration</text>
+<text x="540" y="639" class="detail">ASPC document ID, key, version</text>
+<text x="540" y="662" class="detail">Requested / resolved subpanel</text>
+<text x="540" y="685" class="detail">Keep fallback decision visible</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="560" width="320" height="200" rx="10"/>
+<text x="980" y="594" class="name">Initialize sample filters</text>
+<text x="980" y="639" class="detail">Missing filters → ASPC defaults</text>
+<text x="980" y="662" class="detail">Existing filters remain</text>
+<text x="980" y="685" class="detail">authoritative</text>
+<text x="980" y="708" class="detail">Selections separated by</text>
+<text x="980" y="731" class="detail">domain/intent</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="900" width="320" height="200" rx="10"/>
+<text x="100" y="934" class="name">Review authorization</text>
+<text x="100" y="979" class="detail">User permission and resource</text>
+<text x="100" y="1002" class="detail">scope</text>
+<text x="100" y="1025" class="detail">Module availability</text>
+<text x="100" y="1048" class="detail">Check before exposing clinical</text>
+<text x="100" y="1071" class="detail">data</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="900" width="320" height="140" rx="10"/>
+<text x="540" y="934" class="name">Analysis availability</text>
+<text x="540" y="979" class="detail">Recorded ASPC enables analysis</text>
+<text x="540" y="1002" class="detail">Sample has matching ingested data</text>
+<text x="540" y="1025" class="detail">Modality and intent must match</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="900" width="320" height="200" rx="10"/>
+<text x="980" y="934" class="name">Effective review state</text>
+<text x="980" y="979" class="detail">Sample filters + physical assay</text>
+<text x="980" y="1002" class="detail">genes</text>
+<text x="980" y="1025" class="detail">Selected ISGLs + ad-hoc genes</text>
+<text x="980" y="1048" class="detail">Report saves configuration</text>
+<text x="980" y="1071" class="detail">provenance</text>
+</g>
+<g class="edge-label"><rect x="424" y="286" width="72" height="28" rx="5"/>
+<text x="432" y="304" class="label">validate</text>
+</g>
+<g class="edge-label"><rect x="854" y="286" width="68" height="28" rx="5"/>
+<text x="862" y="304" class="label">resolve</text>
+</g>
+<g class="edge-label"><rect x="1096" y="476" width="48" height="28" rx="5"/>
+<text x="1104" y="494" class="label">seed</text>
+</g>
+<g class="edge-label"><rect x="880" y="646" width="64" height="28" rx="5"/>
+<text x="888" y="664" class="label">record</text>
+</g>
+<g class="edge-label"><rect x="437" y="606" width="69" height="28" rx="5"/>
+<text x="445" y="624" class="label">commit</text>
+</g>
+<g class="edge-label"><rect x="216" y="806" width="48" height="28" rx="5"/>
+<text x="224" y="824" class="label">open</text>
+</g>
+<g class="edge-label"><rect x="415" y="986" width="48" height="28" rx="5"/>
+<text x="423" y="1004" class="label">gate</text>
+</g>
+<g class="edge-label"><rect x="855" y="946" width="65" height="28" rx="5"/>
+<text x="863" y="964" class="label">review</text>
+</g>
+
+</svg>

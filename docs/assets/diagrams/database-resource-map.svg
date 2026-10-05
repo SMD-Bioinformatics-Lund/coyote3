@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1400" viewBox="0 0 1360 1400" role="img" aria-labelledby="title desc">
+<title id="title">Storage ownership by resource family</title>
+<desc id="desc">Arrows show repository access to logical services, not cross-database transactions. Exact collection names are center-configurable. See collections.toml and the generated MongoDB collection contracts.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1400" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Storage ownership by resource family</text>
+<text x="40" y="84" class="subtitle">Arrows show repository access to logical services, not cross-database transactions. Exact collection names are center-configurable. See</text>
+<text x="40" y="108" class="subtitle">collections.toml and the generated MongoDB collection contracts.</text>
+<path d="M680 340 L680 400 L460 400 L460 480" class="edge" data-source="0" data-target="1"/>
+<path d="M680 340 L680 420 L1120 420 L1120 480" class="edge" data-source="0" data-target="2"/>
+<path d="M680 340 L680 400 L880 400 L880 880 L240 880 L240 940" class="edge" data-source="0" data-target="3"/>
+<path d="M680 340 L680 380 L900 380 L900 940" class="edge" data-source="0" data-target="4"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="1200" height="120" rx="10"/>
+<text x="100" y="254" class="name">Application repositories</text>
+<text x="100" y="299" class="detail">Explicit primary, identity, knowledgebase and BAM service connections</text>
+</g>
+<g class="card" data-node="1"><rect x="80" y="480" width="760" height="320" rx="10"/>
+<text x="100" y="514" class="name">Primary · clinical resources</text>
+<text x="100" y="559" class="detail">Assays, groups, subpanels and associations</text>
+<text x="100" y="582" class="detail">ASPCs, ISGLs, assay setups and setup revisions</text>
+<text x="100" y="605" class="detail">Clinical rule sets and revision history</text>
+<text x="100" y="628" class="detail">Public catalog, versions and revisions</text>
+<text x="100" y="651" class="detail">Samples and ingest jobs</text>
+<text x="100" y="674" class="detail">Variants, VEP annotations, CNVs, translocations</text>
+<text x="100" y="697" class="detail">Fusions, biomarkers, PGx, coverage and group coverage</text>
+<text x="100" y="720" class="detail">RNA expression, QC and classification</text>
+<text x="100" y="743" class="detail">Annotations, blacklist, sample / finding comments</text>
+<text x="100" y="766" class="detail">Reports, reported findings and notifications</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="480" width="320" height="180" rx="10"/>
+<text x="980" y="514" class="name">Identity · access and audit</text>
+<text x="980" y="559" class="detail">Users, roles and permission</text>
+<text x="980" y="582" class="detail">catalog</text>
+<text x="980" y="605" class="detail">API sessions</text>
+<text x="980" y="628" class="detail">Audit events</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="940" width="320" height="120" rx="10"/>
+<text x="100" y="974" class="name">BAM · service records</text>
+<text x="100" y="1019" class="detail">BAM sample records</text>
+<text x="100" y="1042" class="detail">Independent URI and database name</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="940" width="760" height="340" rx="10"/>
+<text x="540" y="974" class="name">Knowledgebase · reference datasets</text>
+<text x="540" y="1019" class="detail">HGNC genes; VEP metadata and consequence diagrams; release inventory</text>
+<text x="540" y="1042" class="detail">CIViC genes and variants; OncoKB licensed / public datasets; ClinPGx public</text>
+<text x="540" y="1065" class="detail">genes</text>
+<text x="540" y="1088" class="detail">BRCA Exchange; IARC TP53; HPA expression</text>
+<text x="540" y="1111" class="detail">COSMIC: coding / noncoding variants, targeted variants, breakpoints and</text>
+<text x="540" y="1134" class="detail">structural variants</text>
+<text x="540" y="1157" class="detail">Copy number, fusions, expression, methylation, classifications and supporting</text>
+<text x="540" y="1180" class="detail">papers</text>
+<text x="540" y="1203" class="detail">Cancer gene census / hallmarks, genes / transcripts, mutant census, resistance</text>
+<text x="540" y="1226" class="detail">mutations</text>
+<text x="540" y="1249" class="detail">Mutation census, SBS / DBS / SV signatures, and actionability</text>
+</g>
+<g class="edge-label"><rect x="534" y="386" width="72" height="28" rx="5"/>
+<text x="542" y="404" class="label">primary</text>
+</g>
+<g class="edge-label"><rect x="864" y="406" width="72" height="28" rx="5"/>
+<text x="872" y="424" class="label">identity</text>
+</g>
+<g class="edge-label"><rect x="537" y="866" width="45" height="28" rx="5"/>
+<text x="545" y="884" class="label">bam</text>
+</g>
+<g class="edge-label"><rect x="840" y="814" width="120" height="28" rx="5"/>
+<text x="848" y="832" class="label">knowledgebase</text>
+</g>
+
+</svg>

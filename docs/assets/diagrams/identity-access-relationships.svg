@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1120" viewBox="0 0 1360 1120" role="img" aria-labelledby="title desc">
+<title id="title">Identity, access, and traceability</title>
+<desc id="desc">Identity records grant permissions; user scope constrains the clinical resources those permissions can reach. Authentication, permission checks, and scope checks are distinct. Audit and notifications have different purposes.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1120" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Identity, access, and traceability</text>
+<text x="40" y="84" class="subtitle">Identity records grant permissions; user scope constrains the clinical resources those permissions can reach. Authentication, permission</text>
+<text x="40" y="108" class="subtitle">checks, and scope checks are distinct. Audit and notifications have different purposes.</text>
+<path d="M400 280 L460 280 L460 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M240 360 L240 540" class="edge" data-source="0" data-target="3"/>
+<path d="M680 400 L680 540" class="edge" data-source="1" data-target="4"/>
+<path d="M1120 360 L1120 480 L680 480 L680 540" class="edge" data-source="2" data-target="4"/>
+<path d="M400 600 L520 600" class="edge" data-source="3" data-target="4"/>
+<path d="M840 600 L960 600" class="edge" data-source="4" data-target="5"/>
+<path d="M680 680 L680 820" class="edge" data-source="4" data-target="7"/>
+<path d="M520 880 L460 880 L460 900 L400 900" class="edge" data-source="7" data-target="6"/>
+<path d="M840 880 L960 880" class="edge optional" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">Authentication provider</text>
+<text x="100" y="299" class="detail">Local username / password</text>
+<text x="100" y="322" class="detail">or LDAP directory authentication</text>
+<text x="100" y="345" class="detail">Provider must be allowed for user</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">User account</text>
+<text x="540" y="299" class="detail">users · active account</text>
+<text x="540" y="322" class="detail">roles[] reference role identities</text>
+<text x="540" y="345" class="detail">asp_ids / asp_groups /</text>
+<text x="540" y="368" class="detail">environments</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">Roles and permissions</text>
+<text x="980" y="299" class="detail">roles.permissions[]</text>
+<text x="980" y="322" class="detail">Active permissions catalog</text>
+<text x="980" y="345" class="detail">Application-owned permission IDs</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="140" rx="10"/>
+<text x="100" y="574" class="name">API session</text>
+<text x="100" y="619" class="detail">api_sessions · identity database</text>
+<text x="100" y="642" class="detail">Browser cookie or bearer context</text>
+<text x="100" y="665" class="detail">Cookie writes require CSRF token</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="140" rx="10"/>
+<text x="540" y="574" class="name">API authorization</text>
+<text x="540" y="619" class="detail">Authenticated principal</text>
+<text x="540" y="642" class="detail">Required permission + user scope</text>
+<text x="540" y="665" class="detail">Explicit superuser handling</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="140" rx="10"/>
+<text x="980" y="574" class="name">Protected resource</text>
+<text x="980" y="619" class="detail">Assay / sample / configuration</text>
+<text x="980" y="642" class="detail">Typed route and service operation</text>
+<text x="980" y="665" class="detail">UI visibility is not authorization</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="820" width="320" height="180" rx="10"/>
+<text x="100" y="854" class="name">Audit events</text>
+<text x="100" y="899" class="detail">audit_events · identity database</text>
+<text x="100" y="922" class="detail">Actor, operation, target, outcome</text>
+<text x="100" y="945" class="detail">Clinical / administrative</text>
+<text x="100" y="968" class="detail">traceability</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="820" width="320" height="140" rx="10"/>
+<text x="540" y="854" class="name">Change provenance</text>
+<text x="540" y="899" class="detail">Resource actor and revision</text>
+<text x="540" y="922" class="detail">Sample ingestion provenance</text>
+<text x="540" y="945" class="detail">Report configuration snapshots</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="820" width="320" height="140" rx="10"/>
+<text x="980" y="854" class="name">User notifications</text>
+<text x="980" y="899" class="detail">notifications · primary database</text>
+<text x="980" y="922" class="detail">Messages addressed to recipients</text>
+<text x="980" y="945" class="detail">Separate from audit evidence</text>
+</g>
+<g class="edge-label"><rect x="412" y="266" width="72" height="28" rx="5"/>
+<text x="420" y="284" class="label">verifies</text>
+</g>
+<g class="edge-label"><rect x="850" y="286" width="76" height="28" rx="5"/>
+<text x="858" y="304" class="label">assigned</text>
+</g>
+<g class="edge-label"><rect x="206" y="436" width="68" height="28" rx="5"/>
+<text x="214" y="454" class="label">session</text>
+</g>
+<g class="edge-label"><rect x="652" y="456" width="56" height="28" rx="5"/>
+<text x="660" y="474" class="label">scope</text>
+</g>
+<g class="edge-label"><rect x="828" y="466" width="144" height="28" rx="5"/>
+<text x="836" y="484" class="label">permission grants</text>
+</g>
+<g class="edge-label"><rect x="422" y="586" width="76" height="28" rx="5"/>
+<text x="430" y="604" class="label">principal</text>
+</g>
+<g class="edge-label"><rect x="864" y="586" width="72" height="28" rx="5"/>
+<text x="872" y="604" class="label">permits</text>
+</g>
+<g class="edge-label"><rect x="647" y="736" width="65" height="28" rx="5"/>
+<text x="655" y="754" class="label">writes</text>
+</g>
+<g class="edge-label"><rect x="436" y="866" width="71" height="28" rx="5"/>
+<text x="444" y="884" class="label">records</text>
+</g>
+<g class="edge-label"><rect x="864" y="866" width="72" height="28" rx="5"/>
+<text x="872" y="884" class="label">notifies</text>
+</g>
+
+</svg>

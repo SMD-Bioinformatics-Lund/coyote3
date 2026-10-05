@@ -233,7 +233,7 @@ Do not manually edit or commit:
 - Nextflow `work/` directories or pipeline result trees if they are present locally.
 - Private scratch directories such as `.design/`, `.internal/`, `.agents/`, `.codex/`, and
   `.claude/`.
-- Generated documentation such as `docs/api/collection_contracts.md` and
-  `docs/developer/permission_catalog.md`; change their source and run the repository
+- Generated documentation such as `docs/reference/mongodb-collections.md` and
+  `docs/administration/permission-catalog.md`; change their source and run the repository
   generator instead.
 - Dependency lockfiles unless the dependency graph intentionally changes.

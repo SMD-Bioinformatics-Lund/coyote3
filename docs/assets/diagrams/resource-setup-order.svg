@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1140" viewBox="0 0 1360 1140" role="img" aria-labelledby="title desc">
+<title id="title">What to define first: a new assay to its first sample</title>
+<desc id="desc">Follow the numbered path. Save drafts as needed; only activation makes staged assay resources operational. Gene lists are optional unless selected by configuration. Public catalog publication follows its own workflow.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1140" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">What to define first: a new assay to its first sample</text>
+<text x="40" y="84" class="subtitle">Follow the numbered path. Save drafts as needed; only activation makes staged assay resources operational. Gene lists are optional unless</text>
+<text x="40" y="108" class="subtitle">selected by configuration. Public catalog publication follows its own workflow.</text>
+<path d="M400 300 L460 300 L460 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L900 280 L900 300 L960 300" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 400 L1120 540" class="edge" data-source="2" data-target="5"/>
+<path d="M960 600 L840 600" class="edge" data-source="5" data-target="4"/>
+<path d="M520 600 L400 600" class="edge" data-source="4" data-target="3"/>
+<path d="M240 680 L240 820" class="edge" data-source="3" data-target="6"/>
+<path d="M400 900 L460 900 L460 920 L520 920" class="edge" data-source="6" data-target="7"/>
+<path d="M840 920 L900 920 L900 880 L960 880" class="edge" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
+<text x="100" y="254" class="name">1 · Accounts and permissions</text>
+<text x="100" y="299" class="detail">Bootstrap permission catalog +</text>
+<text x="100" y="322" class="detail">roles</text>
+<text x="100" y="345" class="detail">Create / assign authorized users</text>
+<text x="100" y="368" class="detail">Keep author and reviewer distinct</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
+<text x="540" y="254" class="name">2 · Active assay group</text>
+<text x="540" y="299" class="detail">Register a stable group identifier</text>
+<text x="540" y="322" class="detail">Select it in the new assay setup</text>
+<text x="540" y="345" class="detail">Group is not the assay family</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="180" rx="10"/>
+<text x="980" y="254" class="name">3 · Assay setup draft</text>
+<text x="980" y="299" class="detail">Define ASP identity and modality</text>
+<text x="980" y="322" class="detail">Physical genes and input file</text>
+<text x="980" y="345" class="detail">policy</text>
+<text x="980" y="368" class="detail">Draft ASP is not yet ingest-ready</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="140" rx="10"/>
+<text x="100" y="574" class="name">6 · Published clinical rules</text>
+<text x="100" y="619" class="detail">Author, test, review, publish</text>
+<text x="100" y="642" class="detail">Match assay / scope / language</text>
+<text x="100" y="665" class="detail">Separate rule approval lifecycle</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="140" rx="10"/>
+<text x="540" y="574" class="name">5 · Optional gene lists</text>
+<text x="540" y="619" class="detail">Stage new compatible ISGLs</text>
+<text x="540" y="642" class="detail">Or select eligible existing lists</text>
+<text x="540" y="665" class="detail">Keep analysis types explicit</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="140" rx="10"/>
+<text x="980" y="574" class="name">4 · Scopes and environments</text>
+<text x="980" y="619" class="detail">Base is always implicit</text>
+<text x="980" y="642" class="detail">Select optional named subpanels</text>
+<text x="980" y="665" class="detail">Choose target environments</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="820" width="320" height="180" rx="10"/>
+<text x="100" y="854" class="name">7 · Complete ASPCs</text>
+<text x="100" y="899" class="detail">One per scope + environment</text>
+<text x="100" y="922" class="detail">Select analyses and filter</text>
+<text x="100" y="945" class="detail">defaults</text>
+<text x="100" y="968" class="detail">Validate reporting compatibility</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="820" width="320" height="200" rx="10"/>
+<text x="540" y="854" class="name">8 · Review and activate</text>
+<text x="540" y="899" class="detail">Submit setup; independent</text>
+<text x="540" y="922" class="detail">approval</text>
+<text x="540" y="945" class="detail">Recheck dependencies and versions</text>
+<text x="540" y="968" class="detail">Commit operational records</text>
+<text x="540" y="991" class="detail">together</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="820" width="320" height="140" rx="10"/>
+<text x="980" y="854" class="name">9 · Ingest and review</text>
+<text x="980" y="899" class="detail">Validate sample bundle and files</text>
+<text x="980" y="922" class="detail">Record resolved ASPC and actor</text>
+<text x="980" y="945" class="detail">Review findings, then save report</text>
+</g>
+<g class="edge-label"><rect x="412" y="286" width="83" height="28" rx="5"/>
+<text x="420" y="304" class="label">authorize</text>
+</g>
+<g class="edge-label"><rect x="850" y="266" width="76" height="28" rx="5"/>
+<text x="858" y="284" class="label">register</text>
+</g>
+<g class="edge-label"><rect x="1092" y="456" width="56" height="28" rx="5"/>
+<text x="1100" y="474" class="label">scope</text>
+</g>
+<g class="edge-label"><rect x="864" y="586" width="71" height="28" rx="5"/>
+<text x="872" y="604" class="label">prepare</text>
+</g>
+<g class="edge-label"><rect x="428" y="586" width="64" height="28" rx="5"/>
+<text x="436" y="604" class="label">publish</text>
+</g>
+<g class="edge-label"><rect x="198" y="736" width="83" height="28" rx="5"/>
+<text x="206" y="754" class="label">configure</text>
+</g>
+<g class="edge-label"><rect x="415" y="886" width="65" height="28" rx="5"/>
+<text x="423" y="904" class="label">submit</text>
+</g>
+<g class="edge-label"><rect x="850" y="906" width="76" height="28" rx="5"/>
+<text x="858" y="924" class="label">activate</text>
+</g>
+
+</svg>

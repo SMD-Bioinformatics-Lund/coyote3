@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="880" viewBox="0 0 1360 880" role="img" aria-labelledby="title desc">
+<title id="title">Sample anchor and dependent evidence</title>
+<desc id="desc">Analysis documents belong to the sample through SAMPLE_ID; configuration controls which analyses apply. Findings remain separate collections. Review metadata and reports use their own typed reference contracts.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="880" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Sample anchor and dependent evidence</text>
+<text x="40" y="84" class="subtitle">Analysis documents belong to the sample through SAMPLE_ID; configuration controls which analyses apply. Findings remain separate</text>
+<text x="40" y="108" class="subtitle">collections. Review metadata and reports use their own typed reference contracts.</text>
+<path d="M680 360 L680 420 L240 420 L240 500" class="edge" data-source="0" data-target="1"/>
+<path d="M680 360 L680 500" class="edge" data-source="0" data-target="2"/>
+<path d="M680 360 L680 420 L1120 420 L1120 500" class="edge" data-source="0" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="1200" height="140" rx="10"/>
+<text x="100" y="254" class="name">Sample anchor</text>
+<text x="100" y="299" class="detail">samples._id + stable name</text>
+<text x="100" y="322" class="detail">Assay / environment + filters</text>
+<text x="100" y="345" class="detail">Ingest status + configuration revision</text>
+</g>
+<g class="card" data-node="1"><rect x="80" y="500" width="320" height="200" rx="10"/>
+<text x="100" y="534" class="name">DNA analysis documents</text>
+<text x="100" y="579" class="detail">variants</text>
+<text x="100" y="602" class="detail">cnvs</text>
+<text x="100" y="625" class="detail">translocations</text>
+<text x="100" y="648" class="detail">panel_coverage</text>
+<text x="100" y="671" class="detail">biomarkers / pgx where ingested</text>
+</g>
+<g class="card" data-node="2"><rect x="520" y="500" width="320" height="220" rx="10"/>
+<text x="540" y="534" class="name">RNA analysis documents</text>
+<text x="540" y="579" class="detail">fusions</text>
+<text x="540" y="602" class="detail">rna_expression</text>
+<text x="540" y="625" class="detail">rna_qc</text>
+<text x="540" y="648" class="detail">rna_classification</text>
+<text x="540" y="671" class="detail">Other declared supported</text>
+<text x="540" y="694" class="detail">resources</text>
+</g>
+<g class="card" data-node="3"><rect x="960" y="500" width="320" height="260" rx="10"/>
+<text x="980" y="534" class="name">Review and reporting</text>
+<text x="980" y="579" class="detail">sample_comments /</text>
+<text x="980" y="602" class="detail">finding_comments</text>
+<text x="980" y="625" class="detail">Annotations and finding actions</text>
+<text x="980" y="648" class="detail">reports preserve confirmed</text>
+<text x="980" y="671" class="detail">evidence</text>
+<text x="980" y="694" class="detail">reported_variants store</text>
+<text x="980" y="717" class="detail">snapshots</text>
+<text x="980" y="740" class="detail">Use each contract for exact links</text>
+</g>
+<g class="edge-label"><rect x="411" y="406" width="98" height="28" rx="5"/>
+<text x="419" y="424" class="label">SAMPLE_ID</text>
+</g>
+<g class="edge-label"><rect x="631" y="416" width="98" height="28" rx="5"/>
+<text x="639" y="434" class="label">SAMPLE_ID</text>
+</g>
+<g class="edge-label"><rect x="836" y="397" width="128" height="46" rx="5"/>
+<text x="844" y="415" class="label">sample / finding</text>
+<text x="844" y="433" class="label">references</text>
+</g>
+
+</svg>

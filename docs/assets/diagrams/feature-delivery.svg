@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1164" viewBox="0 0 1360 1164" role="img" aria-labelledby="title desc">
+<title id="title">Coyote3 feature delivery flow</title>
+<desc id="desc">Feature delivery from clinical or operational requirement through architecture impact, contracts, implementation, tests, documentation, review, release, and monitoring.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1164" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Coyote3 feature delivery flow</text>
+<text x="40" y="84" class="subtitle">Feature delivery from clinical or operational requirement through architecture impact, contracts, implementation, tests, documentation,</text>
+<text x="40" y="108" class="subtitle">review, release, and monitoring.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 340 L1120 400 L240 400 L240 480" class="edge" data-source="2" data-target="3"/>
+<path d="M400 540 L520 540" class="edge" data-source="3" data-target="4"/>
+<path d="M680 340 L680 420 L1120 420 L1120 480" class="edge" data-source="1" data-target="5"/>
+<path d="M1120 340 L1120 440 L440 440 L440 700 L240 700 L240 760" class="edge" data-source="2" data-target="6"/>
+<path d="M240 600 L240 660 L680 660 L680 760" class="edge" data-source="3" data-target="7"/>
+<path d="M680 480 L680 420 L240 420 L240 340" class="edge optional" data-source="4" data-target="0"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">1 · Define outcome</text>
+<text x="100" y="299" class="detail">clinical / user / operational</text>
+<text x="100" y="322" class="detail">acceptance and failure states</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">2 · Map impact</text>
+<text x="540" y="299" class="detail">route · permission · contract</text>
+<text x="540" y="322" class="detail">collection · audit · UI</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">3 · Implement vertically</text>
+<text x="980" y="299" class="detail">schema → repository → service</text>
+<text x="980" y="322" class="detail">route → client → page</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="480" width="320" height="120" rx="10"/>
+<text x="100" y="514" class="name">4 · Verify behavior</text>
+<text x="100" y="559" class="detail">unit · API · component · E2E</text>
+<text x="100" y="582" class="detail">negative + permission paths</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="480" width="320" height="120" rx="10"/>
+<text x="540" y="514" class="name">5 · Release</text>
+<text x="540" y="559" class="detail">changelog + version</text>
+<text x="540" y="582" class="detail">deploy + observe</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="480" width="320" height="140" rx="10"/>
+<text x="980" y="514" class="name">Architecture gate</text>
+<text x="980" y="559" class="detail">existing patterns preferred</text>
+<text x="980" y="582" class="detail">data and permission ownership</text>
+<text x="980" y="605" class="detail">clear</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="760" width="320" height="120" rx="10"/>
+<text x="100" y="794" class="name">Contract gate</text>
+<text x="100" y="839" class="detail">typed reads and writes</text>
+<text x="100" y="862" class="detail">OpenAPI and frontend agree</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="760" width="320" height="140" rx="10"/>
+<text x="540" y="794" class="name">Release gate</text>
+<text x="540" y="839" class="detail">lint · typecheck · tests · build</text>
+<text x="540" y="862" class="detail">browser + documentation</text>
+<text x="540" y="885" class="detail">validation</text>
+</g>
+
+<text x="40" y="1004" class="note">DISCOVER</text>
+<text x="40" y="1028" class="note">DESIGN</text>
+<text x="40" y="1052" class="note">BUILD</text>
+<text x="40" y="1076" class="note">VERIFY</text>
+<text x="40" y="1100" class="note">RELEASE</text>
+<text x="40" y="1124" class="note">Production evidence and user feedback return to the next requirement</text>
+</svg>

@@ -11,8 +11,11 @@ RUN pip install --no-cache-dir -r requirements-docs.txt
 
 COPY docs/ ./docs/
 COPY api/version.py ./api/version.py
+COPY api/config/center/contact.toml ./api/config/center/contact.toml
 ARG ENV_NAME=""
+ARG ORGANIZATION_NAME=""
 ENV ENV_NAME=${ENV_NAME}
+ENV ORGANIZATION_NAME=${ORGANIZATION_NAME}
 RUN mkdocs build --strict
 
 FROM nginx:1.27-alpine

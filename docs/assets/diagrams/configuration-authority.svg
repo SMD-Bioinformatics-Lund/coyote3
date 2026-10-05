@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="800" viewBox="0 0 1360 800" role="img" aria-labelledby="title desc">
+<title id="title">Configuration authority and sample resolution</title>
+<desc id="desc">Center files, application catalogs, and versioned MongoDB resources combine into a resolved sample analysis context.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="800" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Configuration authority and sample resolution</text>
+<text x="40" y="84" class="subtitle">Center files, application catalogs, and versioned MongoDB resources combine into a resolved sample analysis context.</text>
+<path d="M400 260 L460 260 L460 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M240 540 L240 460 L680 460 L680 400" class="edge" data-source="3" data-target="1"/>
+<path d="M840 300 L900 300 L900 260 L960 260" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 340 L1120 480 L680 480 L680 540" class="edge" data-source="2" data-target="4"/>
+<g class="card" data-node="0"><rect x="80" y="200" width="320" height="120" rx="10"/>
+<text x="100" y="234" class="name">Center deployment files</text>
+<text x="100" y="279" class="detail">environment + TOML/YAML</text>
+<text x="100" y="302" class="detail">contacts, paths, vocabulary</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="200" width="320" height="200" rx="10"/>
+<text x="540" y="234" class="name">Versioned MongoDB</text>
+<text x="540" y="259" class="name">resources</text>
+<text x="540" y="304" class="detail">ASP: assay definition</text>
+<text x="540" y="327" class="detail">ASPC: filters + analyses +</text>
+<text x="540" y="350" class="detail">reporting</text>
+<text x="540" y="373" class="detail">ISGL: selectable gene scope</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="200" width="320" height="140" rx="10"/>
+<text x="980" y="234" class="name">Resolved sample context</text>
+<text x="980" y="279" class="detail">active ASP/ASPC release</text>
+<text x="980" y="302" class="detail">sample filter state</text>
+<text x="980" y="325" class="detail">selected/ad hoc gene lists</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="120" rx="10"/>
+<text x="100" y="574" class="name">Application catalogs</text>
+<text x="100" y="619" class="detail">permissions + roles</text>
+<text x="100" y="642" class="detail">clinical rule grammar</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="140" rx="10"/>
+<text x="540" y="574" class="name">Clinical execution</text>
+<text x="540" y="619" class="detail">query construction, review tabs,</text>
+<text x="540" y="642" class="detail">report sections, audit, and saved</text>
+<text x="540" y="665" class="detail">provenance</text>
+</g>
+
+
+</svg>

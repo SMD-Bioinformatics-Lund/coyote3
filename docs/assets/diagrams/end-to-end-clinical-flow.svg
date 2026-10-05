@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1220" viewBox="0 0 1360 1220" role="img" aria-labelledby="title desc">
+<title id="title">End-to-end clinical workflow</title>
+<desc id="desc">Follow the numbered stages from clinical configuration to preserved reporting evidence. Audit records are produced at applicable operations throughout the workflow, not only at the final stage.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1220" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">End-to-end clinical workflow</text>
+<text x="40" y="84" class="subtitle">Follow the numbered stages from clinical configuration to preserved reporting evidence. Audit records are produced at applicable operations</text>
+<text x="40" y="108" class="subtitle">throughout the workflow, not only at the final stage.</text>
+<path d="M400 300 L460 300 L460 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 540" class="edge" data-source="2" data-target="5"/>
+<path d="M960 640 L900 640 L900 600 L840 600" class="edge" data-source="5" data-target="4"/>
+<path d="M520 600 L460 600 L460 620 L400 620" class="edge" data-source="4" data-target="3"/>
+<path d="M240 720 L240 900" class="edge" data-source="3" data-target="6"/>
+<path d="M400 1000 L460 1000 L460 980 L520 980" class="edge" data-source="6" data-target="7"/>
+<path d="M840 980 L960 980" class="edge" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
+<text x="100" y="254" class="name">1 · Configure the assay</text>
+<text x="100" y="299" class="detail">ASP physical design + ASPC</text>
+<text x="100" y="322" class="detail">settings</text>
+<text x="100" y="345" class="detail">Optional selected ISGL gene lists</text>
+<text x="100" y="368" class="detail">Published rules and access policy</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
+<text x="540" y="254" class="name">2 · Submit the sample bundle</text>
+<text x="540" y="299" class="detail">Sample YAML manifest</text>
+<text x="540" y="322" class="detail">Declared analysis files</text>
+<text x="540" y="345" class="detail">Pipeline-produced metadata</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Validate and ingest</text>
+<text x="980" y="299" class="detail">Resolve assay and configuration</text>
+<text x="980" y="322" class="detail">Validate all required inputs</text>
+<text x="980" y="345" class="detail">Commit clinical records atomically</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="180" rx="10"/>
+<text x="100" y="574" class="name">6 · Curate the evidence</text>
+<text x="100" y="619" class="detail">Finding decisions and</text>
+<text x="100" y="642" class="detail">classifications</text>
+<text x="100" y="665" class="detail">Sample and finding comments</text>
+<text x="100" y="688" class="detail">Shared review state</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="140" rx="10"/>
+<text x="540" y="574" class="name">5 · Filter and review</text>
+<text x="540" y="619" class="detail">Recorded ASPC + sample filters</text>
+<text x="540" y="642" class="detail">Analysis-specific selected genes</text>
+<text x="540" y="665" class="detail">Authorized DNA / RNA workflows</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="220" rx="10"/>
+<text x="980" y="574" class="name">4 · Store sample and</text>
+<text x="980" y="599" class="name">findings</text>
+<text x="980" y="644" class="detail">Sample anchor + analysis</text>
+<text x="980" y="667" class="detail">collections</text>
+<text x="980" y="690" class="detail">Dependent findings linked by</text>
+<text x="980" y="713" class="detail">sample</text>
+<text x="980" y="736" class="detail">Record ingest source and actor</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="900" width="320" height="200" rx="10"/>
+<text x="100" y="934" class="name">7 · Preview the report</text>
+<text x="100" y="979" class="detail">Prepare current reportable</text>
+<text x="100" y="1002" class="detail">findings</text>
+<text x="100" y="1025" class="detail">Evaluate published clinical rules</text>
+<text x="100" y="1048" class="detail">Inspect temporary rendered</text>
+<text x="100" y="1071" class="detail">report</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="900" width="320" height="180" rx="10"/>
+<text x="540" y="934" class="name">8 · Confirm and save</text>
+<text x="540" y="979" class="detail">Report and finding snapshots</text>
+<text x="540" y="1002" class="detail">Configuration / rule provenance</text>
+<text x="540" y="1025" class="detail">Saved rendered content and</text>
+<text x="540" y="1048" class="detail">artifacts</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="900" width="320" height="180" rx="10"/>
+<text x="980" y="934" class="name">9 · Review history and</text>
+<text x="980" y="959" class="name">cohorts</text>
+<text x="980" y="1004" class="detail">Retrieve saved reports</text>
+<text x="980" y="1027" class="detail">Search reported findings</text>
+<text x="980" y="1050" class="detail">Inspect applicable audit events</text>
+</g>
+
+
+</svg>

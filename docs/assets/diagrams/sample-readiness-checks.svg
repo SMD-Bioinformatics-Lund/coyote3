@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="800" viewBox="0 0 1360 800" role="img" aria-labelledby="title desc">
+<title id="title">A visible sample is not the same as an available result</title>
+<desc id="desc">Use the checks that match the symptom; none of these states alone proves the next. Missing tab ≠ zero findings. Empty filtered table ≠ failed ingest. Preview ≠ saved report.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="800" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">A visible sample is not the same as an available result</text>
+<text x="40" y="84" class="subtitle">Use the checks that match the symptom; none of these states alone proves the next. Missing tab ≠ zero findings. Empty filtered table ≠</text>
+<text x="40" y="108" class="subtitle">failed ingest. Preview ≠ saved report.</text>
+
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">1 · Worklist visibility</text>
+<text x="100" y="299" class="detail">Search, dates, Live / Reported</text>
+<text x="100" y="322" class="detail">User assay/group/environment</text>
+<text x="100" y="345" class="detail">scope</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">2 · Ingest completion</text>
+<text x="540" y="299" class="detail">Read durable job receipt</text>
+<text x="540" y="322" class="detail">Accepted is not yet succeeded</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">3 · Analysis availability</text>
+<text x="980" y="299" class="detail">Recorded ASPC + ingested data</text>
+<text x="980" y="322" class="detail">Supported modality and intent</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="180" rx="10"/>
+<text x="100" y="534" class="name">6 · Saved report</text>
+<text x="100" y="579" class="detail">Confirmed evidence and</text>
+<text x="100" y="602" class="detail">provenance</text>
+<text x="100" y="625" class="detail">Historical snapshot, not current</text>
+<text x="100" y="648" class="detail">query</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="140" rx="10"/>
+<text x="540" y="534" class="name">5 · Report preview</text>
+<text x="540" y="579" class="detail">Reportable evidence and sections</text>
+<text x="540" y="602" class="detail">Compatible published clinical</text>
+<text x="540" y="625" class="detail">rules</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="120" rx="10"/>
+<text x="980" y="534" class="name">4 · Query result</text>
+<text x="980" y="579" class="detail">Active filters, intent, and search</text>
+<text x="980" y="602" class="detail">Selected gene lists / ad-hoc genes</text>
+</g>
+
+
+</svg>

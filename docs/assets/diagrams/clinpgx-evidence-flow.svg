@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="860" viewBox="0 0 1360 860" role="img" aria-labelledby="title desc">
+<title id="title">ClinPGx evidence from cached gene badges to live context</title>
+<desc id="desc">List pages use local cached data; the reviewer explicitly requests current public API context. Cached PGx evidence on variant pages is distinct from a dedicated PGX sample-analysis workflow.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="860" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">ClinPGx evidence from cached gene badges to live context</text>
+<text x="40" y="84" class="subtitle">List pages use local cached data; the reviewer explicitly requests current public API context. Cached PGx evidence on variant pages is</text>
+<text x="40" y="108" class="subtitle">distinct from a dedicated PGX sample-analysis workflow.</text>
+<path d="M400 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 540" class="edge" data-source="2" data-target="5"/>
+<path d="M960 600 L900 600 L900 640 L840 640" class="edge" data-source="5" data-target="4"/>
+<path d="M520 640 L460 640 L460 600 L400 600" class="edge" data-source="4" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
+<text x="100" y="254" class="name">1 · Ingest annotated</text>
+<text x="100" y="279" class="name">findings</text>
+<text x="100" y="324" class="detail">Select clinical transcript</text>
+<text x="100" y="347" class="detail">Normalize the gene to HGNC</text>
+<text x="100" y="370" class="detail">identity</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">2 · Prepare variant list</text>
+<text x="540" y="279" class="name">page</text>
+<text x="540" y="324" class="detail">Collect selected genes for this</text>
+<text x="540" y="347" class="detail">page</text>
+<text x="540" y="370" class="detail">Batch query clinpgx_genes_public</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Show local PGx context</text>
+<text x="980" y="299" class="detail">Compact badges in finding rows</text>
+<text x="980" y="322" class="detail">Cached gene facts in variant</text>
+<text x="980" y="345" class="detail">detail</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="140" rx="10"/>
+<text x="100" y="574" class="name">6 · Render detail evidence</text>
+<text x="100" y="619" class="detail">Show returned clinical context</text>
+<text x="100" y="642" class="detail">Retain structured source</text>
+<text x="100" y="665" class="detail">attribution</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="200" rx="10"/>
+<text x="540" y="574" class="name">5 · Resolve evidence</text>
+<text x="540" y="599" class="name">categories</text>
+<text x="540" y="644" class="detail">Guidelines, labels, drugs,</text>
+<text x="540" y="667" class="detail">pathways</text>
+<text x="540" y="690" class="detail">VIP summary and annotation</text>
+<text x="540" y="713" class="detail">examples</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="140" rx="10"/>
+<text x="980" y="574" class="name">4 · Request current data</text>
+<text x="980" y="619" class="detail">Choose Fetch ClinPGx</text>
+<text x="980" y="642" class="detail">Fetch supported public API</text>
+<text x="980" y="665" class="detail">context</text>
+</g>
+
+
+</svg>

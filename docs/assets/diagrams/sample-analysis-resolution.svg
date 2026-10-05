@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1600" viewBox="0 0 1360 1600" role="img" aria-labelledby="title desc">
+<title id="title">Sample analysis context resolution</title>
+<desc id="desc">Sample identity resolves ASP and ASPC configuration, analysis tabs, intent-specific filters, gene scope, query policies, and paginated finding results.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1600" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Sample analysis context resolution</text>
+<text x="40" y="84" class="subtitle">Sample identity resolves ASP and ASPC configuration, analysis tabs, intent-specific filters, gene scope, query policies, and paginated</text>
+<text x="40" y="108" class="subtitle">finding results.</text>
+<path d="M400 280 L460 280 L460 340 L520 340" class="edge" data-source="0" data-target="1"/>
+<path d="M840 340 L900 340 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 560 L240 560 L240 620" class="edge" data-source="2" data-target="3"/>
+<path d="M400 680 L460 680 L460 720 L520 720" class="edge" data-source="3" data-target="4"/>
+<path d="M840 720 L960 720" class="edge" data-source="4" data-target="5"/>
+<path d="M1120 840 L1120 900 L240 900 L240 980" class="edge" data-source="5" data-target="6"/>
+<path d="M400 1060 L520 1060" class="edge" data-source="6" data-target="7"/>
+<path d="M840 1060 L960 1060" class="edge" data-source="7" data-target="8"/>
+<path d="M680 1160 L680 1220 L240 1220 L240 1300" class="edge" data-source="7" data-target="9"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">1 · Sample anchor</text>
+<text x="100" y="299" class="detail">sample.name · asp_id</text>
+<text x="100" y="322" class="detail">requested/resolved subpanel</text>
+<text x="100" y="345" class="detail">environment · omics · paired</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="260" rx="10"/>
+<text x="540" y="254" class="name">2 · Resolved ASPC</text>
+<text x="540" y="299" class="detail">analysis_types control available</text>
+<text x="540" y="322" class="detail">tabs</text>
+<text x="540" y="345" class="detail">analysis_intents control</text>
+<text x="540" y="368" class="detail">somatic/germline</text>
+<text x="540" y="391" class="detail">filters grouped by analysis and</text>
+<text x="540" y="414" class="detail">intent</text>
+<text x="540" y="437" class="detail">report_sections control report</text>
+<text x="540" y="460" class="detail">domains</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Gene scope</text>
+<text x="980" y="299" class="detail">selected typed ISGLs</text>
+<text x="980" y="322" class="detail">sample ad-hoc genes</text>
+<text x="980" y="345" class="detail">effective scope by data type</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="620" width="320" height="140" rx="10"/>
+<text x="100" y="654" class="name">4 · User request</text>
+<text x="100" y="699" class="detail">tab · intent · search</text>
+<text x="100" y="722" class="detail">multi-sort · page · page size</text>
+<text x="100" y="745" class="detail">temporary filter changes</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="620" width="320" height="200" rx="10"/>
+<text x="540" y="654" class="name">5 · Select domain policy</text>
+<text x="540" y="699" class="detail">SNV · CNV · translocation</text>
+<text x="540" y="722" class="detail">fusion · coverage · biomarker</text>
+<text x="540" y="745" class="detail">somatic/germline only where</text>
+<text x="540" y="768" class="detail">supported</text>
+<text x="540" y="791" class="detail">module availability enforced</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="620" width="320" height="220" rx="10"/>
+<text x="980" y="654" class="name">6 · Build effective query</text>
+<text x="980" y="699" class="detail">baseline evidence and thresholds</text>
+<text x="980" y="722" class="detail">selected-transcript consequence</text>
+<text x="980" y="745" class="detail">population/control frequency</text>
+<text x="980" y="768" class="detail">policy</text>
+<text x="980" y="791" class="detail">gene scope + released exceptions</text>
+<text x="980" y="814" class="detail">no order-dependent admission</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="980" width="320" height="180" rx="10"/>
+<text x="100" y="1014" class="name">7 · Repository query</text>
+<text x="100" y="1059" class="detail">search and all sort keys</text>
+<text x="100" y="1082" class="detail">apply to full result set</text>
+<text x="100" y="1105" class="detail">then paginate</text>
+<text x="100" y="1128" class="detail">cache by complete query key</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="980" width="320" height="180" rx="10"/>
+<text x="540" y="1014" class="name">8 · Review payload</text>
+<text x="540" y="1059" class="detail">rows + totals</text>
+<text x="540" y="1082" class="detail">filter metadata</text>
+<text x="540" y="1105" class="detail">table state in URL</text>
+<text x="540" y="1128" class="detail">export context</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="980" width="320" height="180" rx="10"/>
+<text x="980" y="1014" class="name">Review mutation</text>
+<text x="980" y="1059" class="detail">tier · false positive · blacklist</text>
+<text x="980" y="1082" class="detail">· report · comments</text>
+<text x="980" y="1105" class="detail">invalidate affected React Query</text>
+<text x="980" y="1128" class="detail">family</text>
+</g>
+<g class="card" data-node="9"><rect x="80" y="1300" width="320" height="180" rx="10"/>
+<text x="100" y="1334" class="name">Filter or gene-list update</text>
+<text x="100" y="1379" class="detail">persist sample effective state</text>
+<text x="100" y="1402" class="detail">when saved</text>
+<text x="100" y="1425" class="detail">refresh rows and temporary</text>
+<text x="100" y="1448" class="detail">report snapshot</text>
+</g>
+
+
+</svg>

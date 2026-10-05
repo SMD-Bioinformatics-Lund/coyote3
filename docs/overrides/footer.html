@@ -1,0 +1,24 @@
+<footer>
+  {% if config.theme.prev_next_buttons_location | lower in ['bottom', 'both'] and page %}
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer navigation">
+      {% if page.previous_page %}
+        <a href="{{ page.previous_page.url | url }}" class="btn btn-neutral float-left" title="{{ page.previous_page.title | e }}">
+          <span class="icon icon-circle-arrow-left" aria-hidden="true"></span> {% trans %}Previous{% endtrans %}
+        </a>
+      {% endif %}
+      {% if page.next_page %}
+        <a href="{{ page.next_page.url | url }}" class="btn btn-neutral float-right" title="{{ page.next_page.title | e }}">
+          {% trans %}Next{% endtrans %} <span class="icon icon-circle-arrow-right" aria-hidden="true"></span>
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+  <hr />
+  <div role="contentinfo" class="docs-center-footer">
+    <p><strong>{{ (config.extra.center_department or config.extra.center_name) | e }}</strong>{% if config.extra.center_department and config.extra.center_department != config.extra.center_name %} · {{ config.extra.center_name | e }}{% endif %}</p>
+    <p>&copy; <span data-current-year>{{ config.extra.copyright_year }}</span> Coyote3 Authors. All rights reserved.
+      <a href="{{ 'project/license/' | url }}">Licensed under Apache 2.0.</a>
+    </p>
+    {% if config.copyright %}<p>{{ config.copyright }}</p>{% endif %}
+  </div>
+</footer>

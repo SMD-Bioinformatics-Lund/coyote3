@@ -212,7 +212,7 @@ and FastAPI root-path configuration expose the route at the mounted public URL.
 
 ## Load-test sessions
 
-The [self-hosted load workload](../testing/load_testing.md) uses ordinary local test
+The [self-hosted load workload](../testing/load-and-capacity-testing.md) uses ordinary local test
 accounts and the normal session endpoints through Nginx, including `SCRIPT_NAME`.
 Cookie-authenticated mutations and logout must send the login response's CSRF token;
 do not disable CSRF or replace user sessions with the internal service token.

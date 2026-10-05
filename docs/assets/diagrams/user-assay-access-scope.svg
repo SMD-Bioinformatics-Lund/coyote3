@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1160" viewBox="0 0 1360 1160" role="img" aria-labelledby="title desc">
+<title id="title">Who can access a sample: permissions and clinical scope</title>
+<desc id="desc">Roles answer which actions are allowed. User scope constrains the assays and environments those actions reach. Disabling an assay group blocks new setup/ingest/assignments; existing clinical records retain their access checks.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1160" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Who can access a sample: permissions and clinical scope</text>
+<text x="40" y="84" class="subtitle">Roles answer which actions are allowed. User scope constrains the assays and environments those actions reach. Disabling an assay group</text>
+<text x="40" y="108" class="subtitle">blocks new setup/ingest/assignments; existing clinical records retain their access checks.</text>
+<path d="M400 320 L520 320" class="edge" data-source="0" data-target="1"/>
+<path d="M840 320 L900 320 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 580" class="edge" data-source="2" data-target="5"/>
+<path d="M400 660 L460 660 L460 640 L520 640" class="edge" data-source="3" data-target="4"/>
+<path d="M840 640 L900 640 L900 660 L960 660" class="edge" data-source="4" data-target="5"/>
+<path d="M1120 760 L1120 820 L680 820 L680 900" class="edge" data-source="5" data-target="7"/>
+<path d="M400 960 L520 960" class="edge" data-source="6" data-target="7"/>
+<path d="M840 960 L960 960" class="edge" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="200" rx="10"/>
+<text x="100" y="254" class="name">Permission catalog</text>
+<text x="100" y="299" class="detail">Active application permission IDs</text>
+<text x="100" y="322" class="detail">Defines supported resource</text>
+<text x="100" y="345" class="detail">actions</text>
+<text x="100" y="368" class="detail">Managed through bootstrap</text>
+<text x="100" y="391" class="detail">catalog</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="220" rx="10"/>
+<text x="540" y="254" class="name">Roles</text>
+<text x="540" y="299" class="detail">permissions[] reference catalog</text>
+<text x="540" y="322" class="detail">IDs</text>
+<text x="540" y="345" class="detail">Active role identities assigned to</text>
+<text x="540" y="368" class="detail">user</text>
+<text x="540" y="391" class="detail">Role color is display metadata</text>
+<text x="540" y="414" class="detail">only</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">User account</text>
+<text x="980" y="299" class="detail">roles[] + active account</text>
+<text x="980" y="322" class="detail">asp_ids[] and asp_groups[]</text>
+<text x="980" y="345" class="detail">environments[] access scope</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="580" width="320" height="180" rx="10"/>
+<text x="100" y="614" class="name">Assay group registry</text>
+<text x="100" y="659" class="detail">Stable group identity</text>
+<text x="100" y="682" class="detail">New assignments require active</text>
+<text x="100" y="705" class="detail">group</text>
+<text x="100" y="728" class="detail">Group is not a permission grant</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="580" width="320" height="140" rx="10"/>
+<text x="540" y="614" class="name">Assay · ASP</text>
+<text x="540" y="659" class="detail">Assay ID and registered group</text>
+<text x="540" y="682" class="detail">Clinical resource context</text>
+<text x="540" y="705" class="detail">Sample belongs to its assay</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="580" width="320" height="180" rx="10"/>
+<text x="980" y="614" class="name">Sample / configuration</text>
+<text x="980" y="659" class="detail">Requested action and environment</text>
+<text x="980" y="682" class="detail">Assay ID and group context</text>
+<text x="980" y="705" class="detail">Server resolves protected</text>
+<text x="980" y="728" class="detail">resource</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="900" width="320" height="140" rx="10"/>
+<text x="100" y="934" class="name">Explicit policy conditions</text>
+<text x="100" y="979" class="detail">Known permission and active role</text>
+<text x="100" y="1002" class="detail">User scope checked by API policy</text>
+<text x="100" y="1025" class="detail">Explicit superuser handling</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="900" width="320" height="140" rx="10"/>
+<text x="540" y="934" class="name">Authorization decision</text>
+<text x="540" y="979" class="detail">Permission + resource scope</text>
+<text x="540" y="1002" class="detail">Allow → execute typed operation</text>
+<text x="540" y="1025" class="detail">Deny → structured API response</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="900" width="320" height="140" rx="10"/>
+<text x="980" y="934" class="name">UI and traceability</text>
+<text x="980" y="979" class="detail">UI hides unavailable actions</text>
+<text x="980" y="1002" class="detail">API remains the security boundary</text>
+<text x="980" y="1025" class="detail">Record applicable audit events</text>
+</g>
+<g class="edge-label"><rect x="428" y="306" width="64" height="28" rx="5"/>
+<text x="436" y="324" class="label">grants</text>
+</g>
+<g class="edge-label"><rect x="850" y="306" width="76" height="28" rx="5"/>
+<text x="858" y="324" class="label">assigned</text>
+</g>
+<g class="edge-label"><rect x="1070" y="456" width="99" height="28" rx="5"/>
+<text x="1078" y="474" class="label">scope check</text>
+</g>
+<g class="edge-label"><rect x="416" y="646" width="64" height="28" rx="5"/>
+<text x="424" y="664" class="label">groups</text>
+</g>
+<g class="edge-label"><rect x="852" y="626" width="71" height="28" rx="5"/>
+<text x="860" y="644" class="label">context</text>
+</g>
+<g class="edge-label"><rect x="834" y="797" width="132" height="46" rx="5"/>
+<text x="842" y="815" class="label">evaluate action</text>
+<text x="842" y="833" class="label">against principal</text>
+</g>
+<g class="edge-label"><rect x="420" y="946" width="79" height="28" rx="5"/>
+<text x="428" y="964" class="label">enforces</text>
+</g>
+<g class="edge-label"><rect x="870" y="946" width="60" height="28" rx="5"/>
+<text x="878" y="964" class="label">result</text>
+</g>
+
+</svg>

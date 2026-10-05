@@ -58,7 +58,10 @@ def test_every_template_variable_has_a_reference_table_entry(template):
     keys = set(dotenv_values(template, interpolate=False))
     reference = "\n".join(
         (ROOT / name).read_text()
-        for name in ("docs/start_here/configuration.md", "docs/testing/load_testing.md")
+        for name in (
+            "docs/deployment/configuration-reference.md",
+            "docs/testing/load-and-capacity-testing.md",
+        )
     )
     first_cells = [line.split("|")[1] for line in reference.splitlines() if line.startswith("|")]
     documented = set(re.findall(r"`([A-Z][A-Z0-9_]*)`", "\n".join(first_cells)))

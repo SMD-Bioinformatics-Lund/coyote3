@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1040" viewBox="0 0 1360 1040" role="img" aria-labelledby="title desc">
+<title id="title">Clinical resources and saved evidence</title>
+<desc id="desc">Arrows identify a dependency or data contribution; dashed arrows identify optional gene-list selection. Logical relationships, not SQL foreign keys. All analysis domains are gated by assay configuration.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1040" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Clinical resources and saved evidence</text>
+<text x="40" y="84" class="subtitle">Arrows identify a dependency or data contribution; dashed arrows identify optional gene-list selection. Logical relationships, not SQL</text>
+<text x="40" y="108" class="subtitle">foreign keys. All analysis domains are gated by assay configuration.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M240 360 L240 500" class="edge" data-source="0" data-target="3"/>
+<path d="M680 360 L680 500" class="edge" data-source="1" data-target="4"/>
+<path d="M400 560 L520 560" class="edge optional" data-source="3" data-target="4"/>
+<path d="M840 560 L960 560" class="edge" data-source="4" data-target="5"/>
+<path d="M680 640 L680 780" class="edge" data-source="4" data-target="7"/>
+<path d="M400 840 L520 840" class="edge" data-source="6" data-target="7"/>
+<path d="M840 840 L960 840" class="edge" data-source="7" data-target="8"/>
+<path d="M1120 640 L1120 780" class="edge" data-source="5" data-target="8"/>
+<path d="M1120 360 L1120 420 L880 420 L880 720 L680 720 L680 780" class="edge" data-source="2" data-target="7"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">Assay · ASP</text>
+<text x="100" y="299" class="detail">Physical design and file policy</text>
+<text x="100" y="322" class="detail">assay_specific_panels</text>
+<text x="100" y="345" class="detail">Stable identity: asp_id</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
+<text x="540" y="254" class="name">Configuration · ASPC</text>
+<text x="540" y="299" class="detail">Assay + subpanel + environment</text>
+<text x="540" y="322" class="detail">asp_configs</text>
+<text x="540" y="345" class="detail">Analyses, filters, report sections</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">Published clinical rules</text>
+<text x="980" y="299" class="detail">Assay + subpanel + language</text>
+<text x="980" y="322" class="detail">clinical_rule_sets / revisions</text>
+<text x="980" y="345" class="detail">Exact scope, then assay Base</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="140" rx="10"/>
+<text x="100" y="534" class="name">Gene lists · ISGL</text>
+<text x="100" y="579" class="detail">Assay / group eligibility</text>
+<text x="100" y="602" class="detail">insilico_genelists</text>
+<text x="100" y="625" class="detail">Only selected lists affect filters</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="140" rx="10"/>
+<text x="540" y="534" class="name">Sample</text>
+<text x="540" y="579" class="detail">samples · stable sample anchor</text>
+<text x="540" y="602" class="detail">Recorded ASPC revision + filters</text>
+<text x="540" y="625" class="detail">Ingestion source and actor</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="140" rx="10"/>
+<text x="980" y="534" class="name">Analysis evidence</text>
+<text x="980" y="579" class="detail">SNV, CNV, fusion, translocation</text>
+<text x="980" y="602" class="detail">Coverage, biomarkers, PGx</text>
+<text x="980" y="625" class="detail">RNA expression, QC, classification</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="780" width="320" height="140" rx="10"/>
+<text x="100" y="814" class="name">Review state</text>
+<text x="100" y="859" class="detail">Annotations and classifications</text>
+<text x="100" y="882" class="detail">Sample / finding comments</text>
+<text x="100" y="905" class="detail">Blacklist and finding actions</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="780" width="320" height="140" rx="10"/>
+<text x="540" y="814" class="name">Saved report</text>
+<text x="540" y="859" class="detail">reports · confirmed review state</text>
+<text x="540" y="882" class="detail">Configuration + rule provenance</text>
+<text x="540" y="905" class="detail">Rendered content and artifacts</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="780" width="320" height="140" rx="10"/>
+<text x="980" y="814" class="name">Finding snapshots</text>
+<text x="980" y="859" class="detail">reported_variants</text>
+<text x="980" y="882" class="detail">Selected finding evidence</text>
+<text x="980" y="905" class="detail">Reported-search / cohort views</text>
+</g>
+<g class="edge-label"><rect x="414" y="266" width="91" height="28" rx="5"/>
+<text x="422" y="284" class="label">configures</text>
+</g>
+<g class="edge-label"><rect x="862" y="266" width="76" height="28" rx="5"/>
+<text x="870" y="284" class="label">resolves</text>
+</g>
+<g class="edge-label"><rect x="189" y="416" width="101" height="28" rx="5"/>
+<text x="197" y="434" class="label">eligible lists</text>
+</g>
+<g class="edge-label"><rect x="610" y="416" width="139" height="28" rx="5"/>
+<text x="618" y="434" class="label">recorded revision</text>
+</g>
+<g class="edge-label"><rect x="426" y="546" width="68" height="28" rx="5"/>
+<text x="434" y="564" class="label">selects</text>
+</g>
+<g class="edge-label"><rect x="851" y="546" width="98" height="28" rx="5"/>
+<text x="859" y="564" class="label">SAMPLE_ID</text>
+</g>
+<g class="edge-label"><rect x="624" y="687" width="112" height="46" rx="5"/>
+<text x="632" y="705" class="label">save review +</text>
+<text x="632" y="723" class="label">evidence</text>
+</g>
+<g class="edge-label"><rect x="422" y="826" width="76" height="28" rx="5"/>
+<text x="430" y="844" class="label">curation</text>
+</g>
+<g class="edge-label"><rect x="856" y="826" width="87" height="28" rx="5"/>
+<text x="864" y="844" class="label">preserves</text>
+</g>
+<g class="edge-label"><rect x="1068" y="687" width="103" height="46" rx="5"/>
+<text x="1076" y="705" class="label">snapshotted</text>
+<text x="1076" y="723" class="label">evidence</text>
+</g>
+<g class="edge-label"><rect x="805" y="427" width="150" height="46" rx="5"/>
+<text x="813" y="445" class="label">approved narrative</text>
+<text x="813" y="463" class="label">+ rule provenance</text>
+</g>
+
+</svg>

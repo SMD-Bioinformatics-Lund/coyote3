@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="900" viewBox="0 0 1360 900" role="img" aria-labelledby="title desc">
+<title id="title">OncoKB reference refresh and local clinical evidence</title>
+<desc id="desc">Reference updates fetch public data; sample ingestion makes no external OncoKB request. Public gene catalog membership is distinct from historical drug-level oncokb_actionable evidence.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="900" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">OncoKB reference refresh and local clinical evidence</text>
+<text x="40" y="84" class="subtitle">Reference updates fetch public data; sample ingestion makes no external OncoKB request. Public gene catalog membership is distinct from</text>
+<text x="40" y="108" class="subtitle">historical drug-level oncokb_actionable evidence.</text>
+<path d="M400 280 L460 280 L460 320 L520 320" class="edge" data-source="0" data-target="1"/>
+<path d="M840 320 L900 320 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 340 L1120 560" class="edge" data-source="2" data-target="5"/>
+<path d="M960 640 L840 640" class="edge" data-source="5" data-target="4"/>
+<path d="M520 640 L460 640 L460 660 L400 660" class="edge" data-source="4" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">1 · Queue public refresh</text>
+<text x="100" y="299" class="detail">Administrator queues maintenance</text>
+<text x="100" y="322" class="detail">Celery starts the refresh task</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="200" rx="10"/>
+<text x="540" y="254" class="name">2 · Index local HGNC</text>
+<text x="540" y="279" class="name">identities</text>
+<text x="540" y="324" class="detail">Approved, previous, and alias</text>
+<text x="540" y="347" class="detail">symbols</text>
+<text x="540" y="370" class="detail">Resolve to current local gene</text>
+<text x="540" y="393" class="detail">records</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">3 · Fetch public catalogs</text>
+<text x="980" y="299" class="detail">Fetch cancer-gene catalog once</text>
+<text x="980" y="322" class="detail">Fetch curated-gene catalog once</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="560" width="320" height="220" rx="10"/>
+<text x="100" y="594" class="name">6 · Present evidence</text>
+<text x="100" y="619" class="name">markers</text>
+<text x="100" y="664" class="detail">API returns gene evidence maps</text>
+<text x="100" y="687" class="detail">React renders public OncoKB</text>
+<text x="100" y="710" class="detail">markers</text>
+<text x="100" y="733" class="detail">Actionable markers use local</text>
+<text x="100" y="756" class="detail">evidence</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="560" width="320" height="180" rx="10"/>
+<text x="540" y="594" class="name">5 · Query local variants</text>
+<text x="540" y="639" class="detail">Filter findings from MongoDB</text>
+<text x="540" y="662" class="detail">Read public cancer-gene cache</text>
+<text x="540" y="685" class="detail">Read historical actionable</text>
+<text x="540" y="708" class="detail">evidence</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="560" width="320" height="180" rx="10"/>
+<text x="980" y="594" class="name">4 · Update local cache</text>
+<text x="980" y="639" class="detail">Retain HGNC-resolvable entries</text>
+<text x="980" y="662" class="detail">Upsert de-duplicated public</text>
+<text x="980" y="685" class="detail">collections</text>
+<text x="980" y="708" class="detail">Remove stale managed entries</text>
+</g>
+
+
+</svg>

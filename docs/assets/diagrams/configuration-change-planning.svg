@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="860" viewBox="0 0 1360 860" role="img" aria-labelledby="title desc">
+<title id="title">Plan a configuration change across its dependencies</title>
+<desc id="desc">Use the resource-specific validation and governance workflow; do not bypass it with direct database changes. Setup, clinical rules, and public catalog have separate publication workflows; one approval does not publish all three.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="860" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Plan a configuration change across its dependencies</text>
+<text x="40" y="84" class="subtitle">Use the resource-specific validation and governance workflow; do not bypass it with direct database changes. Setup, clinical rules, and</text>
+<text x="40" y="108" class="subtitle">public catalog have separate publication workflows; one approval does not publish all three.</text>
+<path d="M400 280 L460 280 L460 300 L520 300" class="edge" data-source="0" data-target="1"/>
+<path d="M840 300 L900 300 L900 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 360 L1120 540" class="edge" data-source="2" data-target="5"/>
+<path d="M960 620 L900 620 L900 640 L840 640" class="edge" data-source="5" data-target="4"/>
+<path d="M520 640 L400 640" class="edge" data-source="4" data-target="3"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">1 · Identify the owner</text>
+<text x="100" y="299" class="detail">ASP, ASPC, ISGL, subpanel, rules</text>
+<text x="100" y="322" class="detail">Public catalog or identity/access</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="180" rx="10"/>
+<text x="540" y="254" class="name">2 · Record the impact</text>
+<text x="540" y="299" class="detail">Stable IDs + inspected revisions</text>
+<text x="540" y="322" class="detail">Assays, scopes, environments</text>
+<text x="540" y="345" class="detail">New ingest versus existing</text>
+<text x="540" y="368" class="detail">samples</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">3 · Validate in context</text>
+<text x="980" y="299" class="detail">Approved synthetic examples</text>
+<text x="980" y="322" class="detail">Affected and unaffected scopes</text>
+<text x="980" y="345" class="detail">Analysis, filters, reports, access</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="540" width="320" height="200" rx="10"/>
+<text x="100" y="574" class="name">6 · Correct through</text>
+<text x="100" y="599" class="name">governance</text>
+<text x="100" y="644" class="detail">Use supported revision workflows</text>
+<text x="100" y="667" class="detail">Resolve conflicts by reloading</text>
+<text x="100" y="690" class="detail">Preserve historical report</text>
+<text x="100" y="713" class="detail">evidence</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="540" width="320" height="200" rx="10"/>
+<text x="540" y="574" class="name">5 · Verify the outcome</text>
+<text x="540" y="619" class="detail">Active revision / publication</text>
+<text x="540" y="642" class="detail">Applicable audit and error</text>
+<text x="540" y="665" class="detail">evidence</text>
+<text x="540" y="688" class="detail">Existing history remains</text>
+<text x="540" y="711" class="detail">accessible</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="540" width="320" height="180" rx="10"/>
+<text x="980" y="574" class="name">4 · Complete required review</text>
+<text x="980" y="619" class="detail">Resource-specific approval</text>
+<text x="980" y="642" class="detail">Independent reviewer where</text>
+<text x="980" y="665" class="detail">required</text>
+<text x="980" y="688" class="detail">Publish each governed resource</text>
+</g>
+
+
+</svg>

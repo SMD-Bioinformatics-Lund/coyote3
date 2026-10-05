@@ -1,0 +1,12 @@
+##fileformat=VCFv4.2
+##contig=<ID=1,length=248956422>
+##contig=<ID=2,length=242193529>
+##INFO=<ID=SOMATIC,Number=0,Type=Flag,Description="Somatic event">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Structural variant type">
+##INFO=<ID=ANN,Number=.,Type=String,Description="Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=PR,Number=2,Type=Integer,Description="Reference and alternate paired-read counts">
+##FORMAT=<ID=SR,Number=2,Type=Integer,Description="Reference and alternate split-read counts">
+##FORMAT=<ID=UR,Number=1,Type=Integer,Description="Unique-read evidence">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SYNTHETIC-T
+1	10001	bnd1	A	A]2:20001]	60	PASS	SOMATIC;SVTYPE=BND;ANN=A|gene_fusion|HIGH|GENE1&GENE2|ENSG000001&ENSG000002|transcript|ENST000001&ENST000002|protein_coding||c.?|p.?	GT:PR:SR:UR	0/1:10,5:8,3:3

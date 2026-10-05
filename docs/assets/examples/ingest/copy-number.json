@@ -1,0 +1,21 @@
+[
+  {
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "GENE1",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  }
+]

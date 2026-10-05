@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="984" viewBox="0 0 1360 984" role="img" aria-labelledby="title desc">
+<title id="title">Clinical review and reporting flow</title>
+<desc id="desc">A ready sample is filtered, reviewed, tiered, snapshotted, previewed, and saved as an immutable report.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="984" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Clinical review and reporting flow</text>
+<text x="40" y="84" class="subtitle">A ready sample is filtered, reviewed, tiered, snapshotted, previewed, and saved as an immutable report.</text>
+<path d="M400 260 L520 260" class="edge" data-source="0" data-target="1"/>
+<path d="M840 260 L960 260" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 320 L1120 380 L240 380 L240 460" class="edge" data-source="2" data-target="3"/>
+<path d="M400 520 L520 520" class="edge" data-source="3" data-target="4"/>
+<path d="M840 520 L960 520" class="edge" data-source="4" data-target="5"/>
+<path d="M1120 580 L1120 640 L240 640 L240 720" class="edge" data-source="5" data-target="6"/>
+<g class="card" data-node="0"><rect x="80" y="200" width="320" height="120" rx="10"/>
+<text x="100" y="234" class="name">Ready sample</text>
+<text x="100" y="279" class="detail">available evidence committed</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="200" width="320" height="120" rx="10"/>
+<text x="540" y="234" class="name">Effective filters</text>
+<text x="540" y="279" class="detail">ASPC + sample state</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="200" width="320" height="120" rx="10"/>
+<text x="980" y="234" class="name">Clinical review</text>
+<text x="980" y="279" class="detail">findings + evidence</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="460" width="320" height="120" rx="10"/>
+<text x="100" y="494" class="name">Classification</text>
+<text x="100" y="539" class="detail">tiers + comments</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="460" width="320" height="120" rx="10"/>
+<text x="540" y="494" class="name">Live snapshot</text>
+<text x="540" y="539" class="detail">updates with review state</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="460" width="320" height="120" rx="10"/>
+<text x="980" y="494" class="name">Report preview</text>
+<text x="980" y="539" class="detail">rules + selected findings + text</text>
+<text x="980" y="562" class="detail">temporary until confirmed</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="720" width="320" height="120" rx="10"/>
+<text x="100" y="754" class="name">Saved report</text>
+<text x="100" y="799" class="detail">immutable snapshot + artifacts</text>
+<text x="100" y="822" class="detail">searchable provenance</text>
+</g>
+
+<text x="40" y="944" class="note">Filter or curation changes refresh the temporary snapshot; a saved report preserves the confirmed state.</text>
+</svg>

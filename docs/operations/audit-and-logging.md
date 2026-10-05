@@ -308,7 +308,7 @@ Closing a toast marks it read without clearing the inbox item. New administrativ
 broadcasts snapshot the selected active recipients, including the all-users option;
 accounts created later do not inherit earlier broadcasts. Optional email delivery
 uses recipient-specific leases in the same notification document. See
-[email and notifications](email_and_notifications.md) for delivery and test setup.
+[email and notifications](email-and-notifications.md) for delivery and test setup.
 
 Browser-generated API success and failure messages remain local workflow
 feedback. They are stored under `coyote3.notifications:<username>` and are not
@@ -346,7 +346,7 @@ models. Every declared resource is parsed before its evidence and sample readine
 commit together in a required transaction. Async completion receipts join that
 transaction; disabled task families retain accepted work for later execution.
 Audit delivery and filesystem acknowledgements occur after commit and cannot undo
-it. See [transactions and ingest recovery](../architecture/transactions_and_ingest_recovery.md).
+it. See [transactions and ingest recovery](../architecture/transactions-and-ingest-recovery.md).
 
 Generic collection writes remain separate because they are administrative,
 schema-registered inserts or upserts and do not implement sample-bundle
@@ -445,7 +445,7 @@ rule-set events contain the rule-set identity, content version, revision, status
 operation metadata, but not the complete rule document at that revision. Full, hash-chained rule
 documents are stored separately in `clinical_rule_revisions` in the same transaction as each
 rule mutation. The
-[clinical reporting rules reference](../product/clinical_reporting_rules.md#immutable-revision-history)
+[clinical reporting rules reference](../reference/clinical-reporting-rules.md#immutable-revision-history)
 defines the responsibilities and backup requirements of both records.
 
 Disk log retention is handled by the same maintenance task when file logging is enabled. The task:

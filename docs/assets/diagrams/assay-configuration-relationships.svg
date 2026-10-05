@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1160" viewBox="0 0 1360 1160" role="img" aria-labelledby="title desc">
+<title id="title">Assay configuration and governed publication</title>
+<desc id="desc">Named subpanels are shared definitions. Each assay association and configuration has its own identity. Setup activation is transactional. Rule publication and public catalog publication remain separate workflows.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="1160" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Assay configuration and governed publication</text>
+<text x="40" y="84" class="subtitle">Named subpanels are shared definitions. Each assay association and configuration has its own identity. Setup activation is transactional.</text>
+<text x="40" y="108" class="subtitle">Rule publication and public catalog publication remain separate workflows.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M680 360 L680 500" class="edge" data-source="1" data-target="4"/>
+<path d="M1120 360 L1120 500" class="edge" data-source="2" data-target="5"/>
+<path d="M680 360 L680 420 L1100 420 L1100 440 L1120 440 L1120 500" class="edge" data-source="1" data-target="5"/>
+<path d="M960 560 L900 560 L900 600 L840 600" class="edge" data-source="5" data-target="4"/>
+<path d="M400 560 L460 560 L460 600 L520 600" class="edge" data-source="3" data-target="4"/>
+<path d="M240 840 L240 640" class="edge" data-source="6" data-target="3"/>
+<path d="M680 700 L680 840" class="edge" data-source="4" data-target="7"/>
+<path d="M400 940 L460 940 L460 920 L520 920" class="edge optional" data-source="6" data-target="7"/>
+<path d="M840 920 L900 920 L900 900 L960 900" class="edge" data-source="7" data-target="8"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
+<text x="100" y="254" class="name">Assay group</text>
+<text x="100" y="299" class="detail">assay_groups · active registry</text>
+<text x="100" y="322" class="detail">Groups assays for configuration</text>
+<text x="100" y="345" class="detail">Group availability gates new setup</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
+<text x="540" y="254" class="name">Assay · ASP</text>
+<text x="540" y="299" class="detail">assay_specific_panels</text>
+<text x="540" y="322" class="detail">One registered group per assay</text>
+<text x="540" y="345" class="detail">Physical design and required files</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">Shared subpanel</text>
+<text x="980" y="299" class="detail">subpanels · named definitions</text>
+<text x="980" y="322" class="detail">Reusable across multiple assays</text>
+<text x="980" y="345" class="detail">Base is implicit; no Base document</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="140" rx="10"/>
+<text x="100" y="534" class="name">Setup draft + review</text>
+<text x="100" y="579" class="detail">assay_setups / revisions</text>
+<text x="100" y="602" class="detail">Stage ASP, ISGLs, scopes, ASPCs</text>
+<text x="100" y="625" class="detail">Independent approval → activation</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="200" rx="10"/>
+<text x="540" y="534" class="name">Assay configuration</text>
+<text x="540" y="579" class="detail">asp_configs · ASPC</text>
+<text x="540" y="602" class="detail">One active scope/environment</text>
+<text x="540" y="625" class="detail">tuple</text>
+<text x="540" y="648" class="detail">Filters, analyses, reporting</text>
+<text x="540" y="671" class="detail">language</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="140" rx="10"/>
+<text x="980" y="534" class="name">Assay ↔ subpanel link</text>
+<text x="980" y="579" class="detail">subpanel_associations</text>
+<text x="980" y="602" class="detail">asp_id + subpanel_id</text>
+<text x="980" y="625" class="detail">Definition AND link must be active</text>
+</g>
+<g class="card" data-node="6"><rect x="80" y="840" width="320" height="200" rx="10"/>
+<text x="100" y="874" class="name">Gene lists and rules</text>
+<text x="100" y="919" class="detail">ISGLs: optional selected gene sets</text>
+<text x="100" y="942" class="detail">Rules: separately reviewed</text>
+<text x="100" y="965" class="detail">releases</text>
+<text x="100" y="988" class="detail">Scope must match assay /</text>
+<text x="100" y="1011" class="detail">subpanel</text>
+</g>
+<g class="card" data-node="7"><rect x="520" y="840" width="320" height="180" rx="10"/>
+<text x="540" y="874" class="name">Public catalog release</text>
+<text x="540" y="919" class="detail">public_assay_catalog</text>
+<text x="540" y="942" class="detail">versions + revisions</text>
+<text x="540" y="965" class="detail">Separate draft, review,</text>
+<text x="540" y="988" class="detail">publication</text>
+</g>
+<g class="card" data-node="8"><rect x="960" y="840" width="320" height="140" rx="10"/>
+<text x="980" y="874" class="name">Published catalog view</text>
+<text x="980" y="919" class="detail">Active ASP + production ASPC</text>
+<text x="980" y="942" class="detail">Public, active, non-ad-hoc ISGLs</text>
+<text x="980" y="965" class="detail">No sample or private clinical data</text>
+</g>
+<g class="edge-label"><rect x="428" y="266" width="64" height="28" rx="5"/>
+<text x="436" y="284" class="label">groups</text>
+</g>
+<g class="edge-label"><rect x="652" y="416" width="56" height="28" rx="5"/>
+<text x="660" y="434" class="label">scope</text>
+</g>
+<g class="edge-label"><rect x="1078" y="416" width="84" height="28" rx="5"/>
+<text x="1086" y="434" class="label">definition</text>
+</g>
+<g class="edge-label"><rect x="862" y="406" width="56" height="28" rx="5"/>
+<text x="870" y="424" class="label">assay</text>
+</g>
+<g class="edge-label"><rect x="878" y="546" width="68" height="28" rx="5"/>
+<text x="886" y="564" class="label">enables</text>
+</g>
+<g class="edge-label"><rect x="412" y="546" width="83" height="28" rx="5"/>
+<text x="420" y="564" class="label">activates</text>
+</g>
+<g class="edge-label"><rect x="186" y="726" width="107" height="28" rx="5"/>
+<text x="194" y="744" class="label">dependencies</text>
+</g>
+<g class="edge-label"><rect x="632" y="756" width="95" height="28" rx="5"/>
+<text x="640" y="774" class="label">references</text>
+</g>
+<g class="edge-label"><rect x="408" y="926" width="92" height="28" rx="5"/>
+<text x="416" y="944" class="label">public lists</text>
+</g>
+<g class="edge-label"><rect x="848" y="906" width="80" height="28" rx="5"/>
+<text x="856" y="924" class="label">publishes</text>
+</g>
+
+</svg>

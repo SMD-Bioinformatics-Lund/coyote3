@@ -187,7 +187,7 @@ jobs:
 
       - name: Audit Python runtime dependencies
         if: steps.scope.outputs.backend == 'true'
-        # Dependency policy: docs/operations/dependency_advisories.md
+        # Dependency policy: docs/development/dependency-security.md
         run: pip-audit -r requirements.txt
 
       - name: Full backend tests and unified coverage

@@ -60,10 +60,14 @@ Do not run `pre-commit install`: this repository uses the tracked
 
 ## Documentation requirements
 
-For behavior changes, update the relevant chapters under `docs/` (for example `docs/product/`, `docs/developer/`, `docs/architecture/`, `docs/operations/`):
+For behavior changes, update the relevant section of the
+[documentation](docs/README.md):
 
 - user-facing chapters for workflow or UI changes
 - developer-facing chapters for architecture, route, or data model changes
+
+Follow the [documentation naming and navigation conventions](docs/development/writing-documentation.md).
+Update the section README and `mkdocs.yml` when adding or moving a page.
 
 If documentation is not updated, the change is incomplete.
 

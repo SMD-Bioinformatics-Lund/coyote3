@@ -1,0 +1,229 @@
+/* Brand the navigation; retain native Read the Docs typography and content colors. */
+:root {
+  --docs-primary: #52366d;
+  --docs-on-primary: #fff;
+  --docs-sidebar: #faf9fc;
+  --docs-sidebar-text: #38313f;
+  --docs-sidebar-active: #ece5f3;
+  --docs-sidebar-border: #e4dfeb;
+}
+
+.wy-nav-content-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.wy-nav-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1280px;
+  background: #fff;
+}
+.wy-nav-content > .rst-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.rst-content > footer {
+  margin-top: auto;
+  padding-top: 24px;
+}
+.wy-nav-side, .wy-menu-vertical { background: var(--docs-sidebar); }
+.wy-nav-side { border-right: 1px solid var(--docs-sidebar-border); }
+.wy-nav-side, .rst-versions {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.wy-side-nav-search, .wy-nav-top,
+.rst-versions, .rst-versions .rst-current-version {
+  background: var(--docs-primary);
+  color: var(--docs-on-primary);
+}
+.wy-side-nav-search > a, .wy-side-nav-search > a:visited,
+.wy-nav-top a, .wy-nav-top a:visited, .wy-nav-top i,
+.rst-versions a, .rst-versions a:visited,
+.wy-side-nav-search > div.version { color: var(--docs-on-primary); }
+.wy-side-nav-search input[type="text"] {
+  border-color: var(--docs-sidebar-border);
+  background: #fff;
+  color: var(--docs-sidebar-text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  box-shadow: none;
+}
+.wy-side-nav-search { padding: 20px 18px 16px; margin-bottom: 12px; }
+.wy-side-nav-search > a.docs-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 18px;
+  text-align: left;
+  line-height: 1.4;
+}
+.docs-brand strong { font-size: 20px; font-weight: 650; letter-spacing: -0.025em; }
+.docs-brand-caption { display: block; font-size: 12px; font-weight: 400; opacity: 0.8; }
+.wy-side-nav-search > a.docs-brand:hover { background: transparent; }
+.wy-menu-vertical header, .wy-menu-vertical p.caption { color: var(--docs-primary); }
+.wy-menu-vertical a, .wy-menu-vertical a:visited { color: var(--docs-sidebar-text); }
+.wy-menu-vertical a:hover, .wy-menu-vertical a:focus-visible {
+  background: var(--docs-sidebar-active);
+  color: var(--docs-primary);
+}
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.toctree-l2.current > a,
+.wy-menu-vertical li.toctree-l3.current > a {
+  background: var(--docs-sidebar-active);
+  color: var(--docs-primary);
+  border-color: var(--docs-sidebar-border);
+}
+.wy-menu-vertical li.current a:hover { background: #f0eaf5; }
+.wy-menu-vertical li.current, .wy-menu-vertical li.current ul { background: transparent; }
+.wy-menu-vertical a {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.wy-menu-vertical .docs-nav-section > ul {
+  margin-left: 23px;
+  margin-right: 12px;
+  padding-left: 9px;
+  border-left: 1px solid var(--docs-sidebar-border);
+}
+.wy-menu-vertical .docs-nav-section > ul > li > a {
+  margin: 2px 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+}
+.wy-menu-vertical .docs-nav-section li.current > a {
+  color: var(--docs-primary);
+  font-weight: 600;
+}
+.wy-menu-vertical li button.toctree-expand { color: #62586c; }
+.wy-menu-vertical .docs-nav-section li > a button.toctree-expand {
+  display: grid;
+  place-items: center;
+  float: right;
+  width: 20px;
+  height: 20px;
+  margin: 0 0 0 8px;
+  padding: 0;
+  color: var(--docs-primary);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+.wy-menu-vertical .docs-nav-section li > a button.toctree-expand::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  transform: rotate(-45deg);
+}
+.wy-menu-vertical .docs-nav-section li.current > a button.toctree-expand::before,
+.wy-menu-vertical .docs-nav-section li.on > a button.toctree-expand::before {
+  transform: rotate(45deg);
+}
+.wy-menu-vertical .docs-nav-section { margin: 2px 0; }
+.wy-menu-vertical .docs-nav-section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  margin: 0 10px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--docs-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  list-style: none;
+  text-transform: none;
+}
+.docs-nav-section > summary::-webkit-details-marker { display: none; }
+.docs-nav-section > summary::marker { content: ""; }
+.docs-nav-section-label { flex: 1; }
+.docs-nav-chevron { flex: 0 0 16px; opacity: 0.7; }
+.docs-nav-section[open] > summary .docs-nav-chevron { transform: rotate(90deg); }
+.wy-menu-vertical .docs-nav-section[open] > summary {
+  background: var(--docs-sidebar-active);
+  border-color: transparent;
+}
+.wy-menu-vertical .docs-nav-section > summary:hover { background: #ede7f3; }
+.wy-menu-vertical .docs-nav-section > summary:focus-visible {
+  outline: 2px solid var(--docs-primary);
+  outline-offset: -3px;
+}
+.wy-menu-vertical .docs-nav-section > ul { margin-top: 4px; margin-bottom: 10px; }
+.rst-versions .rst-current-version.docs-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 14px 20px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.docs-sidebar-version {
+  display: block;
+  margin: 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+}
+.docs-sidebar-page-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.wy-side-scroll { padding-bottom: 80px; }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--docs-primary);
+  outline-offset: 3px;
+}
+.rst-content img[src$=".svg"] {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1.5rem 0;
+}
+/* Wrap prose and long identifiers instead of forcing documentation tables to scroll. */
+.rst-content table.docutils {
+  width: 100%;
+  max-width: 100%;
+}
+.rst-content table.docutils th,
+.rst-content table.docutils td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.rst-content table.docutils code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* Fenced code stays legible before or without the theme's syntax-highlighting script. */
+.rst-content pre > code {
+  display: block;
+  overflow-x: auto;
+  padding: 12px;
+  color: #333;
+  background: #f8f8f8;
+  border: 1px solid #e1e4e5;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+}
+@media screen and (max-width: 768px) {
+  .wy-nav-content { padding: 1.5rem; }
+}

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="720" viewBox="0 0 1360 720" role="img" aria-labelledby="title desc">
+<title id="title">URL and Request Flow</title>
+<desc id="desc">A browser URL selects the React page. Its API request passes through FastAPI validation and permissions, application services, and persistence before the response updates the interface.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="720" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">URL and Request Flow</text>
+<text x="40" y="84" class="subtitle">A browser URL selects the React page. Its API request passes through FastAPI validation and permissions, application services, and</text>
+<text x="40" y="108" class="subtitle">persistence before the response updates the interface.</text>
+<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
+<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
+<path d="M1120 340 L1120 400 L240 400 L240 480" class="edge" data-source="2" data-target="3"/>
+<path d="M400 540 L520 540" class="edge" data-source="3" data-target="4"/>
+<path d="M840 540 L960 540" class="edge" data-source="4" data-target="5"/>
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">1 · Open URL</text>
+<text x="100" y="299" class="detail">Browser navigation</text>
+<text x="100" y="322" class="detail">/variants/search?...</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">2 · React route / page</text>
+<text x="540" y="299" class="detail">Prepare query and UI state</text>
+<text x="540" y="322" class="detail">Frontend API request</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
+<text x="980" y="254" class="name">3 · FastAPI router</text>
+<text x="980" y="299" class="detail">Validate request</text>
+<text x="980" y="322" class="detail">Enforce permissions</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="480" width="320" height="120" rx="10"/>
+<text x="100" y="514" class="name">4 · Service and repository</text>
+<text x="100" y="559" class="detail">Application workflow</text>
+<text x="100" y="582" class="detail">MongoDB query and Redis cache</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="480" width="320" height="120" rx="10"/>
+<text x="540" y="514" class="name">5 · API response</text>
+<text x="540" y="559" class="detail">Validated JSON payload</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="480" width="320" height="120" rx="10"/>
+<text x="980" y="514" class="name">6 · React render</text>
+<text x="980" y="559" class="detail">Tables, cards, and messages</text>
+<text x="980" y="582" class="detail">Updated query state</text>
+</g>
+
+
+</svg>

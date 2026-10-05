@@ -5,6 +5,7 @@ site_dir: site
 repo_name: Coyote3
 hooks:
   - docs/hooks/version.py
+  - docs/hooks/callouts.py
 
 theme:
   name: readthedocs
@@ -12,9 +13,30 @@ theme:
 
 extra:
   environment: !ENV [ENV_NAME, ""]
+  clinical_reference:
+    - title: Samples and review
+      path: user-guide/sample-management/
+    - title: Assays · ASP
+      path: administration/administration-guide/#assays-asp
+    - title: Configurations · ASPC
+      path: administration/administration-guide/#assay-configurations-aspc
+    - title: Gene lists · ISGL
+      path: user-guide/gene-lists-and-assay-context/
+    - title: Clinical rules
+      path: reference/clinical-reporting-rules/
+    - title: Report preview and save
+      path: user-guide/application-guide/#reports
+    - title: Classifications and comments
+      path: user-guide/application-guide/#comments-and-annotations
+    - title: Assay groups
+      path: administration/assay-groups/
+    - title: Subpanels
+      path: administration/assay-subpanels/
+    - title: Coverage review
+      path: user-guide/coverage-review/
 
-extra_css:
-  - stylesheets/callouts.css
+extra_javascript:
+  - javascripts/footer-year.js
 
 markdown_extensions:
   - toc:
@@ -25,113 +47,150 @@ markdown_extensions:
   - attr_list
 
 nav:
-  - Home: index.md
-  - Start here:
-      - Quickstart: start_here/quickstart.md
-      - Local development: start_here/local_development.md
-      - First installation: start_here/first_installation.md
-      - Center configuration: start_here/configuration.md
-      - Production deployment: start_here/production_deployment.md
+  - Home: README.md
+  - Getting started:
+      - Section guide: getting-started/README.md
+      - "Quickstart: Run Coyote3 Locally": getting-started/local-quickstart.md
+      - "Developer environment setup": getting-started/developer-environment.md
   - Use Coyote3:
-      - Complete user manual: user_guide/complete_user_manual.md
-      - Clinical workflow: user_guide/clinical_workflow_guide.md
-      - Sample management: user_guide/sample_management.md
-      - DNA clinical review: user_guide/clinical_review_dna.md
-      - RNA clinical review: user_guide/clinical_review_rna.md
-      - Coverage review: user_guide/coverage_analytics.md
-      - Operational dashboard: user_guide/operational_dashboard.md
-      - Pages and table columns: product/ui_page_table_reference.md
-      - Interface visual reference: product/interface_visual_reference.md
+      - Section guide: user-guide/README.md
+      - "Application user guide": user-guide/application-guide.md
+      - "Clinical review workflow": user-guide/clinical-review-workflow.md
+      - "Sample management": user-guide/sample-management.md
+      - "Gene lists and assay context": user-guide/gene-lists-and-assay-context.md
+      - "Sample readiness and missing results": user-guide/sample-readiness-and-missing-results.md
+      - "DNA clinical review": user-guide/dna-review.md
+      - "RNA Clinical Review": user-guide/rna-review.md
+      - "Coverage Review": user-guide/coverage-review.md
+      - "Operational Dashboard": user-guide/dashboard.md
+      - "UI Page And Table Reference": user-guide/pages-and-table-columns.md
+      - "Interface Visual Reference": user-guide/interface-screenshots.md
+      - "User Action and Operational Impact Reference": user-guide/actions-and-record-changes.md
+      - "Application feature overview": user-guide/feature-overview.md
+      - "Application pages and workflows": user-guide/pages-and-workflows.md
   - Administer Coyote3:
-      - Management guide: user_guide/management_guide.md
-      - ASPC file dependencies: configuration/aspc-file-dependencies.md
-      - Assay subpanels: configuration/assay-subpanels.md
-      - Assay groups: configuration/assay-groups.md
-      - Assay setup: configuration/assay-setup.md
-      - Public assay catalog: product/public_assay_catalog.md
-      - Administration UI map: product/ui_map_and_user_flows.md
-      - Permissions and access: developer/permissions_naming.md
-      - System permission catalog: developer/permission_catalog.md
-      - Audit and logging: operations/audit-and-logging.md
-      - Backup and recovery: operations/backup_restore_and_snapshots.md
-      - Operational troubleshooting: operations/troubleshooting.md
-  - Reference:
-      - Reference guide: reference/index.md
-      - System overview: product/complete_application_manual.md
-      - Core concepts: product/core_concepts.md
-      - DNA and RNA workflow: product/workflow_dna_rna.md
-      - Clinical data and reporting flow: architecture/clinical_data_and_reporting_flow.md
-      - Query and filter strategy: product/aspc_driven_query_strategy.md
-      - Clinical reporting rules: product/clinical_reporting_rules.md
-      - Reporting and snapshots: product/reporting_workflow_and_variant_snapshots.md
-      - Domain reference: product/application_reference_by_domain.md
-      - UI actions and effects: product/ui_action_effects_reference.md
-      - Functional matrix: product/ui_functionality_matrix.md
-      - Clinical vocabulary: operations/clinical_vocabulary.md
-      - Knowledgebase evidence: product/knowledgebase_evidence.md
-      - VEP reference library: product/vep_reference.md
-      - OncoKB integration: product/oncokb_integration.md
-      - ClinPGx integration: product/clinpgx_integration.md
-      - Sample YAML manifest: api/sample_yaml.md
-      - Sample input files: api/sample_input_files.md
-      - Collection contracts: api/collection_contracts.md
-  - Develop Coyote3:
-      - Complete developer manual: developer/complete_developer_manual.md
-      - Application architecture: architecture/current_application_context.md
-      - System relationships: architecture/system_relationships.md
-      - Runtime data contracts: architecture/data_contracts.md
-      - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
-      - Transactions and ingest recovery: architecture/transactions_and_ingest_recovery.md
-      - MongoDB service topology: architecture/mongodb_topology.md
-      - Configuration identity and audit: architecture/configuration_identity_and_audit.md
-      - Security model: architecture/security_model.md
-      - API organization: api/api_organization.md
-      - Authentication: api/authentication.md
-      - Versioning and compatibility: api/versioning_and_compatibility.md
-      - Routes and workflows: api/reference_and_workflows.md
-      - Ingestion API: api/ingestion_api.md
-      - Collection permissions: api/collection_operations_and_permissions.md
-      - Engineering commands: maintainers/developer_guide.md
-      - Add a domain or collection: developer/adding_a_domain.md
-      - Schema contracts and versioning: developer/schema_contracts_and_versioning.md
-      - Plotting and chart export: frontend/plotting.md
-      - Action dialogs: developer/ui_modals.md
-      - Refactoring standards: maintainers/refactor_guidelines.md
-      - Developer troubleshooting: developer/troubleshooting_guide.md
+      - Section guide: administration/README.md
+      - "Application administration": administration/administration-guide.md
+      - "Planning configuration changes": administration/planning-configuration-changes.md
+      - "Assay Groups": administration/assay-groups.md
+      - "Assay Subpanels": administration/assay-subpanels.md
+      - "Assay Setup": administration/assay-setup.md
+      - "Assay analysis and reporting availability": administration/assay-analysis-availability.md
+      - "Public Assay Catalog": administration/public-assay-catalog.md
+      - "Permissions and access control": administration/permissions-and-access.md
+      - "System permission catalog": administration/permission-catalog.md
+      - "Center Vocabulary Configuration": administration/clinical-vocabulary.md
+  - API integration:
+      - Section guide: api/README.md
+      - "API route groups and visibility": api/route-groups.md
+      - "API Authentication": api/authentication.md
+      - "API routes and workflows": api/routes-and-workflows.md
+      - "Ingestion API": api/sample-ingestion.md
+      - "Collection imports and permissions": api/collection-imports.md
+      - "API versioning and compatibility": api/versioning-and-compatibility.md
+  - Architecture:
+      - Section guide: architecture/README.md
+      - Architecture and workflow diagrams: architecture/diagram-guide.md
+      - "Application Architecture": architecture/application-architecture.md
+      - "Resource relationships": architecture/resource-relationships.md
+      - "Data Contracts And Collection Models": architecture/data-contracts.md
+      - "Clinical data lifecycle: ingest, storage, and retrieval": architecture/clinical-data-lifecycle.md
+      - "Clinical Data Preparation And Reporting Flow": architecture/clinical-data-and-reporting.md
+      - "Configuration Identity And Audit": architecture/configuration-identity-and-audit.md
+      - "Transactions and ingest recovery": architecture/transactions-and-ingest-recovery.md
+      - "MongoDB services and deployment topology": architecture/mongodb-topology.md
+      - "Security Model": architecture/security-model.md
       - Architecture decisions:
-          - Authentication provider resolution: architecture/adr_0001_auth_provider_resolution.md
-          - Local password lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
-          - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
-  - Deploy and operate Coyote3:
-      - Dependency advisories: operations/dependency_advisories.md
-      - Target-center acceptance: operations/target_center_acceptance.md
-      - Center deployment: operations/center_deployment_guide.md
-      - Initial deployment checklist: operations/initial_deployment_checklist.md
-      - Migrate an existing Coyote v3 installation: operations/upgrade_from_v3.md
-      - Center configuration files: operations/center_configuration_files.md
-      - Environment and secrets: operations/environments_and_secrets.md
-      - Email and notifications: operations/email_and_notifications.md
-      - Data requirements: operations/deployment_data_requirements.md
-      - Deployment reference: operations/deployment_guide.md
-      - Remote development: operations/remote_development.md
-      - Minimum production baseline: operations/minimum_production_baseline.md
-      - Observability and alerts: operations/observability_slos_and_alerts.md
-      - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
-      - Clinical-rule data maintenance: operations/clinical_rule_data_migration.md
-      - Reference database migration: operations/reference_database_migration.md
-      - Knowledgebase snapshot updates: operations/knowledgebase_updates.md
-      - VEP metadata updates: operations/vep_metadata_updates.md
-      - Maintenance and quality: operations/maintenance_and_quality.md
-      - Repository scripts: operations/script_reference.md
+          - Section guide: architecture/decisions/README.md
+          - "ADR-0001: Resolve Authentication Provider From User Document": architecture/decisions/0001-authentication-provider-resolution.md
+          - "ADR-0002: Local Password Lifecycle With Email Fallback": architecture/decisions/0002-local-password-lifecycle.md
+          - "ADR 0003: synchronous HTTP handlers and MongoDB execution": architecture/decisions/0003-synchronous-http-and-mongodb.md
+  - Deploy Coyote3:
+      - Section guide: deployment/README.md
+      - "First installation": deployment/first-installation.md
+      - "Production deployment": deployment/production-deployment.md
+      - "Initial deployment checklist": deployment/installation-checklist.md
+      - "Deployment acceptance checklist": deployment/acceptance-checklist.md
+      - "Minimum Production Baseline": deployment/production-requirements.md
+      - "Deployment configuration reference": deployment/configuration-reference.md
+      - "Environments And Secrets": deployment/environments-and-secrets.md
+      - "Center configuration files": deployment/center-configuration.md
+      - "MongoDB deployment and recovery": deployment/mongodb-setup-and-recovery.md
+      - "Container deployment and reverse proxy": deployment/containers-and-reverse-proxy.md
+      - "Installation bootstrap and data flow": deployment/bootstrap-data-flow.md
+      - "Deployment Data Requirements": deployment/required-data.md
+  - Develop Coyote3:
+      - Section guide: development/README.md
+      - "Developer manual": development/developer-guide.md
+      - "Engineering command reference": development/engineering-commands.md
+      - "Add a New Domain or Collection": development/adding-domains-and-collections.md
+      - "Schema Contracts And Versioning": development/schema-contracts.md
+      - "UI Action Modal": development/action-dialogs.md
+      - "Plotting And Chart Export": development/charts-and-exports.md
+      - "Engineering and Refactoring Standards": development/refactoring-standards.md
+      - "Remote development deployment": development/remote-development.md
+      - "Dependency Advisory Policy": development/dependency-security.md
+      - "Repository Script Reference": development/script-reference.md
+      - "Development troubleshooting": development/troubleshooting.md
+      - "Writing and organizing documentation": development/writing-documentation.md
+  - Operate Coyote3:
+      - Section guide: operations/README.md
+      - "Operational Troubleshooting & Remediation": operations/troubleshooting.md
+      - "Ingest job recovery": operations/ingest-job-recovery.md
+      - "Audit Events And JSON Logging": operations/audit-and-logging.md
+      - "Observability SLOs and Alerts": operations/monitoring-and-alerts.md
+      - "Backup and recovery": operations/backup-and-recovery.md
+      - "Email and notifications": operations/email-and-notifications.md
+      - "Operational Maintenance and Quality Verification": operations/maintenance-and-verification.md
+      - "Knowledgebase Snapshot Updates": operations/knowledgebase-updates.md
+      - "VEP metadata updates": operations/vep-metadata-updates.md
+      - Data migrations:
+          - Section guide: operations/migrations/README.md
+          - "Migrate an existing Coyote v3 installation": operations/migrations/upgrade-from-v3.md
+          - "Clinical-Rule Data Maintenance": operations/migrations/clinical-rule-migrations.md
+          - "Reference database placement": operations/migrations/knowledgebase-database-migration.md
+  - Data and clinical reference:
+      - Section guide: reference/README.md
+      - "System overview": reference/application-overview.md
+      - "Clinical concepts and resource identities": reference/clinical-concepts.md
+      - "DNA and RNA data model": reference/dna-rna-data-model.md
+      - "Assay configuration and query filtering": reference/assay-filtering.md
+      - "Clinical Reporting Rules": reference/clinical-reporting-rules.md
+      - "Reporting workflow and finding snapshots": reference/report-snapshots.md
+      - "Application domains and services": reference/domain-services.md
+      - "Sample YAML manifest": reference/sample-manifest.md
+      - "Sample input file formats": reference/sample-file-formats.md
+      - Raw ingest file reference:
+          - Bundle preparation and file index: reference/ingest-files/README.md
+          - Small variants · VCF: reference/ingest-files/small-variants-vcf.md
+          - Copy-number variants · JSON: reference/ingest-files/copy-number-json.md
+          - Panel coverage · JSON: reference/ingest-files/coverage-json.md
+          - Biomarkers · JSON: reference/ingest-files/biomarkers-json.md
+          - DNA translocations · VCF: reference/ingest-files/translocations-vcf.md
+          - RNA fusions · JSON: reference/ingest-files/fusions-json.md
+          - RNA expression · JSON: reference/ingest-files/expression-json.md
+          - RNA classification · JSON: reference/ingest-files/classification-json.md
+          - RNA quality control · JSON: reference/ingest-files/quality-control-json.md
+          - Pharmacogenomics · JSON: reference/ingest-files/pharmacogenomics-json.md
+          - Images and alignments: reference/ingest-files/images-and-alignments.md
+      - "MongoDB collection contracts": reference/mongodb-collections.md
+      - Knowledgebase reference:
+          - Section guide: reference/knowledgebases/README.md
+          - "Knowledgebase Evidence": reference/knowledgebases/evidence-sources.md
+          - "OncoKB Integration": reference/knowledgebases/oncokb-integration.md
+          - "ClinPGx Integration": reference/knowledgebases/clinpgx-integration.md
+          - "VEP reference library": reference/knowledgebases/vep-reference.md
   - Test and validate Coyote3:
-      - Test strategy and quality gates: testing/testing_and_quality.md
-      - Local disposable full-stack validation: testing/disposable_full_stack_validation.md
-      - Load and capacity testing: testing/load_testing.md
-      - Browser and release validation: testing/browser_and_release_validation.md
-      - Test data and fixtures: testing/test_data_and_fixtures.md
+      - Section guide: testing/README.md
+      - "Test strategy and quality gates": testing/test-strategy-and-quality-gates.md
+      - "Validation Datasets and Test Fixtures": testing/test-data-and-fixtures.md
+      - "Local disposable full-stack validation": testing/disposable-stack-validation.md
+      - "Browser And Release Validation": testing/browser-and-release-validation.md
+      - "Load and capacity testing": testing/load-and-capacity-testing.md
   - Project:
-      - Governance: project/governance.md
-      - Contributing: project/contributing.md
-      - Code of conduct: project/code_of_conduct.md
-      - License: project/license.md
-      - Maintainer guide: maintainers/maintainer_guide.md
+      - Section guide: project/README.md
+      - "Contributing": project/contributing.md
+      - "Maintainer guide": project/maintainer-guide.md
+      - "Governance Overview": project/governance.md
+      - "Code of Conduct": project/code-of-conduct.md
+      - "License and Clinical Use": project/license.md

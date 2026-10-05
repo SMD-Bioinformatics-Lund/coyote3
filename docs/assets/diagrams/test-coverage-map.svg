@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="760" viewBox="0 0 1360 760" role="img" aria-labelledby="title desc">
+<title id="title">Test layers and quality gates</title>
+<desc id="desc">Each layer checks a different boundary; these are complementary checks, not execution stages. Use the test strategy guide for commands, scope selection, and release validation requirements.</desc>
+<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
+.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
+.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
+.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
+.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
+<rect width="1360" height="760" rx="12" fill="#faf9fc"/>
+<text x="40" y="44" class="heading">Test layers and quality gates</text>
+<text x="40" y="84" class="subtitle">Each layer checks a different boundary; these are complementary checks, not execution stages. Use the test strategy guide for commands,</text>
+<text x="40" y="108" class="subtitle">scope selection, and release validation requirements.</text>
+
+<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
+<text x="100" y="254" class="name">Backend unit tests</text>
+<text x="100" y="299" class="detail">Pure logic, contracts, and helpers</text>
+<text x="100" y="322" class="detail">Focused clinical regression cases</text>
+</g>
+<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
+<text x="540" y="254" class="name">API router tests</text>
+<text x="540" y="299" class="detail">Request validation and permissions</text>
+<text x="540" y="322" class="detail">Response shape and error behavior</text>
+</g>
+<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
+<text x="980" y="254" class="name">Integration tests</text>
+<text x="980" y="299" class="detail">Selected multi-component seams</text>
+<text x="980" y="322" class="detail">Architecture and persistence</text>
+<text x="980" y="345" class="detail">contracts</text>
+</g>
+<g class="card" data-node="3"><rect x="80" y="500" width="320" height="120" rx="10"/>
+<text x="100" y="534" class="name">Repository quality gates</text>
+<text x="100" y="579" class="detail">Lint, typing, coverage, and builds</text>
+<text x="100" y="602" class="detail">Documentation validation and links</text>
+</g>
+<g class="card" data-node="4"><rect x="520" y="500" width="320" height="140" rx="10"/>
+<text x="540" y="534" class="name">Browser tests</text>
+<text x="540" y="579" class="detail">Chromium route and workflow</text>
+<text x="540" y="602" class="detail">checks</text>
+<text x="540" y="625" class="detail">UI / API contract interactions</text>
+</g>
+<g class="card" data-node="5"><rect x="960" y="500" width="320" height="140" rx="10"/>
+<text x="980" y="534" class="name">Frontend unit tests</text>
+<text x="980" y="579" class="detail">Components, formatting, and</text>
+<text x="980" y="602" class="detail">routing</text>
+<text x="980" y="625" class="detail">Client state and coverage output</text>
+</g>
+
+
+</svg>
