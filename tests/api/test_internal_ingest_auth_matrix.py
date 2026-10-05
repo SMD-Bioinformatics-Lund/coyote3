@@ -322,7 +322,9 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
     """Update mode requires sample:edit:own for developer-level operators."""
     calls: dict[str, object] = {}
 
-    def _ingest(payload, *, allow_update=False, increment=False):
+    def _ingest(payload, *, allow_update=False, increment=False, ingested_by, ingest_source):
+        assert ingested_by == "user1"
+        assert ingest_source == "api"
         calls["allow_update"] = allow_update
         return {
             "status": "ok",

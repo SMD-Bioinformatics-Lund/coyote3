@@ -364,6 +364,8 @@ def ingest_sample_bundle_internal(
             source_payload,
             allow_update=payload.update_existing,
             increment=payload.increment,
+            ingested_by=user.username,
+            ingest_source="api",
         )
     except Exception as exc:
         return _ingest_failure(user, exc, acknowledge=acknowledge)
@@ -599,6 +601,8 @@ def _execute_sample_bundle_upload(
             {key: value for key, value in source_payload.items() if key != "_ingest_warnings"},
             allow_update=update_existing,
             increment=increment,
+            ingested_by=user.username,
+            ingest_source="upload",
         )
         serialized = util.common.convert_to_serializable(result)
         if source_payload.get("_ingest_warnings"):
@@ -754,6 +758,7 @@ def ingest_collection_document_internal(
             collection=payload.collection,
             document=payload.document,
             ignore_duplicate=payload.ignore_duplicate,
+            ingested_by=user.username,
         )
         return util.common.convert_to_serializable(result)
     except (ValueError, ValidationError) as exc:
@@ -813,6 +818,7 @@ def ingest_collection_documents_internal(
             collection=payload.collection,
             documents=payload.documents,
             ignore_duplicates=payload.ignore_duplicates,
+            ingested_by=user.username,
         )
         return util.common.convert_to_serializable(result)
     except (ValueError, ValidationError) as exc:
@@ -873,6 +879,7 @@ def upsert_collection_document_internal(
             match=payload.match,
             document=payload.document,
             upsert=payload.upsert,
+            ingested_by=user.username,
         )
         return util.common.convert_to_serializable(result)
     except (ValueError, ValidationError) as exc:
@@ -974,6 +981,7 @@ def ingest_collection_upload_internal(
                 collection=raw_collection,
                 documents=parsed,
                 ignore_duplicates=True,
+                ingested_by=user.username,
             )
             result["mode"] = normalized_mode
             return util.common.convert_to_serializable(result)
@@ -992,6 +1000,7 @@ def ingest_collection_upload_internal(
                 match=parsed_match,
                 document=parsed,
                 upsert=True,
+                ingested_by=user.username,
             )
             result["mode"] = normalized_mode
             return util.common.convert_to_serializable(result)
@@ -1003,6 +1012,7 @@ def ingest_collection_upload_internal(
             collection=raw_collection,
             document=parsed,
             ignore_duplicate=True,
+            ingested_by=user.username,
         )
         result["mode"] = normalized_mode
         return util.common.convert_to_serializable(result)

@@ -221,6 +221,7 @@ def test_context_payload_returns_sample_and_rejects_unknown_id() -> None:
 
 def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.MonkeyPatch) -> None:
     service, repository, _ = build_service()
+    repository.samples["sample-oid"].update(ingested_by="initial.user", ingest_source="upload")
     timestamp = datetime(2026, 7, 31, 10, 0, tzinfo=UTC)
     monkeypatch.setattr("api.application.resources.sample.utc_now", lambda: timestamp)
     monkeypatch.setattr(
@@ -228,6 +229,7 @@ def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.Mon
     )
     nested_id = "507f1f77bcf86cd799439011"
     request = {"sample": valid_sample_document(name="renamed", nested={"_id": nested_id})}
+    request["sample"].update(ingested_by="forged.user", ingest_source="watcher")
     original = deepcopy(request)
 
     result = service.update(sample_id="sample-oid", payload=request, actor_username="admin")
@@ -241,6 +243,8 @@ def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.Mon
     assert updated["nested"] == {"_id": ObjectId(nested_id)}
     assert updated["updated_on"] == timestamp
     assert updated["updated_by"] == "actor:admin"
+    assert updated["ingested_by"] == "initial.user"
+    assert updated["ingest_source"] == "upload"
     assert updated["files"]["vcf_files"]["path"] == "/synthetic/sample.vcf"
     assert result["meta"]["sample_name"] == "renamed"
     assert result["meta"]["sample_oid"] == "sample-oid"

@@ -113,6 +113,8 @@
     "latest_report_id": null,
     "latest_report_on": null,
     "time_added": "2026-01-01T18:13:16.931552+00:00",
+    "ingested_by": null,
+    "ingest_source": null,
     "version": 1
   }
 ]

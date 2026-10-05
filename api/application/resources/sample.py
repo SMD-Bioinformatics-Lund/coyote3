@@ -172,7 +172,20 @@ class ResourceSampleService:
     def update(
         self, *, sample_id: str, payload: dict[str, Any], actor_username: str
     ) -> dict[str, Any]:
-        """Update a sample and return a change-status payload."""
+        """Update sample metadata while preserving server-owned initial attribution.
+
+        Args:
+            sample_id: Identifier of the existing sample.
+            payload: Replacement sample under the sample key; entry attribution is ignored.
+            actor_username: Authenticated editor recorded in the update audit fields.
+
+        Returns:
+            Change status with sample identifiers for the administration UI.
+
+        Raises:
+            AppError: The sample is missing or replacement content is empty.
+            ValueError: The replacement fails sample validation.
+        """
         sample_doc = self.sample_repository.get_sample(sample_id)
         if not sample_doc:
             raise api_error(404, "Sample not found")
@@ -182,6 +195,8 @@ class ResourceSampleService:
             raise api_error(400, "Missing sample payload")
         updated_sample["updated_on"] = utc_now()
         updated_sample["updated_by"] = current_actor(actor_username)
+        for field in ("ingested_by", "ingest_source"):
+            updated_sample[field] = sample_doc.get(field)
         updated_sample = _validated_doc("samples", updated_sample)
         updated_sample = _restore_object_ids(updated_sample)
         updated_sample["_id"] = sample_obj

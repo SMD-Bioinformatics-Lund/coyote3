@@ -1201,6 +1201,8 @@ Optional keys:
 - `latest_report_id` (Any | None)
 - `latest_report_on` (datetime.datetime | None)
 - `time_added` (datetime)
+- `ingested_by` (str | None)
+- `ingest_source` (Literal['api', 'upload', 'watcher', 'collection_import'] | None)
 
 ## `subpanel_associations`
 

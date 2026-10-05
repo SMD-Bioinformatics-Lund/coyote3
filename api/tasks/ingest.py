@@ -22,6 +22,7 @@ from api.app.deps.services import (
     get_notification_service,
 )
 from api.app.lifecycle import ensure_runtime_initialized
+from api.application.ingest.jobs import sample_entry_source
 from api.celery_app import celery_app
 from api.config import get_runtime_mode_flags
 from api.config.paths import INGEST_WATCH_DIR
@@ -411,6 +412,8 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                     source_payload,
                     allow_update=job["update_existing"],
                     increment=job["increment"],
+                    ingested_by=job["submitted_by"],
+                    ingest_source=sample_entry_source(job),
                     record_completion=completion,
                 )
             else:
@@ -419,7 +422,9 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                     "insert_documents": service.insert_collection_documents,
                     "upsert_document": service.upsert_collection_document,
                 }[job["kind"]]
-                result = operation(**job["source_payload"], record_completion=completion)
+                collection_payload = dict(job["source_payload"])
+                collection_payload["ingested_by"] = job["submitted_by"]
+                result = operation(**collection_payload, record_completion=completion)
     except Exception as exc:
         retryable = _retryable_ingest_error(exc)
         error = _ingest_failure_message(exc, retryable=retryable)

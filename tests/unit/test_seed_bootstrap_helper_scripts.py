@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from argparse import Namespace
 from pathlib import Path
 
 import mongomock
+import pytest
 
+from scripts import bootstrap_database
 from scripts.bootstrap_database import (
+    DEFAULT_DEMO_CENTER_DIR,
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
     _build_seed_documents,
@@ -278,6 +282,97 @@ def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center
     assert "asp_configs" not in payload
     assert len(payload["hgnc_genes"]) > 1
     assert len(payload["vep_metadata"]) > 0
+
+
+def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monkeypatch):
+    """Seed export revisions become fresh baselines without altering clinical content."""
+    from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
+    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from scripts.build_seed_bundle import load_seed
+
+    source = load_seed(DEFAULT_DEMO_CENTER_DIR)
+    original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
+    for collection, documents in source.items():
+        for document in documents:
+            if collection == "clinical_rule_sets":
+                document["content_version"] = 7
+                document["revision"] = 9
+            else:
+                document["version"] = 8
+                document["system_managed"] = False
+    monkeypatch.setattr(bootstrap_database, "load_seed", lambda directory: source)
+    actor = "installation.admin"
+    payload = _build_seed_documents(
+        rbac_dir=DEFAULT_RBAC_DIR,
+        reference_dir=DEFAULT_REFERENCE_DIR,
+        demo_center_dir=DEFAULT_DEMO_CENTER_DIR,
+        actor=actor,
+    )
+    managed = {
+        "permissions",
+        "roles",
+        "assay_groups",
+        "assay_specific_panels",
+        "asp_configs",
+        "insilico_genelists",
+    }
+    for collection, documents in payload.items():
+        for document in documents:
+            for field in ("created_by", "updated_by"):
+                if field in document:
+                    assert document[field] == actor, (collection, field)
+            if collection in managed:
+                assert document["system_managed"] is True
+                assert document["version"] == 1
+            if collection in {"subpanels", "subpanel_associations"}:
+                assert document["version"] == 1
+                assert document["updated_by"] == actor
+
+    for original, document in zip(original_rules, payload["clinical_rule_sets"], strict=True):
+        assert document["content_version"] == document["revision"] == 1
+        assert document["published_by"] == actor
+        assert document["published_at"] == document["created_at"]
+        assert document["review"]["submitted_by"] == actor
+        assert document["review"]["clinical_reviewer"] == actor
+        assert all(event["actor"] == actor for event in document["lifecycle"])
+        model = ClinicalRuleSetDoc.model_validate(document)
+        assert document["content_hash"] == original["content_hash"] == content_hash(model)
+        assert validate_rule_set(model).valid
+
+    database = mongomock.MongoClient()["coyote3_test"]
+    database.rules.insert_many(payload["clinical_rule_sets"])
+    _seed_clinical_rule_revisions(
+        database, rules_collection="rules", revisions_collection="revisions", actor=actor
+    )
+    for revision in database.revisions.find():
+        assert revision["content_version"] == 1
+        assert revision["document"]["created_by"] == actor
+
+
+def test_bootstrap_uses_named_system_administrator_as_installation_actor(monkeypatch):
+    """CLI seed attribution uses the normalized admin login, not the emergency account."""
+    args = Namespace(
+        username="emergency",
+        email="emergency@example.org",
+        password="emergency-example",
+        sys_admin_username=" Installation.Admin ",
+        sys_admin_email="admin@example.org",
+        sys_admin_password="administrator-example",
+        mongo_uri="mongodb://unused",
+        knowledgebase_db="reference_test",
+        rbac_dir=str(DEFAULT_RBAC_DIR),
+        reference_dir=str(DEFAULT_REFERENCE_DIR),
+        with_demo_center=False,
+    )
+    monkeypatch.setattr(bootstrap_database, "parse_args", lambda: args)
+
+    def capture_seed_actor(**kwargs):
+        assert kwargs["actor"] == "installation.admin"
+        raise RuntimeError("stop before database access")
+
+    monkeypatch.setattr(bootstrap_database, "_build_seed_documents", capture_seed_actor)
+    with pytest.raises(RuntimeError, match="stop before database access"):
+        bootstrap_database.main()
 
 
 def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):

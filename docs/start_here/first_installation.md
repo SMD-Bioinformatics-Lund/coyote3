@@ -55,6 +55,15 @@ for local development. Existing governance with a superuser is left unchanged;
 partially initialized governance without a superuser is rejected. Reference and
 optional demonstration collections are loaded separately, only when empty.
 
+Installed documents are attributed to the normalized `--sys-admin-username` account
+in their audit fields. Catalogs supporting `system_managed` are marked as system
+records. Document versions start at `1`, including clinical rule content versions
+and revisions and generated subpanel versions. Demonstration rule review and
+publication metadata use the same administrator and installation time; these are
+synthetic baselines, not evidence of clinical approval. External reference release
+identifiers, such as VEP releases, retain their original values. Rerunning bootstrap
+does not reset versions or attribution in populated collections.
+
 | Data installed | Collection | Ownership and behavior |
 | --- | --- | --- |
 | System permissions | `permissions` | Shipped with Coyote3. Assign through roles; do not rename or delete. |

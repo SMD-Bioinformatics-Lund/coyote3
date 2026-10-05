@@ -63,6 +63,9 @@ def test_duplicate_delivery_returns_committed_result_once(jobs, monkeypatch, kin
     identity = jobs.submit(source_payload={}, kind=kind, submitted_by="synthetic")
     assert task.run(job_id=identity) == task.run(job_id=identity) == {"status": "ok", "written": 1}
     assert len(calls) == 1
+    assert calls[0]["ingested_by"] == "synthetic"
+    if kind == "sample_bundle":
+        assert calls[0]["ingest_source"] == "api"
     assert jobs.get(identity)["source_payload"] is None
 
 

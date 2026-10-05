@@ -562,6 +562,8 @@ class InternalIngestService:
 
         merged_doc = dict(current_doc)
         merged_doc.update(parsed_payload)
+        for field in ("ingested_by", "ingest_source"):
+            merged_doc[field] = current_doc.get(field)
         if uploaded_checksums:
             existing_checksums = helpers.normalize_uploaded_checksums(
                 current_doc.get("uploaded_file_checksums", {})
@@ -659,6 +661,8 @@ class InternalIngestService:
         *,
         allow_update: bool = False,
         increment: bool = False,
+        ingested_by: str | None = None,
+        ingest_source: str | None = None,
         record_completion=None,
     ) -> dict[str, Any]:
         """Create a fresh sample with all dependent analysis data, or update an existing one.
@@ -671,6 +675,9 @@ class InternalIngestService:
             payload: Sample payload dict. Must contain at minimum a ``name`` key.
             allow_update: If True, update an existing sample instead of raising on conflict.
             increment: If True, auto-append a numeric suffix to make the name unique.
+            ingested_by: Trusted initial submitter identity; None when not recorded.
+            ingest_source: Trusted entry route: api, upload, or watcher; None if unknown.
+            record_completion: Optional callback invoked with the result and transaction session.
 
         Returns:
             A result dict with keys ``status``, ``sample_id``, ``sample_name``,
@@ -690,6 +697,8 @@ class InternalIngestService:
         parsed_payload.pop("report_num", None)
         parsed_payload.pop("increment", None)
         parsed_payload.pop("update_existing", None)
+        parsed_payload.pop("ingested_by", None)
+        parsed_payload.pop("ingest_source", None)
         uploaded_checksums = helpers.normalize_uploaded_checksums(
             parsed_payload.pop("_uploaded_file_checksums", None)
         )
@@ -697,6 +706,9 @@ class InternalIngestService:
             raise ValueError("name is required")
         if allow_update:
             return self._ingest_update(parsed_payload, record_completion=record_completion)
+
+        parsed_payload["ingested_by"] = ingested_by
+        parsed_payload["ingest_source"] = ingest_source
 
         self.preflight_sample_name(parsed_payload, increment=increment)
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
@@ -785,9 +797,26 @@ class InternalIngestService:
         collection: str,
         document: dict[str, Any],
         ignore_duplicate: bool = False,
+        ingested_by: str | None = None,
         record_completion=None,
     ) -> dict[str, Any]:
-        """Validate and insert one document into a supported collection."""
+        """Insert a validated document with server-owned sample entry attribution.
+
+        Args:
+            collection: Logical destination collection supported by the ingest gateway.
+            document: Input content; sample attribution supplied in it is ignored.
+            ignore_duplicate: Whether duplicate-key inserts are ignored; defaults to False.
+            ingested_by: Trusted submitter of a new sample, or None when unknown.
+            record_completion: Optional callback receiving the result and transaction session.
+
+        Returns:
+            Insertion status and counts from the collection gateway.
+
+        Raises:
+            ValueError: The collection or document is invalid.
+            pymongo.errors.PyMongoError: Insertion fails.
+        """
+        document = collection_writes.attribute_sample_import(collection, document, ingested_by)
         normalized_doc = normalize_collection_document(collection, document)
         return self.collection_gateway.insert_documents(
             collection,
@@ -808,9 +837,29 @@ class InternalIngestService:
         collection: str,
         documents: list[dict[str, Any]],
         ignore_duplicates: bool = False,
+        ingested_by: str | None = None,
         record_completion=None,
     ) -> dict[str, Any]:
-        """Validate and insert many documents into a supported collection."""
+        """Insert validated documents with server-owned sample entry attribution.
+
+        Args:
+            collection: Logical destination collection supported by the ingest gateway.
+            documents: Input batch; sample attribution supplied in it is ignored.
+            ignore_duplicates: Whether duplicate-key inserts are ignored; defaults to False.
+            ingested_by: Trusted submitter for newly inserted samples, or None when unknown.
+            record_completion: Optional callback receiving the result and transaction session.
+
+        Returns:
+            Insertion status and counts from the collection gateway.
+
+        Raises:
+            ValueError: The collection or a document is invalid.
+            pymongo.errors.PyMongoError: Insertion fails.
+        """
+        documents = [
+            collection_writes.attribute_sample_import(collection, document, ingested_by)
+            for document in documents
+        ]
         normalized_docs = self._normalize_collection_docs(collection, documents)
         return self.collection_gateway.insert_documents(
             collection,
@@ -826,9 +875,26 @@ class InternalIngestService:
         match: dict[str, Any],
         document: dict[str, Any],
         upsert: bool = False,
+        ingested_by: str | None = None,
         record_completion=None,
     ) -> dict[str, Any]:
-        """Validate and replace one document in a supported collection."""
+        """Replace a validated document while retaining a sample's initial attribution.
+
+        Args:
+            collection: Logical destination collection supported by the ingest gateway.
+            match: Nonempty selector identifying the document to replace.
+            document: Replacement content; client-supplied sample attribution is ignored.
+            upsert: Whether a missing document may be inserted; defaults to False.
+            ingested_by: Trusted actor for a newly inserted sample, or None when unknown.
+            record_completion: Optional callback receiving the result and transaction session.
+
+        Returns:
+            Replacement status and matched, modified, and inserted counts or identifiers.
+
+        Raises:
+            ValueError: The collection, selector, or document is invalid.
+            pymongo.errors.PyMongoError: Replacement fails and the transaction aborts.
+        """
         if record_completion is not None:
             self.validate_async_collection(collection)
 
@@ -854,6 +920,7 @@ class InternalIngestService:
                 match=match,
                 document=document,
                 upsert=upsert,
+                ingested_by=ingested_by,
                 session=session,
             )
             if record_completion is not None:

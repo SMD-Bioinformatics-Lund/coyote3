@@ -20,17 +20,26 @@ MongoDB document shape.
 
 `scripts/bootstrap_database.py` is the explicit first-deployment command. It
 connects directly to the configured MongoDB URI before API, worker, or UI
-services are started. It creates the first local superuser, then imports the
+services are started. It creates a named system administrator and an emergency
+superuser together with the RBAC catalog, then imports the
 bundled RBAC, HGNC, and VEP documents only into empty destination collections.
 The optional `--with-demo-center` flag additionally loads the synthetic ASP,
 ASPC, and ISGL catalog. A collection with one or more documents is skipped.
 This prevents a bootstrap run from silently mixing different HGNC/VEP snapshots
 or replacing center-managed clinical configuration.
 
-The operator supplies the first superuser username, email, and password on the
-command line. No default credential is stored in this repository. The account
-is marked `system_managed`, cannot be deleted, and must change its password at
-first sign-in. It can still be deactivated by an authorized administrator.
+The operator supplies distinct usernames, email addresses, and temporary passwords
+for the two accounts. No default credential is stored in this repository. Both
+accounts are marked `system_managed` and must change their passwords at first sign-in.
+
+Bootstrap attributes installed records to the normalized `--sys-admin-username`
+account. Supported catalogs are marked `system_managed`, and document versions start
+at `1`. Clinical rule content versions and revisions also start at `1`; their
+synthetic review, publication, and lifecycle metadata use the administrator and
+installation time. This metadata does not establish clinical approval. Generated
+subpanel definitions and associations start at version `1` with the same administrator.
+Reference release identifiers remain unchanged. Existing database records and
+immutable revision history are never reset by rerunning bootstrap.
 
 Application upgrades use dedicated synchronization or release procedures:
 

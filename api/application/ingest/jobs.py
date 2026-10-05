@@ -1,8 +1,25 @@
 """Durable job submission independent of transient broker availability."""
 
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def sample_entry_source(job: dict[str, Any]) -> str:
+    """Identify a sample's entry route from trusted durable job metadata.
+
+    Args:
+        job: Stored job containing its kind, submitter, and optional staging directory.
+
+    Returns:
+        collection_import, watcher, upload, or api according to the job submission route.
+    """
+    if job.get("kind", "sample_bundle") != "sample_bundle":
+        return "collection_import"
+    if job.get("submitted_by") == "ingest-watcher":
+        return "watcher"
+    return "upload" if job.get("staging_dir") else "api"
 
 
 def submit_ingest_job(repository, publish, *, submitted_by, **submission):

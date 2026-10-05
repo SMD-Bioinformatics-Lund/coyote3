@@ -79,15 +79,39 @@ def upsert_collection_document(
     match: dict[str, Any],
     document: dict[str, Any],
     upsert: bool = False,
+    ingested_by: str | None = None,
     session: Any = None,
 ) -> dict[str, Any]:
-    """Validate and replace one document in a supported collection."""
+    """Validate and replace a document, preserving existing sample entry attribution.
+
+    Args:
+        service: Ingest service providing collection access.
+        collection: Logical destination collection.
+        match: Nonempty selector identifying the document to replace.
+        document: Replacement content; client-supplied sample attribution is ignored.
+        upsert: Whether an absent document may be inserted; defaults to False.
+        ingested_by: Trusted actor for a newly inserted sample, or None if unknown.
+        session: Optional transaction session belonging to the destination client.
+
+    Returns:
+        Status and replacement counts, including the new ID for an upsert.
+
+    Raises:
+        ValueError: The selector is empty or document validation fails.
+        AppError: An existing system-managed identity record cannot be replaced.
+    """
     if not isinstance(match, dict) or not match:
         raise ValueError("match must be a non-empty object")
     if collection in {"users", "roles", "permissions"}:
         existing = service._collection(collection).find_one(match, session=session)
         if isinstance(existing, dict):
             reject_system_managed_change(existing, resource=collection)
+    if collection == "samples":
+        existing = service._collection(collection).find_one(match, session=session)
+        document = attribute_sample_import(collection, document, ingested_by)
+        if existing is not None:
+            for field in ("ingested_by", "ingest_source"):
+                document[field] = existing.get(field)
     normalized_doc = normalize_collection_document(collection, document)
     result = service._collection(collection).replace_one(
         filter=match,
@@ -107,3 +131,21 @@ def upsert_collection_document(
         "modified_count": replace_result.modified_count,
         "upserted_id": replace_result.upserted_id,
     }
+
+
+def attribute_sample_import(
+    collection: str, document: dict[str, Any], actor: str | None
+) -> dict[str, Any]:
+    """Assign trusted initial attribution to a sample imported through collection APIs.
+
+    Args:
+        collection: Logical collection being imported; other collections are unchanged.
+        document: Client-supplied document, which is never mutated.
+        actor: Authenticated submitter or None when no identity was recorded.
+
+    Returns:
+        A sample copy with server-owned attribution, or the original non-sample document.
+    """
+    if collection != "samples":
+        return document
+    return {**document, "ingested_by": actor, "ingest_source": "collection_import"}

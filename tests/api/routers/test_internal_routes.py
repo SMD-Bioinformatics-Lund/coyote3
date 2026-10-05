@@ -15,6 +15,7 @@ from api.interfaces.http.operations import internal
 
 def _admin_user():
     return SimpleNamespace(
+        username="admin.test",
         role="admin",
         roles=["superuser"],
         access_level=99999,
@@ -158,7 +159,8 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
         raising=False,
     )
 
-    def _ingest(payload, *, allow_update=False, increment=False):
+    def _ingest(payload, *, allow_update=False, increment=False, ingested_by, ingest_source):
+        assert ingested_by == "admin.test"
         calls["payload"] = payload
         calls["allow_update"] = allow_update
         calls["increment"] = increment
@@ -215,7 +217,12 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
             "vcf_files": "/tmp/s2.vcf",
             "from_yaml": text,
         },
-        ingest_sample_bundle=lambda payload, *, allow_update=False, increment=False: {
+        ingest_sample_bundle=lambda payload,
+        *,
+        allow_update=False,
+        increment=False,
+        ingested_by,
+        ingest_source: {
             "status": "ok",
             "sample_id": "def",
             "sample_name": payload["name"],
@@ -291,7 +298,8 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
         raising=False,
     )
 
-    def _ingest(payload, *, allow_update=False, increment=False):
+    def _ingest(payload, *, allow_update=False, increment=False, ingested_by, ingest_source):
+        assert ingested_by == "admin.test"
         calls["allow_update"] = allow_update
         return {
             "status": "ok",
@@ -337,7 +345,11 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
         raising=False,
     )
     ingest_service = _ingest_service_stub(
-        insert_collection_document=lambda *, collection, document, ignore_duplicate=False: {
+        insert_collection_document=lambda *,
+        collection,
+        document,
+        ignore_duplicate=False,
+        ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
@@ -367,7 +379,11 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
         raising=False,
     )
     ingest_service = _ingest_service_stub(
-        insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False: {
+        insert_collection_documents=lambda *,
+        collection,
+        documents,
+        ignore_duplicates=False,
+        ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),
@@ -420,7 +436,12 @@ def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
-        upsert_collection_document=lambda *, collection, match, document, upsert=False: {
+        upsert_collection_document=lambda *,
+        collection,
+        match,
+        document,
+        upsert=False,
+        ingested_by: {
             "status": "ok",
             "collection": collection,
             "matched_count": 1,
@@ -472,7 +493,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         },
     )
 
-    def _ingest(payload, *, allow_update=False, increment=False):
+    def _ingest(payload, *, allow_update=False, increment=False, ingested_by, ingest_source):
+        assert ingested_by == "admin.test"
         calls["payload"] = payload
         calls["allow_update"] = allow_update
         calls["increment"] = increment
@@ -581,7 +603,8 @@ def test_ingest_sample_bundle_upload_internal_allows_missing_declared_optional_f
         raising=False,
     )
 
-    def _ingest(payload, *, allow_update=False, increment=False):
+    def _ingest(payload, *, allow_update=False, increment=False, ingested_by, ingest_source):
+        assert ingested_by == "admin.test"
         calls["payload"] = payload
         calls["allow_update"] = allow_update
         calls["increment"] = increment
@@ -673,7 +696,11 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
-        insert_collection_document=lambda *, collection, document, ignore_duplicate=False: {
+        insert_collection_document=lambda *,
+        collection,
+        document,
+        ignore_duplicate=False,
+        ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
@@ -708,7 +735,11 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
-        insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False: {
+        insert_collection_documents=lambda *,
+        collection,
+        documents,
+        ignore_duplicates=False,
+        ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),

@@ -258,6 +258,14 @@ class SamplesDoc(_DocBase):
     latest_report_id: Any | None = None
     latest_report_on: datetime | None = None
     time_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    ingested_by: str | None = Field(
+        default=None,
+        description="Authenticated initial user or machine identity; null if not recorded.",
+    )
+    ingest_source: Literal["api", "upload", "watcher", "collection_import"] | None = Field(
+        default=None,
+        description="Initial entry route, assigned by the server; null for unknown history.",
+    )
 
     def to_persistence_document(self) -> dict[str, Any]:
         """Return the canonical MongoDB representation of a sample.

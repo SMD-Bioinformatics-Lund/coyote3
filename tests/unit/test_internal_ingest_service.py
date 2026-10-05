@@ -1543,6 +1543,8 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
                 "pipeline": "SomaticPanelPipeline",
                 "pipeline_version": "1.0.0",
                 "vcf_files": "x",
+                "ingested_by": "original.submitter",
+                "ingest_source": "upload",
             }
         ]
     )
@@ -1565,16 +1567,22 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "1.0.0",
             "vcf_files": "x",
+            "ingested_by": "forged.submitter",
+            "ingest_source": "watcher",
         },
     )
     monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": [{"a": 1}]})
     monkeypatch.setattr(service, "_replace_dependents", lambda **_: {"snvs": 1})
-    monkeypatch.setattr(ingest, "build_sample_meta_dict", lambda _: {"name": "S1"})
-    monkeypatch.setattr(service, "_update_meta_fields", lambda **_: None)
+    metadata_updates = []
+    monkeypatch.setattr(
+        service, "_update_meta_fields", lambda **kwargs: metadata_updates.append(kwargs)
+    )
 
     out = service._ingest_update({"name": "S1", "asp_id": "assay_1", "environment": "production"})
     assert out["status"] == "ok"
+    assert metadata_updates[0]["payload_meta"]["ingested_by"] == "original.submitter"
+    assert metadata_updates[0]["payload_meta"]["ingest_source"] == "upload"
 
     with pytest.raises(ValueError):
         service._ingest_update({"name": "MISSING"})
@@ -1681,11 +1689,17 @@ def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch, bam
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "not provided",
             "files": {"vcf_files": {"path": "x"}},
-        }
+            "ingested_by": "forged.actor",
+            "ingest_source": "watcher",
+        },
+        ingested_by="synthetic.submitter",
+        ingest_source="upload",
     )
 
     assert result["status"] == "ok"
     inserted = sample_col.inserted_one[0]
+    assert inserted["ingested_by"] == "synthetic.submitter"
+    assert inserted["ingest_source"] == "upload"
     assert inserted["pipeline_version"] is None
     assert inserted["control"] is None
     assert inserted["case"]["purity"] is None

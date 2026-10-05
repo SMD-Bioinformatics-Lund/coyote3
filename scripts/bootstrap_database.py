@@ -22,8 +22,10 @@ if str(ROOT_DIR) not in sys.path:
 from pymongo import MongoClient  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
+from api.application.reporting.clinical_rules.validation import content_hash  # noqa: E402
 from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
@@ -148,7 +150,22 @@ def _resolve_directory(value: str, *, label: str) -> Path:
 def _build_seed_documents(
     *, rbac_dir: Path, reference_dir: Path, demo_center_dir: Path | None, actor: str
 ) -> dict[str, list[dict]]:
-    """Load, normalize, and validate all selected bootstrap documents before writes."""
+    """Prepare system catalogs as first versions attributed to the initial administrator.
+
+    Args:
+        rbac_dir: Directory containing bundled permission and role definitions.
+        reference_dir: Directory containing bundled reference snapshots.
+        demo_center_dir: Optional directory containing demonstration configuration.
+        actor: Normalized username of the system administrator created at installation.
+
+    Returns:
+        Validated documents with fresh audit timestamps and initial document versions.
+        Reference release identifiers and clinical content are preserved.
+
+    Raises:
+        ValueError: Seed normalization or collection validation fails.
+        OSError: A selected seed file cannot be read.
+    """
     payload = load_reference_seed_pack(rbac_dir)
     payload.update(load_reference_seed_pack(reference_dir))
     if demo_center_dir is not None:
@@ -156,7 +173,8 @@ def _build_seed_documents(
 
     canonicalize_seed_contract(payload)
     lower_business_keys(payload)
-    stamp_docs(payload, actor, datetime.now(timezone.utc).isoformat())
+    installed_at = datetime.now(timezone.utc).isoformat()
+    stamp_docs(payload, actor, installed_at)
 
     for collection in (
         "assay_groups",
@@ -168,6 +186,30 @@ def _build_seed_documents(
     ):
         for document in payload.get(collection, []):
             document["system_managed"] = True
+            document["version"] = 1
+            document["updated_by"] = actor
+            document["updated_on"] = installed_at
+
+    for document in payload.get("clinical_rule_sets", []):
+        document["content_version"] = 1
+        document["revision"] = 1
+        for field in ("published_by", "retired_by"):
+            if document.get(field) is not None:
+                document[field] = actor
+        for field in ("published_at", "effective_from", "retired_at"):
+            if document.get(field) is not None:
+                document[field] = installed_at
+        review = document.get("review", {})
+        for field in ("submitted_by", "clinical_reviewer", "publisher"):
+            if review.get(field) is not None:
+                review[field] = actor
+        for field in ("submitted_at", "clinical_decision_at"):
+            if review.get(field) is not None:
+                review[field] = installed_at
+        for event in document.get("lifecycle", []):
+            event["actor"] = actor
+            event["occurred_at"] = installed_at
+        document["content_hash"] = content_hash(ClinicalRuleSetDoc.model_validate(document))
 
     normalized: dict[str, list[dict]] = {}
     for collection, documents in payload.items():
@@ -442,7 +484,7 @@ def main() -> int:
         if args.with_demo_center
         else None
     )
-    actor = str(args.username).strip().lower()
+    actor = str(args.sys_admin_username).strip().lower()
     seed = _build_seed_documents(
         rbac_dir=rbac_dir,
         reference_dir=reference_dir,

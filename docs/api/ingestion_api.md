@@ -38,6 +38,26 @@ For the raw VCF and JSON file shapes consumed by the ingest parsers, see [API / 
 
 All ingest endpoints validate request documents with backend Pydantic contracts before any database write. Payloads are normalized before persistence, so the behavior is the same whether the caller is a script or an API client.
 
+### Sample entry attribution
+
+Each new sample records `ingested_by`, the authenticated user or machine identity
+that submitted it, and `ingest_source`: `api`, `upload`, `watcher`, or
+`collection_import`. Queued ingestion uses the durable job's submitter; watched
+manifests use `ingest-watcher`. Internal-token requests use `internal-ingest`.
+The existing `time_added` field records when the sample was created.
+
+These fields describe the initial entry. Re-ingestion, collection replacement,
+and sample administration preserve them. Values supplied in uploaded documents
+or request bodies cannot override server attribution. Existing samples without
+recoverable submission evidence retain null attribution rather than being
+assigned to the administrator performing a migration.
+
+Run `scripts/backfill_sample_ingest_provenance.py --env-file <deployment-env>`
+to preview a backfill from successful initial sample-bundle jobs. Add
+`--apply --backup <new-backup-file>` to persist it. The backup contains only
+sample identifiers and the previous attribution fields. The command preserves
+recorded values and leaves unknown history null.
+
 ![Celery-backed sample ingest flow](../assets/diagrams/celery_ingest_flow.svg)
 
 ## Persistence and recovery boundaries

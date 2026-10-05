@@ -47,8 +47,17 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
             return {"name": "SAMPLE_1", "cnv": "files/sample.cnv.json"}
 
         def ingest_sample_bundle(
-            self, payload, *, allow_update=False, increment=False, record_completion=None
+            self,
+            payload,
+            *,
+            allow_update=False,
+            increment=False,
+            record_completion=None,
+            ingested_by=None,
+            ingest_source=None,
         ):
+            assert ingested_by == "ingest-watcher"
+            assert ingest_source == "watcher"
             captured_payloads.append(
                 {
                     "payload": payload,
@@ -109,7 +118,11 @@ def test_watch_preserves_manifest_when_disabled_midscan_then_processes_it(tmp_pa
     jobs = IngestJobsRepository(SimpleNamespace(ingest_jobs_collection=collection))
     result = {"sample_id": "synthetic-id", "sample_name": "SYNTHETIC_A"}
 
-    def complete_bundle(payload, *, allow_update, increment, record_completion):
+    def complete_bundle(
+        payload, *, allow_update, increment, record_completion, ingested_by, ingest_source
+    ):
+        assert ingested_by == "ingest-watcher"
+        assert ingest_source == "watcher"
         record_completion(result, None)
         return result
 
