@@ -8,7 +8,7 @@ import pytest
 from bson import BSON, ObjectId
 
 from scripts.migration_common.apply_bundle import apply_plan, guard_target, load_bundle
-from scripts.migration_common.commands import backfill_bundle, backfill_review, configuration_plan
+from scripts.migration_common.commands import backfill_bundle, backfill_review
 from scripts.migration_common.conversion import (
     independent_plan,
     prepare_finding,
@@ -130,29 +130,29 @@ def test_orphan_finding_blocks_index_completion(tmp_path):
         SourceIndex(tmp_path / "source.sqlite", 2)
 
 
-def test_coverage_name_lookup_and_explicit_disposition(tmp_path):
-    original = sample()
-    coverage = {
-        "_id": ObjectId(),
-        "sample": original["name"],
-        "chr": 1,
-        "start": 1,
-        "end": 10,
-        "avg_cov": 100,
-        "amplicon": "SYNTHETIC",
+def test_only_requested_collections_are_in_scope():
+    assert set(SOURCE_COLLECTIONS[2]) == {
+        "annotation",
+        "biomarkers",
+        "blacklist",
+        "cnvs_wgs",
+        "fusions",
+        "samples",
+        "transloc",
+        "variants_idref",
     }
-    source = make_index(tmp_path, 2, {"samples": [original], "coverage": [coverage]})
-    assert list(source.rows("coverage", str(original["_id"]))) == [coverage]
-    with pytest.raises(ValueError, match="coverage"):
-        sample_plan(source, str(original["_id"]), review())
-    decision = review()
-    decision["coverage"] = {
-        "source_sha256": digest([coverage]),
-        "action": "archive_only",
-        "reason": "Synthetic archive-only coverage decision",
+    assert set(SOURCE_COLLECTIONS[3]) == {
+        "blacklist",
+        "annotation",
+        "biomarkers",
+        "cnvs",
+        "group_coverage",
+        "panel_cov",
+        "reported_variants",
+        "samples",
+        "transloc",
+        "variants",
     }
-    assert sample_plan(source, str(original["_id"]), decision)["samples"]
-    source.close()
 
 
 def test_v2_missing_transcript_is_never_reselected():
@@ -299,13 +299,11 @@ def test_invalid_backfill_does_not_write_source(tmp_path, field, value):
     source.close()
 
 
-def test_blacklist_is_independent_and_configuration_requires_review(tmp_path):
+def test_blacklist_is_independent_of_configuration(tmp_path):
     original = {"_id": ObjectId(), "assay": "synthetic", "pos": "1_100", "in_normal_perc": 1.0}
-    source = make_index(tmp_path, 2, {"blacklist": [original], "groups": [{"_id": "synthetic"}]})
+    source = make_index(tmp_path, 2, {"blacklist": [original]})
     result = independent_plan(source, "blacklist", {})["blacklist"][0]
     assert result["assay_group"] == "synthetic" and result["pos"] == "1_100"
-    with pytest.raises(ValueError, match="configuration"):
-        configuration_plan(source, {})
     source.close()
 
 

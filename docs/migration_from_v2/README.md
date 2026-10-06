@@ -20,10 +20,9 @@ provides a separate command for each stage.
   choose a transcript using current rules.
 - `cnvs_wgs` stores interval coordinates, ratio, probe count, and gene annotations.
   Original IDs and clinical values remain associated with the source sample.
-- Interval coverage requires a reviewed conversion to gene/transcript coverage
-  or an explicit archive-only disposition.
+- V2 has no D4 coverage; coverage collections are outside this migration scope.
 - Shared annotations without assay/subpanel scope require reviewed scope additions.
-  Configuration in `groups` and `panels` requires explicit current mappings.
+  Current ASP, ASPC, ISGL, group, and subpanel configuration must already be installed.
 - Saved reports remain historical artifacts. Missing finding snapshots, run names,
   counts, pipeline versions, and authorship are not reconstructed from current data.
 

@@ -1,7 +1,7 @@
 # Upgrade from Coyote v3
 
 The v3 migration uses an offline BSON snapshot of `coyote3` and builds separate
-configuration, annotation, blacklist, and per-sample bundles. It excludes users,
+annotation, blacklist, and per-sample bundles. It excludes users,
 authentication records, external knowledgebases, and source backup collections.
 
 Follow [Legacy clinical data migration](migration-guide.md) for the complete
@@ -19,11 +19,13 @@ lists each command and the separate schema-maintenance tools.
 | `cnvs` | `cnvs` and extracted finding comments |
 | `transloc` | `translocations` and extracted finding comments |
 | `biomarkers` | `biomarkers` with typed measurement payloads |
-| `panel_cov`, `group_coverage` | `panel_coverage`, `group_coverage` |
-| `coverage` | Reviewed conversion or archive-only disposition |
+| `panel_cov`, measurement-shaped `group_coverage` | Sample-specific `d4_coverage`; ambiguous records require reviewed selection |
+| Exclusion-shaped `group_coverage` | `d4_coverage_blacklist`; measurements never become exclusions |
 | `reported_variants` | Preserved report-time finding snapshots |
 | `annotation`, `blacklist` | Shared clinical annotations and blacklist entries |
-| ASP, ASPC, ISGL collections | Reviewed current clinical configuration |
+
+ASP, ASPC, ISGL, assay groups, and subpanels must already exist in the destination's
+current format. They are preflight dependencies, not legacy migration sources.
 
 ## Required review
 

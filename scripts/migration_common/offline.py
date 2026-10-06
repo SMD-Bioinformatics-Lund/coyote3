@@ -24,11 +24,8 @@ SOURCE_COLLECTIONS = {
         "fusions",
         "transloc",
         "biomarkers",
-        "coverage",
         "annotation",
         "blacklist",
-        "panels",
-        "groups",
     ),
     3: (
         "samples",
@@ -36,15 +33,11 @@ SOURCE_COLLECTIONS = {
         "cnvs",
         "transloc",
         "biomarkers",
-        "coverage",
         "panel_cov",
         "group_coverage",
         "annotation",
         "blacklist",
         "reported_variants",
-        "assay_specific_panels",
-        "asp_configs",
-        "insilico_genelists",
     ),
 }
 SAMPLE_COLLECTIONS = {
@@ -60,8 +53,6 @@ SAMPLE_COLLECTIONS = {
         "cnvs": "cnvs",
         "transloc": "translocations",
         "biomarkers": "biomarkers",
-        "panel_cov": "panel_coverage",
-        "group_coverage": "group_coverage",
         "reported_variants": "reported_variants",
     },
 }
@@ -85,6 +76,8 @@ class RecordConversionError(ValueError):
             self.issue["fields"] = [
                 {"field": item["loc"], "error": item["type"]} for item in cause.errors()
             ]
+        elif isinstance(cause, ValueError):
+            self.issue["reason"] = str(cause)
 
 
 def digest(value: Any) -> str:
@@ -171,13 +164,22 @@ def prepare_source(export_dir: Path, index_path: Path, version: int) -> dict[str
                 "INSERT INTO inventory VALUES (?, ?, ?)", (name, count, checksum.hexdigest())
             )
             counts[name] = count
-        # Old coverage records use the sample name; newer records also carry SAMPLE_ID.
-        connection.execute(
-            "UPDATE documents SET sample_ref=(SELECT identity FROM samples "
-            "WHERE samples.name=documents.sample_name) "
-            "WHERE collection='coverage' AND sample_ref IS NULL"
-        )
-        for name in (*SAMPLE_COLLECTIONS[version], "coverage"):
+        related = list(SAMPLE_COLLECTIONS[version])
+        if version == 3:
+            related.append("panel_cov")
+            # group_coverage can contain both sample measurements and group exclusions.
+            for row in connection.execute(
+                "SELECT payload FROM documents WHERE collection='group_coverage'"
+            ):
+                document = BSON(row[0]).decode()
+                if "genes" in document:
+                    reference = str(document.get("SAMPLE_ID", ""))
+                    match = connection.execute(
+                        "SELECT name FROM samples WHERE identity=?", (reference,)
+                    ).fetchone()
+                    if match is None or document.get("sample") != match[0]:
+                        raise ValueError("Group coverage has an orphan or conflicting sample")
+        for name in related:
             orphan = connection.execute(
                 "SELECT 1 FROM documents d LEFT JOIN samples s ON d.sample_ref=s.identity "
                 "WHERE d.collection=? AND (s.identity IS NULL OR "

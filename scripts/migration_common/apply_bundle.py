@@ -10,6 +10,7 @@ import os
 import re
 import sys
 from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -21,11 +22,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from scripts.migration_common.commands import CONFIG_TARGETS  # noqa: E402
 from scripts.migration_common.offline import digest, read_json  # noqa: E402
+from scripts.migration_common.run_report import write_report  # noqa: E402
+from scripts.migration_common.target_catalog import (  # noqa: E402
+    read_target_catalog,
+    validate_plan_scope,
+)
 from scripts.upgrade_from_v3.clinical_documents import CLINICAL_COLLECTIONS  # noqa: E402
 
-ALLOWED_TARGETS = set(CLINICAL_COLLECTIONS) | CONFIG_TARGETS
+ALLOWED_TARGETS = set(CLINICAL_COLLECTIONS)
 
 
 def guard_target(uri: str, database: str) -> None:
@@ -64,6 +69,11 @@ def load_bundle(path: Path) -> dict[str, list[dict]]:
     for collection, expected in manifest["collections"].items():
         if collection not in ALLOWED_TARGETS:
             raise ValueError("Bundle includes a collection outside migration scope")
+        if manifest.get("provenance", {}).get("source_version") == 2 and collection in {
+            "d4_coverage",
+            "d4_coverage_blacklist",
+        }:
+            raise ValueError("V2 bundles cannot contain D4 coverage collections")
         file = path / f"{collection}.bson"
         if file.is_symlink():
             raise ValueError("Bundle files cannot be symbolic links")
@@ -106,6 +116,7 @@ def apply_plan(
     *,
     apply: bool = False,
     expected_samples: dict[str, str] | None = None,
+    expected_catalog_digest: str | None = None,
 ) -> dict:
     """Insert an idempotent bundle with conflict checks repeated inside one transaction.
 
@@ -114,6 +125,7 @@ def apply_plan(
         plan: Verified BSON bundle, bounded to one sample or one shared resource batch.
         apply: False returns planned counts without writes; True requires transactions.
         expected_samples: For a metadata patch, exact prior sample hashes. None inserts only.
+        expected_catalog_digest: Required target snapshot fingerprint in CLI-generated runs.
 
     Returns:
         Insert counts and whether the transaction was applied.
@@ -132,6 +144,11 @@ def apply_plan(
 
     def pending(session: Any = None) -> dict[str, list[dict]]:
         """Recheck scope and existing identities in the transaction's snapshot."""
+        if expected_catalog_digest is not None:
+            catalog = read_target_catalog(target, session=session)
+            if catalog["sha256"] != expected_catalog_digest:
+                raise ValueError("Target configuration changed since conversion; repeat preflight")
+            validate_plan_scope(catalog, plan)
         for sample in plan.get("samples", []):
             check_sample_scope(target, sample, session)
         result = {}
@@ -220,28 +237,50 @@ def main() -> int:
     parser.add_argument("--bundle", required=True, type=Path)
     parser.add_argument("--target-db", required=True)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--report", type=Path, help="New private JSON report path")
     args = parser.parse_args()
+    report_path = None
+    plan = None
+    failure = None
+    details = {"operation": "apply" if args.apply else "target_preflight", "source_version": None}
     try:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        candidate = args.report or args.bundle / f"application-{stamp}.json"
+        if candidate.exists() or candidate.with_suffix(".md").exists():
+            raise FileExistsError("Run reports must use new paths")
+        report_path = candidate
         uri = os.environ.get("COYOTE_MIGRATION_TARGET_URI", "")
         guard_target(uri, args.target_db)
         plan = load_bundle(args.bundle)
         provenance = read_json(args.bundle / "manifest.json").get("provenance", {})
+        details.update({key: value for key, value in provenance.items() if key != "operation"})
         expected = provenance.get("expected_samples")
+        target_digest = provenance.get("target_sha256")
+        if not target_digest:
+            raise ValueError("Bundle has no validated target catalog fingerprint")
         if provenance.get("operation") == "metadata_backfill" and expected is None:
             raise ValueError("Metadata backfill manifest has no baseline")
         with MongoClient(uri, serverSelectionTimeoutMS=5000, directConnection=True) as client:
             print(
                 json.dumps(
                     apply_plan(
-                        client[args.target_db], plan, apply=args.apply, expected_samples=expected
+                        client[args.target_db],
+                        plan,
+                        apply=args.apply,
+                        expected_samples=expected,
+                        expected_catalog_digest=target_digest,
                     )
                 )
             )
         return 0
     except Exception as error:
+        failure = error
         # PyMongo and validation errors may contain URIs or complete clinical records.
         print(f"Bundle application stopped: {type(error).__name__}", file=sys.stderr)
         return 1
+    finally:
+        if report_path is not None:
+            write_report(report_path, details, plan, failure)
 
 
 if __name__ == "__main__":

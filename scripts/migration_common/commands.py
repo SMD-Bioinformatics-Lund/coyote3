@@ -24,20 +24,14 @@ from scripts.migration_common.offline import (
     read_json,
     write_bundle,
 )
+from scripts.migration_common.run_report import write_report
 from scripts.migration_common.schema_inventory import verify_review
+from scripts.migration_common.target_catalog import (
+    bind_sample_review,
+    validate_plan_scope,
+    validate_snapshot,
+)
 
-CONFIG_SOURCES = {
-    2: ("groups", "panels"),
-    3: ("assay_specific_panels", "asp_configs", "insilico_genelists"),
-}
-CONFIG_TARGETS = {
-    "assay_groups",
-    "assay_specific_panels",
-    "asp_configs",
-    "insilico_genelists",
-    "subpanels",
-    "subpanel_associations",
-}
 BACKFILL_FIELDS = {
     "case.sequencing_run": str,
     "control.sequencing_run": str,
@@ -51,52 +45,6 @@ BACKFILL_FIELDS = {
     "database_versions.vep": str,
     "genome_build": int,
 }
-
-
-def configuration_plan(source: SourceIndex, review: dict) -> dict[str, list[dict]]:
-    """Validate explicit configuration mappings without guessing clinical defaults.
-
-    Args:
-        source: Read-only export index.
-        review: Physical collection and source ID maps, each containing source_sha256,
-            reason, and targets (canonical collection to arrays of complete records).
-
-    Returns:
-        Validated current configuration documents with duplicate IDs rejected.
-
-    Raises:
-        ValueError: A source record is unaccounted for or a target is outside scope.
-    """
-    plan: dict[str, list[dict]] = {}
-    identities = set()
-    for collection in CONFIG_SOURCES[source.version]:
-        for original in source.rows(collection):
-            mapping = review.get(collection, {}).get(str(original["_id"]), {})
-            if mapping.get("source_sha256") != digest(original) or not mapping.get("reason"):
-                raise ValueError("Each configuration record needs a digest-bound reviewed mapping")
-            targets = mapping.get("targets", {})
-            if not targets or set(targets) - CONFIG_TARGETS:
-                raise ValueError("Configuration target mapping is empty or outside scope")
-            for name, documents in targets.items():
-                if not documents:
-                    raise ValueError("Configuration records cannot be silently omitted")
-                for document in documents:
-                    if document.get("_id") is None:
-                        raise ValueError("Mapped configuration requires an explicit destination ID")
-                    identity = (name, str(document["_id"]))
-                    if identity in identities:
-                        raise ValueError("Duplicate mapped configuration identity")
-                    identities.add(identity)
-                    parsed = COLLECTION_MODEL_ADAPTERS[name].validate_python(document)
-                    plan.setdefault(name, []).append(
-                        parsed.model_dump(
-                            mode="python",
-                            by_alias=True,
-                            exclude_unset=True,
-                            exclude_computed_fields=True,
-                        )
-                    )
-    return plan
 
 
 def build_backfill_review(read_sample: Callable[[str], dict], tsv: Path, review: dict) -> dict:
@@ -205,6 +153,7 @@ def backfill_bundle(bundle: Path, tsv: Path, output: Path, version: int) -> dict
         provenance={
             "operation": "metadata_backfill",
             "source_version": version,
+            "target_sha256": manifest.get("provenance", {}).get("target_sha256"),
             "expected_samples": expected,
             "review": review,
         },
@@ -214,9 +163,20 @@ def backfill_bundle(bundle: Path, tsv: Path, output: Path, version: int) -> dict
 def run(version: int, operation: str) -> int:
     """Execute one version-specific offline operation and print only aggregate results."""
     parser = argparse.ArgumentParser(description=f"Offline Coyote v{version} {operation}")
-    conversion = operation in {"sample", "configuration", "annotation", "blacklist"}
+    conversion = operation in {
+        "sample",
+        "annotation",
+        "blacklist",
+        "d4_coverage_blacklist",
+    }
     if conversion:
         parser.add_argument("--schema-audit", type=Path, required=True)
+        parser.add_argument("--target-catalog", type=Path, required=True)
+    reporting = conversion or operation == "backfill"
+    if reporting:
+        parser.add_argument(
+            "--report", type=Path, help="New private JSON run report; Markdown is also written"
+        )
     parser.add_argument(
         "--issues", type=Path, help="New private file for blocked record coordinates"
     )
@@ -240,7 +200,16 @@ def run(version: int, operation: str) -> int:
         parser.add_argument("--tsv", type=Path, required=True)
     args = parser.parse_args()
     source = None
+    report_path = None
+    plan = None
+    failure = None
+    provenance = {"source_version": version, "operation": operation}
     try:
+        if reporting:
+            candidate = args.report or args.output.with_name(args.output.name + ".migration.json")
+            if candidate.exists() or candidate.with_suffix(".md").exists():
+                raise FileExistsError("Run reports must use new paths")
+            report_path = candidate
         if operation == "prepare":
             print(json.dumps(prepare_source(args.export_dir, args.index, version)))
             return 0
@@ -250,6 +219,7 @@ def run(version: int, operation: str) -> int:
             print(json.dumps(backfill_bundle(args.bundle, args.tsv, args.output, version)))
             return 0
         source = SourceIndex(args.index, version)
+        provenance["source_sha256"] = source.fingerprint()
         review = read_json(args.review) if args.review else {}
         if operation == "inspect":
             original = source.get(args.collection, args.record_id)
@@ -264,9 +234,18 @@ def run(version: int, operation: str) -> int:
                         or key.startswith("checked_")
                     }
                 )
-                evidence["coverage_source_sha256"] = digest(
-                    list(source.rows("coverage", args.record_id))
-                )
+                if version == 3:
+                    candidates = [
+                        {"collection": name, "document": row}
+                        for name in ("panel_cov", "group_coverage")
+                        for row in source.rows(name, args.record_id)
+                        if name == "panel_cov" or "genes" in row
+                    ]
+                    evidence["d4_coverage_source_sha256"] = digest(candidates)
+                    evidence["d4_coverage_candidates"] = [
+                        {"collection": item["collection"], "record_id": item["document"]["_id"]}
+                        for item in candidates
+                    ]
                 from api.config.constants import ALL_SAMPLE_FILE_KEYS
 
                 evidence["files_source_sha256"] = digest(
@@ -280,29 +259,40 @@ def run(version: int, operation: str) -> int:
             print("Reviewed metadata file written; no database was accessed.")
             return 0
         audit_digest = verify_review(source, args.schema_audit, review)
+        catalog = read_json(args.target_catalog)
+        validate_snapshot(catalog)
+        provenance.update(source_sha256=source.fingerprint(), target_sha256=catalog["sha256"])
         if operation == "sample":
-            plan = sample_plan(
-                source, args.sample_id, review.get("samples", {}).get(args.sample_id, {})
+            sample_review = bind_sample_review(
+                catalog,
+                source.get("samples", args.sample_id),
+                review.get("samples", {}).get(args.sample_id, {}),
             )
-        elif operation == "configuration":
-            plan = configuration_plan(source, review.get("configuration", {}))
+            plan = sample_plan(source, args.sample_id, sample_review)
         else:
             plan = independent_plan(source, operation, review.get(operation, {}))
-        provenance = {
-            "source_version": version,
-            "source_sha256": source.fingerprint(),
-            "review_sha256": digest(review),
-            "operation": operation,
-            "schema_audit_sha256": audit_digest,
-        }
+        validate_plan_scope(catalog, plan)
+        provenance.update(
+            {
+                "source_version": version,
+                "source_sha256": source.fingerprint(),
+                "review_sha256": digest(review),
+                "operation": operation,
+                "schema_audit_sha256": audit_digest,
+            }
+        )
         if operation == "sample":
             provenance["sample_id"] = args.sample_id
             provenance["coverage_reconciliation"] = (
-                review.get("samples", {}).get(args.sample_id, {}).get("coverage")
+                review.get("samples", {}).get(args.sample_id, {}).get("d4_coverage")
+            )
+            provenance["configuration_binding"] = sample_review.get("sample", {}).get(
+                "metadata", {}
             )
         print(json.dumps(write_bundle(args.output, plan, provenance=provenance)))
         return 0
     except Exception as error:
+        failure = error
         # Validation exception messages can contain clinical values. Never log input values.
         print(f"Offline migration stopped: {type(error).__name__}", file=sys.stderr)
         if isinstance(error, RecordConversionError) and args.issues:
@@ -320,3 +310,5 @@ def run(version: int, operation: str) -> int:
     finally:
         if source is not None:
             source.close()
+        if report_path is not None:
+            write_report(report_path, provenance, plan, failure)

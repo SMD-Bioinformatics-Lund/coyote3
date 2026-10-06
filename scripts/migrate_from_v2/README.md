@@ -15,7 +15,6 @@ for collection mappings, source relationships, reconciliation, commands, and rec
 | `audit_source_schema.py` | Inventory every field and shape in all migrated source records before conversion |
 | `prepare_source.py` | Index the documented v2 BSON snapshot without connecting to MongoDB |
 | `inspect_record.py` | Write original record evidence and source hashes to a private file |
-| `migrate_configuration.py` | Validate reviewed mappings from `groups` and `panels` |
 | `migrate_annotations.py` | Preserve shared annotation scope, identity, and clinical content |
 | `migrate_blacklist.py` | Convert blacklist assay-group scope |
 | `backfill_sample_metadata.py` | Add missing TSV metadata or prepare later run/read patches |
@@ -36,10 +35,13 @@ V2 report references can lack a string report ID or display name. Destination ID
 derive from the preserved report ObjectId and display names from the saved file
 basename. No report-time finding snapshots are invented.
 
-Interval `coverage` requires a reviewed conversion into current gene/transcript
-coverage or an explicit archive-only disposition. Original records remain in the
-immutable export and source index.
+V2 has no D4 coverage. Only the eight clinical collections in the runbook are
+indexed; legacy configuration and interval coverage are outside migration scope.
 
 Users, authentication data, external knowledgebases, and system collections are
 outside this package. Apply validated bundles only through the shared isolated
 target application command described in the runbook.
+
+Destination ASP, ASPC, ISGL, assay groups, and subpanels must already be installed.
+Use `scripts/migration_common/prepare_target.py` before conversion. Every conversion
+requires `--target-catalog` and writes a private JSON/Markdown migration report.

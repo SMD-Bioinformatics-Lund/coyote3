@@ -14,9 +14,9 @@ order, target application, and recovery procedure.
 | `audit_source_schema.py` | Inventory every field and shape in all migrated source records before conversion |
 | `prepare_source.py` | Index the documented v3 BSON snapshot with sample-reference checks |
 | `inspect_record.py` | Write one original record and reconciliation digests to a private file |
-| `migrate_configuration.py` | Validate explicit ASP, ASPC, ISGL, group, and subpanel mappings |
 | `migrate_annotations.py` | Preserve shared annotation identities, scope, authors, and content |
 | `migrate_blacklist.py` | Preserve blacklist entries and map assay-group scope |
+| `migrate_d4_coverage_blacklist.py` | Convert actual exclusion-shaped records; measurements remain sample-scoped |
 | `backfill_sample_metadata.py` | Read reviewed TSV metadata or prepare later run/read patches |
 | `migrate_sample.py` | Build one bundle of related findings, histories, snapshots, and VEP evidence |
 
@@ -27,8 +27,15 @@ The source databases and production tunnel are rejected.
 ## V3 source details
 
 Small variants use `variants`; CNVs use `cnvs`; DNA translocations use `transloc`.
-`panel_cov` maps to `panel_coverage`. The source also contains `group_coverage`,
-`biomarkers`, `annotation`, `reported_variants`, and interval `coverage`.
+`panel_cov` maps to `d4_coverage`. The source also contains `group_coverage`,
+`biomarkers`, `annotation`, and `reported_variants`. Interval `coverage` and legacy
+configuration collections are outside the requested source scope.
+
+`group_coverage` can contain sample measurements with `genes` and `SAMPLE_ID`.
+Those records are handled with the sample's `panel_cov` records; ambiguous pairs
+require reviewed selection. `migrate_d4_coverage_blacklist.py` converts only actual
+exclusion-shaped records, never measurements. Both paths require the complete
+source audit, target catalog, and reviewed evidence.
 
 Samples can contain `profile`, `subpanel`, top-level file paths, flat filters,
 and embedded comments/reports. Physical ASP and ASPC bindings are explicit review
@@ -55,3 +62,7 @@ separately approved restored target. They are not a production migration sequenc
 
 See [clinical rule migrations](../../docs/operations/migrations/clinical-rule-migrations.md)
 for reporting maintenance prerequisites.
+
+Destination ASP, ASPC, ISGL, assay groups, and subpanels must already be installed.
+Use `scripts/migration_common/prepare_target.py` before conversion. Every conversion
+requires `--target-catalog` and writes a private JSON/Markdown migration report.

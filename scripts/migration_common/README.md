@@ -13,7 +13,9 @@ and [v3 runbook](../../docs/migration_from_v3/migration-guide.md) for source con
 | `clinical_plan.py` | Related sample, finding, history, snapshot, and VEP reference checks |
 | `commands.py` | Version-specific CLI behavior and reviewed TSV backfills |
 | `apply_bundle.py` | Guarded local target preflight and transactional bundle application |
+| `prepare_target.py`, `target_catalog.py` | Read-only validation and fingerprinting of preinstalled target configuration |
+| `run_report.py` | Private JSON and Markdown evidence for completed or blocked migration runs |
 
-Only `apply_bundle.py` opens a MongoDB connection. It has no source connection and
-does not read application environment files. Converters consume local BSON-derived
-indexes; tests use synthetic fixtures and in-memory database doubles.
+Only target preflight and bundle application open MongoDB connections. Neither has
+a source connection or reads application environment files. Converters consume local
+BSON-derived indexes; tests use synthetic fixtures and in-memory database doubles.

@@ -73,6 +73,28 @@ def prepare_sample(source: dict, review: dict) -> tuple[dict, dict]:
     """
     document = supplement(source, review.get("supplement"))
     metadata = deepcopy(review.get("metadata", {}))
+    scope = review.get("scope_mapping")
+    if scope is not None:
+        aliases = {
+            "asp_id": ("asp_id", "assay"),
+            "subpanel_id": ("subpanel_id", "subpanel"),
+            "environment": ("environment", "profile"),
+            "omics_layer": ("omics_layer",),
+        }
+        fields = scope.get("fields", {})
+        if scope.get("source_sha256") != digest(source) or not scope.get("reason") or not fields:
+            raise ValueError("Sample scope mapping requires source digest, reason, and fields")
+        if set(fields) - set(aliases):
+            raise ValueError("Sample scope mapping cannot change historical measurements")
+        for key, value in fields.items():
+            if metadata.get(key) != value:
+                raise ValueError("Scope mapping must agree with the selected installed ASPC")
+            for old in aliases[key]:
+                document.pop(old, None)
+    if not document.get("case_id") and (document.get("case") or {}).get("id"):
+        document["case_id"] = document["case"]["id"]
+    if not document.get("control_id") and (document.get("control") or {}).get("id"):
+        document["control_id"] = document["control"]["id"]
     if "sequencing_technology" in document:
         if not metadata.get("platform") or not metadata.get("read_mode"):
             raise ValueError("Legacy sequencing technology needs reviewed platform/read_mode")
@@ -262,6 +284,8 @@ def prepare_finding(collection: str, source: dict, review: dict | None = None) -
             "exac_frequency": ("ExAC_MAF",),
             "thousandG_frequency": ("GMAF",),
         }.items():
+            if destination in document:
+                document[destination] = recorded_frequency(document[destination], document["ALT"])
             if destination not in document:
                 values = [
                     recorded_frequency(first.get(key), document["ALT"]) for key in source_fields
@@ -304,6 +328,71 @@ def prepare_finding(collection: str, source: dict, review: dict | None = None) -
     return document
 
 
+def d4_coverage_plan(source: SourceIndex, sample_id: str, review: dict) -> list[dict]:
+    """Convert sample coverage from either v3 source without guessing between duplicates.
+
+    Args:
+        source: Read-only v3 index; v2 returns no coverage.
+        sample_id: Original sample identity.
+        review: Optional digest-bound selection when more than one measurement exists.
+
+    Returns:
+        At most one validated D4 record. Unselected records remain in the source archive
+        only with an explicit archive_unselected decision recorded in the run manifest.
+
+    Raises:
+        ValueError: Multiple source records are ambiguous or the review is stale.
+    """
+    if source.version != 3:
+        return []
+    candidates = [
+        {"collection": name, "document": row}
+        for name in ("panel_cov", "group_coverage")
+        for row in source.rows(name, sample_id)
+        if name == "panel_cov" or "genes" in row
+    ]
+    if not candidates:
+        return []
+    if len(candidates) == 1:
+        selected = candidates[0]
+    else:
+        if (
+            review.get("source_sha256") != digest(candidates)
+            or not review.get("reason")
+            or review.get("archive_unselected") is not True
+        ):
+            raise ValueError("Multiple D4 coverage records require digest-bound selection")
+        matches = [
+            item
+            for item in candidates
+            if item["collection"] == review.get("collection")
+            and str(item["document"]["_id"]) == review.get("record_id")
+        ]
+        if len(matches) != 1:
+            raise ValueError("D4 selection does not identify one source record")
+        selected = matches[0]
+    try:
+        return [validate_document("d4_coverage", selected["document"])]
+    except (ValueError, TypeError, KeyError) as error:
+        raise RecordConversionError(selected["collection"], selected["document"], error) from error
+
+
+def scoped_record(source: dict, review: dict | None, kind: str) -> dict:
+    """Apply only explicitly reviewed, digest-bound destination scope mappings."""
+    document = supplement(source, review)
+    mapping = (review or {}).get("scope", {})
+    if set(mapping) - {"assay_group", "subpanel"}:
+        raise ValueError("Scope mapping contains unsupported fields")
+    if "assay_group" in mapping:
+        key = "group" if kind == "d4_coverage_blacklist" else "assay"
+        document[key] = mapping["assay_group"]
+    if "subpanel" in mapping:
+        if kind != "annotation":
+            raise ValueError("Only annotations have a subpanel scope mapping")
+        document["subpanel"] = mapping["subpanel"]
+    return document
+
+
 def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, list[dict]]:
     """Build one complete sample bundle, preserving related histories and snapshot links.
 
@@ -321,6 +410,9 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
     original = source.get("samples", sample_id)
     sample, metadata = prepare_sample(original, review.get("sample", {}))
     documents = {"samples": [sample]}
+    coverage = d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
+    if coverage:
+        documents["d4_coverage"] = coverage
     for physical, canonical in SAMPLE_COLLECTIONS[source.version].items():
         documents[canonical] = []
         for row in source.rows(physical, sample_id):
@@ -340,26 +432,13 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
         if row.get(key)
     }
     documents["annotation"] = [
-        supplement(
+        scoped_record(
             source.get("annotation", identity),
             review.get("records", {}).get("annotation", {}).get(identity),
+            "annotation",
         )
         for identity in sorted(annotation_ids)
     ]
-    coverage = list(source.rows("coverage", sample_id))
-    if coverage:
-        decision = review.get("coverage", {})
-        if (
-            decision.get("source_sha256") != digest(coverage)
-            or not decision.get("reason")
-            or decision.get("action") not in {"archive_only", "replace"}
-        ):
-            raise ValueError("Legacy interval coverage requires an explicit reconciliation")
-        if decision["action"] == "replace":
-            replacement = decision.get("panel_coverage", [])
-            if not replacement:
-                raise ValueError("Replacement coverage cannot be empty")
-            documents.setdefault("panel_coverage", []).extend(replacement)
     plan = build_plan(documents, {sample_id: metadata})
     comments = {str(row["_id"]) for row in plan.get("sample_comments", [])}
     for snapshot in plan.get("reported_variants", []):
@@ -373,18 +452,26 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
 
 def independent_plan(source: SourceIndex, kind: str, review: dict) -> dict[str, list[dict]]:
     """Convert shared annotations or blacklist entries independently of sample batches."""
+    physical = "group_coverage" if kind == "d4_coverage_blacklist" else kind
+    if kind == "d4_coverage_blacklist" and source.version != 3:
+        raise ValueError("D4 coverage blacklist migration is only supported for v3")
     documents = []
-    for original in source.rows(kind):
+    for original in source.rows(physical):
+        if kind == "d4_coverage_blacklist" and "genes" in original:
+            # These are measurements, handled by the per-sample migration, not exclusions.
+            continue
         try:
-            record = supplement(original, review.get(str(original["_id"])))
+            record = scoped_record(original, review.get(str(original["_id"])), kind)
             if kind == "annotation":
                 record = convert_annotation(record)
             elif kind == "blacklist":
                 rename_field(record, "assay", "assay_group")
                 record = validate_document(kind, record)
+            elif kind == "d4_coverage_blacklist":
+                record = validate_document(kind, record)
             else:
                 raise ValueError("Unsupported independent clinical resource")
         except (ValueError, TypeError, KeyError) as error:
-            raise RecordConversionError(kind, original, error) from error
+            raise RecordConversionError(physical, original, error) from error
         documents.append(record)
     return {kind: documents}

@@ -147,6 +147,8 @@ def test_cli_refuses_unreviewed_audit_before_conversion(tmp_path, monkeypatch, c
         "argv",
         [
             "migrate_annotations.py",
+            "--target-catalog",
+            str(tmp_path / "target.json"),
             "--index",
             str(tmp_path / "index.sqlite"),
             "--schema-audit",
