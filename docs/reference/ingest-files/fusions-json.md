@@ -35,20 +35,20 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 ]
 ```
 
-| Key | Description and storage |
-| --- | --- |
-| `gene1`, `gene2` | Required fusion-partner names, stored at the root |
-| `genes` | Required combined producer label, for example `BCR-ABL1` |
-| `calls` | Nonempty array of independent caller observations |
-| `calls[].caller` | Calling tool name, not the annotator version |
-| `calls[].breakpoint1`, `calls[].breakpoint2` | Breakpoint strings retained as provided |
-| `calls[].spanpairs` | Spanning-pair count, integer |
-| `calls[].spanreads` | Spanning-read count, integer |
-| `calls[].longestanchor` | Anchor length; integer or string accepted |
-| `calls[].selected` | Exactly one call must be 1; omitted values become 0 |
-| `calls[].effect` | Caller-authored frame/region description; omitted → empty text |
-| `calls[].desc` | Caller evidence tags as text; omitted → empty text |
-| `calls[].commonreads` | Common-read count; omitted → 0 |
+| Key | Description and storage | Requirement / omission behavior |
+| --- | --- | --- |
+| `gene1`, `gene2` | Required fusion-partner names, stored at the root | Required; no default |
+| `genes` | Required combined producer label, for example `BCR-ABL1` | Required; no default |
+| `calls` | Nonempty array of independent caller observations | Required; no default |
+| `calls[].caller` | Calling tool name, not the annotator version | Required; no default |
+| `calls[].breakpoint1`, `calls[].breakpoint2` | Breakpoint strings retained as provided | Required; no default |
+| `calls[].spanpairs` | Spanning-pair count, integer | Required; no default |
+| `calls[].spanreads` | Spanning-read count, integer | Required; no default |
+| `calls[].longestanchor` | Anchor length; integer or string accepted | Required; no default |
+| `calls[].selected` | Exactly one call must be 1; omitted values become 0 | Optional per call; 0, but exactly one call must select 1 |
+| `calls[].effect` | Caller-authored frame/region description; omitted → empty text | Optional; empty text |
+| `calls[].desc` | Caller evidence tags as text; omitted → empty text | Optional; empty text |
+| `calls[].commonreads` | Common-read count; omitted → 0 | Optional; 0 |
 
 ## Caller evidence and review behavior
 

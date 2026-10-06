@@ -7,6 +7,9 @@ Coyote3 uses two complementary protection mechanisms for MongoDB data:
 
 The supported logical archive process is documented together with database setup in the [MongoDB deployment guide](../deployment/mongodb-setup-and-recovery.md). This page focuses on how the recovery mechanisms differ and how to operate them safely.
 
+See [operational files](../reference/operational-files.md) for the distinction between
+backup archives, report artifacts, pipeline inputs and generated exports.
+
 ## Logical archives
 
 ![Recovery dependencies across records, files, and configuration](../assets/diagrams/recovery-data-dependencies.svg)

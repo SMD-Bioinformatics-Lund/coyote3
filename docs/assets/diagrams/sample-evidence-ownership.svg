@@ -24,7 +24,7 @@
 <text x="100" y="579" class="detail">variants</text>
 <text x="100" y="602" class="detail">cnvs</text>
 <text x="100" y="625" class="detail">translocations</text>
-<text x="100" y="648" class="detail">panel_coverage</text>
+<text x="100" y="648" class="detail">d4_coverage</text>
 <text x="100" y="671" class="detail">biomarkers / pgx where ingested</text>
 </g>
 <g class="card" data-node="2"><rect x="520" y="500" width="320" height="220" rx="10"/>

@@ -26,14 +26,14 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 }
 ```
 
-| Key | Description and mapping to `rna_classification` |
-| --- | --- |
-| `classifier_version` | Required classifier version |
-| `classifier_results` | Array of result rows |
-| Row `class` | Class label; Pydantic internal alias is `class_`, persisted key is `class` |
-| Row `score` | Numeric producer score; no reclassification during ingest |
-| Row `true` | Integer supporting count |
-| Row `total` | Integer total count; `true` cannot exceed `total` |
+| Key | Description and mapping to `rna_classification` | Requirement / omission behavior |
+| --- | --- | --- |
+| `classifier_version` | Required classifier version | Required; no default |
+| `classifier_results` | Array of result rows | Required; no default |
+| Row `class` | Class label; Pydantic internal alias is `class_`, persisted key is `class` | Required; no default |
+| Row `score` | Numeric producer score; no reclassification during ingest | Required; no default |
+| Row `true` | Integer supporting count | Required; no default |
+| Row `total` | Integer total count; `true` cannot exceed `total` | Required; no default |
 
 ## Related contracts
 

@@ -4,6 +4,20 @@ Assay groups are stable scope identifiers shared by ASPs, ASPCs, gene lists,
 annotations and user access assignments. The `assay_groups` collection belongs
 to the application database; each environment manages its own registry.
 
+## Field requirements and defaults
+
+| Field / operation | Required | Omission behavior and meaning |
+| --- | --- | --- |
+| Create `group_id` | Yes, 1–100 characters | No default; normalized stable identifier. |
+| Create `display_name` | Yes, 1–200 characters | No default; trimmed display label. |
+| Create `description` | No, at most 4000 characters | Empty text. |
+| Status `is_active` | Yes | Explicit target availability, not a toggle inferred from the current state. |
+| Status `expected_version` | Yes, integer at least 1 | Revision precondition; refresh after a conflict. |
+| Status `reason` | Yes, 1–2000 nonblank characters | Recorded explanation; no generated justification. |
+
+The service supplies ownership, timestamps and initial state. Full persisted
+fields: [assay-group contract](../reference/mongodb-collections.md#assay_groups).
+
 ## Administration
 
 Open **Admin > Assay groups** (`/admin/assay-groups`). Search the registry or

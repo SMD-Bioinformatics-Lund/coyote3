@@ -1,5 +1,25 @@
 # Ingestion API
 
+A sample submission describes the case in a [sample manifest](../reference/sample-manifest.md)
+and supplies the analysis files listed by that manifest. The
+[raw input format reference](../reference/ingest-files/README.md) defines each
+supported file's fields, requirements and examples before ingestion. These input
+contracts are separate from the database documents produced by the service.
+
+## Sample-bundle JSON request fields
+
+| Field | Required | Default when omitted | Meaning |
+| --- | --- | --- | --- |
+| `sample` | One of `sample` / `yaml_content` | Null | Canonical sample object validated against the sample contract. This is not the flat pipeline YAML shape. |
+| `yaml_content` | One of `sample` / `yaml_content` | Null | YAML manifest as a JSON string, including escaped newlines; normalized through the pipeline adapter. |
+| `update_existing` | No | `false` | Explicit permission to use the existing-sample update path, subject to scope and validation. |
+| `increment` | No | `false` | Requests the supported increment naming behavior; review the sample identity returned. |
+
+Supplying both content fields or neither is rejected. Input paths must be readable
+by the consuming process. A submitted background task ID confirms submission,
+not successful sample persistence; inspect task/job completion and its result.
+The operation descriptions below distinguish synchronous, queued and upload flows.
+
 ## Authorization and write boundaries
 
 User-authenticated ingest routes require `internal.ingest:manage`. Sample-bundle operators also
@@ -72,7 +92,7 @@ the ingest flow follows this order:
 1. Validate the top-level sample payload.
 2. Parse referenced data files into preload payloads.
 3. Insert the sample anchor with `ingest_status="loading"`.
-4. Write dependent finding and quality collections (`variants`, `cnvs`, `fusions`, `panel_coverage`, and related evidence).
+4. Write dependent finding and quality collections (`variants`, `cnvs`, `fusions`, `d4_coverage`, and related evidence).
 5. Mark the sample as `ingest_status="ready"` only after all dependent writes succeed.
 
 Failure behavior:

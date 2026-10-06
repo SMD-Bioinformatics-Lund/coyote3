@@ -138,7 +138,7 @@ class SampleCatalogService:
             gene_list_repository=store.gene_list_repository,
             assay_panel_repository=store.assay_panel_repository,
             variant_repository=store.variant_repository,
-            grouped_coverage_repository=store.grouped_coverage_repository,
+            d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
         )
 ```
 

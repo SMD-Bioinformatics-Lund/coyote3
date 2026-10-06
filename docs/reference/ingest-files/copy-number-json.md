@@ -36,20 +36,20 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 ]
 ```
 
-| Key | Description | Storage/normalization |
-| --- | --- | --- |
-| `chr` | Chromosome string | `cnvs.chr` |
-| `start` | Interval start supplied by producer | `cnvs.start`; no coordinate conversion is performed |
-| `end` | Interval end supplied by producer | `cnvs.end` |
-| `size` | Producer-supplied interval size | `cnvs.size`; supply it explicitly |
-| `ratio` | Numeric copy-number ratio or supported event label | Float/null; `DEL`/`LOSS` → -1, `AMP` → 1, `DUP`/`GAIN` → 0.5 |
-| `type` | Event type | Preserved when provided; inferred from normalized ratio when absent |
-| `nprobes` | Probe count | Integer; missing value normalizes to 0, which is a parser default rather than measured evidence |
-| `genes` | Affected-gene objects | `cnvs.genes[]`; absent → empty list |
-| `genes[].gene` | Gene name | Stored gene identifier |
-| `genes[].class` | Producer gene class | Stored as supplied |
-| `genes[].cnv_type` | Per-gene event type | Stored as supplied |
-| `callers` | Calling tools | List, or comma/pipe/semicolon-delimited text; normalized to lowercase list |
+| Key | Description | Storage/normalization | Requirement / omission behavior |
+| --- | --- | --- | --- |
+| `chr` | Chromosome string | `cnvs.chr` | Required; no default |
+| `start` | Interval start supplied by producer | `cnvs.start`; no coordinate conversion is performed | Required; no default |
+| `end` | Interval end supplied by producer | `cnvs.end` | Required; no default |
+| `size` | Producer-supplied interval size | `cnvs.size`; supply it explicitly | Required; no default |
+| `ratio` | Numeric copy-number ratio or supported event label | Float/null; `DEL`/`LOSS` → -1, `AMP` → 1, `DUP`/`GAIN` → 0.5 | Optional; null |
+| `type` | Event type | Preserved when provided; inferred from normalized ratio when absent | Optional; inferred from ratio, or null |
+| `nprobes` | Probe count | Integer; missing value normalizes to 0, which is a parser default rather than measured evidence | Optional; 0 |
+| `genes` | Affected-gene objects | `cnvs.genes[]`; absent → empty list | Optional; [] |
+| `genes[].gene` | Gene name | Stored gene identifier | Required in each supplied gene object; no default |
+| `genes[].class` | Producer gene class | Stored as supplied | Optional; null, omitted from stored gene metadata |
+| `genes[].cnv_type` | Per-gene event type | Stored as supplied | Optional; null, omitted from stored gene metadata |
+| `callers` | Calling tools | List, or comma/pipe/semicolon-delimited text; normalized to lowercase list | Optional; [] |
 
 An alternative root is an object keyed by interval ID. Each value becomes one
 row and receives `_pipeline_key` from its object key when not already supplied.

@@ -34,21 +34,21 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 }
 ```
 
-| Key | Type | Meaning |
-| --- | --- | --- |
-| `sample_id` | string | Producer sample label; distinct from ingest-injected `SAMPLE_ID` |
-| `tot_reads` | integer | Total reads |
-| `mapped_pct` | number | Mapped percentage, 0–100 |
-| `multimap_pct` | number | Multimapped percentage, 0–100 |
-| `mismatch_pct` | number | Mismatch percentage, 0–100 |
-| `canon_splice` | integer | Canonical splice count |
-| `non_canon_splice` | integer | Noncanonical splice count |
-| `splice_ratio` | integer | Producer splice ratio; current contract requires integer |
-| `genebody_cov` | integer array | Ordered gene-body coverage measurements |
-| `genebody_cov_slope` | number | Producer gene-body coverage slope |
-| `provider_genotypes` | string-to-string map | Producer genotype labels |
-| `provider_called_genotypes` | integer | Number of called provider genotypes |
-| `flendist` | integer | Producer fragment-length metric |
+| Key | Type | Meaning | Requirement / omission behavior |
+| --- | --- | --- | --- |
+| `sample_id` | string | Producer sample label; distinct from ingest-injected `SAMPLE_ID` | Required; no default |
+| `tot_reads` | integer | Total reads | Required; no default |
+| `mapped_pct` | number | Mapped percentage, 0–100 | Required; no default |
+| `multimap_pct` | number | Multimapped percentage, 0–100 | Required; no default |
+| `mismatch_pct` | number | Mismatch percentage, 0–100 | Required; no default |
+| `canon_splice` | integer | Canonical splice count | Required; no default |
+| `non_canon_splice` | integer | Noncanonical splice count | Required; no default |
+| `splice_ratio` | integer | Producer splice ratio; current contract requires integer | Required; no default |
+| `genebody_cov` | integer array | Ordered gene-body coverage measurements | Required; no default |
+| `genebody_cov_slope` | number | Producer gene-body coverage slope | Required; no default |
+| `provider_genotypes` | string-to-string map | Producer genotype labels | Required; no default |
+| `provider_called_genotypes` | integer | Number of called provider genotypes | Required; no default |
+| `flendist` | integer | Producer fragment-length metric | Required; no default |
 
 ## Related contracts
 

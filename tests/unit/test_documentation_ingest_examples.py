@@ -9,7 +9,7 @@ from api.application.ingest.parsers import DnaIngestParser, _normalize_fusion_do
 from api.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
-    PanelCovDoc,
+    D4CoverageDoc,
     PgxDoc,
     TranslocationsDoc,
     VariantsDoc,
@@ -28,7 +28,7 @@ EXAMPLES = Path(__file__).resolve().parents[2] / "docs/assets/examples/ingest"
     ("filename", "model"),
     [
         ("copy-number", CnvsDoc),
-        ("coverage", PanelCovDoc),
+        ("coverage", D4CoverageDoc),
         ("biomarkers", BiomarkersDoc),
         ("hrd", BiomarkersDoc),
         ("msi", BiomarkersDoc),

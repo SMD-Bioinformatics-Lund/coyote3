@@ -187,7 +187,7 @@ and every configured match condition apply.
 | Review configuration | Sample's recorded ASPC revision | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
 | Per-sample review state | `samples.filters` | reviewer-selected ISGLs, ad-hoc genes, and permitted threshold changes | assay-group policy |
 | Versioned annotation metadata | VEP metadata referenced by `sample.database_versions.vep` | expansion of UI consequence groups to VEP terms | query threshold values |
-| Clinical query policy | `api/config/center/clinical_query_policy.toml` plus domain-core Python | released SNV evidence models and analysis-specific typed exceptions | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
+| Clinical query policy | External `clinical_query_policy.toml` plus domain-core Python; bundled examples in `api/config/center/` | released SNV evidence models and analysis-specific typed exceptions | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
 
 This design prevents an administrative form from broadening a clinical query by
 storing raw operators in MongoDB. A change to query semantics requires code
@@ -344,7 +344,7 @@ namespace cannot affect another analysis.
 >
 > This strategy guide explains how the query policy affects retrieval. The
 > authoritative authoring contract is the
-> [Center Configuration Reference](../deployment/center-configuration.md#clinical_query_policytoml).
+> [Center Configuration Reference](../configuration/clinical-query-policy-file.md).
 > Consult that reference before changing the TOML file. It defines every
 > permitted block heading and key, required fields, allowed values, bracket
 > syntax, condition-combination rules, compatible policy and exception
@@ -541,21 +541,10 @@ consumes that context and does not reapply analytical filters. See
 
 ## Analytic Threshold Specifications
 
-### Baseline DNA Thresholds
-
-The platform enforces strict numeric bounds for primary sequencing metrics including:
-
-- `min_freq` / `max_freq`: Allele frequency boundaries.
-- `min_depth` / `min_alt_reads`: Sequencing coverage and evidence reliability.
-- `max_popfreq`: Population frequency gate.
-- `min_cnv_size` / `cnv_cutoff`: Copy-number structural thresholds.
-
-### RNA Fusion Thresholds
-
-RNA-specific analytics prioritize evidence-based detection parameters:
-
-- `min_spanning_reads` / `min_spanning_pairs`: Supporting evidence thresholds.
-- `fusion_callers` / `fusion_effects`: Tool-specific and biological impact filter sets.
+The [review filter field reference](filter-profile-fields.md) lists every supported
+SNV, CNV, coverage, fusion and translocation profile field, its units, bounds and
+typed omission default. Values in an ASPC or sample are explicit selections and
+can differ from these defaults. Query-policy exceptions remain a separate layer.
 
 ## Diagnosis-Based Gene-List Selection
 

@@ -85,16 +85,16 @@ not a ready-to-run production configuration.
 ## Center-Owned Configuration Files
 
 Environment variables carry deployment wiring and secrets. Center policy is
-kept in versioned configuration files under `api/config/center/` so it can be reviewed
+kept in reviewed configuration files outside the application checkout so it can be reviewed
 as a clinical/configuration change rather than hidden in application code.
 
 | File | Format | Detailed field reference | Purpose |
 | --- | --- | --- | --- |
-| `center/contact.toml` | TOML | [Contact table](center-configuration.md#contacttoml) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
+| `center/contact.toml` | TOML | [Contact table](../configuration/contact-file.md) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
 | `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](center-configuration.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups are managed in the database registry, not this file. |
-| `center/clinical_query_policy.toml` | TOML | [Query-policy table](center-configuration.md#clinical_query_policytoml) | Released SNV evidence models plus independent typed CNV, translocation, fusion, and PGX exception scopes. |
-| `center/collections.toml` | TOML | [Collection table](center-configuration.md#collectionstoml) | Database and collection names used by the persistence adapter. |
-| `center/filter_flag_metadata.yaml` | YAML | [Flag table](center-configuration.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |
+| `center/clinical_query_policy.toml` | TOML | [Query-policy table](../configuration/clinical-query-policy-file.md) | Released SNV evidence models plus independent typed CNV, translocation, fusion, and PGX exception scopes. |
+| `collections.toml` | TOML | [Collection table](../configuration/collection-mapping-file.md) | Application-owned physical collection names. Database names are environment settings. |
+| `center/filter_flag_metadata.yaml` | YAML | [Flag table](../configuration/filter-flag-metadata-file.md) | Human-facing variant flag labels, severity, and tooltip descriptions. |
 
 See [Center Configuration Reference](center-configuration.md)
 for every file-backed center configuration, its fields, allowed values, owning
@@ -255,7 +255,7 @@ tables above.
 Some environment variables select database instances rather than duplicate
 collection configuration. `COYOTE3_DB` is bound to `[primary]`, `IDENTITY_DB`
 to `[identity]`, `KNOWLEDGEBASE_DB` to `[knowledgebase]`, and `BAM_DB` to `[bam]` in
-`center/collections.toml`. Physical collection names remain TOML values.
+`collections.toml`. Physical collection names remain TOML values.
 
 > **Warning: HTTPS session cookies**
 >
@@ -271,137 +271,159 @@ Built-in Mongo-backed knowledgebases are always registered. Their collections
 may be empty when a center has not loaded reference data, but repository
 registration is not configurable through an environment variable.
 
-| Variable | Required | Expected Value | Purpose |
-| --- | --- | --- | --- |
-| `ENV_NAME` | Required by Compose | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
-| `COYOTE3_DB` | Deployed environments; local default `coyote3_dev` | MongoDB database name | Environment-specific primary database, independent of the URI path and authSource. |
-| `IDENTITY_DB` | Explicit per environment | MongoDB database name | Users, RBAC, sessions, and audit. Never share this namespace between environments on the same deployment; notifications remain in the primary database. |
-| `KNOWLEDGEBASE_DB` | Default `coyote3_knowledgebases` | MongoDB database name | Shared platform datasets on `KNOWLEDGEBASE_MONGO_URI`; no per-environment copy unless explicitly configured. |
-| `BAM_DB` | Yes | MongoDB database name | BAM-service database used for sample BAM lookups. |
-| `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | Used on login, public, contact, and support pages. |
-| `LOCAL_TIME_ZONE` | No; default `UTC` | IANA timezone such as `Europe/Stockholm` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
-| `SECRET_KEY` | Yes | High-entropy secret | Signs invite and password-reset action tokens. Browser sessions are opaque, server-stored tokens and do not use this value. |
-| `INTERNAL_API_TOKEN` | Yes | High-entropy token | Authenticates trusted service-to-service internal API calls through the internal-token header. |
-| `PASSWORD_TOKEN_SALT` | Yes | High-entropy salt | Separates invite and password-reset token signing from other application signing operations. |
-| `COYOTE3_PORT` | No; compose profile default | Host port | One exposed nginx entrypoint for UI, API, public pages, and docs. |
-| `SCRIPT_NAME` | No; default empty | Empty string or `/prefix` | Public URL mount prefix used by browser routing and generated links. |
-| `PUBLIC_BASE_URL` | Required by Compose | Public origin without `SCRIPT_NAME` | Origin used for links generated outside an active browser request, such as password reset email links. |
-| `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value; default `2g` | Shared default for frontend, docs, Redis, and proxy; API, worker, beat, and monitor use their own limits. |
-| `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value; default `2.0` | Shared default for frontend, docs, Redis, and proxy; not a stack-wide limit. |
-| `COYOTE3_API_CPU_LIMIT` | No | CPU cores; default `2.0` | API container CPU limit. |
-| `COYOTE3_API_MEM_LIMIT` | No | Compose memory value; default `2g` | API container memory limit. |
-| `COYOTE3_WORKER_CPU_LIMIT` | No | CPU cores; default `2.0` | CPU limit per worker container, shared by its child processes. |
-| `COYOTE3_WORKER_MEM_LIMIT` | No | Compose memory value; default `2g` | Memory limit per worker container. |
-| `COYOTE3_BEAT_CPU_LIMIT` | No | CPU cores; default `0.25` | Beat scheduler CPU limit. |
-| `COYOTE3_BEAT_MEM_LIMIT` | No | Compose memory value; default `256m` | Beat scheduler memory limit. |
-| `COYOTE3_MONITOR_CPU_LIMIT` | No | CPU cores; default `0.5` | Log and error-email monitor CPU limit. |
-| `COYOTE3_MONITOR_MEM_LIMIT` | No | Compose memory value; default `512m` | Monitor memory limit. |
-| `COYOTE3_APP_NETWORK` | Yes | Existing Docker network name | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
-| `MONGO_ROOT_USERNAME` | Self-hosted MongoDB | Username | MongoDB administrative username used only for database deployment and maintenance. |
-| `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | MongoDB administrative password. |
-| `MONGO_APP_USER` | Self-hosted MongoDB | Username | Application MongoDB username created during first database initialization. |
-| `MONGO_APP_PASSWORD` | Self-hosted MongoDB | Secret password | Application MongoDB password. |
-| `COYOTE3_MONGO_URI` | Yes | MongoDB URI | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
-| `IDENTITY_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent identity endpoint, with its own authentication and replica-set options. |
-| `KNOWLEDGEBASE_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent shared knowledgebase endpoint. Prefer a reader account for normal application access. |
-| `BAM_MONGO_URI` | Defaults to app URI | MongoDB URI | Independent BAM-service endpoint. |
-| `MONGO_MAX_POOL_SIZE` | No | Positive integer; default `100` | Maximum PyMongo connections per application process. Size this with `API_WORKERS` and MongoDB capacity. |
-| `MONGO_MIN_POOL_SIZE` | No | Non-negative integer; default `0` | Minimum idle PyMongo connections retained per process. |
-| `MONGO_CONNECT_TIMEOUT_MS` | No | Milliseconds; default `10000` | Maximum time allowed to establish a MongoDB socket. |
-| `MONGO_SERVER_SELECTION_TIMEOUT_MS` | No | Milliseconds; default `30000` | Maximum time allowed to find a suitable replica-set member. |
-| `MONGO_WAIT_QUEUE_TIMEOUT_MS` | No | Milliseconds; default `10000` | Maximum wait for a pooled connection before failing the request. |
-| `MONGO_READ_CONCERN_LEVEL` | No | MongoDB read-concern level; default `majority` | Consistency level used by application database reads. |
-| `MONGO_WRITE_CONCERN_W` | No | `majority` or an acknowledgement count; default `majority` | Replica acknowledgement required for application writes. |
-| `MONGO_WRITE_CONCERN_JOURNAL` | No | `1` or `0`; default `1` | Requires acknowledged writes to reach the journal. |
-| `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Persistent host directory bind-mounted at `/data/db`. |
-| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
-| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
-| `MONGO_UID`, `MONGO_GID` | Both Mongo Compose profiles | Positive numeric host UID/GID | Required database owner IDs; used by MongoDB, health checks, and initializers in modern and legacy Compose. |
-| `MONGO_CONTAINER_MEM_LIMIT` | No | Memory limit; default `8g` | Per-container memory limit for MongoDB servers and initialization jobs. Set in the server env. |
-| `MONGO_CONTAINER_CPU_LIMIT` | No | CPU count; default `4.0` | Per-container CPU limit for MongoDB servers and initialization jobs. Set in the server env. |
-| `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | Independent KB replica-set name, default `coyote3-kb-rs`. |
-| `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | Advertised KB member address, default `mongo-kb:27017`. |
-| `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
-| `KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH` | Optional `mongo-kb` profile | Secret file path | Member authentication keyfile for the KB replica set. |
-| `KNOWLEDGEBASE_MONGO_ROOT_USERNAME`, `KNOWLEDGEBASE_MONGO_ROOT_PASSWORD` | Optional `mongo-kb` profile | Administrative credentials | First-time database provisioning only. |
-| `KNOWLEDGEBASE_MONGO_APP_USER`, `KNOWLEDGEBASE_MONGO_APP_PASSWORD` | Optional `mongo-kb` profile | Reader credentials | Normal KB application user, created in admin on first initialization. |
-| `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | Persistent MongoDB replica-set name, normally `coyote3-rs`. |
-| `MONGO_REPLICA_MEMBER_HOST` | Self-hosted MongoDB | `host:port` | Stable member address stored in replica-set metadata. It must resolve from both MongoDB and application containers. |
-| `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | Host port published by the independently deployed MongoDB container. It is not used by the application when `COYOTE3_MONGO_URI` targets another MongoDB service. |
-| `COYOTE3_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | Interface used to publish app MongoDB's port; service URIs remain independently configured. |
-| `CACHE_REQUIRED` | No | `1` or `0` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
-| `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | Redis connection timeout. |
-| `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | Redis socket timeout. |
-| `REDIS_PASSWORD` | Required by Compose | Unique URL-safe secret; generate with `openssl rand -hex 32` | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
-| `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds; default `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
-| `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds; default `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |
-| `API_WORKERS` | No | Positive integer; supported default `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |
-| `FORWARDED_ALLOW_IPS` | Review for proxied deployments | Trusted proxy IPs or CIDRs; default `127.0.0.1` | Uvicorn's trust list for forwarded headers. Configure the actual ingress proxy or dedicated proxy network; do not use `*`. |
-| `COYOTE3_NGINX_PUBLIC_SCHEME` | Review for TLS deployments | `http` or `https`; default `http` | Scheme emitted by Nginx in `X-Forwarded-Proto`; `https` also enables HSTS. This does not configure TLS itself. Use `https` only behind a TLS-enforcing entrypoint. |
-| `API_SESSION_COOKIE_NAME` | No; default `coyote3_api_session` | Cookie name | Browser API session cookie name. Override it when multiple mounted environments share one browser origin. |
-| `API_SESSION_TTL_SECONDS` | No | Seconds; default `43200` | Browser API session lifetime. |
-| `API_SESSION_COOKIE_SAMESITE` | No | `lax`, `strict`, or `none`; default `lax` | Browser session cookie SameSite policy. |
-| `AUDIT_RETENTION_DAYS` | No | Days; default `730` | Audit event retention window. |
-| `LOG_FILE_ENABLED` | No | `1` or `0`; default `1` | Enables on-disk JSONL logs in addition to stdout. |
-| `LOG_RETENTION_DAYS` | No | Days; default `30` | Disk log retention window. |
-| `LOG_GZIP_AFTER_DAYS` | No | Days; default `1` | Age after which nightly maintenance gzips old logs. |
-| `LOG_LEVEL` | No | Python logging level | Minimum runtime log level. |
-| `ERROR_EMAIL_GROUP` | No | Role ID; default `monitoring_group` | Recipient role for operational error emails; requires configured mail delivery. |
-| `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
-| `COYOTE3_UID` | No | Positive integer; default `10001` | Numeric UID used by application containers. The data and log host roots must be writable by this UID or its configured group. |
-| `COYOTE3_GID` | No | Positive integer; default `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
-| `NOTIFICATION_RETENTION_DAYS` | No | Days; default `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
-| `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
-| `CELERY_LOG_LEVEL` | No | Logging level | Celery worker log level. |
-| `CELERY_WORKER_CONCURRENCY` | No | Positive integer; Compose default `2` | Celery worker process concurrency. |
-| `CELERY_TASK_TIME_LIMIT` | No | Seconds; default `7200` | Hard Celery task timeout. |
-| `CELERY_TASK_SOFT_TIME_LIMIT` | No | Seconds; default `6900` | Soft Celery task timeout. |
-| `CELERY_RESULT_EXPIRES` | No | Seconds; default `86400` | Celery result expiry. |
-| `CELERY_WORKER_PREFETCH_MULTIPLIER` | No | Positive integer; default `1` | Celery prefetch control. Use `1` for long ingest tasks. |
-| `CELERY_INSPECTION_TIMEOUT_SECONDS` | No | Seconds; default `1.5` | Maximum wait for each Celery worker-inspection request shown in application controls. |
-| `COYOTE3_MAINTENANCE_HOUR` | No | `0` to `23`; default `2` | Local hour for scheduled maintenance. |
-| `COYOTE3_INGEST_WATCH_ENABLED` | No | `1` or `0` | Enables scheduled watch-folder ingest. |
-| `INGEST_COLLECTION_UPLOAD_MAX_BYTES` | No | Positive byte count; default `67108864` | Maximum collection-upload size, applied to compressed and expanded bytes. Oversized JSON/NDJSON uploads return HTTP 413. |
-| `COYOTE3_INGEST_WATCH_FILENAME` | No | File name or glob | Manifest name pattern, for example `coyote3.yaml` or `*.yaml`. |
-| `COYOTE3_INGEST_DONE_SUFFIX` | No | File suffix | Suffix applied after successful watch-folder ingest. |
-| `COYOTE3_INGEST_FAILED_SUFFIX` | No | File suffix | Suffix applied after failed watch-folder ingest. |
-| `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | Beat interval for watch-folder scanning. |
-| `COYOTE3_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | Allows watch ingest to replace an existing sample. |
-| `COYOTE3_INGEST_WATCH_INCREMENT` | No | `1` or `0` | Enables incremental naming behavior where supported. |
-| `AUTHENTICATION_PROVIDERS` | No | Comma-separated list of implemented providers: `local`, `ldap`, for example `local` or `local,ldap` | Login-provider override; Compose defaults to `local,ldap`. A host-run process without this setting uses the configured TOML list. |
-| `LDAP_HOST` | When LDAP is enabled for this deployment | Hostname or URI | LDAP server host. A missing value does not block API startup; an LDAP login returns a configuration error until it is supplied. |
-| `LDAP_PORT` | No | Empty or port `1`-`65535` | Overrides a URI port. When empty, uses the URI port or defaults to 389 for LDAP and 636 for LDAPS. |
-| `LDAP_USE_SSL` | No | Boolean; default `0` | Implicit TLS from connection establishment. An `ldaps://` host also selects this mode. |
-| `LDAP_USE_TLS` | No | Boolean; default `1` | StartTLS before search-account and user binds on a non-LDAPS connection. Ignored when implicit TLS is selected. |
-| `LDAP_CONNECT_TIMEOUT` | No | Positive seconds; default `10` | Bounds connection establishment and socket receive waits. |
-| `LDAP_VERIFY_CERT` | No | Boolean; default `1` | Set `0` to disable server certificate and hostname verification. TLS encryption remains controlled by `LDAP_USE_TLS` and `LDAP_USE_SSL`. |
-| `LDAP_CA_CERTS_FILE` | No | Empty or container-visible PEM CA bundle path | Empty uses system CA trust. A center-issued CA bundle must be mounted read-only into the API container. Used when certificate verification is enabled. |
-| `LDAP_BASE_DN` | LDAP deployments | Distinguished name | Complete LDAP search base, including any intended user subtree. |
-| `LDAP_USER_LOGIN_ATTR` | LDAP deployments | Attribute name, usually `mail` | LDAP login lookup attribute. |
-| `LDAP_BINDDN` | Directory search with a service account | Distinguished name | Read-only search-account identity; configure together with `LDAP_SECRET`, or leave both empty for anonymous search if the directory permits it. |
-| `LDAP_SECRET` | When `LDAP_BINDDN` is supplied | Secret password | Directory search-account password, not the password entered by the person logging in. |
-| `GENS_URI` | No | URL | Optional Gens integration. |
-| `IGV_URI` | No | URL | Optional IGV integration. |
-| `IGV_DATA_ROOT` | No | Workstation path prefix | Root prepended to ASP-resolved relative paths, for example `/R:` or `/mnt/alignments`; independent of API mounts. Assay folders and BED files are configured in ASP `igv`. |
-| `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables public OncoKB detail lookups and the administrator-triggered HGNC-backed reference refresh. |
-| `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | Timeout for all public OncoKB requests, including the reference refresh. |
-| `CLINPGX_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables ClinPGx lookup buttons. |
-| `CLINPGX_REQUEST_TIMEOUT_SECONDS` | No | Seconds | ClinPGx request timeout. |
-| `SMTP_HOST` | Mail deployments | Hostname | SMTP relay host. |
-| `SMTP_PORT` | Mail deployments | Port | SMTP relay port. |
-| `SMTP_USERNAME` | Mail deployments | Username or empty | SMTP username if required. |
-| `SMTP_PASSWORD` | Mail deployments | Secret password or empty | SMTP password if required. |
-| `SMTP_USE_TLS` | Mail deployments | `1` or `0` | Enables STARTTLS. |
-| `SMTP_USE_SSL` | Mail deployments | `1` or `0` | Enables implicit SSL. |
-| `SMTP_FROM_EMAIL` | Mail deployments | Email address; default `no-reply@coyote3.local` | Unmonitored sender for account invitations and general messages. |
-| `SMTP_SECURITY_FROM_EMAIL` | Mail deployments | Email address; default `security@coyote3.local` | Unmonitored sender for password and account-security messages. |
-| `SMTP_INFO_FROM_EMAIL` | Mail deployments | Email address; default `info@coyote3.local` | Unmonitored sender for broadcasts. Configure all senders on a relay-authorized center domain in production. |
-| `SMTP_FROM_NAME` | Mail deployments | Display name | Sender display name. |
-| `PASSWORD_TOKEN_TTL_SECONDS` | No | Seconds | Invite/reset token lifetime. |
-| `API_RATE_LIMIT_ENABLED` | No | `1` or `0`; default `1` | Enables API rate limiting. |
-| `API_RATE_LIMIT_REQUESTS_PER_MINUTE` | No | Positive integer; default `600` | API rate limit threshold. |
-| `API_RATE_LIMIT_WINDOW_SECONDS` | No | Seconds; default `60` | API rate limit window. |
-| `API_CSRF_ENABLED` | No | `1` or `0`; default `1` | Enforces a per-session CSRF header for cookie-authenticated mutation requests. Keep enabled outside isolated tests. |
+Defaults below are for the base application Compose file unless the row names
+another consumer. A value explicitly copied from an example is not a default.
+For file syntax, precedence, empty values and how to apply edits, use the
+[environment file reference](../configuration/environment-file.md).
+Database/server settings apply only to the separately selected MongoDB Compose file.
+
+| Variable | Required | Accepted value / units | Default when omitted | Purpose |
+| --- | --- | --- | --- | --- |
+| `ENV_NAME` | Required by Compose | `development`, `testing`, `staging`, or `production` | None; a nonempty value is required | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
+| `COYOTE3_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Environment-specific primary database, independent of the URI path and authSource. |
+| `IDENTITY_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Users, RBAC, sessions, and audit. Never share this namespace between environments on the same deployment; notifications remain in the primary database. |
+| `KNOWLEDGEBASE_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Shared platform datasets on `KNOWLEDGEBASE_MONGO_URI`; no per-environment copy unless explicitly configured. |
+| `BAM_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | BAM-service database used for sample BAM lookups. |
+| `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | `Coyote3` | Used on login, public, contact, and support pages. |
+| `LOCAL_TIME_ZONE` | No; default `UTC` | IANA timezone such as `Europe/Stockholm` | `UTC` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
+| `SECRET_KEY` | Yes | High-entropy secret | None; a nonempty value is required | Signs invite and password-reset action tokens. Browser sessions are opaque, server-stored tokens and do not use this value. |
+| `INTERNAL_API_TOKEN` | Yes | High-entropy token | None; a nonempty value is required | Authenticates trusted service-to-service internal API calls through the internal-token header. |
+| `PASSWORD_TOKEN_SALT` | Yes | High-entropy salt | None; a nonempty value is required | Separates invite and password-reset token signing from other application signing operations. |
+| `COYOTE3_PORT` | No; selected Compose profile | Host port | `5815` | One exposed nginx entrypoint for UI, API, public pages, and docs. |
+| `SCRIPT_NAME` | No; default empty | Empty string or `/prefix` | Empty string | Public URL mount prefix used by browser routing and generated links. |
+| `PUBLIC_BASE_URL` | Required by Compose | Public origin without `SCRIPT_NAME` | None; a nonempty value is required | Origin used for links generated outside an active browser request, such as password reset email links. |
+| `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value | `2g` | Shared default for frontend, docs, Redis, and proxy; API, worker, beat, and monitor use their own limits. |
+| `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value | `2.0` | Shared default for frontend, docs, Redis, and proxy; not a stack-wide limit. |
+| `COYOTE3_API_CPU_LIMIT` | No | CPU cores | `2.0` | API container CPU limit. |
+| `COYOTE3_API_MEM_LIMIT` | No | Compose memory value | `2g` | API container memory limit. |
+| `COYOTE3_WORKER_CPU_LIMIT` | No | CPU cores | `2.0` | CPU limit per worker container, shared by its child processes. |
+| `COYOTE3_WORKER_MEM_LIMIT` | No | Compose memory value | `2g` | Memory limit per worker container. |
+| `COYOTE3_BEAT_CPU_LIMIT` | No | CPU cores | `0.25` | Beat scheduler CPU limit. |
+| `COYOTE3_BEAT_MEM_LIMIT` | No | Compose memory value | `256m` | Beat scheduler memory limit. |
+| `COYOTE3_MONITOR_CPU_LIMIT` | No | CPU cores | `0.5` | Log and error-email monitor CPU limit. |
+| `COYOTE3_MONITOR_MEM_LIMIT` | No | Compose memory value | `512m` | Monitor memory limit. |
+| `COYOTE3_APP_NETWORK` | Yes | Existing Docker network name | None; a nonempty value is required | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
+| `MONGO_ROOT_USERNAME` | Self-hosted MongoDB | Username | Empty string (separate MongoDB Compose) | MongoDB administrative username used only for database deployment and maintenance. |
+| `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | Empty string (separate MongoDB Compose) | MongoDB administrative password. |
+| `MONGO_APP_USER` | Self-hosted MongoDB | Username | Empty string (separate MongoDB Compose) | Application MongoDB username created during first database initialization. |
+| `MONGO_APP_PASSWORD` | Self-hosted MongoDB | Secret password | Empty string (separate MongoDB Compose) | Application MongoDB password. |
+| `COYOTE3_MONGO_URI` | Yes | MongoDB URI | None; a nonempty value is required | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
+| `IDENTITY_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE3_MONGO_URI` | Independent identity endpoint, with its own authentication and replica-set options. |
+| `KNOWLEDGEBASE_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE3_MONGO_URI` | Independent shared knowledgebase endpoint. Prefer a reader account for normal application access. |
+| `BAM_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE3_MONGO_URI` | Independent BAM-service endpoint. |
+| `MONGO_MAX_POOL_SIZE` | No | Positive integer | `100` | Maximum PyMongo connections per application process. Size this with `API_WORKERS` and MongoDB capacity. |
+| `MONGO_MIN_POOL_SIZE` | No | Non-negative integer | `0` | Minimum idle PyMongo connections retained per process. |
+| `MONGO_CONNECT_TIMEOUT_MS` | No | Milliseconds | `10000` | Maximum time allowed to establish a MongoDB socket. |
+| `MONGO_SERVER_SELECTION_TIMEOUT_MS` | No | Milliseconds | `30000` | Maximum time allowed to find a suitable replica-set member. |
+| `MONGO_WAIT_QUEUE_TIMEOUT_MS` | No | Milliseconds | `10000` | Maximum wait for a pooled connection before failing the request. |
+| `MONGO_READ_CONCERN_LEVEL` | No | MongoDB read-concern level | `majority` | Consistency level used by application database reads. |
+| `MONGO_WRITE_CONCERN_W` | No | `majority` or an acknowledgement count | `majority` | Replica acknowledgement required for application writes. |
+| `MONGO_WRITE_CONCERN_JOURNAL` | No | `1` or `0` | `1` | Requires acknowledged writes to reach the journal. |
+| `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | `/srv/coyote3/mongo/data` (separate MongoDB Compose) | Persistent host directory bind-mounted at `/data/db`. |
+| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | None; a nonempty value is required (separate MongoDB Compose) | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
+| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | `/srv/coyote3/mongo/keyfile` (separate MongoDB Compose) | Replica-set keyfile used for member authentication. |
+| `MONGO_UID`, `MONGO_GID` | Both Mongo Compose profiles | Positive numeric host UID/GID | None; a nonempty value is required (separate MongoDB Compose) | Required database owner IDs; used by MongoDB, health checks, and initializers in modern and legacy Compose. |
+| `MONGO_CONTAINER_MEM_LIMIT` | No | Memory limit | `8g` (separate MongoDB Compose) | Per-container memory limit for MongoDB servers and initialization jobs. Set in the server env. |
+| `MONGO_CONTAINER_CPU_LIMIT` | No | CPU count | `4.0` (separate MongoDB Compose) | Per-container CPU limit for MongoDB servers and initialization jobs. Set in the server env. |
+| `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | `coyote3-kb-rs` (separate MongoDB Compose) | Independent KB replica-set name, default `coyote3-kb-rs`. |
+| `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | `mongo-kb:27017` (separate MongoDB Compose) | Advertised KB member address, default `mongo-kb:27017`. |
+| `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | `/srv/coyote3/mongo-kb/data` (separate MongoDB Compose) | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
+| `KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH` | Optional `mongo-kb` profile | Secret file path | `/srv/coyote3/mongo-kb/keyfile` (separate MongoDB Compose) | Member authentication keyfile for the KB replica set. |
+| `KNOWLEDGEBASE_MONGO_ROOT_USERNAME`, `KNOWLEDGEBASE_MONGO_ROOT_PASSWORD` | Optional `mongo-kb` profile | Administrative credentials | Empty string (separate MongoDB Compose) | First-time database provisioning only. |
+| `KNOWLEDGEBASE_MONGO_APP_USER`, `KNOWLEDGEBASE_MONGO_APP_PASSWORD` | Optional `mongo-kb` profile | Reader credentials | Empty string (separate MongoDB Compose) | Normal KB application user, created in admin on first initialization. |
+| `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | `coyote3-rs` (separate MongoDB Compose) | Persistent MongoDB replica-set name, normally `coyote3-rs`. |
+| `MONGO_REPLICA_MEMBER_HOST` | Self-hosted MongoDB | `host:port` | `mongo-app:27017` (separate MongoDB Compose) | Stable member address stored in replica-set metadata. It must resolve from both MongoDB and application containers. |
+| `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | `27017` (separate MongoDB Compose) | Host port published by the independently deployed MongoDB container. It is not used by the application when `COYOTE3_MONGO_URI` targets another MongoDB service. |
+| `COYOTE3_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | `127.0.0.1` (separate MongoDB Compose) | Interface used to publish app MongoDB's port; service URIs remain independently configured. |
+| `CACHE_REQUIRED` | No | `1` or `0` | `1` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
+| `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | `1.0` | Redis connection timeout. |
+| `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | `1.0` | Redis socket timeout. |
+| `REDIS_PASSWORD` | Required by Compose | Unique URL-safe secret; generate with `openssl rand -hex 32` | None; a nonempty value is required | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
+| `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds | `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
+| `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds | `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |
+| `API_WORKERS` | No | Positive integer | `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |
+| `FORWARDED_ALLOW_IPS` | Review for proxied deployments | Trusted proxy IPs or CIDRs | `127.0.0.1` | Uvicorn's trust list for forwarded headers. Configure the actual ingress proxy or dedicated proxy network; do not use `*`. |
+| `COYOTE3_NGINX_PUBLIC_SCHEME` | Review for TLS deployments | `http` or `https` | `http` | Scheme emitted by Nginx in `X-Forwarded-Proto`; `https` also enables HSTS. This does not configure TLS itself. Use `https` only behind a TLS-enforcing entrypoint. |
+| `API_SESSION_COOKIE_NAME` | No; default `coyote3_api_session` | Cookie name | `coyote3_api_session` | Browser API session cookie name. Override it when multiple mounted environments share one browser origin. |
+| `API_SESSION_TTL_SECONDS` | No | Seconds | `43200` | Browser API session lifetime. |
+| `API_SESSION_COOKIE_SAMESITE` | No | `lax`, `strict`, or `none` | `lax` | Browser session cookie SameSite policy. |
+| `AUDIT_RETENTION_DAYS` | No | Days | `730` | Audit event retention window. |
+| `LOG_FILE_ENABLED` | No | `1` or `0` | `1` | Enables on-disk JSONL logs in addition to stdout. |
+| `LOG_RETENTION_DAYS` | No | Days | `30` | Disk log retention window. |
+| `LOG_GZIP_AFTER_DAYS` | No | Days | `7` | Age after which nightly maintenance gzips old logs. |
+| `LOG_LEVEL` | No | Python logging level | Wrapper: `INFO` in production, `DEBUG` otherwise | Minimum runtime log level. |
+| `ERROR_EMAIL_GROUP` | No | Role ID | `monitoring_group` | Recipient role for operational error emails; requires configured mail delivery. |
+| `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | None; a nonempty value is required | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
+| `COYOTE3_UID` | No | Positive integer | `10001` | Numeric UID used by application containers. The data and log host roots must be writable by this UID or its configured group. |
+| `COYOTE3_GID` | No | Positive integer | `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
+| `NOTIFICATION_RETENTION_DAYS` | No | Days | `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
+| `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | None; a nonempty value is required | Host data root mounted into containers at `/data`. |
+| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Yes for a center deployment | Absolute host directory | `../../api/config/center` | Persistent center files mounted read-only into API, worker, beat, and monitor; also supplied to the docs build. Bundled examples are the development fallback. |
+| `COYOTE3_CENTER_CONFIG_DIR` | Host-run tools only | Directory path | Host process: bundled `api/config/center`; Compose: fixed `/app/center-config` | Selects external center files outside Compose. Compose sets this to `/app/center-config`; it is not a database or secrets directory. |
+| `CELERY_LOG_LEVEL` | No | Logging level | Wrapper: selected `LOG_LEVEL` | Celery worker log level. |
+| `CELERY_WORKER_CONCURRENCY` | No | Positive integer | `2` | Celery worker process concurrency. |
+| `CELERY_TASK_TIME_LIMIT` | No | Seconds | `7200` | Hard Celery task timeout. |
+| `CELERY_TASK_SOFT_TIME_LIMIT` | No | Seconds | `6900` | Soft Celery task timeout. |
+| `CELERY_RESULT_EXPIRES` | No | Seconds | `86400` | Celery result expiry. |
+| `CELERY_WORKER_PREFETCH_MULTIPLIER` | No | Positive integer | `1` | Celery prefetch control. Use `1` for long ingest tasks. |
+| `CELERY_INSPECTION_TIMEOUT_SECONDS` | No | Seconds | `1.5` (runtime-only; not forwarded by base Compose) | Maximum wait for each Celery worker-inspection request shown in application controls. |
+| `COYOTE3_MAINTENANCE_HOUR` | No | `0` to `23` | `0` | Local hour for scheduled maintenance. |
+| `COYOTE3_INGEST_WATCH_ENABLED` | No | `1` or `0` | `0` | Enables scheduled watch-folder ingest. |
+| `INGEST_COLLECTION_UPLOAD_MAX_BYTES` | No | Positive byte count | `67108864` (runtime-only; not forwarded by base Compose) | Maximum collection-upload size, applied to compressed and expanded bytes. Oversized JSON/NDJSON uploads return HTTP 413. |
+| `COYOTE3_INGEST_WATCH_FILENAME` | No | File name or glob | `coyote3.yaml` | Manifest name pattern, for example `coyote3.yaml` or `*.yaml`. |
+| `COYOTE3_INGEST_DONE_SUFFIX` | No | File suffix | `.done` | Suffix applied after successful watch-folder ingest. |
+| `COYOTE3_INGEST_FAILED_SUFFIX` | No | File suffix | `.failed` | Suffix applied after failed watch-folder ingest. |
+| `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | `30` | Beat interval for watch-folder scanning. |
+| `COYOTE3_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | `0` | Allows watch ingest to replace an existing sample. |
+| `COYOTE3_INGEST_WATCH_INCREMENT` | No | `1` or `0` | `0` | Enables incremental naming behavior where supported. |
+| `AUTHENTICATION_PROVIDERS` | No | Comma-separated list of implemented providers: `local`, `ldap`, for example `local` or `local,ldap` | Empty; configured clinical vocabulary providers | Login-provider override; Compose defaults to `local,ldap`. A host-run process without this setting uses the configured TOML list. |
+| `LDAP_HOST` | When LDAP is enabled for this deployment | Hostname or URI | Empty string | LDAP server host. A missing value does not block API startup; an LDAP login returns a configuration error until it is supplied. |
+| `LDAP_PORT` | No | Empty or port `1`-`65535` | Empty; URI port when present, otherwise `636` with SSL or `389` | Overrides a URI port. When empty, uses the URI port or defaults to 389 for LDAP and 636 for LDAPS. |
+| `LDAP_USE_SSL` | No | Boolean | `0` | Implicit TLS from connection establishment. An `ldaps://` host also selects this mode. |
+| `LDAP_USE_TLS` | No | Boolean | `1` | StartTLS before search-account and user binds on a non-LDAPS connection. Ignored when implicit TLS is selected. |
+| `LDAP_CONNECT_TIMEOUT` | No | Positive seconds | `10` | Bounds connection establishment and socket receive waits. |
+| `LDAP_VERIFY_CERT` | No | Boolean | `1` | Set `0` to disable server certificate and hostname verification. TLS encryption remains controlled by `LDAP_USE_TLS` and `LDAP_USE_SSL`. |
+| `LDAP_CA_CERTS_FILE` | No | Empty or container-visible PEM CA bundle path | Empty string | Empty uses system CA trust. A center-issued CA bundle must be mounted read-only into the API container. Used when certificate verification is enabled. |
+| `LDAP_BASE_DN` | LDAP deployments | Distinguished name | Empty string | Complete LDAP search base, including any intended user subtree. |
+| `LDAP_USER_LOGIN_ATTR` | LDAP deployments | Attribute name, usually `mail` | `mail` | LDAP login lookup attribute. |
+| `LDAP_BINDDN` | Directory search with a service account | Distinguished name | Empty string | Read-only search-account identity; configure together with `LDAP_SECRET`, or leave both empty for anonymous search if the directory permits it. |
+| `LDAP_SECRET` | When `LDAP_BINDDN` is supplied | Secret password | Empty string | Directory search-account password, not the password entered by the person logging in. |
+| `GENS_URI` | No | URL | Empty string | Optional Gens integration. |
+| `IGV_URI` | No | URL | Empty string | Optional IGV integration. |
+| `IGV_DATA_ROOT` | No | Workstation path prefix | Empty string | Root prepended to ASP-resolved relative paths, for example `/R:` or `/mnt/alignments`; independent of API mounts. Assay folders and BED files are configured in ASP `igv`. |
+| `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | `1` | Enables public OncoKB detail lookups and the administrator-triggered HGNC-backed reference refresh. |
+| `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | `3.0` | Timeout for all public OncoKB requests, including the reference refresh. |
+| `CLINPGX_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | `1` | Enables ClinPGx lookup buttons. |
+| `CLINPGX_REQUEST_TIMEOUT_SECONDS` | No | Seconds | `3.0` | ClinPGx request timeout. |
+| `SMTP_HOST` | Mail deployments | Hostname | Empty string | SMTP relay host. |
+| `SMTP_PORT` | Mail deployments | Port | `587` | SMTP relay port. |
+| `SMTP_USERNAME` | Mail deployments | Username or empty | Empty string | SMTP username if required. |
+| `SMTP_PASSWORD` | Mail deployments | Secret password or empty | Empty string | SMTP password if required. |
+| `SMTP_USE_TLS` | Mail deployments | `1` or `0` | `1` | Enables STARTTLS. |
+| `SMTP_USE_SSL` | Mail deployments | `1` or `0` | `0` | Enables implicit SSL. |
+| `SMTP_FROM_EMAIL` | Mail deployments | Email address | `no-reply@coyote3.local` | Unmonitored sender for account invitations and general messages. |
+| `SMTP_SECURITY_FROM_EMAIL` | Mail deployments | Email address | `security@coyote3.local` | Unmonitored sender for password and account-security messages. |
+| `SMTP_INFO_FROM_EMAIL` | Mail deployments | Email address | `info@coyote3.local` | Unmonitored sender for broadcasts. Configure all senders on a relay-authorized center domain in production. |
+| `SMTP_FROM_NAME` | Mail deployments | Display name | `Coyote3` | Sender display name. |
+| `PASSWORD_TOKEN_TTL_SECONDS` | No | Seconds | `3600` | Invite/reset token lifetime. |
+| `API_RATE_LIMIT_ENABLED` | No | `1` or `0` | `1` | Enables API rate limiting. |
+| `API_RATE_LIMIT_REQUESTS_PER_MINUTE` | No | Positive integer | `600` | API rate limit threshold. |
+| `API_RATE_LIMIT_WINDOW_SECONDS` | No | Seconds | `60` | API rate limit window. |
+| `API_CSRF_ENABLED` | No | `1` or `0` | `1` | Enforces a per-session CSRF header for cookie-authenticated mutation requests. Keep enabled outside isolated tests. |
+
+### Internal wiring and build metadata
+
+| Key | Requirement/default | Meaning and edit policy |
+| --- | --- | --- |
+| `COYOTE3_IMAGE_TAG` | Set by the version-aware wrapper | Version from `api/version.py`, with environment suffix outside production. Not a center setting. |
+| `GIT_COMMIT`, `BUILD_TIME` | Optional build values; `unknown` when omitted | Release provenance embedded in the API image; supplied by the release build. |
+| `CACHE_REDIS_URL` | Compose constructs authenticated Redis database `/0` | Cache connection. Setting this in the private env file alone does not override the Compose value. |
+| `CELERY_BROKER_URL` | Compose constructs authenticated Redis database `/1` | Job queue connection; same override restriction. |
+| `CELERY_RESULT_BACKEND` | Compose constructs authenticated Redis database `/2` | Task result connection; same override restriction. |
+| `LOG_ROOT` | Compose fixes `/app/logs`; host runtime defaults to `logs` | Container log path. Select the host location with `COYOTE3_LOGS_HOST_ROOT`. |
+| `LOG_SERVICE_NAME` | Set per service by Compose; runtime default `api` | Service label used for log routing. Not a center override. |
+| `KNOWLEDGEBASE_MONGO_BIND_ADDRESS` | Separate MongoDB Compose default `127.0.0.1` | Published interface for the optional independent KB server. |
+| `KNOWLEDGEBASE_MONGO_PORT` | Separate MongoDB Compose default `27018` | Host port for that optional KB server. Application connections still use their explicit URI. |
 
 API request throttling uses the `API_RATE_LIMIT_*` settings. There is no separate
 application limiter for frontend pages or documentation assets; configure that
@@ -491,7 +513,7 @@ The following values are intentionally derived or internal:
 | API health path | Fixed endpoint `/api/v1/health`. |
 | Documentation/help URL | Derived as `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`. |
 | Repository and issue links | `api/config/application_metadata.py`; these are repository-owned product links. |
-| API session and audit collection names | The `api_sessions_collection` and `audit_events_collection` mappings under `[identity]` in `center/collections.toml`. Both collections are stored in `IDENTITY_DB`. |
+| API session and audit collection names | The `api_sessions_collection` and `audit_events_collection` mappings under `[identity]` in `collections.toml`. Both collections are stored in `IDENTITY_DB`. |
 | Container data root | Fixed container path `/data`; only the host root is configurable. |
 | MANE transcript reference data | The `hgnc_collection` in `KNOWLEDGEBASE_DB`. It supplies MANE and clinical transcript metadata used by transcript selection; the database endpoint is configured with `KNOWLEDGEBASE_MONGO_URI`. |
 
@@ -518,7 +540,7 @@ Each `[[contacts]]` entry is rendered as one responsive support card in the
 Contact page. A center may provide any number of entries; no application code
 or layout setting needs to change when a contact channel is added or removed.
 
-`api/config/center/contact.toml` drives the public Contact page. Edit the
+The external `contact.toml` drives the public Contact page. Edit the
 center-owned file in place and deploy it with the application; configuration
 paths are intentionally not environment variables.
 
@@ -571,7 +593,7 @@ API-owned configuration lives under `api/config/`:
 - `app_config.py` selects runtime settings.
 - `constants.py` defines product vocabularies.
 - `runtime.py` exposes backend helper functions.
-- `center/collections.toml` maps repository collection names.
+- `collections.toml` maps repository collection names.
 - `application_metadata.py` stores repository-owned description and codebase links.
 - `center/contact.toml` stores center-owned organization, support, hours, and repeatable contact cards.
 

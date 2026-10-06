@@ -32,6 +32,28 @@ requirements, and request handling; collapse it to focus on endpoints. **Authori
 and the browser-session settings apply to requests made against the installation,
 not a simulation. Changing the presentation does not change endpoint permissions.
 
+## Read an endpoint contract
+
+Each operation's schema lists its path/query parameters, request body, required
+fields, allowed values and responses. Use the schema served by the deployed
+release: UI labels and persisted collection fields are not interchangeable API
+parameter names. A displayed example illustrates a request; it is not a default.
+
+| Contract item | How to interpret it |
+| --- | --- |
+| Path parameter | Part of the URL, such as the selected sample ID; required by that route. |
+| Query parameter | An option after `?`; consult the operation for default, bounds and pagination behavior. |
+| JSON request body | Typed fields sent with `Content-Type: application/json`; omitted and null values can have different meanings. |
+| Multipart upload | Named form fields and file parts; use the exact names declared by the upload operation. |
+| Required field | Must be supplied, even if an example elsewhere omits unrelated optional fields. |
+| Default | Used only where that operation defines omission behavior; never inferred from an example. |
+| Response schema | Returned fields; IDs, counts and lifecycle state may be service-generated. |
+
+For a field error, compare the named location with the request schema and correct
+the input. Do not retry a rejected clinical payload unchanged. For an uncertain
+write outcome, inspect the record or job before resubmitting. Authentication,
+permissions and module availability remain separate from schema validation.
+
 ## Health Endpoint
 
 Use the health endpoint to check that the API is up:

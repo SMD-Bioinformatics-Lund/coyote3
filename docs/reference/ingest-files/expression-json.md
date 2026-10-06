@@ -44,22 +44,22 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 }
 ```
 
-| Key | Description and mapping to `rna_expression` |
-| --- | --- |
-| `expression_version` | Required producer format/analysis version, not VEP version |
-| `sample` | Array of sample gene-expression rows |
-| `reference` | Array of reference gene-expression rows |
-| Row `hgnc_symbol` | Gene symbol |
-| Row `ensembl_gene_id` | Ensembl gene identifier |
-| Sample `sample_expression` | Producer expression measurement; units follow the upstream pipeline |
-| Row `reference_sd` | Reference standard deviation |
-| Row `reference_mean` | Reference mean |
-| Row `reference_median` | Reference median |
-| Sample `reference_mean_mod` | Producer-modified reference mean |
-| Sample `sample_mod` | Producer-modified sample expression |
-| Sample `z` | Producer z-score; ingest does not recompute it |
-| Reference `quant_values` | Map of reference labels to numeric values |
-| Other reference-row keys | Collected into `quant_values` and converted to float; matching top-level values override explicit map entries |
+| Key | Description and mapping to `rna_expression` | Requirement / omission behavior |
+| --- | --- | --- |
+| `expression_version` | Required producer format/analysis version, not VEP version | Required; no default |
+| `sample` | Array of sample gene-expression rows | Required; no default |
+| `reference` | Array of reference gene-expression rows | Required; no default |
+| Row `hgnc_symbol` | Gene symbol | Required; no default |
+| Row `ensembl_gene_id` | Ensembl gene identifier | Required; no default |
+| Sample `sample_expression` | Producer expression measurement; units follow the upstream pipeline | Required; no default |
+| Row `reference_sd` | Reference standard deviation | Required; no default |
+| Row `reference_mean` | Reference mean | Required; no default |
+| Row `reference_median` | Reference median | Required; no default |
+| Sample `reference_mean_mod` | Producer-modified reference mean | Required; no default |
+| Sample `sample_mod` | Producer-modified sample expression | Required; no default |
+| Sample `z` | Producer z-score; ingest does not recompute it | Required; no default |
+| Reference `quant_values` | Map of reference labels to numeric values | Optional; {} before dynamic keys are collected |
+| Other reference-row keys | Collected into `quant_values` and converted to float; matching top-level values override explicit map entries | Optional; no additional quantifications |
 
 ## Related contracts
 

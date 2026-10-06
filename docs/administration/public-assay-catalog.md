@@ -44,6 +44,10 @@ Centers can add sections and change display names without renaming an assay.
 Database references remain visible in expandable reference details. They are not
 substitutes for public display names.
 
+The [catalog contract](../reference/mongodb-collections.md#public_assay_catalog) lists
+stored fields and defaults. Public visibility also requires the references and
+publication steps below; a valid JSON document alone does not publish an offering.
+
 ## Authoring
 
 The initial view is the published catalog, read-only. **Edit published catalog**

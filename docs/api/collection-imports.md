@@ -10,7 +10,36 @@ inspection requires `internal.task:view`. `superuser` still bypasses RBAC checks
 Permission IDs in this page are the same IDs shipped in the out-of-the-box seed file:
 `api/config/bootstrap/rbac/permissions.seed.ndjson`.
 
-## Command Templates
+## Request fields, requirements and defaults
+
+These fields describe the request envelope, not the nested collection document.
+The document must satisfy the selected [collection contract](../reference/mongodb-collections.md).
+Use [file-format conventions](../reference/file-format-conventions.md) to distinguish
+JSON objects, arrays and NDJSON. Generic collection import is not a replacement
+for assay setup, rule publication or sample-bundle ingestion.
+
+| JSON field | Required for | Default / omission behavior | Meaning |
+| --- | --- | --- | --- |
+| `collection` | Insert, bulk and update | None | Supported collection identifier returned by the supported-collections endpoint. |
+| `document` | Insert and update | None | One complete contract-shaped object; not a MongoDB update operator document. |
+| `documents` | Bulk insert | None | Array of contract-shaped objects. |
+| `ignore_duplicate` | Optional, single insert | `false` | Whether an existing duplicate is skipped. |
+| `ignore_duplicates` | Optional, bulk insert | `false` | Bulk duplicate handling; review returned counts. |
+| `match` | Update | None | Selection object identifying the intended record. Do not use a broad match. |
+| `upsert` | Optional, update | `false` | Whether a nonmatching update may create a record. |
+
+| Multipart field | Required | Default / omission behavior |
+| --- | --- | --- |
+| `collection` | Yes | None; same supported identifier as JSON requests. |
+| `documents_file` | Yes | UTF-8 JSON object for insert/upsert or array for bulk; not NDJSON. |
+| `mode` | No | `insert`; also accepts `bulk` and `upsert`. |
+| `match_json` | For `upsert` | Must decode to a nonempty JSON object. |
+
+The upload route skips duplicates for insert/bulk and enables upsert in upsert mode;
+it does not expose the JSON endpoints' duplicate flags as form options. Check the
+response rather than treating HTTP success as evidence that every row was newly
+inserted. Identity and clinical imports additionally require superuser access;
+the generic ingest permission alone is insufficient.
 
 ## Business ID conventions
 

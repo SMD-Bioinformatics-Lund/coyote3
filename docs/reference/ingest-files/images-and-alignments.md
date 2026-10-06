@@ -9,6 +9,22 @@ or JSON evidence files parsed into finding records.
 | `case_bam`, `control_bam` | Case/control alignment filenames | Stored as alignment metadata under the corresponding sample specimen. |
 | `case_bai`, `control_bai` | Matching alignment index filenames | Stored with the corresponding alignment metadata. |
 
+## Requirements and missing resources
+
+| Resource | Required? | Omitted value / effect |
+| --- | --- | --- |
+| `cnvprofile` | According to the ASP required-file policy | No profile image; numeric CNV JSON remains independent. |
+| `case_bam`, `case_bai` | Optional | Empty text on initial ingest. Missing BAM metadata may use catalog lookup; no readable alignment is guaranteed. |
+| `control_bam`, `control_bai` | Optional, paired specimen only | Empty text on initial ingest; an unpaired sample has no control specimen. |
+| ASP `igv` configuration | Optional | Catalog directory lookup remains the fallback. |
+| `igv.base_folder` | Required when `igv` is configured | No default folder is inferred. |
+| `igv.bam_subfolder`, `igv.design_bed` | Optional | Empty text: BAMs use the base folder; no design BED is specified. |
+
+These alignment fields register references, not uploaded BAM content. On metadata
+updates, omission preserves existing references, while explicit null/empty values
+clear them. See [alignment references](../sample-manifest.md#alignment-references-for-igv)
+for index replacement and workstation path rules.
+
 ## Manifest example
 
 ```yaml

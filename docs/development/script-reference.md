@@ -31,12 +31,13 @@ the [v2 procedure](../migration_from_v2/migration-guide.md) and
 | `{migrate_from_v2,upgrade_from_v3}/audit_source_schema.py` | Manual operation | Before legacy conversion | Inventories every nested field, decoded BSON type, and object-key shape across the full offline export |
 | `{migrate_from_v2,upgrade_from_v3}/prepare_source.py` | Manual operation | Legacy migration runbook | Indexes a version-specific BSON snapshot with sample-reference checks |
 | `{migrate_from_v2,upgrade_from_v3}/inspect_record.py` | Manual operation | Reconciliation | Writes one original record and its digests to a private file |
-| `{migrate_from_v2,upgrade_from_v3}/migrate_configuration.py` | Manual migration | Configuration stage | Validates reviewed current clinical configuration mappings |
+| `migration_common/prepare_target.py` | Read-only operation | Before conversion | Validates preinstalled ASP, ASPC, ISGL, group, and subpanel records and exports a fingerprinted target catalog |
 | `{migrate_from_v2,upgrade_from_v3}/migrate_annotations.py` | Manual migration | Shared clinical resources | Preserves annotation identities, scope, and clinical content |
 | `{migrate_from_v2,upgrade_from_v3}/migrate_blacklist.py` | Manual migration | Shared clinical resources | Converts blacklist assay-group scope |
 | `{migrate_from_v2,upgrade_from_v3}/migrate_sample.py` | Manual migration | Per-sample stage | Builds related findings, histories, saved snapshots, and VEP evidence |
 | `{migrate_from_v2,upgrade_from_v3}/backfill_sample_metadata.py` | Manual operation | Metadata reconciliation | Reads reviewed TSV fields into supplements or later run/read patches |
 | `migration_common/apply_bundle.py` | Manual migration | Isolated local target | Preflights and transactionally applies bundles with production endpoint guards |
+| `upgrade_from_v3/migrate_d4_coverage_blacklist.py` | Manual migration | After assay-group configuration | Converts only exclusion-shaped v3 `group_coverage` records; measurements remain sample-scoped |
 | `migration_common/{offline,commands,conversion,clinical_plan}.py` | Internal helper | Version-specific commands | Shares indexing, conversion, and reconciliation without source MongoDB access |
 | `upgrade_from_v3/clinical_documents.py` | Internal helper | Clinical migration | Defines source-specific conversions with explicit metadata and current contract validation |
 
@@ -47,6 +48,7 @@ the [v2 procedure](../migration_from_v2/migration-guide.md) and
 | `bootstrap/bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes `IDENTITY_DB` with initial administrators and RBAC, `KNOWLEDGEBASE_DB` with HGNC/VEP references, and `COYOTE3_DB` with optional synthetic center data |
 | `knowledgebase/migrate_reference_database.py` | Manual maintenance | Existing deployments | Backs up and moves HGNC/VEP to the knowledgebase database; removes the superseded subpanel collection only after checking current replacements |
 | `deployment/center_preflight.sh` | Manual operation | Initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, and optional seed or ingest inputs without writing data |
+| `deployment/prepare_center_config.py` | Manual operation | Center configuration deployment | Validates and stages four center-owned files from a local directory or a pinned Git commit, records hashes, and refuses to overwrite an existing release |
 | `bootstrap/build_seed_bundle.py` | Internal helper and manual operation | `bootstrap/bootstrap_database.py`; controlled seed preparation | Normalizes center seed sources into deterministic collection documents |
 | `bootstrap/install_assay_groups.py` | Manual operation | Assay-group administration guide | Plans or installs missing group definitions without renaming existing scopes |
 | `deployment/center_check.sh` | Manual operation | Composed CI verification | Runs authenticated health, baseline-resource, manifest-validation, and ingest checks after services are online |
@@ -81,6 +83,7 @@ started through `bootstrap/bootstrap_database.py`.
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
 | `deployment/compose-with-version.sh` | Operator entry point | Deployment documentation | Resolves the application version, validates environment secrets, and invokes Docker Compose consistently |
+| `deployment/prepare_host_directories.py` | Automated helper | Compose wrapper during deployment or explicit preflight preparation | Creates missing application storage from resolved Compose mounts and verifies container access without changing existing ownership |
 | `deployment/validate_env_secrets.sh` | Automated helper | compose wrapper and preflight | Rejects missing, empty, or placeholder runtime secrets; LDAP credentials remain login-time configuration |
 | `database/mongo_backup_archive.sh` | Manual or infrastructure-scheduled operation | MongoDB recovery runbook | Creates complete oplog-consistent timestamped MongoDB archives, verifies them, and publishes only complete files |
 | `database/mongo_restore_archive.sh` | Manual recovery operation | Backup and recovery runbook | Verifies and restores a complete MongoDB archive with explicit confirmation and oplog replay |

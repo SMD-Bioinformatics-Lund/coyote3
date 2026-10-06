@@ -12,8 +12,7 @@ Use isolated stacks and databases for each environment:
 
 Set `API_SESSION_COOKIE_NAME` in each deployment's env file, for example
 `coyote3_dev_api_session` for dev and `coyote3_prod_api_session` for production.
-Change this value when copying the example env to another environment. Modern
-and legacy Compose both pass it to the API. The browser UI and interactive API
+Change this value when copying the example env to another environment. The application Compose file passes it to the API. The browser UI and interactive API
 docs use the same HttpOnly session cookie; they do not need separate cookie names.
 Workers, beat, Redis, MongoDB, and static documentation do not need browser
 session cookies. Programmatic clients using cookie authentication must pass the
@@ -29,23 +28,27 @@ required for this setting.
 Each stack exposes one HTTP entrypoint through nginx. Web UI, FastAPI, and docs
 are routed behind that proxy; Redis stays internal.
 
-| Environment | HTTP proxy | Optional Mongo |
-| --- | --- | --- |
-| prod | 5815 | 5820 |
-| stage | 8804 | 8808 |
-| dev | 6801 | 6804 |
-| test | 6811 | 6814 |
+| Selected application files | HTTP proxy fallback |
+| --- | --- |
+| Base production file | 5815 |
+| Base plus stage overlay | 8804 |
+| Base plus development overlay | 6801 |
+| Base plus test overlay | 6811 |
 
 These defaults are encoded in the compose files. The copied env file uses the
-single `COYOTE3_PORT` key when a center needs to override the active stack port.
+single `COYOTE3_PORT` key to override the active stack port; its example value
+`6801` takes precedence over these fallbacks. The separate MongoDB stack defaults
+to host ports `27017` for application MongoDB and `27018` for knowledgebase MongoDB,
+both bound to loopback. See the [environment-variable reference](configuration-reference.md#environment-variable-reference).
 
 ## Host Drive Mounts Per Center
 
 Centers can have different host filesystem layouts. Configure only the host data
 root with `COYOTE3_DATA_HOST_ROOT` in the copied `.coyote3_*_env` file. Compose
-mounts that directory at the fixed container path `/data` and also at the same
-absolute host path inside API and Celery containers. The latter preserves
-pipeline-declared source paths in the database. The API and Celery containers
+mounts that directory at the fixed container path `/data`. It does not mirror
+the absolute host path inside containers. Manifest input paths must be readable
+inside the containers; use a [storage override](../configuration/compose-files.md#private-input-mount-example)
+for pipeline directories. The API and Celery containers
 use repository-defined locations `/data/coyote3_<env>/reports`,
 `/data/coyote3_<env>/ingest_staging`, and `/data/coyote3_<env>/copied_sample_files/yaml` for
 application workspaces. Edit Compose only for permanent center infrastructure
@@ -80,7 +83,7 @@ Recommendation:
 
 ## Environment naming map
 
-Runtime profile normalization:
+Clinical profile normalization (distinct from the deployment `ENV_NAME` setting):
 
 - `production` -> `production`
 - `development` / `dev` -> `development`
@@ -158,7 +161,7 @@ application secrets, including `REDIS_PASSWORD`, remain deployment requirements.
 Preferred center-safe baseline is external SMTP relay (no host Postfix coupling):
 
 ```env
-SMTP_HOST='mxis.skane.se'
+SMTP_HOST='smtp.example.org'
 SMTP_PORT='25'
 SMTP_USE_TLS='0'
 SMTP_USE_SSL='0'

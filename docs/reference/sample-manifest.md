@@ -49,45 +49,36 @@ header.
 
 ## Filesystem and Symlink Contract
 
-`COYOTE3_DATA_HOST_ROOT` is a Compose deployment setting. Compose mounts that
-directory both at `/data` and at the same original absolute path in the API,
-worker, and beat containers. This supports pipeline manifests that contain host
-paths and preserves those paths in MongoDB.
+`COYOTE3_DATA_HOST_ROOT` selects a host directory mounted at `/data` inside the
+API, worker and beat containers. The base Compose file does **not** also mount
+that directory at its original absolute host path. A manifest path is read by
+the ingest process, so it must resolve in that process's filesystem.
 
-For example, with:
-
-```env
-COYOTE3_DATA_HOST_ROOT='/srv/coyote3-data'
-```
-
-the pipeline path below is valid and remains unchanged when stored:
+For example, a host file `/srv/coyote3-data/incoming/case.vcf` is visible as
+`/data/incoming/case.vcf` when the data root is `/srv/coyote3-data`:
 
 ```yaml
-vcf_files: /srv/coyote3-data/coyote3/copied_sample_files/gmshem/vcf/case.vcf
+vcf_files: /data/incoming/case.vcf
 ```
+
+If the pipeline must preserve `/srv/coyote3-data/incoming/case.vcf` as its declared
+path, explicitly add a read-only mount at `/srv/coyote3-data`. See
+[Compose storage overrides](../configuration/compose-files.md#private-input-mount-example).
+Ingest retains the declared source path; temporary ZIP extraction paths are not
+substituted into the stored provenance.
 
 ### External symlink targets
 
-An in-root symlink works only when its resolved target is also visible to the
-container. If a pipeline file under `/srv/coyote3-data` is a symlink to
-`/mnt/sequencing/run_42/case.vcf`, deployment must bind-mount
-`/mnt/sequencing` at `/mnt/sequencing` in API and Celery containers. Mount
-external source roots read-only unless the application must write there.
+A symlink works only when its resolved target is visible and readable inside the
+container. Mount external input roots read-only at the target's absolute path.
+Do not create empty input directories to conceal a missing pipeline mount.
 
 | Situation | Result | Required action |
 | --- | --- | --- |
-| Regular file below `COYOTE3_DATA_HOST_ROOT` | Readable | No additional mount. |
-| Relative symlink whose target remains below the mounted root | Readable | No additional mount. |
-| Absolute or relative symlink resolving outside the mounted root | Broken inside container unless target root is mounted | Bind-mount the target root at the same absolute path. |
-| Target file does not exist or lacks container read permission | Ingest fails | Restore file or permissions before retry. |
-
-> **Warning: Do not rewrite pipeline provenance**
->
->
-> Do not replace host source paths with `/data/...` merely to make a manifest
-> work. The identical-path bind mount exists specifically so the stored sample
-> record preserves the source path emitted by the pipeline.
->
+| Regular host file below the data root | Visible below `/data` | Use its container path, or explicitly configure an identical-path mount. |
+| Relative symlink remaining inside the mounted tree | Resolves if its target exists and is readable | Verify the target in the consuming container. |
+| Absolute symlink or target outside the mounted tree | May be broken even when readable on the host | Mount its target root at the expected absolute path. |
+| Missing or unreadable target | Required evidence fails ingest; optional expected evidence is recorded as missing | Correct access or record the evidence as unavailable; never fabricate a measurement. |
 
 ## Sample filter initialization
 

@@ -17,7 +17,7 @@
 <path d="M520 600 L400 600" class="edge" data-source="4" data-target="3"/>
 <g class="card" data-node="0"><rect x="80" y="220" width="320" height="180" rx="10"/>
 <text x="100" y="254" class="name">1 · Center collection map</text>
-<text x="100" y="299" class="detail">api/config/center/collections.tom</text>
+<text x="100" y="299" class="detail">api/config/collections.toml</text>
 <text x="100" y="322" class="detail">l</text>
 <text x="100" y="345" class="detail">Logical services and collection</text>
 <text x="100" y="368" class="detail">names</text>

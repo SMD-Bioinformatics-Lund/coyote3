@@ -8,6 +8,11 @@ is required to review audit records.
 
 ![Coyote3 administration workspace](../assets/screenshots/admin.png)
 
+For resource definitions, prerequisites and the effect of missing configuration,
+see [clinical configuration resources](clinical-configuration-resources.md).
+Follow [assay setup](assay-setup.md) when introducing an assay. Deployment-owned
+files and their settings are listed in the [configuration reference](../configuration/README.md).
+
 ## Finding an administrative page
 
 The administration home groups permitted destinations into **Assays and subpanels**,
@@ -119,6 +124,9 @@ The same `app.maintenance:run` permission queues the explicit public OncoKB
 reference refresh from Application Controls. That task is gated by the
 maintenance family and Knowledgebases module, and refreshes the shared public
 gene cache from the full local HGNC catalogue rather than from an ASP or sample.
+
+See [application control settings](application-controls.md) for every control key,
+allowed range, initialization value and omission behavior.
 
 ### Runtime controls
 

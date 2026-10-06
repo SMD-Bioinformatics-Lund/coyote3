@@ -76,7 +76,7 @@ CDS, and probe tables for the selected gene.
 
 Authorized users can add a low CDS or probe interval to the assay-group scoped
 coverage blacklist. Coverage blacklist entries are stored in the MongoDB
-`group_coverage` collection. They are separate from finding blacklist entries
+`d4_coverage_blacklist` collection. They are separate from finding blacklist entries
 stored in the general `blacklist` collection.
 
 | Entry | Stored fields | Scope and effect |

@@ -27,6 +27,17 @@ measurement fields shown above. Ingest supplies `SAMPLE_ID`; do not include data
 identifiers or review state. Independently submitted measurement files for one
 sample must agree on `name`.
 
+## Field requirements and defaults
+
+| Field | Meaning / type | Required | When omitted |
+| --- | --- | --- | --- |
+| `name` | Nonempty producer sample label | Yes | None |
+| `MSIS` | Single-sample measurement object | At least one of MSIS/MSIP | Absent method remains unavailable |
+| `MSIP` | Paired measurement object | At least one of MSIS/MSIP | Absent method remains unavailable |
+| `*.tot` | Integer total count | In each supplied method | None |
+| `*.som` | Integer somatic count | In each supplied method | None |
+| `*.per` | Producer percentage, not a 0–1 fraction | In each supplied method | None; not calculated from counts |
+
 ## Measurement fields
 
 Supply at least one of `MSIS` (single-sample) and `MSIP` (paired). Each supplied

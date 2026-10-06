@@ -10,6 +10,8 @@ assay configuration, access management, integration, deployment, and operations.
 | --- | --- |
 | Evaluate Coyote3 locally | [Local quickstart](getting-started/local-quickstart.md) |
 | Install at a new center | [First installation](deployment/first-installation.md), then the [installation checklist](deployment/installation-checklist.md) |
+| Understand an environment file, setting or input format | [Configuration and file formats](configuration/README.md) |
+| Update or restart an existing installation | [Choose a procedure](deployment/production-deployment.md) |
 | Migrate an existing Coyote v2 database | [Migration from v2](migration_from_v2/README.md) |
 | Migrate an existing Coyote v3 database | [Migration from v3](migration_from_v3/README.md) |
 | Review a DNA or RNA sample | [Clinical review workflow](user-guide/clinical-review-workflow.md) |
@@ -25,12 +27,13 @@ assay configuration, access management, integration, deployment, and operations.
 
 | Directory | What belongs here |
 | --- | --- |
-| [getting-started/](getting-started/README.md) | Local quickstart and developer environment setup. |
+| [getting-started/](getting-started/README.md) | Entry point for evaluation, first installation, upgrades, redeployment and configuration references. |
 | [user-guide/](user-guide/README.md) | Clinical review, samples, coverage, dashboards, pages, and controls. |
 | [administration/](administration/README.md) | Users, access, assay groups, subpanels, clinical configuration, and catalog publication. |
 | [api/](api/README.md) | Authentication, HTTP routes, ingestion, collection imports, and compatibility. |
 | [architecture/](architecture/README.md) | Components, resource relationships, clinical data flow, security, and design decisions. |
-| [deployment/](deployment/README.md) | Installation, infrastructure, center configuration, and acceptance checklists. |
+| [deployment/](deployment/README.md) | Installation and infrastructure source guides, grouped under Getting started in the site. |
+| [configuration/](configuration/README.md) | File syntax, supported fields, defaults, examples and links to clinical resource contracts. |
 | [development/](development/README.md) | Code structure, extension guides, frontend components, commands, and documentation practices. |
 | [operations/](operations/README.md) | Monitoring, logs, incidents, backups, reference updates, and migrations. |
 | [migration_from_v2/](migration_from_v2/README.md) | V2 source inventory, clinical migration, and backfills. |

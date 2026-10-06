@@ -52,6 +52,26 @@ HGVS.c | HGVS.p`. Header-declared extra fields remain possible.
 is empty. Symbolic ALT values containing `<` are skipped. Do not submit a generic
 unannotated SV VCF and assume every structural variant will become a translocation.
 
+## Requirements and missing values
+
+| Input | Requirement / omission behavior |
+| --- | --- |
+| Standard VCF identity and alleles | Required; no coordinate or allele default. Symbolic ALT records are skipped. |
+| `INFO.ANN` and header order | Required to produce supported gene-fusion findings; nonqualifying annotations do not become stored translocations. |
+| ANN `Allele`, `Gene_Name`, `Gene_ID`, `Feature_Type`, `Feature_ID` | Required in a retained annotation; no substitute gene or transcript IDs. |
+| ANN `Annotation` | Must include a qualifying fusion term for retention. |
+| Other listed ANN fields | Optional in the stored contract; missing fields remain absent/null rather than inferred. |
+| `INFO.SOMATIC` | Missing normalizes to `false`; absence is not independent germline evidence. |
+| Optional INFO event, insertion, score and depth fields | No measured default; missing values remain absent/null. |
+| `INFO.PANEL` | Empty list when no panel/set values are supplied. |
+| Genotype `PR`, `SR` | Missing becomes empty text, not zero support. |
+| Genotype `UR` | Missing becomes null. |
+| `ID`, `QUAL` | Missing ID becomes `.`; missing quality remains null. |
+
+The stored annotation contract is not permission to omit the VCF structure that
+the parser needs. Use the downloadable file as a syntax example and validate real
+producer outputs in an isolated test deployment.
+
 ## Related contracts
 
 - [Bundle preparation and file index](README.md)

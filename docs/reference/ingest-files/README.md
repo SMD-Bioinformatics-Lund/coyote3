@@ -4,6 +4,11 @@ Sample ingestion accepts a YAML manifest and the analysis files declared by that
 manifest. These are pipeline outputs, not MongoDB exports. The manifest identifies
 the sample and assay; each file supplies one analysis domain's evidence.
 
+For file syntax and the distinction between required, optional, null and default,
+see [file-format conventions](../file-format-conventions.md). The per-file tables
+below describe the raw producer boundary; service-generated fields and database
+contracts are identified separately.
+
 ## File contracts
 
 Each file reference includes its accepted root structure, required fields, synthetic
@@ -13,11 +18,11 @@ example, normalization behavior, and constraints to check before submission.
 | --- | --- | --- |
 | [Small variants: VEP-annotated VCF](small-variants-vcf.md) | `vcf_files` | VEP-annotated VCF |
 | [Copy-number variants: JSON](copy-number-json.md) | `cnv` | JSON array or object keyed by interval |
+| [DNA translocations: SnpEff-annotated VCF](translocations-vcf.md) | `transloc` | SnpEff-annotated breakend VCF |
 | [Panel coverage: JSON](coverage-json.md) | `cov` | JSON object keyed by gene under `genes` |
 | [HRD JSON](hrd-json.md) | `hrd` | JSON object with sample label and HRD measurements |
 | [MSI JSON](msi-json.md) | `msi` | JSON object with sample label and MSI measurements |
 | [TMB JSON](tmb-json.md) | `tmb` | JSON object with sample label and TMB measurements |
-| [DNA translocations: SnpEff-annotated VCF](translocations-vcf.md) | `transloc` | SnpEff-annotated breakend VCF |
 | [RNA fusions: caller evidence JSON](fusions-json.md) | `fusion_files` | JSON array of fusions with caller observations |
 | [RNA expression: sample and reference JSON](expression-json.md) | `expression_path` | JSON object with sample and reference arrays |
 | [RNA classification: score JSON](classification-json.md) | `classification_path` | JSON object with classifier result array |

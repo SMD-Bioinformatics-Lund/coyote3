@@ -8,6 +8,43 @@ an assay group does not by itself grant a user permission to read or change data
 
 Coyote3 permissions are exact, data-backed authorization identifiers. Permission definitions are stored in MongoDB, roles grant permissions, and users receive one or more roles. The API makes the authorization decision; the frontend uses the same identifiers to hide actions that the current user cannot perform.
 
+## Account, role and permission fields
+
+These are database-managed resources. Edit them through account/role administration,
+not center TOML files. The tables describe stored field defaults; creation, delegation
+and password workflows impose additional checks and supply actor/history metadata.
+
+| User field | Required / default | Meaning |
+| --- | --- | --- |
+| `username`, `email`, `firstname`, `lastname`, `fullname`, `job_title` | Required by the stored contract; forms manage identity validation | Account identity and display metadata. |
+| `auth_type` | Default selects LDAP when enabled, otherwise the first enabled provider | Explicit list of implemented authentication providers allowed for the account; not a password. |
+| `roles` | `[]` | Role IDs; no role grants are invented when omitted. |
+| `environments`, `asp_ids`, `asp_groups` | Each `[]` | Clinical access assignments; do not interpret an empty assignment as unrestricted access. |
+| `is_active` | `true` | Account availability; action permission checks still apply. |
+| `must_change_password` | Stored default `false`; account workflows can set it | Password-change requirement, including first-login bootstrap behavior. |
+| `password`, password-token and session fields | Service-owned | Password hashes and security state; never supply plaintext in a database document. |
+| `ui_settings` | Typed defaults below | Personal presentation settings; no clinical filtering effect. |
+
+| UI preference | Accepted values | Default |
+| --- | --- | --- |
+| `analysis_layout`, `sample_list_layout` | `classic`, `modern` | `classic` |
+| `analysis_modern_view_tried`, `sample_list_modern_view_tried` | Boolean | `false` |
+| `table_page_size` | 25, 50, 100, 200 | 50 |
+
+| Resource field | Required / default | Meaning |
+| --- | --- | --- |
+| Role `role_id`, `name`, `label`, `color`, `level` | Required | Stable identity, presentation and administrative role level. Level alone is not an action permission. |
+| Role `permissions` | `[]` | Explicit permission identifiers granted by the role. |
+| Permission `permission_id`, `label`, `category` | Required | Enforced identifier and human-readable catalog grouping. |
+| Permission `tags` | `[]` | Descriptive tags. |
+| Role/permission `description` | Null | Optional explanation. |
+| Role/permission `is_active` | `true` | Whether the definition is active, subject to managed-workflow restrictions. |
+
+For all persisted fields and types, see [users](../reference/mongodb-collections.md#users),
+[roles](../reference/mongodb-collections.md#roles) and
+[permissions](../reference/mongodb-collections.md#permissions). For operation-specific
+request requirements, use the [deployed API schema](../api/routes-and-workflows.md#read-an-endpoint-contract).
+
 ## Permission identifier format
 
 An identifier uses `resource:action[:scope]`.

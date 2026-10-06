@@ -23,6 +23,17 @@ measurement fields shown above. Ingest supplies `SAMPLE_ID`; do not include data
 identifiers or review state. Independently submitted measurement files for one
 sample must agree on `name`.
 
+## Field requirements and defaults
+
+| Field | Meaning / type | Required | When omitted |
+| --- | --- | --- | --- |
+| `name` | Nonempty producer sample label | Yes | None |
+| `HRD` | Object containing the four integer scores | Yes | None |
+| `HRD.tai` | Producer TAI score | Yes | None |
+| `HRD.hrd` | Producer HRD component score | Yes | None |
+| `HRD.lst` | Producer LST score | Yes | None |
+| `HRD.sum` | Producer combined score | Yes | None |
+
 ## Measurement fields
 
 `HRD` requires integer `tai`, `hrd`, `lst`, and `sum` fields. These are producer

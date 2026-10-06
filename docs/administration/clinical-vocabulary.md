@@ -1,6 +1,9 @@
 # Center Vocabulary Configuration
 
-`api/config/center/clinical_vocabulary.toml` is the center-owned vocabulary contract.
+`clinical_vocabulary.toml` in the external center directory is the vocabulary contract.
+The bundled `api/config/center/clinical_vocabulary.toml` provides complete examples.
+See [persistent configuration](../deployment/center-configuration.md#persistent-local-files-or-a-git-configuration-release)
+for local files, pinned Git sources, deployment, and upgrade handling.
 It is loaded and validated when the API or a worker starts. A malformed
 configuration prevents startup rather than allowing an ingest or login flow to
 run with an ambiguous contract.
@@ -13,6 +16,130 @@ run with an ambiguous contract.
 > the selectable values, manifest vocabulary, and center policy labels used
 > by those workflows.
 >
+
+## Format, required values and defaults
+
+TOML groups settings under headings such as `[environment]`. A quoted value is
+text; square brackets after `=` contain a list. Dotted headings such as
+`[assay.family_categories]` define nested mappings. The examples below are a
+complete starting vocabulary, not implicit defaults for missing entries.
+
+| Settings | Required? | Behavior when omitted |
+| --- | --- | --- |
+| `assay`, `environment`, `authentication`, `genelist` and their documented keys | Yes | Startup validation fails; no replacement identifiers are invented. |
+| `files` and `analysis`, including per-category and per-family mappings | Yes | Startup validation fails. Mappings must agree with declared categories, families and analysis types. |
+| `reporting.transcript_selection_order` | Yes | Startup validation fails. Every supported selector must appear exactly once. |
+| `reporting.annotation_tumor_types` | Yes, table; entries may be empty | Omitting the table fails validation. A group without an entry has an empty annotation descriptor. |
+| `fusion.callers` and `fusion.description_terms` | Yes | Startup validation fails. Description categories must be `important`, `not_important` and `context`. |
+| `snv.callers`, `cnv.callers`, `translocation.callers` | No | Each defaults to an empty list; its entire table may be omitted. |
+
+Unknown sections and unsupported keys fail validation. `environment.default` is
+an explicitly configured clinical-profile default, not a fallback for an absent
+configuration field. The field tables below describe accepted values and effects.
+For caller-specific flag text, use the separate
+[flag metadata reference](../configuration/filter-flag-metadata-file.md).
+
+## Runtime consumers
+
+Every supported vocabulary section has an application consumer. Configuration
+does not implement a parser, finding type, authentication protocol, or sequencing
+capability. Retain the software-supported semantics when changing identifiers.
+
+| Vocabulary | Application consumer | Effect and limits |
+| --- | --- | --- |
+| `assay.categories`, `families`, `family_categories`, `family_scopes` | `api/config/constants.py`, assay/sample contracts, and ingest helpers | ASP choices, category validation, family-to-omics mapping, and sample sequencing scope. |
+| `assay.base_subpanel_id` | `SUBPANEL_BASE_ID`, ASPC resolution, catalog and reporting services | Identifies the base configuration scope; changing it requires reviewing existing database references. |
+| `environment.options`, `default` | Environment normalization, sample catalog defaults, ingest, user scopes, and public catalog | Defines clinical profiles and their default. This does not replace the deployment's `ENV_NAME`. |
+| `authentication.providers` | Authentication constants and login configuration | Enables implemented local/LDAP providers; `AUTHENTICATION_PROVIDERS` can override it for a deployment. |
+| `genelist.standard_types`, `adhoc_types` | Gene-list contracts, managed forms, and filter normalization | Curated and ad-hoc gene-list choices. |
+| `files.*.keys`, `files.required_by_family` | Sample contracts, ASP required-file defaults, manifest normalization and ingest | Defines pipeline file keys and baseline required inputs. ASP records can specify their required files. |
+| `analysis.*.types`, `file_keys`, `allowed_by_family` | Analysis constants, ingest preload bindings, ASPC validation and managed forms | Binds implemented analyses to files and assay families. Adding a name does not create ingest or review support. |
+| `reporting.annotation_tumor_types` | `api/application/interpretation/report_summary.py` | Assay-group descriptors in automatic Tier III annotation text; absent groups yield an empty descriptor. |
+| `reporting.transcript_selection_order` | `api/application/ingest/parsers.py` | Ordered selection of persisted transcript evidence during ingest. Existing findings are not reselected on configuration reload. |
+| `fusion.callers` | Fusion contracts, query builder, managed filters, RNA view contexts and caller-specific flag validation | Normalizes caller IDs and validates supported fusion caller selections. |
+| `fusion.description_terms` | RNA view contexts and fusion annotation badges | Categorizes caller evidence text for display; it is not a reporting-rule predicate. |
+| `snv.callers`, `cnv.callers`, `translocation.callers` | Filter metadata validation and SNV/CNV/translocation flag display | Registers caller-specific explanations. Historical caller names are retained; these lists do not filter findings or reject stored provenance. |
+
+## Caller registries and flag descriptions
+
+Fusion supports the implemented caller IDs `arriba`, `fusioncatcher`, and
+`starfusion`. Use only these values in `fusion.callers`; adding a name does not
+implement another fusion workflow.
+
+The SNV, CNV, and translocation registries are optional presentation settings.
+They default to empty and their tables may be omitted. Combined inputs do not
+need a list of every contributing caller in this file. The application reads
+normalized records, rather than running or selecting native DNA callers:
+
+```toml
+[snv]
+callers = []
+[cnv]
+callers = []
+[translocation]
+callers = []
+[fusion]
+callers = ["arriba", "fusioncatcher", "starfusion"]
+```
+
+### Caller filtering and provenance
+
+| Analysis | Implemented caller behavior | Effect of the vocabulary registry |
+| --- | --- | --- |
+| SNV | Ingest splits the combined VCF's `INFO.variant_callers` on `\|` and preserves all callers. No caller query filter is implemented. | Optional caller-specific flag descriptions only. |
+| CNV | Normalized JSON preserves `callers`. Query-policy exceptions can match this array; the ordinary CNV filters have no caller selector. | Optional caller-specific flag descriptions; it does not configure those query exceptions. |
+| Translocation | Views can display recorded caller provenance. No caller query filter is implemented. | Optional caller-specific flag descriptions only. |
+| Fusion | The `fusion_callers` filter and fusion query-policy exceptions match `calls[].caller`. | Defines the selectable subset of the three implemented caller IDs. |
+
+An empty DNA registry does not discard provenance or exclude findings. It also
+does not make raw input fields optional: the current SNV ingest parser requires
+`INFO.variant_callers`. See the [combined VCF contract](../reference/ingest-files/small-variants-vcf.md).
+
+### Optional flag descriptions
+
+Leave `callers: {}` in `filter_flag_metadata.yaml` unless the center has reviewed
+caller-specific descriptions. When needed, register only exact provenance IDs
+from validated inputs in the corresponding optional DNA vocabulary list. These
+are metadata identifiers, not claims of native caller support.
+
+For example, after explicitly registering the synthetic ID `pipeline_caller` in
+`cnv.callers`, this illustrates a scoped description:
+
+```yaml
+callers:
+  cnv:
+    pipeline_caller:
+      terms:
+        EXAMPLE_REVIEW:
+          label: Review
+          severity: info
+          description: Replace with the approved explanation for this pipeline flag.
+```
+
+`pipeline_caller` and `EXAMPLE_REVIEW` are placeholders, not supported tool or flag names.
+Use exact pipeline flag names and reviewed descriptions. Caller keys must exist in
+the matching vocabulary registry. Unknown analysis/caller keys and unsupported
+severity values fail validation. The public flag-metadata API exposes both the
+caller options and scoped definitions.
+
+Within a caller or the global metadata, matching order is `terms`, `exact`, then
+the first matching `prefixes` entry. A caller-specific definition takes precedence
+only when recorded provenance identifies it unambiguously. Caller name comparison
+ignores case and separators. Multiple callers must agree on a definition; otherwise
+global metadata applies, or a neutral flag is shown when no global definition exists.
+No caller is inferred from an assay name or a structural-variant identifier.
+
+SNV views read caller provenance from `INFO.variant_callers`; CNV views use `callers`;
+translocation views use recorded `INFO.variant_callers` or `callers` when present.
+Flags are shown only from recorded `FILTER` values. Missing flags are not generated
+from caller names. These descriptions never change filtering thresholds, admission,
+classification, or report wording.
+
+External vocabulary files may omit the `snv`, `cnv`, and `translocation`
+caller tables. Remove the obsolete
+`reporting.required_aspc_fields` setting: reporting requirements are enforced by
+the typed ASPC contract, not a configurable field-name list. Stage and validate the complete
+configuration release before switching services.
 
 ## File Layout
 
@@ -45,6 +172,15 @@ providers = ["local", "ldap"]
 standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
 adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
 
+[snv]
+callers = []
+
+[cnv]
+callers = []
+
+[translocation]
+callers = []
+
 [fusion]
 callers = ["arriba", "fusioncatcher", "starfusion"]
 
@@ -54,7 +190,6 @@ not_important = ["1000genomes", "banned", "matched-normal", "readthrough"]
 context = ["distance100kbp", "duplicates", "healthy", "short_distance"]
 
 [reporting]
-required_aspc_fields = ["report_header", "report_method", "language"]
 transcript_selection_order = [
   "ncbi_mane_plus_clinical",
   "ensembl_mane_plus_clinical",
@@ -131,7 +266,6 @@ validates the same matrix and rejects incompatible submitted values.
 | `[genelist]` | `standard_types`, `adhoc_types` | Non-empty unique identifiers with no overlap | Defines selectable ISGL list types and determines which options appear when the ISGL ad-hoc switch is enabled. |
 | `[fusion]` | `callers` | Unique lowercase caller IDs, for example `arriba`, `fusioncatcher`, and `starfusion` | Defines the canonical IDs accepted on ingested `fusions.calls[].caller`, persisted in `filters.somatic.fusion.fusion_callers`, offered by ASPC and sample filter forms, and used in MongoDB predicates. Input capitalization and separators are normalized to these IDs; unconfigured callers are rejected at typed write boundaries. |
 | `[fusion.description_terms]` | `important`, `not_important`, `context` | Unique lowercase exact terms with no term repeated across groups | Categorizes comma-delimited caller annotations in both the fusion filter selector and table tooltips. Important terms are green, not-important/artifact terms are red, contextual terms are gray, and unlisted terms remain neutral. Selecting terms applies exact, case-insensitive token filters; these categories do not assign a clinical tier. |
-| `[reporting]` | `required_aspc_fields` | Non-empty unique ASPC reporting field identifiers | Names the reporting values administrators must supply for an active report-capable ASPC. |
 | `[reporting]` | `transcript_selection_order` | Ordered array containing every selector in the table below exactly once | Determines the clinical transcript selection order during DNA VCF ingest. The first selector with a matching CSQ row wins; within that selector, VEP impact is ordered HIGH, MODERATE, LOW, then MODIFIER. |
 | `[files.dna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for DNA sample YAML `files`. |
 | `[files.rna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for RNA sample YAML `files`. |
@@ -316,7 +450,7 @@ they do not depend on a hardcoded center file-field name.
 
 Internal collection names are deliberately separate. For example, a center can
 rename the DNA coverage manifest key from `cov` to `coverage_json`, while the
-parsed data still writes to the software-owned `panel_coverage` collection.
+parsed data still writes to the software-owned `d4_coverage` collection.
 
 ## Change Procedure
 

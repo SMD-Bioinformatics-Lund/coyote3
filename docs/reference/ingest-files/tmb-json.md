@@ -21,6 +21,15 @@ measurement fields shown above. Ingest supplies `SAMPLE_ID`; do not include data
 identifiers or review state. Independently submitted measurement files for one
 sample must agree on `name`.
 
+## Field requirements and defaults
+
+| Field | Meaning / type | Required | When omitted |
+| --- | --- | --- | --- |
+| `name` | Nonempty producer sample label | Yes | None |
+| `TMB` | Measurement object | Yes | None |
+| `TMB.value` | Finite nonnegative mutations per megabase | Yes | None |
+| `TMB.unit` | Literal `mut/Mb` | No | `mut/Mb` |
+
 ## Measurement fields
 
 `TMB.value` is a finite, nonnegative number in mutations per megabase.

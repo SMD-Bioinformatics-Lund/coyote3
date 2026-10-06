@@ -5,7 +5,7 @@
 ![Storage ownership by resource family](../assets/diagrams/database-resource-map.svg)
 
 The map groups all configured collection families by logical service. Exact names
-come from `api/config/center/collections.toml`; typed field definitions are in the
+come from `api/config/collections.toml`; typed field definitions are in the
 [MongoDB collection contracts](../reference/mongodb-collections.md). Reference
 families such as COSMIC use multiple collections. Their presence does not imply
 that every dataset is installed or enabled.

@@ -32,55 +32,22 @@ and keep its lifecycle separate from application updates.
 
 ## First-time setup
 
-Keep application and MongoDB server environment files separate. Copy
-`deploy/env/example.mongo-server.env` to a private `.coyote3_dev_mongo_env` for
-MongoDB deployment. Its network and database names must match the application
-settings for initial account grants. Root credentials, keyfiles, server storage,
-ports, UID/GID, and server resource limits do not belong in the application env.
-Externally managed MongoDB needs no server env file at all.
+Follow [first installation, step 6](first-installation.md#choose-and-prepare-mongodb)
+before application bootstrap. It includes software installation links, the private
+Docker server environment, network/storage/keyfile preparation, initialization,
+and host-installed MongoDB replica-set conversion. It also separates runtime
+knowledgebase readers from the maintenance credentials required to install reference data.
 
-1. Complete the environment file and select the URI for every logical service.
-   Use separate app/identity names for each environment and a shared knowledgebase.
-2. Prepare persistent directories and keyfiles for each physical instance:
+For an existing healthy replica set, retain its data directory, keyfile, member
+addresses and account configuration. Do not repeat fresh initialization during
+an application upgrade. Each physical server needs its own persistent dbPath;
+keyfiles and database storage are not created by application directory preparation.
 
-```bash
-export MONGO_UID="$(id -u)" MONGO_GID="$(id -g)"
-sudo install -d -o "$MONGO_UID" -g "$MONGO_GID" -m 0700 /srv/coyote3/mongo/data
-sudo sh -c 'openssl rand -base64 756 > /srv/coyote3/mongo/keyfile'
-sudo chmod 0400 /srv/coyote3/mongo/keyfile
-sudo chown "$MONGO_UID:$MONGO_GID" /srv/coyote3/mongo/keyfile
-```
-
-For split knowledgebase MongoDB, prepare its separately configured data directory
-and keyfile too. Save `MONGO_UID` and `MONGO_GID` in the MongoDB server env file.
-
-Both Compose families limit each MongoDB server and initialization container to
-8 GiB RAM and 4 CPUs by default. Override `MONGO_CONTAINER_MEM_LIMIT` and
-`MONGO_CONTAINER_CPU_LIMIT` in the deployment env file. These are per-container
-limits, including a separately enabled knowledgebase server. Recreate MongoDB
-after changing its memory limit so WiredTiger sizes its cache for the new limit.
-Both Compose families use the shared entrypoint to copy the read-only host keyfile
-into tmpfs with mode `400`, set data ownership, and drop to these IDs before
-starting MongoDB. Health checks and replica initializers use the same IDs.
-Stop MongoDB before recreating containers with changed IDs; do not run two servers
-against the same data directory. Root-squashed storage must permit the startup
-ownership changes and reading the host keyfile. Do not
-regenerate an existing replica-set keyfile during an ordinary upgrade.
-
-3. Create the configured application network if absent. Start the selected MongoDB
-   profiles and run their replica initializers using the
-   [profile commands](../architecture/mongodb-topology.md#optional-docker-mongodb).
-4. Provision maintenance credentials. The first-initialization app users authenticate
-   against `admin` and have only read access to knowledgebases. Index creation and
-   imports require a separately authorized maintenance user.
-5. Bootstrap app/identity data, apply the index plan, then start API/workers/beat.
-   Preserve existing database names, user authentication settings, replica sets,
-   and persistent directories when upgrading a nonempty deployment.
-
-A profile is service selection, not high availability, TLS, or backup policy.
-Infrastructure operators remain responsible for those controls. For host-run
-clients use a reachable published endpoint; Docker service names are resolved
-only on their configured networks.
+The optional Docker server entrypoint copies its read-only host keyfile into tmpfs,
+sets permissions and drops to the configured `MONGO_UID`/`MONGO_GID`. Health checks
+and initializers use the same IDs. Root-squashed storage must permit the required
+startup ownership operations. Change owner IDs only during a planned database
+stop/recreate operation, never while another process uses the same storage.
 
 ## Connectivity checks
 
@@ -100,9 +67,9 @@ unauthenticated MongoDB to an external network.
 
 Coyote3 stores external knowledgebase datasets in the database selected by
 `KNOWLEDGEBASE_DB` on `KNOWLEDGEBASE_MONGO_URI`. Its namespace must not overlap an
-app/identity/BAM namespace on the same deployment. HGNC, VEP metadata,
-clinical annotations, samples, findings, comments, and reports remain in the
-primary application database.
+app/identity/BAM namespace on the same deployment. HGNC and VEP reference data
+also belong in the knowledgebase database. Clinical annotations, samples, findings,
+comments and reports remain in the primary application database.
 
 Upgrade an installation that still has knowledgebase collections in
 `COYOTE3_DB` before starting the new API or workers. Starting first can create

@@ -146,5 +146,5 @@ Collection configuration:
 clinpgx_genes_public_collection = "clinpgx_genes_public"
 ```
 
-The collection name is resolved from `api/config/center/collections.toml`, not
+The collection name is resolved from `api/config/collections.toml`, not
 hard-coded in application logic.

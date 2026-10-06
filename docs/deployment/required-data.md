@@ -9,7 +9,7 @@ reporting.
 >
 >
 > Runtime endpoints and secrets are environment configuration. Collection
-> names are API configuration in `api/config/center/collections.toml`.
+> names are API configuration in `api/config/collections.toml`.
 > Public organization, service-hour, and contact-card text is center content
 > in `api/config/center/contact.toml`. Repository links and the product description
 > are application metadata in `api/config/application_metadata.py`.
@@ -37,8 +37,8 @@ login, authorization, assay resolution, sample review, and reporting.
 | Catalog governance | `public_assay_catalog_versions`, `public_assay_catalog_revisions` | Drafts, independent approvals, immutable releases, and full revision snapshots. Publication requires MongoDB replica-set transactions. |
 | In-silico gene lists (ISGL) | `insilico_genelists` | Curated clinical gene lists for SNV, CNV, fusion, expression, PGx, and ad-hoc list types. |
 | Samples | `samples` | Sample metadata, file references, ASPC id, current filter snapshot, ingest status, report status, and data counts. |
-| Findings | `variants`, `cnvs`, `fusions`, `translocations`, `biomarkers`, `panel_coverage` | Analysis-specific records loaded from the sample files. Only collections for enabled analyses need data for a given sample. |
-| Coverage policy | `group_coverage` | Center-managed gene, CDS, and probe exclusions used when presenting coverage for an assay group. |
+| Findings | `variants`, `cnvs`, `fusions`, `translocations`, `biomarkers`, `d4_coverage` | Analysis-specific records loaded from the sample files. Only collections for enabled analyses need data for a given sample. |
+| Coverage policy | `d4_coverage_blacklist` | Center-managed gene, CDS, and probe exclusions used when presenting coverage for an assay group. |
 | Reports | `reports`, `reported_variants` | Saved report documents and reportable-finding snapshots. |
 | Sample comments | `sample_comments` | Sample-level comment and annotation history. |
 | Finding comments | `finding_comments` | Comments tied to one sample finding. Each record identifies its sample, finding, and finding type. |
@@ -47,7 +47,7 @@ login, authorization, assay resolution, sample review, and reporting.
 > **Tip: Collection names**
 >
 > The names above are defaults. The application does not hardcode them in
-> domain services; it resolves them from `api/config/center/collections.toml`
+> domain services; it resolves them from `api/config/collections.toml`
 > for the active database.
 
 ## Required Creation Sequence
@@ -57,11 +57,22 @@ the following order:
 
 ![What to define first: a new assay to its first sample](../assets/diagrams/resource-setup-order.svg)
 
-The ASP must exist first because it defines the assay identity and analyte used by clinical
-rules, ISGLs, ASPCs, and samples. A rule set can be authored after the ASP exists, but an ASPC
-with report sections cannot become active until that rule set is published. Create every ISGL
-referenced by ASPC filter defaults before saving the ASPC. Ingest can begin only after an active
-ASPC exists for the requested assay, subpanel, and environment.
+Register the active assay group, then save an assay setup draft. That draft supplies
+the assay identity for rule authoring before the ASP becomes operational. Prepare
+named scopes, any selected ISGLs, published reporting rules and one ASPC for every
+selected scope/environment. ISGLs and rules have no required order relative to
+each other. Setup approval activates the related operational records together.
+
+ISGLs are optional unless selected by filters. Setup activation requires compatible
+published rules for every configuration; individual active reporting ASPCs require
+them when report sections are selected. Runtime sample resolution can use a named
+ASPC or fall back to Base in the same environment, with a recorded warning. Without
+either active configuration, ingest is rejected.
+
+Follow [Assay setup](../administration/assay-setup.md#step-by-step-add-a-new-assay)
+for the ordered procedure and the
+[resource reference](../administration/clinical-configuration-resources.md#missing-prerequisites-and-their-effects)
+for the effect of missing prerequisites.
 
 See [System relationships](../architecture/resource-relationships.md#13-creation-order) for the
 complete prerequisite table, including identity and report entities.
@@ -69,9 +80,9 @@ complete prerequisite table, including identity and report entities.
 ## Optional Enhancement Collections
 
 These collections belong in `KNOWLEDGEBASE_DB` and improve interpretation
-quality, search, or external context. `hgnc_genes`, `vep_metadata`, `annotation`,
-and `blacklist` remain in `COYOTE3_DB` because they participate in application
-annotation and review contracts.
+quality, search, or external context. The bundled `hgnc_genes`, `vep_metadata`,
+and `vep_diagrams` reference collections also belong in `KNOWLEDGEBASE_DB`.
+The clinical `annotation` and `blacklist` collections belong in `COYOTE3_DB`.
 The application can run without all of them, but missing collections reduce the
 richness of the UI.
 

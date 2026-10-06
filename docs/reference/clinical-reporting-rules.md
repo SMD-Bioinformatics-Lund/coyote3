@@ -103,6 +103,11 @@ an earlier preview; review the current preview before saving.
 For database transitions and revision repairs, see
 [clinical-rule data maintenance](../operations/migrations/clinical-rule-migrations.md).
 
+For the distinction between rule documents, API requests and installed examples,
+see [file-format conventions](file-format-conventions.md). Complete persisted fields
+and defaults are listed in the [rule-set contract](mongodb-collections.md#clinical_rule_sets);
+the authoring and publication constraints below apply in addition to that schema.
+
 ## Document Model
 
 Each collection document is one independently versioned draft or immutable release.

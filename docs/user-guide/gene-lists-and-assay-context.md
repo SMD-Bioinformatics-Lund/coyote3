@@ -13,6 +13,8 @@ be treated as interchangeable filters.
 | Assay group | A registered grouping of assays used by configuration and eligibility rules. | [Assay groups](../administration/assay-groups.md) |
 | Clinical rules | Published reporting logic for the applicable assay, subpanel, analyte, and language. | [Clinical reporting rules](../reference/clinical-reporting-rules.md) |
 
+For administrative field names and defaults, see [ISGL fields](../administration/clinical-resource-fields.md#gene-list-isgl).
+
 ## Select gene scope for review
 
 1. Confirm the sample's assay and subpanel before changing its filters.

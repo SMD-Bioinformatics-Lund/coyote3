@@ -6,7 +6,7 @@ This reference explains how Coyote3 accepts pipeline output, validates it, store
 
 Each loaded sample has one canonical samples document. It stores identity, assay scope, source-file metadata, the resolved ASPC, the current filter snapshot, status, and lightweight result counts. Analysis results are stored in separate collections and linked to the sample by SAMPLE_ID, the string form of the sample document ObjectId.
 
-This separation keeps sample lists efficient, permits independent server-side filtering and pagination for each analysis type, keeps large transcript payloads out of mutable small-variant rows, and lets saved reports preserve their historical context. Collection names are resolved from api/config/center/collections.toml; names in this guide are defaults.
+This separation keeps sample lists efficient, permits independent server-side filtering and pagination for each analysis type, keeps large transcript payloads out of mutable small-variant rows, and lets saved reports preserve their historical context. Collection names are resolved from api/config/collections.toml; names in this guide are defaults.
 
 ## From manifest to ready sample
 
@@ -37,7 +37,7 @@ The center-configurable mapping is in api/config/center/clinical_vocabulary.toml
 | DNA | CNV | cnv | cnvs | cnvs |
 | DNA | translocation / DNA fusion | transloc | transloc | translocations |
 | DNA | HRD / MSI / TMB | hrd / msi / tmb | biomarkers | biomarkers |
-| DNA | coverage | cov | cov | panel_coverage |
+| DNA | coverage | cov | cov | d4_coverage |
 | DNA | CNV profile | cnvprofile | none | File metadata only |
 | DNA | PGx | pgx | pgx | pgx |
 | RNA | fusion | fusion_files | fusions | fusions |
@@ -60,7 +60,7 @@ Before dependent records are written, ingest attaches canonical sample linkage a
 | cnvs | CNV call | genes, region, callers, ratio/copy number, purity/SR when supplied, flags, tier | SAMPLE_ID plus CNV filters |
 | translocations | structural call | breakpoints, genes, normalized annotations, call data, flags, tier | SAMPLE_ID plus translocation filters |
 | biomarkers | sample | normalized biomarker result data | SAMPLE_ID |
-| panel_coverage | sample | coverage metrics and gene/group coverage trees | SAMPLE_ID |
+| d4_coverage | sample | D4-derived transcript, exon, CDS, and probe measurements | SAMPLE_ID |
 | fusions | fusion event | genes, caller calls, selected call, reads, effect, descriptions, flags, tier | SAMPLE_ID plus fusion filters |
 | rna_expression | sample | producer-defined gene-expression measurements, reference values, and z-scores | SAMPLE_ID |
 | rna_classification | sample | classifier classes, scores, source metadata | SAMPLE_ID |
@@ -225,7 +225,7 @@ The API resolves the user-facing sample name to the canonical sample document. I
 | DNA translocations | translocations | Structural-event filters and only a translocation/fusion list attached to the sample |
 | RNA fusions | fusions | Fusion gene, caller, effect, description-term, and read filters |
 | Expression, classification, QC | rna_expression, rna_classification, rna_qc | Available only to compatible RNA samples and enabled ASPC analyses |
-| Coverage and biomarkers | panel_coverage, biomarkers | Sample-scoped structured documents |
+| Coverage and biomarkers | d4_coverage, biomarkers | Sample-scoped structured documents |
 | Reports | samples, ASP, ASPC, ISGLs, filtered findings, reports, reported_variants | A prepared report context is built from active data; saved reports retain their own snapshots |
 
 Permissions and module availability checks precede reads. Query caching is keyed by sample, intent, filter state, page, and multi-column sort state. Curation or filter actions invalidate affected cached queries so the next table read reflects persisted data.

@@ -5,6 +5,9 @@ services and clinical configuration become available. Follow
 [first installation](first-installation.md) for setup commands and the
 [installation checklist](installation-checklist.md) for the deployment handoff.
 
+For the purpose, format and ownership of each installed catalog, see
+[installed catalogs](../reference/operational-files.md#installed-catalogs).
+
 ## Deployment Flow
 
 ![URL and reverse-proxy request flow](../assets/diagrams/url-request-flow.svg)
@@ -19,18 +22,10 @@ services and clinical configuration become available. Follow
 
 ## Authoritative Procedure
 
-Use this page as a map.
-Use the checklist as the source of truth for the exact commands and execution order.
-
-- [Initial Deployment Checklist](installation-checklist.md)
-
-The checklist defines:
-
-- exact commands and command order
-- required collection order
-- seed-source policy
-- application verification
-- deployment handoff
+Use [first installation](first-installation.md) for the commands and execution
+order. It covers deployment files, storage, networking, bootstrap, startup and
+clinical configuration. The [installation checklist](installation-checklist.md)
+records acceptance and handoff; it is not a second installation procedure.
 
 ## Required Baseline Collections
 

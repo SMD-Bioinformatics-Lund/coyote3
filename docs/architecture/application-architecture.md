@@ -86,11 +86,11 @@ API configuration is centralized under `api/config/`:
 - `api/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
 - `api/config/database_versions.py`: canonical `samples.database_versions` keys and the VCF-header-only normalizer
 - `api/config/runtime.py`: public helper facade used by the rest of the API
-- `api/config/center/collections.toml`: MongoDB collection-name mapping
+- `api/config/collections.toml`: MongoDB collection-name mapping
 - `api/config/application_metadata.py`: repository-owned product description and codebase links
 - `api/config/center/contact.toml`: center-owned organization, support, hours, and contact content
 
-Collection names must come from `api/config/center/collections.toml`. The API loads this file relative to the `api/config` package, so startup does not depend on the process working directory.
+Collection names must come from `api/config/collections.toml`. The API loads this file relative to the `api/config` package, so startup does not depend on the process working directory.
 
 Environment variables remain the right place for deployment-specific or sensitive values:
 
@@ -164,7 +164,7 @@ The application should not hardcode clinical collection names in services or rou
 > **Tip: Adding collections**
 >
 >
-> Add collection names through `api/config/center/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
+> Add collection names through `api/config/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
 >
 
 ## Document Contracts
@@ -483,7 +483,7 @@ When adding or changing functionality:
 
 1. Define or update the Pydantic contract first.
 2. Register collection models in the schema registry if the document is persisted.
-3. Keep collection names in `api/config/center/collections.toml`.
+3. Keep collection names in `api/config/collections.toml`.
 4. Add repository/service logic behind a domain boundary.
 5. Expose API routes with response models.
 6. Emit audit events for mutations and important operational actions.

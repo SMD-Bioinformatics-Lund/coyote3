@@ -64,13 +64,13 @@ administrator cannot compensate for a missing parent by entering an arbitrary id
 | --- | --- | --- | --- |
 | 1 | Permission catalog and roles | Identity database and initial administrator | Assigning application access to users. Bundled records are synchronized with `scripts/identity/sync_rbac_catalog.py`. |
 | 2 | User accounts | Required roles and permissions | Clinical authoring, review, publication, configuration, and sample operations. |
-| 3 | ASP | None in clinical configuration | Clinical rule sets, ISGL scope, ASPCs, and sample ingest. The ASP defines analyte, assay family, files, physical gene coverage, and accreditation. |
-| 4 | Clinical rule set draft | Active ASP | Clinical review and publication. The selected analyte must match the ASP. |
-| 5 | Published clinical rule set | Valid draft, independent clinical reviewer, and publisher | Required when activating an ASPC with report sections. Only an active published release can satisfy scope-based selection. |
-| 6 | ISGL | Active ASP directly through `asp_ids`, or an applicable active ASP group | Selecting optional SNV, CNV, fusion, expression, or PGx gene scopes in an ASPC or sample. ISGLs are optional and can be created before or after rule publication. |
-| 7 | ASPC | Active ASP and active published clinical rule set; any referenced ISGLs must already exist and support the selected analysis | Sample ingest for its assay, subpanel, and environment. |
-| 8 | Sample | Resolvable active ASP and ASPC; required files declared by the ASP | Findings, comments, classifications, coverage review, and reports. |
-| 9 | Saved report | Ready sample, prepared findings, report permission, and resolvable published rule release | Historical report review and reported-finding cohort searches. |
+| 3 | Active assay group | Registered group and permitted operator | Saving the assay draft and making new assay operations available. |
+| 4 | ASP or saved assay setup draft | Active parent group | Assay identity, family, file policy and scopes. A saved setup draft can support rule authoring without an operational ASP. |
+| 5 | Named subpanel scopes | Active shared definitions; associations for an operational assay | Named-scope configuration. Definitions may exist earlier; setup creates its assay associations at activation. Base is implicit. |
+| 6 | ISGLs and published clinical rules | Eligible assay/group/scope for lists; saved assay identity and independent publication for rules | These can be prepared in either order. Lists are optional unless selected; setup requires compatible published rules for each configuration. |
+| 7 | ASPCs and setup activation | One valid ASPC per selected scope/environment, eligible selected lists, compatible rules and independent setup review | Operational assay use. Individual active reporting ASPCs also validate published rule compatibility. |
+| 8 | Sample | Available assay/group, resolvable active ASPC and required files | Findings and clinical review. A missing named ASPC can resolve to Base in the same environment with a warning. |
+| 9 | Saved report | Ready sample, prepared findings, report permission and a compatible published rule release | Historical report review and reported-finding cohort searches. |
 
 Knowledgebase releases are independent of this creation chain. They can be installed before
 or after clinical configuration and enrich supported pages only when configured. VEP metadata

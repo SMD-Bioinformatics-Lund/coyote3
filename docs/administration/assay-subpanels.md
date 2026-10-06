@@ -17,6 +17,22 @@ An ASP identifies an assay. A subpanel has one shared identifier and display
 definition, and can be associated with several assays. Each association can be
 disabled independently. Sharing a subpanel does not share ASPCs, genes or report rules.
 
+## Field requirements and defaults
+
+| Field / operation | Required | Omission behavior and meaning |
+| --- | --- | --- |
+| Create `subpanel_id` | Yes, 1–100 characters | Stable normalized ID; do not create the implicit Base scope. |
+| `display_name` | Yes, 1–200 characters | Trimmed visible label, not the identifier. |
+| `description` | No, at most 4000 characters | Empty text. |
+| `is_active` | Optional on definition; required for association status changes | New definition defaults to `true`. Association status requests must name the target state. |
+| Shared create `asp_ids` | No, at most 1000 IDs | `[]`: creates no selected assay associations. |
+| Shared update `add_asp_ids` | No, at most 1000 IDs | `[]`: adds no associations; does not remove existing links. |
+| Update `expected_version` | Yes, integer at least 1 | Required revision precondition; a stale edit must be refreshed. |
+
+Definition availability and association availability are independent. A named
+scope must satisfy both for new assignments. History and actor fields are maintained
+by the service; creation fields are not a complete database-export schema.
+
 ## Administration
 
 Two administration pages separate shared definitions from assay availability.
@@ -125,7 +141,7 @@ This registry does not change ingest resolution or existing sample ASPC bindings
 
 Two application-database collections store the registry. Their names are configured
 by `primary.subpanels_collection` and `primary.subpanel_associations_collection`
-in `api/config/center/collections.toml`.
+in `api/config/collections.toml`.
 
 | Collection | Current identity | Purpose |
 | --- | --- | --- |

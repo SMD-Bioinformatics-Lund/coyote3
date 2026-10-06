@@ -29,6 +29,17 @@ A root array is wrapped as `{"records": [...]}`. The resulting object is stored
 in `pgx` with injected `SAMPLE_ID`; each arbitrary record is not a separate MongoDB
 document. The example keys are illustrative extensions, not mandatory PGX fields.
 
+## Field requirements and defaults
+
+| Item | Requirement | Omission behavior |
+| --- | --- | --- |
+| Root object or array of objects | Required | An empty file is invalid JSON; a scalar is rejected. |
+| Producer-defined keys such as `pipeline_version`, `records`, `gene`, `result` | No fixed required keys at this boundary | No interpretation or replacement values are generated. |
+| `SAMPLE_ID` | Supplied by ingest | Always bound to the parent sample; not a pipeline-selected database ID. |
+
+A valid empty object or array contains no PGX conclusions. Successful storage is
+not evidence that a drug recommendation or clinically reportable result exists.
+
 ## Related contracts
 
 - [Bundle preparation and file index](README.md)

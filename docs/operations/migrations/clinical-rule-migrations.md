@@ -64,8 +64,9 @@ uniqueness index. Unknown references, conflicting languages and duplicate publis
 scopes stop preflight. Return pending assay setups to draft first. Configuration
 updates use a transaction and optimistic checks; index creation follows the commit,
 so keep writers stopped until the command completes successfully.
-Center overrides of `required_aspc_fields` must replace `clinical_rule_set_id` with
-`language`; the application template already uses the current key.
+Remove the obsolete `reporting.required_aspc_fields` vocabulary setting when
+upgrading an external center configuration. It did not enforce reporting fields;
+the typed ASPC reporting contract validates the required values, including language.
 
 Samples and saved reports are never rewritten. Embedded test facts no longer accept
 `clinical_rule_set_id`. The migration removes that field from rule documents and

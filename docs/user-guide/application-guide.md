@@ -24,6 +24,11 @@ presents the analyses enabled for that sample.
 | Annotation | A classification or text attached to a defined finding identity. |
 | Report snapshot | The findings, filters, configuration, and text saved with a report. |
 
+[Clinical configuration resources](../administration/clinical-configuration-resources.md)
+explains how ASPs, ASPCs, subpanels, gene lists and reporting rules fit together,
+including what is unavailable when a dependency is missing. Reviewers can use
+these definitions without editing deployment files.
+
 ## Sign in and public pages
 
 The login page shows the authentication methods enabled by the deployment.

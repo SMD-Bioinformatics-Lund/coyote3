@@ -73,7 +73,7 @@ Large result sets are stored separately and linked by sample identity.
 | DNA structural findings | `translocations` |
 | RNA fusion findings | `fusions` |
 | Biomarkers | `biomarkers` |
-| Coverage | `group_coverage` and `panel_coverage` |
+| Coverage | `d4_coverage_blacklist` and `d4_coverage` |
 | RNA expression, classification, and QC | Dedicated RNA analysis collections |
 | Curation | `annotation`, blacklist, and comment collections |
 | Reporting | `reports` and `reported_variants` |

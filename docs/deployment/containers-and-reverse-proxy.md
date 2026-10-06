@@ -41,12 +41,8 @@ center configures trusted real-IP handling at that edge. Set
 the gateway does not trust an incoming `X-Forwarded-Proto` value. Restrict direct
 API and gateway exposure according to this trust boundary.
 
-This guide is the deployment command and runtime reference for an installed
-Coyote3 environment. It covers normal release deployment and maintenance.
-
-For the complete step-by-step production procedure, begin with
-[Production deployment](production-deployment.md). This page is
-the deployment command and architecture reference.
+This page describes runtime wiring and reverse-proxy settings. For ordered
+commands, select [first installation, upgrade, or redeployment](production-deployment.md).
 
 > **Important: migrating existing Coyote v3 data**
 >

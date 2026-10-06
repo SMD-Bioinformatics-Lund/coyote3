@@ -8,12 +8,13 @@ its subject without requiring the site navigation.
 
 | Section | Content |
 | --- | --- |
-| `getting-started/` | Local evaluation and developer environment setup. |
+| `getting-started/` | Entry point for evaluation, installation, configuration, upgrades and redeployment. |
 | `user-guide/` | Clinical review, application pages, controls, and finding actions. |
 | `administration/` | Accounts, permissions, assays, gene lists, and clinical configuration. |
 | `api/` | Authentication, HTTP routes, ingestion requests, and API compatibility. |
 | `architecture/` | Runtime boundaries, data flows, persistence, security, and design decisions. |
-| `deployment/` | Installation, environment settings, infrastructure, and acceptance. |
+| `deployment/` | Installation and update procedures, infrastructure, and acceptance; published under Getting started. |
+| `configuration/` | File formats, setting requirements, defaults, examples and application effects. |
 | `development/` | Code changes, components, developer commands, and engineering practices. |
 | `operations/` | Monitoring, incidents, backups, updates, and data migrations. |
 | `reference/` | Domain definitions, input formats, collection schemas, and clinical rules. |
@@ -42,6 +43,30 @@ the start and link to the prerequisite or next procedure where order matters.
 Keep a single authoritative procedure for each operation; related overviews
 should link to it instead of maintaining another copy of its commands.
 
+## Procedures and reference material
+
+At the first use of a configurable file or resource, link its reference. Explain
+what the reader is choosing before showing a command. Identify placeholders,
+operator-selected filenames and shell helper variables; do not present them as
+application settings. Keep the steps in execution order with an observable result
+and a link to recovery guidance where a failed step needs intervention.
+
+Maintain one detailed reference for each supported configuration file or resource:
+
+- Purpose, owner, location and consumers: who edits it and which services use it.
+- Format and a small synthetic example, with unfamiliar syntax explained.
+- A field table covering name, meaning, accepted values or units, requirement,
+  omission behavior and actual default. Keep example values separate from defaults.
+- Dependencies and constraints, including conditional requirements and unsupported values.
+- Validation, how changes take effect, and whether existing records are affected.
+- Links to the procedure that creates or changes it and the underlying contract.
+
+Apply this structure to deployment settings, clinical resources, ingest files,
+API requests and user workflows. Explain what becomes unavailable when an optional
+resource is absent. Link generated field/schema catalogs for exact contracts; do
+not duplicate them in several guides. Check defaults against the code that consumes
+them, including Compose substitution and runtime overrides.
+
 ## Editorial style
 
 Lead with the application behavior, resource, or operational requirement. Introductions
@@ -57,6 +82,11 @@ product reference, not a response to a request or a summary of completed work.
 ## Maintain navigation and links
 
 Add each page to its section's README with a short purpose, and to `mkdocs.yml`.
+Every navigation group, including nested groups, starts with its own README labelled
+**Section guide**. Put introductions and prerequisites before procedures, and detailed
+reference pages after the workflows they support. Keep the section README tables in
+the same reading order as the sidebar; add new pages at their logical position rather
+than prepending them above the section guide.
 Use relative Markdown links ending in `.md`; avoid site-only paths for links to
 other source pages. Use ordinary Markdown tables, lists, and blockquotes so
 important information renders on GitHub as well as in the built site.

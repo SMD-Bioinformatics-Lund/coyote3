@@ -5,6 +5,9 @@
 The diagram separates shared definitions, operational configuration, setup approval,
 and catalog publication. Follow the steps below to create a new assay.
 
+For the meaning, requirements and defaults of individual ASP, ASPC and ISGL fields,
+use the [clinical resource field reference](clinical-resource-fields.md).
+
 ## Names And Identifiers
 
 Administration uses **Assay group**, **Assay**, **Subpanel**, **Assay configuration**,
@@ -66,34 +69,143 @@ Setup drafts are separate from active assay data. Saving a step does not make
 the assay available to ingest, sample analysis, or the public catalog. Reopen a
 draft from **Saved setups** to continue its configuration.
 
-## Steps
+## Step-by-step: add a new assay
 
-| Step | Configuration | Required before activation |
+Use this procedure both for a center's first assay and for additional assays in
+an existing installation. Adding an assay does not require deployment, database
+bootstrap, new system permissions or a new MongoDB database. Existing active
+shared resources may be reused when their scope and clinical content are suitable.
+
+### 1. Confirm authors, reviewers and the active group
+
+Have an authorized setup author and a different qualified reviewer available.
+Use the permissions table below; a clinical-rule reviewer/publisher also needs the
+permissions for that separate workflow. Assign role permissions and assay/group/
+environment access separately. A role name alone does not grant clinical scope.
+
+Create or select the active assay group before saving the assay draft. Reuse a
+suitable group rather than creating one for every assay. An inactive group blocks
+new setup saves, submission and activation.
+
+### 2. Save the assay definition in the setup workspace
+
+Open **Admin > Assay setup**, create a draft and save the **Assay** step. Supply a
+stable identifier, display name, group, family, DNA/RNA category, sequencing
+settings, physical gene coverage and input-file policy. Define `expected_files`
+for evidence the pipeline produces and `required_files` for inputs whose absence
+must reject ingest. Select only implemented file/analysis combinations.
+
+This saved draft reserves the assay identity and makes it available to the rule
+builder. It is not yet an operational ASP; creating it does not enable ingest.
+Do not create a second ASP with the same identifier through another workflow.
+
+### 3. Select scopes and environments
+
+**Base is always selected** and needs no subpanel registry document. For a
+base-only assay, leave named subpanels unselected. Choose at least one target
+environment; this is the clinical configuration environment, not a separate
+application deployment.
+
+For each required named scope, reuse an active shared subpanel or select
+**Manage subpanel definitions** to register it. An unassigned definition can exist
+before the assay. Return to setup and select **Refresh subpanel definitions**,
+then select the scope. Activation creates the draft assay's association; a shared
+definition by itself does not configure every assay.
+
+The selected scopes and environments determine the required ASPC combinations.
+Base plus Myeloid in development and production requires four ASPCs. Base alone
+in production requires one. Do not select speculative combinations: every selected
+combination must be complete before the setup can be approved.
+
+### 4. Prepare the gene lists that filters will select
+
+In **Gene lists**, stage new analysis-specific ISGLs or reuse active eligible lists
+from the assay/group. Review genes, list type, display name and diagnosis/scope
+bindings. Diagnosis identifiers on staged lists must belong to the selected setup
+scopes. A list for SNV does not automatically become a CNV or fusion list.
+
+This step may be left empty when the intended filters do not select an ISGL.
+Do not create an empty placeholder merely to proceed. Without selected lists or
+ad-hoc genes, applicable gene filtering falls back to the ASP's physical coverage;
+empty physical coverage can leave a query without a gene restriction. Review the
+intended scope explicitly before approving the assay.
+
+### 5. Publish compatible reporting rules
+
+After saving the assay draft, use **Open rule builder**. Select the draft assay,
+DNA/RNA analyte, Base or registered named scope, and intended reporting language.
+Author the clinical content, declare the analyses used by the report sections,
+run its tests, and complete independent clinical review and publication.
+
+Return to setup and choose **Refresh reporting rules**. Draft or merely reviewed
+rules do not satisfy publication requirements. An exact named-scope release is
+used when published; otherwise resolution can use a compatible assay Base release
+for the same analyte and language. Do not assume a different language or another
+assay's rule will be selected.
+
+Rules and ISGLs can be prepared in either order after their assay/scope dependencies
+exist. Neither publishes the other. Setup activation resolves a published rule
+for every selected ASPC; even an ASPC with no report sections does not bypass this
+setup-level check. The individual ASPC editor has a narrower rule check: it requires
+a compatible published release when that ASPC is active and has report sections.
+
+### 6. Complete one ASPC for each selected combination
+
+In **Configurations**, save one configuration for each scope/environment pair.
+Review enabled analyses and intents, thresholds, consequence selections,
+analysis-specific ISGL defaults, report sections, language and report settings.
+Only analyses supported by the ASP's declared files and family are available.
+Report sections must be a subset of enabled analyses and declared by the resolved
+published reporting rule.
+
+Selected ISGLs must be active, compatible with the analysis, and available through
+the assay or its group. A typed identifier does not make an unavailable list valid.
+The configuration cannot substitute for an absent file declaration or publish a rule.
+
+### 7. Review, submit and activate
+
+Open **Review**, resolve every readiness error, and select **Submit for review**.
+A qualified reviewer who did not edit the setup reviews its content and chooses
+**Approve and activate**, or **Return for changes** with a reason. Saving or
+submitting the draft alone does not activate it.
+
+Activation rechecks dependency versions and atomically creates the ASP, named
+subpanel associations, staged ISGLs and ASPCs. If a dependency changed after
+submission, return the setup, review the new values and submit again. Rule
+publication remains a separate operation; setup approval does not publish rules.
+
+### 8. Verify with a representative validation sample
+
+Confirm the activated ASP and intended ASPCs are available. Assign users the
+necessary assay/group/environment access, then ingest an approved validation
+sample with matching assay, scope, environment and declared file types.
+
+Check the resolved ASPC and any Base-fallback warning, expected-data availability,
+analysis tabs, filter defaults, selected gene lists, report preview, saved report
+and audit records. Missing optional evidence does not prove that an analysis
+returned zero findings. Do not accept the assay for clinical use until its intended
+review and reporting workflow passes the center's validation.
+
+### 9. Publish the public catalog only if required
+
+An operational assay need not appear in the public catalog. If public presentation
+is required, create its catalog content after activation and complete the catalog's
+separate review/publication workflow. Catalog publication does not activate an ASP,
+create an ASPC or make sample data public.
+
+## When order matters
+
+| Dependency | Required order | What can be prepared independently |
 | --- | --- | --- |
-| Assay | Identifier, display name, group, family, DNA/RNA category, input files, coverage and sequencing settings | Valid ASP definition |
-| Scopes | Base, optional named subpanels and target environments | Base and at least one environment |
-| Gene lists | New lists, their genes, list types, readable names and diagnosis scopes | Optional unless required by the selected filters |
-| Reporting rules | Published rule sets available to the assay | Compatible published rules for every configured reporting scope |
-| Configurations | ASPCs, including filters and reporting settings | Exactly one complete ASPC per selected scope/environment combination |
-| Review | Readiness results, author, scope summary and revision history | Independent review and approval |
+| Assay group and ASP | Register/activate the group before saving the assay setup. | Shared subpanel definitions can be created without an assay association. |
+| Assay identity and rules | Save the setup's ASP draft before authoring its rule scope. | An operational ASP is not required for rules authored against a saved setup draft. |
+| Gene lists and rules | Both must be suitable before configurations that use them are approved. | ISGL authoring and rule authoring/publication have no required order relative to each other. |
+| Named scopes and configurations | Register and select the named scope before configuring it. | Base has no definition or association to create. |
+| ASPC and selected ISGL | The referenced list must exist in the draft workspace or be an eligible existing active list. | Unselected lists are optional and do not block setup. |
+| Setup and catalog | Activate operational resources before catalog publication. | Public wording can be prepared separately; it does not control ingest. |
 
-**Base is always selected.** It is an implicit scope, not a document in
-`subpanels` or `subpanel_associations`. A base-only assay can be activated without
-registering a named subpanel. Select additional shared definitions only when the
-assay needs them. Each selected named scope requires its own ASPC in every
-selected environment. Unselected scopes do not block activation.
-
-To register a missing named scope, use **Manage subpanel definitions**, create
-the shared definition without an active assay association, then return and select
-**Refresh subpanel definitions**. Its association with the draft assay is created
-only during activation.
-
-For example, Base and Myeloid in development and production require four ASPCs.
-Base alone in development requires one.
-
-Save each form before moving to another step. Later steps can remain incomplete
-while in draft. Review identifies the first blocking validation error; correct
-it and review readiness again.
+For the behavior of each missing prerequisite, see the
+[resource and availability reference](clinical-configuration-resources.md#missing-prerequisites-and-their-effects).
 
 ## Gene Lists And Rules
 
@@ -175,7 +287,7 @@ selected setup and are cleared when switching workspaces.
 | `assay_setups` | Reserved `asp_id`; `_id` identifies the workspace | Current content and governance state |
 | `assay_setup_revisions` | `setup_id`, `revision` | Immutable full snapshots of saved states and lifecycle actions |
 
-Collection names are configured in `api/config/center/collections.toml`. Install
+Collection names are configured in `api/config/collections.toml`. Install
 their indexes using the standard command, with the intended deployment
 configuration and index-management account:
 

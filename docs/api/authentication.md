@@ -5,6 +5,20 @@ successful login creates an opaque API session token in MongoDB. The token is
 returned to the caller as an HTTP cookie and can also be sent as a bearer token
 by scripts, notebooks, and command-line clients.
 
+## Login request fields
+
+`POST /api/v1/auth/sessions` accepts a JSON object with these fields:
+
+| Field | Required | Omission default | Meaning |
+| --- | --- | --- | --- |
+| `username` | Yes | None | Local username, or directory email identity for LDAP. |
+| `password` | Yes | None | Credential for the explicitly selected provider. Transmit only to the intended installation. |
+| `provider` | Yes | None | One enabled provider returned by `/api/v1/auth/providers`; no silent provider fallback. |
+
+Account `auth_type` defaults do not supply a default for this login request.
+Use the session cookie or bearer transport described below after authentication;
+the server does not return a reusable password in its response.
+
 ## OpenAPI Authorization Options
 
 Swagger UI shows two authorization schemes:
