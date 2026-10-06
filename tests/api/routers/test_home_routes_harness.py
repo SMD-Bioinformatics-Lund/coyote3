@@ -20,8 +20,8 @@ def _catalog_service(fake_store) -> SampleCatalogService:
         fusion_repository=fake_store.fusion_repository,
         translocation_repository=fake_store.translocation_repository,
         biomarker_repository=fake_store.biomarker_repository,
-        grouped_coverage_repository=getattr(
-            fake_store, "grouped_coverage_repository", SimpleNamespace()
+        d4_coverage_blacklist_repository=getattr(
+            fake_store, "d4_coverage_blacklist_repository", SimpleNamespace()
         ),
     )
 

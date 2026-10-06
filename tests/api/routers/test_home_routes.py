@@ -30,7 +30,7 @@ def _sample_catalog_service() -> SampleCatalogService:
                 str(sample_id): [] for sample_id in sample_ids
             },
         ),
-        grouped_coverage_repository=store.grouped_coverage_repository,
+        d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
         sample_comment_repository=SimpleNamespace(
             list_sample_comments=lambda sample_id: [],
         ),

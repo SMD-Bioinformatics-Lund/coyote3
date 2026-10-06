@@ -1,4 +1,4 @@
-"""Load the center-owned MongoDB collection mapping."""
+"""Load the application-owned MongoDB collection mapping."""
 
 from __future__ import annotations
 

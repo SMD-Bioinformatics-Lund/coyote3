@@ -413,17 +413,19 @@ class SampleCatalogMutationsMixin:
         """Create a coverage blacklist entry."""
         if coord:
             sanitized_coord = str(coord).replace(":", "_").replace("-", "_")
-            self.grouped_coverage_repository.blacklist_coord(gene, sanitized_coord, region, smp_grp)
+            self.d4_coverage_blacklist_repository.blacklist_coord(
+                gene, sanitized_coord, region, smp_grp
+            )
             return
-        self.grouped_coverage_repository.blacklist_gene(gene, smp_grp)
+        self.d4_coverage_blacklist_repository.blacklist_gene(gene, smp_grp)
 
     def remove_coverage_blacklist(self, *, obj_id: str) -> None:
         """Delete a coverage blacklist entry."""
-        self.grouped_coverage_repository.remove_blacklist(obj_id)
+        self.d4_coverage_blacklist_repository.remove_blacklist(obj_id)
 
     def get_coverage_blacklist_entry(self, *, obj_id: str) -> dict | None:
         """Return a coverage blacklist entry."""
-        return self.grouped_coverage_repository.get_blacklist_entry(obj_id)
+        return self.d4_coverage_blacklist_repository.get_blacklist_entry(obj_id)
 
 
 __all__ = ["SampleCatalogMutationsMixin"]

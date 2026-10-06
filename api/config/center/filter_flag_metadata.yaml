@@ -1,11 +1,14 @@
 # Center-configurable VCF filter flag metadata.
 #
 # Matching order:
-#   1. `exact` key match
-#   2. first matching `prefix`
-#   3. frontend/backend fallback prefix rules
+#   1. unambiguous analysis/caller match (terms, exact, then prefixes)
+#   2. global terms, exact, then prefixes
+#   3. frontend fallback prefix rules
 #
 # Centers may edit labels/descriptions without changing application code.
+# Optional caller overrides require recorded provenance and a reviewed definition.
+# No caller-specific flags are enabled by default. See the vocabulary reference.
+callers: {}
 exact:
   PASS:
     label: PASS

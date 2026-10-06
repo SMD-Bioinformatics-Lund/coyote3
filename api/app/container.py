@@ -105,10 +105,10 @@ class MongoStore:
     copy_number_variant_repository: Any
     cosmic_repository: Any
     knowledgebase_version_repository: Any
-    coverage_repository: Any
+    d4_coverage_repository: Any
     expression_repository: Any
     fusion_repository: Any
-    grouped_coverage_repository: Any
+    d4_coverage_blacklist_repository: Any
     hgnc_repository: Any
     iarc_tp53_repository: Any
     gene_list_repository: Any
@@ -152,10 +152,10 @@ class MongoStore:
         "copy_number_variant_repository",
         "cosmic_repository",
         "knowledgebase_version_repository",
-        "coverage_repository",
+        "d4_coverage_repository",
         "expression_repository",
         "fusion_repository",
-        "grouped_coverage_repository",
+        "d4_coverage_blacklist_repository",
         "hgnc_repository",
         "iarc_tp53_repository",
         "gene_list_repository",
@@ -214,10 +214,10 @@ class MongoStore:
         self.copy_number_variant_repository = _LazyRepositoryProxy()
         self.cosmic_repository = _LazyRepositoryProxy()
         self.knowledgebase_version_repository = _LazyRepositoryProxy()
-        self.coverage_repository = _LazyRepositoryProxy()
+        self.d4_coverage_repository = _LazyRepositoryProxy()
         self.expression_repository = _LazyRepositoryProxy()
         self.fusion_repository = _LazyRepositoryProxy()
-        self.grouped_coverage_repository = _LazyRepositoryProxy()
+        self.d4_coverage_blacklist_repository = _LazyRepositoryProxy()
         self.hgnc_repository = _LazyRepositoryProxy()
         self.iarc_tp53_repository = _LazyRepositoryProxy()
         self.gene_list_repository = _LazyRepositoryProxy()

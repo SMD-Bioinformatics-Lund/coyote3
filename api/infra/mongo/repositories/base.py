@@ -1,5 +1,5 @@
 """
-CoverageRepository module for Coyote3
+BaseRepository module for Coyote3
 ==================================
 
 This module defines the `BaseRepository` class used for collection-scoped MongoDB

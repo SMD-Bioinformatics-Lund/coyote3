@@ -38,6 +38,12 @@ services:
       network: host
       target: coyote3_dev_api
     volumes: &dev-app-volumes
+      - type: bind
+        source: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}
+        target: /app/center-config
+        read_only: true
+        bind:
+          create_host_path: false
       - ../../.git:/app/.git:ro
       - ../../api:/app/api
       - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs

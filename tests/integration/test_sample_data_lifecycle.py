@@ -254,7 +254,7 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(database, monkeypa
     specs = {
         "variant": "variants",
         "copy_number_variant": "cnvs",
-        "coverage": "panel_coverage",
+        "coverage": "d4_coverage",
         "translocation": "translocations",
         "fusion": "fusions",
         "biomarker": "biomarkers",

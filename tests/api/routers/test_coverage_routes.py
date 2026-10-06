@@ -18,8 +18,8 @@ def _coverage_service() -> CoverageService:
     return CoverageService(
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
-        coverage_repository=store.coverage_repository,
-        grouped_coverage_repository=store.grouped_coverage_repository,
+        d4_coverage_repository=store.d4_coverage_repository,
+        d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
     )
 
 
@@ -56,21 +56,21 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
         lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
-        service.coverage_repository,
+        service.d4_coverage_repository,
         "get_sample_coverage",
         lambda sample_id: {"_id": "cov1", "TP53": {"mean": 700}},
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "filter_genes_from_form",
-        lambda cov_dict, filter_genes, assay_group, *, grouped_coverage_repository=None: (
+        lambda cov_dict, filter_genes, assay_group, *, d4_coverage_blacklist_repository=None: (
             requested_gene_scopes.append(filter_genes) or cov_dict
         ),
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_repository=None: (
+        lambda filtered_dict, cutoff, assay_group, *, d4_coverage_blacklist_repository=None: (
             filtered_dict
         ),
     )
@@ -166,19 +166,21 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
         lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
-        service.coverage_repository,
+        service.d4_coverage_repository,
         "get_sample_coverage",
         lambda sample_id: {"_id": "cov1", "genes": {"TP53": {"CDS": {"1": {"cov": "700"}}}}},
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "filter_genes_from_form",
-        lambda cov_dict, filter_genes, assay_group, *, grouped_coverage_repository=None: cov_dict,
+        lambda cov_dict, filter_genes, assay_group, *, d4_coverage_blacklist_repository=None: (
+            cov_dict
+        ),
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_repository=None: (
+        lambda filtered_dict, cutoff, assay_group, *, d4_coverage_blacklist_repository=None: (
             filtered_dict
         ),
     )

@@ -48,10 +48,12 @@ class ClinicalVocabulary:
     auth_type_options: tuple[str, ...]
     genelist_standard_types: tuple[str, ...]
     genelist_adhoc_types: tuple[str, ...]
-    required_aspc_reporting_fields: tuple[str, ...]
     annotation_tumor_types: dict[str, str]
     transcript_selection_order: tuple[str, ...]
     fusion_callers: tuple[str, ...]
+    snv_callers: tuple[str, ...]
+    cnv_callers: tuple[str, ...]
+    translocation_callers: tuple[str, ...]
     fusion_description_important_terms: tuple[str, ...]
     fusion_description_not_important_terms: tuple[str, ...]
     fusion_description_context_terms: tuple[str, ...]
@@ -62,6 +64,20 @@ class ClinicalVocabulary:
             "important": list(self.fusion_description_important_terms),
             "not_important": list(self.fusion_description_not_important_terms),
             "context": list(self.fusion_description_context_terms),
+        }
+
+    def caller_options(self) -> dict[str, list[str]]:
+        """Return analysis-specific caller identifiers for metadata validation and display.
+
+        Returns:
+            Configured caller IDs by finding type. These lists do not add parsers
+            or reject historical SNV, CNV, or translocation provenance.
+        """
+        return {
+            "snv": list(self.snv_callers),
+            "cnv": list(self.cnv_callers),
+            "translocation": list(self.translocation_callers),
+            "fusion": list(self.fusion_callers),
         }
 
     def normalize_fusion_callers(self, values: Any, *, reject_unknown: bool = True) -> list[str]:
@@ -203,6 +219,48 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     with path_obj.open("rb") as handle:
         raw = tomllib.load(handle)
 
+    allowed_sections = {
+        "assay",
+        "environment",
+        "files",
+        "analysis",
+        "authentication",
+        "genelist",
+        "reporting",
+        "fusion",
+        "snv",
+        "cnv",
+        "translocation",
+    }
+    if set(raw) - allowed_sections:
+        raise RuntimeError(
+            "Unknown clinical vocabulary section(s): "
+            + ", ".join(sorted(set(raw) - allowed_sections))
+        )
+    for section, keys in {
+        "assay": {
+            "categories",
+            "families",
+            "base_subpanel_id",
+            "family_categories",
+            "family_scopes",
+        },
+        "environment": {"options", "default"},
+        "authentication": {"providers"},
+        "genelist": {"standard_types", "adhoc_types"},
+        "reporting": {
+            "annotation_tumor_types",
+            "transcript_selection_order",
+        },
+        "fusion": {"callers", "description_terms"},
+        "snv": {"callers"},
+        "cnv": {"callers"},
+        "translocation": {"callers"},
+    }.items():
+        block = raw.get(section)
+        if isinstance(block, dict) and set(block) - keys:
+            raise RuntimeError(f"Unknown clinical vocabulary key(s) in {section}")
+
     assay = raw.get("assay")
     environment = raw.get("environment")
     files = raw.get("files")
@@ -230,6 +288,10 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         )
 
     assay_categories = _identifier_tuple(assay.get("categories"), key="assay.categories")
+    if set(files) - {*assay_categories, "required_by_family"}:
+        raise RuntimeError("Unknown clinical vocabulary file category")
+    if set(analysis) - {*assay_categories, "allowed_by_family"}:
+        raise RuntimeError("Unknown clinical vocabulary analysis category")
     assay_families = _identifier_tuple(assay.get("families"), key="assay.families")
     base_subpanel_id = _identifier_value(
         assay.get("base_subpanel_id"), key="assay.base_subpanel_id"
@@ -271,6 +333,8 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         file_section = files.get(category)
         if not isinstance(file_section, dict):
             raise RuntimeError(f"clinical vocabulary requires files.{category} table")
+        if set(file_section) != {"keys"}:
+            raise RuntimeError(f"files.{category} only accepts keys")
         sample_file_keys[category] = _identifier_tuple(
             file_section.get("keys"), key=f"files.{category}.keys"
         )
@@ -278,6 +342,8 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     raw_required = files.get("required_by_family")
     if not isinstance(raw_required, dict):
         raise RuntimeError("clinical vocabulary requires files.required_by_family table")
+    if set(raw_required) != set(assay_families):
+        raise RuntimeError("files.required_by_family must match the configured assay families")
     required_file_keys_by_family: dict[str, tuple[str, ...]] = {}
     for family, category in assay_family_categories.items():
         required = _identifier_tuple(
@@ -297,6 +363,8 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         analysis_section = analysis.get(category)
         if not isinstance(analysis_section, dict):
             raise RuntimeError(f"clinical vocabulary requires analysis.{category} table")
+        if set(analysis_section) != {"types", "file_keys"}:
+            raise RuntimeError(f"analysis.{category} only accepts types and file_keys")
         analysis_types = _string_tuple(
             analysis_section.get("types"), key=f"analysis.{category}.types", uppercase=True
         )
@@ -367,9 +435,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
             "genelist standard_types and adhoc_types must not overlap: "
             + ", ".join(sorted(overlap))
         )
-    required_aspc_reporting_fields = _identifier_tuple(
-        reporting.get("required_aspc_fields"), key="reporting.required_aspc_fields"
-    )
     annotation_tumor_types = reporting.get("annotation_tumor_types")
     if not isinstance(annotation_tumor_types, dict) or any(
         not isinstance(value, str) or not value.strip() for value in annotation_tumor_types.values()
@@ -396,7 +461,25 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     description_terms = fusion.get("description_terms")
     if not isinstance(description_terms, dict):
         raise RuntimeError("clinical vocabulary requires fusion.description_terms table")
+    if set(description_terms) != {"important", "not_important", "context"}:
+        raise RuntimeError("fusion.description_terms contains unsupported categories")
     fusion_callers = _identifier_tuple(fusion.get("callers"), key="fusion.callers")
+    if set(fusion_callers) - {"arriba", "fusioncatcher", "starfusion"}:
+        raise RuntimeError("fusion.callers supports only arriba, fusioncatcher, and starfusion")
+    caller_options = {}
+    for finding_type in ("snv", "cnv", "translocation"):
+        section = raw.get(finding_type, {})
+        if not isinstance(section, dict):
+            raise RuntimeError(f"clinical vocabulary {finding_type} must be a table")
+        raw_callers = section.get("callers", [])
+        callers = (
+            ()
+            if raw_callers == []
+            else _identifier_tuple(raw_callers, key=f"{finding_type}.callers")
+        )
+        if len({re.sub(r"[^a-z0-9]", "", c) for c in callers}) != len(callers):
+            raise RuntimeError(f"{finding_type}.callers must be unique after normalization")
+        caller_options[finding_type] = callers
     if len({_fusion_caller_token(caller) for caller in fusion_callers}) != len(fusion_callers):
         raise RuntimeError("fusion.callers must remain unique after separator normalization")
     fusion_description_important_terms = _string_tuple(
@@ -431,10 +514,12 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         auth_type_options=auth_type_options,
         genelist_standard_types=genelist_standard_types,
         genelist_adhoc_types=genelist_adhoc_types,
-        required_aspc_reporting_fields=required_aspc_reporting_fields,
         annotation_tumor_types=dict(annotation_tumor_types),
         transcript_selection_order=transcript_selection_order,
         fusion_callers=fusion_callers,
+        snv_callers=caller_options["snv"],
+        cnv_callers=caller_options["cnv"],
+        translocation_callers=caller_options["translocation"],
         fusion_description_important_terms=fusion_description_important_terms,
         fusion_description_not_important_terms=fusion_description_not_important_terms,
         fusion_description_context_terms=fusion_description_context_terms,

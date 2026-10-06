@@ -23,7 +23,12 @@ compose_file=""
 is_down_action=0
 has_remove_volumes=0
 compose_args=()
+prepare_directories=0
 for arg in "$@"; do
+  if [[ "$arg" == "--prepare-directories" ]]; then
+    prepare_directories=1
+    continue
+  fi
   compose_args+=("$arg")
   if [[ "$arg" == "-f" || "$arg" == "--file" ]]; then
     has_compose_file=1
@@ -116,6 +121,29 @@ if [[ "$is_down_action" -eq 1 && "$has_remove_volumes" -eq 1 ]]; then
   echo "ERROR: refusing 'down -v/--volumes': Coyote3 deployment data is never removed by this wrapper." >&2
   echo "Use 'down' without volume removal. Host-mounted MongoDB data is retained independently." >&2
   exit 2
+fi
+
+# Only global Compose options belong to the render used for storage preparation.
+# Stop at the command so arguments inside a `run` command cannot trigger actions.
+global_args=()
+for arg in "$@"; do
+  case "$arg" in
+    up|start|create|run)
+      prepare_directories=1
+      break
+      ;;
+    config|build|down|stop|restart|ps|logs|exec|pull|push|version|ls|images|events|top|kill|rm|pause|unpause|port|wait|watch|cp)
+      break
+      ;;
+  esac
+  global_args+=("$arg")
+done
+if [[ "$has_compose_file" -eq 0 ]]; then
+  global_args=(-f "$DEFAULT_COMPOSE_FILE" "${global_args[@]}")
+fi
+if [[ "$prepare_directories" -eq 1 ]]; then
+  "${COMPOSE_BIN[@]}" "${global_args[@]}" config --format json |
+    python3 "$APP_DIR/scripts/deployment/prepare_host_directories.py"
 fi
 
 if [[ "$has_compose_file" -eq 1 ]]; then

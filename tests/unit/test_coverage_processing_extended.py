@@ -3,7 +3,7 @@ from __future__ import annotations
 from api.application.coverage.processing import CoverageProcessingService
 
 
-class _GroupedCoverageRepository:
+class _D4CoverageBlacklistRepository:
     def __init__(self, entries: list[dict] | None = None) -> None:
         self.entries = entries or []
         self.lookups: list[tuple[str, str, str, str]] = []
@@ -53,14 +53,14 @@ def test_coverage_helpers_handle_invalid_payloads_and_blacklists() -> None:
 
 
 def test_find_and_filter_low_covered_genes_respects_region_and_gene_blacklists() -> None:
-    repository = _GroupedCoverageRepository(
+    repository = _D4CoverageBlacklistRepository(
         [
             {"gene": "BRCA1", "region": "CDS", "coord": "blocked"},
             {"gene": "ALK", "region": "gene", "coord": ""},
         ]
     )
     filtered = CoverageProcessingService.find_low_covered_genes(
-        _coverage_payload(), 20, "hematology", grouped_coverage_repository=repository
+        _coverage_payload(), 20, "hematology", d4_coverage_blacklist_repository=repository
     )
     assert list(filtered["genes"]) == ["TP53"]
 
@@ -68,7 +68,7 @@ def test_find_and_filter_low_covered_genes_respects_region_and_gene_blacklists()
         _coverage_payload(),
         ["TP53", "ALK", "missing"],
         "hematology",
-        grouped_coverage_repository=repository,
+        d4_coverage_blacklist_repository=repository,
     )
     assert list(selected["genes"]) == ["TP53"]
 
@@ -76,13 +76,13 @@ def test_find_and_filter_low_covered_genes_respects_region_and_gene_blacklists()
         _coverage_payload(),
         [],
         "hematology",
-        grouped_coverage_repository=repository,
+        d4_coverage_blacklist_repository=repository,
     )
     assert list(unrestricted["genes"]) == ["TP53", "BRCA1"]
 
 
 def test_reg_low_supports_precomputed_and_repository_blacklists() -> None:
-    repository = _GroupedCoverageRepository()
+    repository = _D4CoverageBlacklistRepository()
     regions = {
         "high": {"cov": 100},
         "missing": {"cov": None},
@@ -96,7 +96,7 @@ def test_reg_low_supports_precomputed_and_repository_blacklists() -> None:
             10,
             "TP53",
             "hematology",
-            grouped_coverage_repository=repository,
+            d4_coverage_blacklist_repository=repository,
         )
         is True
     )
@@ -111,7 +111,7 @@ def test_reg_low_supports_precomputed_and_repository_blacklists() -> None:
             10,
             "TP53",
             "hematology",
-            grouped_coverage_repository=repository,
+            d4_coverage_blacklist_repository=repository,
             region_blacklist={("TP53", "CDS", "blocked")},
         )
         is False

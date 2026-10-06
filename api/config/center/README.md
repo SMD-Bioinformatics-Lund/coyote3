@@ -1,16 +1,21 @@
 # Center Configuration
 
-This directory contains the deployer-editable Coyote3 configuration assets.
-Edit these files before deployment when adapting Coyote3 to a laboratory or
-section. Deploy API, worker, and scheduler with the same directory revision.
+This directory contains complete example configuration files. Copy them once to
+a center-owned directory outside the application checkout, or keep the center
+configuration in a separate Git repository. Deploy a reviewed release through
+`COYOTE3_CENTER_CONFIG_HOST_DIR`; application upgrades retain the same directory.
 
 | File | Configure here |
 | --- | --- |
 | `contact.toml` | Center department, support channels, service hours, and any number of contact cards. |
 | `clinical_vocabulary.toml` | Enabled local/LDAP providers, manifest file keys, analysis-to-file bindings, and the released DNA transcript-selection order. |
 | `clinical_query_policy.toml` | Released SNV evidence models and separate typed CNV, translocation, fusion, and PGX exception namespaces. |
-| `collections.toml` | MongoDB database and physical collection names. |
 | `filter_flag_metadata.yaml` | User-facing VCF filter labels, severity, and tooltips. |
+
+API, worker, beat, and monitor mount the external directory read-only. Recreate
+them together after a configuration release. Rebuild documentation when public
+center identity changes. Physical collection mappings are application-owned in
+`../collections.toml` and are not part of the external directory.
 
 Repository identity, supported workflow semantics, authorization semantics, and
 runtime code do not belong here. See the complete field-level protocol in

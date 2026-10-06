@@ -20,8 +20,8 @@ class CoverageService:
         return cls(
             assay_configuration_repository=store.assay_configuration_repository,
             assay_panel_repository=store.assay_panel_repository,
-            coverage_repository=store.coverage_repository,
-            grouped_coverage_repository=store.grouped_coverage_repository,
+            d4_coverage_repository=store.d4_coverage_repository,
+            d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
         )
 
     def __init__(
@@ -29,14 +29,14 @@ class CoverageService:
         *,
         assay_configuration_repository: Any,
         assay_panel_repository: Any,
-        coverage_repository: Any,
-        grouped_coverage_repository: Any,
+        d4_coverage_repository: Any,
+        d4_coverage_blacklist_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
-        self.coverage_repository = coverage_repository
-        self.grouped_coverage_repository = grouped_coverage_repository
+        self.d4_coverage_repository = d4_coverage_repository
+        self.d4_coverage_blacklist_repository = d4_coverage_blacklist_repository
 
     def sample_payload(self, *, sample: dict, cov_cutoff: int) -> dict[str, Any]:
         """Return coverage data for a sample.
@@ -73,7 +73,7 @@ class CoverageService:
             )
         gene_scope = list(assay_panel_doc.get("covered_genes") or [])
 
-        cov_dict = self.coverage_repository.get_sample_coverage(str(sample["_id"])) or {}
+        cov_dict = self.d4_coverage_repository.get_sample_coverage(str(sample["_id"])) or {}
         cov_dict = deepcopy(cov_dict)
         cov_dict.pop("_id", None)
         sample_payload = deepcopy(sample)
@@ -83,13 +83,13 @@ class CoverageService:
             cov_dict,
             gene_scope,
             assay_group,
-            grouped_coverage_repository=self.grouped_coverage_repository,
+            d4_coverage_blacklist_repository=self.d4_coverage_blacklist_repository,
         )
         filtered_dict = CoverageProcessingService.find_low_covered_genes(
             filtered_dict,
             cov_cutoff,
             assay_group,
-            grouped_coverage_repository=self.grouped_coverage_repository,
+            d4_coverage_blacklist_repository=self.d4_coverage_blacklist_repository,
         )
         cov_table = CoverageProcessingService.coverage_table(filtered_dict, cov_cutoff)
         filtered_dict = CoverageProcessingService.organize_data_for_d3(filtered_dict)
@@ -121,7 +121,7 @@ class CoverageService:
             )
 
         grouped_by_gene = defaultdict(dict)
-        blacklisted = list(self.grouped_coverage_repository.get_regions_per_group(group) or [])
+        blacklisted = list(self.d4_coverage_blacklist_repository.get_regions_per_group(group) or [])
         for entry in blacklisted:
             if entry["region"] == "gene":
                 grouped_by_gene[entry["gene"]]["gene"] = entry["_id"]

@@ -7,11 +7,11 @@ from api.infra.mongo.repositories.bam_records import BamServiceRepository
 from api.infra.mongo.repositories.biomarkers import BiomarkerRepository
 from api.infra.mongo.repositories.blacklist import BlacklistRepository
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
-from api.infra.mongo.repositories.coverage import CoverageRepository
+from api.infra.mongo.repositories.d4_coverage import D4CoverageRepository
+from api.infra.mongo.repositories.d4_coverage_blacklist import D4CoverageBlacklistRepository
 from api.infra.mongo.repositories.expression import ExpressionRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
-from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
 from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
 from api.infra.mongo.repositories.reports import ReportRepository
@@ -33,10 +33,10 @@ __all__ = [
     "BiomarkerRepository",
     "BlacklistRepository",
     "CNVsRepository",
-    "CoverageRepository",
+    "D4CoverageRepository",
     "ExpressionRepository",
     "FusionsRepository",
-    "GroupCoverageRepository",
+    "D4CoverageBlacklistRepository",
     "ISGLRepository",
     "PermissionsRepository",
     "RNAClassificationRepository",

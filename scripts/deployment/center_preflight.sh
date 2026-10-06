@@ -4,6 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Validate a center deployment setup before starting application services.
+Add --prepare-directories to create missing application data and log directories.
 
 Usage:
   scripts/deployment/center_preflight.sh --env-file <path> --compose-file <base> [--compose-file <overlay>] [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]...
@@ -21,9 +22,11 @@ COMPOSE_FILES=()
 SEED_FILE=""
 YAML_FILE=""
 REFERENCE_SEED_DATA=()
+PREPARE_DIRECTORIES=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --prepare-directories) PREPARE_DIRECTORIES=(--prepare-directories); shift ;;
     --env-file) ENV_FILE="$2"; shift 2 ;;
     --compose-file) COMPOSE_FILES+=("$2"); shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
@@ -71,7 +74,8 @@ echo "[check] validating secrets in env file"
 bash scripts/deployment/validate_env_secrets.sh --env-file "$ENV_FILE"
 
 echo "[check] validating compose render"
-docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config -q
+bash scripts/deployment/compose-with-version.sh \
+  "${PREPARE_DIRECTORIES[@]}" --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config --quiet
 
 echo "[check] mandatory keys"
 for key in COYOTE3_DB IDENTITY_DB KNOWLEDGEBASE_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT COYOTE3_APP_NETWORK; do
@@ -118,6 +122,22 @@ with open(env_file, "r", encoding="utf-8") as fh:
 
 from api.config.mongo import mongo_endpoints
 mongo_endpoints(data)
+
+import os
+from pathlib import Path
+center_dir = data.get("COYOTE3_CENTER_CONFIG_HOST_DIR")
+if center_dir:
+    if not Path(center_dir).is_absolute():
+        raise SystemExit("COYOTE3_CENTER_CONFIG_HOST_DIR must be an absolute host path")
+    os.environ["COYOTE3_CENTER_CONFIG_DIR"] = center_dir
+from api.config.clinical_query_policy import load_clinical_query_policy
+from api.config.loaders.filter_flags import load_filter_flag_metadata
+from api.config.loaders.contact import load_contact_config
+from api.config.paths import CONTACT_CONFIG_PATH
+load_clinical_query_policy()
+load_filter_flag_metadata()
+load_contact_config(CONTACT_CONFIG_PATH, organization_name=data.get("ORGANIZATION_NAME", ""),
+                    public_base_url=data.get("PUBLIC_BASE_URL", ""), script_name=data.get("SCRIPT_NAME", ""))
 
 ' "$ENV_FILE"
 

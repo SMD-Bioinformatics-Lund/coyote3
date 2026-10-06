@@ -507,11 +507,11 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
         )
 
 
-def test_collection_validator_accepts_nested_panel_coverage_shape():
-    """panel_coverage strict model should accept curated fixture docs."""
-    fixture = Path("demo_data/collections/all_collections_dummy/panel_coverage.json")
+def test_collection_validator_accepts_nested_d4_coverage_shape():
+    """d4_coverage strict model should accept curated fixture docs."""
+    fixture = Path("demo_data/collections/all_collections_dummy/d4_coverage.json")
     payload = _load_seed_list(fixture)[0]
-    validate_collection_document("panel_coverage", payload)
+    validate_collection_document("d4_coverage", payload)
 
 
 def test_users_doc_rejects_non_canonical_username_characters():

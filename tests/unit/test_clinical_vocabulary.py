@@ -134,7 +134,6 @@ standard_types = ["snv"]
 adhoc_types = ["adhoc_snv"]
 
 [reporting]
-required_aspc_fields = ["report_header"]
 annotation_tumor_types = { hematology = "hematologic" }
 transcript_selection_order = [
   "ncbi_mane_plus_clinical",
@@ -148,6 +147,13 @@ transcript_selection_order = [
 
 [fusion]
 callers = ["arriba", "fusioncatcher", "starfusion"]
+
+[snv]
+callers = ["mutect2"]
+[cnv]
+callers = ["cnvkit"]
+[translocation]
+callers = ["manta"]
 
 [fusion.description_terms]
 important = ["known"]

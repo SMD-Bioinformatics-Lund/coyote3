@@ -189,6 +189,7 @@ MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 .design/
 .claude
 .agents
+.smd_configs
 
 
 # Logs

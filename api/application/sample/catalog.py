@@ -42,7 +42,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             fusion_repository=store.fusion_repository,
             translocation_repository=store.translocation_repository,
             biomarker_repository=store.biomarker_repository,
-            grouped_coverage_repository=store.grouped_coverage_repository,
+            d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
             sample_comment_repository=store.sample_comment_repository,
             reported_variant_repository=store.reported_variant_repository,
             reports_base_path=reports_base_path,
@@ -60,7 +60,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         fusion_repository: Any,
         translocation_repository: Any,
         biomarker_repository: Any,
-        grouped_coverage_repository: Any,
+        d4_coverage_blacklist_repository: Any,
         sample_comment_repository: Any | None = None,
         reported_variant_repository: Any | None = None,
         reports_base_path: str = "",
@@ -75,7 +75,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         self.fusion_repository = fusion_repository
         self.translocation_repository = translocation_repository
         self.biomarker_repository = biomarker_repository
-        self.grouped_coverage_repository = grouped_coverage_repository
+        self.d4_coverage_blacklist_repository = d4_coverage_blacklist_repository
         self.sample_comment_repository = sample_comment_repository
         self.reported_variant_repository = reported_variant_repository
         self.reports_base_path = str(reports_base_path or "")

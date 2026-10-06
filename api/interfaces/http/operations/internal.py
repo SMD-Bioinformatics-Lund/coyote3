@@ -213,13 +213,13 @@ _SAMPLE_LINKED_COLLECTIONS: frozenset[str] = frozenset(
         "cnvs",
         "translocations",
         "biomarkers",
-        "panel_coverage",
+        "d4_coverage",
         "fusions",
         "rna_expression",
         "rna_classification",
         "rna_qc",
         "reported_variants",
-        "group_coverage",
+        "d4_coverage_blacklist",
     }
 )
 

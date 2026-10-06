@@ -32,7 +32,7 @@ class ResourceSampleService:
             sample_repository=store.sample_repository,
             variant_repository=store.variant_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
-            coverage_repository=store.coverage_repository,
+            d4_coverage_repository=store.d4_coverage_repository,
             translocation_repository=store.translocation_repository,
             fusion_repository=store.fusion_repository,
             biomarker_repository=store.biomarker_repository,
@@ -53,7 +53,7 @@ class ResourceSampleService:
         sample_repository: Any,
         variant_repository: Any,
         copy_number_variant_repository: Any,
-        coverage_repository: Any,
+        d4_coverage_repository: Any,
         translocation_repository: Any,
         fusion_repository: Any,
         biomarker_repository: Any,
@@ -71,7 +71,7 @@ class ResourceSampleService:
         self.sample_repository = sample_repository
         self.variant_repository = variant_repository
         self.copy_number_variant_repository = copy_number_variant_repository
-        self.coverage_repository = coverage_repository
+        self.d4_coverage_repository = d4_coverage_repository
         self.translocation_repository = translocation_repository
         self.fusion_repository = fusion_repository
         self.biomarker_repository = biomarker_repository
@@ -217,7 +217,7 @@ class ResourceSampleService:
             sample_repository=self.sample_repository,
             variant_repository=self.variant_repository,
             copy_number_variant_repository=self.copy_number_variant_repository,
-            coverage_repository=self.coverage_repository,
+            d4_coverage_repository=self.d4_coverage_repository,
             translocation_repository=self.translocation_repository,
             fusion_repository=self.fusion_repository,
             biomarker_repository=self.biomarker_repository,

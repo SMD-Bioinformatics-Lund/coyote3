@@ -14,7 +14,7 @@ def delete_all_sample_traces(
     sample_repository,
     variant_repository,
     copy_number_variant_repository,
-    coverage_repository,
+    d4_coverage_repository,
     translocation_repository,
     fusion_repository,
     biomarker_repository,
@@ -38,7 +38,7 @@ def delete_all_sample_traces(
     owned = [
         ("variants", variant_repository, sample_key),
         ("cnvs", copy_number_variant_repository, sample_key),
-        ("coverage", coverage_repository, sample_key),
+        ("coverage", d4_coverage_repository, sample_key),
         ("translocs", translocation_repository, sample_key),
         ("fusions", fusion_repository, sample_key),
         ("biomarkers", biomarker_repository, sample_key),

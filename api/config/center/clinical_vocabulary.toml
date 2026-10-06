@@ -29,7 +29,22 @@ standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
 adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
 
 [fusion]
+# Implemented fusion caller IDs. Use only these; this is not a plugin registry.
 callers = ["arriba", "fusioncatcher", "starfusion"]
+
+# Optional presentation metadata registries; these tables may be omitted.
+# Combined DNA inputs preserve caller provenance without this configuration.
+# Leave empty unless caller-specific flag explanations are needed and validated
+# against stored provenance. Entries do not enable parsers or caller filters.
+# SNV/translocation have no caller query filter; CNV has caller policy exceptions.
+[snv]
+callers = []
+
+[cnv]
+callers = []
+
+[translocation]
+callers = []
 
 [fusion.description_terms]
 important = [
@@ -51,14 +66,6 @@ context = [
 ]
 
 [reporting]
-required_aspc_fields = [
-  "report_header",
-  "report_method",
-  "report_description",
-  "language",
-  "plots_path",
-  "report_folder",
-]
 transcript_selection_order = [
   "ncbi_mane_plus_clinical",
   "ensembl_mane_plus_clinical",

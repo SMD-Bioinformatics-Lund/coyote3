@@ -184,6 +184,8 @@ class PublicFilterFlagMetadataPayload(BaseModel):
     exact: dict[str, Any]
     prefixes: dict[str, Any]
     terms: dict[str, Any]
+    callers: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    caller_options: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class PublicContactPayload(BaseModel):

@@ -38,12 +38,12 @@ from api.infra.mongo.repositories.clinical_rule_sets import (
     ClinicalRuleSetRepository,
 )
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
-from api.infra.mongo.repositories.coverage import CoverageRepository
+from api.infra.mongo.repositories.d4_coverage import D4CoverageRepository
+from api.infra.mongo.repositories.d4_coverage_blacklist import D4CoverageBlacklistRepository
 from api.infra.mongo.repositories.expression import ExpressionRepository
 from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
-from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
 from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
@@ -89,8 +89,8 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("fusion_repository", FusionsRepository, "fusions"),
     ("biomarker_repository", BiomarkerRepository, "biomarkers"),
     ("pgx_repository", PgxRepository, "pgx"),
-    ("coverage_repository", CoverageRepository, "coverage"),
-    ("grouped_coverage_repository", GroupCoverageRepository, "groupcov"),
+    ("d4_coverage_repository", D4CoverageRepository, "d4_coverage"),
+    ("d4_coverage_blacklist_repository", D4CoverageBlacklistRepository, "d4_coverage_blacklist"),
     ("assay_configuration_repository", ASPConfigRepository, "aspc"),
     ("roles_repository", RolesRepository, "roles"),
     ("permissions_repository", PermissionsRepository, "permissions"),

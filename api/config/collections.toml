@@ -1,3 +1,4 @@
+# Application-owned physical collection mappings. Database names and URIs are deployment settings.
 [primary]
     ingest_jobs_collection = "ingest_jobs"
     notifications_collection = "notifications"
@@ -7,8 +8,8 @@
     asp_collection = "assay_specific_panels"
     subpanels_collection = "subpanels"
     subpanel_associations_collection = "subpanel_associations"
-assay_setups_collection = "assay_setups"
-assay_groups_collection = "assay_groups"
+    assay_setups_collection = "assay_setups"
+    assay_groups_collection = "assay_groups"
     assay_setup_revisions_collection = "assay_setup_revisions"
 
     blacklist_collection = "blacklist"
@@ -29,8 +30,8 @@ assay_groups_collection = "assay_groups"
     transloc_collection = "translocations"
     biomarkers_collection = "biomarkers"
     pgx_collection = "pgx"
-    coverage_collection = "panel_coverage"
-    groupcov_collection = "group_coverage"
+    d4_coverage_collection = "d4_coverage"
+    d4_coverage_blacklist_collection = "d4_coverage_blacklist"
     rna_expression_collection = "rna_expression"
     rna_qc_collection = "rna_qc"
     rna_classification_collection = "rna_classification"

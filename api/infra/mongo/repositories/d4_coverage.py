@@ -1,8 +1,8 @@
 """
-CoverageRepository module for managing coverage data
+D4CoverageRepository module for managing D4 coverage data
 =================================================
 
-This module provides the `CoverageRepository` class for interacting with
+This module provides the `D4CoverageRepository` class for interacting with
 panel-level sample coverage data stored in MongoDB.
 
 It is part of the MongoDB infrastructure layer.
@@ -18,7 +18,7 @@ from api.infra.mongo.repositories.base import BaseRepository
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class CoverageRepository(BaseRepository):
+class D4CoverageRepository(BaseRepository):
     """
     A repository class for managing sample panel coverage data.
 
@@ -34,7 +34,7 @@ class CoverageRepository(BaseRepository):
         Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
-        self.set_collection(self.adapter.coverage_collection)
+        self.set_collection(self.adapter.d4_coverage_collection)
 
     def ensure_indexes(self) -> None:
         """Create indexes used by historical coverage lookup/delete paths."""

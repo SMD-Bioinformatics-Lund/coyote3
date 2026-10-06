@@ -1,63 +1,30 @@
+# Example public contact details. Copy to the center-owned directory and review.
 [organization]
-name = "Coyote3"
-department = "Section For Molecular Diagnostics (SMD)"
+name = "Example Molecular Diagnostics Center"
+department = "Molecular Diagnostics"
 
 [support]
-primary_email = ""
+primary_email = "support@example.org"
 urgent_phone = ""
-web_app_base_url = ""
-help_center_url = ""
 
 [[hours]]
 label = "Service desk"
-value = "Monday to Friday, 08:00-16:30"
-
-[[hours]]
-label = "Out of hours"
-value = "Use the center's established urgent clinical escalation pathway."
+value = "Replace with the center's support hours and timezone."
 
 [[contacts]]
 label = "Clinical support"
 role = "Interpretation and report questions"
-phone = ""
-description = "Use this channel for questions about variant interpretation, report content, or clinical review workflow."
+description = "Contact the clinical team for interpretation and reporting support."
 
 [[contacts.people]]
-name = "Christina Orsmark-Pietras"
-email = "Christina.Orsmark-Pietras@skane.se"
-
-[[contacts]]
-label = "Sample and sequencing support"
-role = "Sample intake, sequencing, and run-level questions"
-phone = ""
-description = "Use this channel for questions about submitted samples, sequencing runs, or file availability."
-
-[[contacts.people]]
-name = "Ram Nanduri"
-email = "ram.nanduri@skane.se"
-
-[[contacts.people]]
-name = "Viktor Henmyr"
-email = "viktor.henmyr@skane.se"
-
-[[contacts.people]]
-name = "Sailendra Pradhananga"
-email = "sailendra.pradhananga@skane.se"
+name = "Clinical support team"
+email = "clinical@example.org"
 
 [[contacts]]
 label = "Platform support"
-role = "Application access, configuration, and operational issues"
-phone = ""
-description = "Use this channel for login, permission, ingest, or system availability issues."
+role = "Application access and operations"
+description = "Contact the platform team for access, ingest, and service availability."
 
 [[contacts.people]]
-name = "Ram Nanduri"
-email = "ram.nanduri@skane.se"
-
-[[contacts.people]]
-name = "Viktor Henmyr"
-email = "viktor.henmyr@skane.se"
-
-[[contacts.people]]
-name = "Sailendra Pradhananga"
-email = "sailendra.pradhananga@skane.se"
+name = "Platform support team"
+email = "support@example.org"

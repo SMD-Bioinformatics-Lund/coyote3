@@ -1,8 +1,8 @@
 """
-GroupCoverageRepository module for Coyote3
+D4CoverageBlacklistRepository module for D4 coverage exclusions
 =======================================
 
-This module defines the `GroupCoverageRepository` class used for managing group coverage
+This module defines the `D4CoverageBlacklistRepository` class used for managing group coverage
 data in MongoDB, including blacklisting and querying functionalities.
 
 It is part of the MongoDB infrastructure layer.
@@ -19,7 +19,7 @@ from api.infra.mongo.repositories.base import BaseRepository
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class GroupCoverageRepository(BaseRepository):
+class D4CoverageBlacklistRepository(BaseRepository):
     """
     This class provides methods to manage group coverage data in a MongoDB collection.
     It supports operations such as blacklisting genes, regions, and coordinates, querying
@@ -32,7 +32,7 @@ class GroupCoverageRepository(BaseRepository):
         Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
-        self.set_collection(self.adapter.groupcov_collection)
+        self.set_collection(self.adapter.d4_coverage_blacklist_collection)
 
     def ensure_indexes(self) -> None:
         """Ensure indexes.

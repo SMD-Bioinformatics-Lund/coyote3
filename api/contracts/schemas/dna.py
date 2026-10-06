@@ -779,17 +779,33 @@ class GeneCoverageDoc(_DocBase):
     probes: Dict[str, ProbeRegionDoc] = Field(default_factory=dict)
 
 
-class PanelCovDoc(_DocBase):
-    """Per-gene coverage records for a panel and sample."""
+class D4CoverageDoc(_DocBase):
+    """D4-derived transcript, exon, CDS, and probe coverage for one sample."""
 
     genes: Dict[str, GeneCoverageDoc] = Field(default_factory=dict)
     SAMPLE_ID: str
     sample: str
 
 
-class GroupCoverageDoc(_DocBase):
-    """Per-gene coverage records for an assay group and sample."""
+class D4CoverageBlacklistDoc(_DocBase):
+    """Gene or region excluded from D4 coverage evaluation for an assay group."""
 
-    genes: Dict[str, GeneCoverageDoc] = Field(default_factory=dict)
-    SAMPLE_ID: str
-    sample: str
+    group: str = Field(min_length=1)
+    gene: str = Field(min_length=1)
+    region: str = Field(min_length=1)
+    coord: str | None = None
+    group_region_id: str | None = None
+
+    @model_validator(mode="after")
+    def require_region_coordinates(self) -> "D4CoverageBlacklistDoc":
+        """Require a coordinate key for exclusions narrower than a whole gene.
+
+        Returns:
+            The validated exclusion, retaining source fields and identifiers.
+
+        Raises:
+            ValueError: A non-gene exclusion has no coordinate key.
+        """
+        if self.region != "gene" and not self.coord:
+            raise ValueError("Region exclusions require a coordinate key")
+        return self

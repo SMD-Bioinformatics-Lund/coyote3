@@ -3,6 +3,7 @@
 from api.config.loaders.collections import load_collection_mapping
 from api.config.loaders.contact import load_contact_config
 from api.config.paths import (
+    API_CONFIG_DIR,
     CENTER_CONFIG_DIR,
     CLINICAL_VOCABULARY_PATH,
     COLLECTIONS_CONFIG_PATH,
@@ -16,10 +17,10 @@ def test_center_owned_assets_reside_in_one_directory():
     expected = (
         CONTACT_CONFIG_PATH,
         CLINICAL_VOCABULARY_PATH,
-        COLLECTIONS_CONFIG_PATH,
         FILTER_FLAG_METADATA_PATH,
     )
     assert all(path.parent == CENTER_CONFIG_DIR and path.is_file() for path in expected)
+    assert COLLECTIONS_CONFIG_PATH == API_CONFIG_DIR / "collections.toml"
 
 
 def test_center_contact_and_collection_configuration_loads():

@@ -43,7 +43,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def find_low_covered_genes(
-        cov: dict, cutoff: float, smp_grp: str, *, grouped_coverage_repository
+        cov: dict, cutoff: float, smp_grp: str, *, d4_coverage_blacklist_repository
     ) -> dict:
         """Return only genes containing low-covered regions.
 
@@ -58,7 +58,7 @@ class CoverageProcessingService:
         keep = defaultdict(dict)
         genes = CoverageProcessingService._genes_map(cov)
         _gene_blacklist, region_blacklist = CoverageProcessingService._blacklist_index(
-            grouped_coverage_repository.get_regions_per_group(smp_grp)
+            d4_coverage_blacklist_repository.get_regions_per_group(smp_grp)
         )
         for gene, gene_cov in genes.items():
             has_low = False
@@ -69,7 +69,7 @@ class CoverageProcessingService:
                     cutoff,
                     gene,
                     smp_grp,
-                    grouped_coverage_repository=grouped_coverage_repository,
+                    d4_coverage_blacklist_repository=d4_coverage_blacklist_repository,
                     region_blacklist=region_blacklist,
                 )
             if "probes" in gene_cov:
@@ -79,7 +79,7 @@ class CoverageProcessingService:
                     cutoff,
                     gene,
                     smp_grp,
-                    grouped_coverage_repository=grouped_coverage_repository,
+                    d4_coverage_blacklist_repository=d4_coverage_blacklist_repository,
                     region_blacklist=region_blacklist,
                 )
             if has_low:
@@ -124,7 +124,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def filter_genes_from_form(
-        cov_dict: dict, filter_genes: list, smp_grp: str, *, grouped_coverage_repository
+        cov_dict: dict, filter_genes: list, smp_grp: str, *, d4_coverage_blacklist_repository
     ) -> dict:
         """Filter coverage data down to selected genes.
 
@@ -141,7 +141,7 @@ class CoverageProcessingService:
         genes = CoverageProcessingService._genes_map(cov_dict)
         filter_set = set(filter_genes or [])
         gene_blacklist, _region_blacklist = CoverageProcessingService._blacklist_index(
-            grouped_coverage_repository.get_regions_per_group(smp_grp)
+            d4_coverage_blacklist_repository.get_regions_per_group(smp_grp)
         )
         for gene, gene_cov in genes.items():
             if (not filter_set or gene in filter_set) and gene not in gene_blacklist:
@@ -156,7 +156,7 @@ class CoverageProcessingService:
         gene: str,
         smp_grp: str,
         *,
-        grouped_coverage_repository,
+        d4_coverage_blacklist_repository,
         region_blacklist: set[tuple[str, str, str]] | None = None,
     ) -> bool:
         """Return whether a region collection contains low coverage.
@@ -178,7 +178,7 @@ class CoverageProcessingService:
                 if region_blacklist is not None:
                     blacklisted = reg_key in region_blacklist
                 else:
-                    blacklisted = grouped_coverage_repository.is_region_blacklisted(
+                    blacklisted = d4_coverage_blacklist_repository.is_region_blacklisted(
                         gene, region, reg, smp_grp
                     )
                 if not blacklisted:

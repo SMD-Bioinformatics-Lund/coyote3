@@ -9,7 +9,23 @@ from pathlib import Path
 API_CONFIG_DIR = Path(__file__).resolve().parent
 REPO_ROOT = API_CONFIG_DIR.parents[1]
 EMAIL_LOGO_PATH = REPO_ROOT / "api" / "app" / "templates" / "logo.png"
-CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
+BUNDLED_CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
+CENTER_CONFIG_DIR = (
+    Path(os.getenv("COYOTE3_CENTER_CONFIG_DIR") or BUNDLED_CENTER_CONFIG_DIR)
+    .expanduser()
+    .absolute()
+)
+
+if not CENTER_CONFIG_DIR.is_dir():
+    raise RuntimeError(f"Center configuration directory does not exist: {CENTER_CONFIG_DIR}")
+for _center_filename in (
+    "contact.toml",
+    "clinical_vocabulary.toml",
+    "clinical_query_policy.toml",
+    "filter_flag_metadata.yaml",
+):
+    if not (CENTER_CONFIG_DIR / _center_filename).is_file():
+        raise RuntimeError(f"Required center configuration file is missing: {_center_filename}")
 
 # Container filesystem contract. Compose mounts the center-owned host data root
 # at /data for every API and Celery container; runtime code never receives host
@@ -54,5 +70,5 @@ def initialize_storage_directories() -> None:
 CONTACT_CONFIG_PATH = CENTER_CONFIG_DIR / "contact.toml"
 CLINICAL_VOCABULARY_PATH = CENTER_CONFIG_DIR / "clinical_vocabulary.toml"
 CLINICAL_QUERY_POLICY_PATH = CENTER_CONFIG_DIR / "clinical_query_policy.toml"
-COLLECTIONS_CONFIG_PATH = CENTER_CONFIG_DIR / "collections.toml"
+COLLECTIONS_CONFIG_PATH = API_CONFIG_DIR / "collections.toml"
 FILTER_FLAG_METADATA_PATH = CENTER_CONFIG_DIR / "filter_flag_metadata.yaml"

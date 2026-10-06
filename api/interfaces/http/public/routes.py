@@ -7,7 +7,6 @@ import datetime
 import io
 from typing import Any
 
-import yaml
 from fastapi import APIRouter, Query, Response
 
 from api.app import http
@@ -18,7 +17,7 @@ from api.application.public.catalog import PublicCatalogService
 from api.config.application_metadata import APPLICATION_DESCRIPTION
 from api.config.constants import DEFAULT_ENVIRONMENT
 from api.config.loaders.contact import application_integration_links
-from api.config.paths import FILTER_FLAG_METADATA_PATH
+from api.config.loaders.filter_flags import load_filter_flag_metadata
 from api.config.security import get_runtime_environment
 from api.contracts.public import (
     PublicAboutPayload,
@@ -84,31 +83,6 @@ def public_vep_diagram_read(release: str):
             "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
         },
     )
-
-
-def _load_filter_flag_metadata() -> dict:
-    """Read filter-flag YAML metadata, supplying empty mappings for absent groups.
-
-    Returns:
-        A dictionary with exact, prefixes, and terms entries. All are empty
-        mappings when the configured file is absent; false group values also
-        become empty mappings.
-
-    Raises:
-        OSError: If the existing metadata file cannot be opened or read.
-        yaml.YAMLError: If the file contains invalid YAML.
-        AttributeError: If a truthy YAML root does not support mapping lookup.
-    """
-    metadata_path = FILTER_FLAG_METADATA_PATH
-    if not metadata_path.exists():
-        return {"exact": {}, "prefixes": {}, "terms": {}}
-    with metadata_path.open("r", encoding="utf-8") as handle:
-        raw = yaml.safe_load(handle) or {}
-    return {
-        "exact": raw.get("exact") or {},
-        "prefixes": raw.get("prefixes") or {},
-        "terms": raw.get("terms") or {},
-    }
 
 
 @router.get("/api/v1/public/contact", response_model=PublicContactPayload)
@@ -234,7 +208,7 @@ def _public_reference_versions() -> dict:
 @router.get("/api/v1/public/filter-flags/metadata", response_model=PublicFilterFlagMetadataPayload)
 def public_filter_flag_metadata_read():
     """Return center-configurable VCF filter flag metadata."""
-    return util.common.convert_to_serializable(_load_filter_flag_metadata())
+    return util.common.convert_to_serializable(load_filter_flag_metadata())
 
 
 @router.get(

@@ -617,6 +617,26 @@ Required keys:
 Optional keys:
 - None
 
+## `d4_coverage`
+
+Required keys:
+- `SAMPLE_ID` (str)
+- `sample` (str)
+
+Optional keys:
+- `genes` (Dict[str, api.contracts.schemas.dna.GeneCoverageDoc])
+
+## `d4_coverage_blacklist`
+
+Required keys:
+- `group` (str)
+- `gene` (str)
+- `region` (str)
+
+Optional keys:
+- `coord` (str | None)
+- `group_region_id` (str | None)
+
 ## `finding_comments`
 
 Required keys:
@@ -657,15 +677,6 @@ Optional keys:
 - `irrelevant` (str | bool)
 - `interesting` (str | bool)
 - `blacklisted` (str | bool)
-
-## `group_coverage`
-
-Required keys:
-- `SAMPLE_ID` (str)
-- `sample` (str)
-
-Optional keys:
-- `genes` (Dict[str, api.contracts.schemas.dna.GeneCoverageDoc])
 
 ## `hgnc_genes`
 
@@ -907,15 +918,6 @@ Optional keys:
 - `variant_ids` (list[str])
 
 Sample identity fields such as `sample_ids` and `sample_names` are forbidden. This shared cache stores only normalized queries and public responses.
-
-## `panel_coverage`
-
-Required keys:
-- `SAMPLE_ID` (str)
-- `sample` (str)
-
-Optional keys:
-- `genes` (Dict[str, api.contracts.schemas.dna.GeneCoverageDoc])
 
 ## `permissions`
 

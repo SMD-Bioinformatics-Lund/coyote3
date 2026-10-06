@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from api.config.application_metadata import CODEBASE_LINKS, PUBLIC_KNOWLEDGEBASE_API_URLS
 from api.config.loaders.collections import load_collection_mapping
 from api.config.loaders.contact import load_contact_config, normalize_url_prefix
+from api.config.loaders.filter_flags import load_filter_flag_metadata
 from api.config.paths import (
     COLLECTIONS_CONFIG_PATH,
     REPO_ROOT,
@@ -26,6 +27,7 @@ from api.version import environment_version
 
 # Load environment variables from the repo root .env file if present.
 load_dotenv(path.join(REPO_ROOT, ".env"))
+load_filter_flag_metadata()
 
 
 def _require_env(key: str, context: str = "production") -> str:

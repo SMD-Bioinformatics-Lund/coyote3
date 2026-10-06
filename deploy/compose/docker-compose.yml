@@ -13,6 +13,7 @@ x-runtime-defaults: &runtime-defaults
 
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
+  COYOTE3_CENTER_CONFIG_DIR: /app/center-config
   COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}
   IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
   KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
@@ -113,6 +114,12 @@ x-api-image: &api-image
   image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
 
 x-app-volumes: &app-volumes
+  - type: bind
+    source: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}
+    target: /app/center-config
+    read_only: true
+    bind:
+      create_host_path: false
   - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
   - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
 
@@ -145,6 +152,8 @@ services:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
+      additional_contexts:
+        center_config: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}
       network: host
       args:
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}

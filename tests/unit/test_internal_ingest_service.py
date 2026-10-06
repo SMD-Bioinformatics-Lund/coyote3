@@ -108,8 +108,8 @@ def _store_stub(sample_docs=None):
         "cnvs": _Col(),
         "biomarkers": _Col(),
         "transloc": _Col(),
-        "panel_coverage": _Col(),
-        "group_coverage": _Col(),
+        "d4_coverage": _Col(),
+        "d4_coverage_blacklist": _Col(),
         "fusions": _Col(),
         "rna_expression": _Col(),
         "rna_classification": _Col(),
@@ -193,8 +193,8 @@ def _store_stub(sample_docs=None):
         copy_number_variant_repository=_Handler(db["cnvs"]),
         biomarker_repository=_Handler(db["biomarkers"]),
         translocation_repository=_Handler(db["transloc"]),
-        coverage_repository=_Handler(db["panel_coverage"]),
-        grouped_coverage_repository=_Handler(db["group_coverage"]),
+        d4_coverage_repository=_Handler(db["d4_coverage"]),
+        d4_coverage_blacklist_repository=_Handler(db["d4_coverage_blacklist"]),
         fusion_repository=_Handler(db["fusions"]),
         rna_expression_repository=_Handler(db["rna_expression"]),
         rna_classification_repository=_Handler(db["rna_classification"]),
@@ -221,7 +221,7 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
                 "cnvs": store_stub.copy_number_variant_repository.get_collection(),
                 "biomarkers": store_stub.biomarker_repository.get_collection(),
                 "translocations": store_stub.translocation_repository.get_collection(),
-                "panel_coverage": store_stub.coverage_repository.get_collection(),
+                "d4_coverage": store_stub.d4_coverage_repository.get_collection(),
                 "fusions": store_stub.fusion_repository.get_collection(),
                 "rna_expression": store_stub.rna_expression_repository.get_collection(),
                 "rna_classification": store_stub.rna_classification_repository.get_collection(),
@@ -1463,8 +1463,8 @@ def test_replace_declared_dependents_and_counts(monkeypatch):
     sid = "507f1f77bcf86cd799439014"
     cov_col = _Col([{"_id": "x", "SAMPLE_ID": str(sid), "a": 1}])
     stub = _store_stub()
-    stub.coyote_db["panel_coverage"] = cov_col
-    stub.coverage_repository = _Handler(cov_col)
+    stub.coyote_db["d4_coverage"] = cov_col
+    stub.d4_coverage_repository = _Handler(cov_col)
     service = _use_store(monkeypatch, stub)
 
     assert service._data_counts({"snvs": [1, 2], "cov": {}, "anno_vep": [1]}) == {
