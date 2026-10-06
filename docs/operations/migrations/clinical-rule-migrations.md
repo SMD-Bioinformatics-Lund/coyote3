@@ -10,16 +10,16 @@ follow each procedure's preflight checks and write restrictions.
 
 ## Deploying report policy configuration
 
-`scripts/migrate_reporting_policy.py` reads the configured application database.
+`scripts/upgrade_from_v3/migrate_reporting_policy.py` reads the configured application database.
 Supply `COYOTE3_MONGO_URI` and `COYOTE3_DB` through the deployment environment; it
 does not load a private environment file implicitly or print credentials.
 
 ```bash
 # Read-only plan. Use an operator identity for the resulting revisions.
-.venv/bin/python scripts/migrate_reporting_policy.py --actor "$USER"
+.venv/bin/python scripts/upgrade_from_v3/migrate_reporting_policy.py --actor "$USER"
 
 # Explicitly create ASPC revisions and rule drafts in a MongoDB transaction.
-.venv/bin/python scripts/migrate_reporting_policy.py --actor "$USER" --apply
+.venv/bin/python scripts/upgrade_from_v3/migrate_reporting_policy.py --actor "$USER" --apply
 ```
 
 The migration creates new versions of active ASPCs missing a tier policy. SNVs
@@ -53,8 +53,8 @@ the migration before starting the updated application. Export its
 `COYOTE3_MONGO_URI` and `COYOTE3_DB` without placing credentials on the command line:
 
 ```bash
-.venv/bin/python scripts/migrate_reporting_rule_resolution.py
-.venv/bin/python scripts/migrate_reporting_rule_resolution.py --apply
+.venv/bin/python scripts/upgrade_from_v3/migrate_reporting_rule_resolution.py
+.venv/bin/python scripts/upgrade_from_v3/migrate_reporting_rule_resolution.py --apply
 ```
 
 The first command is read-only. The second replaces obsolete
@@ -82,7 +82,7 @@ The command is idempotent after a successful migration.
 
 ## Repairing Draft Revision Checksums
 
-`scripts/repair_clinical_rule_revision_hashes.py` repairs one specific serialization
+`scripts/upgrade_from_v3/repair_clinical_rule_revision_hashes.py` repairs one specific serialization
 failure: a draft update hashed `content_hash: null` before omitting that null field
 from its stored snapshot. The repair reconstructs that exact input and requires
 its digest to match the original. Unknown checksum failures, broken chains and
@@ -91,14 +91,14 @@ references from saved reports stop the operation without writes.
 With `COYOTE3_MONGO_URI` and `COYOTE3_DB` set explicitly, first run:
 
 ```bash
-.venv/bin/python scripts/repair_clinical_rule_revision_hashes.py
+.venv/bin/python scripts/upgrade_from_v3/repair_clinical_rule_revision_hashes.py
 ```
 
 Before applying, stop rule writers and back up the application database. Supply a
 new file in a protected backup directory:
 
 ```bash
-.venv/bin/python scripts/repair_clinical_rule_revision_hashes.py \
+.venv/bin/python scripts/upgrade_from_v3/repair_clinical_rule_revision_hashes.py \
   --apply --backup-file /secure-backups/clinical-rule-revisions.bson
 ```
 
@@ -108,26 +108,3 @@ downstream links without changing rule text or lifecycle metadata. Keep the back
 outside Git and public storage. Rerun the dry run to confirm zero replacements,
 then run the scope-selection migration above and restart writers with the corrected
 application code. The runtime verifier does not accept the faulty serialization.
-
-## Removing obsolete engine-version fields
-
-Unreleased development definitions may contain the obsolete
-`minimum_engine_version` field. Strict import validation rejects that field; remove it
-from exported authoring JSON before importing. For a database containing such records,
-do not simply unset the field: it contributes to content and revision hashes.
-
-Before starting the updated application, stop application writers, back up the
-development database, and run the dedicated migration using an explicitly configured
-`COYOTE3_MONGO_URI` and `COYOTE3_DB`:
-
-```bash
-.venv/bin/python scripts/remove_clinical_engine_version.py
-.venv/bin/python scripts/remove_clinical_engine_version.py --apply
-```
-
-The first command only plans changes. The second atomically removes the obsolete field
-and rebuilds affected content hashes and revision chains after checking their original
-integrity. It preserves rule identities, content versions, revisions and workflow state.
-The migration refuses to change any database containing saved reports; it is only for
-unreleased development data, not a way to rewrite issued-report provenance. Revalidate
-development rules and restart any pending review that relied on the previous hashes.

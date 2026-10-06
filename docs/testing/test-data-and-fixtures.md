@@ -30,7 +30,7 @@ paths, and non-synthetic sample metadata in test data. It also reads compressed
 `.gz` fixtures. Run a full tracked-file scan with:
 
 ```bash
-python3 scripts/check_staged_sensitive_data.py --all-files
+python3 scripts/quality/check_staged_sensitive_data.py --all-files
 ```
 
 The guard is part of the tracked Git hook chain. Enable that chain once per
@@ -70,7 +70,7 @@ Run the repository's contract checks after changing schemas or fixtures:
 
 ```bash
 # Execute contract consistency validation
-PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
+PYTHON_BIN="$(command -v python)" bash scripts/quality/check_contract_integrity.sh
 ```
 
 The script checks:
@@ -90,7 +90,7 @@ When adding or changing fixtures:
 1. Include only the records needed for the test.
 2. Use synthetic data, not copied or renamed patient records.
 3. Keep nested fields consistent with the current contracts.
-4. Run the relevant fixture tests and `check_contract_integrity.sh` before merging.
+4. Run the relevant fixture tests and `quality/check_contract_integrity.sh` before merging.
 
 ## Browser Validation Fixtures
 

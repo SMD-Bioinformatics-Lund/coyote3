@@ -1,0 +1,597 @@
+#!/usr/bin/env python3
+"""Initialize empty Coyote3 application and identity databases before startup.
+
+This is an operator-run deployment step. It connects directly to MongoDB and
+never starts Compose services, calls the Coyote3 API, or queues ingest work.
+"""
+
+from __future__ import annotations
+
+import argparse
+import getpass
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from types import SimpleNamespace
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from pymongo import MongoClient  # noqa: E402
+from werkzeug.security import generate_password_hash  # noqa: E402
+
+from api.application.reporting.clinical_rules.validation import content_hash  # noqa: E402
+from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.mongo import configured_mongo_uri  # noqa: E402
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
+from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
+    build_revision_snapshot,
+)
+from scripts.bootstrap.build_seed_bundle import (  # noqa: E402
+    canonicalize_seed_contract,
+    load_reference_seed_pack,
+    load_seed,
+    lower_business_keys,
+    stamp_docs,
+)
+from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
+    assert_distinct_databases,
+)
+from scripts.knowledgebase.vep_diagram_storage import load_seed_diagrams  # noqa: E402
+
+BOOTSTRAP_ROOT = ROOT_DIR / "api" / "config" / "bootstrap"
+DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
+DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
+DEFAULT_DEMO_CENTER_DIR = BOOTSTRAP_ROOT / "demo_center"
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse database, first-user, and optional demonstration seed settings.
+
+    Returns:
+        Process command-line options with bundled seed directories as defaults.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
+    parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
+    parser.add_argument(
+        "--knowledgebase-mongo-uri", default=os.getenv("KNOWLEDGEBASE_MONGO_URI", "")
+    )
+    parser.add_argument("--knowledgebase-db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
+    parser.add_argument("--db", required=True, help="Application database name")
+    parser.add_argument("--identity-db", required=True, help="Identity database name")
+    parser.add_argument("--username", required=True, help="First local superuser login name")
+    parser.add_argument("--email", required=True, help="First local superuser email address")
+    parser.add_argument("--password", help="Temporary superuser password; omit for a hidden prompt")
+    parser.add_argument("--role-id", default="superuser", choices=["superuser"])
+    parser.add_argument(
+        "--sys-admin-username", required=True, help="Named initial system administrator"
+    )
+    parser.add_argument("--sys-admin-email", required=True, help="System administrator email")
+    parser.add_argument(
+        "--sys-admin-password", help="Temporary system-admin password; omit for a hidden prompt"
+    )
+    parser.add_argument(
+        "--rbac-dir", default=str(DEFAULT_RBAC_DIR), help="Bundled RBAC seed directory"
+    )
+    parser.add_argument(
+        "--reference-dir",
+        default=str(DEFAULT_REFERENCE_DIR),
+        help="Bundled HGNC and VEP reference seed directory",
+    )
+    parser.add_argument(
+        "--with-demo-center",
+        action="store_true",
+        help="Also load the synthetic ASP, ASPC, and ISGL demonstration catalog",
+    )
+    parser.add_argument(
+        "--demo-center-dir",
+        default=str(DEFAULT_DEMO_CENTER_DIR),
+        help="Synthetic or center-owned ASP, ASPC, and ISGL seed directory",
+    )
+    return parser.parse_args()
+
+
+def _fail_if_placeholder_values(args: argparse.Namespace) -> None:
+    """Reject string options containing the deployment placeholder ``change_me``.
+
+    Args:
+        args: Parsed options to scan case-insensitively; non-string values are ignored.
+
+    Raises:
+        SystemExit: At least one option contains the placeholder; only option names
+            are included in the error.
+    """
+    fields = [
+        key
+        for key, value in vars(args).items()
+        if isinstance(value, str) and "change_me" in value.lower()
+    ]
+    if fields:
+        raise SystemExit(
+            "Refusing bootstrap because placeholder values were supplied for: "
+            + ", ".join(sorted(fields))
+        )
+
+
+def _deployment_is_initialized(db, collection_names: tuple[str, ...]) -> bool:
+    """Return whether governance data exists in the target database."""
+    return any(db[name].count_documents({}, limit=1) > 0 for name in collection_names)
+
+
+def _superuser_exists(db, users_collection: str) -> bool:
+    """Return whether the target database already has a superuser."""
+    return db[users_collection].count_documents({"roles": "superuser"}, limit=1) > 0
+
+
+def _resolve_directory(value: str, *, label: str) -> Path:
+    """Expand and resolve a seed directory, rejecting missing or non-directory paths.
+
+    Args:
+        value: Directory path, optionally containing a home-directory prefix.
+        label: Operator-facing name used in the failure message.
+
+    Returns:
+        Absolute, resolved directory path.
+
+    Raises:
+        SystemExit: The resolved path is not a directory.
+    """
+    path = Path(value).expanduser().resolve()
+    if not path.is_dir():
+        raise SystemExit(f"{label} directory was not found: {path}")
+    return path
+
+
+def _build_seed_documents(
+    *, rbac_dir: Path, reference_dir: Path, demo_center_dir: Path | None, actor: str
+) -> dict[str, list[dict]]:
+    """Prepare system catalogs as first versions attributed to the initial administrator.
+
+    Args:
+        rbac_dir: Directory containing bundled permission and role definitions.
+        reference_dir: Directory containing bundled reference snapshots.
+        demo_center_dir: Optional directory containing demonstration configuration.
+        actor: Normalized username of the system administrator created at installation.
+
+    Returns:
+        Validated documents with fresh audit timestamps and initial document versions.
+        Reference release identifiers and clinical content are preserved.
+
+    Raises:
+        ValueError: Seed normalization or collection validation fails.
+        OSError: A selected seed file cannot be read.
+    """
+    payload = load_reference_seed_pack(rbac_dir)
+    payload.update(load_reference_seed_pack(reference_dir))
+    if demo_center_dir is not None:
+        payload.update(load_seed(demo_center_dir))
+
+    canonicalize_seed_contract(payload)
+    lower_business_keys(payload)
+    installed_at = datetime.now(timezone.utc).isoformat()
+    stamp_docs(payload, actor, installed_at)
+
+    for collection in (
+        "assay_groups",
+        "permissions",
+        "roles",
+        "assay_specific_panels",
+        "asp_configs",
+        "insilico_genelists",
+    ):
+        for document in payload.get(collection, []):
+            document["system_managed"] = True
+            document["version"] = 1
+            document["updated_by"] = actor
+            document["updated_on"] = installed_at
+
+    for document in payload.get("clinical_rule_sets", []):
+        document["content_version"] = 1
+        document["revision"] = 1
+        for field in ("published_by", "retired_by"):
+            if document.get(field) is not None:
+                document[field] = actor
+        for field in ("published_at", "effective_from", "retired_at"):
+            if document.get(field) is not None:
+                document[field] = installed_at
+        review = document.get("review", {})
+        for field in ("submitted_by", "clinical_reviewer", "publisher"):
+            if review.get(field) is not None:
+                review[field] = actor
+        for field in ("submitted_at", "clinical_decision_at"):
+            if review.get(field) is not None:
+                review[field] = installed_at
+        for event in document.get("lifecycle", []):
+            event["actor"] = actor
+            event["occurred_at"] = installed_at
+        document["content_hash"] = content_hash(ClinicalRuleSetDoc.model_validate(document))
+
+    normalized: dict[str, list[dict]] = {}
+    for collection, documents in payload.items():
+        normalized[collection] = [
+            normalize_collection_document(collection, document) for document in documents
+        ]
+    if normalized.get("assay_specific_panels"):
+        from scripts.upgrade_from_v3.migrate_assay_subpanels import plan_subpanels
+
+        scopes = plan_subpanels(
+            normalized["assay_specific_panels"],
+            normalized.get("asp_configs", []),
+            normalized.get("clinical_rule_sets", []),
+            normalized.get("insilico_genelists", []),
+            actor=actor,
+        )
+        normalized["subpanels"] = list(
+            {
+                row["subpanel_id"]: {key: value for key, value in row.items() if key != "asp_id"}
+                for row in scopes
+            }.values()
+        )
+        normalized["subpanel_associations"] = [
+            {key: value for key, value in row.items() if key not in {"display_name", "description"}}
+            for row in scopes
+        ]
+    return normalized
+
+
+def _make_bootstrap_user(args: argparse.Namespace, *, actor: str) -> dict:
+    """Build a validated local bootstrap user with a hashed password.
+
+    Args:
+        args: Options containing username, email, role_id, and plaintext password.
+        actor: Identity recorded in creation and update audit fields.
+
+    Returns:
+        Normalized user document with lowercase identifiers, the selected role,
+        current UTC timestamps, and a required password change.
+
+    Raises:
+        pydantic.ValidationError: The user does not satisfy the collection contract.
+    """
+    username = str(args.username).strip().lower()
+    email = str(args.email).strip().lower()
+    role_id = str(args.role_id).strip().lower()
+    full_name = " ".join(part.capitalize() for part in username.split(".")) or username
+    now_utc = datetime.now(timezone.utc)
+    return normalize_collection_document(
+        "users",
+        {
+            "email": email,
+            "username": username,
+            "fullname": full_name,
+            "firstname": full_name.split(" ")[0],
+            "lastname": " ".join(full_name.split(" ")[1:]),
+            "job_title": "Center Bootstrap User",
+            "auth_type": ["local"],
+            "password": generate_password_hash(args.password, method="pbkdf2:sha256"),
+            "roles": [role_id],
+            "system_managed": True,
+            "is_active": True,
+            "must_change_password": True,
+            "environments": ["production", "development", "testing", "validation"],
+            "asp_groups": [],
+            "asp_ids": [],
+            "created_by": actor,
+            "created_on": now_utc,
+            "updated_by": actor,
+            "updated_on": now_utc,
+        },
+    )
+
+
+def _insert_if_empty(db, collection: str, documents: list[dict]) -> str:
+    """Insert a seed batch only when its target collection has no documents.
+
+    Args:
+        db: MongoDB database receiving the seed documents.
+        collection: Physical collection name.
+        documents: Ordered batch to insert; an empty list performs no database access.
+
+    Returns:
+        ``empty`` for no input, ``skipped`` for a populated target, or ``loaded``
+        after insertion.
+
+    Raises:
+        pymongo.errors.PyMongoError: The emptiness check or insertion fails.
+
+    Notes:
+        The check and ordered insertion are not atomic; a failed batch may be partial.
+    """
+    if not documents:
+        return "empty"
+    if db[collection].count_documents({}, limit=1):
+        return "skipped"
+    db[collection].insert_many(documents, ordered=True)
+    return "loaded"
+
+
+def _seed_clinical_rule_revisions(
+    db, *, rules_collection: str, revisions_collection: str, actor: str
+) -> str:
+    """Insert a baseline snapshot for each rule set without revision history.
+
+    Args:
+        db: Application MongoDB database containing rules and revisions.
+        rules_collection: Physical collection of current rule documents.
+        revisions_collection: Physical collection receiving immutable snapshots.
+        actor: Operator identity recorded on every new baseline.
+
+    Returns:
+        ``loaded`` when at least one snapshot was inserted, otherwise ``skipped``.
+
+    Raises:
+        pymongo.errors.PyMongoError: Reading rules or writing revisions fails.
+
+    Notes:
+        Processes rules in ascending ``_id`` order and uses one UTC timestamp.
+        Existing history is left untouched; inserts are not one transaction.
+    """
+    revisions = db[revisions_collection]
+    captured = 0
+    occurred_at = datetime.now(timezone.utc)
+    for document in db[rules_collection].find({}).sort("_id", 1):
+        rule_set_oid = str(document["_id"])
+        if revisions.count_documents({"rule_set_oid": rule_set_oid}, limit=1):
+            continue
+        revisions.insert_one(
+            build_revision_snapshot(
+                document,
+                action="baseline_captured",
+                actor=actor,
+                occurred_at=occurred_at,
+                reason="Initial immutable baseline captured during database bootstrap",
+                previous_revision_hash=None,
+            )
+        )
+        captured += 1
+    return "loaded" if captured else "skipped"
+
+
+def _initialize_governance(
+    db,
+    *,
+    seed: dict[str, list[dict]],
+    user_document: dict,
+    system_admin_document: dict,
+    users_collection: str,
+    roles_collection: str,
+    permissions_collection: str,
+) -> str:
+    """Populate empty governance collections with RBAC and two distinct initial accounts.
+
+    Args:
+        db: Identity MongoDB database receiving governance records.
+        seed: Seed mapping containing permissions and roles document lists.
+        user_document: Validated first-user document with at least one assigned role.
+        system_admin_document: Validated named system-administrator document.
+        users_collection: Physical user collection name.
+        roles_collection: Physical role collection name.
+        permissions_collection: Physical permission collection name.
+
+    Returns:
+        ``skipped`` when governance data and a superuser already exist, or ``loaded``
+        after inserting permissions, roles, and both initial accounts.
+
+    Raises:
+        SystemExit: Governance is partially populated without a superuser, or the
+            user's first role is absent from the seed catalog.
+        pymongo.errors.PyMongoError: Governance reads or writes fail.
+
+    Notes:
+        Creates declared indexes, then commits permissions, roles, and both accounts
+        in one identity-database transaction. Concurrent initialization cannot create
+        duplicate role or user identifiers.
+    """
+    collection_names = (users_collection, roles_collection, permissions_collection)
+    if _deployment_is_initialized(db, collection_names):
+        if _superuser_exists(db, users_collection):
+            return "skipped"
+        raise SystemExit(
+            "Governance collections are partially initialized but no superuser exists. "
+            "Inspect the database before retrying; bootstrap will not overwrite it."
+        )
+
+    if user_document["username"] == system_admin_document["username"]:
+        raise SystemExit("Superuser and system administrator must be different accounts")
+    if user_document["roles"] != ["superuser"] or system_admin_document["roles"] != ["sys_admin"]:
+        raise SystemExit("Bootstrap requires exactly one superuser and one system administrator")
+    role_ids = {str(document.get("role_id") or "").lower() for document in seed["roles"]}
+    if "sys_admin" not in role_ids:
+        raise SystemExit("The bundled system administrator role is missing")
+    assigned_role = str(user_document["roles"][0]).lower()
+    if assigned_role not in role_ids:
+        raise SystemExit(
+            f"Bootstrap role '{assigned_role}' is not present in the bundled RBAC catalog."
+        )
+
+    from api.infra.mongo.transactions import run_transaction
+
+    def initialize(session):
+        """Commit both accounts and their permission definitions together."""
+        if any(db[name].count_documents({}, limit=1, session=session) for name in collection_names):
+            raise SystemExit("Governance changed during bootstrap; no records were overwritten")
+        db[permissions_collection].insert_many(seed["permissions"], ordered=True, session=session)
+        db[roles_collection].insert_many(seed["roles"], ordered=True, session=session)
+        db[users_collection].insert_many([user_document, system_admin_document], session=session)
+
+    from api.infra.mongo.repositories.permissions import PermissionsRepository
+    from api.infra.mongo.repositories.roles import RolesRepository
+    from api.infra.mongo.repositories.users import UsersRepository
+
+    adapter = SimpleNamespace(
+        users_collection=db[users_collection],
+        roles_collection=db[roles_collection],
+        permissions_collection=db[permissions_collection],
+    )
+    for repository in (
+        UsersRepository(adapter),
+        RolesRepository(adapter),
+        PermissionsRepository(adapter),
+    ):
+        repository.ensure_indexes()
+    run_transaction(db.client, initialize)
+    return "loaded"
+
+
+def main() -> int:
+    """Validate bootstrap inputs and initialize identity and application collections.
+
+    Returns:
+        Zero after printing the load or skip status of each selected seed collection.
+
+    Raises:
+        SystemExit: CLI parsing exits, placeholders or required inputs are invalid,
+            seed directories or collections are missing, or governance cannot be initialized.
+        ValueError: Seed normalization fails or database namespaces are not distinct.
+        pydantic.ValidationError: Seed or first-user documents violate their contracts.
+        OSError: Seed files cannot be read.
+        pymongo.errors.PyMongoError: Database checks or bootstrap operations fail.
+
+    Notes:
+        Identity governance is committed in one transaction. Reference and optional
+        demonstration data are loaded separately; clients are closed on exit.
+    """
+    args = parse_args()
+    _fail_if_placeholder_values(args)
+    if args.username.strip().lower() == args.sys_admin_username.strip().lower():
+        raise SystemExit("Superuser and system administrator logins must be different")
+    if args.email.strip().lower() == args.sys_admin_email.strip().lower():
+        raise SystemExit("Use distinct email addresses for the two bootstrap accounts")
+    for field, label in (("password", "Superuser"), ("sys_admin_password", "System administrator")):
+        if not getattr(args, field):
+            value = getpass.getpass(f"{label} temporary password: ")
+            if value != getpass.getpass(f"Confirm {label.lower()} temporary password: "):
+                raise SystemExit("Password confirmation does not match")
+            setattr(args, field, value)
+        if len(getattr(args, field)) < 12:
+            raise SystemExit("Temporary passwords must contain at least 12 characters")
+    if args.password == args.sys_admin_password:
+        raise SystemExit("Use different temporary passwords for the two bootstrap accounts")
+    _fail_if_placeholder_values(args)
+    if not args.mongo_uri:
+        raise SystemExit("--mongo-uri or COYOTE3_MONGO_URI is required")
+    if not args.knowledgebase_db:
+        raise SystemExit("--knowledgebase-db or KNOWLEDGEBASE_DB is required")
+    rbac_dir = _resolve_directory(args.rbac_dir, label="RBAC seed")
+    reference_dir = _resolve_directory(args.reference_dir, label="Reference seed")
+    demo_center_dir = (
+        _resolve_directory(args.demo_center_dir, label="Demo center seed")
+        if args.with_demo_center
+        else None
+    )
+    actor = str(args.sys_admin_username).strip().lower()
+    seed = _build_seed_documents(
+        rbac_dir=rbac_dir,
+        reference_dir=reference_dir,
+        demo_center_dir=demo_center_dir,
+        actor=actor,
+    )
+    required = {"permissions", "roles", "hgnc_genes", "vep_metadata"}
+    missing = sorted(required.difference(seed))
+    if missing:
+        raise SystemExit("Bootstrap data is missing required collections: " + ", ".join(missing))
+    primary_mapping = load_collection_section("primary")
+    identity_mapping = load_collection_section("identity")
+    reference_mapping = load_collection_section("knowledgebase")
+    diagram_seed = load_seed_diagrams(seed["vep_metadata"], reference_dir)
+
+    client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
+    identity_client = client
+    reference_client = client
+    try:
+        identity_uri = args.identity_mongo_uri or args.mongo_uri
+        if identity_uri != args.mongo_uri:
+            identity_client = MongoClient(identity_uri, serverSelectionTimeoutMS=7000)
+        reference_uri = args.knowledgebase_mongo_uri or args.mongo_uri
+        if reference_uri == identity_uri:
+            reference_client = identity_client
+        elif reference_uri != args.mongo_uri:
+            reference_client = MongoClient(reference_uri, serverSelectionTimeoutMS=7000)
+        client.admin.command("ping")
+        identity_client.admin.command("ping")
+        reference_client.admin.command("ping")
+        db = client[args.db]
+        identity_db = identity_client[args.identity_db]
+        reference_db = reference_client[args.knowledgebase_db]
+        assert_distinct_databases(db, identity_db)
+        assert_distinct_databases(db, reference_db)
+        assert_distinct_databases(identity_db, reference_db)
+        governance = _initialize_governance(
+            identity_db,
+            seed=seed,
+            user_document=_make_bootstrap_user(args, actor=actor),
+            system_admin_document=_make_bootstrap_user(
+                argparse.Namespace(
+                    username=args.sys_admin_username,
+                    email=args.sys_admin_email,
+                    password=args.sys_admin_password,
+                    role_id="sys_admin",
+                ),
+                actor=actor,
+            ),
+            users_collection=identity_mapping["users_collection"],
+            roles_collection=identity_mapping["roles_collection"],
+            permissions_collection=identity_mapping["permissions_collection"],
+        )
+        print(f"[{governance}] governance: permissions, roles, superuser and system administrator")
+        primary_collections = {
+            "assay_groups": primary_mapping["assay_groups_collection"],
+            "assay_specific_panels": primary_mapping["asp_collection"],
+            "subpanels": primary_mapping["subpanels_collection"],
+            "subpanel_associations": primary_mapping["subpanel_associations_collection"],
+            "asp_configs": primary_mapping["aspc_collection"],
+            "insilico_genelists": primary_mapping["insilico_genelist_collection"],
+            "clinical_rule_sets": primary_mapping["clinical_rule_sets_collection"],
+            "clinical_rule_revisions": primary_mapping["clinical_rule_revisions_collection"],
+        }
+        result = _insert_if_empty(
+            reference_db, reference_mapping["vep_diagrams_collection"], diagram_seed
+        )
+        print(f"[{result}] knowledgebase reference: vep_diagrams")
+        for logical_name, key in (
+            ("hgnc_genes", "hgnc_collection"),
+            ("vep_metadata", "vep_metadata_collection"),
+        ):
+            collection = reference_mapping[key]
+            result = _insert_if_empty(reference_db, collection, seed[logical_name])
+            print(f"[{result}] knowledgebase reference: {logical_name}")
+        for logical_name in (
+            "assay_groups",
+            "assay_specific_panels",
+            "subpanels",
+            "subpanel_associations",
+            "clinical_rule_sets",
+            "asp_configs",
+            "insilico_genelists",
+        ):
+            if logical_name in seed:
+                collection = primary_collections[logical_name]
+                print(f"[{_insert_if_empty(db, collection, seed[logical_name])}] {logical_name}")
+        if "clinical_rule_sets" in seed:
+            result = _seed_clinical_rule_revisions(
+                db,
+                rules_collection=primary_collections["clinical_rule_sets"],
+                revisions_collection=primary_collections["clinical_rule_revisions"],
+                actor=actor,
+            )
+            print(f"[{result}] clinical_rule_revisions")
+    finally:
+        if reference_client is not client and reference_client is not identity_client:
+            reference_client.close()
+        if identity_client is not client:
+            identity_client.close()
+        client.close()
+
+    print("[ok] database bootstrap completed; start the Coyote3 application stack next")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

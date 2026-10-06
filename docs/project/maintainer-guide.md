@@ -45,7 +45,7 @@ explains where each responsibility belongs.
 ```bash
 PYTHONPATH=. ruff check api tests scripts
 PYTHONPATH=. pytest -q
-PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 npm --prefix frontend run lint
 npm --prefix frontend run test:unit
 npm --prefix frontend run build

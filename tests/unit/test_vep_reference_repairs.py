@@ -8,8 +8,8 @@ import mongomock
 import pytest
 from bson import decode_all
 
-from scripts import repair_vep_reference_links as repair
-from scripts.update_vep_metadata import reference_links
+from scripts.knowledgebase import repair_vep_reference_links as repair
+from scripts.knowledgebase.update_vep_metadata import reference_links
 
 
 @pytest.mark.parametrize("release,archive", [(98, "sep2019"), (103, "feb2021"), (116, "jun2026")])

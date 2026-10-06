@@ -24,7 +24,7 @@ MongoDB.
 
 The production application definition is
 `deploy/compose/docker-compose.yml`. Use
-`scripts/compose-with-version.sh` instead of calling Docker Compose directly.
+`scripts/deployment/compose-with-version.sh` instead of calling Docker Compose directly.
 The wrapper reads the application version from `api/version.py`, validates the
 environment before startup, and rejects `down -v`.
 
@@ -101,7 +101,7 @@ tool. Do not reuse an administrator password as an application secret.
 Validate that no placeholder remains:
 
 ```bash
-scripts/validate_env_secrets.sh --env-file .coyote3_env
+scripts/deployment/validate_env_secrets.sh --env-file .coyote3_env
 ```
 
 Load the selected values into the operator shell before using them in later
@@ -166,16 +166,16 @@ Validate the rendered production model, then build immutable application
 images.
 
 ```bash
-bash scripts/center_preflight.sh \
+bash scripts/deployment/center_preflight.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   config --quiet
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   build
@@ -195,11 +195,11 @@ an empty first installation.
 read -rsp "First administrator password: " FIRST_ADMIN_PASSWORD
 echo
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps -it api \
-  python scripts/bootstrap_database.py \
+  python scripts/bootstrap/bootstrap_database.py \
     --mongo-uri "$COYOTE3_MONGO_URI" \
     --identity-mongo-uri "$IDENTITY_MONGO_URI" \
     --db "$COYOTE3_DB" \
@@ -220,7 +220,7 @@ unchanged.
 ### 7. Start the production services
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d
@@ -229,12 +229,12 @@ scripts/compose-with-version.sh \
 Review the service state and startup logs:
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   ps
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   logs --tail=200 api worker beat proxy
@@ -285,17 +285,17 @@ Index management is explicit and idempotent. Inspect the plan before applying
 missing compatible indexes:
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
-  python scripts/manage_mongo_indexes.py plan
+  python scripts/database/manage_mongo_indexes.py plan
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
-  python scripts/manage_mongo_indexes.py apply
+  python scripts/database/manage_mongo_indexes.py apply
 ```
 
 `apply` creates missing compatible indexes and never drops an index. Retire an
@@ -333,7 +333,7 @@ Use a dedicated MongoDB account with the center-approved backup permissions;
 do not place this URI in Git. For the supplied Docker replica set, run:
 
 ```bash
-scripts/mongo_backup_archive.sh \
+scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
   --label first-production-release \
@@ -376,7 +376,7 @@ Load the dedicated backup URI into the operator shell as described in the
 first-installation backup step before running the archive command.
 
 ```bash
-scripts/mongo_backup_archive.sh \
+scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
   --label pre-deployment \
@@ -389,12 +389,12 @@ scripts/mongo_backup_archive.sh \
 git fetch --tags
 git checkout <NEW_RELEASE_TAG>
 
-scripts/validate_env_secrets.sh --env-file .coyote3_env
-bash scripts/center_preflight.sh \
+scripts/deployment/validate_env_secrets.sh --env-file .coyote3_env
+bash scripts/deployment/center_preflight.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   config --quiet
@@ -407,7 +407,7 @@ and durable host roots unless an approved infrastructure change replaces them.
 ### 4. Build before replacing running services
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   build
@@ -424,11 +424,11 @@ To add newly bundled system permissions or roles while preserving center roles
 and grants:
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
-  python scripts/sync_rbac_catalog.py \
+  python scripts/identity/sync_rbac_catalog.py \
     --mongo-uri "$IDENTITY_MONGO_URI" \
     --identity-db "$IDENTITY_DB"
 ```
@@ -436,27 +436,27 @@ scripts/compose-with-version.sh \
 Inspect and apply newly declared indexes when required:
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
-  python scripts/manage_mongo_indexes.py plan
+  python scripts/database/manage_mongo_indexes.py plan
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps api \
-  python scripts/manage_mongo_indexes.py apply
+  python scripts/database/manage_mongo_indexes.py apply
 ```
 
-Do not rerun `bootstrap_database.py`. Do not execute an old migration merely
+Do not rerun `bootstrap/bootstrap_database.py`. Do not execute an old migration merely
 because it exists in a previous release. Stored-data changes require a
 release-specific, reviewed procedure.
 
 ### 6. Replace the application services
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d
@@ -483,12 +483,12 @@ the previous images, and start the previous application model:
 ```bash
 git checkout <PREVIOUS_RELEASE_TAG>
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   build
 
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d
@@ -506,7 +506,7 @@ synchronization, or index creation. Start the independent MongoDB service
 first, confirm it is healthy, and then run:
 
 ```bash
-scripts/compose-with-version.sh \
+scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d

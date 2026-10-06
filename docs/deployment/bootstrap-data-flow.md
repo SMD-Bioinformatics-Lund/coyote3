@@ -63,7 +63,7 @@ runs only against empty governance collections.
 
 ## Database bootstrap method
 
-- Run `scripts/bootstrap_database.py` before application services are started.
+- Run `scripts/bootstrap/bootstrap_database.py` before application services are started.
 - Pass the emergency account using `--username` and `--email`, and the named system
   administrator using `--sys-admin-username` and `--sys-admin-email`.
 - Omit `--password` and `--sys-admin-password` for hidden, confirmed password prompts.
@@ -77,7 +77,7 @@ runs only against empty governance collections.
 Standard command shape:
 
 ```bash
-.venv/bin/python scripts/bootstrap_database.py \
+.venv/bin/python scripts/bootstrap/bootstrap_database.py \
   --mongo-uri "$COYOTE3_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
@@ -124,7 +124,7 @@ create samples or run ingest.
 Start Coyote3 after database bootstrap:
 
 ```bash
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build

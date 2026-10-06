@@ -26,13 +26,13 @@ repos:
     hooks:
     -   id: sensitive-data
         name: sensitive data and secret guard
-        entry: python3 scripts/check_staged_sensitive_data.py
+        entry: python3 scripts/quality/check_staged_sensitive_data.py
         language: system
         pass_filenames: false
         stages: [pre-commit]
     -   id: contract-integrity
         name: contract integrity checks
-        entry: bash scripts/check_contract_integrity.sh
+        entry: bash scripts/quality/check_contract_integrity.sh
         language: system
         pass_filenames: false
         stages: [pre-commit]

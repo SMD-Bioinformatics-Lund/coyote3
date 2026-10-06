@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from scripts.inspect_mongo_capacity import collection_snapshot, snapshot
+from scripts.database.inspect_mongo_capacity import collection_snapshot, snapshot
 
 
 class FakeDatabase:

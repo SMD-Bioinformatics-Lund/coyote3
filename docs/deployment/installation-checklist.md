@@ -54,7 +54,7 @@ installed. The command does not start Docker Compose, call HTTP endpoints, or
 ingest any sample.
 
 ```bash
-.venv/bin/python scripts/bootstrap_database.py \
+.venv/bin/python scripts/bootstrap/bootstrap_database.py \
   --mongo-uri "$COYOTE3_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
@@ -85,11 +85,11 @@ only the synthetic ASP, ASPC, and ISGL documents. It does not ingest a sample.
 Validate the environment and Compose definition, then start the services.
 
 ```bash
-bash scripts/center_preflight.sh \
+bash scripts/deployment/center_preflight.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml
 
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build
@@ -138,7 +138,7 @@ the demonstration catalog is not suitable for clinical use.
 Validate every manifest before placing it in the ingest watch directory.
 
 ```bash
-.venv/bin/python scripts/validate_ingest_spec.py \
+.venv/bin/python scripts/ingest/validate_ingest_spec.py \
   --yaml <SAMPLE_MANIFEST.yaml> \
   --check-files
 ```
@@ -156,7 +156,7 @@ center's controlled operational records.
 
 ## Existing installations
 
-Do not run `bootstrap_database.py` to update populated reference or clinical
+Do not run `bootstrap/bootstrap_database.py` to update populated reference or clinical
 collections. Use the documented RBAC synchronization, reference-data release,
 and ASP/ASPC/ISGL managed revision procedures instead. See
 [Maintenance and quality](../operations/maintenance-and-verification.md).

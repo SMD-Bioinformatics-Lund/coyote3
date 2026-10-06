@@ -24,16 +24,16 @@ the application. Existing nonempty reference collections are not reseeded.
 3. Run the read-only inspection, then apply with a new backup directory:
 
 ```bash
-.venv/bin/python scripts/migrate_reference_database.py
+.venv/bin/python scripts/knowledgebase/migrate_reference_database.py
 mkdir -p logs/maintenance-backups
-.venv/bin/python scripts/migrate_reference_database.py --apply \
+.venv/bin/python scripts/knowledgebase/migrate_reference_database.py --apply \
   --backup-dir logs/maintenance-backups/reference-relocation
 ```
 
 The script verifies that every current named legacy `assay_subpanels` scope has
 a current shared definition and assay association. Current registry status and
 metadata take precedence over old records. Missing replacements block removal;
-run `scripts/migrate_assay_subpanels.py` first if needed.
+run `scripts/upgrade_from_v3/migrate_assay_subpanels.py` first if needed.
 
 Original documents, collection options and indexes are backed up as BSON in a
 mode-0700 directory with mode-0600 files. HGNC/VEP documents retain their IDs and

@@ -14,7 +14,7 @@ from api.application.notifications.service import NotificationService
 from api.contracts.notifications import NotificationBroadcastRequest
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.notifications import NotificationsRepository
-from scripts.migrate_notification_retention import migrate
+from scripts.maintenance.migrate_notification_retention import migrate
 
 
 @pytest.fixture

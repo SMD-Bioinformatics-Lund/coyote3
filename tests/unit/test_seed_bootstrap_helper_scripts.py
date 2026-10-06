@@ -11,8 +11,8 @@ from pathlib import Path
 import mongomock
 import pytest
 
-from scripts import bootstrap_database
-from scripts.bootstrap_database import (
+from scripts.bootstrap import bootstrap_database
+from scripts.bootstrap.bootstrap_database import (
     DEFAULT_DEMO_CENTER_DIR,
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
@@ -23,7 +23,7 @@ from scripts.bootstrap_database import (
     _seed_clinical_rule_revisions,
     _superuser_exists,
 )
-from scripts.sync_rbac_catalog import synchronize_rbac_catalog
+from scripts.identity.sync_rbac_catalog import synchronize_rbac_catalog
 from tests.unit.reporting.test_clinical_rules import _document
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -288,7 +288,7 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
     """Seed export revisions become fresh baselines without altering clinical content."""
     from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
     from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-    from scripts.build_seed_bundle import load_seed
+    from scripts.bootstrap.build_seed_bundle import load_seed
 
     source = load_seed(DEFAULT_DEMO_CENTER_DIR)
     original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
@@ -448,44 +448,6 @@ def test_database_bootstrap_captures_rule_revision_baselines_once():
     assert snapshot["document"]["revision"] == 1
 
 
-def test_seed_payload_utils_count_and_payload(tmp_path):
-    seed_dir = tmp_path / "seed"
-    seed_dir.mkdir()
-    (seed_dir / "roles.json").write_text(
-        json.dumps([{"role_id": "admin"}, {"role_id": "viewer"}]), encoding="utf-8"
-    )
-
-    count_result = _run_script(
-        [
-            "scripts/seed_payload_utils.py",
-            "count",
-            "--seed-dir",
-            str(seed_dir),
-            "--collection",
-            "roles",
-        ]
-    )
-    assert count_result.returncode == 0, count_result.stderr
-    assert count_result.stdout.strip() == "2"
-
-    payload_result = _run_script(
-        [
-            "scripts/seed_payload_utils.py",
-            "payload",
-            "--seed-dir",
-            str(seed_dir),
-            "--collection",
-            "roles",
-            "--ignore-duplicates",
-        ]
-    )
-    assert payload_result.returncode == 0, payload_result.stderr
-    payload = json.loads(payload_result.stdout)
-    assert payload["collection"] == "roles"
-    assert payload["ignore_duplicates"] is True
-    assert len(payload["documents"]) == 2
-
-
 def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
     source_dir = tmp_path / "source"
     dest_dir = tmp_path / "dest"
@@ -503,7 +465,7 @@ def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
 
     result = _run_script(
         [
-            "scripts/build_seed_bundle.py",
+            "scripts/bootstrap/build_seed_bundle.py",
             "--seed-source",
             str(source_dir),
             "--dest-dir",
@@ -595,7 +557,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
 
     result = _run_script(
         [
-            "scripts/build_seed_bundle.py",
+            "scripts/bootstrap/build_seed_bundle.py",
             "--seed-source",
             str(source_dir),
             "--dest-dir",
@@ -655,7 +617,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
 
 
 def test_check_markdown_links_script_runs_clean():
-    result = _run_script(["scripts/check_markdown_links.py"])
+    result = _run_script(["scripts/docs/check_markdown_links.py"])
     assert result.returncode == 0, result.stderr
     assert "[ok] markdown internal links validated" in result.stdout
 
@@ -678,7 +640,7 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
     )
 
     result = subprocess.run(
-        ["bash", "scripts/validate_env_secrets.sh", "--env-file", str(env_file)],
+        ["bash", "scripts/deployment/validate_env_secrets.sh", "--env-file", str(env_file)],
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
@@ -703,7 +665,7 @@ def test_env_secret_validation_requires_password_token_salt(tmp_path):
     )
 
     result = subprocess.run(
-        ["bash", "scripts/validate_env_secrets.sh", "--env-file", str(env_file)],
+        ["bash", "scripts/deployment/validate_env_secrets.sh", "--env-file", str(env_file)],
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
@@ -742,7 +704,7 @@ def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
     )
 
     result = _run_script(
-        ["scripts/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
+        ["scripts/ingest/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
     )
 
     assert result.returncode != 0
@@ -774,14 +736,14 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
     )
 
     result = _run_script(
-        ["scripts/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
+        ["scripts/ingest/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
     )
 
     assert result.returncode == 0
     assert "[ok] ingest spec is valid" in result.stdout
 
     listed = _run_script(
-        ["scripts/validate_ingest_spec.py", "--yaml", str(manifest_path), "--list-files"]
+        ["scripts/ingest/validate_ingest_spec.py", "--yaml", str(manifest_path), "--list-files"]
     )
 
     assert listed.returncode == 0
@@ -789,7 +751,7 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
 
 
 def test_preflight_script_does_not_use_retired_environment_port_names():
-    combined = (ROOT_DIR / "scripts/center_preflight.sh").read_text(encoding="utf-8")
+    combined = (ROOT_DIR / "scripts/deployment/center_preflight.sh").read_text(encoding="utf-8")
     for retired_key in (
         "COYOTE3_STAGE_PORT",
         "COYOTE3_DEV_PORT",

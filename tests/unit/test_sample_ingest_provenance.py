@@ -10,7 +10,7 @@ from api.application.ingest.collection_writes import (
     upsert_collection_document,
 )
 from api.application.ingest.jobs import sample_entry_source
-from scripts.backfill_sample_ingest_provenance import plan_backfill
+from scripts.upgrade_from_v3.backfill_sample_ingest_provenance import plan_backfill
 
 
 @pytest.mark.parametrize(

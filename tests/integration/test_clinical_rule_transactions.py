@@ -1,4 +1,4 @@
-"""Clinical rule migration and lifecycle checks on a disposable MongoDB replica set."""
+"""Clinical rule lifecycle checks on a disposable MongoDB replica set."""
 
 import os
 from types import SimpleNamespace
@@ -6,11 +6,36 @@ from uuid import uuid4
 
 import pytest
 from pymongo import MongoClient
-from pymongo.collection import Collection
 
-from api.infra.mongo.repositories.clinical_rule_sets import ClinicalRuleSetRepository
-from scripts.remove_clinical_engine_version import migrate
-from tests.unit.test_remove_clinical_engine_version import seed_database
+from api.config.loaders.collections import load_collection_section
+from api.infra.mongo.repositories.clinical_rule_sets import (
+    ClinicalRuleSetRepository,
+    build_revision_snapshot,
+)
+from tests.unit.reporting.test_clinical_rules import _document
+
+
+def seed_database(db):
+    """Create current-format rule revisions without a development cleanup dependency."""
+    mapping = load_collection_section("primary")
+    document = _document(status="draft", active=False)
+    previous = None
+    for revision in (1, 2):
+        document.revision = revision
+        snapshot = build_revision_snapshot(
+            document.model_dump(mode="python", by_alias=True),
+            action="draft_saved",
+            actor="synthetic",
+            occurred_at=document.updated_at,
+            reason=None,
+            previous_revision_hash=previous,
+        )
+        previous = snapshot["revision_hash"]
+        db[mapping["clinical_rule_revisions_collection"]].insert_one(snapshot)
+    db[mapping["clinical_rule_sets_collection"]].insert_one(
+        document.model_dump(mode="python", by_alias=True)
+    )
+    return mapping
 
 
 @pytest.fixture
@@ -26,37 +51,9 @@ def database():
             client.drop_database(db.name)
 
 
-def test_engine_cleanup_commits_and_is_idempotent(database):
-    db, _ = database
-    assert migrate(db, apply=True) == {"rules": 1, "revisions": 2}
-    assert migrate(db, apply=True) == {"rules": 0, "revisions": 0}
-
-
-def test_engine_cleanup_rolls_back_all_changes_on_revision_failure(database, monkeypatch):
-    db, mapping = database
-    original = Collection.replace_one
-
-    def fail_revision(collection, *args, **kwargs):
-        if collection.name == mapping["clinical_rule_revisions_collection"]:
-            raise RuntimeError("Synthetic revision failure")
-        return original(collection, *args, **kwargs)
-
-    monkeypatch.setattr(Collection, "replace_one", fail_revision)
-    with pytest.raises(RuntimeError, match="Synthetic revision failure"):
-        migrate(db, apply=True)
-    assert "minimum_engine_version" in db[mapping["clinical_rule_sets_collection"]].find_one()
-    assert (
-        db[mapping["clinical_rule_revisions_collection"]].count_documents(
-            {"document.minimum_engine_version": {"$exists": True}}
-        )
-        == 2
-    )
-
-
 @pytest.mark.parametrize("operation", ["transition", "publish"])
 def test_lifecycle_refuses_stale_validation_revision(database, operation):
     db, mapping = database
-    migrate(db, apply=True)
     repository = ClinicalRuleSetRepository(
         SimpleNamespace(
             client=db.client,

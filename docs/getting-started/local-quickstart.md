@@ -59,7 +59,7 @@ to MongoDB; it does not start Coyote3 services, call the API, or ingest a
 sample.
 
 ```bash
-.venv/bin/python scripts/bootstrap_database.py \
+.venv/bin/python scripts/bootstrap/bootstrap_database.py \
   --mongo-uri "$COYOTE3_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
@@ -120,7 +120,7 @@ Select another non-overlapping private subnet when this range is already routed
 on the host. Compose uses the existing network and does not create or own it.
 
 ```bash
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
@@ -157,7 +157,7 @@ configured session cookie and may also be sent as
 When the development session is complete, stop the environment:
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml down
+./scripts/deployment/compose-with-version.sh -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml down
 ```
 
 ### Next steps

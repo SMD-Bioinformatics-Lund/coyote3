@@ -26,7 +26,7 @@ A single-member replica set can host the logical databases on one local instance
 The development stack uses the base Compose definition with the development overlay:
 
 ```bash
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
@@ -179,15 +179,15 @@ and logs missing or conflicting indexes without creating, replacing or dropping 
 Index changes are explicit maintenance operations:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py status
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py plan
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py status
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py plan
 ```
 
 With the target database configured and the plan reviewed, `apply` creates missing
 compatible indexes. It does not drop conflicting indexes:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 ```
 
 ## Clinical configuration
@@ -392,8 +392,8 @@ document models, transport contracts and display models have separate ownership.
 Generated references are produced from their source contracts:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/export_collection_contracts_doc.py
-PYTHONPATH=. .venv/bin/python scripts/export_permissions_reference.py
+PYTHONPATH=. .venv/bin/python scripts/docs/export_collection_contracts_doc.py
+PYTHONPATH=. .venv/bin/python scripts/docs/export_permissions_reference.py
 ```
 
 ## Verification
@@ -423,11 +423,11 @@ npm --prefix frontend run test:e2e
 
 # Documentation verification
 npm run docs:lint
-.venv/bin/python scripts/check_markdown_links.py
+.venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 
 # Combined repository checks
-PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```
 
 Mypy checks the modules configured in `pyproject.toml`, not the entire Python tree.

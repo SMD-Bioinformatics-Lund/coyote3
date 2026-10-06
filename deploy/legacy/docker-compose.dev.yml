@@ -139,7 +139,7 @@ services:
     - app
   docs:
     <<: *runtime-defaults
-    image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
+    image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
@@ -156,7 +156,7 @@ services:
   api:
     cpus: ${COYOTE3_API_CPU_LIMIT:-2.0}
     mem_limit: ${COYOTE3_API_MEM_LIMIT:-2g}
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     build:
       context: ../..
@@ -195,7 +195,7 @@ services:
   worker:
     cpus: ${COYOTE3_WORKER_CPU_LIMIT:-2.0}
     mem_limit: ${COYOTE3_WORKER_MEM_LIMIT:-2g}
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     environment:
       <<: *app-environment
@@ -208,7 +208,7 @@ services:
   beat:
     cpus: ${COYOTE3_BEAT_CPU_LIMIT:-0.25}
     mem_limit: ${COYOTE3_BEAT_MEM_LIMIT:-256m}
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     ipc: none
     environment:
@@ -222,7 +222,7 @@ services:
   monitor:
     cpus: ${COYOTE3_MONITOR_CPU_LIMIT:-0.5}
     mem_limit: ${COYOTE3_MONITOR_MEM_LIMIT:-512m}
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/compose-with-version.sh to select the environment image tag}
+    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     <<: *runtime-defaults
     environment:
       <<: *app-environment

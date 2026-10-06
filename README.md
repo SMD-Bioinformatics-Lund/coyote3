@@ -195,7 +195,7 @@ includes the network setup and MongoDB prerequisites.
 Start the development stack:
 
 ```bash
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
@@ -316,7 +316,7 @@ procedures in [Local Development](docs/getting-started/developer-environment.md)
 complete repository quality suite with:
 
 ```bash
-scripts/run_quality_suite.sh
+scripts/quality/run_quality_suite.sh
 ```
 
 The suite runs backend tests and coverage gates, strict Python typing, contract

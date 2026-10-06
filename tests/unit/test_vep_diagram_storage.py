@@ -8,9 +8,13 @@ import pytest
 from pydantic import ValidationError
 
 from api.contracts.schemas.reference import VepConsequenceDiagramDoc
-from scripts.migrate_vep_diagram_storage import embedded_diagrams, migrate_seed
-from scripts.update_vep_metadata import diagram_document
-from scripts.vep_diagram_storage import load_seed_diagrams, split_diagram, store_diagram
+from scripts.knowledgebase.migrate_vep_diagram_storage import embedded_diagrams, migrate_seed
+from scripts.knowledgebase.update_vep_metadata import diagram_document
+from scripts.knowledgebase.vep_diagram_storage import (
+    load_seed_diagrams,
+    split_diagram,
+    store_diagram,
+)
 
 
 def image(release=116):

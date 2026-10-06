@@ -7,7 +7,7 @@ from pathlib import Path
 import mongomock
 import pytest
 
-from scripts.migrate_knowledgebase_database import (
+from scripts.knowledgebase.migrate_knowledgebase_database import (
     knowledgebase_collections,
     migrate_collection,
     transformed_documents,
@@ -60,7 +60,7 @@ def test_migration_copies_indexes_and_verifies_transformed_content(
     )
     source.oncokb_public.create_index("query_hash", name="query_hash_1", unique=True)
     monkeypatch.setattr(
-        "scripts.migrate_knowledgebase_database.source_collection_options",
+        "scripts.knowledgebase.migrate_knowledgebase_database.source_collection_options",
         lambda *_args: {},
     )
 

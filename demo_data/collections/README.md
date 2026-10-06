@@ -32,7 +32,7 @@ Contract rules:
   The demo VEP image is a synthetic one-pixel placeholder, not a clinical diagram.
 - Per-collection required/optional keys are generated from Pydantic contracts into
   `docs/reference/mongodb-collections.md` via:
-  - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/export_collection_contracts_doc.py`
+  - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/docs/export_collection_contracts_doc.py`
 - Small-variant records contain only the selected consequence needed for the
   clinical table. Complete transcript consequences are stored in `anno_vep`,
   keyed by variant identity and VEP version.

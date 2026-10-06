@@ -42,7 +42,7 @@ reused; complete the cleanup section and restart at step 1.
 | --- | --- |
 | MongoDB 7.0.41 replica set | Temporary MongoDB 7.0.41 single-member replica set |
 | Persistent host paths | Isolated paths under a new `/tmp/coyote3-validation.*` directory |
-| Explicit first deployment | `bootstrap_database.py` against an empty database |
+| Explicit first deployment | `bootstrap/bootstrap_database.py` against an empty database |
 | Immutable application services | Base Compose file and immutable image targets |
 | Reverse-proxy prefix | A unique `SCRIPT_NAME` served through the bundled proxy |
 | Background ingest | Celery worker and scheduled watch-folder scan |
@@ -222,8 +222,8 @@ mounts. Do not add center clinical input mounts to the disposable deployment.
 Validate the file before starting services:
 
 ```bash
-bash scripts/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml config --quiet
@@ -357,7 +357,7 @@ it is not exposed on external host interfaces.
 Use the version-aware wrapper so image tags always use `api/version.py`:
 
 ```bash
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -377,12 +377,12 @@ application that a center would deploy.
 Initialize the empty database before starting the API:
 
 ```bash
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
   run --rm --no-deps -it api \
-  python scripts/bootstrap_database.py \
+  python scripts/bootstrap/bootstrap_database.py \
     --mongo-uri "$(grep '^COYOTE3_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --identity-mongo-uri "$(grep '^IDENTITY_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --db coyote3_validation \
@@ -411,7 +411,7 @@ governed database. A second successful bootstrap is not expected.
 Start the complete immutable service stack:
 
 ```bash
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -421,7 +421,7 @@ bash scripts/compose-with-version.sh \
 Inspect service state:
 
 ```bash
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -567,7 +567,7 @@ database or use a second unique sample manifest; it must not overwrite the
 watch-ingested sample:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/center_check.sh \
+PYTHON_BIN=.venv/bin/python bash scripts/deployment/center_check.sh \
     --api-base-url "$VALIDATION_PUBLIC_URL" \
     --username coyote3.admin \
     --password "$VALIDATION_ADMIN_PASSWORD" \
@@ -592,13 +592,13 @@ Save service state and logs outside the containers:
 ```bash
 mkdir -p "$VALIDATION_ROOT/evidence"
 
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
   ps > "$VALIDATION_ROOT/evidence/application-services.txt"
 
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -622,7 +622,7 @@ reviewer with the release evidence.
 Stop the application before MongoDB:
 
 ```bash
-bash scripts/compose-with-version.sh \
+bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \

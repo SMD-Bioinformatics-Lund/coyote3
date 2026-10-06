@@ -14,8 +14,8 @@ from api.application.reporting.eligibility import reportable_tiers
 from api.application.reporting.report_renderer import _template_defaults
 from api.contracts.schemas.assay import ReportableTiersDoc
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from scripts import migrate_reporting_policy
-from scripts.migrate_reporting_policy import metadata_draft
+from scripts.upgrade_from_v3 import migrate_reporting_policy
+from scripts.upgrade_from_v3.migrate_reporting_policy import metadata_draft
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 

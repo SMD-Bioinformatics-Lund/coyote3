@@ -45,7 +45,7 @@ def test_wrapper_selects_environment(tmp_path, label, suffix, level, explicit):
     result = subprocess.run(
         [
             "bash",
-            str(ROOT / "scripts/compose-with-version.sh"),
+            str(ROOT / "scripts/deployment/compose-with-version.sh"),
             "--env-file",
             str(env_file),
             "config",

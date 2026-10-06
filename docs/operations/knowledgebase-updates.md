@@ -97,7 +97,7 @@ Required input:
 - a release identifier taken from the release date or release metadata.
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/update_brca_exchange.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_brca_exchange.py \
   --input /path/to/brca_exchange_release.tsv \
   --release 2026-09-03 \
   --cpus 8
@@ -123,7 +123,7 @@ to all feature types and is imported into `civic_variants`, including fusion
 partners and current CIViC v2 feature identifiers.
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/update_civic.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_civic.py \
   --features /path/to/FeatureSummaries.tsv \
   --variants /path/to/VariantSummaries.tsv \
   --release 2026-09-01 \
@@ -150,7 +150,7 @@ monetization is prohibited; review the current site terms before operational
 use.
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/update_tp53_database.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_tp53_database.py \
   --input /path/to/MutationView_r21.csv \
   --release R21 \
   --cpus 4
@@ -181,7 +181,7 @@ One invocation replaces one product. This keeps storage, validation, rollback,
 and product-specific versioning independent:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_cosmic.py \
   --directory /path/to/cosmic-release \
   --assembly GRCh38 \
   --product classifications \
@@ -361,7 +361,7 @@ Actionability has its own release cycle and must use its own version. For
 example, COSMIC core v104 can coexist with Actionability v21:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_cosmic.py \
   --directory /path/to/cosmic-release \
   --assembly GRCh37 \
   --product actionability \
@@ -373,7 +373,7 @@ Cancer Mutation Census, core COSMIC, Actionability, and signatures can reside in
 different source directories. Run the same updater once for each selected file:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_cosmic.py \
   --directory /data/cosmic/cmc-v104 \
   --assembly GRCh37 \
   --product mutation_census \
@@ -381,7 +381,7 @@ PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
   --cpus 8 \
   --apply
 
-PYTHONPATH=. .venv/bin/python scripts/update_cosmic.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/update_cosmic.py \
   --directory /data/cosmic/signatures-v3.6 \
   --assembly GRCh38 \
   --product signature_sv \

@@ -132,7 +132,7 @@ docker run --rm --security-opt seccomp=unconfined mongo:7.0.41 mongosh --version
 set -a; source .coyote3_dev_env; set +a
 export COYOTE3_VERSION="$(python3 api/version.py)"
 docker network inspect "$COYOTE3_APP_NETWORK" >/dev/null 2>&1 || docker network create "$COYOTE3_APP_NETWORK"
-bash scripts/validate_env_secrets.sh --env-file .coyote3_dev_env
+bash scripts/deployment/validate_env_secrets.sh --env-file .coyote3_dev_env
 docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo config --quiet
 docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo up -d mongo
 docker-compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env -f deploy/legacy/docker-compose.mongo.yml --profile mongo run --rm mongo_init
@@ -185,10 +185,10 @@ in the project's documentation environment before starting; the dev service moun
 definition and env file for every command:
 
 ```bash
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml config --quiet
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml build api docs
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml pull frontend
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml up -d
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml config --quiet
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml build api docs
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml pull frontend
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.dev.yml up -d
 ```
 
 Frontend source changes update through Vite; API source changes trigger Uvicorn
@@ -211,9 +211,9 @@ compiled-stack bootstrap examples are only for a fresh installation; substitute
 the selected environment definition on every command when using dev, stage, or test.
 
 ```bash
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml config --quiet
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml build
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps api python scripts/bootstrap_database.py --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB" --username admin.coyote3 --email '<emergency administrator email>' --sys-admin-username coyote3_sysadmin --sys-admin-email '<system administrator email>'
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml config --quiet
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml build
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps api python scripts/bootstrap/bootstrap_database.py --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB" --username admin.coyote3 --email '<emergency administrator email>' --sys-admin-username coyote3_sysadmin --sys-admin-email '<system administrator email>'
 ```
 
 Replace the email placeholders. Bootstrap prompts for temporary passwords and
@@ -223,16 +223,16 @@ not a permanent elevation of the normal application account:
 
 ```bash
 read -rsp 'Knowledgebase maintenance URI: ' KB_MAINTENANCE_URI; echo
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps -e KNOWLEDGEBASE_MONGO_URI="$KB_MAINTENANCE_URI" api python scripts/manage_mongo_indexes.py apply
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml run --rm --no-deps -e KNOWLEDGEBASE_MONGO_URI="$KB_MAINTENANCE_URI" api python scripts/database/manage_mongo_indexes.py apply
 unset KB_MAINTENANCE_URI
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml up -d
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml ps
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml logs --tail=100 api worker beat proxy
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml up -d
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml ps
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env -f deploy/legacy/docker-compose.yml logs --tail=100 api worker beat proxy
 ```
 
 Dependency health checks still apply, but `up -d` is not a complete application
 acceptance test. Verify API health, login, and the required workflows before use.
-The existing `center_preflight.sh` requires modern Compose; do not use it as a
+The existing `deployment/center_preflight.sh` requires modern Compose; do not use it as a
 legacy readiness check. The secret validator and `config --quiet` commands above
 do not replace storage, connectivity, or application acceptance checks.
 

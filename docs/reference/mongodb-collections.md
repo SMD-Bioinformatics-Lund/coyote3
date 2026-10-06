@@ -4,7 +4,7 @@
 
 > **Generated reference**
 >
-> Generated from `api/contracts/schemas/registry.py` by `scripts/export_collection_contracts_doc.py`. Change the schema or generator, then regenerate this page.
+> Generated from `api/contracts/schemas/registry.py` by `scripts/docs/export_collection_contracts_doc.py`. Change the schema or generator, then regenerate this page.
 
 This is the canonical collection-key reference used by ingestion validation.
 

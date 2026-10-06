@@ -84,10 +84,10 @@ For an existing deployment, export the intended `COYOTE3_MONGO_URI` and
 
 ```bash
 # Validate and count missing definitions without writing.
-.venv/bin/python scripts/install_assay_groups.py --actor "$USER"
+.venv/bin/python scripts/bootstrap/install_assay_groups.py --actor "$USER"
 
 # Create the registry index and insert missing definitions transactionally.
-.venv/bin/python scripts/install_assay_groups.py --actor "$USER" --apply
+.venv/bin/python scripts/bootstrap/install_assay_groups.py --actor "$USER" --apply
 ```
 
 The script does not automatically load a local environment file. `--mongo-uri`

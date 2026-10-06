@@ -62,7 +62,7 @@ administrator cannot compensate for a missing parent by entering an arbitrary id
 
 | Order | Entity | Prerequisites | Required before |
 | --- | --- | --- | --- |
-| 1 | Permission catalog and roles | Identity database and initial administrator | Assigning application access to users. Bundled records are synchronized with `scripts/sync_rbac_catalog.py`. |
+| 1 | Permission catalog and roles | Identity database and initial administrator | Assigning application access to users. Bundled records are synchronized with `scripts/identity/sync_rbac_catalog.py`. |
 | 2 | User accounts | Required roles and permissions | Clinical authoring, review, publication, configuration, and sample operations. |
 | 3 | ASP | None in clinical configuration | Clinical rule sets, ISGL scope, ASPCs, and sample ingest. The ASP defines analyte, assay family, files, physical gene coverage, and accreditation. |
 | 4 | Clinical rule set draft | Active ASP | Clinical review and publication. The selected analyte must match the ASP. |

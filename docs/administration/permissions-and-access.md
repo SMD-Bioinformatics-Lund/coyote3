@@ -38,7 +38,7 @@ Identifiers are lowercase and matched exactly. There is no wildcard expansion: `
 | `roles` | Groups permission identifiers into assignable access profiles. |
 | `users` | Assigns roles and assay, assay-group, and environment scope to an account. |
 
-The bootstrap catalog contains every permission required by the shipped API and frontend. It also contains the standard roles used by a new installation. `scripts/bootstrap_database.py` loads these records only when the destination collections are empty. `scripts/sync_rbac_catalog.py` adds newly shipped definitions to an existing installation without replacing center-created roles or removing locally added role grants.
+The bootstrap catalog contains every permission required by the shipped API and frontend. It also contains the standard roles used by a new installation. `scripts/bootstrap/bootstrap_database.py` loads these records only when the destination collections are empty. `scripts/identity/sync_rbac_catalog.py` adds newly shipped definitions to an existing installation without replacing center-created roles or removing locally added role grants.
 
 The `system_managed` field records ownership:
 
@@ -85,8 +85,8 @@ installing the narrower clinical-administrator grants. With the identity connect
 configured, review and then apply:
 
 ```bash
-.venv/bin/python scripts/migrate_administrator_roles.py --system-admin-user ACCOUNT
-.venv/bin/python scripts/migrate_administrator_roles.py --system-admin-user ACCOUNT --apply
+.venv/bin/python scripts/identity/migrate_administrator_roles.py --system-admin-user ACCOUNT
+.venv/bin/python scripts/identity/migrate_administrator_roles.py --system-admin-user ACCOUNT --apply
 ```
 
 This transaction adds `sys_admin` to the selected account and replaces the bundled
@@ -161,5 +161,5 @@ A permission inserted only into MongoDB has no effect until application code req
 Generate the reference after changing the catalog:
 
 ```bash
-.venv/bin/python scripts/export_permissions_reference.py
+.venv/bin/python scripts/docs/export_permissions_reference.py
 ```

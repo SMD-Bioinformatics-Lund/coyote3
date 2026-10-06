@@ -13,7 +13,7 @@ from api.infra.mongo.repositories.clinical_rule_sets import (
     build_revision_snapshot,
     verify_revision_snapshot,
 )
-from scripts.repair_clinical_rule_revision_hashes import repair
+from scripts.upgrade_from_v3.repair_clinical_rule_revision_hashes import repair
 from tests.unit.reporting.test_clinical_rules import _document
 
 
@@ -64,7 +64,7 @@ def test_repair_verifies_chains_and_preserves_backups(monkeypatch, tmp_path):
     assert repair(db)["verified_serialization_failures"] == 2
     assert list(db.clinical_rule_revisions.find()) == original
     monkeypatch.setattr(
-        "scripts.repair_clinical_rule_revision_hashes.run_transaction",
+        "scripts.upgrade_from_v3.repair_clinical_rule_revision_hashes.run_transaction",
         lambda client, callback: callback(None),
     )
     backup = tmp_path / "original.bson"

@@ -258,7 +258,7 @@ previously queued compressed attachments remain deliverable.
 Recipients are active users whose `roles` include `monitoring_group`, configurable
 with `ERROR_EMAIL_GROUP`. This is a notification membership role with no application
 permissions. Install the role through the existing RBAC catalog synchronization
-command (`scripts/sync_rbac_catalog.py`) or create it in Admin → Roles, then assign
+command (`scripts/identity/sync_rbac_catalog.py`) or create it in Admin → Roles, then assign
 it to the intended users and check their email addresses. The bootstrap catalog
 includes the role for new installations; existing user memberships are not changed.
 Configure the existing `SMTP_*` settings, including `SMTP_HOST` and `SMTP_FROM_EMAIL`;

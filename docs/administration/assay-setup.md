@@ -180,7 +180,7 @@ their indexes using the standard command, with the intended deployment
 configuration and index-management account:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 ```
 
 Apply indexes before starting an API configured to verify index contracts. No

@@ -35,13 +35,13 @@ and the actual request lifecycle.
 Run the complete local quality suite before a release candidate:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 
 # Include rendered Compose validation when checking a deployment profile.
 PYTHON_BIN=.venv/bin/python \
 COMPOSE_FILES="deploy/compose/docker-compose.yml deploy/compose/docker-compose.dev.yml" \
 COMPOSE_ENV_FILE=deploy/env/example.env \
-bash scripts/run_quality_suite.sh
+bash scripts/quality/run_quality_suite.sh
 ```
 
 The command runs backend tests, repository/contract checks, frontend lint and

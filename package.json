@@ -3,7 +3,7 @@
   "private": true,
   "version": "4.0.0",
   "scripts": {
-    "sync:version": "node ./scripts/sync-package-version.js",
+    "sync:version": "node ./scripts/release/sync-package-version.js",
     "postinstall": "npm run sync:version",
     "docs:lint": "markdownlint-cli2 \"README.md\" \"docs/**/*.md\" \".github/**/*.md\"",
     "frontend:build": "npm --prefix frontend run build",

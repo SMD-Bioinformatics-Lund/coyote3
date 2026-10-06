@@ -186,7 +186,7 @@ permission, audit, and versioning flow used by all admin writes.
 2. If form behavior changes, update resource UI metadata in `api/contracts/managed_ui_schemas.py` (sections/display types/overrides).
 3. Bump managed contract version in `api/contracts/managed_resources.py` when version semantics change.
 4. Update seed fixtures with new keys (`demo_data/collections/*`) when baseline data changes.
-5. Update docs generated from contracts (`scripts/export_collection_contracts_doc.py`) and relevant developer/product pages.
+5. Update docs generated from contracts (`scripts/docs/export_collection_contracts_doc.py`) and relevant developer/product pages.
 6. Add/update tests in `tests/unit/test_db_documents.py` and admin-service tests.
-7. Run `bash scripts/check_contract_integrity.sh` before merge.
+7. Run `bash scripts/quality/check_contract_integrity.sh` before merge.
 8. For breaking key changes, add migration script and guide entry.

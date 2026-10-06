@@ -14,11 +14,12 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 def test_family_coverage_uses_project_root_and_selected_interpreter(tmp_path, selection):
     """Running from outside the repo preserves interpreter precedence and coverage location."""
     root = tmp_path / "project"
-    scripts = root / "scripts"
+    scripts = root / "scripts" / "quality"
     scripts.mkdir(parents=True)
     script = scripts / "run_family_coverage_gates.sh"
     script.write_text(
-        (REPOSITORY_ROOT / "scripts/run_family_coverage_gates.sh").read_text(), encoding="utf-8"
+        (REPOSITORY_ROOT / "scripts/quality/run_family_coverage_gates.sh").read_text(),
+        encoding="utf-8",
     )
     (root / ".coverage").touch()
     interpreters = {}
@@ -48,8 +49,9 @@ def test_family_coverage_uses_project_root_and_selected_interpreter(tmp_path, se
 
 
 def _run_script(script: str, *arguments: str) -> subprocess.CompletedProcess[str]:
+    folder = "database" if script.startswith("mongo_") else "deployment"
     return subprocess.run(
-        ["bash", str(REPOSITORY_ROOT / "scripts" / script), *arguments],
+        ["bash", str(REPOSITORY_ROOT / "scripts" / folder / script), *arguments],
         cwd=REPOSITORY_ROOT,
         check=False,
         capture_output=True,
@@ -119,7 +121,9 @@ def test_restore_does_not_print_database_credentials(tmp_path: Path, monkeypatch
 
 
 def test_preflight_checks_runtime_mount_write_access() -> None:
-    script = (REPOSITORY_ROOT / "scripts/center_preflight.sh").read_text(encoding="utf-8")
+    script = (REPOSITORY_ROOT / "scripts/deployment/center_preflight.sh").read_text(
+        encoding="utf-8"
+    )
 
     assert 'data.get("COYOTE3_UID", "10001")' in script
     assert 'data.get("COYOTE3_GID", "10001")' in script
@@ -128,7 +132,9 @@ def test_preflight_checks_runtime_mount_write_access() -> None:
 
 
 def test_preflight_requires_explicit_database_names() -> None:
-    script = (REPOSITORY_ROOT / "scripts/center_preflight.sh").read_text(encoding="utf-8")
+    script = (REPOSITORY_ROOT / "scripts/deployment/center_preflight.sh").read_text(
+        encoding="utf-8"
+    )
 
     assert "for key in COYOTE3_DB IDENTITY_DB KNOWLEDGEBASE_DB BAM_DB" in script
     assert "PASSWORD_TOKEN_SALT COYOTE3_APP_NETWORK" in script
@@ -138,7 +144,7 @@ def test_preflight_requires_explicit_database_names() -> None:
 
 
 def test_center_check_forwards_an_explicit_authentication_provider() -> None:
-    script = (REPOSITORY_ROOT / "scripts/center_check.sh").read_text(encoding="utf-8")
+    script = (REPOSITORY_ROOT / "scripts/deployment/center_check.sh").read_text(encoding="utf-8")
 
     assert 'PROVIDER="local"' in script
     assert '--provider) PROVIDER="$2"; shift 2 ;;' in script

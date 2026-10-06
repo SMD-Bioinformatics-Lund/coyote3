@@ -132,7 +132,7 @@ Use the repository quality command for a release candidate or a substantial
 cross-layer change:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```
 
 This runs the backend unit/API/integration suites, scoped family coverage gates,
@@ -147,7 +147,7 @@ To validate rendered Docker Compose configuration as part of the same gate:
 PYTHON_BIN=.venv/bin/python \
 COMPOSE_FILES="deploy/compose/docker-compose.yml deploy/compose/docker-compose.dev.yml" \
 COMPOSE_ENV_FILE=deploy/env/example.env \
-bash scripts/run_quality_suite.sh
+bash scripts/quality/run_quality_suite.sh
 ```
 
 > **Tip: Browser validation**
@@ -166,7 +166,7 @@ The preferred local equivalent of the `quality` workflow is the repository
 quality script:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```
 
 It runs the same backend tests, coverage gates, type boundary, contract checks,
@@ -177,7 +177,7 @@ GitHub Actions. Add Compose rendering when deployment files changed:
 PYTHON_BIN=.venv/bin/python \
 COMPOSE_FILES="deploy/compose/docker-compose.yml deploy/compose/docker-compose.dev.yml" \
 COMPOSE_ENV_FILE=deploy/env/example.env \
-bash scripts/run_quality_suite.sh
+bash scripts/quality/run_quality_suite.sh
 ```
 
 Use [`act`](https://github.com/nektos/act) only when the GitHub runner wrapper
@@ -202,7 +202,7 @@ Coverage checks enforce minimum thresholds for key logic families.
 
 ```bash
 # Execute multi-family coverage validation
-PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 ```
 
 The system applies a **75% minimum** to `api/domain/core`, with separate

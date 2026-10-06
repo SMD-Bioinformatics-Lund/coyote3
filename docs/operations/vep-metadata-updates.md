@@ -12,7 +12,7 @@ Users can inspect the installed definitions and diagrams in the
 
 ## Sources and release scope
 
-`scripts/update_vep_metadata.py` reads the official Ensembl GitHub sources for:
+`scripts/knowledgebase/update_vep_metadata.py` reads the official Ensembl GitHub sources for:
 
 | Data | Official source |
 | --- | --- |
@@ -25,7 +25,7 @@ retains the original source files and a SHA-256 manifest. Source code is parsed
 as literal data, never executed. The consequence renderer is in `public-plugins`
 for releases 98 and 99 and `ensembl-webcode` from release 100 onward.
 The metadata's three reference URL fields point to human-readable Ensembl archive
-pages, not raw source files. `scripts/ensembl_archives.json` records the reviewed
+pages, not raw source files. `scripts/knowledgebase/ensembl_archives.json` records the reviewed
 release-to-archive dates from the [Ensembl archive listing](https://jun2026.archive.ensembl.org/info/website/archives/index.html)
 and historical release announcements. Review this mapping when adding a release;
 unknown dates stop the import. Retired external archives may no longer serve their
@@ -74,7 +74,7 @@ the pipeline omitted that database. The importer does not infer missing versions
 from another release. The Ensembl database version template marker is resolved
 from the pinned release in both `published_sources` and `ensembl_version`.
 
-`scripts/vep_metadata_policy.json` owns application labels and logical groups.
+`scripts/knowledgebase/vep_metadata_policy.json` owns application labels and logical groups.
 Every imported consequence must occur in exactly one reviewed group. Unknown
 terms and duplicate assignments stop the import before database writes.
 Groups absent from a release are omitted, not filled with newer terms.
@@ -103,7 +103,7 @@ VEP release. Unversioned configuration options select the numerically latest rel
 Run from the repository root with the project's Python environment:
 
 ```bash
-.venv/bin/python scripts/update_vep_metadata.py \
+.venv/bin/python scripts/knowledgebase/update_vep_metadata.py \
   --from-release 98 --to-release 116 --cpus 4 \
   --actor "$USER" --output-dir /tmp/vep-reference-review
 ```
@@ -125,7 +125,7 @@ permission on the knowledgebase database; normal application access can remain
 read-only. A replica set, including a single-member replica set, is required.
 
 ```bash
-.venv/bin/python scripts/update_vep_metadata.py \
+.venv/bin/python scripts/knowledgebase/update_vep_metadata.py \
   --from-release 98 --to-release 116 --cpus 4 \
   --actor "$USER" --output-dir /tmp/vep-reference-install \
   --env-file .knowledgebase-maintenance.env \
@@ -159,7 +159,7 @@ New metadata imports also download the diagram linked by each release's
 `predicted_data.html`. To add or refresh diagrams without replacing definitions:
 
 ```bash
-.venv/bin/python scripts/update_vep_diagrams.py \
+.venv/bin/python scripts/knowledgebase/update_vep_diagrams.py \
   --output /tmp/vep-diagrams.json --cpus 4
 ```
 
@@ -168,7 +168,7 @@ including 103. Add `--update-seed` to enrich the seed, and use the following fla
 for a database update:
 
 ```bash
-.venv/bin/python scripts/update_vep_diagrams.py \
+.venv/bin/python scripts/knowledgebase/update_vep_diagrams.py \
   --output /tmp/vep-diagrams.json --cpus 4 \
   --env-file .knowledgebase-maintenance.env \
   --apply --backup /secure/backups/vep-before-diagrams.bson
@@ -193,7 +193,7 @@ separates this into BSON binary before writing either collection.
 Pause other reference importers, then migrate an existing installation:
 
 ```bash
-.venv/bin/python scripts/migrate_vep_diagram_storage.py \
+.venv/bin/python scripts/knowledgebase/migrate_vep_diagram_storage.py \
   --env-file .knowledgebase-maintenance.env \
   --apply --backup /secure/backups/vep-before-binary-images.bson
 ```
@@ -211,7 +211,7 @@ For references installed with raw download URLs or an unresolved Ensembl version
 label, use the targeted repair with a maintenance connection:
 
 ```bash
-.venv/bin/python scripts/repair_vep_reference_links.py \
+.venv/bin/python scripts/knowledgebase/repair_vep_reference_links.py \
   --env-file .knowledgebase-maintenance.env \
   --apply --backup /secure/backups/vep-before-reference-repair.bson
 ```

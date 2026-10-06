@@ -3,7 +3,7 @@
 import mongomock
 import pytest
 
-from scripts.migrate_reference_database import migrate, validate_legacy_subpanels
+from scripts.knowledgebase.migrate_reference_database import migrate, validate_legacy_subpanels
 
 
 def test_missing_replacement_blocks_retirement():
@@ -54,7 +54,8 @@ def test_apply_backs_up_and_verifies_before_removing_sources(tmp_path, monkeypat
         {"_id": "base", "subpanel_id": "base", "is_current": True}
     )
     monkeypatch.setattr(
-        "scripts.migrate_knowledgebase_database.source_collection_options", lambda *_: {}
+        "scripts.knowledgebase.migrate_knowledgebase_database.source_collection_options",
+        lambda *_: {},
     )
     monkeypatch.setattr(mongomock.collection.Collection, "options", lambda self: {}, raising=False)
     backup = tmp_path / "backup"

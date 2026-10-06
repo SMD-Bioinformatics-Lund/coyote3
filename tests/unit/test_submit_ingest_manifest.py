@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from scripts import submit_ingest_manifest as client
+from scripts.ingest import submit_ingest_manifest as client
 
 
 @pytest.mark.parametrize("outcome", ["ok", "error", "interrupted"])

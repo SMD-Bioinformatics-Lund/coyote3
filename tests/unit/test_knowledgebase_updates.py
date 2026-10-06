@@ -11,16 +11,16 @@ from pathlib import Path
 import mongomock
 import pytest
 
-from scripts.knowledgebase_update_common import (
+from scripts.knowledgebase.knowledgebase_update_common import (
     CollectionSpec,
     clean_text,
     parse_float,
     parse_int,
     publish_release,
 )
-from scripts.update_brca_exchange import documents as brca_documents
-from scripts.update_civic import gene_documents, variant_documents
-from scripts.update_cosmic import (
+from scripts.knowledgebase.update_brca_exchange import documents as brca_documents
+from scripts.knowledgebase.update_civic import gene_documents, variant_documents
+from scripts.knowledgebase.update_cosmic import (
     PRODUCTS,
     actionability_documents,
     mutation_census_documents,
@@ -28,7 +28,7 @@ from scripts.update_cosmic import (
     tsv_documents,
     vcf_documents,
 )
-from scripts.update_tp53_database import documents as tp53_documents
+from scripts.knowledgebase.update_tp53_database import documents as tp53_documents
 
 
 def _write(path: Path, value: str) -> Path:

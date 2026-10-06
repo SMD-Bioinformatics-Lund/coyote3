@@ -18,7 +18,7 @@ MongoDB document shape.
 
 ## Empty-collection rule
 
-`scripts/bootstrap_database.py` is the explicit first-deployment command. It
+`scripts/bootstrap/bootstrap_database.py` is the explicit first-deployment command. It
 connects directly to the configured MongoDB URI before API, worker, or UI
 services are started. It creates a named system administrator and an emergency
 superuser together with the RBAC catalog, then imports the
@@ -43,9 +43,9 @@ immutable revision history are never reset by rerunning bootstrap.
 
 Application upgrades use dedicated synchronization or release procedures:
 
-- RBAC additions are applied with `scripts/sync_rbac_catalog.py`.
+- RBAC additions are applied with `scripts/identity/sync_rbac_catalog.py`.
 - HGNC and VEP releases are loaded as an intentional reference-data operation.
-- `scripts/update_vep_metadata.py` downloads release-specific Ensembl website
+- `scripts/knowledgebase/update_vep_metadata.py` downloads release-specific Ensembl website
   tables. The bundled VEP seed covers releases 98 through 116, with release 103
   preserved from the existing snapshot. `reference/vep_metadata.sources.json`
   records source commits and hashes; `reference/NOTICE.txt` records attribution.

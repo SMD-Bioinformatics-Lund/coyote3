@@ -51,7 +51,7 @@ Ensure all explicit cryptographic secrets and API token parameters are manually 
 Explicitly bind the execution command to the activated Python interpreter environment:
 
 ```bash
-PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 ```
 
 ## Pre-Commit Framework Isolation Faults
@@ -68,6 +68,42 @@ PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_
 ```bash
 python -m pre_commit run --all-files
 ```
+
+## API startup fails while connecting to Redis
+
+`cache_backend_unavailable namespace=api reason=connection_failed` means the API
+could not initialize its required Redis cache. The final wrapper error does not
+distinguish authentication, DNS, TCP, and timeout failures.
+
+Check the connection from the API container, not only the Redis health check.
+Redis's container health check uses a local connection and can pass while traffic
+between containers is blocked.
+
+| Observation | Next check |
+| --- | --- |
+| Authentication error | Compare the configured cache credentials with Redis's runtime credentials without printing either value. |
+| Redis hostname does not resolve | Check that both services share the intended Compose network and Redis has the service alias. |
+| TCP connection is refused | Check Redis's listener and whether it has completed startup. |
+| TCP times out between containers, but succeeds from the host | Inspect bridge forwarding and host firewall rules. A healthy local Redis check does not establish container reachability. |
+
+For a Docker host using iptables, an administrator can inspect the relevant rules
+without changing them:
+
+```bash
+sudo iptables -S FORWARD
+sudo iptables -S DOCKER-USER
+sudo iptables -S DOCKER-FORWARD
+```
+
+Chain names depend on the Docker version and firewall backend; an absent chain
+alone does not identify the fault. Inspect the equivalent rules when the host
+uses another backend. Restore forwarding only for the intended application
+network after identifying the blocking rule. Do not flush the host firewall or
+disable the required cache to work around a network failure.
+
+After repairing connectivity, verify an authenticated Redis PING from the API
+container, then restart the affected application service and check its health.
+This failure does not require a MongoDB migration or data repair.
 
 ## Dashboard Metrics Do Not Refresh
 
@@ -87,9 +123,9 @@ python -m pre_commit run --all-files
    inspect `metric_meta.generated_at` and `metric_meta.stale`.
 
 Dashboard metrics are held in Redis, not in a MongoDB collection. MongoDB index
-maintenance therefore does not repair dashboard cache state. Restarting Redis
-clears cached values; the next request or scheduled refresh rebuilds them from
-the authoritative collections.
+maintenance therefore does not repair dashboard cache state. Redis restarts can
+retain cached values when persistence is enabled. Check expiration and refresh
+execution rather than assuming a restart clears the cache.
 
 ## Mongo Index Conflicts
 
@@ -109,8 +145,8 @@ Run the index contract inspector from the repository root. It reads the same
 MongoDB configuration as the API and does not modify the database.
 
 ```bash
-PYTHONPATH=. python3 scripts/manage_mongo_indexes.py status
-PYTHONPATH=. python3 scripts/manage_mongo_indexes.py plan
+PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py status
+PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py plan
 ```
 
 `status` includes every managed repository, session, audit, and
@@ -127,7 +163,7 @@ filter.
 3. Retire only the exact stale index. Repeating the name is an intentional guard:
 
    ```bash
-   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py retire \
+   PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py retire \
      --collection <collection> \
      --index <stale_index_name> \
      --confirm-index-name <stale_index_name>
@@ -136,7 +172,7 @@ filter.
 4. Apply missing contracts without dropping any other index:
 
    ```bash
-   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py apply
+   PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py apply
    ```
 
 5. Run `status` again and confirm every required contract is `present`.

@@ -166,7 +166,7 @@ The application ships the canonical policy and built-in role catalogs in
 deployment into an empty `IDENTITY_DB`. After initialization, MongoDB is
 the runtime source of truth. Normal startup never replaces center role grants or
 permission documents. When a deployed application version contains a new
-policy, use the explicit `scripts/sync_rbac_catalog.py` maintenance command.
+policy, use the explicit `scripts/identity/sync_rbac_catalog.py` maintenance command.
 
 The synchronization operation is a union. It inserts missing bundled
 permissions and roles, marks bundled permissions active and system-managed, and

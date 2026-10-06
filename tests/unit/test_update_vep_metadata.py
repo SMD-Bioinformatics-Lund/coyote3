@@ -11,7 +11,7 @@ import pytest
 from bson import decode_all
 
 from api.contracts.schemas.reference import VepMetadataDoc
-from scripts import update_vep_metadata as importer
+from scripts.knowledgebase import update_vep_metadata as importer
 
 
 @pytest.fixture

@@ -154,7 +154,7 @@ Run commands from the repository root unless noted otherwise.
 
 ```bash
 # Full repository quality gate
-scripts/run_quality_suite.sh
+scripts/quality/run_quality_suite.sh
 
 # Backend tests, lint, formatting, and configured type-check boundary
 PYTHONPATH=. .venv/bin/pytest -q tests/unit tests/api tests/integration
@@ -171,7 +171,7 @@ npm --prefix frontend run test:e2e
 
 # Documentation
 npm run docs:lint
-.venv/bin/python scripts/check_markdown_links.py
+.venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 
 # Standalone load-generator smoke test against a synthetic HTTP server
@@ -183,7 +183,7 @@ Start the development stack with the version-aware Compose wrapper:
 
 ```bash
 cp deploy/env/example.env .coyote3_dev_env
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
@@ -205,6 +205,11 @@ from a database name or pass a session across different MongoClient instances.
   also occur in generated prose.
 
 - Inspect nearby code, tests, contracts, and documentation before editing.
+- Keep `scripts/` limited to documented, reproducible operational or repository workflows
+  and their shared helpers. Put one-off development fixes, artwork generators, and
+  coding-session experiments in ignored `.design/`; never make tracked code, tests,
+  CI, or documentation depend on that scratch tooling. Commit reviewed SVG artwork,
+  not disposable scripts used to create it.
 - Make the smallest coherent change and leave unrelated code and user changes untouched.
 - Reuse existing services, repositories, hooks, and components; add an abstraction only
   when it removes real duplication or follows an established pattern.

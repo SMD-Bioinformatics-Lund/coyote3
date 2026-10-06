@@ -25,7 +25,7 @@ Prepare the following before starting:
 Run preflight against the exact files used for deployment:
 
 ```bash
-PYTHON_BIN=.venv/bin/python scripts/center_preflight.sh \
+PYTHON_BIN=.venv/bin/python scripts/deployment/center_preflight.sh \
   --env-file .coyote3_validation_env \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.stage.yml
@@ -68,7 +68,7 @@ Test each configured provider independently:
 | Restricted account | Protected admin routes return `403`; permitted clinical routes remain available |
 | Logout | Server session is revoked and the browser returns to the login page |
 
-Use `scripts/api_login.py` for an API-level local-provider check and complete
+Use `scripts/ingest/api_login.py` for an API-level local-provider check and complete
 the LDAP and browser-session checks through the public reverse proxy. Store
 credentials in the shell or the center's secret runner, never in command files
 or screenshots.
@@ -78,13 +78,13 @@ or screenshots.
 Run each controlled manifest through the deployed API:
 
 ```bash
-bash scripts/center_check.sh \
+bash scripts/deployment/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \
   --username "$COYOTE3_VALIDATION_USER" \
   --password "$COYOTE3_VALIDATION_PASSWORD" \
   --yaml-file /validation-data/dna/sample.coyote3.yaml
 
-bash scripts/center_check.sh \
+bash scripts/deployment/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \
   --username "$COYOTE3_VALIDATION_USER" \
   --password "$COYOTE3_VALIDATION_PASSWORD" \
@@ -111,7 +111,7 @@ A skipped authenticated browser test is incomplete evidence, not a pass.
 Create an archive from the validation source:
 
 ```bash
-scripts/mongo_backup_archive.sh \
+scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$COYOTE3_BACKUP_MONGO_URI" \
   --out-dir /secure-backups/coyote3 \
   --label release-candidate
@@ -121,7 +121,7 @@ Verify the generated checksum metadata, then restore into the isolated recovery
 target only:
 
 ```bash
-scripts/mongo_restore_archive.sh \
+scripts/database/mongo_restore_archive.sh \
   --mongo-uri "$COYOTE3_RECOVERY_MONGO_URI" \
   --archive /secure-backups/coyote3/<archive>.archive.gz \
   --drop \

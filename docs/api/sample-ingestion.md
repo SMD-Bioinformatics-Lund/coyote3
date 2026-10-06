@@ -52,7 +52,7 @@ or request bodies cannot override server attribution. Existing samples without
 recoverable submission evidence retain null attribution rather than being
 assigned to the administrator performing a migration.
 
-Run `scripts/backfill_sample_ingest_provenance.py --env-file <deployment-env>`
+Run `scripts/upgrade_from_v3/backfill_sample_ingest_provenance.py --env-file <deployment-env>`
 to preview a backfill from successful initial sample-bundle jobs. Add
 `--apply --backup <new-backup-file>` to persist it. The backup contains only
 sample identifiers and the previous attribution fields. The command preserves
@@ -193,7 +193,7 @@ INFO or DEBUG for progress messages. Only this submission's ingest logs are sent
 not other requests or background services.
 
 ```bash
-python3 scripts/submit_ingest_manifest.py /mounted/path/synthetic.coyote3.yaml \
+python3 scripts/ingest/submit_ingest_manifest.py /mounted/path/synthetic.coyote3.yaml \
   --base-url https://example.org/coyote3_dev --auth ingest --verbose
 ```
 
@@ -270,7 +270,7 @@ retrieval endpoint. Issuance records the authenticated issuer, credential ID,
 scope, and expiry in the audit, never the credential value. If the audit cannot
 be persisted, issuance fails without returning a token.
 
-Use `--auth ingest` with `scripts/submit_ingest_manifest.py`, or send the token in
+Use `--auth ingest` with `scripts/ingest/submit_ingest_manifest.py`, or send the token in
 `X-Coyote-Ingest-Token`. Keep the file private. The token can be reused until its
 expiry (default 24 hours, maximum 720 hours); it is not a single-use token. Issue
 a replacement before expiry for scheduled pipelines. Its audit identity includes
@@ -308,7 +308,7 @@ path is `/data/coyote3/coyote3_dev/copied_sample_files/yaml`.
 
 ### Deployment-server helper
 
-Run `scripts/submit_ingest_manifest.py` on the deployment server. Use
+Run `scripts/ingest/submit_ingest_manifest.py` on the deployment server. Use
 `--remote-host USER@ANALYSIS_SERVER` to fetch the YAML and optional ZIP with SCP,
 submit them to the API, then rename the original YAML through SSH after a terminal
 acknowledgement. SCP cannot rename remote files; SSH command access is required.
@@ -326,7 +326,7 @@ target deployment's private env file; do not generate a different client token.
 ```bash
 read -rsp 'Internal API token: ' INTERNAL_API_TOKEN; echo
 export INTERNAL_API_TOKEN
-python3 scripts/submit_ingest_manifest.py /pipeline/outgoing/sample.yaml \
+python3 scripts/ingest/submit_ingest_manifest.py /pipeline/outgoing/sample.yaml \
   --remote-host pipeline@analysis.example.org \
   --base-url https://coyote.example.org/coyote3_dev \
   --archive /pipeline/outgoing/sample.upload.zip
@@ -545,7 +545,7 @@ export BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}"
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
 # Option B: login via CLI helper
-${PYTHON_BIN:-python} scripts/api_login.py \
+${PYTHON_BIN:-python} scripts/ingest/api_login.py \
   --base-url "${BASE_URL}" \
   --mode password \
   --username "admin@your-center.org" \
@@ -557,7 +557,7 @@ For a new empty database, run the direct bootstrap command before starting the
 application services:
 
 ```bash
-.venv/bin/python scripts/bootstrap_database.py \
+.venv/bin/python scripts/bootstrap/bootstrap_database.py \
   --mongo-uri "$COYOTE3_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
@@ -601,7 +601,7 @@ Seed source policy for a new deployment:
 Validate assay consistency before ingesting sample bundles:
 
 ```bash
-${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
+${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
   --seed-file api/config/bootstrap/demo_center \
   --yaml demo_data/ingest/generic_case_control.yaml
 ```
@@ -1001,7 +1001,7 @@ not authorize arbitrary collection ingestion.
 Use this order for a clean deployment at a new center.
 
 1. Provision the MongoDB application user outside Coyote3.
-2. Run `scripts/bootstrap_database.py` against the empty application and identity databases.
+2. Run `scripts/bootstrap/bootstrap_database.py` against the empty application and identity databases.
    - It creates the first superuser and loads `permissions` and `roles` into
      `IDENTITY_DB`, and `hgnc_genes` and `vep_metadata` into `KNOWLEDGEBASE_DB`.
    - Add `--with-demo-center` only for the synthetic ASP, ASPC, and ISGL
@@ -1038,7 +1038,7 @@ Use this as the minimum deployment contract:
 | --- | --- | --- |
 | `permissions` | `permission_id` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
-| `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (the first superuser is created by `bootstrap_database.py`) |
+| `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (the first superuser is created by `bootstrap/bootstrap_database.py`) |
 | `asp_configs` | `aspc_id`, `asp_id`, `subpanel_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+subpanel+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `asp_group`, `asp_family`, `asp_category`, `display_name`, `expected_files[]`, `required_files[]`, `is_active` | Assay metadata and declared file requirements |
 | `insilico_genelists` | `isgl_id`, `diagnosis[]`, `asp_ids[]`, `asp_groups[]`, `list_type[]`, `genes[]`, `is_active` | In-silico gene-list filtering logic |
@@ -1204,7 +1204,7 @@ Core collections typically seeded first:
 
 - `permissions`
 - `roles`
-- first local superuser via `scripts/bootstrap_database.py`
+- first local superuser via `scripts/bootstrap/bootstrap_database.py`
 - `asp_configs`
 - `assay_specific_panels`
 - `insilico_genelists`

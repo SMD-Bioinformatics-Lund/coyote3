@@ -10,8 +10,8 @@ import pytest
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
-from scripts.bootstrap_database import _initialize_governance, _make_bootstrap_user
-from scripts.migrate_administrator_roles import migrate
+from scripts.bootstrap.bootstrap_database import _initialize_governance, _make_bootstrap_user
+from scripts.identity.migrate_administrator_roles import migrate
 
 
 @pytest.fixture

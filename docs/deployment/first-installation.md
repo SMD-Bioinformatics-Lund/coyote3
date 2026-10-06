@@ -31,7 +31,7 @@ Review the full [configuration reference](configuration-reference.md) before a c
 Create a Python virtual environment and install the project dependencies, or run the command from a prepared API image. Then run:
 
 ```bash
-.venv/bin/python scripts/bootstrap_database.py \
+.venv/bin/python scripts/bootstrap/bootstrap_database.py \
   --mongo-uri "$COYOTE3_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \

@@ -175,6 +175,6 @@ Use:
 
 - `demo_data/collections/all_collections_dummy`
 - `tests/unit/test_db_dummy_fixture.py`
-- `scripts/validate_assay_consistency.py`
+- `scripts/bootstrap/validate_assay_consistency.py`
 
 to prevent drift between contracts and example documents.

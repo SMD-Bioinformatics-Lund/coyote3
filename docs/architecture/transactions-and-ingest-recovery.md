@@ -93,7 +93,7 @@ until acknowledgement; an edited/replaced manifest represents a new submission.
    API and workers. See [MongoDB deployment](../deployment/mongodb-setup-and-recovery.md).
 2. Include `ingest_jobs_collection = "ingest_jobs"` under `[primary]` in the center
    collection map. Custom maps are complete mappings, not partial overlays of defaults.
-3. Apply the repository index plan with `scripts/manage_mongo_indexes.py` using
+3. Apply the repository index plan with `scripts/database/manage_mongo_indexes.py` using
    the configured deployment environment. The ledger requires `pending_delivery`;
    startup verification does not substitute for applying indexes.
 4. Quiesce producers and drain previously queued ingest tasks with their matching
@@ -121,7 +121,7 @@ retains artifacts when commit acknowledgement is uncertain. Inspect discrepancie
 without changing records or files:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/inspect_report_artifacts.py \
+PYTHONPATH=. .venv/bin/python scripts/database/inspect_report_artifacts.py \
   --database "$APPLICATION_DATABASE" --reports-root "$REPORTS_ROOT"
 ```
 

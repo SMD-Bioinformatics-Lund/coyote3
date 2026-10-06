@@ -29,14 +29,14 @@ environment mechanism. The following example explicitly replaces the generic
 selection with HRD and MSI:
 
 ```bash
-.venv/bin/python scripts/migrate_biomarker_analyses.py --analyses HRD MSI
+.venv/bin/python scripts/upgrade_from_v3/migrate_biomarker_analyses.py --analyses HRD MSI
 ```
 
 The default is a read-only plan. Review the counts and configuration scope before
 applying the same selection:
 
 ```bash
-.venv/bin/python scripts/migrate_biomarker_analyses.py --analyses HRD MSI --apply
+.venv/bin/python scripts/upgrade_from_v3/migrate_biomarker_analyses.py --analyses HRD MSI --apply
 ```
 
 The selection applies to every generic selection in that database. If assays need

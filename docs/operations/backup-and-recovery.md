@@ -39,7 +39,7 @@ The server-side `/backup` mount is optional and is not required by the archive
 script. Centers with an external backup process can omit
 `COYOTE3_MONGO_BACKUP_HOST_ROOT` and `docker-compose.mongo-backup.yml` entirely.
 
-`scripts/mongo_backup_archive.sh` runs `mongodump` in a short-lived `mongo:8.2` tools container. The container has no MongoDB data volume and does not run a database server. It mounts only the backup destination, creates one compressed archive, verifies it, writes metadata with a SHA-256 checksum, and exits. Docker removes the tools container after the command finishes. For Docker-managed MongoDB, pass `--docker-network`; omit it for an externally reachable MongoDB host.
+`scripts/database/mongo_backup_archive.sh` runs `mongodump` in a short-lived `mongo:8.2` tools container. The container has no MongoDB data volume and does not run a database server. It mounts only the backup destination, creates one compressed archive, verifies it, writes metadata with a SHA-256 checksum, and exits. Docker removes the tools container after the command finishes. For Docker-managed MongoDB, pass `--docker-network`; omit it for an externally reachable MongoDB host.
 
 For the supported one-member replica set, the script uses `--oplog`. This records writes that occur during the dump so that `mongorestore --oplogReplay` can restore a consistent point-in-time state. A backup command that uses `--oplog` must archive the complete MongoDB deployment; it must not select an individual database or collection.
 
@@ -61,7 +61,7 @@ database stack throughout the backup.
 Restore only into a dedicated recovery target unless an incident procedure explicitly authorizes replacing the production server. The restore script requires `--confirm RESTORE_PATIENT_DATA`, validates gzip integrity, verifies the metadata checksum when available, and restores the complete archive with oplog replay.
 
 ```bash
-bash scripts/mongo_restore_archive.sh \
+bash scripts/database/mongo_restore_archive.sh \
   --mongo-uri "$MONGO_RECOVERY_URI" \
   --archive /srv/coyote3/mongo/backups/coyote3_mongodb_20260813T023000Z_nightly.archive.gz \
   --drop \

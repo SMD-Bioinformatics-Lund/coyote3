@@ -10,7 +10,8 @@ assay configuration, access management, integration, deployment, and operations.
 | --- | --- |
 | Evaluate Coyote3 locally | [Local quickstart](getting-started/local-quickstart.md) |
 | Install at a new center | [First installation](deployment/first-installation.md), then the [installation checklist](deployment/installation-checklist.md) |
-| Migrate an existing Coyote v3 database | [Upgrade from v3](operations/migrations/upgrade-from-v3.md) |
+| Migrate an existing Coyote v2 database | [Migration from v2](migration_from_v2/README.md) |
+| Migrate an existing Coyote v3 database | [Migration from v3](migration_from_v3/README.md) |
 | Review a DNA or RNA sample | [Clinical review workflow](user-guide/clinical-review-workflow.md) |
 | Explain a missing sample, tab, or result | [Sample readiness and missing results](user-guide/sample-readiness-and-missing-results.md) |
 | Manage accounts or clinical configuration | [Application administration](administration/administration-guide.md) |
@@ -32,6 +33,8 @@ assay configuration, access management, integration, deployment, and operations.
 | [deployment/](deployment/README.md) | Installation, infrastructure, center configuration, and acceptance checklists. |
 | [development/](development/README.md) | Code structure, extension guides, frontend components, commands, and documentation practices. |
 | [operations/](operations/README.md) | Monitoring, logs, incidents, backups, reference updates, and migrations. |
+| [migration_from_v2/](migration_from_v2/README.md) | V2 source inventory, clinical migration, and backfills. |
+| [migration_from_v3/](migration_from_v3/README.md) | V3 source inventory, clinical migration, and backfills. |
 | [reference/](reference/README.md) | Clinical concepts, rules, report snapshots, input formats, and database contracts. |
 | [testing/](testing/README.md) | Quality gates, synthetic fixtures, browser validation, and load testing. |
 | [project/](project/README.md) | Contribution, maintenance, governance, conduct, and licensing. |

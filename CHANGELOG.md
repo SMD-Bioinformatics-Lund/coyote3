@@ -55,9 +55,9 @@ FastAPI and React platform while preserving its supported clinical workflows.
 - Updated dev container flow to build/watch Tailwind only in the dedicated dev Tailwind service, avoiding npm install dependency during `coyote3_dev_app` image build.
 - Added version-aware compose workflow:
   - `docker-compose*.yml` now use `COYOTE3_VERSION` image tags instead of hardcoded app versions.
-  - Added `scripts/compose-with-version.sh` to export version from `api/version.py` and run `docker compose`.
+  - Added `scripts/deployment/compose-with-version.sh` to export version from `api/version.py` and run `docker compose`.
 - Added npm package version sync from Python version source:
-  - Added `scripts/sync-package-version.js`.
+  - Added `scripts/release/sync-package-version.js`.
   - Wired package version sync from `api/version.py`.
 - Reworked installation/deployment documentation to production-first, step-by-step runbooks in README and handbook.
 

@@ -58,7 +58,7 @@ Install declared MongoDB indexes before starting an updated API or worker. With
 the target deployment environment loaded, run:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 ```
 
 The notification repository declares `email_deliveries_state` for queued delivery
@@ -115,9 +115,9 @@ Stop notification producers and workers while changing the expiry index. With th
 application's MongoDB environment loaded, run the dry run and then apply:
 
 ```bash
-.venv/bin/python scripts/migrate_notification_retention.py
-.venv/bin/python scripts/migrate_notification_retention.py --apply
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+.venv/bin/python scripts/maintenance/migrate_notification_retention.py
+.venv/bin/python scripts/maintenance/migrate_notification_retention.py --apply
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 ```
 
 The migration replaces the `expires_on` TTL index with a normal index and marks
@@ -137,7 +137,7 @@ Add the optional Compose override to the same deployment command and environment
 file used for the application:
 
 ```bash
-./scripts/compose-with-version.sh --env-file .coyote3_dev_env \
+./scripts/deployment/compose-with-version.sh --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   -f deploy/compose/docker-compose.mail.yml --profile mail up -d mailpit

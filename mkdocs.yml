@@ -147,9 +147,16 @@ nav:
       - Data migrations:
           - Section guide: operations/migrations/README.md
           - Independent measurement analyses: operations/migrations/independent-biomarker-analyses.md
-          - "Migrate an existing Coyote v3 installation": operations/migrations/upgrade-from-v3.md
           - "Clinical-Rule Data Maintenance": operations/migrations/clinical-rule-migrations.md
           - "Reference database placement": operations/migrations/knowledgebase-database-migration.md
+  - Migration from v2:
+      - Section guide: migration_from_v2/README.md
+      - Full source schema inventory: migration_from_v2/schema-inventory.md
+      - Migration procedure: migration_from_v2/migration-guide.md
+  - Migration from v3:
+      - Section guide: migration_from_v3/README.md
+      - Full source schema inventory: migration_from_v3/schema-inventory.md
+      - Migration procedure: migration_from_v3/migration-guide.md
   - Data and clinical reference:
       - Section guide: reference/README.md
       - "System overview": reference/application-overview.md

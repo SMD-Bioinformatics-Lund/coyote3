@@ -56,8 +56,8 @@ For most code changes:
 
 ```bash
 # Example: contract and coverage checks
-PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
-PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
+PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
+PYTHON_BIN="$(command -v python)" bash scripts/quality/check_contract_integrity.sh
 ```
 
 ## Git Hooks

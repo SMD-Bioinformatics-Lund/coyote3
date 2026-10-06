@@ -5,7 +5,7 @@
 > **Generated reference**
 >
 > This page is generated from `api/config/bootstrap/rbac/permissions.seed.ndjson` by
-> `scripts/export_permissions_reference.py`. Edit the bootstrap catalog and regenerate this page.
+> `scripts/docs/export_permissions_reference.py`. Edit the bootstrap catalog and regenerate this page.
 
 Coyote3 installs these permissions into an empty database. They are application contracts:
 administrators can assign them through center-owned roles, but cannot edit, deactivate,

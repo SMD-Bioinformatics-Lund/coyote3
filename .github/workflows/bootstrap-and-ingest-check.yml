@@ -116,7 +116,7 @@ jobs:
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             run --rm --no-deps api \
-            python scripts/bootstrap_database.py \
+            python scripts/bootstrap/bootstrap_database.py \
               --mongo-uri "${COYOTE3_MONGO_URI}" \
               --db "${COYOTE3_DB}" \
               --identity-db "${IDENTITY_DB}" \
@@ -135,11 +135,11 @@ jobs:
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             run --rm --no-deps \
             -e KNOWLEDGEBASE_MONGO_URI="${MONGO_BACKUP_URI}" \
-            api python scripts/manage_mongo_indexes.py apply
+            api python scripts/database/manage_mongo_indexes.py apply
 
       - name: Start stage application stack
         run: |
-          ./scripts/compose-with-version.sh \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             up -d --build
@@ -163,7 +163,7 @@ jobs:
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             exec -T api \
-            bash scripts/center_check.sh \
+            bash scripts/deployment/center_check.sh \
               --api-base-url http://127.0.0.1:8001 \
               --username "${ADMIN_USERNAME}" \
               --password "${ADMIN_PASSWORD}" \
@@ -190,7 +190,7 @@ jobs:
         run: |
           backup_dir="${RUNNER_TEMP}/coyote3/mongo-backups"
 
-          ./scripts/mongo_backup_archive.sh \
+          ./scripts/database/mongo_backup_archive.sh \
             --mongo-uri "${MONGO_BACKUP_URI}" \
             --out-dir "$backup_dir" \
             --label ci-rehearsal \
@@ -198,7 +198,7 @@ jobs:
 
           archive="$(find "$backup_dir" -maxdepth 1 -name '*.archive.gz' -print -quit)"
           test -n "$archive"
-          ./scripts/mongo_restore_archive.sh \
+          ./scripts/database/mongo_restore_archive.sh \
             --mongo-uri "${MONGO_BACKUP_URI}" \
             --archive "$archive" \
             --drop \

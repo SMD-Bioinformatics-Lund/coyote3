@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from api.contracts.auth import ApiPasswordChangeRequest
 from api.contracts.system import WhoamiPayload
 from api.interfaces.http.operations.auth import change_password
-from scripts.bootstrap_database import _make_bootstrap_user
+from scripts.bootstrap.bootstrap_database import _make_bootstrap_user
 
 
 def test_role_bundles_separate_clinical_and_system_responsibilities():

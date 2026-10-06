@@ -13,7 +13,7 @@ from api.domain.core.exceptions import AppError
 from api.infra.mongo.index_management import build_index_plan
 from api.infra.mongo.repositories.assay_groups import AssayGroupRepository
 from api.infra.mongo.repositories.assay_panels import ASPRepository
-from scripts.install_assay_groups import install
+from scripts.bootstrap.install_assay_groups import install
 from tests.unit.test_mongo_index_management import adapter_for
 
 
@@ -28,7 +28,7 @@ def registry(monkeypatch):
         lambda _, callback: callback(None),
     )
     monkeypatch.setattr(
-        "scripts.install_assay_groups.run_transaction", lambda _, callback: callback(None)
+        "scripts.bootstrap.install_assay_groups.run_transaction", lambda _, callback: callback(None)
     )
     db = mongomock.MongoClient().test
     adapter = SimpleNamespace(

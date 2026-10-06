@@ -7,7 +7,6 @@ Select the procedure matching the existing deployment. These operations change s
 | Guide | Use it to |
 | --- | --- |
 | [Independent measurement analyses](independent-biomarker-analyses.md) | Convert generic biomarker configuration to explicit HRD, MSI, and TMB selections. |
-| [Migrate an existing Coyote v3 installation](upgrade-from-v3.md) | Migrate an existing Coyote v3 installation and its stored data. |
 | [Clinical-Rule Data Maintenance](clinical-rule-migrations.md) | Migrate report policy and clinical-rule configuration. |
 | [Reference database placement](knowledgebase-database-migration.md) | Move reference collections to the configured knowledgebase database. |
 

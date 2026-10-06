@@ -115,7 +115,7 @@ empty destination collections and correctly block migration into them.
 3. Run the read-only inspection:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_database.py \
   --source-mongo-uri "$COYOTE3_MONGO_URI" \
   --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
@@ -127,7 +127,7 @@ PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
    digests, and atomically publish each verified destination:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_database.py \
   --source-mongo-uri "$COYOTE3_MONGO_URI" \
   --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
@@ -147,7 +147,7 @@ does not modify any source collection during the normal apply operation.
    knowledgebase collections with the explicit destructive confirmation:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_knowledgebase_database.py \
+PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_database.py \
   --source-mongo-uri "$COYOTE3_MONGO_URI" \
   --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
@@ -176,7 +176,7 @@ before migration. Grant the application and migration account read/write access
 to `IDENTITY_DB`, then inspect the source without writing:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
+PYTHONPATH=. .venv/bin/python scripts/identity/migrate_identity_database.py \
   --source-mongo-uri "$COYOTE3_MONGO_URI" \
   --target-mongo-uri "$IDENTITY_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
@@ -187,7 +187,7 @@ PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
 Copy documents and indexes through verified staging collections:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
+PYTHONPATH=. .venv/bin/python scripts/identity/migrate_identity_database.py \
   --source-mongo-uri "$COYOTE3_MONGO_URI" \
   --target-mongo-uri "$IDENTITY_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
@@ -202,7 +202,7 @@ Keep the source collections for the approved rollback period. After acceptance,
 remove only the verified source copies:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/migrate_identity_database.py \
+PYTHONPATH=. .venv/bin/python scripts/identity/migrate_identity_database.py \
   --source-mongo-uri "$COYOTE3_MONGO_URI" \
   --target-mongo-uri "$IDENTITY_MONGO_URI" \
   --source-db "$COYOTE3_DB" \
@@ -273,14 +273,14 @@ host-installed or externally managed MongoDB, omit `--docker-network`; the
 tools container must be able to resolve and reach the host in `MONGO_BACKUP_URI`.
 
 ```bash
-bash scripts/mongo_backup_archive.sh \
+bash scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
   --label nightly \
   --docker-network "$COYOTE3_APP_NETWORK"
 ```
 
-Schedule `mongo_backup_archive.sh` through the centre's approved backup platform. This may be an enterprise scheduler, infrastructure automation, or an existing operations service; scheduling configuration is intentionally not part of the application repository.
+Schedule `database/mongo_backup_archive.sh` through the centre's approved backup platform. This may be an enterprise scheduler, infrastructure automation, or an existing operations service; scheduling configuration is intentionally not part of the application repository.
 
 Use a dedicated backup URI and persistent backup storage. The backup URI should
 authenticate with a backup user or the restricted administrative account

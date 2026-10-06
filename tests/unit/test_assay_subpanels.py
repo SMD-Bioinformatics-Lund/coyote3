@@ -24,7 +24,7 @@ from api.contracts.schemas.subpanels import (
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.assay_subpanels import AssaySubpanelRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
-from scripts.migrate_assay_subpanels import (
+from scripts.upgrade_from_v3.migrate_assay_subpanels import (
     migrate,
     normalize_diagnosis_associations,
     plan_subpanels,
@@ -498,7 +498,8 @@ def test_diagnosis_normalization_preserves_separators_and_rejects_collisions():
 
 def test_explicit_isgl_normalization_is_dry_run_first_and_idempotent(repository, monkeypatch):
     monkeypatch.setattr(
-        "scripts.migrate_assay_subpanels.run_transaction", lambda _client, callback: callback(None)
+        "scripts.upgrade_from_v3.migrate_assay_subpanels.run_transaction",
+        lambda _client, callback: callback(None),
     )
     db = repository.get_collection().database
     db.assay_specific_panels.insert_one({"asp_id": "panel-a", "asp_group": "solid"})

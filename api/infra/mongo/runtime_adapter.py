@@ -232,7 +232,7 @@ class MongoAdapter:
         for item in findings:
             self.app.logger.warning(
                 "Mongo index requires operator action repository=%s collection=%s "
-                "index=%s state=%s. Run scripts/manage_mongo_indexes.py plan and apply "
+                "index=%s state=%s. Run scripts/database/manage_mongo_indexes.py plan and apply "
                 "during an approved maintenance window.",
                 item["repository"],
                 item["collection"],

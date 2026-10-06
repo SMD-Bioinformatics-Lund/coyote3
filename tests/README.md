@@ -51,5 +51,5 @@ PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/api
 Run the full source/build quality gate:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```

@@ -51,7 +51,7 @@ the deployment command and architecture reference.
 > **Important: migrating existing Coyote v3 data**
 >
 > A centre moving an existing Coyote v3 database must follow the dedicated
-> [v3 data migration procedure](../operations/migrations/upgrade-from-v3.md). Do not use the standard
+> [v3 data migration procedure](../migration_from_v3/migration-guide.md). Do not use the standard
 > deployment sequence as a substitute for that procedure.
 >
 
@@ -65,7 +65,7 @@ the deployment command and architecture reference.
 ### Image versions
 
 The application version is defined in `api/version.py`. The
-`scripts/compose-with-version.sh` wrapper reads that file and exports transient
+`scripts/deployment/compose-with-version.sh` wrapper reads that file and exports transient
 Compose variables for image names and build metadata. Do not store
 `COYOTE3_VERSION`, `COYOTE3_IMAGE_TAG`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
 The wrapper reads `ENV_NAME` from the selected env file (an exported shell value
@@ -158,7 +158,7 @@ must already be accessible on the deployment host.
 Pass the override last on every deployment command:
 
 ```bash
-./scripts/compose-with-version.sh --env-file .coyote3_env \
+./scripts/deployment/compose-with-version.sh --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml -f .coyote3_storage.yml up -d --build
 ```
 
@@ -170,7 +170,7 @@ Include the same override for config validation, recreation, and maintenance.
 For example, a legacy remote-development deployment using compiled images uses:
 
 ```bash
-./scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+./scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
   -f deploy/legacy/docker-compose.yml \
   -f .coyote3_storage.yml up -d
 ```
@@ -303,7 +303,7 @@ or existing Docker networks. The CIDR controls the allocation pool; services
 still communicate by Compose DNS names rather than fixed container IPs.
 
 ```bash
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build
@@ -348,13 +348,13 @@ Do not assign static container IPs; Compose DNS names such as `api`, `worker`,
 
 ```bash
 # Staging deployment
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_stage_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
   up -d --build
 
 # Development deployment
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
@@ -385,7 +385,7 @@ set +a
 APP_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME}"
 
 # Check container status
-./scripts/compose-with-version.sh \
+./scripts/deployment/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
   ps
@@ -409,8 +409,8 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 
 For upgrades:
 
-1. **Verification**: Validate environment schema and compose integrity using `validate_env_secrets.sh`.
-2. **Execution**: Update the containerized services with `compose-with-version.sh`.
+1. **Verification**: Validate environment schema and compose integrity using `deployment/validate_env_secrets.sh`.
+2. **Execution**: Update the containerized services with `deployment/compose-with-version.sh`.
 3. **Maintenance**: Run only the RBAC, index, or stored-data procedure named by the release notes.
 4. **Validation**: Execute the established health and functional verification suite.
 

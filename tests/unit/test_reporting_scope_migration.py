@@ -3,7 +3,7 @@
 import mongomock
 import pytest
 
-from scripts.migrate_reporting_rule_resolution import migrate
+from scripts.upgrade_from_v3.migrate_reporting_rule_resolution import migrate
 
 
 def test_dry_run_apply_idempotency_and_historical_isolation(monkeypatch):
@@ -33,7 +33,7 @@ def test_dry_run_apply_idempotency_and_historical_isolation(monkeypatch):
     }
     assert db.asp_configs.find_one()["reporting"] == reporting
     monkeypatch.setattr(
-        "scripts.migrate_reporting_rule_resolution.run_transaction",
+        "scripts.upgrade_from_v3.migrate_reporting_rule_resolution.run_transaction",
         lambda _client, callback: callback(None),
     )
     migrate(db, apply=True)
@@ -110,7 +110,7 @@ def test_scope_index_allows_drafts_but_rejects_two_active_releases(monkeypatch):
 
     db = mongomock.MongoClient().test
     monkeypatch.setattr(
-        "scripts.migrate_reporting_rule_resolution.run_transaction",
+        "scripts.upgrade_from_v3.migrate_reporting_rule_resolution.run_transaction",
         lambda _client, callback: callback(None),
     )
     migrate(db, apply=True)
@@ -186,7 +186,7 @@ def test_migrates_embedded_facts_and_revision_hash_chain(monkeypatch):
     db.clinical_rule_sets.insert_one(doc)
     db.clinical_rule_revisions.insert_one(snapshot)
     monkeypatch.setattr(
-        "scripts.migrate_reporting_rule_resolution.run_transaction",
+        "scripts.upgrade_from_v3.migrate_reporting_rule_resolution.run_transaction",
         lambda _client, callback: callback(None),
     )
     assert migrate(db)["rule_documents"] == 1

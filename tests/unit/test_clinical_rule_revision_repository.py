@@ -16,7 +16,7 @@ from api.infra.mongo.repositories.clinical_rule_sets import (
     build_revision_snapshot,
     verify_revision_snapshot,
 )
-from scripts.backfill_clinical_rule_revisions import capture_missing_baselines
+from scripts.upgrade_from_v3.backfill_clinical_rule_revisions import capture_missing_baselines
 from tests.unit.reporting.test_clinical_rules import _document
 
 

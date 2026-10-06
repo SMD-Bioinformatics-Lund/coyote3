@@ -72,30 +72,28 @@ and images, and references in scripts, tests, configuration examples, and CI.
 Review fragments when changing headings. Built page URLs follow the source paths,
 so moves also require updating links maintained outside this repository.
 
-## Generated references
+## Diagrams and generated references
 
 ### Relational diagrams
 
-Diagram content and directed relationships are defined in `scripts/docs/diagrams.json`.
-`scripts/render_documentation_diagrams.py` produces the standalone SVGs in
-`docs/assets/diagrams/` with consistent typography, card spacing, and connector routing.
-Update the source definitions rather than editing generated SVG coordinates.
+The standalone SVG files in `docs/assets/diagrams/` are the maintained artwork.
+Edit those files directly, keeping typography, card spacing, and connector routing
+consistent. Documentation builds use the committed SVGs without an artwork generator.
 
-```bash
-.venv/bin/python scripts/render_documentation_diagrams.py
-.venv/bin/python scripts/render_documentation_diagrams.py --check
-```
+Keep one-off renderers, layout experiments, and intermediate design definitions in
+the ignored `.design/` directory. Commit the reviewed artwork; do not make builds,
+tests, or authoring instructions depend on private scratch tooling.
 
 Review the rendered diagrams after changing nodes or relationships. Confirm arrow
 direction, branch meaning, label placement, and legibility at the documentation page
-width. Geometry checks do not establish that a relationship is clinically correct.
+width. Visual correctness does not establish that a relationship is clinically correct.
 
 ### Schema and permission catalogs
 
 | Page | Authoritative source | Generator |
 | --- | --- | --- |
-| [MongoDB collection contracts](../reference/mongodb-collections.md) | `api/contracts/schemas/` | `scripts/export_collection_contracts_doc.py` |
-| [System permission catalog](../administration/permission-catalog.md) | `api/config/bootstrap/rbac/permissions.seed.ndjson` | `scripts/export_permissions_reference.py` |
+| [MongoDB collection contracts](../reference/mongodb-collections.md) | `api/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
+| [System permission catalog](../administration/permission-catalog.md) | `api/config/bootstrap/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
 
 Change the authoritative source or generator and regenerate these pages. Do not
 edit their generated field or permission listings manually.
@@ -106,7 +104,7 @@ Run these commands from the repository root:
 
 ```bash
 npm run docs:lint
-.venv/bin/python scripts/check_markdown_links.py
+.venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 ```
 

@@ -9,9 +9,9 @@ database connections, storage, and public URL.
 For legacy Docker, build and replace only the frontend of an existing dev stack:
 
 ```bash
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
   -f deploy/legacy/docker-compose.yml build frontend
-bash scripts/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
   -f deploy/legacy/docker-compose.yml up -d --no-deps frontend
 ```
 

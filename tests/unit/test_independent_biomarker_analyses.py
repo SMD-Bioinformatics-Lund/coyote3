@@ -23,7 +23,7 @@ from api.contracts.schemas.dna import BiomarkersDoc
 from api.domain.common.biomarkers import project_biomarkers
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
-from scripts.migrate_biomarker_analyses import (
+from scripts.upgrade_from_v3.migrate_biomarker_analyses import (
     migrate,
     requires_rule_review,
     transform_configuration,
@@ -247,7 +247,8 @@ def test_report_renders_only_selected_measurement_table():
 def test_migration_applies_configuration_but_not_saved_evidence(monkeypatch):
     """Applying twice is idempotent and leaves source records and reports unchanged."""
     monkeypatch.setattr(
-        "scripts.migrate_biomarker_analyses.run_transaction", lambda client, write: write(None)
+        "scripts.upgrade_from_v3.migrate_biomarker_analyses.run_transaction",
+        lambda client, write: write(None),
     )
     db = mongomock.MongoClient().test
     db.asp_configs.insert_one({"asp_id": "assay", "analysis_types": ["BIOMARKER"]})

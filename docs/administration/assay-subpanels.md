@@ -198,10 +198,10 @@ With `COYOTE3_MONGO_URI` and `COYOTE3_DB` exported for the intended environment:
 
 ```bash
 # Read-only plan; does not create indexes.
-.venv/bin/python scripts/migrate_assay_subpanels.py --actor operator
+.venv/bin/python scripts/upgrade_from_v3/migrate_assay_subpanels.py --actor operator
 
 # Insert missing registry definitions and ensure their indexes.
-.venv/bin/python scripts/migrate_assay_subpanels.py --actor operator --apply
+.venv/bin/python scripts/upgrade_from_v3/migrate_assay_subpanels.py --actor operator --apply
 ```
 
 Use `--db` and `--mongo-uri` only when explicit overrides are required. Avoid putting
@@ -230,10 +230,10 @@ For existing ISGL diagnosis spelling, the migration supports an explicit mode:
 
 ```bash
 # Review first: lowercase diagnosis values and replace whitespace with hyphens.
-.venv/bin/python scripts/migrate_assay_subpanels.py --actor operator --normalize-isgl-diagnosis
+.venv/bin/python scripts/upgrade_from_v3/migrate_assay_subpanels.py --actor operator --normalize-isgl-diagnosis
 
 # Back up configuration data and pause writers before applying.
-.venv/bin/python scripts/migrate_assay_subpanels.py --actor operator --normalize-isgl-diagnosis --apply
+.venv/bin/python scripts/upgrade_from_v3/migrate_assay_subpanels.py --actor operator --normalize-isgl-diagnosis --apply
 ```
 
 This mode normalizes ISGL diagnosis arrays, including inactive revisions, and

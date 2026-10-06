@@ -278,7 +278,7 @@ requests.
 > **Info**
 >
 > When a deployed application version contains additional system permissions,
-> an operator runs `scripts/sync_rbac_catalog.py` to insert missing policies,
+> an operator runs `scripts/identity/sync_rbac_catalog.py` to insert missing policies,
 > mark all bundled policy identifiers as system-managed, and add newly bundled
 > grants to matching built-in roles without deleting center roles or extra
 > grants.

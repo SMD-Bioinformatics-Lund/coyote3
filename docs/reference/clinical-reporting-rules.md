@@ -729,7 +729,7 @@ publish clinical content. Demo bootstrap loads synthetic published rules before 
 Existing deployments install the rule permissions and bundled duty-separated roles with:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/sync_rbac_catalog.py \
+PYTHONPATH=. .venv/bin/python scripts/identity/sync_rbac_catalog.py \
   --mongo-uri "${IDENTITY_MONGO_URI}" \
   --identity-db "${IDENTITY_DB}"
 ```
@@ -737,7 +737,7 @@ PYTHONPATH=. .venv/bin/python scripts/sync_rbac_catalog.py \
 Before the first clinical-rule edit, capture one immutable baseline of every current version:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/backfill_clinical_rule_revisions.py \
+PYTHONPATH=. .venv/bin/python scripts/upgrade_from_v3/backfill_clinical_rule_revisions.py \
   --mongo-uri "${COYOTE3_MONGO_URI}" \
   --db coyote3_new \
   --actor reporting.migration \
@@ -757,7 +757,7 @@ findings remain available independently of narrative text.
 Apply the repository index contract before application startup:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/manage_mongo_indexes.py apply
+PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 ```
 
 ## Verification
@@ -777,7 +777,7 @@ PYTHONPATH=. .venv/bin/pytest -q \
 ```
 
 The clinical reporting package has a mandatory 100% statement and branch coverage gate in
-`scripts/run_family_coverage_gates.sh`. Tests cover every operator, nested condition,
+`scripts/quality/run_family_coverage_gates.sh`. Tests cover every operator, nested condition,
 collection quantifier, output node, renderer branch, lifecycle transition, authorization
 boundary, malformed or missing fact behavior, integrity failure, and exact embedded case.
 

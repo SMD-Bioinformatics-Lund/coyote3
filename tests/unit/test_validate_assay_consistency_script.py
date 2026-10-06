@@ -15,7 +15,7 @@ def _run_validator(
     python_bin = sys.executable or "python3"
     command = [
         python_bin,
-        "scripts/validate_assay_consistency.py",
+        "scripts/bootstrap/validate_assay_consistency.py",
         "--seed-file",
         str(seed_path),
     ]

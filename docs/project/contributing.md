@@ -17,7 +17,7 @@ This page summarizes how to contribute safely and efficiently.
 ```bash
 PYTHONPATH=. .venv/bin/ruff check api tests scripts
 PYTHONPATH=. .venv/bin/ruff format --check api tests scripts
-scripts/run_quality_suite.sh
+scripts/quality/run_quality_suite.sh
 ```
 
 ## Shared editor settings

@@ -8,9 +8,10 @@ import mongomock
 import pytest
 
 from api.config.paths import COLLECTIONS_CONFIG_PATH
-from scripts import migrate_identity_database, migrate_knowledgebase_database
-from scripts.knowledgebase_update_common import add_common_arguments
-from scripts.migrate_knowledgebase_database import assert_distinct_databases
+from scripts.identity import migrate_identity_database
+from scripts.knowledgebase import migrate_knowledgebase_database
+from scripts.knowledgebase.knowledgebase_update_common import add_common_arguments
+from scripts.knowledgebase.migrate_knowledgebase_database import assert_distinct_databases
 
 
 @pytest.mark.parametrize(

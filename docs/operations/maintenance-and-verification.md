@@ -10,13 +10,13 @@ Run the contract and logic checks before pushing changes.
 
 ```bash
 # Run project-wide integrity verification
-PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
+PYTHON_BIN="$(command -v python)" bash scripts/quality/check_contract_integrity.sh
 ```
 
 For the complete cross-layer source/build gate, use:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```
 
 Without test MongoDB URIs, the full gate skips database integration tests. When
@@ -40,7 +40,7 @@ Validate seed data and cross-collection assay relationships before using them.
 
 ```bash
 # Validate core seed structures and assay relations
-.venv/bin/python scripts/validate_assay_consistency.py \
+.venv/bin/python scripts/bootstrap/validate_assay_consistency.py \
   --seed-file api/config/bootstrap/demo_center \
   --reference-seed-data api/config/bootstrap/rbac \
   --reference-seed-data api/config/bootstrap/reference \
@@ -52,7 +52,7 @@ Validate seed data and cross-collection assay relationships before using them.
 Example staging command:
 
 ```bash
-.venv/bin/python scripts/bootstrap_database.py \
+.venv/bin/python scripts/bootstrap/bootstrap_database.py \
   --mongo-uri "$COYOTE3_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
@@ -134,9 +134,9 @@ rebuilt or rescanned.
 | `retire` | Drops one exact confirmed index | Remove an obsolete definition during a maintenance window. |
 
 ```bash
-PYTHONPATH=. python3 scripts/manage_mongo_indexes.py status
-PYTHONPATH=. python3 scripts/manage_mongo_indexes.py plan
-PYTHONPATH=. python3 scripts/manage_mongo_indexes.py apply
+PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py status
+PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py plan
+PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py apply
 ```
 
 The retirement command requires the collection name, index name, and a second
@@ -167,11 +167,11 @@ writes to MongoDB.
 
 ```bash
 # Record all configured primary-database collections.
-PYTHONPATH=. python3 scripts/inspect_mongo_capacity.py \
+PYTHONPATH=. python3 scripts/database/inspect_mongo_capacity.py \
   --output maintenance/mongo_capacity_$(date +%F).json
 
 # Investigate only high-volume collections.
-PYTHONPATH=. python3 scripts/inspect_mongo_capacity.py \
+PYTHONPATH=. python3 scripts/database/inspect_mongo_capacity.py \
   --collection variants \
   --collection anno_vep \
   --collection annotations
