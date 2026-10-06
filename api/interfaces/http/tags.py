@@ -14,7 +14,9 @@ TAG_DNA_CNV = "DNA Copy Number"
 TAG_RNA_FUSIONS = "RNA Fusions"
 TAG_STRUCTURAL_VARIANTS = "Structural Variants"
 TAG_COVERAGE = "Coverage"
-TAG_BIOMARKERS = "Biomarkers"
+TAG_HRD = "HRD"
+TAG_MSI = "MSI"
+TAG_TMB = "TMB"
 TAG_REPORTING = "Reporting"
 
 TAG_KNOWLEDGEBASE = "Knowledgebases & Annotations"
@@ -63,10 +65,9 @@ OPENAPI_TAGS = [
         "name": TAG_COVERAGE,
         "description": "Coverage plots, gene/exon/probe views, and coverage blacklist management.",
     },
-    {
-        "name": TAG_BIOMARKERS,
-        "description": "Sample biomarker summaries and molecular context payloads.",
-    },
+    {"name": TAG_HRD, "description": "Sample-scoped HRD measurements."},
+    {"name": TAG_MSI, "description": "Sample-scoped MSI measurements."},
+    {"name": TAG_TMB, "description": "Sample-scoped TMB measurements."},
     {
         "name": TAG_REPORTING,
         "description": "Report preview, snapshot, save, HTML/PDF artifact, and context endpoints.",
@@ -123,7 +124,9 @@ OPENAPI_TAG_GROUPS = [
             TAG_RNA_FUSIONS,
             TAG_STRUCTURAL_VARIANTS,
             TAG_COVERAGE,
-            TAG_BIOMARKERS,
+            TAG_HRD,
+            TAG_MSI,
+            TAG_TMB,
             TAG_KNOWLEDGEBASE,
         ],
     },
@@ -150,7 +153,9 @@ __all__ = [
     "TAG_ADMIN_OPERATIONS",
     "TAG_ADMIN_USERS",
     "TAG_AUTH",
-    "TAG_BIOMARKERS",
+    "TAG_HRD",
+    "TAG_MSI",
+    "TAG_TMB",
     "TAG_CLINICAL_SAMPLES",
     "TAG_CLINICAL_RULES",
     "TAG_COVERAGE",

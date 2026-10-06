@@ -36,7 +36,7 @@ The center-configurable mapping is in api/config/center/clinical_vocabulary.toml
 | DNA | SNV | vcf_files | snvs | variants and anno_vep |
 | DNA | CNV | cnv | cnvs | cnvs |
 | DNA | translocation / DNA fusion | transloc | transloc | translocations |
-| DNA | biomarker / TMB | biomarkers | biomarkers | biomarkers |
+| DNA | HRD / MSI / TMB | hrd / msi / tmb | biomarkers | biomarkers |
 | DNA | coverage | cov | cov | panel_coverage |
 | DNA | CNV profile | cnvprofile | none | File metadata only |
 | DNA | PGx | pgx | pgx | pgx |

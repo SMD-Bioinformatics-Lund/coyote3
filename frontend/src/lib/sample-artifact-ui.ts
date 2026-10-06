@@ -16,7 +16,9 @@ const ARTIFACT_PRESENTATION: Record<string, ArtifactPresentation> = {
   CNV: { label: "CNV JSON", missingMessage: "No CNV JSON available", countSuffix: "CNVs" },
   TRANSLOCATION: { label: "Transloc VCF", missingMessage: "No Transloc VCF available", countSuffix: "Translocs" },
   COVERAGE: { label: "Coverage JSON", missingMessage: "No coverage file available", countSuffix: "Loaded", countIsStatus: true },
-  BIOMARKER: { label: "Biomarkers JSON", missingMessage: "No biomarkers file available", countSuffix: "Loaded", countIsStatus: true },
+  HRD: { label: "HRD JSON", missingMessage: "No HRD file available", countSuffix: "Loaded", countIsStatus: true },
+  MSI: { label: "MSI JSON", missingMessage: "No MSI file available", countSuffix: "Loaded", countIsStatus: true },
+  TMB: { label: "TMB JSON", missingMessage: "No TMB file available", countSuffix: "Loaded", countIsStatus: true },
   CNV_PROFILE: { label: "CNV Profile (image)", missingMessage: "No CNV profile available" },
   FUSION: { label: "Fusion calls", missingMessage: "No fusion file available", countSuffix: "Fusions" },
   EXPRESSION: { label: "Expression", missingMessage: "No expression file available", countSuffix: "Expr" },
@@ -58,6 +60,6 @@ export function sampleArtifactStatus(availability: unknown): { label: string; to
 
 export const FILE_ANALYSIS_LABELS: Record<string, string> = {
   vcf_files: "SNV", cnv: "CNV", transloc: "Translocations", cov: "Coverage",
-  biomarkers: "Biomarkers", fusion_files: "Fusion", expression_path: "Expression",
+  hrd: "HRD", msi: "MSI", tmb: "TMB", fusion_files: "Fusion", expression_path: "Expression",
   classification_path: "Classification", qc: "QC", cnvprofile: "CNV profile",
 }

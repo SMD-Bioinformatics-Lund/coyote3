@@ -21,6 +21,7 @@ from api.config.database_versions import require_sample_vep_version
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.assay_filters import has_sample_gene_restriction
+from api.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
 from api.domain.common.errors import api_error, setup_error
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
@@ -300,15 +301,9 @@ def _normalize_dna_analysis_sections(sections: list[str] | None) -> list[str]:
     """Normalize DNA display/report section toggles to supported UI sections."""
     raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
     normalized: list[str] = []
-    include_biomarker = False
     for value in raw:
-        if value in {"BIOMARKER", "TMB", "PGX"}:
-            include_biomarker = True
-            continue
         if value not in normalized:
             normalized.append(value)
-    if include_biomarker:
-        normalized.append("BIOMARKER")
     return normalized
 
 
@@ -341,10 +336,11 @@ def _build_display_and_summary_sections(
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
 
-    if "BIOMARKER" in analysis_sections:
+    if set(analysis_sections) & set(BIOMARKER_ANALYSES):
         biomarkers = list(
             service.biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"]))
         )
+        biomarkers = project_biomarkers(biomarkers, analysis_sections)
         display_sections_data["biomarkers"] = biomarkers
         summary_sections_data["biomarkers"] = biomarkers
 
@@ -652,9 +648,10 @@ def list_variants_payload(
         display_sections_data = {"snvs": variants_page}
         # Biomarkers remain part of the table response when enabled, but do
         # not require report-wide construction or enrichment of every SNV.
-        if "BIOMARKER" in analysis_sections:
-            display_sections_data["biomarkers"] = list(
-                service.biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"]))
+        if set(analysis_sections) & set(BIOMARKER_ANALYSES):
+            display_sections_data["biomarkers"] = project_biomarkers(
+                service.biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"])),
+                analysis_sections,
             )
         ai_text = ""
 
@@ -720,10 +717,21 @@ def plot_context_payload(*, service, sample: dict, assay_config_getter) -> dict[
     }
 
 
-def biomarkers_payload(*, service, sample: dict) -> dict[str, Any]:
-    """Build biomarker payload for DNA routes."""
-    biomarkers = list(
-        service.biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"]))
+def biomarkers_payload(*, service, sample: dict, assay_config_getter) -> dict[str, Any]:
+    """Select measurements enabled in the sample's resolved ASPC.
+
+    Args:
+        service: DNA service providing the measurement repository.
+        sample: Authorized sample document.
+        assay_config_getter: Resolver honoring the sample's stored configuration revision.
+
+    Returns:
+        Selected measurements and sample metadata.
+    """
+    config = assay_config_getter(sample)
+    biomarkers = project_biomarkers(
+        service.biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"])),
+        config.get("analysis_types") or [],
     )
     return {"sample": sample, "meta": {"count": len(biomarkers)}, "biomarkers": biomarkers}
 

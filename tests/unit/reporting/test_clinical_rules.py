@@ -225,6 +225,68 @@ def test_nested_conditions_collection_quantifiers_and_output_nodes():
     assert {item.rule_id for item in result.trace if item.matched} == {"tp53_exon", "positive"}
 
 
+@pytest.mark.parametrize("analysis", ["HRD", "MSI", "TMB"])
+def test_independent_measurement_rule_evaluation_and_section_gate(analysis):
+    """Each measurement collection supports numeric rules and respects report selection."""
+    payload = _document().model_dump(mode="python", by_alias=True)
+    payload["analysis_declarations"] = {analysis: {"narrative": "enabled"}}
+    payload["test_cases"] = []
+    payload["blocks"] = [
+        {
+            "block_id": "measurement",
+            "name": "Measurement",
+            "analysis": analysis,
+            "evaluation": {"mode": "each_item", "collection": analysis.lower()},
+            "section": "Measurements",
+            "section_order": 1,
+            "block_order": 1,
+            "match_strategy": "first_match",
+            "rules": [
+                {
+                    "rule_id": "measured",
+                    "name": "Measured",
+                    "order": 1,
+                    "condition": {
+                        "type": "predicate",
+                        "fact": "item.value",
+                        "operator": "gte",
+                        "value": 0,
+                    },
+                    "output": [{"type": "text", "value": "Measured."}],
+                }
+            ],
+        }
+    ]
+    document = ClinicalRuleSetDoc.model_validate(payload)
+    assert validate_rule_set(document).valid
+    for unsupported in ("BIOMARKER", "LOH"):
+        obsolete = document.model_copy(deep=True)
+        obsolete.blocks[0].analysis = unsupported
+        assert not validate_rule_set(obsolete).valid
+    context = prepare_report_context(
+        sample={"name": "synthetic", "asp_id": "assay_1"},
+        asp={},
+        aspc={"reporting": {"report_sections": [analysis]}},
+        analyte="dna",
+        applied_gene_lists=[],
+        report_sections_data={
+            "biomarkers": [
+                {
+                    "name": "synthetic",
+                    "HRD": {"sum": 0, "tai": 0, "hrd": 0, "lst": 0},
+                    "MSIS": {"tot": 100, "som": 0, "per": 0},
+                    "TMB": {"value": 0, "unit": "mut/Mb"},
+                }
+            ]
+        },
+    )
+    evaluator = ClinicalRuleEvaluator()
+    assert evaluator.evaluate(context, document, reporting_analyses={analysis}).sections == {
+        "Measurements": ["Measured."]
+    }
+    assert evaluator.evaluate(context, document, reporting_analyses=set()).sections == {}
+
+
 def test_missing_facts_fail_closed_without_becoming_zero_or_false():
     document = _document()
     document.blocks[0].rules[0].condition = ClinicalRulePredicate(

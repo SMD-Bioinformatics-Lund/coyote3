@@ -31,7 +31,7 @@ def test_builds_typed_cnv_biomarker_and_pgx_rows() -> None:
         ]
     )[0]
     biomarker = build_biomarker_snapshot_rows(
-        [{"_id": "bio-1", "name": "TMB", "value": 12.4, "unit": "mut/Mb"}]
+        [{"_id": "bio-1", "name": "case", "TMB": {"value": 12.4, "unit": "mut/Mb"}}]
     )[0]
     pgx = build_pgx_snapshot_rows(
         [
@@ -55,9 +55,9 @@ def test_builds_typed_cnv_biomarker_and_pgx_rows() -> None:
     assert cnv["simple_id"].startswith("cnv:")
     assert cnv["chromosome"] == "7"
     assert "finding_data" not in cnv
-    assert biomarker["analysis_type"] == "BIOMARKER"
+    assert biomarker["analysis_type"] == "TMB"
     assert biomarker["biomarker"] == "TMB"
-    assert biomarker["result"] == {"value": 12.4, "unit": "mut/Mb"}
+    assert biomarker["result"] == {"TMB": {"value": 12.4, "unit": "mut/Mb"}}
     assert "finding_data" not in biomarker
     assert pgx["analysis_type"] == "PGX"
     assert pgx["gene"] == "CYP2C19"
@@ -130,7 +130,7 @@ def test_reported_finding_contract_preserves_each_analysis_specific_payload() ->
             "fusion": "KMT2A::AFF1",
             "spanning_pairs": 12,
         },
-        build_biomarker_snapshot_rows([{"name": "TMB", "value": 12.4}])[0],
+        build_biomarker_snapshot_rows([{"name": "case", "TMB": {"value": 12.4}}])[0],
         build_pgx_snapshot_rows([{"gene": "DPYD", "phenotype": "Poor metabolizer"}])[0],
     ]
 
@@ -155,7 +155,7 @@ def test_reported_finding_contract_preserves_each_analysis_specific_payload() ->
         "CNV",
         "TRANSLOCATION",
         "FUSION",
-        "BIOMARKER",
+        "TMB",
         "PGX",
     ]
     assert validated[1]["region"] == "7:100-300"

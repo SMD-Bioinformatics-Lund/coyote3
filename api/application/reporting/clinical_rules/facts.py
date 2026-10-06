@@ -121,7 +121,9 @@ class PreparedAggregateFacts(_FactModel):
     cnv_count: int = 0
     fusion_count: int = 0
     translocation_count: int = 0
-    biomarker_count: int = 0
+    hrd_count: int = 0
+    msi_count: int = 0
+    tmb_count: int = 0
     tier_1_count: int = 0
     tier_2_count: int = 0
     tier_3_count: int = 0
@@ -129,6 +131,20 @@ class PreparedAggregateFacts(_FactModel):
     tier_summaries: list[PreparedTierSummaryFacts] = Field(default_factory=list)
     has_tiered_snvs: bool = False
     has_reportable_findings: bool = False
+
+
+class PreparedMeasurementFacts(_FactModel):
+    """A producer-reported measurement exposed to clinical rules without interpretation."""
+
+    analysis_type: Literal["HRD", "MSI", "TMB"]
+    method: str
+    value: float
+    unit: str
+    tai: int | None = None
+    hrd: int | None = None
+    lst: int | None = None
+    total: int | None = None
+    unstable: int | None = None
 
 
 class PreparedReportContext(BaseModel):
@@ -146,6 +162,9 @@ class PreparedReportContext(BaseModel):
     applied_gene_lists: list[PreparedGeneListFacts] = Field(default_factory=list)
     findings: list[PreparedFindingFacts] = Field(default_factory=list)
     biomarkers: list[dict[str, Any]] = Field(default_factory=list)
+    hrd: list[PreparedMeasurementFacts] = Field(default_factory=list)
+    msi: list[PreparedMeasurementFacts] = Field(default_factory=list)
+    tmb: list[PreparedMeasurementFacts] = Field(default_factory=list)
     aggregates: PreparedAggregateFacts = Field(default_factory=PreparedAggregateFacts)
 
     def evaluation_scope(
@@ -164,6 +183,9 @@ class PreparedReportContext(BaseModel):
             "finding": finding.model_dump(mode="python") if finding else {},
             "item": dict(item or {}),
             "findings": [item.model_dump(mode="python") for item in self.findings],
-            "biomarkers": self.biomarkers,
+            **{
+                key: [value.model_dump(mode="python") for value in getattr(self, key)]
+                for key in ("hrd", "msi", "tmb")
+            },
             "aggregates": self.aggregates.model_dump(mode="python"),
         }

@@ -15,6 +15,7 @@ from api.config.constants import (
     analysis_type_for_file_key,
     manifest_file_preload_keys,
 )
+from api.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
 from api.infra.observability.operations import measured_operation
 
 runtime_app = SimpleNamespace(config={})
@@ -146,7 +147,12 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                     size_bytes = os.path.getsize(str(path))
                 except OSError:
                     size_bytes = None
-            data_count = data_counts.get(preload_keys.get(key, ""))
+            analysis_type = analysis_type_for_file_key(omics_layer, key)
+            data_count = data_counts.get(
+                analysis_type.lower()
+                if analysis_type in BIOMARKER_ANALYSES
+                else preload_keys.get(key, "")
+            )
             if key in (sample.get("missing_expected_files") or []):
                 availability = "optional_missing"
             elif path and path_exists:
@@ -330,10 +336,27 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             return
         sample_ids = [str(sample.get("_id")) for sample in samples if sample.get("_id") is not None]
         grouped = bulk_getter(sample_ids)
+        configurations: dict[tuple[str, ...], dict[str, Any]] = {}
         for sample in samples:
             sample_id = str(sample.get("_id") or "")
             merged: dict[str, Any] = {}
-            for document in grouped.get(sample_id, []):
+            context_key = tuple(
+                str(sample.get(key) or "")
+                for key in ("current_aspc_id", "asp_id", "subpanel_id", "environment")
+            )
+            if context_key not in configurations:
+                configurations[context_key] = self._get_formatted_assay_config(sample)
+            config = configurations[context_key]
+            enabled = config.get("analysis_types") or []
+            counts = dict(sample.get("data_counts") or {})
+            counts.pop("biomarkers", None)
+            for analysis in BIOMARKER_ANALYSES:
+                if analysis not in enabled:
+                    counts.pop(analysis.lower(), None)
+            sample["data_counts"] = counts
+            for document in project_biomarkers(
+                grouped.get(sample_id, []), config.get("analysis_types") or []
+            ):
                 values = self._flatten_biomarker_values(document)
                 for key, value in values.items():
                     if key not in merged:

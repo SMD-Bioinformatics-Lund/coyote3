@@ -2,6 +2,7 @@
 
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
+import { tooltipToneClass } from "@/components/ui/app-tooltip-meta"
 import {
   clinicalBadgeClassName,
   InfoBadge,
@@ -93,12 +94,10 @@ export function badgeSeverityClass(severity: string) {
 }
 
 export function tooltipSeverityClass(severity: string) {
-  if (severity === "pass" || severity === "success") return "border-pass/45 bg-popover text-pass"
-  if (severity === "fail") return "border-fail/45 bg-popover text-fail"
-  if (severity === "warn") return "border-warn/50 bg-popover text-warn"
-  if (severity === "info") return "border-tier3/45 bg-popover text-tier3"
   if (severity === "pgx") return "badge-pgx"
-  if (severity === "neutral") return "border-muted-foreground/35 bg-popover text-muted-foreground"
+  if (["pass", "success", "fail", "danger", "warn", "warning", "info", "neutral"].includes(severity)) {
+    return `bg-popover ${tooltipToneClass(severity)}`
+  }
   return "border-primary/40 bg-popover text-primary"
 }
 

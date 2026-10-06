@@ -340,7 +340,7 @@ describe("sample analysis table tabs", () => {
           { analysis_type: "CNV", gene: "EGFR", region: "7:100-300", cnv_type: "gain" },
           { analysis_type: "TRANSLOCATION", gene_1: "KMT2A", gene_2: "AFF1", breakpoint: "11:1" },
           { analysis_type: "FUSION", fusion: "BCR::ABL1", breakpoint_1: "22:1", breakpoint_2: "9:2" },
-          { analysis_type: "BIOMARKER", biomarker: "TMB", result: "12.4 mut/Mb" },
+          { analysis_type: "TMB", biomarker: "TMB", result: { TMB: { value: 12.4, unit: "mut/Mb" } } },
           { analysis_type: "PGX", gene: "CYP2C19", pgx_result: "Intermediate metabolizer" },
         ],
       },
@@ -354,10 +354,10 @@ describe("sample analysis table tabs", () => {
       "Copy-number variants",
       "DNA fusions and translocations",
       "RNA fusions",
-      "Biomarkers",
+      "TMB",
       "Pharmacogenomics",
     ]) {
-      expect(screen.getByText(section)).toBeVisible()
+      expect(screen.getAllByText(section)[0]).toBeVisible()
     }
     expect(mocks.dataTable).toHaveBeenCalledTimes(6)
     expect(mocks.dataTable.mock.calls.map(([props]) => props.filename)).toEqual([
@@ -365,7 +365,7 @@ describe("sample analysis table tabs", () => {
       "MULTI_REPORT_dna_cnv_snapshot.csv",
       "MULTI_REPORT_dna_translocation_snapshot.csv",
       "MULTI_REPORT_dna_fusion_snapshot.csv",
-      "MULTI_REPORT_dna_biomarker_snapshot.csv",
+      "MULTI_REPORT_dna_tmb_snapshot.csv",
       "MULTI_REPORT_dna_pgx_snapshot.csv",
     ])
   })

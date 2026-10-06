@@ -410,20 +410,35 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
   </table>
 {% endif %}
 
-{% if "BIOMARKER" in report_sections %}
-  {% set biomarkers = report_sections_data.biomarkers %}
-  <span class="report_header">Kliniskt relevanta biomarkörer</span>
+{% for analysis in ["HRD", "MSI", "TMB", "BIOMARKER"] %}
+{% if analysis in report_sections %}
+  {% set biomarkers = report_sections_data.biomarkers if analysis == "BIOMARKER" else report_sections_data[analysis|lower] %}
+  <span class="report_header">{{ "Kliniskt relevanta biomarkörer" if analysis == "BIOMARKER" else analysis }}</span>
   <table class="variant_table">
     <tr><th>Biomarkör</th><th>Resultat</th></tr>
     {% for biomarker in biomarkers %}
       <tr>
         <td>{{ biomarker.name or biomarker.biomarker or "Biomarkör" }}</td>
         <td>
+          {% if analysis == "HRD" %}
+            {{ biomarker.HRD.sum }} (TAI: {{ biomarker.HRD.tai }};
+            HRD: {{ biomarker.HRD.hrd }}; LST: {{ biomarker.HRD.lst }})
+          {% elif analysis == "MSI" %}
+            {% for method in ["MSIS", "MSIP"] %}
+              {% if biomarker.get(method) %}
+                <b>{{ method }}</b>: {{ biomarker[method].per }}%
+                ({{ biomarker[method].som }}/{{ biomarker[method].tot }})<br>
+              {% endif %}
+            {% endfor %}
+          {% elif analysis == "TMB" %}
+            {{ biomarker[analysis].value }} mut/Mb
+          {% else %}
           {% for key, value in biomarker.items() %}
             {% if key not in ["_id", "SAMPLE_ID", "name", "biomarker"] %}
               <b>{{ key }}</b>: {{ value }}{% if not loop.last %}<br>{% endif %}
             {% endif %}
           {% endfor %}
+          {% endif %}
         </td>
       </tr>
     {% else %}
@@ -431,6 +446,8 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
     {% endfor %}
   </table>
 {% endif %}
+
+{% endfor %}
 
 {% if "PGX" in report_sections %}
   {% set pgx_results = report_sections_data.pgx %}

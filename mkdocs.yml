@@ -146,6 +146,7 @@ nav:
       - "VEP metadata updates": operations/vep-metadata-updates.md
       - Data migrations:
           - Section guide: operations/migrations/README.md
+          - Independent measurement analyses: operations/migrations/independent-biomarker-analyses.md
           - "Migrate an existing Coyote v3 installation": operations/migrations/upgrade-from-v3.md
           - "Clinical-Rule Data Maintenance": operations/migrations/clinical-rule-migrations.md
           - "Reference database placement": operations/migrations/knowledgebase-database-migration.md
@@ -158,6 +159,7 @@ nav:
       - "Clinical Reporting Rules": reference/clinical-reporting-rules.md
       - "Reporting workflow and finding snapshots": reference/report-snapshots.md
       - "Application domains and services": reference/domain-services.md
+      - Measurement analyses: reference/measurement-analyses.md
       - "Sample YAML manifest": reference/sample-manifest.md
       - "Sample input file formats": reference/sample-file-formats.md
       - Raw ingest file reference:
@@ -165,7 +167,10 @@ nav:
           - Small variants · VCF: reference/ingest-files/small-variants-vcf.md
           - Copy-number variants · JSON: reference/ingest-files/copy-number-json.md
           - Panel coverage · JSON: reference/ingest-files/coverage-json.md
-          - Biomarkers · JSON: reference/ingest-files/biomarkers-json.md
+          - HRD · JSON: reference/ingest-files/hrd-json.md
+          - MSI · JSON: reference/ingest-files/msi-json.md
+          - TMB · JSON: reference/ingest-files/tmb-json.md
+          - Shared measurement storage: reference/ingest-files/biomarkers-json.md
           - DNA translocations · VCF: reference/ingest-files/translocations-vcf.md
           - RNA fusions · JSON: reference/ingest-files/fusions-json.md
           - RNA expression · JSON: reference/ingest-files/expression-json.md

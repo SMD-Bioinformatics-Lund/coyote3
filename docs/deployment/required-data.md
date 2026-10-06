@@ -116,7 +116,7 @@ Minimum DNA manifest fields:
 | `genome_build` | Reference genome build, normally `37` or `38`. |
 | Case fields | Flat fields such as `case_id`, `clarity_case_id`, `clarity_case_pool_id`, `case_sequencing_run`, `case_ffpe`, `case_reads`, and `case_purity`. |
 | Control fields | The corresponding flat control fields for paired samples. Omit them for unpaired samples. |
-| Analysis files | Flat configured file keys such as `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, or `biomarkers`. Do not author a nested `files` block. |
+| Analysis files | Flat configured file keys such as `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, `hrd`, `msi`, `tmb`. Do not author a nested `files` block. |
 
 > **Caution: Container-readable paths**
 >

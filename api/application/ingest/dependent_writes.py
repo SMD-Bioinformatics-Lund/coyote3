@@ -9,6 +9,7 @@ from api.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     INGEST_SINGLE_DOCUMENT_KEYS,
 )
+from api.domain.common.biomarkers import BIOMARKER_FIELDS, biomarker_counts
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
 from api.infra.mongo.persistence import insert_many_documents
 
@@ -76,19 +77,73 @@ def write_dependents(
 
 
 def data_counts(preload: dict[str, Any]) -> dict[str, int | bool]:
-    """Count documents in each preload data type."""
-    return {
+    """Count prepared evidence and each supplied independent measurement analysis.
+
+    Args:
+        preload: Parsed evidence keyed by ingest collection payload name.
+
+    Returns:
+        Collection counts and lowercase measurement analysis counts. Unprovided
+        analyses are absent so an update preserves their previous counts.
+    """
+    counts = {
         key: (len(preload[key]) if isinstance(preload[key], list) else bool(preload[key]))
         for key in preload
         if key in INGEST_DEPENDENT_COLLECTIONS
     }
+    if "biomarkers" in preload:
+        measured = preload["biomarkers"]
+        counts.update(
+            {
+                key: value
+                for key, value in biomarker_counts([measured]).items()
+                if any(field in measured for field in BIOMARKER_FIELDS[key.upper()])
+            }
+        )
+    return counts
 
 
 def replace_dependents(
     service: Any, *, preload: dict[str, Any], sample_id: str, sample_name: str, session: Any
 ) -> dict[str, int]:
-    """Replace declared evidence within the caller's required transaction."""
+    """Replace supplied evidence while preserving other measurement analyses.
+
+    Args:
+        service: Ingest service with the application collection gateway and writer.
+        preload: Parsed and selected incoming evidence.
+        sample_id: Parent sample's string identifier.
+        sample_name: Parent sample name used by dependent document normalization.
+        session: Active required ingest transaction covering reads and all writes.
+
+    Returns:
+        Written document counts keyed by ingest payload name.
+
+    Raises:
+        ValueError: Multiple existing documents or a conflicting source name require reconciliation.
+
+    Notes:
+        Replacing MSI replaces both method fields as one analysis. Absent HRD,
+        MSI or TMB input leaves that analysis unchanged.
+    """
     sid = str(sample_id)
+    if "biomarkers" in preload:
+        # Replace only supplied analyses, retaining all other measurements.
+        existing = service.collection_gateway.sample_biomarkers(sid, session=session)
+        if len(existing) > 1:
+            raise ValueError("Multiple biomarker documents require reconciliation before update")
+        incoming = preload["biomarkers"]
+        merged = dict(existing[0]) if existing else {}
+        if merged and merged.get("name") != incoming.get("name"):
+            raise ValueError(
+                "Biomarker update source name differs from the stored measurement source"
+            )
+        merged.pop("_id", None)
+        for fields in BIOMARKER_FIELDS.values():
+            if any(field in incoming for field in fields):
+                for field in fields:
+                    merged.pop(field, None)
+        merged.update(incoming)
+        preload = {**preload, "biomarkers": merged}
     keys_to_replace = set(preload.keys()) & set(INGEST_DEPENDENT_COLLECTIONS)
     for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
         if key in keys_to_replace:

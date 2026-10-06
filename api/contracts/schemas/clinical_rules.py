@@ -136,7 +136,7 @@ class ClinicalRuleCollectionMatch(_StrictModel):
     """Quantified condition over a supported collection of report facts."""
 
     type: Literal["collection_match"] = "collection_match"
-    collection: Literal["findings", "biomarkers", "applied_gene_lists", "tier_summaries"]
+    collection: Literal["findings", "hrd", "msi", "tmb", "applied_gene_lists", "tier_summaries"]
     quantifier: Literal["any", "none", "all", "count"]
     where: "ClinicalCondition"
     count: ClinicalRuleCountComparison | None = None
@@ -273,9 +273,17 @@ class ClinicalRuleEvaluationScope(_StrictModel):
     """Select evaluation once, per finding, or per named collection item."""
 
     mode: Literal["once", "each_finding", "each_item"] = "once"
-    collection: Literal["findings", "biomarkers", "applied_gene_lists", "tier_summaries"] | None = (
-        None
-    )
+    collection: (
+        Literal[
+            "findings",
+            "hrd",
+            "msi",
+            "tmb",
+            "applied_gene_lists",
+            "tier_summaries",
+        ]
+        | None
+    ) = None
 
     @model_validator(mode="after")
     def _collection_contract(self) -> "ClinicalRuleEvaluationScope":

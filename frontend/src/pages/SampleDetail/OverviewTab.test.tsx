@@ -62,7 +62,7 @@ const context = {
   analysis_counts_filtered: { snv: 187, cnv: 2 },
   sample_expected_files: [
     { key: "vcf_files", analysis_type: "SNV", path: "/data/case.vcf", required: true, present: true, exists: true, size_bytes: 2048, data_count: 1421, availability: "available" },
-    { key: "biomarkers", analysis_type: "BIOMARKER", required: false, present: false, exists: false, availability: "optional_missing" },
+    { key: "msi", analysis_type: "MSI", required: false, present: false, exists: false, availability: "optional_missing" },
   ],
   biomarkers: [{ MSIS: { per: 0.12, tot: 100, som: 12 }, HRD: { sum: 21, tai: 6, hrd: 7, lst: 8 } }],
   snv_genelist_options: [{ isgl_id: "heme", display_name: "Hematology", gene_count: 197 }],
@@ -110,7 +110,7 @@ describe("sample overview presentation", () => {
     expect(screen.getByText("VCF")).toBeVisible()
     expect(screen.getByText("2.0 KB")).toBeVisible()
     expect(screen.getByText("Not available")).toBeVisible()
-    expect(screen.getByText("No biomarkers file available")).toBeVisible()
+    expect(screen.getByText("No MSI file available")).toBeVisible()
     expect(screen.getByRole("heading", { name: "SNV filters" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "CNV filters" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "Coverage filters" })).toBeVisible()

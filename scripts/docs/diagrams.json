@@ -4400,5 +4400,108 @@
         "dashed": false
       }
     ]
+  },
+  "measurement-analysis-flow": {
+    "title": "Independent measurement analyses",
+    "description": "The ASP declares independent files; the ASPC selects review and report analyses. HRD, MSI, and TMB share storage while retaining separate rule facts and report identities.",
+    "notes": [
+      "Zero is a measurement; unavailable input is not a negative result.",
+      "Updates replace supplied analyses and preserve other stored measurements."
+    ],
+    "nodes": [
+      {
+        "title": "ASP file policy",
+        "lines": [
+          "hrd · msi · tmb",
+          "Expected and required independently"
+        ]
+      },
+      {
+        "title": "ASPC selection",
+        "lines": [
+          "HRD · MSI · TMB",
+          "Review types and report sections"
+        ]
+      },
+      {
+        "title": "Raw JSON inputs",
+        "lines": [
+          "Producer values and explicit units",
+          "MSIS / MSIP retain their methods"
+        ]
+      },
+      {
+        "title": "Shared collection",
+        "lines": [
+          "biomarkers with SAMPLE_ID",
+          "HRD · MSIS · MSIP · TMB"
+        ]
+      },
+      {
+        "title": "Review and exports",
+        "lines": [
+          "Selected header measurements",
+          "Separate availability and columns"
+        ]
+      },
+      {
+        "title": "Clinical rules",
+        "lines": [
+          "hrd · msi · tmb collections",
+          "Typed values; governed thresholds"
+        ]
+      },
+      {
+        "title": "Saved reporting evidence",
+        "lines": [
+          "One row per analysis and source",
+          "Values and rule provenance frozen"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": 0,
+        "target": 2,
+        "label": "file requirements",
+        "dashed": false
+      },
+      {
+        "source": 2,
+        "target": 3,
+        "label": "validated ingest",
+        "dashed": false
+      },
+      {
+        "source": 1,
+        "target": 4,
+        "label": "enabled analyses",
+        "dashed": false
+      },
+      {
+        "source": 3,
+        "target": 4,
+        "label": "selected measurements",
+        "dashed": false
+      },
+      {
+        "source": 1,
+        "target": 5,
+        "label": "report sections",
+        "dashed": false
+      },
+      {
+        "source": 3,
+        "target": 5,
+        "label": "typed facts",
+        "dashed": false
+      },
+      {
+        "source": 5,
+        "target": 6,
+        "label": "reviewed narrative",
+        "dashed": false
+      }
+    ]
   }
 }

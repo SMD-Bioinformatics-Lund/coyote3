@@ -42,7 +42,7 @@ export type Condition =
   | { type: "not"; child: Condition }
   | {
       type: "collection_match"
-      collection: "findings" | "biomarkers" | "applied_gene_lists" | "tier_summaries"
+      collection: "findings" | "hrd" | "msi" | "tmb" | "applied_gene_lists" | "tier_summaries"
       quantifier: "any" | "none" | "all" | "count"
       where: Condition
       count?: { operator: "eq" | "ne" | "gt" | "gte" | "lt" | "lte"; value: number }
@@ -74,7 +74,7 @@ export type RuleBlock = {
   analysis?: string | null
   evaluation: {
     mode: "once" | "each_finding" | "each_item"
-    collection?: "findings" | "biomarkers" | "applied_gene_lists" | "tier_summaries" | null
+    collection?: "findings" | "hrd" | "msi" | "tmb" | "applied_gene_lists" | "tier_summaries" | null
   }
   section: string
   section_order: number

@@ -311,7 +311,9 @@ export function adminCell(
     const booleanLabels: Record<string, string> = {
       cov: "Cov",
       coverage: "Coverage",
-      biomarkers: "Biomarkers",
+      hrd: "HRD",
+      msi: "MSI",
+      tmb: "TMB",
       expression: "Expression",
       classification: "Classification",
       qc: "QC",
@@ -327,7 +329,7 @@ export function adminCell(
         .filter(([key]) => Number(counts[key] || 0) > 0)
         .map(([key, label]) => `${label} ${shortCount(Number(counts[key]))}`),
       ...Object.entries(booleanLabels)
-        .filter(([key]) => counts[key] === true)
+        .filter(([key]) => counts[key] === true || (["hrd", "msi", "tmb"].includes(key) && Number(counts[key]) > 0))
         .map(([, label]) => label),
     ]
     return <MiniBadges values={badges} max={6} />

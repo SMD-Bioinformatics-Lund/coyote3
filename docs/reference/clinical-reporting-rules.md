@@ -419,7 +419,7 @@ cannot address arbitrary MongoDB fields.
 | `value` | Typed scalar or list | Expected value; omitted only for `is_empty` and `is_unknown`. |
 | `children` | One or more conditions | Child conditions for `all` and `any`. |
 | `child` | One condition | Negated condition for `not`. |
-| `collection` | `findings`, `biomarkers`, `applied_gene_lists`, `tier_summaries` | Prepared list inspected by `collection_match`. |
+| `collection` | `findings`, `hrd`, `msi`, `tmb`, `applied_gene_lists`, `tier_summaries` | Prepared list inspected by `collection_match`. |
 | `quantifier` | `any`, `none`, `all`, `count` | Required collection cardinality. `all` does not match an empty collection. |
 | `where` | One nested condition | Condition evaluated with the current collection member exposed under `item`. |
 | `count.operator` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` | Comparison used only by the `count` quantifier. |
@@ -468,7 +468,9 @@ cannot address arbitrary MongoDB fields.
 | `finding.fusion_gene_1`, `finding.fusion_gene_2` | string | each finding | Prepared structural-event partners. |
 | `aggregates.finding_count` | integer | all | Number of prepared findings. |
 | `aggregates.snv_count`, `cnv_count`, `fusion_count`, `translocation_count` | integer | all | Prepared finding counts by analysis. |
-| `aggregates.biomarker_count` | integer | all | Number of prepared biomarker result documents. |
+| `aggregates.hrd_count` | integer | DNA | Number of source documents with selected HRD measurements. |
+| `aggregates.msi_count` | integer | DNA | Number of source documents with selected MSI measurements. |
+| `aggregates.tmb_count` | integer | DNA | Number of source documents with selected TMB measurements. |
 | `aggregates.has_tiered_snvs` | boolean | all | Whether a reportable Tier I-IV SNV summary exists. |
 | `aggregates.tier_4_count` | integer | all | Reportable Tier IV SNVs; normally zero unless the ASPC explicitly includes tier 4. |
 | `aggregates.has_reportable_findings` | boolean | all | Whether any prepared finding or biomarker exists. |
@@ -778,3 +780,12 @@ The clinical reporting package has a mandatory 100% statement and branch coverag
 `scripts/run_family_coverage_gates.sh`. Tests cover every operator, nested condition,
 collection quantifier, output node, renderer branch, lifecycle transition, authorization
 boundary, malformed or missing fact behavior, integrity failure, and exact embedded case.
+
+## Measurement analysis facts
+
+HRD, MSI, and TMB use independent analysis declarations and prepared
+collections. An `each_item` block can inspect `item.value`, `item.unit`, and
+`item.method`, plus analysis-specific components. Configure the block's `analysis`
+and the ASPC report section consistently. Only selected measurements enter the
+prepared collections. See [measurement analyses](measurement-analyses.md#clinical-rules-and-reports)
+for the complete fact and unit reference.

@@ -360,16 +360,19 @@ class DnaService:
             assay_config_getter=assay_config_getter,
         )
 
-    def biomarkers_payload(self, *, sample: dict) -> dict[str, Any]:
-        """Build biomarker payload for DNA routes.
+    def biomarkers_payload(self, *, sample: dict, assay_config_getter) -> dict[str, Any]:
+        """Return measurements enabled by the sample's stored ASPC.
 
         Args:
             sample: Sample payload to inspect.
+            assay_config_getter: Resolver for the sample's recorded configuration revision.
 
         Returns:
             dict[str, Any]: Biomarker payload for DNA routes.
         """
-        return payloads.biomarkers_payload(service=self, sample=sample)
+        return payloads.biomarkers_payload(
+            service=self, sample=sample, assay_config_getter=assay_config_getter
+        )
 
     def variant_context_payload(
         self,

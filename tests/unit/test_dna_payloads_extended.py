@@ -147,8 +147,8 @@ def test_search_matches_all_terms_across_variant_fields() -> None:
 
 def test_analysis_section_normalization_is_stable() -> None:
     assert payloads._normalize_dna_analysis_sections(
-        ["snv", "TMB", "PGX", "biomarker", "SNV", "cnv", ""]
-    ) == ["SNV", "CNV", "BIOMARKER"]
+        ["snv", "TMB", "PGX", "HRD", "SNV", "cnv", ""]
+    ) == ["SNV", "TMB", "PGX", "HRD", "CNV"]
 
 
 def test_gene_enrichment_collectors_handle_configured_and_missing_repositories() -> None:
@@ -199,7 +199,9 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
             {"_id": "cnv-other", "interesting": False},
         ],
         biomarker_repository=SimpleNamespace(
-            get_sample_biomarkers=lambda sample_id: [{"_id": "tmb", "sample": sample_id}]
+            get_sample_biomarkers=lambda sample_id: [
+                {"_id": "tmb", "name": sample_id, "TMB": {"value": 12.4}}
+            ]
         ),
         translocation_repository=SimpleNamespace(
             get_sample_translocations=lambda query: [
@@ -211,7 +213,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
         service,
         variants=[{"_id": "snv-1"}],
         tiered_variants=[{"_id": "snv-tiered"}],
-        analysis_sections=["CNV", "BIOMARKER", "TRANSLOCATION", "FUSION"],
+        analysis_sections=["CNV", "TMB", "TRANSLOCATION", "FUSION"],
         sample={"_id": "sample-1"},
         sample_filters={},
         cnv_filters={"gain": 3},
@@ -224,7 +226,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
     assert display["snvs"] == [{"_id": "snv-1"}]
     assert summary["snvs"] == [{"_id": "snv-tiered"}]
     assert summary["cnvs"] == [{"_id": "cnv-interesting", "interesting": True}]
-    assert display["biomarkers"][0]["sample"] == "sample-1"
+    assert display["biomarkers"][0]["name"] == "sample-1"
     assert display["translocs"][0]["restricted"] is True
     assert display["fusions"] == []
     assert summary["translocs"][0]["_id"] == "transloc-1"
@@ -234,7 +236,7 @@ def test_plot_and_biomarker_payloads_and_missing_configuration() -> None:
     sample = {"_id": "sample-1", "name": "SAMPLE_1"}
     service = SimpleNamespace(
         biomarker_repository=SimpleNamespace(
-            get_sample_biomarkers=lambda sample_id: [{"sample": sample_id}]
+            get_sample_biomarkers=lambda sample_id: [{"name": sample_id, "TMB": {"value": 0}}]
         )
     )
     plot = payloads.plot_context_payload(
@@ -243,7 +245,11 @@ def test_plot_and_biomarker_payloads_and_missing_configuration() -> None:
         assay_config_getter=lambda value: {"reporting": {"plots_path": "/plots"}},
     )
     assert plot["plots_base_dir"] == "/plots"
-    biomarkers = payloads.biomarkers_payload(service=service, sample=sample)
+    biomarkers = payloads.biomarkers_payload(
+        service=service,
+        sample=sample,
+        assay_config_getter=lambda value: {"analysis_types": ["TMB"]},
+    )
     assert biomarkers["meta"]["count"] == 1
     with pytest.raises(AppError) as exc:
         payloads.plot_context_payload(

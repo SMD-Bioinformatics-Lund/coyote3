@@ -48,6 +48,11 @@ analytical workflows are enabled. A tab is rendered only when all of the followi
 | RNA quality | `QC` | RNA sample with an RNA quality resource or quality state | Returned with the shared RNA-analysis payload; it has no separate workspace tab | `GET /samples/{sample_name}/rna-analysis` when the shared tab is available |
 | PGX | `PGX` | Not applicable to the current sample-review workspace | PGX configuration can be recorded, but a PGX review tab, query workflow, and report section are not implemented | No sample-workspace endpoint is requested |
 
+HRD, MSI, and TMB are independent analyses displayed in the sample header and
+overview. Their input files, rule collections, and report sections are independently
+controlled; see [measurement analyses](measurement-analyses.md). They do not create
+variant-table tabs.
+
 `Overview` and `Reports` are workspace tabs rather than analysis-type tabs.
 The Reports tab also requires the reporting module to be enabled. A DNA sample never
 exposes the RNA fusion tab. The RNA fusion API also validates the modality and

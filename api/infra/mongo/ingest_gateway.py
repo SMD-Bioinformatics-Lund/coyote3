@@ -82,6 +82,18 @@ class IngestCollectionGateway:
         """Return the samples collection."""
         return self.collection("samples")
 
+    def sample_biomarkers(self, sample_id: str, *, session: Any) -> list[dict[str, Any]]:
+        """Read measurements in the same transaction that will replace supplied analyses.
+
+        Args:
+            sample_id: Parent sample's string identifier.
+            session: Active ingest transaction from this gateway's application client.
+
+        Returns:
+            Existing measurement documents, including their source identity.
+        """
+        return list(self.collection("biomarkers").find({"SAMPLE_ID": sample_id}, session=session))
+
     def mongo_client(self) -> Any | None:
         """Return the underlying Mongo client when available."""
         database = getattr(self.sample_collection(), "database", None)

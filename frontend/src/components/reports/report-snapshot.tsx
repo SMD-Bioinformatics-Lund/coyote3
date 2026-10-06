@@ -144,7 +144,10 @@ export const REPORT_SNAPSHOT_SECTIONS = [
   { type: "CNV", label: "Copy-number variants", columns: cnvColumns },
   { type: "TRANSLOCATION", label: "DNA fusions and translocations", columns: translocationColumns },
   { type: "FUSION", label: "RNA fusions", columns: fusionColumns },
-  { type: "BIOMARKER", label: "Biomarkers", columns: biomarkerColumns },
+  { type: "HRD", label: "HRD", columns: biomarkerColumns },
+  { type: "MSI", label: "MSI", columns: biomarkerColumns },
+  { type: "TMB", label: "TMB", columns: biomarkerColumns },
+  { type: "BIOMARKER", label: "Biomarkers (historical)", columns: biomarkerColumns },
   { type: "PGX", label: "Pharmacogenomics", columns: pgxColumns },
 ] as const
 

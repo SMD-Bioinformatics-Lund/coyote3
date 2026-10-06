@@ -9,6 +9,7 @@ covered in the [clinical user guide](../user-guide/README.md),
 
 | Guide | Use it to |
 | --- | --- |
+| [HRD, MSI, and TMB](measurement-analyses.md) | Configure measurement availability, rules, reports, and exports. |
 | [Raw ingest file reference](ingest-files/README.md) | Prepare each raw VCF or JSON input using field definitions and complete synthetic examples. |
 | [System overview](application-overview.md) | Review the system's services, clinical configuration, and end-to-end flow. |
 | [Clinical concepts and resource identities](clinical-concepts.md) | Define samples, cases, assays, configurations, gene lists, and findings. |

@@ -8,6 +8,7 @@ from typing import Any
 from pysam import VariantFile
 
 from api.config.constants import primary_analysis_file_key
+from api.domain.common.biomarkers import BIOMARKER_FIELDS
 from api.domain.common.parsers import cmdvcf
 from api.domain.core.dna.transcript_payloads import compact_selected_csq
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
@@ -137,10 +138,23 @@ class DnaIngestParser:
             cnv_doc = read_ingest_json(cnv_path, "CNV")
             preload["cnvs"] = self._parse_cnvs_only(cnv_doc)
 
-        biomarkers_path = runtime_file_path(args, primary_analysis_file_key("dna", "BIOMARKER"))
-        if biomarkers_path:
-            require_exists("Biomarkers JSON", biomarkers_path)
-            preload["biomarkers"] = read_ingest_json(biomarkers_path, "Biomarkers")
+        measurements: dict[str, Any] = {}
+        for analysis, fields in BIOMARKER_FIELDS.items():
+            path = runtime_file_path(args, primary_analysis_file_key("dna", analysis))
+            if not path:
+                continue
+            require_exists(f"{analysis} JSON", path)
+            document = read_ingest_json(path, analysis)
+            if not isinstance(document, dict) or not document.get("name"):
+                raise ValueError(f"{analysis} JSON requires an object with a name")
+            selected = {key: document[key] for key in fields if document.get(key) is not None}
+            if not selected:
+                raise ValueError(f"{analysis} JSON requires a measurement: {', '.join(fields)}")
+            if measurements.get("name", document["name"]) != document["name"]:
+                raise ValueError("Independent biomarker files must use the same source name")
+            measurements.update(name=document["name"], **selected)
+        if measurements:
+            preload["biomarkers"] = measurements
 
         transloc_path = runtime_file_path(args, primary_analysis_file_key("dna", "TRANSLOCATION"))
         if transloc_path:

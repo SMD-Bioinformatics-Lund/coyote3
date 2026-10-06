@@ -113,9 +113,9 @@ workflows. For distinct workload proportions, use separate accounts with a singl
 workflow and control their count.
 
 Rule-test pairs must belong to matching assays and subpanels. Ingest requires a
-dedicated synthetic ASP with `expected_files: ["biomarkers"]` and
-`required_files: ["biomarkers"]`, and a matching ASPC with
-`analysis_types: ["BIOMARKER"]`. The bootstrap `assay_1`
+dedicated synthetic ASP with `expected_files: ["msi"]` and
+`required_files: ["msi"]`, and a matching ASPC with
+`analysis_types: ["MSI"]`. The bootstrap `assay_1`
 requires VCF input and cannot run this biomarker-only workload.
 Create the synthetic configuration through the normal admin workflow; the generator
 does not create or weaken assay requirements. The sample's environment
@@ -125,7 +125,7 @@ and case names and never requests replacement of existing data. Comments and
 ingested samples remain in the disposable target until operator cleanup.
 
 The example uses `asp_id: load_assay`, sample environment `testing`, and the fixed
-input `/load/synthetic/biomarkers.json`. The tiny source file is supplied under
+input `/load/synthetic/msi.json`. The tiny source file is supplied under
 `tests/load/synthetic/`. The suite rejects other ingest file paths, rather than
 allowing a fixture to name clinical files. For Docker targets, add this to the
 disposable application's private Compose storage override, not the generator's

@@ -677,7 +677,7 @@ JavaScript fragment.
 | `CNV_PROFILE` | CNV profile image | DNA only. Rendered beside the CNV table. |
 | `TRANSLOCATION` | Structural-variant calls | DNA only. May share the same source as `FUSION`. |
 | `FUSION` | DNA structural-variant or RNA fusion calls | The supported source depends on the omics section. |
-| `BIOMARKER` | Biomarker payload | DNA only. |
+| `HRD`, `MSI`, `TMB` | Independent measurement analyses with separate file keys and report sections | DNA only; stored in the shared `biomarkers` collection. |
 | `COVERAGE` | Coverage payload | DNA only. Provides quality and gene/exon coverage views. |
 | `TMB` | Tumour mutational burden result | DNA only. |
 | `PGX` | Pharmacogenomic result | DNA or RNA. |

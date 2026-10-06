@@ -117,6 +117,10 @@ def validate_rule_set(
     """
     errors: list[str] = []
     warnings: list[str] = []
+    if {"BIOMARKER", "LOH"} & set(document.analysis_declarations) or any(
+        block.analysis in {"BIOMARKER", "LOH"} for block in document.blocks
+    ):
+        errors.append("Declare HRD, MSI, or TMB individually; BIOMARKER and LOH are not supported")
     if not document.blocks:
         errors.append("At least one rule block is required")
     enabled_analyses = {

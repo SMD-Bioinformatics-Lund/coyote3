@@ -95,6 +95,7 @@ function StatusBadge({
 }
 
 function numberValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return null
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
 }
@@ -115,10 +116,11 @@ function buildSampleMetricBadges(sample: any, context: any) {
       : []
   const badges: ReactNode[] = []
 
+  const enabled = new Set<string>(context?.analysis_sections || [])
   biomarkers.forEach((marker: any, index: number) => {
     for (const [key, label] of [["MSIS", "MSI (Single)"], ["MSIP", "MSI (Paired)"]] as const) {
       const value = numberValue(marker?.[key]?.per)
-      if (value !== null) {
+      if (enabled.has("MSI") && value !== null) {
         badges.push(
           <MetricBadge
             key={`${key}-${index}`}
@@ -130,7 +132,7 @@ function buildSampleMetricBadges(sample: any, context: any) {
       }
     }
     const hrd = numberValue(marker?.HRD?.sum)
-    if (hrd !== null) {
+    if (enabled.has("HRD") && hrd !== null) {
       badges.push(
         <MetricBadge
           key={`HRD-${index}`}
@@ -139,6 +141,13 @@ function buildSampleMetricBadges(sample: any, context: any) {
           details={`TAI: ${displayValue(marker.HRD.tai)}; HRD: ${displayValue(marker.HRD.hrd)}; LST: ${displayValue(marker.HRD.lst)}`}
         />,
       )
+    }
+    for (const analysis of ["TMB"] as const) {
+      const value = numberValue(marker?.[analysis]?.value)
+      if (enabled.has(analysis) && value !== null) {
+        badges.push(<MetricBadge key={`${analysis}-${index}`} label={analysis}
+          value={`${value} mut/Mb`} />)
+      }
     }
   })
 

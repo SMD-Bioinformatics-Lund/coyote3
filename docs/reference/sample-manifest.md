@@ -311,7 +311,9 @@ DNA bundles may include these file keys:
 - `cnv`
 - `cnvprofile`
 - `cov`
-- `biomarkers`
+- `hrd`
+- `msi`
+- `tmb`
 - `transloc`
 - `pgx`
 
@@ -329,7 +331,9 @@ The assay narrows that list through `assay_specific_panels.expected_files`. For 
 | `cnvprofile` | Optional unless listed in ASP `required_files` | Image | CNV tab | Visual CNV profile displayed beside the CNV table. It is stored as sample file metadata and does not create CNV collection rows. |
 | `cov` | Optional unless listed in ASP `required_files` | JSON | Coverage tab, overview QC | Gene/exon/probe coverage metrics. Coverage and `CNV_PROFILE` are independent resources. |
 | `transloc` | Optional unless listed in ASP `required_files` | SnpEff-annotated breakend VCF | Translocations tab, reports | Structural/translocation calls. |
-| `biomarkers` | Optional unless listed in ASP `required_files` | JSON | Header biomarkers, overview, reports | Sample-level biomarkers such as MSI, HRD, TMB, or assay-specific markers. |
+| `hrd` | Optional unless listed in ASP `required_files` | JSON object | HRD header, overview, rules, and reports | [Raw HRD contract](ingest-files/hrd-json.md). |
+| `msi` | Optional unless listed in ASP `required_files` | JSON object | MSI header, overview, rules, and reports | [Raw MSI contract](ingest-files/msi-json.md). |
+| `tmb` | Optional unless listed in ASP `required_files` | JSON object | TMB header, overview, rules, and reports | [Raw TMB contract](ingest-files/tmb-json.md). |
 | `pgx` | Optional unless listed in ASP `required_files` | JSON object or array of objects | Persisted in `pgx`; no clinical review tab or report section | Pharmacogenomic calls or annotations. |
 
 Ingest publication is atomic from the user's perspective:
@@ -383,10 +387,10 @@ Notes:
 - `cov` is used for coverage/gene coverage views.
 - `cnv` and `cnvprofile` are optional but common for panel DNA workflows.
 - `cnvprofile` is an image resource attached to the sample. It is served in the CNV tab beside the CNV table, but it does not create dependent database rows.
-- `transloc`, `biomarkers`, and `pgx` are optional expected DNA resources. Missing or unreadable optional files are recorded as unavailable. Readable files must parse and validate before their evidence can support clinical review.
+- `transloc`, `hrd`, `msi`, `tmb`, and `pgx` are optional expected DNA resources. Missing or unreadable optional files are recorded as unavailable. Readable files must parse and validate before their evidence can support clinical review.
 - The VCF `##VEP=` header supplies the database-version snapshot. This example
   intentionally does not repeat it in YAML.
-- The raw file expectations for `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`, and `pgx` are documented in [Sample Input Files](sample-file-formats.md#dna-raw-input-files).
+- The raw file expectations for `vcf_files`, `cnv`, `cov`, `hrd`, `msi`, `tmb`, `transloc`, and `pgx` are documented in [Sample Input Files](sample-file-formats.md#dna-raw-input-files).
 
 ## RNA sample YAML
 

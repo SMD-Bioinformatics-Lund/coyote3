@@ -68,6 +68,9 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         return {"items": [{"_id": "l1"}], "total": 3}
 
     monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
+    monkeypatch.setattr(
+        service, "_get_formatted_assay_config", lambda sample: {"analysis_types": []}
+    )
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     added_from = datetime(2026, 8, 1, tzinfo=timezone.utc)
@@ -134,6 +137,9 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         return {"items": [{"_id": "d1", "reports": [{"time_created": 123}]}], "total": 1}
 
     monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
+    monkeypatch.setattr(
+        service, "_get_formatted_assay_config", lambda sample: {"analysis_types": []}
+    )
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -340,7 +346,10 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc, **_kwargs: {"filters": dict(sample_doc.get("filters") or {})},
+        lambda sample_doc, **_kwargs: {
+            "analysis_types": ["TMB"],
+            "filters": dict(sample_doc.get("filters") or {}),
+        },
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
@@ -393,7 +402,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     monkeypatch.setattr(
         service.biomarker_repository,
         "get_sample_biomarkers",
-        lambda sample_id: [{"name": "TMB"}],
+        lambda sample_id: [{"name": "synthetic", "TMB": {"value": 0, "unit": "mut/Mb"}}],
     )
 
     payload = service.edit_context_payload(sample=sample)
@@ -403,14 +412,14 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         "cnv": 2,
         "transloc": 2,
         "fusion": 0,
-        "biomarker": 1,
+        "tmb": 1,
     }
     assert payload["analysis_counts_filtered"] == {
         "snv": 4,
         "cnv": 1,
         "transloc": 1,
         "fusion": 0,
-        "biomarker": 1,
+        "tmb": 1,
     }
 
 

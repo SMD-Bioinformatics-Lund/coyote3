@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.domain.common.assay_filters import get_sample_effective_genes, has_sample_gene_restriction
+from api.domain.common.biomarkers import biomarker_counts
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
 
@@ -450,7 +451,7 @@ class SampleCatalogFiltersMixin:
             "cnv": self._count_items(cnv_rows),
             "transloc": self._count_items(transloc_rows),
             "fusion": self._count_items(fusion_rows),
-            "biomarker": self._count_items(biomarker_rows),
+            **biomarker_counts(biomarker_rows),
         }
         filtered_counts = {
             "snv": int(variant_stats_filtered.get("variants") or 0),
@@ -463,6 +464,6 @@ class SampleCatalogFiltersMixin:
             "fusion": self._count_matching_docs(fusion_rows, set(fusion_genes))
             if fusion_restricted
             else raw_counts["fusion"],
-            "biomarker": raw_counts["biomarker"],
+            **biomarker_counts(biomarker_rows),
         }
         return raw_counts, filtered_counts, variant_stats_filtered

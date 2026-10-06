@@ -209,7 +209,9 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("aggregates.cnv_count", "CNV count", "Result", "integer", _NUMBER),
     _fact("aggregates.fusion_count", "Fusion count", "Result", "integer", _NUMBER),
     _fact("aggregates.translocation_count", "Translocation count", "Result", "integer", _NUMBER),
-    _fact("aggregates.biomarker_count", "Biomarker count", "Result", "integer", _NUMBER),
+    _fact("aggregates.hrd_count", "HRD count", "Result", "integer", _NUMBER),
+    _fact("aggregates.msi_count", "MSI count", "Result", "integer", _NUMBER),
+    _fact("aggregates.tmb_count", "TMB count", "Result", "integer", _NUMBER),
     _fact("aggregates.tier_4_count", "Tier IV SNV count", "Result", "integer", _NUMBER),
     _fact("aggregates.has_tiered_snvs", "Has tiered SNVs", "Result", "boolean", _EQUALITY),
     _fact(
@@ -239,6 +241,39 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         value_format="gene",
     ),
     _fact("item.tier", "Item tier", "Current item", "integer", _NUMBER, ("each_item",)),
+)
+
+FACT_CATALOG += (
+    _fact(
+        "item.analysis_type",
+        "Analysis",
+        "Measurements",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_options=("HRD", "MSI", "TMB"),
+    ),
+    _fact(
+        "item.method",
+        "Measurement method",
+        "Measurements",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_options=("HRD", "MSIS", "MSIP", "TMB"),
+    ),
+    _fact("item.value", "Measured value", "Measurements", "number", _NUMBER, ("each_item",)),
+    _fact("item.unit", "Measurement unit", "Measurements", "string", _EQUALITY, ("each_item",)),
+    *(
+        _fact(f"item.{key}", label, "Measurements", "integer", _NUMBER, ("each_item",))
+        for key, label in (
+            ("tai", "HRD TAI component"),
+            ("hrd", "HRD component"),
+            ("lst", "HRD LST component"),
+            ("total", "MSI evaluated count"),
+            ("unstable", "MSI unstable count"),
+        )
+    ),
 )
 
 FACTS_BY_PATH = {definition.path: definition for definition in FACT_CATALOG}

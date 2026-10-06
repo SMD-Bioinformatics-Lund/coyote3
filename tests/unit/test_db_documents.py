@@ -859,7 +859,9 @@ def test_collection_validator_applies_default_expected_files_for_dna_asp():
         "cnvprofile",
         "cov",
         "transloc",
-        "biomarkers",
+        "hrd",
+        "msi",
+        "tmb",
         "pgx",
     ]
     assert payload["required_files"] == []

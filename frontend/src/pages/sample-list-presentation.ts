@@ -1,4 +1,4 @@
-import { shortCount } from "@/lib/detail-formatters"
+import type { SampleDataSegment } from "./sample-data-status"
 import { FILE_ANALYSIS_LABELS } from "@/lib/sample-artifact-ui"
 import type { SortingState } from "@tanstack/react-table"
 
@@ -11,7 +11,9 @@ export const DEFAULT_REPORTED_SORTING: SortingState = [{ id: "latest_reported", 
 
 export const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
   cov: "Cov",
-  biomarkers: "Biomarkers",
+  hrd: "HRD",
+  msi: "MSI",
+  tmb: "TMB",
   qc: "QC",
   classification: "Classification",
   rna_expr: "Expr",
@@ -27,7 +29,9 @@ export const STANDARD_DATA_EXPORT_COLUMNS = [
   { key: "fusions", aliases: ["fusions"] },
   { key: "transloc", aliases: ["transloc", "translocations"] },
   { key: "cov", aliases: ["cov"] },
-  { key: "biomarkers", aliases: ["biomarkers"] },
+  { key: "hrd", aliases: ["hrd"] },
+  { key: "msi", aliases: ["msi"] },
+  { key: "tmb", aliases: ["tmb"] },
   { key: "pgx", aliases: ["pgx"] },
   { key: "rna_expr", aliases: ["rna_expr", "rna_expression"] },
   { key: "rna_class", aliases: ["rna_class", "rna_classification"] },
@@ -41,7 +45,9 @@ export const DATA_EXPORT_LABELS: Record<string, string> = {
   transloc: "Translocation count",
   translocations: "Translocation count",
   cov: "Coverage loaded",
-  biomarkers: "Biomarkers loaded",
+  hrd: "HRD loaded",
+  msi: "MSI loaded",
+  tmb: "TMB loaded",
   pgx: "PGx loaded",
   rna_expr: "Expression loaded",
   rna_expression: "Expression loaded",
@@ -63,22 +69,22 @@ export function firstDefinedValue(record: Record<string, unknown>, keys: readonl
   return undefined
 }
 
-export function countBadges(sample: any) {
+export function countBadges(sample: { data_counts?: Record<string, number | boolean>; missing_expected_files?: string[] }): SampleDataSegment[] {
   const counts = sample?.data_counts || {}
   const missing = new Set(sample?.missing_expected_files || [])
   const translocations = counts.transloc ?? counts.translocations
   const numericBadges = [
-    counts.snvs !== undefined && !missing.has("vcf_files") ? { label: "SNV", value: shortCount(counts.snvs), className: "matte-badge-pass" } : null,
-    counts.cnvs !== undefined && !missing.has("cnv") ? { label: "CNV", value: shortCount(counts.cnvs), className: "matte-badge-pass" } : null,
-    counts.fusions !== undefined && !missing.has("fusion_files") ? { label: "Fusion", value: shortCount(counts.fusions), className: "matte-badge-pass" } : null,
-    translocations !== undefined && !missing.has("transloc") ? { label: "SV", value: shortCount(translocations), className: "matte-badge-pass" } : null,
-  ].filter(Boolean)
+    counts.snvs !== undefined && !missing.has("vcf_files") ? { label: "SNV", value: Number(counts.snvs).toLocaleString("en-US"), className: "matte-badge-pass" } : null,
+    counts.cnvs !== undefined && !missing.has("cnv") ? { label: "CNV", value: Number(counts.cnvs).toLocaleString("en-US"), className: "matte-badge-pass" } : null,
+    counts.fusions !== undefined && !missing.has("fusion_files") ? { label: "Fusion", value: Number(counts.fusions).toLocaleString("en-US"), className: "matte-badge-pass" } : null,
+    translocations !== undefined && !missing.has("transloc") ? { label: "SV", value: Number(translocations).toLocaleString("en-US"), className: "matte-badge-pass" } : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null)
   const fileForCount: Record<string, string> = {
     rna_expr: "expression_path", rna_expression: "expression_path",
     rna_class: "classification_path", rna_classification: "classification_path", rna_qc: "qc",
   }
   const booleanBadges = Object.entries(counts)
-    .filter(([key, value]) => typeof value === "boolean" && !missing.has(fileForCount[key] || key))
+    .filter(([key, value]) => (typeof value === "boolean" || ["hrd", "msi", "tmb"].includes(key)) && key !== "biomarkers" && !missing.has(fileForCount[key] || key))
     .map(([key, value]) => ({
       label: BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ").toUpperCase(),
       className: value ? "matte-badge-pass" : "matte-badge-fail",

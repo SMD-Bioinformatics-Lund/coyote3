@@ -25,6 +25,7 @@ describe("SampleDetailHero", () => {
       <SampleDetailHero
         sample={sample}
         context={{
+          analysis_sections: ["MSI", "HRD"],
           biomarkers: [{
             MSIS: { per: 0.12, tot: 100, som: 12 },
             HRD: { sum: 21, tai: 6, hrd: 7, lst: 8 },
@@ -66,5 +67,17 @@ describe("SampleDetailHero", () => {
     expect(screen.queryByText("MSI (Single):")).not.toBeInTheDocument()
     expect(screen.queryByText("Purity:")).not.toBeInTheDocument()
     expect(screen.queryByText("FFPE:")).not.toBeInTheDocument()
+  })
+
+  it("shows enabled zero measurements and suppresses disabled measurements", () => {
+    renderWithRouter(<SampleDetailHero sample={sample} context={{
+      analysis_sections: ["TMB"],
+      biomarkers: [{ TMB: { value: 0, unit: "mut/Mb" },
+        HRD: { sum: 42 }, MSIS: { per: 0 } }],
+    }} />)
+    expect(screen.getByText("TMB:")).toBeVisible()
+    expect(screen.getByText("0 mut/Mb")).toBeVisible()
+    expect(screen.queryByText("HRD:")).not.toBeInTheDocument()
+    expect(screen.queryByText("MSI (Single):")).not.toBeInTheDocument()
   })
 })

@@ -156,7 +156,7 @@ Clinical routes are grouped by the biological workflow that owns the data.
 | `clinical.dna.cnvs` | Copy-number variants. | `/api/v1/samples/{sample_id}/cnvs`, `/api/v1/samples/{sample_id}/cnvs/exports/context` |
 | `clinical.dna.translocations` | DNA translocations and breakpoints. | `/api/v1/samples/{sample_id}/translocations`, `/api/v1/samples/{sample_id}/translocations/exports/context` |
 | `clinical.dna.coverage` | Coverage summaries, gene views, exon/probe tracks, and coverage blacklist operations. | `/api/v1/samples/{sample_id}/coverage` |
-| `clinical.dna.biomarkers` | Sample biomarker context. | `/api/v1/samples/{sample_id}/biomarkers` |
+| `clinical.dna.biomarkers` | Enabled measurements and individual HRD, MSI, or TMB results. | `/api/v1/samples/{sample_id}/hrd`, `/api/v1/samples/{sample_id}/msi`, `/api/v1/samples/{sample_id}/tmb` |
 | `clinical.dna.classifications` | Tiering and classification state shared by DNA findings. | `/api/v1/samples/{sample_id}/classifications` |
 | `clinical.rna.fusions` | RNA fusion finding review. | `/api/v1/samples/{sample_id}/fusions` |
 | `clinical.reporting.reports` | Access-scoped saved-report library plus sample-owned preview, save, HTML, and PDF artifacts. | `/api/v1/reports`, `/api/v1/samples/{sample_id}/reports` |

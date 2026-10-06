@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from api.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
 from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 
@@ -126,29 +127,37 @@ def build_translocation_snapshot_rows(
 def build_biomarker_snapshot_rows(
     biomarkers: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Return immutable snapshot rows for reportable aggregate biomarkers."""
+    """Return one immutable row per measured, selected analysis and source document.
+
+    Args:
+        biomarkers: Documents already restricted to the selected report sections.
+
+    Returns:
+        Rows with independent analysis identities and preserved measurement fields.
+    """
     created_on = datetime.now(timezone.utc)
     rows: list[dict[str, Any]] = []
-    for index, biomarker in enumerate(biomarkers):
-        name = str(biomarker.get("name") or biomarker.get("biomarker") or f"biomarker_{index + 1}")
-        values = {
-            key: value
-            for key, value in biomarker.items()
-            if key not in {"_id", "SAMPLE_ID", "name"}
-        }
-        simple_id, simple_id_hash = _identity("biomarker", name)
-        rows.append(
-            {
-                "analysis_type": "BIOMARKER",
-                "finding_type": "biomarker",
-                "var_oid": biomarker.get("_id"),
-                "simple_id": simple_id,
-                "simple_id_hash": simple_id_hash,
-                "biomarker": name,
-                "result": values,
-                "created_on": created_on,
+    for analysis in BIOMARKER_ANALYSES:
+        for index, biomarker in enumerate(project_biomarkers(biomarkers, [analysis])):
+            name = str(biomarker.get("name") or f"source_{index + 1}")
+            values = {
+                key: value
+                for key, value in biomarker.items()
+                if key not in {"_id", "SAMPLE_ID", "name"}
             }
-        )
+            simple_id, simple_id_hash = _identity(analysis.lower(), name)
+            rows.append(
+                {
+                    "analysis_type": analysis,
+                    "finding_type": analysis.lower(),
+                    "var_oid": biomarker.get("_id"),
+                    "simple_id": simple_id,
+                    "simple_id_hash": simple_id_hash,
+                    "biomarker": analysis,
+                    "result": values,
+                    "created_on": created_on,
+                }
+            )
     return rows
 
 

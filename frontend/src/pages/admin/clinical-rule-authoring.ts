@@ -6,7 +6,7 @@ import type {
 
 
 export const ANALYSES = {
-  dna: ["SNV", "CNV", "TRANSLOCATION", "BIOMARKER", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"],
+  dna: ["SNV", "CNV", "TRANSLOCATION", "HRD", "MSI", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"],
   rna: ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
 } as const
 

@@ -155,7 +155,9 @@ def _store_stub(sample_docs=None):
                         "cov",
                         "cnvprofile",
                         "transloc",
-                        "biomarkers",
+                        "hrd",
+                        "msi",
+                        "tmb",
                     ],
                     "required_files": ["vcf_files"],
                 },
@@ -173,7 +175,9 @@ def _store_stub(sample_docs=None):
                         "cov",
                         "cnvprofile",
                         "transloc",
-                        "biomarkers",
+                        "hrd",
+                        "msi",
+                        "tmb",
                     ],
                     "required_files": ["vcf_files"],
                 },
@@ -356,7 +360,10 @@ def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
         ),
         encoding="utf-8",
     )
-    biomarker_path.write_text(json.dumps({"name": "S1"}), encoding="utf-8")
+    biomarker_path.write_text(
+        json.dumps({"name": "S1", "HRD": {"tai": 1, "hrd": 2, "lst": 3, "sum": 6}}),
+        encoding="utf-8",
+    )
     transloc_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
     cov_path.write_text(json.dumps({"genes": {}}), encoding="utf-8")
 
@@ -372,7 +379,7 @@ def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
             "omics_layer": "dna",
             "files": {
                 "cnv": {"path": str(cnv_path)},
-                "biomarkers": {"path": str(biomarker_path)},
+                "hrd": {"path": str(biomarker_path)},
                 "transloc": {"path": str(transloc_path)},
                 "cov": {"path": str(cov_path)},
             },
@@ -771,7 +778,7 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         "vcf_files": str(vcf_path),
         "cov": str(cov_path),
         "cnv": "/data/a.cnv.json",
-        "biomarkers": "/data/a.biomarkers.json",
+        "hrd": "/data/a.hrd.json",
         "_runtime_files": {
             "vcf_files": str(runtime_vcf_path),
             "cov": str(runtime_cov_path),
@@ -779,7 +786,7 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         },
     }
 
-    with pytest.raises(ValueError, match="biomarkers, cnv"):
+    with pytest.raises(ValueError, match="cnv, hrd"):
         service._validate_payload_file_keys(payload)
 
 

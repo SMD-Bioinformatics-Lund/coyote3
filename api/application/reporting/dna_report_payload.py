@@ -27,6 +27,7 @@ from api.domain.common.assay_filters import (
     get_sample_effective_genes,
     has_sample_gene_restriction,
 )
+from api.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
 from api.domain.common.reporting import (
     TIER_DESC,
     TIER_SHORT_DESC,
@@ -301,8 +302,6 @@ def _normalize_dna_report_sections(sections: list[str] | None) -> list[str]:
     raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
     normalized: list[str] = []
     for value in raw:
-        if value == "TMB":
-            value = "BIOMARKER"
         if value not in normalized:
             normalized.append(value)
     return normalized
@@ -715,11 +714,16 @@ def build_dna_report_payload(
             _sample_file_path(sample, primary_analysis_file_key("dna", "CNV_PROFILE"))
         )
 
-    if "BIOMARKER" in report_sections:
-        report_sections_data["biomarkers"] = list(
-            biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"])) or []
+    if set(report_sections) & set(BIOMARKER_ANALYSES):
+        report_sections_data["biomarkers"] = project_biomarkers(
+            biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"])) or [],
+            report_sections,
         )
         rule_sections_data["biomarkers"] = report_sections_data["biomarkers"]
+        for analysis in BIOMARKER_ANALYSES:
+            report_sections_data[analysis.lower()] = project_biomarkers(
+                report_sections_data["biomarkers"], [analysis]
+            )
         if include_snapshot:
             snapshot_rows.extend(build_biomarker_snapshot_rows(report_sections_data["biomarkers"]))
 

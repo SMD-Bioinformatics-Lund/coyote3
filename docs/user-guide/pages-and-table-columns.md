@@ -131,7 +131,7 @@ Common compact labels include `missense`, `frameshift`, `splice donor`, `splice 
 | --- | --- |
 | Caller badge | One badge per caller, such as `FREEBAYES`, `TNSCOPE`, or `VARDICT`. |
 | SIFT/PolyPhen prediction | Color-coded functional prediction. Damaging/deleterious calls use fail or warning colors; benign/tolerated calls use pass coloring; unknown calls are neutral. |
-| Biomarker badge | Displays available biomarker values such as MSI or HRD. Missing or undefined biomarkers are omitted rather than shown as empty values. |
+| Biomarker badge | Displays measured HRD, MSI, and TMB values enabled in the sample's stored ASPC. Missing values are omitted; valid zeros are retained. |
 
 ## Dashboard
 
@@ -219,11 +219,11 @@ Date, profile, live/reported, assay, search, rows-per-page, page, and sort selec
 | Subpanel | ASPC/subpanel context. | Plain text |
 | Analysis | Committed sample ingest status. Standard worklists contain only samples in the green `ready` state. | Green `ready` badge |
 | Report | Reported state. | `reported` or `unreported` badge |
-| Counts | Short data counts and explicitly recorded resource states by analysis type. | Green `SNV`, `CNV`, `Fusion`, `SV`, `Cov`, biomarker, expression, classification, and QC badges when loaded; red when a recorded resource state is false |
+| Data | Availability of each recorded or expected data type. | One compact pill with a segment per type: a green check means available; a red × means unavailable. Hover or keyboard focus shows full finding counts, a check for other present data, and × for missing data. Click to keep the details open; press Escape to close them. |
 | Added | Human relative added time. | Full timestamp in tooltip |
 | Actions | Opens the sample. | Arrow/detail button |
 
-An analysis that is not applicable to a sample is omitted rather than shown as failed. A bundle remains `loading` only while its dependent records are being committed and is excluded from standard worklists. If ingest fails, the staged sample and dependent records are removed; the failure is recorded in ingest operations and audit events. Red data badges are reserved for resources explicitly recorded as failed, unavailable, partial, or not loaded.
+An analysis that is not applicable to a sample is omitted rather than shown as failed. A bundle remains `loading` only while its dependent records are being committed and is excluded from standard worklists. If ingest fails, the staged sample and dependent records are removed; the failure is recorded in ingest operations and audit events. A red data segment identifies an unavailable resource, including a missing expected file. A loaded finding file with zero findings remains available.
 
 ## Sample Detail
 
@@ -253,7 +253,7 @@ The overview tab mirrors the sample settings and sample-level context needed bef
 | Overview | Case and control identifiers, Clarity IDs, pool IDs, run, reads, FFPE, purity, and the recorded ASPC identifier/version when present. A newer active revision can be applied explicitly after confirmation. |
 | Files and QC | Expected input files, whether each file path is present, and file availability/size when the backend can inspect the mounted path. |
 | Gene settings | Selected SNV/CNV gene lists, ad-hoc gene lists, and effective gene scope. |
-| Biomarkers | MSI, HRD, and other configured biomarkers loaded for the sample. |
+| HRD, MSI, TMB | Independent configured measurements with separate availability. |
 
 > **Caution: Raw payloads**
 >

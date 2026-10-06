@@ -530,11 +530,11 @@ must not be forced through SNV HGVSp/HGVSc matching.
 
 Biomarker documents provide structured assay results such as:
 
-- MSI single-site and panel values;
+- MSI single-sample and paired values;
 - HRD components and summary values;
-- other configured biomarker fields.
+- TMB in mutations per megabase.
 
-The report context can carry biomarker data when `BIOMARKER` is enabled.
+The report context selects HRD, MSI, and TMB independently through their report sections.
 Visible report text requires an explicit template or a validated clinical text
 rule.
 
@@ -588,8 +588,8 @@ aspc:
   oid: "<ObjectId>"
   aspc_id: "<ASPC ID>"
   version: 3
-  analysis_types: [SNV, CNV, BIOMARKER]
-  report_sections: [SNV, CNV, BIOMARKER]
+  analysis_types: [SNV, CNV, HRD, MSI]
+  report_sections: [SNV, CNV, HRD, MSI]
 
 applied_gene_scope:
   snv_lists: []

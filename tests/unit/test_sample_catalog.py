@@ -77,6 +77,7 @@ def test_sample_catalog_attaches_flat_biomarkers_with_one_bulk_lookup():
 
     service = object.__new__(SampleCatalogService)
     service.biomarker_repository = SimpleNamespace(get_samples_biomarkers=get_samples_biomarkers)
+    service._get_formatted_assay_config = lambda sample: {"analysis_types": ["HRD", "MSI"]}
     samples = [{"_id": "s1"}, {"_id": "s2"}]
 
     service._attach_biomarker_values(samples)

@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from api.domain.common.biomarkers import project_biomarkers
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
@@ -126,6 +127,11 @@ class SampleCatalogMutationsMixin:
         biomarker_rows = list(
             self.biomarker_repository.get_sample_biomarkers(str(sample.get("_id"))) or []
         )
+        biomarker_rows = project_biomarkers(biomarker_rows, analysis_sections)
+        for analysis in ("hrd", "msi", "tmb"):
+            if analysis.upper() not in analysis_sections:
+                analysis_counts_raw.pop(analysis, None)
+                analysis_counts_filtered.pop(analysis, None)
         sample_comments = []
         if self.sample_comment_repository is not None:
             sample_comments = list(

@@ -108,7 +108,7 @@ def assay_config_doc() -> dict:
     defaults = {
         "_id": "aspc1",
         "asp_group": "dna",
-        "analysis_types": ["SNV", "CNV", "BIOMARKER"],
+        "analysis_types": ["SNV", "CNV", "HRD", "MSI"],
         "filters": deepcopy(sample_doc().get("filters", {})),
         "reporting": {"report_path": "dna_report.html", "plots_path": "reports/plots"},
         "verification_samples": {"SAMPLE": ["1:1:A:T"]},

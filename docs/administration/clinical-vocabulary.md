@@ -66,7 +66,7 @@ transcript_selection_order = [
 ]
 
 [files.dna]
-keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
+keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "hrd", "msi", "tmb", "pgx"]
 
 [files.rna]
 keys = ["fusion_files", "expression_path", "classification_path", "qc", "pgx"]
@@ -78,17 +78,18 @@ panel-rna = ["fusion_files"]
 wts = ["fusion_files"]
 
 [analysis.dna]
-types = ["SNV", "CNV", "TRANSLOCATION", "BIOMARKER", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"]
+types = ["SNV", "CNV", "TRANSLOCATION", "HRD", "MSI", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"]
 
 [analysis.dna.file_keys]
 SNV = ["vcf_files"]
 CNV = ["cnv"]
 TRANSLOCATION = ["transloc"]
-BIOMARKER = ["biomarkers"]
+HRD = ["hrd"]
+MSI = ["msi"]
 CNV_PROFILE = ["cnvprofile"]
 COVERAGE = ["cov"]
 FUSION = ["transloc"]
-TMB = ["biomarkers"]
+TMB = ["tmb"]
 PGX = ["pgx"]
 
 [analysis.rna]
@@ -102,8 +103,8 @@ QC = ["qc"]
 PGX = ["pgx"]
 
 [analysis.allowed_by_family]
-panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
-wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
+panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
+wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
 panel-rna = ["FUSION", "QC", "PGX"]
 wts = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]
 ```

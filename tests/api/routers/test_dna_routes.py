@@ -62,7 +62,11 @@ def _dna_service() -> DnaService:
 
 def _biomarker_service() -> biomarker_router.BiomarkerService:
     """Build a biomarker service for route tests."""
-    return biomarker_router.BiomarkerService(biomarker_repository=store.biomarker_repository)
+    return biomarker_router.BiomarkerService(
+        biomarker_repository=store.biomarker_repository,
+        assay_panel_repository=store.assay_panel_repository,
+        assay_configuration_repository=store.assay_configuration_repository,
+    )
 
 
 def _classification_service() -> classification_router.ResourceClassificationService:
@@ -210,18 +214,23 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
     assert rows == cnv_rows
 
 
-def test_list_dna_biomarkers_success(monkeypatch):
-    """Test list dna biomarkers success.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
+@pytest.mark.parametrize("analysis", ["HRD", "MSI", "TMB"])
+def test_individual_measurement_route_success(monkeypatch, analysis):
+    """Each endpoint exposes only its configured measurement fields."""
     sample = fx.sample_doc()
-    biomarkers = [{"_id": "b1", "name": "TMB", "value": "High"}]
+    biomarkers = [
+        {
+            "name": "source",
+            "HRD": {"sum": 42},
+            "MSIS": {"per": 0},
+            "TMB": {"value": 12.4, "unit": "mut/Mb"},
+        }
+    ]
     service = _biomarker_service()
+    monkeypatch.setattr(
+        "api.application.biomarker.biomarker_lookup.get_formatted_assay_config",
+        lambda *args, **kwargs: {"analysis_types": [analysis]},
+    )
 
     monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
@@ -233,9 +242,21 @@ def test_list_dna_biomarkers_success(monkeypatch):
         biomarker_router.util.common, "convert_to_serializable", lambda payload: payload
     )
 
-    payload = biomarker_router.list_dna_biomarkers("S1", user=fx.api_user(), service=service)
+    handler = getattr(biomarker_router, f"list_dna_{analysis.lower()}")
+    payload = handler("S1", user=fx.api_user(), service=service)
     assert payload["meta"]["count"] == 1
-    assert payload["biomarkers"][0]["name"] == "TMB"
+    field = "MSIS" if analysis == "MSI" else analysis
+    assert set(payload[analysis.lower()][0]) == {"name", field}
+
+
+def test_measurement_routes_are_individual_and_module_gated():
+    """No aggregate or dynamic endpoint bypasses the DNA module gate."""
+    from api.config.application_modules import APPLICATION_MODULES
+
+    paths = {route.path for route in biomarker_router.router.routes}
+    assert paths == {f"/api/v1/samples/{{sample_id}}/{key}" for key in ("hrd", "msi", "tmb")}
+    module = next(item for item in APPLICATION_MODULES if item.key == "dna_analysis")
+    assert all(any(fragment in path for fragment in module.route_fragments) for path in paths)
 
 
 def test_show_dna_variant_not_found_raises_404(monkeypatch):

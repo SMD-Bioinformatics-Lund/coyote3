@@ -22,7 +22,7 @@
             "cnvprofile",
             "cov",
             "transloc",
-            "biomarkers",
+            "hrd", "msi",
             "pgx"
           ],
           "required_files": [],

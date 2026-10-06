@@ -131,8 +131,8 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
     assert payload["meta"]["tiered_count"] is None
 
 
-def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
-    """TMB/PGX toggles should surface the shared biomarker findings section."""
+def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
+    """TMB is selected independently and PGX does not expose other measurements."""
     sample = fx.sample_doc()
     assay_config = {
         "asp_group": "panel",
@@ -159,7 +159,9 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
         sample_repository=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
         oncokb_repository=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
         biomarker_repository=SimpleNamespace(
-            get_sample_biomarkers=lambda sample_id: [{"name": "TMB", "value": "High"}]
+            get_sample_biomarkers=lambda sample_id: [
+                {"name": "TMB", "TMB": {"value": 12.4, "unit": "mut/Mb"}, "HRD": {"sum": 42}}
+            ]
         ),
         load_cnvs_for_sample=lambda **kwargs: [],
         translocation_repository=SimpleNamespace(get_sample_translocations=lambda query: []),
@@ -188,7 +190,8 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
         assay_config_getter=lambda _sample: assay_config,
     )
 
-    assert payload["analysis_sections"] == ["SNV", "BIOMARKER"]
+    assert payload["analysis_sections"] == ["SNV", "TMB", "PGX"]
+    assert "HRD" not in payload["display_sections_data"]["biomarkers"][0]
     assert payload["display_sections_data"]["biomarkers"][0]["name"] == "TMB"
 
 

@@ -585,7 +585,7 @@ class SamplesDoc(_DocBase):
             if has_dna:
                 raise ValueError(
                     "RNA sample must not include DNA file keys "
-                    "(vcf_files/cnv/cov/biomarkers/transloc)"
+                    "(vcf_files/cnv/cov/hrd/msi/tmb/transloc)"
                 )
             if not has_rna:
                 raise ValueError("RNA sample must include at least one RNA data file key")

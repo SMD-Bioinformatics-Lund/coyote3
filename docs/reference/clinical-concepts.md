@@ -42,8 +42,8 @@ may use the ASP's `base` configuration and displays that decision to the user.
 
 ## Analysis Types and Intents
 
-Analysis types identify the data domain, such as SNV, CNV, fusion, coverage, or
-biomarker analysis. The ASPC controls which implemented analysis types are
+Analysis types identify the data domain, such as SNV, CNV, fusion, coverage,
+HRD, MSI, or TMB. The ASPC controls which implemented analysis types are
 available for a sample and which of them contribute report sections.
 
 Analysis intent is separate from analysis type. SNV review can expose somatic

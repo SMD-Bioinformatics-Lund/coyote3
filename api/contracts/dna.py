@@ -53,12 +53,28 @@ class DnaPlotContextPayload(BaseModel):
     plots_base_dir: str | None = None
 
 
-class DnaBiomarkersPayload(BaseModel):
-    """Represent the dna biomarkers payload."""
+class DnaHrdPayload(BaseModel):
+    """Sample-scoped HRD measurements with availability metadata."""
 
     sample: dict[str, Any]
     meta: dict[str, Any]
-    biomarkers: list[dict[str, Any]]
+    hrd: list[dict[str, Any]]
+
+
+class DnaMsiPayload(BaseModel):
+    """Sample-scoped MSI measurements with availability metadata."""
+
+    sample: dict[str, Any]
+    meta: dict[str, Any]
+    msi: list[dict[str, Any]]
+
+
+class DnaTmbPayload(BaseModel):
+    """Sample-scoped TMB measurements with availability metadata."""
+
+    sample: dict[str, Any]
+    meta: dict[str, Any]
+    tmb: list[dict[str, Any]]
 
 
 class DnaVariantContextPayload(BaseModel):

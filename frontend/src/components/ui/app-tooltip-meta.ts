@@ -10,5 +10,5 @@ export function tooltipToneClass(tone: string) {
   if (tone === "warning" || tone === "warn") return "border-warn/50 text-warn"
   if (tone === "danger" || tone === "fail") return "border-fail/45 text-fail"
   if (tone === "neutral") return "border-muted-foreground/35 text-muted-foreground"
-  return "border-info/45 text-info"
+  return "border-tier3/45 text-tier3"
 }

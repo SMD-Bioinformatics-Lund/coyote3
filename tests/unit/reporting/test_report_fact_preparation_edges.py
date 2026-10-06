@@ -23,7 +23,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
             "subpanel_id": "base",
             "environment": "production",
             "reporting": {
-                "report_sections": ["results"],
+                "report_sections": ["results", "MSI"],
                 "language": "sv",
             },
         },
@@ -84,7 +84,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
             ],
             "fusions": [{"gene1": "BCR", "gene2": "ABL1", "classification": {"class": 1}}],
             "translocs": [{"INFO": {"ANN": [{"Gene_Name": "ETV6&RUNX1"}]}}],
-            "biomarkers": [{"name": "MSI", "value": "stable"}],
+            "biomarkers": [{"name": "case", "MSIS": {"tot": 100, "som": 0, "per": 0}}],
         },
     )
 
@@ -92,7 +92,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
     assert context.sample.environment == "production"
     assert context.sample.analysis_intent == "germline"
     assert context.asp.asp_id == "hema_gmsv1"
-    assert context.aspc.reporting.report_sections == ["results"]
+    assert context.aspc.reporting.report_sections == ["results", "MSI"]
     assert context.applied_gene_lists[0].list_type == ["snv"]
     assert context.applied_gene_lists[0].adhoc is True
 
@@ -116,7 +116,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
     assert translocation.genes == ["ETV6", "RUNX1"]
 
     assert context.aggregates.finding_count == 6
-    assert context.aggregates.biomarker_count == 1
+    assert context.aggregates.msi_count == 1
     assert context.aggregates.tier_2_count == 1
     assert context.aggregates.tier_1_count == 0
     assert context.aggregates.has_tiered_snvs is True

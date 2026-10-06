@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
@@ -540,6 +540,13 @@ class BiomarkersHrdDoc(_DocBase):
         return self
 
 
+class BiomarkersTmbDoc(_DocBase):
+    """Producer-reported tumor mutational burden in mutations per megabase."""
+
+    value: float = Field(ge=0, allow_inf_nan=False)
+    unit: Literal["mut/Mb"] = "mut/Mb"
+
+
 class BiomarkersDoc(_DocBase):
     """Sample biomarker results with absent optional assays removed after validation."""
 
@@ -548,6 +555,7 @@ class BiomarkersDoc(_DocBase):
     MSIS: BiomarkersMsiDoc | None = None
     MSIP: BiomarkersMsiDoc | None = None
     HRD: BiomarkersHrdDoc | None = None
+    TMB: BiomarkersTmbDoc | None = None
 
     @model_validator(mode="after")
     def _cleanup_none_fields(self) -> "BiomarkersDoc":
@@ -712,11 +720,22 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
 
         Raises:
             ValueError: If the label is not SNV, INDEL, CNV, FUSION, TRANSLOCATION,
-                BIOMARKER, or PGX.
+                HRD, MSI, TMB, historical BIOMARKER, or PGX.
         """
         if v is None:
             return v
-        allowed = {"SNV", "INDEL", "CNV", "FUSION", "TRANSLOCATION", "BIOMARKER", "PGX"}
+        allowed = {
+            "SNV",
+            "INDEL",
+            "CNV",
+            "FUSION",
+            "TRANSLOCATION",
+            "HRD",
+            "MSI",
+            "TMB",
+            "BIOMARKER",
+            "PGX",
+        }
         if v not in allowed:
             raise ValueError(f"var_type must be one of {allowed}")
         return v

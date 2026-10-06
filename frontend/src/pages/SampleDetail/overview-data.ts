@@ -241,18 +241,18 @@ export function analysisStatusItems(sample: any, context?: any) {
       filtered: countValue(filtered.coverage, filtered.cov),
       present: Boolean(counts.cov || files?.cov || files?.coverage),
     },
-    {
-      key: "biomarkers",
-      label: "Biomarkers",
-      configuredKeys: ["biomarker", "biomarkers"],
-      raw: countValue(raw.biomarker, raw.biomarkers, counts.biomarker, counts.biomarkers),
-      filtered: countValue(filtered.biomarker, filtered.biomarkers),
-      present: countValue(raw.biomarker, raw.biomarkers, counts.biomarker, counts.biomarkers) > 0 || Boolean(files?.biomarkers),
-    },
+    ...["hrd", "msi", "tmb"].map((key) => ({
+      key,
+      label: key.toUpperCase(),
+      configuredKeys: [key],
+      raw: countValue(raw[key], counts[key]),
+      filtered: countValue(filtered[key]),
+      present: countValue(raw[key], counts[key]) > 0 || Boolean(files?.[key]),
+    })),
   ]
   const fileKeys: Record<string, string> = {
     snv: "vcf_files", cnv: "cnv", fusion: "fusion_files", translocation: "transloc",
-    coverage: "cov", biomarkers: "biomarkers",
+    coverage: "cov", hrd: "hrd", msi: "msi", tmb: "tmb",
   }
   const missing = new Set(sample?.missing_expected_files || [])
   return items.filter((item) => configured.size === 0 || item.configuredKeys.some((key) => configured.has(key)))

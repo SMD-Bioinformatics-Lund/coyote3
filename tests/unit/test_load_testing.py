@@ -414,7 +414,7 @@ def test_example_ingest_matches_api_contract(inputs):
     )
     assert payload.sample.name == "load_sample"
     assert payload.sample.environment == "testing"
-    assert payload.sample.files["biomarkers"].path == "/load/synthetic/biomarkers.json"
+    assert payload.sample.files["msi"].path == "/load/synthetic/msi.json"
     assert payload.yaml_content is None
     assert payload.update_existing is payload.increment is False
 
@@ -423,8 +423,8 @@ def test_synthetic_biomarker_matches_api_contract():
     """Check shipped biomarker rows with the sample identity supplied by ingestion."""
     from api.contracts.schemas.dna import BiomarkersDoc
 
-    path = Path(__file__).parents[1] / "load" / "synthetic" / "biomarkers.json"
-    rows = json.loads(path.read_text())
+    path = Path(__file__).parents[1] / "load" / "synthetic" / "msi.json"
+    rows = [json.loads(path.read_text())]
     assert rows
     for row in rows:
         parsed = BiomarkersDoc.model_validate({**row, "SAMPLE_ID": "synthetic-sample"})

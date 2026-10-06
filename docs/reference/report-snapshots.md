@@ -308,7 +308,9 @@ sections include:
 - `COVERAGE`
 - `TRANSLOCATION`
 - `FUSION`
-- `BIOMARKER`
+- `HRD`
+- `MSI`
+- `TMB`
 - `PGX`
 
 The report can show only sections enabled for that assay configuration.
@@ -393,12 +395,13 @@ Rules:
 
 ### Biomarker Logic
 
-Biomarker data is loaded when `BIOMARKER` is in report sections.
+HRD, MSI, and TMB each have an independent report section. Only measurements
+selected by `reporting.report_sections` enter the report context, rule collections,
+and saved finding rows. Each selected analysis has its own result table. Missing
+measurements remain absent; a valid zero value remains reportable evidence.
 
-The clinical DNA report template historically disabled biomarker rendering in the
-visible report body. The backend context can carry biomarker data, but visible
-report rendering should be controlled deliberately by the report template and
-ASPC reporting requirements.
+Clinical narrative is defined by governed rule blocks associated with the specific
+analysis. See [measurement analyses](measurement-analyses.md) for facts and units.
 
 ### Conclusion Logic
 
@@ -445,7 +448,7 @@ persists the same typed rows under its report identifier.
 | `CNV` | `copy_number_variant` | prefixed CNV identity, genes, region, size, gain/loss type, ratio, callers, and compact source values |
 | `TRANSLOCATION` | `structural_variant` | prefixed structural identity, partner genes, breakpoint, selected HGVS/effect, and compact breakpoint values |
 | `FUSION` | `fusion` | prefixed fusion identity, partner genes, breakpoints, effect, spanning support, tier, and reviewed annotation text |
-| `BIOMARKER` | `biomarker` | prefixed biomarker identity, name, display result, and complete structured result values |
+| `HRD`, `MSI`, `TMB` | `hrd`, `msi`, `tmb` | Analysis-prefixed source identity and the selected measurement fields; one row per analysis and source document |
 | `PGX` | `pharmacogenomic_result` | prefixed PGx identity, gene, result/phenotype/diplotype, and complete structured result values |
 
 The type prefix prevents identities from different analyses colliding within

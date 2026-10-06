@@ -73,7 +73,7 @@ export function ConditionBuilder({
       {value.type === "collection_match" && (
         <div className="mt-2 space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className="type-label">Collection<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={value.collection} onChange={(event) => onChange({ ...value, collection: event.target.value as typeof value.collection })}><option value="findings">Findings</option><option value="biomarkers">Biomarkers</option><option value="applied_gene_lists">Applied gene lists</option><option value="tier_summaries">Tier summaries</option></select></label>
+            <label className="type-label">Collection<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={value.collection} onChange={(event) => onChange({ ...value, collection: event.target.value as typeof value.collection })}><option value="findings">Findings</option><option value="hrd">HRD</option><option value="msi">MSI</option><option value="tmb">TMB</option><option value="applied_gene_lists">Applied gene lists</option><option value="tier_summaries">Tier summaries</option></select></label>
             <label className="type-label">Match<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={value.quantifier} onChange={(event) => onChange({ ...value, quantifier: event.target.value as typeof value.quantifier })}><option value="any">At least one</option><option value="none">None</option><option value="all">Every item</option><option value="count">A specific count</option></select></label>
           </div>
           {value.quantifier === "count" && (

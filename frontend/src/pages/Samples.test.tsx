@@ -43,7 +43,7 @@ const samples = {
       subpanel_id: "hem",
       ingest_status: "ready",
       time_added: "2026-08-01T10:00:00Z",
-      data_counts: { snvs: 2100, cnvs: 3, cov: true, biomarkers: false },
+      data_counts: { snvs: 2100, cnvs: 3, cov: true, msi: 0 },
     },
     {
       name: "RNA_CASE_001",
@@ -72,7 +72,7 @@ const samples = {
       reported: true,
       time_added: "2026-07-30T10:00:00Z",
       latest_report_on: "2026-08-02T12:30:00Z",
-      data_counts: { snvs: 8, biomarkers: true },
+      data_counts: { snvs: 8, msi: 1 },
     },
   ],
   live_total: 2,
@@ -97,42 +97,36 @@ describe("Samples page", () => {
     queryState.mutate.mockReset()
   })
 
-  it("renders live clinical samples and compact count badges", () => {
+  it("shows compact data pills with complete details on hover", async () => {
+    const user = userEvent.setup()
     renderWithRouter(<Samples />, "/samples")
-
     expect(screen.getByRole("heading", { name: "Samples" })).toBeInTheDocument()
     expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()
-    expect(screen.getByText("SNV 2.1K")).toBeInTheDocument()
-    expect(screen.getByText("CNV 3")).toBeInTheDocument()
-    expect(screen.getByText("Cov")).toBeInTheDocument()
-    expect(screen.getByText("SNV 2.1K")).toHaveClass("matte-badge-pass")
-    expect(screen.getByText("CNV 3")).toHaveClass("matte-badge-pass")
-    expect(screen.getByText("Cov")).toHaveClass("matte-badge-pass")
-    const biomarkerBadges = screen.getAllByText("Biomarkers")
-    expect(biomarkerBadges.some((badge) => badge.classList.contains("matte-badge-fail"))).toBe(true)
-    expect(biomarkerBadges.some((badge) => badge.classList.contains("matte-badge-pass"))).toBe(true)
-    expect(screen.getByText("Fusion 3.6K")).toBeInTheDocument()
-    expect(screen.getByText("Expr")).toBeInTheDocument()
-    expect(screen.getByText("Class")).toBeInTheDocument()
-    expect(screen.getByText("QC")).toBeInTheDocument()
-    expect(screen.queryByText("RNA EXPR")).not.toBeInTheDocument()
-    expect(screen.queryByText("RNA CLASS")).not.toBeInTheDocument()
-    expect(screen.queryByText("RNA QC")).not.toBeInTheDocument()
-    expect(screen.getByText("DNA_REPORTED_001")).toBeInTheDocument()
-    expect(screen.getByText("Try the modern layout")).toBeInTheDocument()
+    const pill = screen.getByRole("button", { name: /SNV: Available \(2,100\)/ })
+    await user.hover(pill)
+    const tooltip = screen.getByRole("tooltip")
+    expect(tooltip).toHaveTextContent("SNV")
+    expect(tooltip).toHaveTextContent("2,100")
+    expect(tooltip).toHaveTextContent("CNV")
+    expect(tooltip).toHaveTextContent("MSI")
+    expect(tooltip).toHaveTextContent("Not available")
+    await user.unhover(pill)
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    pill.focus()
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeInTheDocument())
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
   })
 
-  it("marks missing expected translocations red without hiding the sample", () => {
+  it("marks missing expected translocations unavailable despite stored counts", () => {
     queryState.data = { ...samples, live_samples: [{
       ...samples.live_samples[0], missing_expected_files: ["transloc"],
       data_counts: { ...samples.live_samples[0].data_counts, transloc: 5 },
     }] }
     renderWithRouter(<Samples />, "/samples")
     expect(screen.getByText("DNA_CASE_001")).toBeVisible()
-    expect(screen.getByText("SNV 2.1K")).toBeVisible()
-    expect(screen.getByText("Transloc")).toHaveClass("matte-badge-fail")
-    expect(screen.getByText("Transloc")).toHaveAttribute("title", "Translocations not available")
-    expect(screen.queryByText("SV 5")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Transloc: Not available/ })).toBeVisible()
+    expect(screen.queryByRole("button", { name: /SV: Available \(5\)/ })).not.toBeInTheDocument()
   })
 
   it("shows an ingested translocation file with zero findings as available", () => {
@@ -140,8 +134,7 @@ describe("Samples page", () => {
       ...samples.live_samples[0], missing_expected_files: [], data_counts: { transloc: 0 },
     }] }
     renderWithRouter(<Samples />, "/samples")
-    expect(screen.getByText("SV 0")).toHaveClass("matte-badge-pass")
-    expect(screen.queryByText("Transloc")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /1 of 1 data types available. SV: Available \(0\)/ })).toBeVisible()
   })
 
   it("switches to reported samples and preserves the state in the URL", async () => {

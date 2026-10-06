@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
+from api.domain.common.biomarkers import biomarker_counts, measurement_facts, project_biomarkers
 
 
 def _genotype_vaf(variant: dict[str, Any], genotype_type: str) -> float | None:
@@ -251,7 +252,10 @@ def prepare_report_context(
     cnvs = list(report_sections_data.get("cnvs") or [])
     fusions = list(report_sections_data.get("fusions") or [])
     translocations = list(report_sections_data.get("translocs") or [])
-    biomarkers = list(report_sections_data.get("biomarkers") or [])
+    biomarkers = project_biomarkers(
+        report_sections_data.get("biomarkers") or [],
+        (aspc.get("reporting") or {}).get("report_sections") or [],
+    )
     findings.extend(_snv_fact(item) for item in snvs)
     findings.extend(_cnv_fact(item) for item in cnvs)
     findings.extend(_structural_fact(item, "fusion") for item in fusions)
@@ -302,13 +306,14 @@ def prepare_report_context(
         applied_gene_lists=[_gene_list_fact(item) for item in applied_gene_lists],
         findings=findings,
         biomarkers=biomarkers,
+        **measurement_facts(biomarkers),
         aggregates={
             "finding_count": len(findings),
             "snv_count": len(snvs),
             "cnv_count": len(cnvs),
             "fusion_count": len(fusions),
             "translocation_count": len(translocations),
-            "biomarker_count": len(biomarkers),
+            **{f"{key}_count": count for key, count in biomarker_counts(biomarkers).items()},
             "tier_1_count": tier_counts[1],
             "tier_2_count": tier_counts[2],
             "tier_3_count": tier_counts[3],

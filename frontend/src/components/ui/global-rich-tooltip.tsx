@@ -199,9 +199,9 @@ export function GlobalRichTooltip() {
       className={tooltipToneClass(tooltip.tone)}
     >
       <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">{tooltip.context}</span>
-      <span className="block text-xs font-semibold text-popover-foreground">{tooltip.label}</span>
+      <span className="block font-bold text-foreground">{tooltip.label}</span>
       {tooltip.label !== tooltip.title && (
-        <span className="mt-1 block type-meta leading-relaxed text-popover-foreground/75">{tooltip.title}</span>
+        <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{tooltip.title}</span>
       )}
     </TooltipSurface>
   )

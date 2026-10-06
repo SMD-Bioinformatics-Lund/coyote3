@@ -107,7 +107,7 @@ Coyote3 supports the following laboratory tasks:
 Coyote3 provides these sample analysis and reporting workflows:
 
 * **Sample types** - DNA and RNA workflows, somatic and germline
-* **Variant review** - SNV, CNV, translocation, fusion, biomarker, and coverage findings, gated by assay configuration
+* **Variant review** - SNV, CNV, translocation, fusion, HRD, MSI, TMB, and coverage results, gated by assay configuration
 * **Filtering** - intent-specific somatic and germline SNV filter rules, reproducibly applied per assay
 * **Clinical configuration** - assay-specific panels (ASP), assay configurations (ASPC), and in-silico gene lists (ISGL)
 * **Finding actions** - classifications, comments, cross-sample search, and finding-level decisions

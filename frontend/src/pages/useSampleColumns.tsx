@@ -10,6 +10,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { FileText } from "lucide-react"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
+import { SampleDataStatus } from "./sample-data-status"
 import { BOOLEAN_ANALYSIS_LABELS, countBadges, DATA_EXPORT_LABELS, exportScalar, firstDefinedValue, sampleFindingTotal, STANDARD_DATA_EXPORT_COLUMNS } from "./sample-list-presentation"
 
 export function useSampleColumns() {
@@ -103,13 +104,7 @@ export function useSampleColumns() {
       cell: ({ row }) => {
         const badges = countBadges(row.original)
         return (
-          <div className="flex flex-wrap gap-1">
-            {badges.length ? badges.map((item: any) => (
-              <TableBadge key={item.label} className={item.className} title={item.title} aria-label={item.title}>
-                {item.value === undefined ? item.label : `${item.label} ${item.value}`}
-              </TableBadge>
-            )) : <span className="text-muted-foreground">-</span>}
-          </div>
+          <SampleDataStatus segments={badges} />
         )
       },
       meta: {
@@ -197,7 +192,7 @@ export function useSampleExportColumns(liveSamples: SampleListRow[], reportedSam
         value: (sample: any) => exportScalar(sample?.data_counts?.[key]),
       })),
       ...biomarkerKeys.map((key) => ({
-        header: `Biomarker ${key}`,
+        header: key,
         value: (sample: any) => exportScalar(sample?.biomarker_values?.[key]),
       })),
       { header: "Added", value: (sample) => fullDateTime(sample.time_added) },
