@@ -6,6 +6,47 @@
   --docs-sidebar-text: #38313f;
   --docs-sidebar-active: #ece5f3;
   --docs-sidebar-border: #e4dfeb;
+  --docs-page: #fff;
+  --docs-text: #404040;
+  --docs-muted: #62666b;
+  --docs-border: #e1e4e5;
+  --docs-subtle: #f3f6f6;
+  --docs-link: #2472a4;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --docs-primary: #d5b9f0;
+  --docs-sidebar: #22212a;
+  --docs-sidebar-text: #e1dce8;
+  --docs-sidebar-active: #393044;
+  --docs-sidebar-border: #494050;
+  --docs-page: #202328;
+  --docs-text: #e0e3e7;
+  --docs-muted: #b2bac4;
+  --docs-border: #454b54;
+  --docs-subtle: #292e35;
+  --docs-link: #87c8f2;
+  color-scheme: dark;
+}
+
+body { color: var(--docs-text); }
+.wy-nav-content-wrap { background: var(--docs-subtle); }
+.rst-content { font-family: Lato, "Helvetica Neue", Arial, sans-serif; }
+.rst-content p, .rst-content li { line-height: 1.65; }
+.rst-content a, .rst-content a:visited { color: var(--docs-link); }
+.rst-content hr { border-color: var(--docs-border); }
+.rst-content footer { color: var(--docs-muted); }
+.docs-theme-control { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.docs-theme-control label { font-size: 13px; color: #fff; }
+.docs-theme-control select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--docs-sidebar-border);
+  border-radius: 6px;
+  background: var(--docs-page);
+  color: var(--docs-text);
 }
 
 .wy-nav-content-wrap {
@@ -20,7 +61,7 @@
   flex-direction: column;
   width: 100%;
   max-width: 1280px;
-  background: #fff;
+  background: var(--docs-page);
 }
 .wy-nav-content > .rst-content {
   display: flex;
@@ -38,7 +79,7 @@
 }
 .wy-side-nav-search, .wy-nav-top,
 .rst-versions, .rst-versions .rst-current-version {
-  background: var(--docs-primary);
+  background: #52366d;
   color: var(--docs-on-primary);
 }
 .wy-side-nav-search > a, .wy-side-nav-search > a:visited,
@@ -80,8 +121,9 @@
   color: var(--docs-primary);
   border-color: var(--docs-sidebar-border);
 }
-.wy-menu-vertical li.current a:hover { background: #f0eaf5; }
+.wy-menu-vertical li.current a:hover { background: var(--docs-sidebar-active); }
 .wy-menu-vertical li.current, .wy-menu-vertical li.current ul { background: transparent; }
+.wy-menu-vertical li.current ul li a { color: var(--docs-sidebar-text); }
 .wy-menu-vertical a {
   font-size: 13px;
   line-height: 1.55;
@@ -158,7 +200,7 @@
   background: var(--docs-sidebar-active);
   border-color: transparent;
 }
-.wy-menu-vertical .docs-nav-section > summary:hover { background: #ede7f3; }
+.wy-menu-vertical .docs-nav-section > summary:hover { background: var(--docs-sidebar-active); }
 .wy-menu-vertical .docs-nav-section > summary:focus-visible {
   outline: 2px solid var(--docs-primary);
   outline-offset: -3px;
@@ -198,31 +240,91 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   height: auto;
   margin: 1.5rem 0;
 }
-/* Wrap prose and long identifiers instead of forcing documentation tables to scroll. */
+/* Preserve word widths in short columns; let prose take the remaining space. */
 .rst-content table.docutils {
   width: 100%;
   max-width: 100%;
+  table-layout: auto;
+  border-color: var(--docs-border);
 }
 .rst-content table.docutils th,
 .rst-content table.docutils td {
   white-space: normal;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-wrap: break-word;
+  vertical-align: top;
+  border-color: var(--docs-border);
+  min-width: 8ch;
+  line-height: 1.55;
+}
+.rst-content table.docutils th { color: var(--docs-text); }
+.rst-content table.docutils td:first-child { min-width: 14ch; }
+.rst-content table.docutils tbody tr td { background: var(--docs-page); }
+.rst-content table.docutils:not(.field-list) tbody tr:nth-child(odd) td {
+  background: var(--docs-subtle);
+}
+.rst-content table.docutils:not(.field-list) tbody tr td,
+.rst-content table.docutils:not(.field-list) thead tr th { border-color: var(--docs-border); }
+.rst-content table.docutils th { background: var(--docs-page); }
+.rst-content table.docutils td p { margin-bottom: 0; }
+.rst-content :not(pre) > code {
+  font-size: 0.85em;
+  color: var(--docs-text);
+  background: var(--docs-subtle);
+  border-color: var(--docs-border);
 }
 .rst-content table.docutils code {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+@media screen and (min-width: 1100px) {
+  .rst-content table.docutils .docs-compact-column,
+  .rst-content table.docutils .docs-compact-column code {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    min-width: 0;
+  }
 }
 /* Fenced code stays legible before or without the theme's syntax-highlighting script. */
 .rst-content pre > code {
   display: block;
   overflow-x: auto;
   padding: 12px;
-  color: #333;
-  background: #f8f8f8;
-  border: 1px solid #e1e4e5;
+  color: var(--docs-text);
+  background: var(--docs-subtle);
+  border: 1px solid var(--docs-border);
   font-size: 13px;
   line-height: 1.6;
   white-space: pre;
+}
+html[data-theme="dark"] .rst-content .admonition {
+  background: #263743;
+  color: var(--docs-text);
+}
+html[data-theme="dark"] .rst-content .admonition-title { background: #335b75; }
+html[data-theme="dark"] .rst-content .warning,
+html[data-theme="dark"] .rst-content .important { background: #403423; }
+html[data-theme="dark"] .rst-content .warning > .admonition-title,
+html[data-theme="dark"] .rst-content .important > .admonition-title { background: #71501e; }
+html[data-theme="dark"] .rst-content .btn-neutral {
+  background: var(--docs-subtle) !important;
+  color: var(--docs-text) !important;
+  border-color: var(--docs-border);
+}
+html[data-theme="dark"] .rst-content .hljs { color: var(--docs-text); }
+html[data-theme="dark"] .hljs-comment { color: #a5afbb; }
+html[data-theme="dark"] .hljs-keyword,
+html[data-theme="dark"] .hljs-literal,
+html[data-theme="dark"] .hljs-number { color: #d7b5fa; }
+html[data-theme="dark"] .hljs-string,
+html[data-theme="dark"] .hljs-attr { color: #9cdbc4; }
+html[data-theme="dark"] .rst-content img[src$=".svg"] {
+  background: #fff;
+  border-radius: 8px;
+}
+@media print {
+  .docs-theme-control { display: none; }
+  html[data-theme] { --docs-page: #fff; --docs-text: #404040; --docs-subtle: #f3f6f6; }
 }
 @media screen and (max-width: 768px) {
   .wy-nav-content { padding: 1.5rem; }

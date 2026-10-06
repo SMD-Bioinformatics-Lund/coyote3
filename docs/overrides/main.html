@@ -1,4 +1,20 @@
 {% extends "base.html" %}
+{% block extrahead %}
+{{ super() }}
+<script src="{{ 'javascripts/reading-theme.js' | url }}"></script>
+<script src="{{ 'javascripts/table-layout.js' | url }}" defer></script>
+{% endblock %}
+{% block search_button %}
+{{ super() }}
+<div class="docs-theme-control">
+  <label for="docs-reading-theme">Theme</label>
+  <select id="docs-reading-theme" aria-label="Documentation reading theme">
+    <option value="system">System</option>
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+  </select>
+</div>
+{% endblock %}
 {% block styles %}
 {{ super() }}
 <link rel="stylesheet" href="{{ 'stylesheets/application-theme.css' | url }}?v={{ config.extra.docs_theme_version }}" />
