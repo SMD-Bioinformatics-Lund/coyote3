@@ -24,6 +24,7 @@ import {
   ArtefactFrequencyBadges,
   CallerBadges,
   CopyNumberBadge,
+  FilterFlagBadges,
   StatusBadges,
 } from "@/lib/variant-ui";
 import {
@@ -89,6 +90,11 @@ export function CNVTab({
   filterPanel?: ReactNode;
 }) {
   const controlsQuery = useApplicationModules();
+  const { data: filterFlagMetadata } = useQuery({
+    queryKey: ["filter-flag-metadata"],
+    queryFn: () => api.get("/public/filter-flags/metadata").then((res) => res.data),
+    staleTime: 10 * 60 * 1000,
+  });
   const cnvBulkActions = findingBulkActionOptions("cnv", {
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "cnv"),
   });
@@ -188,6 +194,12 @@ export function CNVTab({
       header: "Callers",
       accessorFn: (row) => normalizedCallerList(row.callers).join(", "),
       cell: ({ row }) => <CallerBadges value={row.original.callers} />,
+    },
+    {
+      id: "filter_flags",
+      header: "Filter flags",
+      enableSorting: false,
+      cell: ({ row }) => <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} analysis="cnv" callers={row.original.callers} />,
     },
     {
       id: "copy_number",

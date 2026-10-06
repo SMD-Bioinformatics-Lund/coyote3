@@ -23,7 +23,11 @@ export type FilterFlagMetadata = {
   exact?: Record<string, FilterFlagMeta>
   prefixes?: Record<string, FilterFlagMeta>
   terms?: Record<string, FilterFlagMeta>
+  callers?: Record<string, Record<string, FilterFlagGroups>>
+  caller_options?: Record<string, string[]>
 }
+
+type FilterFlagGroups = Pick<FilterFlagMetadata, "exact" | "prefixes" | "terms">
 
 type FilterFlagMeta = {
   label?: string
@@ -476,14 +480,39 @@ function compactFilterFlag(flag: string) {
     .replaceAll("_", " ")
 }
 
-function flagMetadata(flag: string, metadata?: FilterFlagMetadata): FilterFlagMeta {
+function matchFlagMetadata(flag: string, metadata?: FilterFlagGroups): FilterFlagMeta | undefined {
   const upper = flag.toUpperCase()
   const exact = metadata?.terms?.[upper] || metadata?.exact?.[upper]
   if (exact) return exact
   for (const [prefix, meta] of Object.entries(metadata?.prefixes || {})) {
     if (upper.startsWith(prefix.toUpperCase())) return meta
   }
-  return {}
+  return undefined
+}
+
+function flagMetadata(flag: string, metadata?: FilterFlagMetadata, analysis?: string, callers?: unknown): FilterFlagMeta {
+  const shared = matchFlagMetadata(flag, metadata) || {}
+  if (!analysis) return shared
+  const callerNames = normalizedCallerList(callers)
+  if (!callerNames.length) return shared
+  const token = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "")
+  const configured = metadata?.caller_options?.[analysis] || []
+  const candidates = callerNames.map((name) => {
+    const canonical = configured.find((candidate) => token(candidate) === token(name))
+    return canonical ? matchFlagMetadata(flag, metadata?.callers?.[analysis]?.[canonical]) : undefined
+  })
+  const first = candidates[0]
+  // An unscoped FILTER cannot identify which of several callers produced it.
+  // Apply an override only when every recorded caller gives it the same meaning.
+  if (first && candidates.every((candidate) => candidate
+    && candidate.label === first.label && candidate.description === first.description
+    && candidate.severity === first.severity && Boolean(candidate.hidden) === Boolean(first.hidden))) return first
+  if (candidates.some(Boolean) && !Object.keys(shared).length) return {
+    label: flag,
+    severity: "neutral",
+    description: "Caller-specific definitions are ambiguous for this finding. Review the original pipeline evidence.",
+  }
+  return shared
 }
 
 function isDisplayableFilterFlag(flag: string, meta: FilterFlagMeta) {
@@ -493,12 +522,12 @@ function isDisplayableFilterFlag(flag: string, meta: FilterFlagMeta) {
   return upper === "PASS" || upper.startsWith("FAIL") || upper.startsWith("WARN")
 }
 
-function displayFilterFlags(value: unknown, metadata?: FilterFlagMetadata) {
+function displayFilterFlags(value: unknown, metadata?: FilterFlagMetadata, analysis?: string, callers?: unknown) {
   const severityRank: Record<string, number> = { fail: 5, warn: 4, info: 3, pass: 2, neutral: 1 }
   const grouped = new Map<string, { flag: string; meta: FilterFlagMeta; severity: string; label: string }>()
 
   for (const flag of filterFlags(value)) {
-    const meta = flagMetadata(flag, metadata)
+    const meta = flagMetadata(flag, metadata, analysis, callers)
     if (!isDisplayableFilterFlag(flag, meta)) continue
     const severity = String(meta.severity || fallbackFlagSeverity(flag))
     const label = meta.label || compactFilterFlag(flag)
@@ -559,8 +588,10 @@ function FilterFlagBadge({
   )
 }
 
-export function FilterFlagBadges({ value, metadata }: { value: unknown; metadata?: FilterFlagMetadata }) {
-  const flags = displayFilterFlags(value, metadata)
+export function FilterFlagBadges({ value, metadata, analysis, callers }: {
+  value: unknown; metadata?: FilterFlagMetadata; analysis?: string; callers?: unknown
+}) {
+  const flags = displayFilterFlags(value, metadata, analysis, callers)
   if (!flags.length) return <span className="text-muted-foreground">-</span>
 
   return (

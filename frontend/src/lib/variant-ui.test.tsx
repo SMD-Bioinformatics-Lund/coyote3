@@ -168,6 +168,40 @@ describe("variant UI semantics", () => {
     expect(screen.getByText("-")).toBeInTheDocument()
   })
 
+  it("uses caller-specific flags only for the recorded analysis and caller", () => {
+    const metadata = {
+      terms: { REVIEW: { label: "Shared review" } },
+      caller_options: { snv: ["mutect2"], cnv: ["cnvkit"] },
+      callers: {
+        snv: { mutect2: { terms: { REVIEW: { label: "SNV review", description: "SNV evidence." } } } },
+        cnv: { cnvkit: { terms: { REVIEW: { label: "CNV review" } } } },
+      },
+    }
+    const { rerender } = render(<FilterFlagBadges value="REVIEW" metadata={metadata} analysis="snv" callers={["Mutect-2"]} />)
+    expect(screen.getByText("SNV review")).toBeInTheDocument()
+    fireEvent.focus(screen.getByText("SNV review"))
+    expect(screen.getByText("SNV evidence.")).toBeInTheDocument()
+    rerender(<FilterFlagBadges value="REVIEW" metadata={metadata} analysis="cnv" callers={["cnvkit"]} />)
+    expect(screen.getByText("CNV review")).toBeInTheDocument()
+    rerender(<FilterFlagBadges value="REVIEW" metadata={metadata} analysis="cnv" callers={["mutect2"]} />)
+    expect(screen.getByText("Shared review")).toBeInTheDocument()
+  })
+
+  it("does not assign or hide ambiguous multi-caller flags", () => {
+    const metadata = {
+      caller_options: { snv: ["mutect2", "vardict"] },
+      callers: { snv: {
+        mutect2: { terms: { REVIEW: { label: "Hidden", hidden: true } } },
+        vardict: { terms: { REVIEW: { label: "Other" } } },
+      } },
+    }
+    const { rerender } = render(<FilterFlagBadges value="REVIEW" metadata={metadata} analysis="snv" callers={["mutect2", "vardict"]} />)
+    expect(screen.getByText("REVIEW")).toBeInTheDocument()
+    expect(screen.queryByText("Hidden")).not.toBeInTheDocument()
+    rerender(<FilterFlagBadges value="REVIEW" metadata={metadata} analysis="snv" callers={["mutect2", "unknown"]} />)
+    expect(screen.getByText("REVIEW")).toBeInTheDocument()
+  })
+
   it.each([
     ["HIGH", "High predicted consequence"],
     ["MODERATE", "Moderate predicted consequence"],

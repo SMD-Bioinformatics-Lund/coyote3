@@ -366,7 +366,7 @@ export function VariantsTab({
         cellClassName: "w-36 min-w-28 max-w-48",
       },
       cell: ({ row }) => {
-        return <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} />;
+        return <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} analysis="snv" callers={row.original.INFO?.variant_callers} />;
       },
     },
     {

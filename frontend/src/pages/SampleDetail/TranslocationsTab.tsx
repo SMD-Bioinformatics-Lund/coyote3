@@ -11,7 +11,7 @@ import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
 import { ExpandableText } from "@/components/detail/ExpandableText";
-import { ConsequenceBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
+import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import {
   findingRowClass,
   selectedTranslocationAnnotation,
@@ -47,6 +47,11 @@ export function TranslocationsTab({
   filterPanel?: ReactNode;
 }) {
   const controlsQuery = useApplicationModules();
+  const { data: filterFlagMetadata } = useQuery({
+    queryKey: ["filter-flag-metadata"],
+    queryFn: () => api.get("/public/filter-flags/metadata").then((res) => res.data),
+    staleTime: 10 * 60 * 1000,
+  });
   const translocationBulkActions = findingBulkActionOptions("translocation", {
     tieringEnabled: tieringIsEnabled(controlsQuery.data, "translocation"),
   });
@@ -91,6 +96,12 @@ export function TranslocationsTab({
   const cosmicCancerGeneMap = data?.cosmic_cancer_gene_map || {};
 
   const columns: ColumnDef<any, any>[] = [
+    {
+      id: "filter_flags",
+      header: "Filter flags",
+      enableSorting: false,
+      cell: ({ row }) => <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} analysis="translocation" callers={row.original.INFO?.variant_callers ?? row.original.callers} />,
+    },
     createRowSelectionColumn<any>(),
     {
       id: "gene1",

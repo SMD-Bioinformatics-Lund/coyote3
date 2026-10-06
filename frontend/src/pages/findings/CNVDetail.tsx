@@ -11,7 +11,7 @@ import {
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
 import { percentValue } from "@/lib/detail-formatters"
-import { ArtefactFrequencyBadges, CallerBadges, CopyNumberBadge, StatusBadges } from "@/lib/variant-ui"
+import { ArtefactFrequencyBadges, CallerBadges, CopyNumberBadge, FilterFlagBadges, StatusBadges } from "@/lib/variant-ui"
 import {
   DetailCard,
   DetailField,
@@ -61,6 +61,11 @@ export function CNVDetail() {
   const { id, varId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const { data: filterFlagMetadata } = useQuery({
+    queryKey: ["filter-flag-metadata"],
+    queryFn: () => api.get("/public/filter-flags/metadata").then(res => res.data),
+    staleTime: 10 * 60 * 1000,
+  })
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['cnv', id, varId],
@@ -132,6 +137,7 @@ export function CNVDetail() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <FindingIdentityCard title="CNV Identity">
                 <DetailField label="Region">{region}</DetailField>
+                <DetailField label="Filter flags"><FilterFlagBadges value={cnv?.FILTER} metadata={filterFlagMetadata} analysis="cnv" callers={callers} /></DetailField>
                 <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
                 <DetailField label="Type"><CopyNumberBadge value={type} /></DetailField>
                 <DetailField label="Ratio (log2)">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>

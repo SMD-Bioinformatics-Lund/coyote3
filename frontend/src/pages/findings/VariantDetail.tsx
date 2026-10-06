@@ -156,7 +156,7 @@ export function VariantDetail() {
                 <DetailField label="Variant class">{data.vep_var_class_translations?.[variant?.variant_class]?.display_name || variant?.variant_class || csq.VARIANT_CLASS || "-"}</DetailField>
                 <DetailField label="Hotspot"><HotspotIndicator variant={variant} showLabel /></DetailField>
                 <DetailField label="Position">{variantLocation(variant)}</DetailField>
-                <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} /></DetailField>
+                <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} analysis="snv" callers={callers} /></DetailField>
                 <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="" /></DetailField>
                 <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="" /></DetailField>
                 <DetailField label="Exon / Intron">{csq.EXON || csq.INTRON || "-"}</DetailField>
