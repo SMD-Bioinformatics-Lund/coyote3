@@ -22,8 +22,8 @@ required values and exact defaults. `COYOTE_ENV_FILE` and `COYOTE_PROJECT` below
 are shell helper variables selecting the file and existing deployment name.
 
 ```bash
-COYOTE_ENV_FILE="$PWD/.smd_configs/production.env"
-COYOTE_PROJECT="coyote3-smd-prod"
+COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
+COYOTE_PROJECT="coyote3-prod"
 set -a
 . "$COYOTE_ENV_FILE"
 set +a
@@ -39,7 +39,7 @@ coyote_compose ps --all
 coyote_compose images
 ```
 
-For another center, replace only the first two assignments with its recorded
+Replace the first two example assignments with the installation's recorded
 values. Confirm the commit and images match the deployed release record.
 Stop if image tags were rebuilt or overwritten; restore the recorded images
 before continuing. Do not select a new project name to work around startup errors.
@@ -110,7 +110,7 @@ report and confirm worker processing resumes. Check that no unexpected ingest jo
 was lost or duplicated. Record the restart and verification result before resuming
 submissions. Do not create replacement administrator accounts through bootstrap.
 
-For the SMD direct listener the URL is `http://localhost:6802/coyote3/`.
+For the example direct HTTP listener, the URL is `http://localhost:6802/coyote3/`.
 HTTPS requires a TLS ingress; changing `COYOTE3_NGINX_PUBLIC_SCHEME` does not create one.
 
 ## If verification fails

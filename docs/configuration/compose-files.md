@@ -72,9 +72,9 @@ Pass the base file first and the private override afterward:
 
 ```bash
 bash scripts/deployment/compose-with-version.sh \
-  --env-file .smd_configs/production.env \
+  --env-file /srv/coyote3/config/production.env \
   -f deploy/compose/docker-compose.yml \
-  -f "$PWD/.smd_configs/storage.yml" config --quiet
+  -f /srv/coyote3/config/storage.yml config --quiet
 ```
 
 Use that same file list for validation, build, startup and future upgrades. Relative

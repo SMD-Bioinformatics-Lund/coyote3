@@ -12,7 +12,8 @@ must supply their own reviewed migration and recovery instructions.
 
 ## 1. Select the installation and maintenance record
 
-Run from the current deployed checkout, in one Bash shell. The SMD assignments are:
+Run from the current deployed checkout, in one Bash shell. Select the existing
+installation's environment file and Compose project name:
 
 The [environment file](../configuration/environment-file.md) is the private
 `NAME=value` configuration selected by `--env-file`. Its
@@ -21,8 +22,8 @@ required values and exact defaults. `COYOTE_ENV_FILE` and `COYOTE_PROJECT` below
 are shell helper variables selecting the file and existing deployment name.
 
 ```bash
-COYOTE_ENV_FILE="$PWD/.smd_configs/production.env"
-COYOTE_PROJECT="coyote3-smd-prod"
+COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
+COYOTE_PROJECT="coyote3-prod"
 set -a
 . "$COYOTE_ENV_FILE"
 set +a
@@ -38,8 +39,8 @@ case "$COYOTE_RELEASE_RECORD" in /*) ;; *) echo "Use an absolute path"; return 1
 (umask 077; mkdir "$COYOTE_RELEASE_RECORD")
 ```
 
-For another center, replace the environment-file and project assignments with
-its existing values. The record directory must be new, outside the checkout,
+Replace the example environment-file and project assignments with
+the installation's existing values. The record directory must be new, outside the checkout,
 and on storage with room for configuration, images and backups. Do not continue
 if directory creation fails. Keep its contents private; it will contain secrets.
 

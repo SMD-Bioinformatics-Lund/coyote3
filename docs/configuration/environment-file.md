@@ -6,7 +6,7 @@ are, which browser URL to use, and which credentials authenticate its services.
 It is not a database, Python program, or clinical assay definition.
 
 The filename is chosen by the operator. `.coyote3_env`, `production.env` and
-`.smd_configs/production.env` are examples, not special filenames. Docker Compose
+`/srv/coyote3/config/production.env` are examples, not special filenames. Docker Compose
 uses the file explicitly selected by `--env-file`.
 
 ## Format and examples
@@ -59,7 +59,7 @@ consumer, not to whatever example was copied into a private file.
 | Wrapper/internal | Calculated by deployment code or wired between services. Do not use it as a center override unless the reference explicitly supports that. |
 
 For example, the template's `COYOTE3_PORT=6801` is an explicit example. The base
-production Compose fallback is `5815`; SMD explicitly selects `6802`. These are
+production Compose fallback is `5815`; the installation guide explicitly selects `6802`. These are
 three different values with different sources, not competing defaults.
 
 ## Which value wins?
@@ -100,7 +100,7 @@ using an empty string to request a default.
 From the repository root:
 
 ```bash
-COYOTE_ENV_FILE="$PWD/.smd_configs/production.env"
+COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
 bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
 bash scripts/deployment/compose-with-version.sh \
   --env-file "$COYOTE_ENV_FILE" -f deploy/compose/docker-compose.yml config --quiet

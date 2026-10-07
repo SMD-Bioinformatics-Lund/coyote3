@@ -71,20 +71,14 @@ container URI for a database on the host: it identifies the container itself.
 Choose the environment file and Compose project name once. Subsequent commands
 reuse these shell variables.
 
-For the prepared SMD deployment:
-
 The [environment file](../configuration/environment-file.md) is the private
 `NAME=value` configuration selected by `--env-file`. Its
 [key reference](configuration-reference.md#environment-variable-reference) lists
 required values and exact defaults. `COYOTE_ENV_FILE` and `COYOTE_PROJECT` below
 are shell helper variables selecting the file and existing deployment name.
 
-```bash
-COYOTE_ENV_FILE="$PWD/.smd_configs/production.env"
-COYOTE_PROJECT="coyote3-smd-prod"
-```
-
-For another center, select a private persistent location instead:
+Select a private persistent location outside the application checkout. The following
+examples use `/srv/coyote3/config` and the Compose project name `coyote3-prod`:
 
 ```bash
 COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
@@ -101,8 +95,8 @@ fi
 chmod 600 "$COYOTE_ENV_FILE"
 ```
 
-Edit this file before continuing. The SMD file already contains generated secrets
-and local deployment values; retain those rather than copying over it.
+Edit this file before continuing. If a deployment file already exists, review its
+settings and retain its secrets rather than overwriting it with the template.
 
 ## 3. Review environment and URL settings
 
@@ -147,8 +141,7 @@ internal HTTP listener. Select the actual ingress trust settings for that topolo
 
 ## 4. Prepare the center configuration directory
 
-The prepared SMD files are under `.smd_configs/center/`; do not overwrite them.
-For a new center, create the directory selected by
+Create the directory selected by
 `COYOTE3_CENTER_CONFIG_HOST_DIR` and copy only missing example files. Substitute
 the reviewed absolute directory in this command:
 
@@ -380,7 +373,7 @@ through `host-gateway` in Coyote3's API/worker services. If choosing that name,
 ensure it also resolves on WSL itself to the verified Docker host address; configure
 an appropriate host entry if needed. Do not assume every WSL/Docker Desktop setup
 uses `172.17.0.1`. Keep the hostname/listener stable across restarts. An existing
-working SMD local replica set should be retained, not renamed by this example.
+working local replica set should be retained, not renamed by this example.
 
 **B3. Prepare authentication and edit the existing mongod configuration.** For a
 new Ubuntu package installation, the service account is normally `mongodb`.
