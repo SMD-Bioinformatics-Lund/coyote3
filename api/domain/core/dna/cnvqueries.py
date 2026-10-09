@@ -56,7 +56,7 @@ def include_normal_cnvs(sample: dict, assay_panel: dict | None = None) -> bool:
 
     Targeted panels review tumour calls separately from records marked as
     normal. Whole-genome analysis retains both in the same review table, as in
-    the established TumWGS workflow.
+    the whole-genome workflow. Group identifiers never select a query strategy.
     """
     panel = assay_panel or {}
     sequencing_scope = (
@@ -65,18 +65,7 @@ def include_normal_cnvs(sample: dict, assay_panel: dict | None = None) -> bool:
     panel_family = (
         str(panel.get("asp_family") or panel.get("sequencing_scope") or "").strip().lower()
     )
-    assay_group = (
-        str(
-            sample.get("asp_group")
-            or sample.get("assay_group")
-            or panel.get("asp_group")
-            or panel.get("assay_group")
-            or ""
-        )
-        .strip()
-        .lower()
-    )
-    return sequencing_scope == "wgs" or panel_family == "wgs" or assay_group == "tumwgs"
+    return sequencing_scope == "wgs" or panel_family == "wgs"
 
 
 def build_cnv_query(

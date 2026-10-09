@@ -1,6 +1,29 @@
 # Finding query rules
 
+## Application defaults and group policies
+
+Application defaults construct a sample-scoped query from the analysis type,
+saved sample filters and assay family. A group identifier selects a published
+database policy; it does not select a hardcoded clinical query branch.
+New groups use application defaults until a policy is published for their scope.
+
+For SNVs, the default somatic path applies case evidence, control evidence when
+present, population-frequency limits and consequence filters. Gene restrictions
+and sample identity remain part of query construction. Published policies add or
+replace the supported evidence mode and exception conditions through the editor's
+inheritance settings. See [installed query sets](installed-defaults.md#finding-query-sets).
+
+CNV defaults use ratio, size and structural-read evidence with sample gene filters.
+The `wgs` sample scope or assay family includes normal/control CNVs; an assay-group
+name alone does not enable that behavior. Fusion and translocation defaults use
+their respective evidence fields and saved filters. Group-specific inclusion or
+exclusion conditions belong in database rule sets.
+
 ## Browse rule versions
+
+> [!IMPORTANT]
+> Save a draft before testing it with a sample. Tests use the saved version;
+> unsaved editor changes are not included. Testing does not publish the draft.
 
 The rule list uses the same workspace controls and workflow-status badges as the
 clinical report-rule editor. Search by query ID, group, assay, subpanel, analysis

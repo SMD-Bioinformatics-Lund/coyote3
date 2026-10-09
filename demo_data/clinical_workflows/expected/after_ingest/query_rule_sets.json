@@ -25,7 +25,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "CEBPA"
@@ -115,7 +115,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "FLT3"
@@ -138,7 +138,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "FLT3"
@@ -206,7 +206,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "CEBPA"
@@ -296,7 +296,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "FLT3"
@@ -319,7 +319,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "FLT3"
@@ -426,7 +426,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "TERT",
@@ -498,7 +498,7 @@
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "CEBPA"
@@ -582,14 +582,13 @@
       "evidence_mode": "paired",
       "exceptions": [
         {
-          "id": "flt3_svtype",
           "mode": "extend_consequence",
           "condition": {
             "type": "all",
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "FLT3"
@@ -602,17 +601,17 @@
                 "value": true
               }
             ]
-          }
+          },
+          "id": "flt3_svtype"
         },
         {
-          "id": "flt3_large_insertion",
           "mode": "extend_consequence",
           "condition": {
             "type": "all",
             "children": [
               {
                 "type": "predicate",
-                "field": "INFO.selected_CSQ.SYMBOL",
+                "field": "genes",
                 "operator": "in",
                 "value": [
                   "FLT3"
@@ -625,7 +624,8 @@
                 "value": "[A-Za-z0-9_]{10,200}"
               }
             ]
-          }
+          },
+          "id": "flt3_large_insertion"
         }
       ],
       "exception_mode": "replace"

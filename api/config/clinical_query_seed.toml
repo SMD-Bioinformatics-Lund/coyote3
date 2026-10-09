@@ -19,12 +19,12 @@
 id = "flt3_svtype"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["hematology", "myeloid"]
+assay_groups = ["hematology", "myeloid", "tumwgs"]
 
 [snv.exceptions.condition]
 type = "all"
 children = [
-  { type = "predicate", field = "INFO.selected_CSQ.SYMBOL", operator = "in", value = ["FLT3"] },
+  { type = "predicate", field = "genes", operator = "in", value = ["FLT3"] },
   { type = "predicate", field = "INFO.SVTYPE", operator = "exists", value = true },
 ]
 
@@ -32,12 +32,12 @@ children = [
 id = "flt3_large_insertion"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["hematology", "myeloid"]
+assay_groups = ["hematology", "myeloid", "tumwgs"]
 
 [snv.exceptions.condition]
 type = "all"
 children = [
-  { type = "predicate", field = "INFO.selected_CSQ.SYMBOL", operator = "in", value = ["FLT3"] },
+  { type = "predicate", field = "genes", operator = "in", value = ["FLT3"] },
   { type = "predicate", field = "ALT", operator = "regex", value = "[A-Za-z0-9_]{10,200}" },
 ]
 
@@ -50,7 +50,7 @@ assay_groups = ["solid"]
 [snv.exceptions.condition]
 type = "all"
 children = [
-  { type = "predicate", field = "INFO.selected_CSQ.SYMBOL", operator = "in", value = ["TERT", "NFKBIE"] },
+  { type = "predicate", field = "genes", operator = "in", value = ["TERT", "NFKBIE"] },
   { type = "predicate", field = "consequence_terms", operator = "in", value = ["regulatory_region_variant", "TF_binding_site_variant"] },
 ]
 
@@ -76,7 +76,7 @@ assay_groups = ["hematology", "myeloid", "tumwgs"]
 [snv.exceptions.condition]
 type = "all"
 children = [
-  { type = "predicate", field = "INFO.selected_CSQ.SYMBOL", operator = "in", value = ["CEBPA"] },
+  { type = "predicate", field = "genes", operator = "in", value = ["CEBPA"] },
   { type = "predicate", field = "FILTER", operator = "in", value = ["GERMLINE"] },
 ]
 

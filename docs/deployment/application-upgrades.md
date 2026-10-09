@@ -257,6 +257,15 @@ rules, then recreate any required differences through reviewed publications in t
 editor before reopening clinical access. Validate effective policies for representative
 sample scopes after startup.
 
+> [!IMPORTANT]
+> Current bundled FLT3, CEBPA and solid regulatory exceptions use the aggregated
+> `genes` field. Existing published policies are preserved by the installer. If
+> they use `INFO.selected_CSQ.SYMBOL`, prepare and test successor versions in the
+> query-rule editor before publishing the broader annotated-gene match.
+> CNV normal/control inclusion uses sample sequencing scope or assay family `wgs`;
+> a group named `tumwgs` alone does not select it. Verify WGS assay metadata during
+> upgrade validation.
+
 For automatic Tier III annotations, move previous tumor-type descriptors into
 `terminology.automatic_annotation_tumor_type` on reviewed reporting-rule successors.
 Do not edit published documents or their hashes directly. Automatic text remains

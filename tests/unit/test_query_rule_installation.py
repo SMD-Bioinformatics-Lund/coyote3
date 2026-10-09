@@ -137,6 +137,7 @@ def test_installed_trees_preserve_legacy_matching_and_condition_order():
                             "SVTYPE": "INS",
                             "MYELOID_GERMLINE": 1,
                         },
+                        "genes": [gene],
                         "ALT": alt,
                         "CHROM": "1",
                         "POS": pos,
@@ -164,6 +165,32 @@ def test_installed_trees_preserve_legacy_matching_and_condition_order():
                     resolved_query_policy("snv", None, [changed]).exceptions[0]
                 )
                 assert {d["_id"] for d in collection.find(clause)} == expected
+
+
+def test_installed_gene_exception_matches_nonselected_annotated_gene():
+    """FLT3 eligibility follows all annotated genes, not the chosen transcript alone."""
+    rows = prepare_query_rule_seeds(
+        seed_rows("query_rule_sets"), seed_rows("assay_groups"), actor="installer"
+    )
+    row = next(row for row in rows if row["query_id"] == "tumwgs__all__base__somatic_snvs")
+    rule = next(rule for rule in row["content"]["exceptions"] if rule["id"] == "flt3_svtype")
+    clause = _exception_clause(resolved_query_policy("snv", None, [rule]).exceptions[0])
+    collection = mongomock.MongoClient().synthetic.variants
+    collection.insert_many(
+        [
+            {
+                "_id": "match",
+                "genes": ["FLT3", "OTHER"],
+                "INFO": {"selected_CSQ": {"SYMBOL": "OTHER"}, "SVTYPE": "INS"},
+            },
+            {
+                "_id": "unrelated",
+                "genes": ["OTHER"],
+                "INFO": {"selected_CSQ": {"SYMBOL": "OTHER"}, "SVTYPE": "INS"},
+            },
+        ]
+    )
+    assert [row["_id"] for row in collection.find(clause)] == ["match"]
 
 
 def test_escaped_installed_pattern_can_be_preserved_exactly():

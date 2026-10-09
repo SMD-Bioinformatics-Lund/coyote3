@@ -176,7 +176,9 @@ def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:
 
     assert all("NORMAL" not in str(clause) for clause in query["$and"])
     assert include_normal_cnvs({"sequencing_scope": "wgs"}) is True
-    assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is True
+    assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is False
+    assert include_normal_cnvs({}, {"asp_group": "new_center_group", "asp_family": "wgs"}) is True
+    assert include_normal_cnvs({"asp_group": "tumwgs", "sequencing_scope": "panel"}) is False
     assert include_normal_cnvs({"sequencing_scope": "panel"}, {"asp_group": "solid"}) is False
 
 
