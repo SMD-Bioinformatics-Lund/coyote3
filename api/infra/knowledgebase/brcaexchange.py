@@ -32,19 +32,22 @@ class BRCARepository(BaseRepository):
         super().__init__(adapter)
         self.set_collection(self.adapter.brcaexchange_collection)
 
+    COORDINATE_INDEXES = (
+        (
+            (("chr", 1), ("pos", 1), ("ref", 1), ("alt", 1)),
+            {"name": "chr_pos_ref_alt"},
+        ),
+        (
+            (("chr38", 1), ("pos38", 1), ("ref38", 1), ("alt38", 1)),
+            {"name": "chr38_pos38_ref38_alt38", "sparse": True},
+        ),
+    )
+
     def ensure_indexes(self) -> None:
         """Create indexes used by BRCA exchange coordinate lookups."""
         col = self.get_collection()
-        col.create_index(
-            [("chr", 1), ("pos", 1), ("ref", 1), ("alt", 1)],
-            name="chr_pos_ref_alt",
-            background=True,
-        )
-        col.create_index(
-            [("chr38", 1), ("pos38", 1), ("ref38", 1), ("alt38", 1)],
-            name="chr38_pos38_ref38_alt38",
-            background=True,
-        )
+        for keys, options in self.COORDINATE_INDEXES:
+            col.create_index(list(keys), background=True, **options)
 
     def get_brca_data(self, variant: dict, genome_build: int | None) -> dict | None:
         """Look up exact variant coordinates in the explicitly selected assembly.

@@ -278,3 +278,32 @@ def test_cosmic_signature_matrix_is_transposed_without_losing_weights(tmp_path: 
 
     assert [document["signature"] for document in documents] == ["SBS1", "SBS2"]
     assert documents[0]["profile"] == {"A[C>A]A": 0.25, "A[C>A]C": 0.4}
+
+
+def test_brca_loader_indexes_match_runtime_contract(monkeypatch):
+    """A published reference release must pass application index planning unchanged."""
+    from types import SimpleNamespace
+
+    from api.infra.knowledgebase.brcaexchange import BRCARepository
+    from api.infra.mongo.index_management import build_index_plan
+    from scripts.knowledgebase import update_brca_exchange
+    from tests.unit.test_mongo_index_management import adapter_for
+
+    collection = mongomock.MongoClient().knowledgebase.brcaexchange
+    monkeypatch.setattr(
+        update_brca_exchange, "parse_args", lambda: SimpleNamespace(input=Path("synthetic.tsv"))
+    )
+    monkeypatch.setattr(update_brca_exchange, "mapped_collection", lambda *_: "brcaexchange")
+    monkeypatch.setattr(update_brca_exchange, "finish_command", lambda _, run: run())
+
+    def publish_indexes(*args, specs, **kwargs):
+        for keys, options in specs[0].indexes:
+            collection.create_index(list(keys), **options)
+        return 0
+
+    monkeypatch.setattr(update_brca_exchange, "execute_update", publish_indexes)
+    assert update_brca_exchange.main() == 0
+    repository = BRCARepository(SimpleNamespace(brcaexchange_collection=collection))
+    plan = build_index_plan(adapter_for(repository))
+    assert all(item["state"] == "present" for item in plan if item["collection"] == "brcaexchange")
+    assert collection.index_information()["chr38_pos38_ref38_alt38"]["sparse"] is True

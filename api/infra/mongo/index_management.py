@@ -130,8 +130,16 @@ class _ContractAdapter:
         return self._collections[name]
 
 
-def build_index_plan(adapter: Any) -> list[dict[str, Any]]:
-    """Compare repository index contracts with the connected database."""
+def build_index_plan(adapter: Any, *, include_security: bool = True) -> list[dict[str, Any]]:
+    """Compare selected repository contracts with existing indexes without writes.
+
+    Args:
+        adapter: Adapter exposing the repositories selected for inspection.
+        include_security: Include identity/security contracts; disable for knowledgebase-only plans.
+
+    Returns:
+        Index definitions marked present, missing or conflicting.
+    """
     plan: list[IndexContract] = []
     for repository_name, repository in adapter.iter_repositories():
         original = repository.get_collection()
@@ -146,7 +154,7 @@ def build_index_plan(adapter: Any) -> list[dict[str, Any]]:
         inspection_repository.ensure_indexes()
         for collection_recorder in recorders:
             plan.extend(collection_recorder.contracts)
-    for contract in security_index_contracts(adapter.app.config):
+    for contract in security_index_contracts(adapter.app.config) if include_security else ():
         database = adapter.identity_db if contract.database == "identity" else adapter.coyote_db
         recorder = _ContractCollection(database[contract.collection], "security")
         recorder.create_index(list(contract.fields), name=contract.name, **contract.options)

@@ -11,6 +11,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from api.infra.knowledgebase.brcaexchange import BRCARepository  # noqa: E402
 from scripts.knowledgebase.knowledgebase_update_common import (  # noqa: E402
     CollectionSpec,
     add_common_arguments,
@@ -122,14 +123,7 @@ def main() -> int:
         documents=lambda: documents(args.input),
         indexes=(
             ((("id", 1),), {"name": "id_1", "unique": True}),
-            (
-                (("chr", 1), ("pos", 1), ("ref", 1), ("alt", 1)),
-                {"name": "chr_pos_ref_alt"},
-            ),
-            (
-                (("chr38", 1), ("pos38", 1), ("ref38", 1), ("alt38", 1)),
-                {"name": "chr38_pos38_ref38_alt38", "sparse": True},
-            ),
+            *BRCARepository.COORDINATE_INDEXES,
             ((("gene", 1),), {"name": "gene_1", "sparse": True}),
         ),
     )
