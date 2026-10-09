@@ -12,6 +12,7 @@ import {
   statusLabels,
   tierValue,
   translocationAlt,
+  translocationAnnotationIdentity,
   translocationGenes,
   translocationHgvs,
   translocationInfo,
@@ -21,6 +22,11 @@ import {
 } from "./variant-helpers"
 
 describe("variant display normalization", () => {
+  it("shows the explicit interval for symbolic DNA structural alleles", () => {
+    expect(translocationPositionLabel({ CHROM: "1", POS: 100, END: 800, ALT: "<DEL>" })).toBe("1:100–800")
+    expect(translocationAnnotationIdentity({ CHROM: "1", POS: 100, END: 800, ALT: "<DEL>" })).toBe("1:100-800^<DEL>")
+    expect(translocationAnnotationIdentity({ CHROM: "1", POS: 100, ALT: "N]2:500]" })).toBe("1:100^N]2:500]")
+  })
   it("detects disabled findings and composes their status labels", () => {
     const finding = {
       fp: true,

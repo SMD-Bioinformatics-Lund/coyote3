@@ -159,12 +159,19 @@ export function translocationPositionLabel(translocation: any) {
   const chrom = translocation?.CHROM ?? translocation?.chrom ?? info?.CHROM
   const pos = translocation?.POS ?? translocation?.pos
   const left = chrom && pos ? `${chrom}:${pos}` : String(pos || "-")
+  if (translocation?.END != null) return `${left}–${translocation.END}`
   const alt = translocationAlt(translocation)
   if (alt) return `${left} ${alt}`
   const chrom2 = info?.CHR2 ?? translocation?.chrom2
   const end = info?.END ?? translocation?.end
   if (chrom2 || end) return `${left} ${chrom2 || "-"}:${end || "-"}`
   return left
+}
+
+export function translocationAnnotationIdentity(finding: { CHROM?: string; POS?: number; END?: number | null; ALT?: string | string[] }) {
+  const end = finding.END == null ? "" : `-${finding.END}`
+  const alt = Array.isArray(finding.ALT) ? finding.ALT[0] : finding.ALT
+  return `${finding.CHROM}:${finding.POS}${end}^${alt}`
 }
 
 export function translocationAlt(translocation: any) {

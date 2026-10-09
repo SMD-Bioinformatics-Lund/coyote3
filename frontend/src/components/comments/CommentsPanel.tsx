@@ -23,6 +23,7 @@ import {
   Undo2,
 } from "lucide-react"
 import { api } from "@/lib/api"
+import { translocationAnnotationIdentity } from "@/lib/variant-helpers"
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { CommentCard } from "@/components/comments/CommentCard"
 import { FindingResourceType } from "@/lib/finding-actions"
@@ -72,7 +73,7 @@ function resourceFormData(
     data.gene2 = resource?.gene2 || genes[1]
   } else if (resourceType === "translocation") {
     data.nomenclature = "t"
-    data.variant = resource?.CHROM && resource?.POS ? `${resource.CHROM}:${resource.POS}^${Array.isArray(resource?.ALT) ? resource.ALT[0] : resource?.ALT}` : undefined
+    data.variant = resource?.CHROM && resource?.POS ? translocationAnnotationIdentity(resource) : undefined
     const ann = resource?.INFO?.MANE_ANN || resource?.INFO?.ANN?.[0] || {}
     const genes = typeof ann.Gene_Name === "string" ? ann.Gene_Name.split("&") : resource?.genes || []
     data.gene1 = genes[0]

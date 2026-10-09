@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -133,6 +133,22 @@ describe("ClinicalRulesPage", () => {
     await user.selectOptions(assay, "rna_fusion")
     expect(screen.getByLabelText("Analyte")).toHaveValue("rna")
     expect(screen.getByLabelText("Analyte")).toHaveAttribute("readonly")
+  })
+
+  it("saves automatic annotation wording with the governed draft", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    fireEvent.change(await screen.findByLabelText("Tumor-type wording"), { target: { value: "solida" } })
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
+      "/admin/clinical-rule-sets/drafts/rule-version-1",
+      expect.objectContaining({ terminology: { automatic_annotation_tumor_type: "solida" } }),
+    ))
   })
 
   it("generates an editable rule-set name from the assay and subpanel", async () => {

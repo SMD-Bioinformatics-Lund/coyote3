@@ -45,6 +45,20 @@ const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
 
 const utilityModules = [
   {
+    title: "Query Rule Testing",
+    description: "Compare query-rule versions against authorized samples without changing findings.",
+    href: "/admin/query-rules/testing",
+    icon: Beaker,
+    permission: "query_rules:test",
+  },
+  {
+    title: "Query rules",
+    description: "Review inherited finding-selection policies and publish scoped exceptions.",
+    href: "/admin/query-rules",
+    icon: SlidersHorizontal,
+    permission: "query_rules:view",
+  },
+  {
     title: "Assay groups",
     description: "View system groups and register center-owned assay groups.",
     href: "/admin/assay-groups",
@@ -132,7 +146,7 @@ const utilityModules = [
 
 const adminSections = [
   { id: "assays", title: "Assays and subpanels", icon: Dna, paths: ["assay-groups", "assay-setups", "asp", "subpanels", "assay-subpanels", "aspc", "genelists"] },
-  { id: "reporting", title: "Reporting and catalog", icon: BookOpenCheck, paths: ["clinical-rules", "clinical-rules/testing", "assay-catalog"] },
+  { id: "reporting", title: "Clinical rules and catalog", icon: BookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
   { id: "access", title: "Identity and access", icon: UsersRound, paths: ["users", "roles", "permissions"] },
   { id: "operations", title: "Application operations", icon: Settings2, paths: ["samples", "ingest", "controls", "notifications", "audit", "ui-routes"] },
 ] as const

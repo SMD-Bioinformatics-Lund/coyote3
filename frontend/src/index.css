@@ -824,6 +824,7 @@
 
 @layer components {
   .clinical-rules-layout,
+  .query-rules-layout,
   .clinical-rules-editor-layout {
     @apply grid grid-cols-1;
   }
@@ -1376,6 +1377,14 @@
 
   .clinical-rules-layout.is-rule-list-collapsed {
     grid-template-columns: 3rem minmax(32rem, 1fr) auto var(--preview-width);
+  }
+
+  .query-rules-layout {
+    grid-template-columns: var(--rule-list-width) auto minmax(0, 1fr) auto var(--preview-width);
+  }
+
+  .query-rules-layout.is-rule-list-collapsed {
+    grid-template-columns: 3rem minmax(0, 1fr) auto var(--preview-width);
   }
 
   .clinical-rules-editor-layout {

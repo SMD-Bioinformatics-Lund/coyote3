@@ -198,12 +198,12 @@ describe("sample analysis table tabs", () => {
           CHROM: "11",
           POS: 100,
           genes: ["KMT2A", "AFF1"],
-          INFO: { MANE_ANN: { Consequence: "gene_fusion" } },
+          INFO: { MANE_ANN: { Annotation: ["gene_fusion"] }, ANN: [{ Annotation: ["gene_fusion"] }] },
         }],
       },
       cosmic_cancer_gene_map: { KMT2A: { tier: "1" }, AFF1: { tier: "1" } },
       meta: { count: 1, page: 1, per_page: 50 },
-      vep_conseq_translations: {
+      snpeff_conseq_translations: {
         gene_fusion: {
           display_name: "Gene fusion",
           description: "A transcript altered by a structural gene fusion.",

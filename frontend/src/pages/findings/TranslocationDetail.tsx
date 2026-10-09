@@ -1,5 +1,4 @@
 import { useEffect } from "react"
-import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -156,20 +155,30 @@ export function TranslocationDetail() {
             </DetailCard>
 
             <DetailCard title="Transcript Combinations">
-              <div className="mb-2"><VepVersionBadge version={sample?.database_versions?.vep} /></div>
+              <p className="mb-2 type-body-sm text-muted-foreground">SnpEff annotations · selection: {translocation?.INFO?.ANN_selection_source?.replaceAll("_", " ") || "Not recorded"}</p>
               <DetailDataTable
                 rows={annRows}
                 empty="No alternate transcript combinations available."
                 columns={[
-                  { key: "selected", header: "", render: (row: any) => row === annotation ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : null },
+                  { key: "selected", header: "", render: (row: any) => JSON.stringify(row) === JSON.stringify(annotation) ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : null },
                   { key: "gene", header: "Genes", render: (row: any) => displayValue(row.Gene_Name || row.SYMBOL) },
                   { key: "feature", header: "Transcript", render: (row: any) => <span className="">{row.Feature_ID || row.Feature || "-"}</span> },
                   { key: "protein", header: "Protein", render: (row: any) => row.HGVS_p || row.HGVSp || "-" },
                   { key: "cdna", header: "cDNA", render: (row: any) => row.HGVS_c || row.HGVSc || "-" },
-                  { key: "consequence", header: "Consequence", render: (row: any) => <ConsequenceBadges value={row.Annotation || row.Consequence} translations={data.vep_conseq_translations} wide /> },
+                  { key: "consequence", header: "SnpEff consequence", render: (row: any) => <ConsequenceBadges value={row.Annotation} translations={data.snpeff_conseq_translations} wide /> },
                 ]}
               />
             </DetailCard>
+
+            {!!translocation?.source_records?.length && <DetailCard title="Source breakends">
+              <p className="mb-2 type-body-sm text-muted-foreground">Both original records are retained. Display order does not indicate biological fusion direction.</p>
+              <DetailDataTable rows={translocation.source_records} columns={[
+                { key: "ID", header: "Source ID", render: (row: Record<string, unknown>) => String(row.ID ?? "-") },
+                { key: "position", header: "Position", render: (row: Record<string, unknown>) => `${row.CHROM}:${row.POS}` },
+                { key: "ALT", header: "Allele", render: (row: Record<string, unknown>) => String(row.ALT ?? "-") },
+                { key: "record", header: "Evidence", render: (row: Record<string, unknown>) => <details><summary className="cursor-pointer type-meta">Annotations and read support</summary><pre className="max-h-64 overflow-auto type-body-sm">{JSON.stringify(row, null, 2)}</pre></details> },
+              ]} />
+            </DetailCard>}
 
           </>
         }
@@ -185,14 +194,15 @@ export function TranslocationDetail() {
             />
 
             <DetailCard title="Selected Annotation" tone="success">
-              <DetailField label="Consequence"><ConsequenceBadges value={annotation?.Annotation || annotation?.Consequence} translations={data.vep_conseq_translations} wide /></DetailField>
+              <DetailField label="SnpEff consequence"><ConsequenceBadges value={annotation?.Annotation} translations={data.snpeff_conseq_translations} wide /></DetailField>
               <DetailMetricTable
                 metrics={[
                   { label: "Transcript", value: annotation?.Feature_ID || annotation?.Feature, monospace: true },
                   { label: "Protein", value: annotation?.HGVS_p || annotation?.HGVSp, monospace: true },
                   { label: "cDNA", value: annotation?.HGVS_c || annotation?.HGVSc, monospace: true },
                   { label: "Exon rank", value: annotation?.Rank || annotation?.EXON || annotation?.INTRON },
-                  { label: "Biotype", value: annotation?.BioType || annotation?.BIOTYPE },
+                  { label: "Biotype", value: annotation?.Transcript_BioType },
+                  { label: "SnpEff impact", value: annotation?.Annotation_Impact },
                 ]}
                 dense
               />

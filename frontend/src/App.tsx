@@ -66,6 +66,8 @@ const NotificationHistoryPage = lazy(() => import("./pages/account/NotificationH
 const UiRouteAuditPage = lazy(() => import("./pages/admin/UiRouteAuditPage").then((module) => ({ default: module.UiRouteAuditPage })))
 const AdminNotificationBroadcastPage = lazy(() => import("./pages/admin/AdminNotificationBroadcastPage").then((module) => ({ default: module.AdminNotificationBroadcastPage })))
 const ClinicalRulesPage = lazy(() => import("./pages/admin/ClinicalRulesPage").then((module) => ({ default: module.ClinicalRulesPage })))
+const QueryRulesPage = lazy(() => import("./pages/admin/QueryRulesPage").then((module) => ({ default: module.QueryRulesPage })))
+const QueryRuleTestingPage = lazy(() => import("./pages/admin/QueryRuleTestingPage").then((module) => ({ default: module.QueryRuleTestingPage })))
 const ClinicalRuleTestingPage = lazy(() => import("./pages/admin/ClinicalRuleTestingPage").then((module) => ({ default: module.ClinicalRuleTestingPage })))
 const PublicAssayCatalogPage = lazy(() => import("./pages/admin/PublicAssayCatalogPage").then((module) => ({ default: module.PublicAssayCatalogPage })))
 
@@ -167,6 +169,8 @@ export default function App() {
             <Route path="/admin/ui-routes" element={withAdminPermission(<UiRouteAuditPage />, ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView)} />
             <Route path="/admin/notifications" element={withAdminPermission(<AdminNotificationBroadcastPage />, ADMIN_UTILITY_PERMISSIONS.broadcastCreate)} />
             <Route path="/admin/clinical-rules" element={withAdminPermission(<ClinicalRulesPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesView)} />
+            <Route path="/admin/query-rules" element={withAdminPermission(<QueryRulesPage />, "query_rules:view")} />
+            <Route path="/admin/query-rules/testing" element={withAdminPermission(<QueryRuleTestingPage />, "query_rules:test")} />
             <Route path="/admin/clinical-rules/testing" element={withAdminPermission(<ClinicalRuleTestingPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest)} />
             <Route path="/admin/assay-catalog" element={withAdminPermission(<PublicAssayCatalogPage />, "catalog:view")} />
             <Route path="/admin/subpanels" element={withAdminPermission(<SubpanelDefinitionsPage />, "assay.panel:view")} />

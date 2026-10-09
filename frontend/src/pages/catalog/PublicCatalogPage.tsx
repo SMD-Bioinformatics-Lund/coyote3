@@ -135,6 +135,13 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : "Unable to load catalog"}
         </div>
+      ) : !data?.order?.length ? (
+        <section role="status" className="surface-panel space-y-2 rounded-lg border p-4">
+          <h2 className="type-section-title">{previewDocument ? "Add catalog entries" : "Add catalog"}</h2>
+          <p className="type-supporting text-muted-foreground">{previewDocument
+            ? "Add a modality and its assays to preview this catalog."
+            : "No assay catalog is available yet. An administrator can create and publish one under Administration → Assay catalog."}</p>
+        </section>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
           <div className="surface-panel dashboard-panel dashboard-panel--blue space-y-3 p-3">

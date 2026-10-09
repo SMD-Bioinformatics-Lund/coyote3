@@ -24,6 +24,21 @@ export function routeErrorState(route: UiRouteAudit): string {
 
 export const uiRouteRegistry: UiRouteAudit[] = [
   {
+    path: "/admin/query-rules/testing",
+    page: "QueryRuleTestingPage",
+    area: "admin",
+    api: ["GET /admin/query-rule-sets", "POST /admin/query-rule-sets/test-samples", "POST /admin/query-rule-sets/test-samples/:sample_id/preview"],
+    dataUsed: ["saved query-rule versions", "authorized samples", "final MongoDB queries", "finding comparisons"],
+  },
+  {
+    path: "/admin/query-rules",
+    page: "QueryRulesPage",
+    area: "admin",
+    api: ["GET /admin/query-rule-sets", "GET /admin/query-rule-sets/options", "GET /admin/query-rule-sets/:identifier/revisions", "DELETE /admin/query-rule-sets/:identifier", "POST /admin/query-rule-sets/preview", "POST /admin/query-rule-sets/test-condition", "POST /admin/query-rule-sets", "PUT /admin/query-rule-sets/:identifier", "POST /admin/query-rule-sets/:identifier/approve", "POST /admin/query-rule-sets/:identifier/publish", "POST /admin/query-rule-sets/:identifier/retire"],
+    dataUsed: ["query rules", "registered scopes", "effective policies", "published lineage"],
+  },
+
+  {
     path: "/admin/assay-catalog",
     page: "PublicAssayCatalogPage",
     area: "admin",

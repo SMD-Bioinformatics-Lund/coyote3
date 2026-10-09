@@ -35,6 +35,14 @@ function renderPage(ui: React.ReactElement) {
   )
 }
 
+it("shows first-install catalog guidance without a request failure", async () => {
+  vi.mocked(api.get).mockResolvedValue({ status: 200, data: { order: [], modalities: {}, genes: [], right: {}, meta: {} } })
+  renderPage(<PublicCatalog />)
+  expect(await screen.findByRole("heading", { name: "Add catalog" })).toBeInTheDocument()
+  expect(screen.getByRole("status")).toHaveTextContent("Administration → Assay catalog")
+  expect(screen.queryByText("Unable to load catalog")).not.toBeInTheDocument()
+})
+
 const catalogPayload = {
   order: ["dna"],
   modalities: {

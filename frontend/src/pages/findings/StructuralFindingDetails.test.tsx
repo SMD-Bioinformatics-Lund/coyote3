@@ -92,7 +92,7 @@ describe("structural finding detail pages", () => {
         GT: [{ type: "case", PR: [100, 20], SR: [50, 15] }],
       },
       annotations: [], latest_classification: { class: 2 },
-      vep_conseq_translations: { transcript_ablation: { display_name: "Transcript ablation" } },
+      snpeff_conseq_translations: { transcript_ablation: { display_name: "Transcript ablation" } },
     } })
 
     mount("/samples/DNA_002/translocation/T1", "/samples/:id/translocation/:varId", <TranslocationDetail />)

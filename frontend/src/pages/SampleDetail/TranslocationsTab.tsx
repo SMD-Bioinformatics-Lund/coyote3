@@ -140,7 +140,7 @@ export function TranslocationsTab({
       cell: ({ row }) => (
         <ConsequenceBadges
           value={translocationType(row.original)}
-          translations={data?.vep_conseq_translations}
+          translations={data?.snpeff_conseq_translations}
           wide
         />
       ),
