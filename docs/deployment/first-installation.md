@@ -486,8 +486,9 @@ reachable advertised member; normal application connections use replica discover
 
 ### Credentials for bootstrap
 
-Optional reference installation and knowledgebase indexing use `KNOWLEDGEBASE_MONGO_URI`.
-Only these operations require writes and index management on `KNOWLEDGEBASE_DB`.
+Bundled reference installation (included in `--setup-center`) and optional
+knowledgebase indexing use `KNOWLEDGEBASE_MONGO_URI`. Reference installation
+requires write privileges on `KNOWLEDGEBASE_DB`; indexing also requires index privileges.
 If the configured runtime account is read-only, use an existing approved maintenance
 identity or create a dedicated account while authenticated as its administrator.
 Replace the database name with the selected `KNOWLEDGEBASE_DB`:
@@ -568,6 +569,7 @@ and the `COYOTE_ENV_FILE` and `COYOTE_PROJECT` values defined in **step 2**:
 
 ```bash
 bash scripts/deployment/install_center.sh \
+  --setup-center \
   --env-file "$COYOTE_ENV_FILE" \
   --project "$COYOTE_PROJECT" \
   --compose-file deploy/compose/docker-compose.yml
@@ -582,7 +584,8 @@ The installer executes the following sequence:
 5. On a fresh target only, prompt for initial accounts and invoke database bootstrap.
 6. Check application, identity and BAM indexes, stop on conflicts, create compatible missing indexes, and
    verify that every required index is present before starting services.
-7. Start services with health waiting, display service status, and check the local proxy's
+7. Install bundled HGNC genes, VEP metadata and diagrams into empty knowledgebase collections.
+8. Start services with health waiting, display service status, and check the local proxy's
    health and browser routes.
 
 Do not run the individual bootstrap or index commands in addition to this sequence.
@@ -594,15 +597,19 @@ indexes are expected on a first installation. A conflict identifies the reposito
 collection and index name; it is not resolved by dropping data or indexes automatically.
 Use the index status command in **step 10** to inspect a conflicting contract.
 
-Knowledgebase loading and indexing are disabled by default. Reuse an existing
-knowledgebase without these options. For a new, empty knowledgebase, add
-`--with-knowledgebase-seeds --with-knowledgebase-indexes` to the installer command.
-This loads bundled HGNC and VEP references; external sources such as CIViC, COSMIC
-and BRCA Exchange have separate [import procedures](../reference/knowledgebases/README.md).
-Reference data must be available before clinical use; starting the application does
-not certify reference completeness.
+> [!IMPORTANT]
+> `--setup-center` includes bundled HGNC and VEP references. Populated reference
+> collections are preserved. It does not import external knowledgebases such as
+> CIViC, COSMIC or BRCA Exchange; follow their separate
+> [import procedures](../reference/knowledgebases/README.md).
 
-Use `--steps` to select individual operations. The
+Knowledgebase-wide indexing remains a separate `--with-knowledgebase-indexes`
+operation because large existing collections can take considerable time. Review
+[required data](required-data.md) before clinical use; a successful installation
+does not certify reference completeness or clinical readiness.
+
+For individual operations, replace `--setup-center` with `--steps` and the required
+reference flags. The
 [installation operations reference](installation-operations.md) lists every stage,
 default, prerequisite and standalone command.
 
@@ -613,7 +620,7 @@ default, prerequisite and standalone command.
 | Application and identity databases contain no documents | Bootstrap accounts, RBAC and group/query policies. Empty collections do not count as installed data. |
 | Application data and the initial governance baseline already exist | Skip database bootstrap entirely. Preserve accounts, permissions, roles, query rules, references and clinical data; continue index checks and service startup. |
 | Only part of application/identity initialization is recognized | Stop before bootstrap or index writes. Inspect the target selection and initialization state; do not drop databases to retry. |
-| Bundled reference installation is explicitly selected | Populate empty HGNC/VEP collections only; preserve populated collections, including on repeated runs. |
+| `--setup-center` or `--with-knowledgebase-seeds` is selected | Populate empty HGNC/VEP collections only; preserve populated collections, including on repeated runs. |
 | Conflicting indexes or an earlier step fails | Stop. No index is automatically dropped; completed operations are not rolled back or undone. |
 
 Bootstrap rechecks that both application and identity targets are still empty
@@ -629,8 +636,8 @@ data migrations.
 
 ### Prompts and options
 
-Optional knowledgebase operations use the configured `KNOWLEDGEBASE_MONGO_URI`
-without prompting for another URI. The default installation needs no knowledgebase write access.
+Bundled reference installation uses the configured `KNOWLEDGEBASE_MONGO_URI`
+without prompting for another URI. `--setup-center` requires knowledgebase write access.
 If the runtime account is read-only, supply `--knowledgebase-maintenance-uri-file FILE`
 with the maintenance identity from **step 6**. The override must use the same hosts,
 replica-set selection and logical database as the runtime knowledgebase connection.
@@ -647,14 +654,21 @@ do not request new account credentials.
 | `--env-file FILE` | Required private deployment environment file. |
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
+| `--setup-center` | Complete first-center setup: all stages plus bundled HGNC/VEP references. Preserves existing data. Cannot combine with `--steps`. Demo configuration, external imports and knowledgebase-wide indexes are excluded. |
 | `--sys-admin-username NAME`, `--sys-admin-email EMAIL` | Optional initial named-administrator details; prompted on a fresh target when omitted. |
 | `--username NAME`, `--email EMAIL` | Optional initial emergency-superuser details; prompted on a fresh target when omitted. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private file containing a separate maintenance URI when the configured knowledgebase connection lacks write/index privileges. Defaults to the configured connection. Protect the file with restricted filesystem permissions. |
 | `--with-demo-center` | Install synthetic ASP, ASPC and ISGL examples on fresh targets only. Not clinical configuration. |
 | `--skip-build` | Use already-built images after confirming that they match the selected release and deployment settings. |
 | `--steps LIST` | Comma-separated stages; default `network,directories,build,validate,bootstrap,indexes,start,health`. Executes selected stages in dependency order. |
-| `--with-knowledgebase-seeds` | Opt in to bundled HGNC/VEP installation, including on an existing application. Requires an administrator username for provenance. |
+| `--with-knowledgebase-seeds` | Install bundled HGNC/VEP references independently of full setup, including on an existing application. Included in `--setup-center`. Requires an administrator username for provenance. |
 | `--with-knowledgebase-indexes` | Opt in to knowledgebase index planning, creation and verification. Large collections can take considerable time. |
+
+For separately prepared HGNC and Ensembl BioMart files, use the
+[standalone gene installer](../operations/hgnc-gene-installation.md), including its
+input-column and parameter reference. External knowledgebase importers have their
+own parameters in the [knowledgebase guides](../reference/knowledgebases/README.md);
+they are not selected by `--setup-center`.
 
 Password values are not installer command-line options. Do not enable shell tracing
 when handling credentials. The temporary Compose rendering is private and removed
@@ -671,8 +685,8 @@ The image packages `clinical_capabilities.toml`, `clinical_query_defaults.toml`,
 application-owned; do not copy them into the editable center directory.
 
 Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one
-emergency `superuser`, assay groups and query-rule publications. Optional reference
-installation loads HGNC and VEP metadata/diagrams into empty knowledgebase collections. Installed
+emergency `superuser`, assay groups and query-rule publications. `--setup-center`
+also loads HGNC and VEP metadata/diagrams into empty knowledgebase collections. Installed
 records are attributed to the named administrator, and document versions start at
 1; external reference release identifiers retain their original values. Installation
 metadata is not evidence of clinical review. Optional demonstration records are

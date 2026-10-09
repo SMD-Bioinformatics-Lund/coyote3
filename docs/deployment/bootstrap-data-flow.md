@@ -23,10 +23,11 @@ loads them together with the three editable center files before bootstrap writes
 ![First-deployment bootstrap data flow](../assets/diagrams/bootstrap-data-flow.svg)
 
 1. Prepare deployment configuration, storage, MongoDB endpoints and database users.
-2. Run `scripts/deployment/install_center.sh` to build images and validate configuration
+2. Run `scripts/deployment/install_center.sh --setup-center` to build images and validate configuration
    and database readiness.
 3. The installer bootstraps empty application/identity targets, preserves existing
-   installations, checks and applies compatible indexes, then starts services.
+   installations, checks and applies compatible application indexes, installs bundled
+   HGNC/VEP references into empty knowledgebase collections, then starts services.
 4. Verify browser and administrative access and complete initial password changes.
 5. Configure and validate clinical workflows before ingesting clinical data.
 
@@ -56,8 +57,8 @@ Before first sample ingest, ensure these are seeded:
 The explicit database bootstrap installs the application-owned RBAC catalog,
 creates a named system administrator and an emergency superuser. It
 runs only against empty governance collections.
-Bundled HGNC and VEP references are installed separately with
-`scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME`, or the
+Bundled HGNC and VEP references are included in `--setup-center`. They can also be
+installed separately with `scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME`, or the
 installer's `--with-knowledgebase-seeds` option. Knowledgebase indexing is a separate
 opt-in operation. See [installation operations](installation-operations.md).
 

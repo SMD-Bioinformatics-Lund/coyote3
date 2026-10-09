@@ -13,10 +13,12 @@ Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
        [--username EMERGENCY_USER --email EMAIL] [--with-demo-center]
        [--knowledgebase-maintenance-uri-file FILE]
        [--steps network,directories,build,validate,bootstrap,indexes,start,health]
-       [--with-knowledgebase-seeds] [--with-knowledgebase-indexes]
+       [--setup-center] [--with-knowledgebase-seeds] [--with-knowledgebase-indexes]
 
 Missing initial account details and passwords are prompted only for fresh targets.
-Knowledgebase data and indexes are opt-in, using the configured URI unless overridden.
+--setup-center selects every stage and bundled HGNC/VEP references; cannot combine with --steps.
+Demo configuration and knowledgebase-wide indexes remain separate opt-ins.
+Knowledgebase operations use the configured URI unless overridden; external releases are not imported.
 Steps run in the listed canonical order; validation and startup safety gates remain mandatory.
 No database is dropped, restored, reset or migrated. Index conflicts stop installation.
 USAGE
@@ -26,6 +28,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 env_file="" project="" maintenance_file=""
 admin_username="" admin_email="" emergency_username="" emergency_email=""
 skip_build=0
+setup_center=0 steps_explicit=0
 steps="network,directories,build,validate,bootstrap,indexes,start,health"
 kb_seeds=0 kb_indexes=0
 compose_files=() demo_args=()
@@ -33,6 +36,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h) usage; exit 0 ;;
     --skip-build) skip_build=1; shift ;;
+    --setup-center) setup_center=1; shift ;;
     --with-knowledgebase-seeds) kb_seeds=1; shift ;;
     --with-knowledgebase-indexes) kb_indexes=1; shift ;;
     --with-demo-center) demo_args=(--with-demo-center); shift ;;
@@ -41,7 +45,7 @@ while [[ $# -gt 0 ]]; do
       case "$1" in
         --env-file) env_file="$(realpath "$2")" ;;
         --project) project="$2" ;;
-        --steps) steps="$2" ;;
+        --steps) steps="$2"; steps_explicit=1 ;;
         --compose-file) compose_files+=(-f "$(realpath "$2")") ;;
         --sys-admin-username) admin_username="$2" ;;
         --sys-admin-email) admin_email="$2" ;;
@@ -53,6 +57,13 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
 done
+if [[ "$setup_center" == 1 ]]; then
+  [[ "$steps_explicit" == 0 ]] || {
+    echo "--setup-center cannot be combined with --steps; select individual operations instead" >&2
+    exit 2
+  }
+  kb_seeds=1
+fi
 [[ "$steps" =~ ^(network|directories|build|validate|bootstrap|indexes|start|health)(,(network|directories|build|validate|bootstrap|indexes|start|health))*$ ]] || {
   echo "Invalid --steps selection" >&2; exit 2;
 }

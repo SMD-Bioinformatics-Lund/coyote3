@@ -14,7 +14,7 @@ create an assay, enable an analysis, or grant users access to samples.
 | System roles | 31 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
 | Initial accounts | One named system administrator and one separate emergency superuser | Operator supplies identities and temporary passwords during bootstrap |
 | Demonstration configuration | Two ASPs, two ASPCs, one ISGL, one named subpanel and its assay association, and two published report-rule sets | Only with `--with-demo-center` |
-| Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Separate optional reference installation |
+| Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Included in `--setup-center`; independently available with `--with-knowledgebase-seeds` |
 
 Installed versioned catalogs start at version 1 and are attributed to the named
 initial administrator. Query sets start at version 1, revision 1 and carry
@@ -41,10 +41,11 @@ documented synchronization workflows; rerunning bootstrap does not reset catalog
 | `fusion` | Fusion | RNA fusion assays | None; application RNA fusion query defaults apply |
 | `demo` | Demo | Demonstration and training assays | None; application query defaults apply |
 
-Groups are independent identifiers, not a hierarchy: `myeloid` and `lymphoid` do
-not inherit from `hematology`. The `fusion` group contains RNA fusion assays;
-RNA analyses do not include SNVs.
-The optional demo assays belong to `hematology` and `wts`, not to `demo`.
+Each assay group defines an independent registration and access scope.
+The optional bootstrap examples use the `hematology` and `wts` groups.
+The [synthetic workflow bundle](../testing/clinical-workflow-demo.md) also provides
+DNA and RNA assays in the `demo` group, with matching sample manifests, raw data,
+testing configurations and report-rule drafts.
 See [Assay groups](assay-groups.md) for registration and access-scope management.
 
 ## Finding query sets
@@ -75,6 +76,11 @@ It is not a named subpanel. No assay-specific or named-subpanel query sets ship.
 Each row below represents two separate documents, each with one data type and intent.
 Somatic sets use `paired` evidence; germline sets resolve to `exception_only`.
 
+These are additional group policies. Application defaults also provide the base
+SNV, CNV, fusion and translocation queries for groups without published policies.
+Registering a new group does not require a code change; configure its exceptions
+in [Finding query rules](query-rules.md).
+
 | Group | Somatic set ID | Germline set ID |
 | --- | --- | --- |
 | `hematology` | `hematology__all__base__somatic_snvs` | `hematology__all__base__germline_snvs` |
@@ -90,10 +96,10 @@ can independently match.
 
 | Exception ID | Intent and action | Exact matching criteria |
 | --- | --- | --- |
-| `flt3_svtype` | Somatic: extend consequence eligibility | `INFO.selected_CSQ.SYMBOL` is `FLT3` and `INFO.SVTYPE` exists. Existence does not require a particular SVTYPE value. |
-| `flt3_large_insertion` | Somatic: extend consequence eligibility | `INFO.selected_CSQ.SYMBOL` is `FLT3` and `ALT` matches the regex `[A-Za-z0-9_]{10,200}`. |
+| `flt3_svtype` | Somatic: extend consequence eligibility | `genes` contains `FLT3` and `INFO.SVTYPE` exists. Existence does not require a particular SVTYPE value. |
+| `flt3_large_insertion` | Somatic: extend consequence eligibility | `genes` contains `FLT3` and `ALT` matches the regex `[A-Za-z0-9_]{10,200}`. |
 | `germline_myeloid_marker` | Germline: admit | `INFO.MYELOID_GERMLINE` equals numeric `1`. |
-| `germline_cebpa_filter` | Germline: admit | `INFO.selected_CSQ.SYMBOL` is `CEBPA` and `FILTER` contains `GERMLINE`. |
+| `germline_cebpa_filter` | Germline: admit | `genes` contains `CEBPA` and `FILTER` contains `GERMLINE`. |
 | `germline_chr1_interval` | Germline: admit | `CHROM` equals the string `1` and numeric `POS` is between `115256521` and `115256537`, inclusive. |
 
 The ALT regex is unanchored: it tests for a matching substring, not an exact
@@ -106,7 +112,7 @@ meaning against the assay's reference build before clinical use.
 
 | Exception ID | Intent and action | Exact matching criteria |
 | --- | --- | --- |
-| `solid_regulatory_tert_nfkbie` | Somatic: extend consequence eligibility | `INFO.selected_CSQ.SYMBOL` is `TERT` or `NFKBIE`, and `consequence_terms` contains `regulatory_region_variant` or `TF_binding_site_variant`. |
+| `solid_regulatory_tert_nfkbie` | Somatic: extend consequence eligibility | `genes` contains `TERT` or `NFKBIE`, and `consequence_terms` contains `regulatory_region_variant` or `TF_binding_site_variant`. |
 | `solid_germline_filter` | Germline: admit | `FILTER` contains `GERMLINE`; no gene condition is imposed by this exception. |
 
 Solid tumors do not receive the myeloid-marker, CEBPA or chromosome-1 admissions.
@@ -251,7 +257,7 @@ See [Clinical vocabulary](clinical-vocabulary.md),
 [Sample manifest](../reference/sample-manifest.md) and
 [Clinical query policy](../configuration/clinical-query-policy-file.md).
 
-Optional reference installation loads the bundled HGNC snapshot and VEP releases
+Center setup (`--setup-center`) loads the bundled HGNC snapshot and VEP releases
 98–116, including their diagram assets. Source attribution and release hashes are
 recorded under `api/config/bootstrap/reference/`. These snapshots do not install
 every external knowledgebase used by the application; follow the relevant

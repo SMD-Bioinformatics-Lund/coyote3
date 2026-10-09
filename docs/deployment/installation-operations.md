@@ -24,8 +24,20 @@ file. Do not put passwords or database URIs in command history.
 
 ## Stage selection
 
+`--setup-center` selects the full first-install sequence and bundled HGNC/VEP
+reference installation. It preserves an existing application baseline and populated
+reference collections. Use it in the [first installation guide](first-installation.md).
+For individual operations, use `--steps` and the flags below instead;
+`--setup-center` and `--steps` cannot be combined. `--skip-build` remains available
+when the matching release images are already built.
+
+> [!NOTE]
+> Synthetic demonstration configuration requires `--with-demo-center` on a fresh
+> target. External knowledgebase imports and knowledgebase-wide indexing are not
+> part of `--setup-center`.
+
 `--steps` accepts a comma-separated selection. Stages execute in the order below,
-regardless of their order in the argument. The default selects all nine stages.
+regardless of their order in the argument. The default selects all eight stages.
 Secret validation and Compose rendering always run. Selecting bootstrap, indexes
 or startup also validates center configuration and checks database state.
 
@@ -73,7 +85,8 @@ bash scripts/deployment/install_center.sh \
 
 ## Knowledgebase operations
 
-Both operations below are **off by default** and independent of `--steps`.
+Bundled reference installation is included in `--setup-center`. Without that flag,
+both operations below are **off by default** and independent of `--steps`.
 They run after selected application bootstrap/index stages and before selected startup.
 They also work when the application baseline already exists.
 
@@ -83,8 +96,8 @@ They also work when the application baseline already exists.
 | `--with-knowledgebase-indexes` | Plan, apply and verify knowledgebase indexes | Knowledgebase index privileges. Index creation can be expensive on large reference collections. No application, identity or BAM indexes are modified by this operation. |
 | `--knowledgebase-maintenance-uri-file FILE` | Use separate credentials for the selected knowledgebase operations | Optional restricted file containing one URI to the same configured endpoint and database. Rejected when neither knowledgebase operation is selected. Runtime credentials remain unchanged. |
 
-For a new empty knowledgebase, append both knowledgebase options to the normal
-first-install command. If references are already installed and indexed, omit both.
+For a new center, use `--setup-center` to include bundled references. Add
+`--with-knowledgebase-indexes` when knowledgebase-wide index maintenance is intended.
 Missing references can limit annotation and interpretation; installation success is
 not a clinical readiness assessment. Review [required data](required-data.md).
 
@@ -104,6 +117,11 @@ Use the source-specific [knowledgebase import procedures](../reference/knowledge
 for external releases. Those standalone importers retain their own explicit write
 options and may build the indexes needed to publish a release. The center installer's
 flags do not change independently invoked importers.
+
+To build a separate gene reference from HGNC and Ensembl BioMart source files, use
+the standalone [HGNC gene installer](../operations/hgnc-gene-installation.md).
+It validates inputs without database access by default; writes require `--apply`
+and a new backup file. It is separate from the bundled-reference seed option.
 
 ## Standalone validation and bootstrap
 

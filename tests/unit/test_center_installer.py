@@ -255,6 +255,39 @@ def test_installer_help_and_unknown_options_do_not_run_docker():
     assert subprocess.run(["bash", str(path), "--unknown"], capture_output=True).returncode == 2
 
 
+@pytest.mark.parametrize("state", ["fresh", "existing", "partial"])
+def test_setup_center_installs_references_without_external_maintenance(fake_installation, state):
+    """Full setup seeds fresh targets and preserves existing application baselines."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        command + ["--setup-center"],
+        env={**env, "INSTALL_TEST_STATE": state},
+        capture_output=True,
+        text=True,
+    )
+    calls = log.read_text()
+    assert result.returncode == (1 if state == "partial" else 0), result.stderr
+    assert ("bootstrap_database.py" in calls) == (state == "fresh")
+    assert ("install_reference_data.py" in calls) == (state != "partial")
+    assert ("up -d" in calls) == (state != "partial")
+    assert "--scope knowledgebase" not in calls
+    assert "--with-demo-center" not in calls
+    if state != "partial":
+        assert calls.index("install_reference_data.py") < calls.index("up -d")
+
+
+@pytest.mark.parametrize(
+    "flags", [["--setup-center", "--steps", "health"], ["--steps", "health", "--setup-center"]]
+)
+def test_setup_center_rejects_partial_stage_selection_before_docker(fake_installation, flags):
+    """Reject ambiguous setup requests consistently regardless of argument order."""
+    command, env, log = fake_installation
+    result = subprocess.run(command + flags, env=env, capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "cannot be combined" in result.stderr
+    assert not log.exists()
+
+
 @pytest.mark.parametrize(
     "stage",
     ["network", "directories", "build", "validate", "bootstrap", "indexes", "start", "health"],
