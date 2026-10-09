@@ -10,6 +10,7 @@ from api.interfaces.http.admin.clinical_rules import router as clinical_rules_ro
 from api.interfaces.http.admin.operations import router as admin_operations_router
 from api.interfaces.http.admin.permissions import router as permissions_router
 from api.interfaces.http.admin.public_assay_catalog import router as public_assay_catalog_router
+from api.interfaces.http.admin.query_rules import router as query_rules_router
 from api.interfaces.http.admin.resources.asp import router as resource_asp_router
 from api.interfaces.http.admin.resources.aspc import router as resource_aspc_router
 from api.interfaces.http.admin.resources.assay_setup import router as assay_setup_router
@@ -74,6 +75,7 @@ ROUTERS = (
     RouterRegistration(public_router),
     RouterRegistration(reports_router),
     RouterRegistration(clinical_rules_router),
+    RouterRegistration(query_rules_router),
     RouterRegistration(samples_router),
     RouterRegistration(small_variants_router),
     RouterRegistration(translocations_router),

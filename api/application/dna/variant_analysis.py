@@ -11,6 +11,7 @@ from api.application.dna import (
     variant_comments,
     variant_state,
 )
+from api.application.query_rules import QueryRuleService, effective_policy
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.config.database_versions import sample_vep_version
 from api.contracts.operations import OperationResult
@@ -50,6 +51,7 @@ class DnaService:
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
             clinical_rule_service=ClinicalRuleService.from_store(store),
+            query_rule_service=QueryRuleService.from_store(store),
         )
 
     def __init__(
@@ -78,6 +80,7 @@ class DnaService:
         oncokb_public_cache_repository: Any | None = None,
         clinpgx_public_repository: Any | None = None,
         clinical_rule_service: ClinicalRuleService | None = None,
+        query_rule_service=None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -103,6 +106,7 @@ class DnaService:
         self.cosmic_repository = cosmic_repository
         self.hgnc_repository = hgnc_repository
         self.clinical_rule_service = clinical_rule_service
+        self.query_rule_service = query_rule_service
 
     @staticmethod
     def export_rows_to_csv(rows: list[Any]) -> str:
@@ -152,6 +156,9 @@ class DnaService:
                 "intent": "somatic",
             },
             include_normal=include_normal_cnvs(sample),
+            policy=effective_policy(
+                self.query_rule_service, "cnv", sample, assay_group=assay_group
+            ),
         )
         cnvs = list(self.copy_number_variant_repository.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))

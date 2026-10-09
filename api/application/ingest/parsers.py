@@ -578,7 +578,7 @@ def _select_csq(
     """Select the canonical transcript from a slim CSQ array using a priority hierarchy.
 
     The ordered selector names are loaded from the center-owned
-    ``reporting.transcript_selection_order`` configuration. Each selector is
+    application-owned ``reporting.transcript_selection_order``. Each selector is
     evaluated in that declared order; within a selector, rows are evaluated by
     impact (HIGH → MODERATE → LOW → MODIFIER).
 

@@ -325,6 +325,7 @@ class RnaService:
             assay_panel_doc=assay_panel_doc,
         )
         query = self.workflow.build_fusion_list_query(
+            query_rule_service=self.workflow.query_rule_service,
             assay_group=assay_group,
             sample_id=str(sample["_id"]),
             sample_filters=sample_filters,

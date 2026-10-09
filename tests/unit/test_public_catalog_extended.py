@@ -5,6 +5,20 @@ from types import SimpleNamespace
 import pytest
 
 from api.application.public.catalog import PublicCatalogService
+from api.contracts.public import PublicAssayCatalogPayload
+from api.domain.core.exceptions import AppError
+
+
+def test_empty_catalog_landing_is_a_valid_setup_state(monkeypatch):
+    service = object.__new__(PublicCatalogService)
+    monkeypatch.setattr(service, "load_catalog", lambda **kwargs: {})
+    context = service.catalog_context()
+    PublicAssayCatalogPayload.model_validate(context)
+    assert context["order"] == []
+    assert context["genes"] == []
+    assert context["selected_mod"] is None
+    with pytest.raises(AppError, match="Catalog not found"):
+        service.catalog_context("dna")
 
 
 class _AspRepository:

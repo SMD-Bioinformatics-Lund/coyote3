@@ -95,6 +95,7 @@ def build_translocation_snapshot_rows(
             translocation.get("POS"),
             translocation.get("REF"),
             translocation.get("ALT"),
+            translocation.get("END"),
         )
         rows.append(
             {
@@ -112,6 +113,7 @@ def build_translocation_snapshot_rows(
                 "source_id": translocation.get("ID"),
                 "chromosome": translocation.get("CHROM"),
                 "position": translocation.get("POS"),
+                **({"end": translocation["END"]} if translocation.get("END") is not None else {}),
                 "ref": translocation.get("REF"),
                 "alt": translocation.get("ALT"),
                 "breakpoint": f"{translocation.get('CHROM')}:{translocation.get('POS')}",

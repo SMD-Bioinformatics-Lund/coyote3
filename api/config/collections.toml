@@ -19,6 +19,8 @@
     finding_comments_collection = "finding_comments"
     reports_collection = "reports"
     clinical_rule_sets_collection = "clinical_rule_sets"
+    query_rule_sets_collection = "query_rule_sets"
+    query_rule_revisions_collection = "query_rule_revisions"
     clinical_rule_revisions_collection = "clinical_rule_revisions"
     public_assay_catalog_collection = "public_assay_catalog"
     public_assay_catalog_versions_collection = "public_assay_catalog_versions"

@@ -475,6 +475,7 @@ class TranslocationInfoDoc(_DocBase):
     PANEL: list[str] = Field(default_factory=list)  # fusion|somatic|one
     ANN: list[TranslocationInfoAnnDoc] = Field(default_factory=list)
     MANE_ANN: TranslocationInfoAnnDoc | None = None
+    ANN_selection_source: str | None = None
 
 
 class TranslocationGtDoc(_DocBase):
@@ -486,12 +487,30 @@ class TranslocationGtDoc(_DocBase):
     SR: str
 
 
+class TranslocationSourceDoc(_DocBase):
+    """Original normalized breakend retained inside a paired DNA structural finding."""
+
+    CHROM: str
+    POS: int
+    END: int | None = None
+    ID: str
+    REF: str
+    ALT: str
+    QUAL: float | None = None
+    FILTER: list[str] = Field(default_factory=list)
+    FORMAT: list[str] = Field(default_factory=list)
+    GT: list[TranslocationGtDoc]
+    INFO: TranslocationInfoDoc
+
+
 class TranslocationsDoc(_FindingDocBase):
     """Sample-scoped structural variant with breakend, genotype, and annotation fields."""
 
     SAMPLE_ID: str
     CHROM: str
     POS: int
+    END: int | None = None
+    source_records: list[TranslocationSourceDoc] = Field(default_factory=list)
     REF: str
     ALT: str
     FILTER: list[str] = Field(default_factory=list)

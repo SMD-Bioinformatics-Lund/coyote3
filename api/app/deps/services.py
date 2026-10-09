@@ -23,6 +23,8 @@ from api.application.ingest.service import InternalIngestService
 from api.application.knowledgebase.oncokb_refresh import PublicOncoKbRefreshService
 from api.application.notifications.service import NotificationService
 from api.application.public.catalog import PublicCatalogService
+from api.application.query_rule_testing import QueryRuleTestingService
+from api.application.query_rules import QueryRuleService
 from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from api.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
 from api.application.reporting.dna_workflow import DNAWorkflowService
@@ -187,6 +189,16 @@ def get_clinical_rule_authoring_service() -> ClinicalRuleAuthoringService:
     service = ClinicalRuleAuthoringService.from_store(get_store())
     service.notification_service = get_notification_service()
     return service
+
+
+def get_query_rule_service() -> QueryRuleService:
+    """Bind query-rule authoring and resolution to the application repositories."""
+    return QueryRuleService.from_store(get_store())
+
+
+def get_query_rule_testing_service() -> QueryRuleTestingService:
+    """Return the read-only stored-sample query comparison service."""
+    return QueryRuleTestingService(get_store())
 
 
 def get_clinical_rule_testing_service() -> ClinicalRuleTestingService:

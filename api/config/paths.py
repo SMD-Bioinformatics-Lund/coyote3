@@ -21,7 +21,6 @@ if not CENTER_CONFIG_DIR.is_dir():
 for _center_filename in (
     "contact.toml",
     "clinical_vocabulary.toml",
-    "clinical_query_policy.toml",
     "filter_flag_metadata.yaml",
 ):
     if not (CENTER_CONFIG_DIR / _center_filename).is_file():
@@ -69,6 +68,6 @@ def initialize_storage_directories() -> None:
 
 CONTACT_CONFIG_PATH = CENTER_CONFIG_DIR / "contact.toml"
 CLINICAL_VOCABULARY_PATH = CENTER_CONFIG_DIR / "clinical_vocabulary.toml"
-CLINICAL_QUERY_POLICY_PATH = CENTER_CONFIG_DIR / "clinical_query_policy.toml"
+CLINICAL_QUERY_SEED_PATH = API_CONFIG_DIR / "clinical_query_seed.toml"
 COLLECTIONS_CONFIG_PATH = API_CONFIG_DIR / "collections.toml"
 FILTER_FLAG_METADATA_PATH = CENTER_CONFIG_DIR / "filter_flag_metadata.yaml"

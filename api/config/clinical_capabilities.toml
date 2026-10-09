@@ -1,0 +1,90 @@
+# Application-owned clinical identifiers and supported capabilities. Ship with the release.
+
+[assay]
+categories = ["dna", "rna"]
+families = ["panel-dna", "panel-rna", "wes", "wgs", "wts"]
+base_subpanel_id = "base"
+
+[assay.family_categories]
+panel-dna = "dna"
+wes = "dna"
+wgs = "dna"
+panel-rna = "rna"
+wts = "rna"
+
+[assay.family_scopes]
+panel-dna = "panel"
+wes = "wes"
+wgs = "wgs"
+panel-rna = "panel"
+wts = "wts"
+
+[environment]
+options = ["production", "development", "testing", "validation"]
+default = "production"
+
+[authentication]
+providers = ["local", "ldap"]
+
+[genelist]
+standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
+adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
+
+[fusion]
+# Implemented fusion caller IDs. Use only these; this is not a plugin registry.
+callers = ["arriba", "fusioncatcher", "starfusion"]
+
+[files.dna]
+keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "hrd", "msi", "tmb", "pgx"]
+
+[files.rna]
+keys = ["fusion_files", "expression_path", "classification_path", "qc"]
+
+[files.required_by_family]
+panel-dna = ["vcf_files"]
+wes = ["vcf_files"]
+wgs = ["vcf_files"]
+panel-rna = ["fusion_files"]
+wts = ["fusion_files"]
+
+[analysis.dna]
+types = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
+
+[analysis.dna.file_keys]
+SNV = ["vcf_files"]
+CNV = ["cnv"]
+TRANSLOCATION = ["transloc"]
+HRD = ["hrd"]
+MSI = ["msi"]
+CNV_PROFILE = ["cnvprofile"]
+COVERAGE = ["cov"]
+FUSION = ["transloc"]
+TMB = ["tmb"]
+PGX = ["pgx"]
+
+[analysis.rna]
+types = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"]
+
+[analysis.rna.file_keys]
+FUSION = ["fusion_files"]
+EXPRESSION = ["expression_path"]
+CLASSIFICATION = ["classification_path"]
+QC = ["qc"]
+
+[analysis.allowed_by_family]
+wes = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
+panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
+wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
+panel-rna = ["FUSION", "QC"]
+wts = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"]
+# Deterministic transcript precedence is part of the application interpretation contract.
+[reporting]
+transcript_selection_order = [
+  "ncbi_mane_plus_clinical",
+  "ensembl_mane_plus_clinical",
+  "ncbi_mane_select",
+  "ensembl_mane_select",
+  "vep_canonical_protein_coding",
+  "first_protein_coding",
+  "first_available",
+]

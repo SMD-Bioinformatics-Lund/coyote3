@@ -7,7 +7,9 @@ from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.interpretation.report_summary import create_annotation_text_from_gene
+from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.domain.common.errors import api_error
+from api.domain.core.dna.structural_identity import translocation_annotation_identity
 
 
 class ResourceClassificationService:
@@ -25,6 +27,7 @@ class ResourceClassificationService:
             assay_panel_repository=store.assay_panel_repository,
             assay_configuration_repository=store.assay_configuration_repository,
             oncokb_repository=store.oncokb_repository,
+            clinical_rule_service=ClinicalRuleService.from_store(store),
         )
 
     def __init__(
@@ -38,6 +41,7 @@ class ResourceClassificationService:
         assay_panel_repository: Any,
         assay_configuration_repository: Any,
         oncokb_repository: Any,
+        clinical_rule_service: ClinicalRuleService | None = None,
     ) -> None:
         """Build the classification service with explicit persistence dependencies."""
         self.annotation_repository = annotation_repository
@@ -48,6 +52,7 @@ class ResourceClassificationService:
         self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
         self.oncokb_repository = oncokb_repository
+        self.clinical_rule_service = clinical_rule_service
 
     def classification_context(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Resolve immutable assay context for a finding classification."""
@@ -64,6 +69,7 @@ class ResourceClassificationService:
         return {
             "assay_group": str(aspc.get("asp_group") or "").strip(),
             "subpanel": str(aspc.get("subpanel_id") or "base").strip(),
+            "reporting_language": (aspc.get("reporting") or {}).get("language", "sv"),
         }
 
     @staticmethod
@@ -211,7 +217,7 @@ class ResourceClassificationService:
                 gene1 = genes[0] if genes else None
                 gene2 = genes[1] if len(genes) > 1 else None
             return {
-                "variant": f"{transloc.get('CHROM')}:{transloc.get('POS')}^{transloc.get('ALT')}",
+                "variant": translocation_annotation_identity(transloc),
                 "nomenclature": "t",
                 "variant_data": {
                     **base_context,
@@ -247,6 +253,31 @@ class ResourceClassificationService:
         bulk_docs: list[dict[str, Any]] = []
         classification_context = self.classification_context(sample)
         normalized_type = self.normalize_resource_type(resource_type)
+        tumor_type = None
+        if (
+            class_num == 3
+            and normalized_type == "small_variant"
+            and (include_automatic_text or not apply)
+        ):
+            try:
+                if self.clinical_rule_service is not None:
+                    tumor_type = self.clinical_rule_service.annotation_tumor_type(
+                        asp_id=sample["asp_id"],
+                        subpanel_id=classification_context["subpanel"],
+                        language=classification_context.get("reporting_language", "sv"),
+                    )
+            except ValueError as error:
+                if include_automatic_text and apply:
+                    raise api_error(
+                        422,
+                        "Automatic annotation requires valid published reporting rules",
+                        str(error),
+                    ) from error
+            if include_automatic_text and apply and not tumor_type:
+                raise api_error(
+                    422,
+                    "Configure automatic annotation tumor-type wording in the published reporting rules",
+                )
         for resource_id in resource_ids:
             identity = self._load_resource_identity(
                 sample=sample,
@@ -258,7 +289,7 @@ class ResourceClassificationService:
                 continue
 
             automatic_text = None
-            if class_num == 3 and normalized_type == "small_variant":
+            if class_num == 3 and normalized_type == "small_variant" and tumor_type:
                 text_context = identity["automatic_text_context"]
                 gene = str(text_context.get("gene") or "").strip()
                 if gene:
@@ -267,7 +298,7 @@ class ResourceClassificationService:
                         automatic_text = create_annotation_text_from_gene(
                             gene,
                             consequence,
-                            classification_context["assay_group"],
+                            tumor_type,
                             gene_oncokb=self.oncokb_repository.get_oncokb_gene(gene),
                         )
 

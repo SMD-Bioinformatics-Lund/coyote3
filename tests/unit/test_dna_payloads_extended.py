@@ -186,7 +186,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
     monkeypatch.setattr(
         payloads,
         "build_transloc_query",
-        lambda sample_id, settings: {"sample_id": sample_id, "settings": settings},
+        lambda sample_id, settings, policy=None: {"sample_id": sample_id, "settings": settings},
     )
     monkeypatch.setattr(
         payloads,
@@ -198,6 +198,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
             {"_id": "cnv-interesting", "interesting": True},
             {"_id": "cnv-other", "interesting": False},
         ],
+        query_rule_service=None,
         biomarker_repository=SimpleNamespace(
             get_sample_biomarkers=lambda sample_id: [
                 {"_id": "tmb", "name": sample_id, "TMB": {"value": 12.4}}

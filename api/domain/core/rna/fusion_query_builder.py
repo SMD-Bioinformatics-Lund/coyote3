@@ -12,10 +12,29 @@ from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.domain.core.workflows.filter_normalization import coerce_nonnegative_int
 
 
-def _fusion_exception_clause(exception: FindingQueryException) -> Dict[str, Any]:
-    """Translate a validated RNA-fusion rule into stored fusion fields."""
+def _fusion_exception_clause(
+    exception: FindingQueryException, filter_values: dict | None = None
+) -> Dict[str, Any]:
+    """Translate a validated RNA-fusion rule into stored fusion fields.
+
+    Args:
+        exception: Validated fusion policy exception.
+        filter_values: Prepared sample settings; required for reference operands.
+
+    Returns:
+        Stored-field predicate with references resolved for this sample.
+
+    Raises:
+        ValueError: A reference cannot resolve to a supported value.
+    """
     criteria = exception.criteria
     clauses: list[Dict[str, Any]] = []
+    if criteria.get("condition") is not None:
+        from api.domain.query_conditions import compile_condition
+
+        clauses.append(
+            compile_condition(criteria["condition"], "fusion", filter_values=filter_values)
+        )
     if criteria.get("genes"):
         genes = list(criteria["genes"])
         clauses.append({"$or": [{"gene1": {"$in": genes}}, {"gene2": {"$in": genes}}]})
@@ -143,11 +162,11 @@ def build_fusion_query(
         "intent": str(settings.get("intent") or "somatic").strip().lower(),
     }
     admissions = [
-        _fusion_exception_clause(exception)
+        _fusion_exception_clause(exception, settings)
         for exception in policy.exceptions_for(**scope, mode="admit")
     ]
     exclusions = [
-        _fusion_exception_clause(exception)
+        _fusion_exception_clause(exception, settings)
         for exception in policy.exceptions_for(**scope, mode="exclude")
     ]
     baseline = {key: value for key, value in query.items() if key != "SAMPLE_ID"}

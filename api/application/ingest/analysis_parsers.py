@@ -23,7 +23,6 @@ from .parsers import (
     _normalize_cnv_ratio,
     _normalize_fusion_docs,
     _normalize_nprobes_field,
-    _normalize_transloc_doc,
     _parse_transcripts,
     _pick_af_fields,
     _select_csq,
@@ -95,6 +94,7 @@ class DnaIngestParser:
         """
         self.hgnc_by_id = hgnc_by_id or {}
         self.hgnc_by_symbol = hgnc_by_symbol or {}
+        self.translocation_warnings: list[str] = []
 
     def parse(self, args: dict[str, Any]) -> dict[str, Any]:
         """Dispatch file-based parsing for all DNA data types present in args.
@@ -160,6 +160,8 @@ class DnaIngestParser:
         if transloc_path:
             require_exists("DNA translocations VCF", transloc_path)
             preload["transloc"] = self._parse_transloc_only(transloc_path)
+            if self.translocation_warnings:
+                preload.setdefault("_warnings", []).extend(self.translocation_warnings)
 
         cov_path = runtime_file_path(args, primary_analysis_file_key("dna", "COVERAGE"))
         if cov_path:
@@ -337,73 +339,28 @@ class DnaIngestParser:
         )
         return filtered
 
-    @staticmethod
-    def _parse_transloc_only(infile: str) -> list[dict[str, Any]]:
-        """Parse a translocation VCF into a list of gene-fusion variant dicts.
-
-        Processes ANN fields, extracts supported fusion annotations, and retains only
-        variants annotated as ``gene_fusion`` or ``bidirectional_gene_fusion``.
+    def _parse_transloc_only(self, infile: str) -> list[dict[str, Any]]:
+        """Parse DNA structural findings using embedded SnpEff and internal HGNC data.
 
         Args:
-            infile: Absolute path to the translocation VCF file.
+            infile: Absolute path to the DNA structural VCF.
 
         Returns:
-            A list of variant dicts representing confirmed gene fusions.
+            Normalized findings for the translocations collection, with all
+            annotations embedded and aggregate exclusions recorded as warnings.
+
+        Raises:
+            ValueError: Structural identity, annotation or mate evidence is invalid.
         """
-        mane: dict[str, dict[str, str]] = {}
-        filtered_data: list[dict[str, Any]] = []
-        vcf_object = VariantFile(infile)
-        processed = 0
-        for processed, var in enumerate(vcf_object.fetch(), start=1):
-            if processed % 1000 == 0:
-                logging.getLogger(__name__).info(
-                    "Translocation parsing: records read=%s, retained so far=%s",
-                    processed,
-                    len(filtered_data),
-                )
-            var_dict = cmdvcf.parse_variant(var, vcf_object.header)
-            if "<" in var_dict["ALT"]:
-                continue
+        from .translocations import parse_translocations
 
-            keep_variant = 0
-            mane_select: dict[str, Any] = {}
-            all_new_ann: list[dict[str, Any]] = []
-            add_mane = 0
-
-            for ann in var_dict["INFO"]["ANN"]:
-                n_mane = 0
-                genes = ann["Gene_ID"].split("&")
-                for gene in genes:
-                    enst = mane.get(gene, {}).get("ensembl", "NO_MANE_TRANSCRIPT")
-                    if enst in ann["HGVS.p"]:
-                        n_mane += 1
-
-                new_ann: dict[str, Any] = {}
-                for key, value in ann.items():
-                    if key == "Annotation":
-                        for annotation in value:
-                            if annotation in {"gene_fusion", "bidirectional_gene_fusion"}:
-                                keep_variant = 1
-                    new_ann[key.replace(".", "")] = value
-                all_new_ann.append(new_ann)
-
-                if n_mane > 0 and n_mane == len(genes):
-                    mane_select = new_ann
-                    add_mane = 1
-
-            del var_dict["INFO"]["ANN"]
-            var_dict["INFO"]["ANN"] = all_new_ann
-            if add_mane:
-                var_dict["INFO"]["MANE_ANN"] = mane_select
-            if keep_variant:
-                filtered_data.append(_normalize_transloc_doc(var_dict))
-
-        logging.getLogger(__name__).info(
-            "Translocation parsing complete: records read=%s, retained=%s",
-            processed,
-            len(filtered_data),
+        self.translocation_warnings = []
+        return parse_translocations(
+            infile,
+            hgnc_by_id=self.hgnc_by_id,
+            hgnc_by_symbol=self.hgnc_by_symbol,
+            warnings=self.translocation_warnings,
         )
-        return filtered_data
 
 
 class RnaIngestParser:
@@ -438,10 +395,5 @@ class RnaIngestParser:
         if qc_path:
             require_exists("QC JSON", qc_path)
             preload["rna_qc"] = read_ingest_json(qc_path, "RNA QC")
-
-        pgx_path = runtime_file_path(args, primary_analysis_file_key("rna", "PGX"))
-        if pgx_path:
-            require_exists("PGX data", pgx_path)
-            preload["pgx"] = _normalize_pgx_document(read_ingest_json(pgx_path, "PGX"))
 
         return preload

@@ -116,6 +116,17 @@ or delete installed definitions. Catalog updates use the controlled installation
 | `permission.policy:list` | List permission policies | Read permission policy definitions, categories, tags, and lifecycle state. |
 | `permission.policy:view` | View permission policy | Read permission policy definitions, categories, tags, and lifecycle state. |
 
+## Query Rules
+
+| Permission ID | Label | What it permits |
+| --- | --- | --- |
+| `query_rules:draft` | Draft query rules | Create and edit scoped finding-selection policy drafts. |
+| `query_rules:publish` | Publish query rules | Publish approved query policies affecting finding retrieval. |
+| `query_rules:retire` | Retire query rules | Retire published query policies and restore parent inheritance. |
+| `query_rules:review` | Review query rules | Independently approve query-rule drafts. |
+| `query_rules:test` | Test query rules on samples | Compare published and proposed finding selection on authorized ready samples without saving changes. |
+| `query_rules:view` | View query rules | View query-rule versions and preview inherited policies. |
+
 ## Reports
 
 | Permission ID | Label | What it permits |

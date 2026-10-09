@@ -236,6 +236,7 @@ def test_variant_state_load_require_and_repository_delegates(monkeypatch) -> Non
     service = SimpleNamespace(
         variant_repository=variants,
         copy_number_variant_repository=cnvs,
+        query_rule_service=None,
         blacklist_repository=blacklist,
     )
     loaded = load_cnvs_for_sample(

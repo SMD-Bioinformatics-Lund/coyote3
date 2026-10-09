@@ -34,13 +34,13 @@ class AssaySubpanelRepository(BaseRepository):
             unique=True,
             name="subpanel_revision_unique",
         )
-        self.definitions.create_index(
+        self.adapter.subpanels_collection.create_index(
             [("subpanel_id", 1)],
             unique=True,
             partialFilterExpression={"is_current": True},
             name="subpanel_definition_current",
         )
-        self.definitions.create_index(
+        self.adapter.subpanels_collection.create_index(
             [("subpanel_id", 1), ("version", 1)],
             unique=True,
             name="subpanel_definition_revision",

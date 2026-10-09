@@ -14,6 +14,7 @@ from api.application.common.table_state import (
 )
 from api.application.dna.export import consequence_terms
 from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
+from api.application.query_rules import effective_policy
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.clinical_rules.service import rendered_summary
 from api.application.reporting.dna_report_payload import hotspot_variant
@@ -346,18 +347,27 @@ def _build_display_and_summary_sections(
 
     if "TRANSLOCATION" in analysis_sections:
         policy_settings = {
+            "filter_genes": translocation_filter_genes,
             "assay_group": assay_group,
             "asp_id": sample.get("asp_id"),
             "subpanel_id": sample.get("subpanel_id"),
             "intent": "somatic",
         }
-        transloc_query = build_transloc_query(str(sample["_id"]), policy_settings)
+        translocation_policy = effective_policy(
+            service.query_rule_service, "translocation", sample, assay_group=assay_group
+        )
+        transloc_query = build_transloc_query(
+            str(sample["_id"]),
+            policy_settings,
+            policy=translocation_policy,
+        )
         translocs = list(service.translocation_repository.get_sample_translocations(transloc_query))
         display_sections_data["translocs"] = filter_translocations_by_genes(
             translocs,
             filter_genes=translocation_filter_genes,
             restricted=translocation_restricted,
             settings=policy_settings,
+            policy=translocation_policy,
         )
 
     if "FUSION" in analysis_sections:
@@ -504,6 +514,9 @@ def list_variants_payload(
             "subpanel_id": sample.get("subpanel_id") or assay_config.get("subpanel_id"),
         },
         intent=intent,
+        policy=effective_policy(
+            service.query_rule_service, "snv", sample, assay_group=assay_group, intent=intent
+        ),
     )
 
     variants = service.variant_repository.hydrate_finding_comments_many(

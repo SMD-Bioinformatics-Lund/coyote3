@@ -14,6 +14,7 @@ It is part of the MongoDB infrastructure layer.
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
+from api.domain.core.dna.structural_identity import translocation_annotation_identity
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
 
@@ -143,7 +144,7 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
             dict: A list of annotation dictionaries associated with the translocation. Each annotation may include
             classification or textual information.
         """
-        var = f"{str(tl['CHROM'])}:{str(tl['POS'])}^{tl['ALT']}"
+        var = translocation_annotation_identity(tl)
         annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
             "time_created", 1
         )
@@ -305,6 +306,7 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
                     "_id": {
                         "CHROM": "$CHROM",
                         "POS": "$POS",
+                        "END": "$END",
                         "REF": "$REF",
                         "ALT": "$ALT",
                     }

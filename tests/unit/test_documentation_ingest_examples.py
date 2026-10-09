@@ -74,7 +74,7 @@ def test_small_variant_example_preserves_genotypes_and_transcript():
 
 def test_translocation_example_retains_gene_fusion_annotation():
     """Verify the complete breakend VCF produces one contract-valid gene fusion."""
-    rows = DnaIngestParser._parse_transloc_only(str(EXAMPLES / "translocations-vcf.vcf"))
+    rows = DnaIngestParser()._parse_transloc_only(str(EXAMPLES / "translocations-vcf.vcf"))
     assert len(rows) == 1
     translocation = TranslocationsDoc.model_validate(dict(rows[0], SAMPLE_ID="synthetic-sample-id"))
     assert "gene_fusion" in translocation.INFO.ANN[0].Annotation

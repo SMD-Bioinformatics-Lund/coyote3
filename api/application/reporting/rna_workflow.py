@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.interpretation.annotation_enrichment import add_alt_class
+from api.application.query_rules import QueryRuleService, effective_policy
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.reporting.eligibility import reportable_tiers
@@ -66,6 +67,7 @@ class RNAWorkflowService:
             report_repository=store.report_repository,
             pgx_repository=store.pgx_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
+            query_rule_service=QueryRuleService.from_store(store),
         )
 
     def __init__(
@@ -83,6 +85,7 @@ class RNAWorkflowService:
         report_repository,
         pgx_repository=None,
         clinical_rule_service=None,
+        query_rule_service=None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
         self.sample_repository = sample_repository
@@ -97,6 +100,7 @@ class RNAWorkflowService:
         self.report_repository = report_repository
         self.pgx_repository = pgx_repository
         self.clinical_rule_service = clinical_rule_service
+        self.query_rule_service = query_rule_service
 
     def next_report_num(self, sample_id: str) -> int:
         """Return the next sequential report number for a sample."""
@@ -213,10 +217,18 @@ class RNAWorkflowService:
         asp_id: str,
         subpanel_id: str,
         intent: str = "somatic",
+        query_rule_service=None,
     ) -> dict:
         """Build the fusion query from canonicalized filter state."""
         return build_fusion_query(
             assay_group,
+            policy=effective_policy(
+                query_rule_service,
+                "fusion",
+                {"asp_id": asp_id, "subpanel_id": subpanel_id},
+                assay_group=assay_group,
+                intent=intent,
+            ),
             settings={
                 "id": str(sample_id),
                 "min_spanning_reads": sample_filters.get("min_spanning_reads", 0),

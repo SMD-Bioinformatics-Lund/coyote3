@@ -452,7 +452,7 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
         raising=False,
     )
 
-    def _build_query(assay_group, settings):
+    def _build_query(assay_group, settings, policy=None):
         calls["query"] = (assay_group, settings)
         return {"ok": True}
 

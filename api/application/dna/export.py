@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from api.contracts.dna import DnaCnvExportRow, DnaSnvExportRow, DnaTranslocExportRow
 from api.domain.common.csv_safety import spreadsheet_text
 from api.domain.core.dna.notation import one_letter_p
+from api.domain.core.dna.structural_identity import structural_position
 
 
 def consequence_terms(value: object) -> set[str]:
@@ -295,7 +296,7 @@ def build_transloc_export_rows(translocs: list[dict[str, Any]]) -> list[DnaTrans
         row = DnaTranslocExportRow(
             gene_1=gene_1,
             gene_2=gene_2,
-            positions=f"{safe_text(tl.get('CHROM'))}:{safe_text(tl.get('POS'))} {safe_text(tl.get('ALT'))}",
+            positions=f"{structural_position(tl)} {safe_text(tl.get('ALT'))}",
             var_type=join_tokens(annotations),
             hgvsp=safe_text(one_letter_p(ann.get("HGVSp"))),
             hgvsc=safe_text(ann.get("HGVSc")),

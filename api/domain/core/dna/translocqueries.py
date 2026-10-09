@@ -32,12 +32,16 @@ def _gene_token_clause(gene: str) -> dict[str, Any]:
     }
 
 
-def _translocation_exception_clause(exception: FindingQueryException) -> dict[str, Any]:
+def _translocation_exception_clause(
+    exception: FindingQueryException, filter_values: dict | None = None
+) -> dict[str, Any]:
     """Translate translocation exception criteria into stored-field predicates.
 
     Args:
         exception: Validated policy exception with chromosome, SV type, gene,
             and/or gene-pair criteria.
+        filter_values: Prepared sample settings for reference operands, or None
+            when the condition contains only literal values.
 
     Returns:
         The sole predicate or an AND of predicates. Gene pairs include both
@@ -45,6 +49,12 @@ def _translocation_exception_clause(exception: FindingQueryException) -> dict[st
     """
     criteria = exception.criteria
     clauses: list[dict[str, Any]] = []
+    if criteria.get("condition") is not None:
+        from api.domain.query_conditions import compile_condition
+
+        clauses.append(
+            compile_condition(criteria["condition"], "translocation", filter_values=filter_values)
+        )
     if criteria.get("chromosomes"):
         clauses.append({"CHROM": {"$in": list(criteria["chromosomes"])}})
     if criteria.get("svtypes"):
@@ -83,7 +93,7 @@ def build_transloc_query(
         "intent": str(settings.get("intent") or "somatic").strip().lower(),
     }
     exclusions = [
-        _translocation_exception_clause(exception)
+        _translocation_exception_clause(exception, settings)
         for exception in policy.exceptions_for(**scope, mode="exclude")
     ]
     clauses: list[dict[str, Any]] = []
@@ -159,6 +169,16 @@ def filter_translocations_by_genes(
             exactly two distinct observed genes and ignores their order.
         """
         criteria = exception.criteria
+        if criteria.get("condition") is not None:
+            from api.domain.query_conditions import matches_condition
+
+            if not matches_condition(
+                criteria["condition"],
+                "translocation",
+                translocation,
+                filter_values={**settings, "filter_genes": filter_genes},
+            ):
+                return False
         genes = set(translocation_genes(translocation))
         if criteria.get("genes") and not genes.intersection(criteria["genes"]):
             return False

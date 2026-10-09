@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import defaultdict
 
 from api.config.application_metadata import oncokb_gene_url
-from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.domain.common.reporting import utc_now
 from api.domain.core.annotation_identity import (
     annotation_context_fields,
@@ -27,10 +26,19 @@ def process_gene_annotations(annotations: dict) -> dict:
     return annotations_dict
 
 
-def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **kwargs) -> str:
-    """Build the established automatic Tier III small-variant annotation."""
+def create_annotation_text_from_gene(gene: str, csq: list, tumor_type: str, **kwargs) -> str:
+    """Build Swedish Tier III text using terminology from the published reporting rules.
+
+    Args:
+        gene: Selected transcript's gene symbol.
+        csq: Nonempty consequence list; the first value supplies the sentence description.
+        tumor_type: Approved tumor-type wording from the sample's reporting-rule release.
+        **kwargs: ``gene_oncokb`` selects the existing knowledgebase suffix.
+
+    Returns:
+        Established annotation text with the governed terminology inserted.
+    """
     consequence = str(csq[0]).replace("_", " ")
-    tumor_type = CLINICAL_VOCABULARY.annotation_tumor_types.get(assay_group, "")
 
     text = (
         f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då "

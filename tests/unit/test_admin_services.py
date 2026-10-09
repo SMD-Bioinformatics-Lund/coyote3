@@ -1601,11 +1601,10 @@ def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
     )
 
     assert AspcService._analysis_types_for_panel(
-        {"asp_family": "panel-rna", "expected_files": ["fusion_files", "qc", "pgx"]}, category="RNA"
+        {"asp_family": "panel-rna", "expected_files": ["fusion_files", "qc"]}, category="RNA"
     ) == [
         "FUSION",
         "QC",
-        "PGX",
     ]
     assert "EXPRESSION" in AspcService._analysis_types_for_panel(
         {"asp_family": "wts", "expected_files": ["expression_path"]}, category="RNA"

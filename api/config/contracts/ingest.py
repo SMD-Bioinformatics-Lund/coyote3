@@ -35,7 +35,6 @@ ANALYSIS_PRELOAD_CONTRACT = AnalysisPreloadContract(
             "EXPRESSION": "rna_expr",
             "CLASSIFICATION": "rna_class",
             "QC": "rna_qc",
-            "PGX": "pgx",
         },
     }
 )

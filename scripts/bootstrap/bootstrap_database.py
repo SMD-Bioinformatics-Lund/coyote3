@@ -30,6 +30,7 @@ from api.contracts.schemas.registry import normalize_collection_document  # noqa
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
 )
+from api.infra.mongo.repositories.query_rule_revisions import build_query_revision  # noqa: E402
 from scripts.bootstrap.build_seed_bundle import (  # noqa: E402
     canonicalize_seed_contract,
     load_reference_seed_pack,
@@ -37,10 +38,10 @@ from scripts.bootstrap.build_seed_bundle import (  # noqa: E402
     lower_business_keys,
     stamp_docs,
 )
+from scripts.bootstrap.query_rule_seed import prepare_query_rule_seeds  # noqa: E402
 from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
     assert_distinct_databases,
 )
-from scripts.knowledgebase.vep_diagram_storage import load_seed_diagrams  # noqa: E402
 
 BOOTSTRAP_ROOT = ROOT_DIR / "api" / "config" / "bootstrap"
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
@@ -58,12 +59,13 @@ def parse_args() -> argparse.Namespace:
         SystemExit: Required options are missing, arguments are invalid, or help is requested.
     """
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--require-empty-target",
+        action="store_true",
+        help="Refuse all bootstrap writes if application or identity documents already exist",
+    )
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
-    parser.add_argument(
-        "--knowledgebase-mongo-uri", default=os.getenv("KNOWLEDGEBASE_MONGO_URI", "")
-    )
-    parser.add_argument("--knowledgebase-db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     parser.add_argument("--db", required=True, help="Application database name")
     parser.add_argument("--identity-db", required=True, help="Identity database name")
     parser.add_argument("--username", required=True, help="First local superuser login name")
@@ -83,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--reference-dir",
         default=str(DEFAULT_REFERENCE_DIR),
-        help="Bundled HGNC and VEP reference seed directory",
+        help="Bundled application catalog seed directory (knowledgebase snapshots are excluded)",
     )
     parser.add_argument(
         "--with-demo-center",
@@ -150,7 +152,12 @@ def _resolve_directory(value: str, *, label: str) -> Path:
 
 
 def _build_seed_documents(
-    *, rbac_dir: Path, reference_dir: Path, demo_center_dir: Path | None, actor: str
+    *,
+    rbac_dir: Path,
+    reference_dir: Path,
+    demo_center_dir: Path | None,
+    actor: str,
+    include_knowledgebase: bool = True,
 ) -> dict[str, list[dict]]:
     """Prepare system catalogs as first versions attributed to the initial administrator.
 
@@ -159,6 +166,7 @@ def _build_seed_documents(
         reference_dir: Directory containing bundled reference snapshots.
         demo_center_dir: Optional directory containing demonstration configuration.
         actor: Normalized username of the system administrator created at installation.
+        include_knowledgebase: Load bundled HGNC/VEP snapshots when explicitly requested.
 
     Returns:
         Validated documents with fresh audit timestamps and initial document versions.
@@ -169,7 +177,9 @@ def _build_seed_documents(
         OSError: A selected seed file cannot be read.
     """
     payload = load_reference_seed_pack(rbac_dir)
-    payload.update(load_reference_seed_pack(reference_dir))
+    payload.update(
+        load_reference_seed_pack(reference_dir, include_knowledgebase=include_knowledgebase)
+    )
     if demo_center_dir is not None:
         payload.update(load_seed(demo_center_dir))
 
@@ -177,6 +187,9 @@ def _build_seed_documents(
     lower_business_keys(payload)
     installed_at = datetime.now(timezone.utc).isoformat()
     stamp_docs(payload, actor, installed_at)
+    payload["query_rule_sets"] = prepare_query_rule_seeds(
+        payload.get("query_rule_sets", []), payload.get("assay_groups", []), actor=actor
+    )
 
     for collection in (
         "assay_groups",
@@ -455,8 +468,9 @@ def main() -> int:
         pymongo.errors.PyMongoError: Database checks or bootstrap operations fail.
 
     Notes:
-        Identity governance is committed in one transaction. Reference and optional
-        demonstration data are loaded separately; clients are closed on exit.
+        Identity governance is committed in one transaction. Application catalogs and
+        optional demonstration data are loaded separately; clients are closed on exit.
+        Knowledgebase references are installed by install_reference_data.py instead.
     """
     args = parse_args()
     _fail_if_placeholder_values(args)
@@ -477,8 +491,6 @@ def main() -> int:
     _fail_if_placeholder_values(args)
     if not args.mongo_uri:
         raise SystemExit("--mongo-uri or COYOTE3_MONGO_URI is required")
-    if not args.knowledgebase_db:
-        raise SystemExit("--knowledgebase-db or KNOWLEDGEBASE_DB is required")
     rbac_dir = _resolve_directory(args.rbac_dir, label="RBAC seed")
     reference_dir = _resolve_directory(args.reference_dir, label="Reference seed")
     demo_center_dir = (
@@ -492,37 +504,31 @@ def main() -> int:
         reference_dir=reference_dir,
         demo_center_dir=demo_center_dir,
         actor=actor,
+        include_knowledgebase=False,
     )
-    required = {"permissions", "roles", "hgnc_genes", "vep_metadata"}
+    required = {"permissions", "roles"}
     missing = sorted(required.difference(seed))
     if missing:
         raise SystemExit("Bootstrap data is missing required collections: " + ", ".join(missing))
     primary_mapping = load_collection_section("primary")
     identity_mapping = load_collection_section("identity")
-    reference_mapping = load_collection_section("knowledgebase")
-    diagram_seed = load_seed_diagrams(seed["vep_metadata"], reference_dir)
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     identity_client = client
-    reference_client = client
     try:
         identity_uri = args.identity_mongo_uri or args.mongo_uri
         if identity_uri != args.mongo_uri:
             identity_client = MongoClient(identity_uri, serverSelectionTimeoutMS=7000)
-        reference_uri = args.knowledgebase_mongo_uri or args.mongo_uri
-        if reference_uri == identity_uri:
-            reference_client = identity_client
-        elif reference_uri != args.mongo_uri:
-            reference_client = MongoClient(reference_uri, serverSelectionTimeoutMS=7000)
         client.admin.command("ping")
         identity_client.admin.command("ping")
-        reference_client.admin.command("ping")
         db = client[args.db]
         identity_db = identity_client[args.identity_db]
-        reference_db = reference_client[args.knowledgebase_db]
         assert_distinct_databases(db, identity_db)
-        assert_distinct_databases(db, reference_db)
-        assert_distinct_databases(identity_db, reference_db)
+        if getattr(args, "require_empty_target", False):
+            from scripts.deployment.installation_checks import has_documents
+
+            if has_documents(db) or has_documents(identity_db):
+                raise SystemExit("Target is no longer empty; no bootstrap writes were performed")
         governance = _initialize_governance(
             identity_db,
             seed=seed,
@@ -550,24 +556,15 @@ def main() -> int:
             "insilico_genelists": primary_mapping["insilico_genelist_collection"],
             "clinical_rule_sets": primary_mapping["clinical_rule_sets_collection"],
             "clinical_rule_revisions": primary_mapping["clinical_rule_revisions_collection"],
+            "query_rule_sets": primary_mapping["query_rule_sets_collection"],
         }
-        result = _insert_if_empty(
-            reference_db, reference_mapping["vep_diagrams_collection"], diagram_seed
-        )
-        print(f"[{result}] knowledgebase reference: vep_diagrams")
-        for logical_name, key in (
-            ("hgnc_genes", "hgnc_collection"),
-            ("vep_metadata", "vep_metadata_collection"),
-        ):
-            collection = reference_mapping[key]
-            result = _insert_if_empty(reference_db, collection, seed[logical_name])
-            print(f"[{result}] knowledgebase reference: {logical_name}")
         for logical_name in (
             "assay_groups",
             "assay_specific_panels",
             "subpanels",
             "subpanel_associations",
             "clinical_rule_sets",
+            "query_rule_sets",
             "asp_configs",
             "insilico_genelists",
         ):
@@ -582,9 +579,13 @@ def main() -> int:
                 actor=actor,
             )
             print(f"[{result}] clinical_rule_revisions")
+        if "query_rule_sets" in seed:
+            revisions = db[primary_mapping["query_rule_revisions_collection"]]
+            for document in db[primary_collections["query_rule_sets"]].find():
+                if not revisions.find_one({"rule_oid": str(document["_id"])}):
+                    revisions.insert_one(build_query_revision(document, "baseline_captured"))
+            print("[ok] query_rule_revisions baseline")
     finally:
-        if reference_client is not client and reference_client is not identity_client:
-            reference_client.close()
         if identity_client is not client:
             identity_client.close()
         client.close()

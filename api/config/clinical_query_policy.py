@@ -1,20 +1,22 @@
-"""Load the constrained, center-owned clinical finding query policy.
+"""Load application query defaults and typed installation policy inputs.
 
 The policy is deliberately declarative.  It selects one of the supported
-baseline evidence models and defines narrowly typed clinical admission
-exceptions.  It never exposes MongoDB operators or field paths to configuration
-authors; those remain application-owned behavior in ``varqueries``.
+baseline evidence models and defines typed clinical admission exceptions.
+Nested conditions use application-registered fields and operators; arbitrary
+MongoDB queries remain unsupported. Runtime uses
+application defaults plus published database rules, never the installation file.
 """
 
 from __future__ import annotations
 
 import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from api.config.paths import CLINICAL_QUERY_POLICY_PATH
+from api.config.paths import API_CONFIG_DIR, CLINICAL_QUERY_SEED_PATH
+from api.domain.query_conditions import compile_condition
 
 _POLICY_MODES = frozenset({"paired", "case_only", "exception_only"})
 _SNV_EXCEPTION_MODES = frozenset({"extend_consequence", "admit", "exclude"})
@@ -47,20 +49,81 @@ _EXCEPTION_KEYS = frozenset(
         "info_fields_present",
         "info_equals",
         "alt_regex",
+        "condition",
     }
 )
 _SCOPE_KEYS = frozenset({"id", "mode", "intents", "assay_groups", "asp_ids", "subpanel_ids"})
 _ANALYSIS_POLICY_KEYS = frozenset({"exceptions"})
 _CNV_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
-    {"genes", "callers", "effects", "chromosomes", "size_min", "size_max"}
+    {"genes", "callers", "effects", "chromosomes", "size_min", "size_max", "condition"}
 )
 _TRANSLOCATION_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
-    {"genes", "gene_pairs", "svtypes", "chromosomes"}
+    {"genes", "gene_pairs", "svtypes", "chromosomes", "condition"}
 )
 _FUSION_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
-    {"genes", "gene_pairs", "callers", "effects", "descriptions"}
+    {"genes", "gene_pairs", "callers", "effects", "descriptions", "condition"}
 )
 _PGX_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset({"genes", "diplotypes", "phenotypes", "medications"})
+
+
+def exception_payload(exception: Any) -> dict:
+    """Return editable criteria, excluding the scope resolved by the caller.
+
+    Args:
+        exception: Validated SNV or structural finding exception.
+
+    Returns:
+        JSON-compatible criteria with list values and a public identifier.
+    """
+    values = asdict(exception)
+    values["id"] = values.pop("rule_id")
+    values.update(values.pop("criteria", {}))
+    for key in ("assay_groups", "asp_ids", "subpanel_ids", "intents"):
+        values.pop(key, None)
+    return {
+        key: list(value) if isinstance(value, tuple) else value
+        for key, value in values.items()
+        if value is not None and value != () and value != {}
+    }
+
+
+def resolved_query_policy(
+    analysis: str, mode: str | None, exceptions: list[dict]
+) -> SnvQueryPolicy | FindingQueryPolicy:
+    """Bind validated resolved overrides to the installed policy implementation.
+
+    Args:
+        analysis: SNV, CNV, translocation or fusion namespace in lowercase.
+        mode: Effective SNV evidence mode; ignored for other namespaces.
+        exceptions: Scope-independent typed criteria in evaluation order.
+
+    Returns:
+        Policy with software-owned query fields and resolved clinical overrides.
+
+    Raises:
+        RuntimeError: Exception criteria do not satisfy the supported grammar.
+    """
+    base = getattr(CLINICAL_QUERY_POLICY, analysis)
+    if analysis == "snv":
+        return replace(
+            base,
+            default_somatic_policy=mode,
+            default_germline_policy=mode,
+            assay_group_policies={},
+            exceptions=tuple(_exception(e, index=i) for i, e in enumerate(exceptions)),
+        )
+    keys = {
+        "cnv": _CNV_EXCEPTION_KEYS,
+        "translocation": _TRANSLOCATION_EXCEPTION_KEYS,
+        "fusion": _FUSION_EXCEPTION_KEYS,
+    }[analysis]
+    return replace(
+        base,
+        exceptions=tuple(
+            _finding_exception(e, index=i, analysis=analysis, allowed_keys=keys)
+            for i, e in enumerate(exceptions)
+        ),
+    )
 
 
 def _strings(
@@ -128,6 +191,7 @@ class SnvQueryException:
     info_fields_present: tuple[str, ...]
     info_equals: dict[str, Any]
     alt_regex: str | None
+    condition: dict[str, Any] | None = None
 
     def applies_to(self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str) -> bool:
         """Return whether this released exception applies to the request scope."""
@@ -281,6 +345,8 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
     """Validate one declarative exception without accepting raw Mongo syntax."""
     if not isinstance(raw, dict):
         raise RuntimeError(f"snv.exceptions[{index}] must be a table")
+    if "condition" in raw:
+        compile_condition(raw["condition"], "snv", allow_references=True)
     unexpected = set(raw) - _EXCEPTION_KEYS
     if unexpected:
         raise RuntimeError(
@@ -353,6 +419,7 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
         ),
         info_equals=dict(info_equals),
         alt_regex=alt_regex,
+        condition=raw.get("condition"),
     )
     if not any(
         (
@@ -366,6 +433,7 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
             result.info_fields_present,
             result.info_equals,
             result.alt_regex,
+            result.condition,
         )
     ):
         raise RuntimeError(f"snv.exceptions[{index}] must define at least one match criterion")
@@ -408,7 +476,10 @@ def _finding_exception(
     }
     if analysis == "fusion":
         lowercase_keys.add("effects")
-    string_keys = allowed_keys - _SCOPE_KEYS - {"size_min", "size_max"}
+    if "condition" in raw:
+        compile_condition(raw["condition"], analysis, allow_references=True)
+        criteria["condition"] = raw["condition"]
+    string_keys = allowed_keys - _SCOPE_KEYS - {"size_min", "size_max", "condition"}
     for key in sorted(string_keys):
         criteria[key] = _strings(
             raw.get(key),
@@ -535,9 +606,21 @@ def _parse_snv_policy(snv: Any) -> SnvQueryPolicy:
 
 
 def load_clinical_query_policy(
-    path: str | Path = CLINICAL_QUERY_POLICY_PATH,
+    path: str | Path = CLINICAL_QUERY_SEED_PATH,
 ) -> ClinicalQueryPolicy:
-    """Load and validate the complete analysis-partitioned query policy."""
+    """Load application query defaults and typed installation seed criteria.
+
+    Args:
+        path: Application seed TOML, or an explicit fixture path for offline validation.
+
+    Returns:
+        Validated policies using the release's fixed baseline evidence definitions.
+
+    Raises:
+        RuntimeError: Policy is invalid or attempts to override application defaults.
+        OSError: A policy file cannot be read.
+        tomllib.TOMLDecodeError: A policy file contains invalid TOML.
+    """
     path_obj = Path(path)
     if not path_obj.exists():
         raise RuntimeError(f"clinical query policy configuration does not exist: {path_obj}")
@@ -554,6 +637,17 @@ def load_clinical_query_policy(
         raise RuntimeError(
             "clinical query policy is missing required block(s): " + ", ".join(sorted(missing))
         )
+    with (API_CONFIG_DIR / "clinical_query_defaults.toml").open("rb") as handle:
+        defaults = tomllib.load(handle)["snv"]
+    if not isinstance(raw["snv"], dict):
+        raise RuntimeError("clinical query policy requires an [snv] table")
+    protected = set(raw["snv"]) & set(defaults)
+    if protected:
+        raise RuntimeError(
+            "Application-owned query defaults cannot be set in seed criteria: "
+            + ", ".join(sorted(protected))
+        )
+    raw["snv"] = {**defaults, **raw["snv"]}
     return ClinicalQueryPolicy(
         snv=_parse_snv_policy(raw["snv"]),
         cnv=_finding_policy(raw["cnv"], analysis="cnv", allowed_keys=_CNV_EXCEPTION_KEYS),
@@ -569,4 +663,24 @@ def load_clinical_query_policy(
     )
 
 
-CLINICAL_QUERY_POLICY = load_clinical_query_policy()
+def load_application_query_policy() -> ClinicalQueryPolicy:
+    """Load immutable query defaults without consulting center policy or database rules.
+
+    Returns:
+        Evidence modes and field bindings with no clinical exceptions. Published
+        database rule sets supply additional criteria during runtime resolution.
+    """
+    with (API_CONFIG_DIR / "clinical_query_defaults.toml").open("rb") as handle:
+        defaults = tomllib.load(handle)["snv"]
+    return ClinicalQueryPolicy(
+        snv=_parse_snv_policy(defaults),
+        cnv=_finding_policy({}, analysis="cnv", allowed_keys=_CNV_EXCEPTION_KEYS),
+        translocation=_finding_policy(
+            {}, analysis="translocation", allowed_keys=_TRANSLOCATION_EXCEPTION_KEYS
+        ),
+        fusion=_finding_policy({}, analysis="fusion", allowed_keys=_FUSION_EXCEPTION_KEYS),
+        pgx=_finding_policy({}, analysis="pgx", allowed_keys=_PGX_EXCEPTION_KEYS),
+    )
+
+
+CLINICAL_QUERY_POLICY = load_application_query_policy()

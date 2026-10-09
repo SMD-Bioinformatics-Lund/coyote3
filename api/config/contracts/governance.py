@@ -20,6 +20,7 @@ PERMISSION_CATALOG = PermissionCatalog(
         "Assay Panel Management",
         "Audit & Monitoring",
         "Clinical Reporting Rules",
+        "Query Rules",
         "Data Downloads",
         "Gene List Management",
         "Permission Policy Management",

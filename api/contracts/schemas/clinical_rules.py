@@ -418,6 +418,27 @@ class ClinicalRuleTestCase(_StrictModel):
     expected_sections: dict[str, list[str]] = Field(default_factory=dict)
 
 
+def validate_reporting_terminology(value: dict | None) -> dict | None:
+    """Validate the reserved automatic-annotation term without restricting other terminology.
+
+    Args:
+        value: Rule terminology mapping; None means no draft update.
+
+    Returns:
+        Unchanged mapping after checking the optional tumor-type wording.
+
+    Raises:
+        ValueError: The reserved term is blank, non-text, too long or not trimmed.
+    """
+    if value is not None and "automatic_annotation_tumor_type" in value:
+        term = value["automatic_annotation_tumor_type"]
+        if not isinstance(term, str) or not term.strip() or term != term.strip() or len(term) > 120:
+            raise ValueError(
+                "automatic_annotation_tumor_type must be trimmed nonempty text up to 120 characters"
+            )
+    return value
+
+
 class ClinicalRuleSetDoc(_StrictCollectionDocBase):
     """One draft or immutable released version of a clinical rule scope."""
 
@@ -448,6 +469,8 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
     retired_at: datetime | None = None
     retired_by: str | None = None
     content_hash: str | None = None
+
+    _validate_terminology = field_validator("terminology")(validate_reporting_terminology)
 
     @model_validator(mode="after")
     def _document_invariants(self) -> "ClinicalRuleSetDoc":
@@ -589,6 +612,8 @@ class ClinicalRuleDraftUpdate(_StrictModel):
     test_cases: list[ClinicalRuleTestCase] | None = None
     references: list[dict[str, Any]] | None = None
     change_summary: str | None = None
+
+    _validate_terminology = field_validator("terminology")(validate_reporting_terminology)
 
 
 class ClinicalRuleDecision(_StrictModel):

@@ -60,6 +60,35 @@ class ClinicalRuleService:
             language=context.aspc.reporting.language,
         )
 
+    def annotation_tumor_type(self, *, asp_id: str, subpanel_id: str, language: str) -> str | None:
+        """Read approved automatic-annotation terminology from the scoped DNA release.
+
+        Args:
+            asp_id: Sample's assay identifier.
+            subpanel_id: Sample's resolved interpretation scope, with assay Base fallback.
+            language: ASPC reporting language. The existing automatic sentence supports sv.
+
+        Returns:
+            Configured tumor-type wording, or None when automatic annotation is not configured.
+
+        Raises:
+            ValueError: Release resolution/integrity fails or automatic Swedish text
+                is requested for another reporting language.
+        """
+        release = resolve_published_rule_set(
+            self.repository,
+            asp_id=asp_id,
+            subpanel_id=subpanel_id,
+            analyte="dna",
+            language=language,
+        )
+        value = release.terminology.get("automatic_annotation_tumor_type")
+        if value and language != "sv":
+            raise ValueError(
+                "Automatic Tier III sentence generation currently requires Swedish reporting rules"
+            )
+        return value
+
     @staticmethod
     def _report_sections(context: PreparedReportContext) -> set[str]:
         """Canonicalize nonblank analysis names from prepared reporting settings.

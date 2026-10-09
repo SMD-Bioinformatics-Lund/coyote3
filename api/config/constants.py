@@ -114,8 +114,9 @@ def analysis_type_for_file_key(omics_layer: object, file_key: object) -> str:
 def manifest_file_preload_keys(omics_layer: object) -> dict[str, str]:
     """Map configured manifest file keys to their database preload payloads.
 
-    The configuration owns external manifest names. The application owns the
-    parser payload names because they are tied to collection contracts.
+    Application capabilities own external manifest names and their mappings.
+    Parser payload names are tied to collection contracts; center policy cannot
+    redefine either side of the binding.
     """
     category = normalize_asp_category(omics_layer)
     configured = ANALYSIS_FILE_KEYS_BY_OMICS[category]

@@ -1000,6 +1000,47 @@ Optional keys:
 - `published_at` (datetime.datetime | None)
 - `published_by` (str | None)
 
+## `query_rule_revisions`
+
+Required keys:
+- `rule_oid` (str)
+- `scope_key` (str)
+- `version` (int)
+- `revision` (int)
+- `action` (str)
+- `actor` (str)
+- `occurred_at` (datetime)
+- `revision_hash` (str)
+- `document` (QueryRuleDoc)
+
+Optional keys:
+- `id_` (Any | None)
+- `previous_revision_hash` (str | None)
+
+## `query_rule_sets`
+
+Required keys:
+- `scope` (QueryRuleScope)
+- `content` (QueryRuleContent)
+- `reason` (str)
+- `scope_key` (str)
+- `version` (int)
+- `created_by` (str)
+- `created_on` (datetime)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `name` (str)
+- `query_id` (str)
+- `revision` (int)
+- `status` (Literal['draft', 'approved', 'published', 'retired'])
+- `approved_by` (str | None)
+- `published_by` (str | None)
+- `published_on` (datetime.datetime | None)
+- `system_installed` (bool)
+
 ## `reported_variants`
 
 Required keys:
@@ -1250,6 +1291,8 @@ Required keys:
 - `INFO` (TranslocationInfoDoc)
 
 Optional keys:
+- `END` (int | None)
+- `source_records` (list[api.contracts.schemas.dna.TranslocationSourceDoc])
 - `FILTER` (list[str])
 - `FORMAT` (list[str])
 - `QUAL` (float | None)

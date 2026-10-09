@@ -10,7 +10,7 @@ commands, their callers, and operational prerequisites.
 | [migrate_from_v2](migrate_from_v2/README.md) | Offline v2 clinical migration using `variants_idref` and `cnvs_wgs` |
 | `migration_common/` | Shared offline indexing, conversion, metadata reconciliation, and isolated target bundle application |
 | `bootstrap/` | Initial database installation, seed preparation, and assay validation |
-| `deployment/` | Version-aware Compose commands and installation checks |
+| `deployment/` | Center installation orchestrator, version-aware Compose commands and deployment checks |
 | `database/` | Backups, restores, indexes, capacity, and report-artifact inspection |
 | `ingest/` | Manifest validation, submission, and API authentication |
 | `identity/` | Identity database migration and permission/role maintenance |
@@ -23,6 +23,11 @@ commands, their callers, and operational prerequisites.
 Migration commands are operator tools, not application startup hooks. Read their
 runbooks and inspect the plan before enabling writes. Keep credentials, database
 exports, migration plans containing identifiers, and backups outside the repository.
+
+The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
+documents `bootstrap/install_demo_workflows.py` (plan/apply configuration in an explicit
+local demo database) and `quality/export_demo_workflows.py` (offline ingest replay and
+collection/report snapshot verification). Neither belongs in production startup.
 
 ## Retention criteria
 

@@ -42,6 +42,33 @@ class BaseRepository:
         """Bind the repository to a MongoDB collection."""
         self.repository_collection = collection
 
+    def preview_sample_findings(
+        self, sample_id: str, query: dict, limit: int = 10001
+    ) -> list[dict]:
+        """Read bounded finding candidates for a non-persisting rule comparison.
+
+        Args:
+            sample_id: Authorized sample identity, independently enforced on the query.
+            query: Application-compiled finding predicate; never raw client Mongo syntax.
+            limit: Maximum candidates including the overflow sentinel; defaults to 10001.
+
+        Returns:
+            Finding documents without comment hydration. No records are changed.
+
+        Raises:
+            PyMongoError: MongoDB fails or exceeds the five-second query limit.
+        """
+        return list(
+            self.get_collection()
+            .find(
+                {"$and": [{"SAMPLE_ID": str(sample_id)}, query]},
+                {"comments": 0},
+            )
+            .sort("_id", 1)
+            .limit(limit)
+            .max_time_ms(5000)
+        )
+
     def get_collection(self) -> pymongo.collection.Collection:
         """Return the MongoDB collection bound to this repository."""
         if self.repository_collection is not None:

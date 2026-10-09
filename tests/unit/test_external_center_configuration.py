@@ -21,7 +21,7 @@ def test_unused_vocabulary_settings_are_rejected(tmp_path, key):
     """Inactive or misspelled settings cannot appear to configure runtime behavior."""
     source = (ROOT / "api/config/center/clinical_vocabulary.toml").read_text()
     path = tmp_path / "vocabulary.toml"
-    path.write_text(source.replace("[reporting]", f'[reporting]\n{key} = ["example"]'))
+    path.write_text(source.replace("[snv]", f'[snv]\n{key} = ["example"]'))
     with pytest.raises(RuntimeError, match="Unknown clinical vocabulary key"):
         load_clinical_vocabulary(path)
 
@@ -50,6 +50,10 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
     for name in FILES:
         shutil.copyfile(ROOT / "api/config/center" / name, tmp_path / name)
     (tmp_path / "collections.toml").write_text("malformed = [")
+    (tmp_path / "clinical_capabilities.toml").write_text("malformed = [")
+    (tmp_path / "clinical_query_defaults.toml").write_text("malformed = [")
+    (tmp_path / "clinical_query_policy.toml").write_text("malformed = [")
+    (tmp_path / "clinical_query_seed.toml").write_text("malformed = [")
     result = subprocess.run(
         [
             sys.executable,
@@ -57,6 +61,14 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
             (
                 "from api.config.paths import CENTER_CONFIG_DIR,COLLECTIONS_CONFIG_PATH; "
                 "from api.config.loaders.collections import load_collection_mapping; "
+                "from api.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
+                "from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
+                "from api.config.clinical_query_policy import load_clinical_query_policy; "
+                "from api.config.paths import CLINICAL_QUERY_SEED_PATH; "
+                "assert CLINICAL_QUERY_SEED_PATH.parent != CENTER_CONFIG_DIR; "
+                "assert load_clinical_query_policy().snv.exceptions; "
+                "assert 'wes' in CLINICAL_VOCABULARY.assay_families; "
+                "assert CLINICAL_QUERY_POLICY.snv.default_somatic_policy == 'paired'; "
                 "assert load_collection_mapping()['primary']['samples_collection']=='samples'; "
                 "assert COLLECTIONS_CONFIG_PATH.parent != CENTER_CONFIG_DIR"
             ),
@@ -116,8 +128,8 @@ def test_dna_caller_registries_are_optional_and_do_not_enable_fusion_callers(tmp
     path = tmp_path / "vocabulary.toml"
     path.write_text(source)
     assert load_clinical_vocabulary(path).snv_callers == ()
-    path.write_text(source.replace('"arriba", "fusioncatcher", "starfusion"', '"unknown"'))
-    with pytest.raises(RuntimeError, match="fusion.callers supports only"):
+    path.write_text(source + '\n[fusion]\ncallers = ["unknown"]\n')
+    with pytest.raises(RuntimeError, match="Application-owned clinical definitions"):
         load_clinical_vocabulary(path)
 
 

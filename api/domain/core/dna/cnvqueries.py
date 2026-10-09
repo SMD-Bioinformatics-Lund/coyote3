@@ -11,10 +11,27 @@ from api.config.clinical_query_policy import (
 )
 
 
-def _cnv_exception_clause(exception: FindingQueryException) -> dict[str, Any]:
-    """Translate a validated CNV rule into the fixed CNV document vocabulary."""
+def _cnv_exception_clause(
+    exception: FindingQueryException, filter_values: dict | None = None
+) -> dict[str, Any]:
+    """Translate a validated CNV rule into the fixed CNV document vocabulary.
+
+    Args:
+        exception: Validated CNV policy exception.
+        filter_values: Prepared sample settings; required for reference operands.
+
+    Returns:
+        Stored-field predicate with references resolved for this sample.
+
+    Raises:
+        ValueError: A reference cannot resolve to a supported value.
+    """
     criteria = exception.criteria
     clauses: list[dict[str, Any]] = []
+    if criteria.get("condition") is not None:
+        from api.domain.query_conditions import compile_condition
+
+        clauses.append(compile_condition(criteria["condition"], "cnv", filter_values=filter_values))
     if criteria.get("genes"):
         genes = list(criteria["genes"])
         clauses.append({"$or": [{"genes.gene": {"$in": genes}}, {"panel_gene": {"$in": genes}}]})
@@ -155,11 +172,11 @@ def build_cnv_query(
         "intent": str(filters.get("intent") or "somatic").strip().lower(),
     }
     admissions = [
-        _cnv_exception_clause(exception)
+        _cnv_exception_clause(exception, filters)
         for exception in policy.exceptions_for(**scope, mode="admit")
     ]
     exclusions = [
-        _cnv_exception_clause(exception)
+        _cnv_exception_clause(exception, filters)
         for exception in policy.exceptions_for(**scope, mode="exclude")
     ]
     if admissions and clauses:

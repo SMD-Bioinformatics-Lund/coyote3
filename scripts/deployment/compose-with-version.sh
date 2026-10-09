@@ -7,7 +7,7 @@ VALIDATE_SCRIPT="$APP_DIR/scripts/deployment/validate_env_secrets.sh"
 
 COYOTE3_VERSION="$(python3 "$APP_DIR/api/version.py")"
 export COYOTE3_VERSION
-echo "Using COYOTE3_VERSION=${COYOTE3_VERSION}"
+echo "Using COYOTE3_VERSION=${COYOTE3_VERSION}" >&2
 
 DEFAULT_COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
 if docker compose version >/dev/null 2>&1; then
@@ -104,7 +104,7 @@ if [[ "${deployment_settings[0]}" == "prod" ]]; then
 fi
 export LOG_LEVEL="${deployment_settings[1]}"
 export CELERY_LOG_LEVEL="${deployment_settings[2]}"
-echo "Using COYOTE3_IMAGE_TAG=${COYOTE3_IMAGE_TAG}"
+echo "Using COYOTE3_IMAGE_TAG=${COYOTE3_IMAGE_TAG}" >&2
 
 if [[ "$is_deploy_action" -eq 1 && -n "$env_file" ]]; then
   bash "$VALIDATE_SCRIPT" --env-file "$env_file"

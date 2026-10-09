@@ -8,8 +8,7 @@ configuration in a separate Git repository. Deploy a reviewed release through
 | File | Configure here |
 | --- | --- |
 | `contact.toml` | Center department, support channels, service hours, and any number of contact cards. |
-| `clinical_vocabulary.toml` | Enabled local/LDAP providers, manifest file keys, analysis-to-file bindings, and the released DNA transcript-selection order. |
-| `clinical_query_policy.toml` | Released SNV evidence models and separate typed CNV, translocation, fusion, and PGX exception namespaces. |
+| `clinical_vocabulary.toml` | Fusion evidence terms and optional DNA caller display metadata. Transcript selection belongs to the application; annotation wording belongs to reporting rules. |
 | `filter_flag_metadata.yaml` | User-facing VCF filter labels, severity, and tooltips. |
 
 API, worker, beat, and monitor mount the external directory read-only. Recreate
@@ -27,8 +26,16 @@ The public assay catalog is not a mounted configuration file. Manage it in the
 **Admin > Public Assay Catalog** builder. It is stored in the primary database;
 JSON is available for complete-catalog or modality import/export only.
 
-`[authentication].providers` defines the center default. The optional
-`AUTHENTICATION_PROVIDERS` environment variable overrides that default for one
+`../clinical_capabilities.toml` defines families (including WES), file keys,
+analysis mappings, gene-list types, environments, supported fusion callers and
+authentication providers. `../clinical_query_seed.toml` supplies application-owned
+bootstrap criteria; live query policies are managed in the database editor.
+`../clinical_query_defaults.toml` defines base SNV
+evidence modes and population fields. Python loads these files from the application
+package only; center files cannot override them. Do not copy either file into a
+center configuration release.
+
+The optional `AUTHENTICATION_PROVIDERS` environment variable selects supported providers for one
 deployment. LDAP configuration is checked when an LDAP login is attempted, not
 during API startup; an enabled but unconfigured LDAP provider returns a clear
 service-configuration error.

@@ -134,7 +134,7 @@ def test_load_cnvs_for_sample_applies_query_and_filter(monkeypatch):
     monkeypatch.setattr(
         service_module,
         "build_cnv_query",
-        lambda sample_id, filters, include_normal=False: {
+        lambda sample_id, filters, include_normal=False, policy=None: {
             "sample": sample_id,
             "include_normal": include_normal,
             **filters,
@@ -264,7 +264,25 @@ def test_list_translocations_payload_returns_count(monkeypatch):
         request=_request("/api/v1/translocations/S1"), sample=_sample()
     )
     assert payload["meta"]["count"] == 1
-    assert payload["vep_conseq_translations"] == {"A": "B"}
+    assert "snpeff_conseq_translations" in payload
+    assert "vep_conseq_translations" not in payload
+
+
+def test_structural_display_does_not_require_vep_metadata(monkeypatch):
+    """Use embedded SnpEff terms even when the sample has no VEP version."""
+    service = _service_from_repo(_RepoStub())
+    service.vep_metadata_repository.get_conseq_translations = Mock(
+        side_effect=AssertionError("DNA structural consequences must not use VEP")
+    )
+    sample = _sample()
+    sample.pop("database_versions")
+    monkeypatch.setattr(service_module, "get_formatted_assay_config", lambda _: {"filters": {}})
+    assert "snpeff_conseq_translations" in service.list_translocations_payload(
+        request=_request("/api/v1/translocations/S1"), sample=sample
+    )
+    assert "snpeff_conseq_translations" in service.show_translocation_payload(
+        sample=sample, transloc_id="t1", util_module=_UtilModule
+    )
 
 
 def test_list_translocations_uses_selected_translocation_list(monkeypatch):
@@ -365,7 +383,8 @@ def test_show_translocation_payload_returns_detail(monkeypatch):
     )
 
     assert payload["translocation"]["_id"] == "t1"
-    assert payload["vep_conseq_translations"] == {"A": "B"}
+    assert "snpeff_conseq_translations" in payload
+    assert "vep_conseq_translations" not in payload
 
 
 @pytest.mark.parametrize(
@@ -442,6 +461,9 @@ def test_translocation_table_value_helpers_cover_supported_columns():
 
 def test_service_factory_and_config_resolution_use_injected_repositories(monkeypatch):
     store = SimpleNamespace(
+        query_rule_repository=object(),
+        assay_group_repository=object(),
+        assay_subpanel_repository=object(),
         copy_number_variant_repository=object(),
         translocation_repository=object(),
         assay_panel_repository=object(),

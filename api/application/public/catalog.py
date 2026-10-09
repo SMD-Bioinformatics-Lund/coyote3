@@ -1178,10 +1178,23 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         *,
         preview_document: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Build identical public and draft views from one request-scoped catalog."""
+        """Build public and draft views, returning an empty landing context before setup.
+
+        Args:
+            mod: Optional modality identifier to open.
+            cat: Optional category within the selected modality.
+            isgl_key: Optional gene-list selection.
+            preview_document: Unpublished document for an authorized draft preview.
+
+        Returns:
+            Catalog context; an empty order represents no configured catalog entries.
+
+        Raises:
+            AppError: A requested entry is unavailable.
+        """
         catalog = self.load_catalog(preview_document=preview_document)
         order = (catalog.get("layout") or {}).get("order") or list(catalog.get("modalities") or {})
-        if not order:
+        if not order and (mod or cat or isgl_key):
             raise api_error(404, "Catalog not found")
 
         selected_mod = self.normalize_mod(mod, catalog=catalog) if mod else None
@@ -1257,8 +1270,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 hydrated_cat.get("asp_id"), selected_isgl
             )
 
-        genes = self.apply_drug_info(genes=deepcopy(genes), druglist_name="drug_addon")
-        genes = self.apply_knowledgebase_gene_markers(genes)
+        if genes:
+            genes = self.apply_drug_info(genes=deepcopy(genes), druglist_name="drug_addon")
+            genes = self.apply_knowledgebase_gene_markers(genes)
         vm = {
             "meta": {
                 "version": catalog.get("version"),

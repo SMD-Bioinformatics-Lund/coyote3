@@ -101,6 +101,7 @@ class MongoStore:
     clinpgx_public_repository: Any
     clinical_rule_revision_repository: Any
     clinical_rule_set_repository: Any
+    query_rule_repository: Any
     civic_repository: Any
     copy_number_variant_repository: Any
     cosmic_repository: Any
@@ -148,6 +149,7 @@ class MongoStore:
         "clinpgx_public_repository",
         "clinical_rule_revision_repository",
         "clinical_rule_set_repository",
+        "query_rule_repository",
         "civic_repository",
         "copy_number_variant_repository",
         "cosmic_repository",
@@ -210,6 +212,7 @@ class MongoStore:
         self.clinpgx_public_repository = _LazyRepositoryProxy()
         self.clinical_rule_revision_repository = _LazyRepositoryProxy()
         self.clinical_rule_set_repository = _LazyRepositoryProxy()
+        self.query_rule_repository = _LazyRepositoryProxy()
         self.civic_repository = _LazyRepositoryProxy()
         self.copy_number_variant_repository = _LazyRepositoryProxy()
         self.cosmic_repository = _LazyRepositoryProxy()

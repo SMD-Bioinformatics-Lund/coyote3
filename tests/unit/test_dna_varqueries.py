@@ -111,8 +111,11 @@ def test_unconfigured_group_uses_safe_default_paired_policy() -> None:
 
 
 def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
-    hema_query = build_query("hematology", _settings())
-    solid_query = build_query("solid", _settings(asp_id="solid_gmsv3", subpanel_id="colon"))
+    policy = load_clinical_query_policy().snv
+    hema_query = build_query("hematology", _settings(), policy=policy)
+    solid_query = build_query(
+        "solid", _settings(asp_id="solid_gmsv3", subpanel_id="colon"), policy=policy
+    )
 
     assert _contains_mapping(hema_query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["FLT3"]}})
     assert _contains_mapping(solid_query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["TERT", "NFKBIE"]}})
@@ -125,9 +128,11 @@ def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
 
 
 def test_germline_query_requires_a_typed_admission_exception() -> None:
-    query = build_query("hematology", _settings(), intent="germline")
+    query = build_query(
+        "hematology", _settings(), intent="germline", policy=load_clinical_query_policy().snv
+    )
 
-    assert _contains_mapping(query, {"INFO.MYELOID_GERMLINE": 1})
+    assert _contains_mapping(query, {"INFO.MYELOID_GERMLINE": {"$eq": 1}})
     assert _contains_mapping(query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["CEBPA"]}})
     assert _contains_mapping(query, {"FILTER": {"$in": ["GERMLINE"]}})
     assert _contains_mapping(query, {"CHROM": {"$in": ["1"]}})
@@ -138,9 +143,6 @@ def test_scope_without_configured_germline_admission_matches_nothing(tmp_path) -
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 """.strip(),
         encoding="utf-8",
     )
@@ -156,9 +158,6 @@ def test_policy_rejects_unsupported_query_keys(tmp_path) -> None:
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 unrecognized = true
 """.strip(),
         encoding="utf-8",
@@ -173,9 +172,6 @@ def test_policy_rejects_query_exception_priority(tmp_path) -> None:
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 
 [[snv.exceptions]]
 id = "deprecated_priority"
@@ -195,9 +191,6 @@ def test_exclusion_exception_removes_matching_findings_after_baseline(tmp_path) 
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 
 [[snv.exceptions]]
 id = "exclude_low_quality_tert"
@@ -231,9 +224,6 @@ filter_values = ["LOWQUAL"]
 def test_equivalent_exception_block_order_produces_the_same_query(tmp_path) -> None:
     policy_template = """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 
 {exceptions}
 """.strip()
@@ -292,9 +282,6 @@ def test_complete_policy_requires_every_analysis_namespace(tmp_path) -> None:
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 """.strip(),
         encoding="utf-8",
     )
@@ -308,9 +295,6 @@ def test_analysis_namespace_rejects_keys_from_another_finding_type(tmp_path) -> 
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 [cnv]
 [[cnv.exceptions]]
 id = "invalid_cnv_rule"
@@ -332,9 +316,6 @@ def test_pgx_policy_has_its_own_typed_vocabulary(tmp_path) -> None:
     policy_path.write_text(
         """
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency"]
 [cnv]
 [translocation]
 [fusion]
@@ -356,3 +337,19 @@ diplotypes = ["*1/*2"]
         "medications": (),
         "phenotypes": (),
     }
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("default_somatic_policy", '"case_only"'),
+        ("default_germline_policy", '"paired"'),
+        ("population_frequency_fields", "[]"),
+    ],
+)
+def test_center_cannot_override_query_baseline(tmp_path, key, value):
+    """Center exceptions cannot replace baseline evidence definitions."""
+    path = tmp_path / "policy.toml"
+    path.write_text(f"[snv]\n{key} = {value}\n[cnv]\n[translocation]\n[fusion]\n[pgx]\n")
+    with pytest.raises(RuntimeError, match="Application-owned query defaults"):
+        load_clinical_query_policy(path)

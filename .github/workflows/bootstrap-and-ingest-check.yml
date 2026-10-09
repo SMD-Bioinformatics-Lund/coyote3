@@ -129,13 +129,21 @@ jobs:
               --role-id superuser \
               --with-demo-center
 
+      - name: Install bundled references with disposable maintenance credentials
+        run: |
+          docker compose --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            run --rm --no-deps \
+            -e KNOWLEDGEBASE_MONGO_URI="${MONGO_BACKUP_URI}" \
+            api python scripts/bootstrap/install_reference_data.py --actor ci.system.admin
+
       - name: Apply indexes with disposable maintenance credentials
         run: |
           docker compose --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             run --rm --no-deps \
             -e KNOWLEDGEBASE_MONGO_URI="${MONGO_BACKUP_URI}" \
-            api python scripts/database/manage_mongo_indexes.py apply
+            api python scripts/database/manage_mongo_indexes.py apply --scope all
 
       - name: Start stage application stack
         run: |

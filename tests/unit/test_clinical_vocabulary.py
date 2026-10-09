@@ -21,7 +21,7 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     assert vocabulary.sample_file_keys["dna"][0] == "vcf_files"
     assert vocabulary.analysis_file_keys_by_omics["dna"]["SNV"] == ("vcf_files",)
     assert vocabulary.auth_type_options == ("local", "ldap")
-    assert vocabulary.assay_families == ("panel-dna", "panel-rna", "wgs", "wts")
+    assert vocabulary.assay_families == ("panel-dna", "panel-rna", "wes", "wgs", "wts")
     assert vocabulary.default_environment == "production"
     assert vocabulary.transcript_selection_order[:2] == (
         "ncbi_mane_plus_clinical",
@@ -30,14 +30,32 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     assert "mitelman" in vocabulary.fusion_description_important_terms
     assert "banned" in vocabulary.fusion_description_not_important_terms
     assert "short_distance" in vocabulary.fusion_description_context_terms
-    assert vocabulary.analysis_types_by_family["panel-rna"] == ("FUSION", "QC", "PGX")
+    assert vocabulary.analysis_types_by_family["panel-rna"] == ("FUSION", "QC")
     assert vocabulary.analysis_types_by_family["wts"] == (
         "FUSION",
         "EXPRESSION",
         "CLASSIFICATION",
         "QC",
-        "PGX",
     )
+
+
+def test_wes_uses_dna_inputs_and_declared_capture_genes():
+    """Exome scope retains captured-gene limits rather than whole-genome coverage."""
+    from api.domain.common.assay_filters import get_genes_covered_in_panel
+
+    vocabulary = load_clinical_vocabulary()
+    assert vocabulary.assay_family_categories["wes"] == "dna"
+    assert vocabulary.assay_family_scopes["wes"] == "wes"
+    assert vocabulary.required_file_keys_by_family["wes"] == ("vcf_files",)
+    assert set(vocabulary.analysis_types_by_family["wes"]) <= set(
+        vocabulary.analysis_file_keys_by_omics["dna"]
+    )
+    lists = get_genes_covered_in_panel(
+        {"example": {"genes": ["GENE_A", "GENE_B"]}},
+        {"asp_family": "wes", "covered_genes": ["GENE_A"]},
+    )
+    assert lists["example"]["covered"] == ["GENE_A"]
+    assert lists["example"]["uncovered"] == ["GENE_B"]
 
 
 def test_assay_groups_are_database_owned_not_center_vocabulary():
@@ -62,116 +80,39 @@ def test_manifest_preload_bindings_follow_configured_file_keys():
     assert analysis_type_for_file_key("rna", "fusion_files") == "FUSION"
 
 
-def test_clinical_vocabulary_rejects_missing_center_section(tmp_path):
-    """Center configuration must define each supported center-owned section."""
-    config = tmp_path / "clinical_vocabulary.toml"
-    config.write_text(
-        """
-[assay]
-""",
-        encoding="utf-8",
+@pytest.mark.parametrize(
+    "section",
+    ["assay", "environment", "authentication", "genelist", "files", "analysis", "reporting"],
+)
+def test_center_cannot_redefine_application_contracts(tmp_path, section):
+    """Protected sections are rejected even if their values match release defaults."""
+    source = Path("api/config/center/clinical_vocabulary.toml").read_text()
+    path = tmp_path / "vocabulary.toml"
+    path.write_text(source + f"\n[{section}]\n")
+    with pytest.raises(RuntimeError, match="Application-owned clinical definitions"):
+        load_clinical_vocabulary(path)
+
+
+def test_center_cannot_replace_supported_fusion_callers(tmp_path):
+    """Caller parser support cannot be declared through a center policy."""
+    source = Path("api/config/center/clinical_vocabulary.toml").read_text()
+    path = tmp_path / "vocabulary.toml"
+    path.write_text(
+        source.replace(
+            "[fusion.description_terms]",
+            '[fusion]\ncallers = ["invented"]\n[fusion.description_terms]',
+        )
     )
-
-    with pytest.raises(
-        RuntimeError,
-        match=(
-            "requires assay, environment, files, analysis, authentication, genelist, "
-            "reporting, and fusion tables"
-        ),
-    ):
-        load_clinical_vocabulary(config)
+    with pytest.raises(RuntimeError, match="Application-owned clinical definitions"):
+        load_clinical_vocabulary(path)
 
 
-def test_clinical_vocabulary_accepts_center_defined_analysis_file_binding(tmp_path):
-    """Analysis identifiers and their manifest bindings are center-owned vocabulary."""
-    config = tmp_path / "clinical_vocabulary.toml"
-    config.write_text(
-        """
-[assay]
-categories = ["dna", "rna"]
-families = ["panel-dna", "panel-rna"]
-base_subpanel_id = "base"
-[assay.family_categories]
-panel-dna = "dna"
-panel-rna = "rna"
-[assay.family_scopes]
-panel-dna = "panel"
-panel-rna = "panel"
-
-[environment]
-options = ["production"]
-default = "production"
-
-[authentication]
-providers = ["local", "ldap"]
-
-[files.dna]
-keys = ["variant_file"]
-
-[files.rna]
-keys = ["fusion_file"]
-
-[files.required_by_family]
-panel-dna = ["variant_file"]
-panel-rna = ["fusion_file"]
-
-[analysis.dna]
-types = ["SMALL_VARIANT"]
-[analysis.dna.file_keys]
-SMALL_VARIANT = ["variant_file"]
-
-[analysis.rna]
-types = ["FUSION"]
-[analysis.rna.file_keys]
-FUSION = ["fusion_file"]
-
-[analysis.allowed_by_family]
-panel-dna = ["SMALL_VARIANT"]
-panel-rna = ["FUSION"]
-
-[genelist]
-standard_types = ["snv"]
-adhoc_types = ["adhoc_snv"]
-
-[reporting]
-annotation_tumor_types = { hematology = "hematologic" }
-transcript_selection_order = [
-  "ncbi_mane_plus_clinical",
-  "ensembl_mane_plus_clinical",
-  "ncbi_mane_select",
-  "ensembl_mane_select",
-  "vep_canonical_protein_coding",
-  "first_protein_coding",
-  "first_available",
-]
-
-[fusion]
-callers = ["arriba", "fusioncatcher", "starfusion"]
-
-[snv]
-callers = ["mutect2"]
-[cnv]
-callers = ["cnvkit"]
-[translocation]
-callers = ["manta"]
-
-[fusion.description_terms]
-important = ["known"]
-not_important = ["banned"]
-context = ["short_distance"]
-
-""",
-        encoding="utf-8",
-    )
-
-    vocabulary = load_clinical_vocabulary(config)
-    assert vocabulary.analysis_file_keys_by_omics["dna"]["SMALL_VARIANT"] == ("variant_file",)
-    assert vocabulary.fusion_callers == ("arriba", "fusioncatcher", "starfusion")
-    assert vocabulary.fusion_annotation_metadata() == {
-        "important": ["known"],
-        "not_important": ["banned"],
-        "context": ["short_distance"],
-    }
+def test_clinical_vocabulary_requires_center_presentation_policy(tmp_path):
+    """A missing center policy fails rather than silently adopting a different one."""
+    path = tmp_path / "vocabulary.toml"
+    path.write_text("")
+    with pytest.raises(RuntimeError, match="fusion.description_terms"):
+        load_clinical_vocabulary(path)
 
 
 def test_fusion_caller_aliases_resolve_to_configured_database_keys() -> None:

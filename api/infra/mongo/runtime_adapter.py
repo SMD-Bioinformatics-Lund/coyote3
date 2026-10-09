@@ -53,6 +53,8 @@ from api.infra.mongo.repositories.public_assay_catalog_versions import (
     PublicAssayCatalogRevisionRepository,
     PublicAssayCatalogVersionRepository,
 )
+from api.infra.mongo.repositories.query_rule_revisions import QueryRuleRevisionRepository
+from api.infra.mongo.repositories.query_rules import QueryRuleRepository
 from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
 from api.infra.mongo.repositories.reports import ReportRepository
 from api.infra.mongo.repositories.rna_classification import RNAClassificationRepository
@@ -103,6 +105,8 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("reported_variant_repository", ReportedVariantsRepository, "reported_variants"),
     ("report_repository", ReportRepository, "reports"),
     ("clinical_rule_set_repository", ClinicalRuleSetRepository, "clinical_rule_sets"),
+    ("query_rule_repository", QueryRuleRepository, "query_rule_sets"),
+    ("query_rule_revision_repository", QueryRuleRevisionRepository, "query_rule_revisions"),
     (
         "clinical_rule_revision_repository",
         ClinicalRuleRevisionRepository,

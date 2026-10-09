@@ -26,6 +26,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     ]
 
     service = SimpleNamespace(
+        query_rule_service=None,
         assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
         gene_list_repository=SimpleNamespace(
             get_isgl_by_ids=lambda ids: {},
@@ -59,7 +60,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
         sample=sample,
         util_module=util_module,
         add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
-        build_query_fn=lambda assay_group, params, intent="somatic": {
+        build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {
             "assay_group": assay_group,
             "intent": intent,
             **params,
@@ -85,6 +86,7 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
     ]
     enriched_counts: list[int] = []
     service = SimpleNamespace(
+        query_rule_service=None,
         assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
         gene_list_repository=SimpleNamespace(
             get_isgl_by_ids=lambda ids: {}, get_isgl_by_asp=lambda assay, is_active=True: []
@@ -121,7 +123,7 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
             enriched_counts.append(len(rows)) or rows,
             [],
         ),
-        build_query_fn=lambda assay_group, params, intent="somatic": {},
+        build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {},
         get_filter_conseq_terms_fn=lambda values: [],
         assay_config_getter=lambda _sample: assay_config,
     )
@@ -141,6 +143,7 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
     }
 
     service = SimpleNamespace(
+        query_rule_service=None,
         assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
         gene_list_repository=SimpleNamespace(
             get_isgl_by_ids=lambda ids: {},
@@ -181,7 +184,7 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
         sample=sample,
         util_module=util_module,
         add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
-        build_query_fn=lambda assay_group, params, intent="somatic": {
+        build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {
             "assay_group": assay_group,
             "intent": intent,
             **params,

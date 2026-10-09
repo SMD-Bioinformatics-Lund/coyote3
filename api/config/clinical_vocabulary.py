@@ -1,9 +1,4 @@
-"""Load the center-owned clinical vocabulary contract.
-
-The vocabulary contains only center-owned choices. Data-model semantics,
-analysis capability, and operational profiles remain application contracts in
-``constants``.
-"""
+"""Combine application-owned clinical capabilities with center clinical policy."""
 
 from __future__ import annotations
 
@@ -13,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from api.config.paths import CLINICAL_VOCABULARY_PATH
+from api.config.paths import API_CONFIG_DIR, CLINICAL_VOCABULARY_PATH
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _SOFTWARE_AUTH_PROVIDERS = frozenset({"local", "ldap"})
@@ -32,7 +27,7 @@ _TRANSCRIPT_SELECTION_SOURCES = frozenset(
 
 @dataclass(frozen=True)
 class ClinicalVocabulary:
-    """Validated center-owned selectable values used by the application."""
+    """Validated application capabilities and center clinical presentation policy."""
 
     assay_categories: tuple[str, ...]
     assay_families: tuple[str, ...]
@@ -48,7 +43,6 @@ class ClinicalVocabulary:
     auth_type_options: tuple[str, ...]
     genelist_standard_types: tuple[str, ...]
     genelist_adhoc_types: tuple[str, ...]
-    annotation_tumor_types: dict[str, str]
     transcript_selection_order: tuple[str, ...]
     fusion_callers: tuple[str, ...]
     snv_callers: tuple[str, ...]
@@ -114,7 +108,7 @@ class ClinicalVocabulary:
 class CenterClinicalContract:
     """Derived centre configuration with one validated vocabulary source.
 
-    The underlying values remain defined in ``clinical_vocabulary.toml``. This
+    Values combine release capabilities with center ``clinical_vocabulary.toml``. This
     contract exposes derived choices shared by API schemas and ingest logic so
     they are not recomputed independently throughout the application.
     """
@@ -212,12 +206,42 @@ def _identifier_value(raw: Any, *, key: str) -> str:
 
 
 def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> ClinicalVocabulary:
-    """Load and validate the required center-owned TOML vocabulary."""
+    """Combine fixed application capabilities with validated center clinical policy.
+
+    Args:
+        path: Center policy TOML file, defaulting to the configured center directory.
+
+    Returns:
+        Validated clinical definitions shared by contracts and runtime consumers.
+
+    Raises:
+        RuntimeError: Required policy is missing, invalid, or attempts to override
+            application-owned identifiers, capabilities, or fusion caller support.
+        OSError: A configuration file cannot be read.
+        tomllib.TOMLDecodeError: A configuration file contains invalid TOML.
+    """
     path_obj = Path(path)
     if not path_obj.exists():
         raise RuntimeError(f"clinical vocabulary configuration does not exist: {path_obj}")
     with path_obj.open("rb") as handle:
         raw = tomllib.load(handle)
+
+    with (API_CONFIG_DIR / "clinical_capabilities.toml").open("rb") as handle:
+        capabilities = tomllib.load(handle)
+    protected = set(raw) & (set(capabilities) - {"fusion"})
+    if isinstance(raw.get("fusion"), dict) and "callers" in raw["fusion"]:
+        protected.add("fusion.callers")
+    if protected:
+        raise RuntimeError(
+            "Application-owned clinical definitions cannot be set in center configuration: "
+            + ", ".join(sorted(protected))
+            + ". Remove these entries; see the center configuration upgrade instructions."
+        )
+    center_fusion = raw.get("fusion")
+    if not isinstance(center_fusion, dict):
+        raise RuntimeError("clinical vocabulary requires a center fusion.description_terms table")
+    raw = {**capabilities, **raw}
+    raw["fusion"] = {**capabilities["fusion"], **center_fusion}
 
     allowed_sections = {
         "assay",
@@ -249,7 +273,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         "authentication": {"providers"},
         "genelist": {"standard_types", "adhoc_types"},
         "reporting": {
-            "annotation_tumor_types",
             "transcript_selection_order",
         },
         "fusion": {"callers", "description_terms"},
@@ -435,13 +458,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
             "genelist standard_types and adhoc_types must not overlap: "
             + ", ".join(sorted(overlap))
         )
-    annotation_tumor_types = reporting.get("annotation_tumor_types")
-    if not isinstance(annotation_tumor_types, dict) or any(
-        not isinstance(value, str) or not value.strip() for value in annotation_tumor_types.values()
-    ):
-        raise RuntimeError(
-            "reporting.annotation_tumor_types must map assay groups to non-empty text"
-        )
     transcript_selection_order = _identifier_tuple(
         reporting.get("transcript_selection_order"),
         key="reporting.transcript_selection_order",
@@ -514,7 +530,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         auth_type_options=auth_type_options,
         genelist_standard_types=genelist_standard_types,
         genelist_adhoc_types=genelist_adhoc_types,
-        annotation_tumor_types=dict(annotation_tumor_types),
         transcript_selection_order=transcript_selection_order,
         fusion_callers=fusion_callers,
         snv_callers=caller_options["snv"],

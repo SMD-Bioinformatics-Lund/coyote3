@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Tuple
 from api.application.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
+from api.application.query_rules import effective_policy
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.eligibility import reportable_tiers
 from api.application.reporting.snapshot_rows import (
@@ -19,6 +20,7 @@ from api.application.reporting.snapshot_rows import (
     build_translocation_snapshot_rows,
     flatten_pgx_records,
 )
+from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY, FindingQueryPolicy
 from api.config.constants import primary_analysis_file_key
 from api.config.database_versions import sample_vep_version
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
@@ -376,6 +378,7 @@ def _filter_translocations_for_report(
     filter_genes: list[str],
     restricted: bool,
     settings: dict[str, Any],
+    policy: FindingQueryPolicy = CLINICAL_QUERY_POLICY.translocation,
 ) -> list[dict]:
     """Apply report eligibility and DNA structural gene scope to findings."""
     return filter_translocations_by_genes(
@@ -383,6 +386,7 @@ def _filter_translocations_for_report(
         filter_genes=filter_genes,
         restricted=restricted,
         settings=settings,
+        policy=policy,
     )
 
 
@@ -435,6 +439,7 @@ def _build_variant_query(
     disp_pos: list,
     restrict_to_genes: bool,
     intent: str = "somatic",
+    query_rule_service=None,
 ) -> dict:
     """Build variant lookup query payload for report preparation."""
     snv_filters = merged_dna_variant_filters(sample_filters, intent=intent)
@@ -458,6 +463,9 @@ def _build_variant_query(
             "irrelevant": {"$ne": True},
         },
         intent=intent,
+        policy=effective_policy(
+            query_rule_service, "snv", sample, assay_group=assay_group, intent=intent
+        ),
     )
 
 
@@ -529,6 +537,7 @@ def build_dna_report_payload(
     annotation_repository,
     pgx_repository=None,
     clinical_rule_service=None,
+    query_rule_service=None,
     clinical_rule_override: ClinicalRuleSetDoc | None = None,
     clinical_rule_only: bool = False,
     clinical_rule_condition_trace: bool = False,
@@ -573,6 +582,7 @@ def build_dna_report_payload(
     disp_pos = _resolve_disp_positions(sample, assay_config)
 
     query = _build_variant_query(
+        query_rule_service=query_rule_service,
         assay_group=assay_group,
         sample=sample,
         sample_filters=sample_filters,
@@ -633,6 +643,7 @@ def build_dna_report_payload(
             germline_filters.get("vep_consequences", []), conseq_terms_mapper
         )
         germline_query = _build_variant_query(
+            query_rule_service=query_rule_service,
             assay_group=assay_group,
             sample=sample,
             sample_filters=sample_filters,
@@ -746,6 +757,9 @@ def build_dna_report_payload(
             interesting_translocations,
             filter_genes=translocation_filter_genes,
             restricted=translocation_scope_restricted,
+            policy=effective_policy(
+                query_rule_service, "translocation", sample, assay_group=assay_group
+            ),
             settings={
                 "assay_group": assay_group,
                 "asp_id": sample.get("asp_id"),

@@ -89,9 +89,26 @@ def _consequence_terms_clause(terms: list[str]) -> dict[str, Any]:
     return {"consequence_terms": {"$in": terms}}
 
 
-def _exception_clause(exception: SnvQueryException) -> dict[str, Any]:
-    """Translate a validated exception into its restricted MongoDB predicate."""
+def _exception_clause(
+    exception: SnvQueryException, filter_values: dict | None = None
+) -> dict[str, Any]:
+    """Translate a validated exception into its restricted MongoDB predicate.
+
+    Args:
+        exception: Validated SNV policy exception.
+        filter_values: Prepared sample settings; required for reference operands.
+
+    Returns:
+        Stored-field predicate with references resolved for this sample.
+
+    Raises:
+        ValueError: A reference cannot resolve to a supported value.
+    """
     clauses: list[dict[str, Any]] = []
+    if exception.condition is not None:
+        from api.domain.query_conditions import compile_condition
+
+        clauses.append(compile_condition(exception.condition, "snv", filter_values=filter_values))
     if exception.genes:
         clauses.append({"INFO.selected_CSQ.SYMBOL": {"$in": list(exception.genes)}})
     if exception.consequence_terms:
@@ -126,11 +143,12 @@ def _consequence_admission_clause(
     subpanel_id: str,
     intent: str,
     terms: list[str],
+    filter_values: dict | None = None,
 ) -> dict[str, Any]:
     """Allow aggregated terms or a configured clinically validated extension."""
     clauses = [_consequence_terms_clause(terms)]
     clauses.extend(
-        _exception_clause(exception)
+        _exception_clause(exception, filter_values)
         for exception in policy.exceptions_for(
             assay_group=assay_group,
             asp_id=asp_id,
@@ -143,11 +161,17 @@ def _consequence_admission_clause(
 
 
 def _admission_clause(
-    *, policy: SnvQueryPolicy, assay_group: str, asp_id: str, subpanel_id: str, intent: str
+    *,
+    policy: SnvQueryPolicy,
+    assay_group: str,
+    asp_id: str,
+    subpanel_id: str,
+    intent: str,
+    filter_values: dict | None = None,
 ) -> dict[str, Any]:
     """Return explicit admission paths, or a predicate that can never match."""
     clauses = [
-        _exception_clause(exception)
+        _exception_clause(exception, filter_values)
         for exception in policy.exceptions_for(
             assay_group=assay_group,
             asp_id=asp_id,
@@ -162,11 +186,17 @@ def _admission_clause(
 
 
 def _exclusion_clause(
-    *, policy: SnvQueryPolicy, assay_group: str, asp_id: str, subpanel_id: str, intent: str
+    *,
+    policy: SnvQueryPolicy,
+    assay_group: str,
+    asp_id: str,
+    subpanel_id: str,
+    intent: str,
+    filter_values: dict | None = None,
 ) -> dict[str, Any]:
     """Exclude typed clinical matches after the selected baseline is applied."""
     clauses = [
-        _exception_clause(exception)
+        _exception_clause(exception, filter_values)
         for exception in policy.exceptions_for(
             assay_group=assay_group,
             asp_id=asp_id,
@@ -215,6 +245,7 @@ def build_query(
                     subpanel_id=subpanel_id,
                     intent=normalized_intent,
                     terms=terms,
+                    filter_values=settings,
                 ),
             ]
         )
@@ -230,12 +261,14 @@ def build_query(
                     subpanel_id=subpanel_id,
                     intent=normalized_intent,
                     terms=terms,
+                    filter_values=settings,
                 ),
             ]
         )
     else:  # exception_only
         clauses.append(
             _admission_clause(
+                filter_values=settings,
                 policy=policy,
                 assay_group=normalized_group,
                 asp_id=asp_id,
@@ -243,7 +276,24 @@ def build_query(
                 intent=normalized_intent,
             )
         )
+    if baseline != "exception_only" and policy.exceptions_for(
+        assay_group=normalized_group,
+        asp_id=asp_id,
+        subpanel_id=subpanel_id,
+        intent=normalized_intent,
+        mode="admit",
+    ):
+        admission = _admission_clause(
+            policy=policy,
+            assay_group=normalized_group,
+            asp_id=asp_id,
+            subpanel_id=subpanel_id,
+            intent=normalized_intent,
+            filter_values=settings,
+        )
+        clauses = [gene_position_scope, {"$or": [{"$and": clauses[1:]}, admission]}]
     exclusion = _exclusion_clause(
+        filter_values=settings,
         policy=policy,
         assay_group=normalized_group,
         asp_id=asp_id,

@@ -1,5 +1,6 @@
 """Common DNA workflow orchestration for reporting routes."""
 
+from api.application.query_rules import QueryRuleService
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.reporting.dna_report_payload import build_dna_report_payload
 from api.application.reporting.persistence import (
@@ -34,6 +35,7 @@ class DNAWorkflowService:
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
+            query_rule_service=QueryRuleService.from_store(store),
         )
 
     def __init__(
@@ -53,6 +55,7 @@ class DNAWorkflowService:
         report_repository,
         pgx_repository=None,
         clinical_rule_service=None,
+        query_rule_service=None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -69,6 +72,7 @@ class DNAWorkflowService:
         self.reported_variant_repository = reported_variant_repository
         self.report_repository = report_repository
         self.clinical_rule_service = clinical_rule_service
+        self.query_rule_service = query_rule_service
 
     def next_report_num(self, sample_id: str) -> int:
         """Return the next sequential report number for a sample."""
@@ -120,6 +124,7 @@ class DNAWorkflowService:
             vep_metadata_repository=self.vep_metadata_repository,
             annotation_repository=self.annotation_repository,
             clinical_rule_service=self.clinical_rule_service,
+            query_rule_service=self.query_rule_service,
             clinical_rule_override=clinical_rule_override,
             clinical_rule_only=clinical_rule_only,
             clinical_rule_condition_trace=clinical_rule_condition_trace,

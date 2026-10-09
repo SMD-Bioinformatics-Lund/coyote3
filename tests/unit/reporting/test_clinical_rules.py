@@ -27,6 +27,35 @@ from api.contracts.schemas.clinical_rules import (
 from api.domain.core.exceptions import AppError
 
 
+def test_annotation_terminology_is_scoped_published_and_integrity_checked():
+    """Automatic wording resolves the same immutable DNA release as report generation."""
+    doc = _document(status="published", active=True)
+    doc.terminology = {"automatic_annotation_tumor_type": "hematologiska"}
+    doc.content_hash = content_hash(doc)
+    rows = [doc.model_dump(by_alias=True)]
+    service = ClinicalRuleService(
+        SimpleNamespace(list_active_for_assay=lambda *args, **kwargs: rows)
+    )
+    assert (
+        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="other", language="sv")
+        == "hematologiska"
+    )
+    rows[0]["terminology"]["automatic_annotation_tumor_type"] = "solida"
+    with pytest.raises(ValueError, match="integrity"):
+        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="sv")
+    with pytest.raises(ValueError, match="No active"):
+        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="en")
+
+
+@pytest.mark.parametrize("value", ["", " padded ", 7, "x" * 121])
+def test_automatic_annotation_term_rejects_invalid_values(value):
+    """The optional phrase must be usable as a bounded piece of clinical text."""
+    with pytest.raises(ValueError, match="automatic_annotation_tumor_type"):
+        ClinicalRuleDraftUpdate(
+            expected_revision=1, terminology={"automatic_annotation_tumor_type": value}
+        )
+
+
 def _context():
     return prepare_report_context(
         sample={

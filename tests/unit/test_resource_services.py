@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import pytest
+
 from api.application.classification.tiering import ResourceClassificationService
 from api.application.classification.variant_annotation import ResourceAnnotationService
 
@@ -437,6 +441,9 @@ def test_resource_classification_service_adds_automatic_tier_three_text_when_req
     """Bulk tiering optionally adds the established Tier III annotation."""
     repo = _RepoStub()
     service = _classification_service(repo)
+    service.clinical_rule_service = SimpleNamespace(
+        annotation_tumor_type=lambda **kwargs: "hematologiska"
+    )
     monkeypatch.setattr(
         service,
         "classification_context",
@@ -487,6 +494,27 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
 
     assert repo.annotation_repository.inserted_bulk is not None
     assert [doc["text"] for doc in repo.annotation_repository.inserted_bulk] == [None]
+
+
+def test_automatic_annotation_requires_published_terminology(monkeypatch):
+    """Missing terminology rejects explicit automatic text before any write."""
+    from api.domain.core.exceptions import AppError
+
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(service, "classification_context", lambda sample: {"subpanel": "base"})
+    with pytest.raises(AppError) as error:
+        service.set_tier_bulk(
+            sample={"asp_id": "assay"},
+            resource_type="small_variant",
+            resource_ids=["var-1"],
+            apply=True,
+            class_num=3,
+            include_automatic_text=True,
+            create_classified_variant_doc_fn=_classification_doc,
+        )
+    assert error.value.status_code == 422
+    assert repo.annotation_repository.inserted_bulk is None
 
 
 def test_tier_removal_deletes_only_the_matching_classification():

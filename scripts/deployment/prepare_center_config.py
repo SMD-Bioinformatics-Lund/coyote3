@@ -18,7 +18,6 @@ from urllib.parse import urlsplit
 FILES = (
     "contact.toml",
     "clinical_vocabulary.toml",
-    "clinical_query_policy.toml",
     "filter_flag_metadata.yaml",
 )
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,7 +30,7 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
         source: Local directory or Git repository URL. HTTP credentials are forbidden.
         destination: New directory outside the application checkout, created on success.
         revision: Full 40-character Git commit ID; required for repository URLs.
-        subdirectory: Relative repository directory containing the four configuration files.
+        subdirectory: Relative repository directory containing the three center configuration files.
 
     Raises:
         ValueError: Source options are unsafe, missing, or incompatible.
@@ -89,11 +88,12 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
                 sys.executable,
                 "-c",
                 (
-                    "from api.config.clinical_query_policy import load_clinical_query_policy; "
+                    "from api.config.clinical_vocabulary import load_clinical_vocabulary; "
                     "from api.config.loaders.filter_flags import load_filter_flag_metadata; "
                     "from api.config.loaders.contact import load_contact_config; "
                     "from api.config.paths import CONTACT_CONFIG_PATH; "
-                    "load_clinical_query_policy(); load_filter_flag_metadata(); "
+                    "load_clinical_vocabulary(); "
+                    "load_filter_flag_metadata(); "
                     "load_contact_config(CONTACT_CONFIG_PATH, organization_name='Validation', "
                     "public_base_url='', script_name='')"
                 ),

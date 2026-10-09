@@ -17,7 +17,7 @@ from api.application.common.table_state import (
     sortable_text,
 )
 from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
-from api.config.database_versions import require_sample_vep_version
+from api.application.query_rules import QueryRuleService, effective_policy
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
     has_sample_gene_restriction,
@@ -30,6 +30,7 @@ from api.domain.common.sample_filters import (
 )
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
+from api.domain.core.dna.structural_annotations import snpeff_consequence_metadata
 from api.domain.core.dna.translocqueries import (
     build_transloc_query,
     filter_translocations_by_genes,
@@ -223,6 +224,7 @@ class DnaStructuralService:
             bam_record_repository=store.bam_record_repository,
             vep_metadata_repository=store.vep_metadata_repository,
             cosmic_repository=store.cosmic_repository,
+            query_rule_service=QueryRuleService.from_store(store),
         )
 
     def __init__(
@@ -236,6 +238,7 @@ class DnaStructuralService:
         bam_record_repository: Any,
         vep_metadata_repository: Any,
         cosmic_repository: Any,
+        query_rule_service=None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.copy_number_variant_repository = copy_number_variant_repository
@@ -246,6 +249,7 @@ class DnaStructuralService:
         self.bam_record_repository = bam_record_repository
         self.vep_metadata_repository = vep_metadata_repository
         self.cosmic_repository = cosmic_repository
+        self.query_rule_service = query_rule_service
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
         """Resolve formatted assay config using injected repositories when available."""
@@ -289,6 +293,12 @@ class DnaStructuralService:
                 "intent": "somatic",
             },
             include_normal=include_normal_cnvs(sample, assay_panel),
+            policy=effective_policy(
+                self.query_rule_service,
+                "cnv",
+                sample,
+                assay_group=assay_group or (assay_panel or {}).get("asp_group"),
+            ),
         )
         cnvs = list(self.copy_number_variant_repository.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
@@ -522,15 +532,26 @@ class DnaStructuralService:
         )
 
         policy_settings = {
+            "filter_genes": filter_genes,
             **translocation_filters,
             "assay_group": assay_config.get("asp_group"),
             "asp_id": sample.get("asp_id"),
             "subpanel_id": sample.get("subpanel_id"),
             "intent": "somatic",
         }
+        translocation_policy = effective_policy(
+            self.query_rule_service,
+            "translocation",
+            sample,
+            assay_group=assay_config.get("asp_group"),
+        )
         translocs = list(
             self.translocation_repository.get_sample_translocations(
-                build_transloc_query(str(sample["_id"]), policy_settings)
+                build_transloc_query(
+                    str(sample["_id"]),
+                    policy_settings,
+                    policy=translocation_policy,
+                )
             )
         )
         translocs = filter_translocations_by_genes(
@@ -538,6 +559,7 @@ class DnaStructuralService:
             filter_genes=filter_genes,
             restricted=restricted,
             settings=policy_settings,
+            policy=translocation_policy,
         )
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
@@ -584,9 +606,7 @@ class DnaStructuralService:
                 "sort": sort_spec_to_query_value(sort_specs),
             },
             "filters": sample_filters,
-            "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
-                require_sample_vep_version(sample)
-            ),
+            "snpeff_conseq_translations": snpeff_consequence_metadata(page_translocs),
             "translocations": page_translocs,
             "cosmic_cancer_gene_map": cosmic_cancer_gene_map(self.cosmic_repository, page_genes),
         }
@@ -643,9 +663,7 @@ class DnaStructuralService:
                 self.bam_record_repository.get_bams,
                 asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
             ),
-            "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
-                require_sample_vep_version(sample)
-            ),
+            "snpeff_conseq_translations": snpeff_consequence_metadata([transloc]),
             "has_hidden_comments": self.translocation_repository.hidden_transloc_comments(
                 transloc_id
             ),

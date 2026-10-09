@@ -34,6 +34,7 @@ from api.contracts.schemas.public_catalog import (
     PublicAssayCatalogVersionDoc,
     PublicCatalogRevisionDoc,
 )
+from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleRevisionDoc
 from api.contracts.schemas.reference import (
     AnnotationDoc,
     AnnoVepDoc,
@@ -79,6 +80,8 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "finding_comments": TypeAdapter(FindingCommentRecordDoc),
     "reports": TypeAdapter(SampleReportRecordDoc),
     "clinical_rule_sets": TypeAdapter(ClinicalRuleSetDoc),
+    "query_rule_sets": TypeAdapter(QueryRuleDoc),
+    "query_rule_revisions": TypeAdapter(QueryRuleRevisionDoc),
     "clinical_rule_revisions": TypeAdapter(ClinicalRuleRevisionDoc),
     "public_assay_catalog": TypeAdapter(PublicAssayCatalogDoc),
     "public_assay_catalog_versions": TypeAdapter(PublicAssayCatalogVersionDoc),

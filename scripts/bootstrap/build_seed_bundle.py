@@ -106,11 +106,14 @@ def load_seed(path: Path) -> dict[str, list[dict]]:
     return payload
 
 
-def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
+def load_reference_seed_pack(
+    path: Path, *, include_knowledgebase: bool = True
+) -> dict[str, list[dict]]:
     """Load available RBAC, HGNC, and VEP NDJSON reference files.
 
     Args:
         path: Directory containing supported ``*.seed.ndjson`` files or gzip variants.
+        include_knowledgebase: Load HGNC and VEP snapshots; false avoids reading those files.
 
     Returns:
         Collection names mapped to object lists; absent files are omitted and plain
@@ -123,11 +126,15 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
     """
     supported_pack = {
         "assay_groups": "assay_groups.seed.ndjson",
+        "query_rule_sets": "query_rule_sets.seed.ndjson",
         "permissions": "permissions.seed.ndjson",
         "roles": "roles.seed.ndjson",
         "hgnc_genes": "hgnc_genes.seed.ndjson",
         "vep_metadata": "vep_metadata.seed.ndjson",
     }
+    if not include_knowledgebase:
+        for name in ("hgnc_genes", "vep_metadata"):
+            supported_pack.pop(name)
 
     def resolve_reference_file(base_dir: Path, stem_name: str) -> Path:
         """Prefer the plain reference file over its gzip alternative.

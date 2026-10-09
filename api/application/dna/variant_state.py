@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from api.application.query_rules import effective_policy
 from api.contracts.operations import OperationResult
 from api.domain.common.errors import api_error
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
@@ -28,6 +29,7 @@ def load_cnvs_for_sample(
             "intent": "somatic",
         },
         include_normal=include_normal_cnvs(sample),
+        policy=effective_policy(service.query_rule_service, "cnv", sample, assay_group=assay_group),
     )
     cnvs = list(service.copy_number_variant_repository.get_sample_cnvs(cnv_query))
     filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))

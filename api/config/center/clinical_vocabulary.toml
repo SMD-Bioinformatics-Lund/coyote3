@@ -1,42 +1,7 @@
-# Center-owned selectable vocabulary. Keep identifiers stable after clinical use.
+# Center clinical policy and presentation metadata. Technical identifiers are application-owned.
 
-[assay]
-categories = ["dna", "rna"]
-families = ["panel-dna", "panel-rna", "wgs", "wts"]
-base_subpanel_id = "base"
+# Optional DNA caller metadata; these entries do not implement parsers or filters.
 
-[assay.family_categories]
-panel-dna = "dna"
-wgs = "dna"
-panel-rna = "rna"
-wts = "rna"
-
-[assay.family_scopes]
-panel-dna = "panel"
-wgs = "wgs"
-panel-rna = "panel"
-wts = "wts"
-
-[environment]
-options = ["production", "development", "testing", "validation"]
-default = "production"
-
-[authentication]
-providers = ["local", "ldap"]
-
-[genelist]
-standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
-adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
-
-[fusion]
-# Implemented fusion caller IDs. Use only these; this is not a plugin registry.
-callers = ["arriba", "fusioncatcher", "starfusion"]
-
-# Optional presentation metadata registries; these tables may be omitted.
-# Combined DNA inputs preserve caller provenance without this configuration.
-# Leave empty unless caller-specific flag explanations are needed and validated
-# against stored provenance. Entries do not enable parsers or caller filters.
-# SNV/translocation have no caller query filter; CNV has caller policy exceptions.
 [snv]
 callers = []
 
@@ -64,62 +29,3 @@ context = [
   "fragments", "healthy", "short_repeats", "long_repeats", "partial-matched-normal",
   "refseq_partially_overlapping", "short_distance", "ucsc_partially_overlapping",
 ]
-
-[reporting]
-transcript_selection_order = [
-  "ncbi_mane_plus_clinical",
-  "ensembl_mane_plus_clinical",
-  "ncbi_mane_select",
-  "ensembl_mane_select",
-  "vep_canonical_protein_coding",
-  "first_protein_coding",
-  "first_available",
-]
-
-[reporting.annotation_tumor_types]
-hematology = "hematologiska"
-myeloid = "hematologiska"
-solid = "solida"
-
-[files.dna]
-keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "hrd", "msi", "tmb", "pgx"]
-
-[files.rna]
-keys = ["fusion_files", "expression_path", "classification_path", "qc", "pgx"]
-
-[files.required_by_family]
-panel-dna = ["vcf_files"]
-wgs = ["vcf_files"]
-panel-rna = ["fusion_files"]
-wts = ["fusion_files"]
-
-[analysis.dna]
-types = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
-
-[analysis.dna.file_keys]
-SNV = ["vcf_files"]
-CNV = ["cnv"]
-TRANSLOCATION = ["transloc"]
-HRD = ["hrd"]
-MSI = ["msi"]
-CNV_PROFILE = ["cnvprofile"]
-COVERAGE = ["cov"]
-FUSION = ["transloc"]
-TMB = ["tmb"]
-PGX = ["pgx"]
-
-[analysis.rna]
-types = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]
-
-[analysis.rna.file_keys]
-FUSION = ["fusion_files"]
-EXPRESSION = ["expression_path"]
-CLASSIFICATION = ["classification_path"]
-QC = ["qc"]
-PGX = ["pgx"]
-
-[analysis.allowed_by_family]
-panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
-wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
-panel-rna = ["FUSION", "QC", "PGX"]
-wts = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]

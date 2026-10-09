@@ -1,0 +1,11 @@
+# Application-owned base evidence modes and population-frequency fields.
+
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = [
+  "gnomad_frequency",
+  "gnomad_max",
+  "exac_frequency",
+  "thousandG_frequency",
+]
