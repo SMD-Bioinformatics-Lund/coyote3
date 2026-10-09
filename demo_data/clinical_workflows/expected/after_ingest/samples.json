@@ -155,20 +155,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null
@@ -340,20 +328,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null
@@ -525,20 +501,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null
@@ -710,20 +674,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null
@@ -903,9 +855,7 @@
       }
     },
     "missing_expected_files": [
-      "hrd",
-      "msi",
-      "tmb"
+      "biomarkers"
     ],
     "analysis_intents": [
       "somatic"
@@ -1062,20 +1012,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null
@@ -1237,20 +1175,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null
@@ -1422,20 +1348,8 @@
         "size_bytes": null,
         "registered_on": null
       },
-      "hrd": {
-        "path": "raw/hrd.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "msi": {
-        "path": "raw/msi.json",
-        "checksum": null,
-        "size_bytes": null,
-        "registered_on": null
-      },
-      "tmb": {
-        "path": "raw/tmb.json",
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
         "checksum": null,
         "size_bytes": null,
         "registered_on": null

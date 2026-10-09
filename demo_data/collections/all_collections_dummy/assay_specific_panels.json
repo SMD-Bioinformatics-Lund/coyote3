@@ -13,7 +13,7 @@
       "cnvprofile",
       "cov",
       "transloc",
-      "hrd", "msi"
+      "biomarkers"
     ],
     "required_files": [
       "vcf_files"

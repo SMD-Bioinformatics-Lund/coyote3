@@ -35,7 +35,7 @@ adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "ad
 callers = ["arriba", "fusioncatcher", "starfusion"]
 
 [files.dna]
-keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "hrd", "msi", "tmb", "pgx"]
+keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
 
 [files.rna]
 keys = ["fusion_files", "expression_path", "classification_path", "qc"]
@@ -54,12 +54,12 @@ types = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE",
 SNV = ["vcf_files"]
 CNV = ["cnv"]
 TRANSLOCATION = ["transloc"]
-HRD = ["hrd"]
-MSI = ["msi"]
+HRD = ["biomarkers"]
+MSI = ["biomarkers"]
 CNV_PROFILE = ["cnvprofile"]
 COVERAGE = ["cov"]
 FUSION = ["transloc"]
-TMB = ["tmb"]
+TMB = ["biomarkers"]
 PGX = ["pgx"]
 
 [analysis.rna]

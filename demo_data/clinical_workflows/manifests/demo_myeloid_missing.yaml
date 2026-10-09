@@ -35,3 +35,9 @@ cnvprofile: ../raw/cnvprofile.png
 cov: ../raw/coverage.json
 transloc: ../raw/translocations.vcf
 pgx: ../raw/pgx.json
+
+# Optional IGV references; supply filenames only when matching files are served.
+case_bam: null
+case_bai: null
+control_bam: null
+control_bai: null

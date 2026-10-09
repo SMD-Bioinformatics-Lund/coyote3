@@ -1,6 +1,6 @@
 # HRD: JSON measurement
 
-Manifest key: `hrd`. Analysis type: `HRD`. Stored collection: `biomarkers`.
+Manifest key: `biomarkers` (shared measurement file). Analysis type: `HRD`. Stored collection: `biomarkers`.
 
 ## Raw structure
 
@@ -42,13 +42,13 @@ nonzero; producers must verify their aggregate even when a component is zero.
 The application preserves the `hrd` component's name and does not reinterpret it
 as a separate analysis. TAI and LST remain components of HRD.
 
-A numeric zero is a measured result. Omit the file when this analysis is unavailable;
+A numeric zero is a measured result. Omit this measurement when the analysis is unavailable;
 do not fabricate zero values or submit an empty measurement object. Missing optional
 expected files are recorded separately from successful measurements. Required files
 must be readable, and all readable inputs must pass parsing and schema validation.
 
-The parser selects only HRD fields from this file. An update preserves other
-analyses in the same stored document. Review and reporting are governed independently
+The shared file can also contain other supported measurements. The parser retains
+all supplied analyses; an update preserves analyses omitted from the file. Review and reporting are governed independently
 by the sample's ASPC analysis types and report sections.
 
 See [measurement analysis behavior](../measurement-analyses.md),

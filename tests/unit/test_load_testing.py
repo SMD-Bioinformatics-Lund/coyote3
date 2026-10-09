@@ -414,7 +414,7 @@ def test_example_ingest_matches_api_contract(inputs):
     )
     assert payload.sample.name == "load_sample"
     assert payload.sample.environment == "testing"
-    assert payload.sample.files["msi"].path == "/load/synthetic/msi.json"
+    assert payload.sample.files["biomarkers"].path == "/load/synthetic/msi.json"
     assert payload.yaml_content is None
     assert payload.update_existing is payload.increment is False
 

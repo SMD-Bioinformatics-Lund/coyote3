@@ -113,8 +113,8 @@ workflows. For distinct workload proportions, use separate accounts with a singl
 workflow and control their count.
 
 Rule-test pairs must belong to matching assays and subpanels. Ingest requires a
-dedicated synthetic ASP with `expected_files: ["msi"]` and
-`required_files: ["msi"]`, and a matching ASPC with
+dedicated synthetic ASP with `expected_files: ["biomarkers"]` and
+`required_files: ["biomarkers"]`, and a matching ASPC with
 `analysis_types: ["MSI"]`. The bootstrap `assay_1`
 requires VCF input and cannot run this biomarker-only workload.
 Create the synthetic configuration through the normal admin workflow; the generator

@@ -1,7 +1,8 @@
 # Independent measurement analysis configuration
 
-Deployments using the generic `BIOMARKER` selection or `biomarkers` manifest key
-require explicit conversion to HRD, MSI, and/or TMB. The migration does not
+Deployments using the generic `BIOMARKER` analysis selection
+require explicit conversion to HRD, MSI, and/or TMB. The `biomarkers` manifest key
+remains the shared input file. The migration does not
 infer which measurements a center intended to enable.
 
 ## Preparation
@@ -16,8 +17,8 @@ infer which measurements a center intended to enable.
    any remain. Existing rule releases and their hashes are not rewritten.
 4. Return affected unpublished assay setups to draft. Published setup and rule
    revision snapshots remain historical evidence; adapt a new draft before reuse.
-5. Update producer manifests and center vocabulary overrides to the independent
-   file keys. Validate typed TMB objects; arbitrary legacy extra fields are
+5. Use one `biomarkers` manifest key and combined JSON input. Separate `hrd`, `msi`,
+   and `tmb` file keys are not accepted. Validate typed TMB objects; arbitrary legacy extra fields are
    not converted into measurements. Preflight validates existing measurement
    documents and stops on incompatible shapes; correct those through an approved
    data-correction procedure before applying the migration.
@@ -44,10 +45,13 @@ different replacements, update their managed configurations individually before
 running a database-wide conversion; do not use one selection as a clinical default.
 
 The transaction updates ASP/ASPC selections, affected draft setups, sample file
-metadata, missing-file metadata, and measurement counts. Existing generic file
-paths are retained under each selected key. The parser reads only that key's
-measurement from a shared JSON file. A formerly required generic file becomes a
-required file for **each selected analysis**; verify producer content before reuse.
+metadata, missing-file metadata, and measurement counts. Existing shared file
+paths remain under `biomarkers`. Identical separate file references can be collapsed
+to that key; conflicting references stop the migration before any writes. Produce
+one combined JSON and reconcile its metadata before retrying. The script never
+chooses between distinct source files or merges their contents. Required-file
+policy requires the shared file, not every measurement; verify assay expectations
+against the actual producer output.
 
 Stored measurements, saved reports, reported findings, published setup snapshots,
 and clinical rule revisions remain unchanged. The migration checks original

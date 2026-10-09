@@ -127,7 +127,9 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         required_keys = cls._required_file_keys_for_sample(asp)
         rows: list[dict[str, Any]] = []
         for key in cls._expected_file_keys_for_sample(sample, asp):
-            analysis_type = analysis_type_for_file_key(omics_layer, key)
+            analysis_type = (
+                None if key == "biomarkers" else analysis_type_for_file_key(omics_layer, key)
+            )
             file_doc = sample_files.get(key)
             file_meta = file_doc if isinstance(file_doc, dict) else {}
             path = (
@@ -147,12 +149,9 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                     size_bytes = os.path.getsize(str(path))
                 except OSError:
                     size_bytes = None
-            analysis_type = analysis_type_for_file_key(omics_layer, key)
-            data_count = data_counts.get(
-                analysis_type.lower()
-                if analysis_type in BIOMARKER_ANALYSES
-                else preload_keys.get(key, "")
-            )
+            # A shared measurement file has no single analysis or meaningful row count.
+            # Measured analysis counts remain independent in sample.data_counts.
+            data_count = None if key == "biomarkers" else data_counts.get(preload_keys.get(key, ""))
             if key in (sample.get("missing_expected_files") or []):
                 availability = "optional_missing"
             elif path and path_exists:

@@ -75,6 +75,18 @@ The bundle is at `demo_data/clinical_workflows/`. Copy the entire directory to a
 private working directory before uploading: the submission tool acknowledges
 successful manifests, so the tracked originals should remain unchanged.
 
+All parsed evidence files are included. DNA manifests use one `biomarkers` JSON
+for HRD, MSI and TMB; each measurement remains independently selectable in the ASPC.
+The example contains TMB for testing, but a producer can omit it until supported.
+
+The alignment fields `case_bam`, `case_bai`, `control_bam` and `control_bai` are
+explicitly `null`. BAM/BAI files are not included or uploaded by these manifests.
+Ingest and rule testing do not require them. To test IGV, provide a sorted case BAM
+and matching BAI, plus control BAM/BAI for paired review, and configure their ASP
+IGV folder and alignment-service access. Use the appropriate reference genome;
+a design BED supplies an optional target track. See
+[alignment resources](../reference/ingest-files/images-and-alignments.md).
+
 ```bash
 DEMO_WORK="$(mktemp -d /tmp/coyote3-demo.XXXXXX)"
 cp -R demo_data/clinical_workflows/. "$DEMO_WORK/"

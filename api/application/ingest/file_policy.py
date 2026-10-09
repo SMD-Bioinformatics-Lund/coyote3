@@ -13,6 +13,7 @@ from api.config.constants import (
     normalize_clinical_identifier,
 )
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
+from api.domain.common.biomarkers import BIOMARKER_ANALYSES
 
 CollectionResolver = Callable[[str], Any]
 
@@ -67,12 +68,21 @@ def validate_payload_file_keys(
     omics_layer = (
         str(validated.get("omics_layer") or infer_omics_layer(validated) or "").strip().lower()
     )
-    expected, _required = assay_file_policy(
-        collection, assay_name=validated.get("asp_id"), omics_layer=omics_layer
-    )
     files = validated.get("files") if isinstance(validated.get("files"), dict) else {}
     runtime = (
         validated.get("_runtime_files") if isinstance(validated.get("_runtime_files"), dict) else {}
+    )
+    retired = sorted(
+        analysis.lower()
+        for analysis in BIOMARKER_ANALYSES
+        if any(analysis.lower() in values for values in (validated, files, runtime))
+    )
+    if retired:
+        raise ValueError(
+            "Use one biomarkers JSON input instead of separate file keys: " + ", ".join(retired)
+        )
+    expected, _required = assay_file_policy(
+        collection, assay_name=validated.get("asp_id"), omics_layer=omics_layer
     )
     declared = {
         key

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 class AnalysisPreloadContract:
     """Map supported analyses to internal parser payload names.
 
-    Manifest field names are centre configuration and are resolved against this
+    Manifest field names are application capabilities and are resolved against this
     stable application contract by :func:`manifest_file_preload_keys`.
     """
 

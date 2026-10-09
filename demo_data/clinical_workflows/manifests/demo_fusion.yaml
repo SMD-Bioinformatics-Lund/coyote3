@@ -22,3 +22,9 @@ case_reads: 1000000
 case_purity: null
 fusion_files: ../raw/fusions.json
 qc: ../raw/qc.json
+
+# Optional IGV references; supply filenames only when matching files are served.
+case_bam: null
+case_bai: null
+control_bam: null
+control_bai: null

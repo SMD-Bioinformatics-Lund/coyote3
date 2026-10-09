@@ -1,7 +1,7 @@
 # HRD, MSI, and TMB
 
-HRD, MSI, and TMB are independent DNA analysis types. Each has its own input
-file, availability state, report selection, clinical-rule collection, and saved
+HRD, MSI, and TMB are independent DNA analysis types. Each has its own
+availability state, report selection, clinical-rule collection, and saved
 finding identity. Their measurements share the `biomarkers` MongoDB collection.
 
 ![Independent measurements from assay policy to saved reports](../assets/diagrams/measurement-analysis-flow.svg)
@@ -10,9 +10,9 @@ finding identity. Their measurements share the `biomarkers` MongoDB collection.
 
 | Analysis | Manifest key | Stored fields | Rule collection | Measurement unit |
 | --- | --- | --- | --- | --- |
-| HRD | `hrd` | `HRD` | `hrd` | Producer score; components `tai`, `hrd`, and `lst` |
-| MSI | `msi` | `MSIS`, `MSIP` | `msi` | Percentage; single and paired methods remain distinct |
-| TMB | `tmb` | `TMB` | `tmb` | Mutations per megabase (`mut/Mb`) |
+| HRD | `biomarkers` | `HRD` | `hrd` | Producer score; components `tai`, `hrd`, and `lst` |
+| MSI | `biomarkers` | `MSIS`, `MSIP` | `msi` | Percentage; single and paired methods remain distinct |
+| TMB | `biomarkers` | `TMB` | `tmb` | Mutations per megabase (`mut/Mb`) |
 
 The ASP's `expected_files` determines which analyses can be enabled in the ASPC.
 `required_files` independently determines which missing inputs block ingestion.
@@ -26,16 +26,16 @@ No threshold, clinical classification, or cross-analysis score is inferred at in
 
 ## Ingestion and availability
 
-Each file is a JSON object with `name` and its measurement fields. Files submitted
-together must use the same source name. A file may contain additional measurement
-fields, but its manifest key selects only its own analysis. This permits a producer
-to reference one combined JSON file under several explicitly declared keys.
+One [shared JSON file](ingest-files/biomarkers-json.md), declared as `biomarkers`,
+contains `name` and any supplied HRD, MSI, or TMB measurement fields. The parser
+reads it once and records each present measurement under its respective analysis.
+The file can contain HRD and MSI without TMB; adding TMB requires no manifest change.
 
 See the raw contracts for [HRD](ingest-files/hrd-json.md), [MSI](ingest-files/msi-json.md),
 and [TMB](ingest-files/tmb-json.md).
 
 An absent or unreadable optional expected file is recorded in
-`missing_expected_files`. A readable file without its selected measurement fails
+`missing_expected_files`. A readable file without any supported measurement fails
 validation. A valid numeric zero is a measured result, not missing data.
 
 An update replaces only the supplied analyses within the shared collection.

@@ -585,7 +585,7 @@ class SamplesDoc(_DocBase):
             if has_dna:
                 raise ValueError(
                     "RNA sample must not include DNA file keys "
-                    "(vcf_files/cnv/cov/hrd/msi/tmb/transloc)"
+                    "(vcf_files/cnv/cov/biomarkers/transloc)"
                 )
             if not has_rna:
                 raise ValueError("RNA sample must include at least one RNA data file key")
@@ -605,7 +605,8 @@ class SamplesDoc(_DocBase):
             Missing reported is derived from latest_report_id.
 
         Raises:
-            ValueError: If supplied filters violate the canonical intent-aware contract.
+            ValueError: If supplied filters violate the canonical intent-aware contract,
+                or separate biomarker file keys are supplied instead of the shared input.
 
         Notes:
             Existing nested file dictionaries can receive checksum entries in place.
@@ -613,6 +614,8 @@ class SamplesDoc(_DocBase):
         if not isinstance(data, dict):
             return data
         normalized = dict(data)
+        if any(key in normalized for key in ("hrd", "msi", "tmb")):
+            raise ValueError("Use one biomarkers JSON input instead of separate hrd/msi/tmb keys")
         files = dict(normalized.get("files") or {})
         for key in SAMPLE_SOURCE_PATH_KEYS:
             value = normalized.pop(key, None)

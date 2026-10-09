@@ -34,7 +34,11 @@ cnv: ../raw/cnvs.json
 cnvprofile: ../raw/cnvprofile.png
 cov: ../raw/coverage.json
 transloc: ../raw/translocations.vcf
-hrd: ../raw/hrd.json
-msi: ../raw/msi.json
-tmb: ../raw/tmb.json
+biomarkers: ../raw/biomarkers.json
 pgx: ../raw/pgx.json
+
+# Optional IGV references; supply filenames only when matching files are served.
+case_bam: null
+case_bai: null
+control_bam: null
+control_bai: null

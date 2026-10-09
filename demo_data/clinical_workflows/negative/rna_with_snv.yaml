@@ -23,3 +23,9 @@ case_purity: null
 fusion_files: ../raw/fusions.json
 qc: ../raw/qc.json
 vcf_files: ../raw/dna.vcf
+
+# Optional IGV references; supply filenames only when matching files are served.
+case_bam: null
+case_bai: null
+control_bam: null
+control_bai: null

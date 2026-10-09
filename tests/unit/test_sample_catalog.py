@@ -39,6 +39,24 @@ def test_file_rows_read_current_sample_files_shape(tmp_path):
     assert by_key["cnv"]["availability"] == "optional_missing"
 
 
+def test_shared_measurement_file_does_not_claim_a_single_analysis(tmp_path):
+    source = tmp_path / "biomarkers.json"
+    source.write_text('{"name":"DEMO","TMB":{"value":0}}')
+    rows = SampleCatalogService._file_rows_for_sample(
+        {
+            "omics_layer": "dna",
+            "files": {"biomarkers": {"path": str(source)}},
+            "data_counts": {"tmb": 1},
+        },
+        {"expected_files": ["biomarkers"]},
+    )
+    assert len(rows) == 1
+    assert rows[0]["key"] == "biomarkers"
+    assert rows[0]["analysis_type"] is None
+    assert rows[0]["data_count"] is None
+    assert rows[0]["availability"] == "available"
+
+
 def test_recorded_unavailable_file_stays_missing_until_ingested(tmp_path):
     source = tmp_path / "late-transloc.vcf"
     source.write_text("synthetic")

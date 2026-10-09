@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan or apply independent biomarker analysis and file-key configuration."""
+"""Plan or apply independent analyses while preserving shared biomarker input."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def transform_configuration(document: dict[str, Any], analyses: list[str]) -> di
         analyses: Clinically reviewed replacement selection for BIOMARKER.
 
     Returns:
-        A copy with explicit analysis identifiers and independent file requirements.
+        A copy with explicit analysis identifiers and shared file requirements.
         Existing individual selections retain their order and are deduplicated.
     """
     result = deepcopy(document)
@@ -40,13 +40,11 @@ def transform_configuration(document: dict[str, Any], analyses: list[str]) -> di
             "expected_files",
             "required_files",
         } and isinstance(value, list):
-            old = "biomarkers" if key.endswith("files") else "BIOMARKER"
-            replacements = (
-                [item.lower() for item in analyses] if key.endswith("files") else analyses
-            )
+            old = {"hrd", "msi", "tmb"} if key.endswith("files") else {"BIOMARKER"}
+            replacements = ["biomarkers"] if key.endswith("files") else analyses
             result[key] = list(
                 dict.fromkeys(
-                    item for entry in value for item in (replacements if entry == old else [entry])
+                    item for entry in value for item in (replacements if entry in old else [entry])
                 )
             )
         elif isinstance(value, dict):
@@ -99,9 +97,9 @@ def migrate(db: Any, *, analyses: list[str], apply: bool = False) -> dict[str, i
     Notes:
         Stop writers and take a backup before applying. Stored measurements, saved
         reports, reported findings, rule revisions, and published setup snapshots are
-        not rewritten. Files may share their existing JSON path; each parser selects
-        only its own measurement fields. Required generic files expand to every selected
-        analysis, so operators must review requirements and producer output first.
+        not rewritten. Shared biomarker paths are retained. Separate file references
+        can be combined only when their metadata is identical; distinct files require
+        a producer-generated combined file and reviewed metadata before migration.
     """
     if (
         not analyses
@@ -156,21 +154,20 @@ def migrate(db: Any, *, analyses: list[str], apply: bool = False) -> dict[str, i
     for original in samples.find({}):
         updated = deepcopy(original)
         files = updated.get("files") or {}
-        legacy = files.pop("biomarkers", None)
-        if legacy is not None:
-            for analysis in analyses:
-                files.setdefault(analysis.lower(), deepcopy(legacy))
+        for key in ("hrd", "msi", "tmb"):
+            if key not in files:
+                continue
+            legacy = files.pop(key)
+            if "biomarkers" in files and files["biomarkers"] != legacy:
+                raise ValueError("Combine distinct biomarker source files before migration")
+            files["biomarkers"] = legacy
+        if files:
             updated["files"] = files
-        if "biomarkers" in updated.get("missing_expected_files", []):
+        if updated.get("missing_expected_files"):
             updated["missing_expected_files"] = list(
                 dict.fromkeys(
-                    item
+                    "biomarkers" if entry in {"hrd", "msi", "tmb"} else entry
                     for entry in updated["missing_expected_files"]
-                    for item in (
-                        [analysis.lower() for analysis in analyses]
-                        if entry == "biomarkers"
-                        else [entry]
-                    )
                 )
             )
         documents = list(measurements.find({"SAMPLE_ID": str(original["_id"])}))

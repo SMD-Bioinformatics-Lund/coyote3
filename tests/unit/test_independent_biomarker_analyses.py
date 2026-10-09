@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from api.application.biomarker.biomarker_lookup import BiomarkerService
 from api.application.ingest.dependent_writes import data_counts, replace_dependents
+from api.application.ingest.file_policy import validate_payload_file_keys
 from api.application.ingest.parsers import DnaIngestParser
 from api.application.reporting.clinical_rules.evaluator import condition_matches
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
@@ -20,6 +21,7 @@ from api.application.reporting.snapshot_rows import build_biomarker_snapshot_row
 from api.config.constants import analysis_file_keys
 from api.contracts.schemas.clinical_rules import ClinicalRulePredicate
 from api.contracts.schemas.dna import BiomarkersDoc
+from api.contracts.schemas.samples import SamplesDoc
 from api.domain.common.biomarkers import project_biomarkers
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
@@ -64,17 +66,22 @@ def test_generic_and_unimplemented_rule_collections_are_rejected(collection):
 
 
 @pytest.mark.parametrize("analysis", ["HRD", "MSI", "TMB"])
-def test_each_analysis_has_an_independent_file_and_projection(tmp_path, analysis):
-    """Shared source files expose only the measurement owned by each input key."""
+def test_shared_file_preserves_independent_measurement_availability(tmp_path, analysis):
+    """A file containing one analysis does not make other measurements available."""
     source = tmp_path / "measurements.json"
-    source.write_text(json.dumps(MEASUREMENTS))
-    key = analysis_file_keys("dna", analysis)[0]
-    assert key == analysis.lower()
-    payload = DnaIngestParser().parse({"files": {key: {"path": str(source)}}})
     expected = project_biomarkers([MEASUREMENTS], [analysis])[0]
+    source.write_text(json.dumps(expected))
+    key = analysis_file_keys("dna", analysis)[0]
+    assert key == "biomarkers"
+    payload = DnaIngestParser().parse({"files": {key: {"path": str(source)}}})
     assert payload["biomarkers"] == expected
     BiomarkersDoc.model_validate({**expected, "SAMPLE_ID": "sample"})
-    assert data_counts(payload)[key] == 1
+    assert data_counts(payload)[analysis.lower()] == 1
+    assert all(
+        data_counts(payload).get(other.lower(), 0) == 0
+        for other in ("HRD", "MSI", "TMB")
+        if other != analysis
+    )
     rows = build_biomarker_snapshot_rows([expected])
     assert [row["analysis_type"] for row in rows] == [analysis]
     assert rows[0]["simple_id"].startswith(analysis.lower() + ":")
@@ -84,9 +91,63 @@ def test_missing_measurement_is_not_a_zero_result(tmp_path):
     source = tmp_path / "empty.json"
     source.write_text(json.dumps({"name": "SYNTHETIC-T", "TMB": None}))
     with pytest.raises(ValueError, match="requires a measurement"):
-        DnaIngestParser().parse({"files": {"tmb": {"path": str(source)}}})
+        DnaIngestParser().parse({"files": {"biomarkers": {"path": str(source)}}})
     assert project_biomarkers([MEASUREMENTS], []) == []
     assert project_biomarkers([MEASUREMENTS], ["TMB"])[0]["TMB"]["value"] == 0
+
+
+def test_combined_measurements_are_read_once(tmp_path, monkeypatch):
+    """One input read retains all supplied analyses, including measured zero."""
+    from api.application.ingest import analysis_parsers
+
+    source = tmp_path / "combined.json"
+    source.write_text(json.dumps(MEASUREMENTS))
+    original = analysis_parsers.read_ingest_json
+    calls = []
+
+    def read(path, label):
+        calls.append(path)
+        return original(path, label)
+
+    monkeypatch.setattr(analysis_parsers, "read_ingest_json", read)
+    payload = DnaIngestParser().parse({"biomarkers": str(source)})
+    assert calls == [str(source)]
+    assert payload["biomarkers"] == MEASUREMENTS
+    assert {key: data_counts(payload)[key] for key in ("hrd", "msi", "tmb")} == {
+        "hrd": 1,
+        "msi": 1,
+        "tmb": 1,
+    }
+
+
+@pytest.mark.parametrize("key", ["hrd", "msi", "tmb"])
+@pytest.mark.parametrize("container", [None, "files", "_runtime_files"])
+def test_separate_file_keys_are_rejected_before_parsing(key, container):
+    payload = {key: "synthetic.json"}
+    if container:
+        payload = {container: payload}
+    with pytest.raises(ValueError, match="Use one biomarkers JSON"):
+        validate_payload_file_keys(Mock(), {"omics_layer": "dna", **payload})
+    if container is None:
+        with pytest.raises(ValidationError, match="Use one biomarkers JSON"):
+            SamplesDoc.model_validate(payload)
+
+
+@pytest.mark.parametrize("document", [[], {}, {"HRD": {}}, {"name": "DEMO"}])
+def test_invalid_shared_measurement_roots_fail(tmp_path, document):
+    source = tmp_path / "invalid.json"
+    source.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match="Biomarkers JSON requires"):
+        DnaIngestParser().parse({"biomarkers": str(source)})
+
+
+def test_migration_refuses_distinct_measurement_file_references():
+    db = mongomock.MongoClient().test
+    db.samples.insert_one({"files": {"hrd": {"path": "a.json"}, "msi": {"path": "b.json"}}})
+    original = db.samples.find_one()
+    with pytest.raises(ValueError, match="Combine distinct"):
+        migrate(db, analyses=["HRD", "MSI"], apply=True)
+    assert db.samples.find_one() == original
 
 
 @pytest.mark.parametrize("field,value", [("TMB", -1), ("TMB", float("inf"))])
@@ -198,7 +259,7 @@ def test_migration_requires_explicit_selection_and_preserves_history():
     }
     updated = transform_configuration(original, ["HRD", "MSI"])
     assert updated["analysis_types"] == ["SNV", "HRD", "MSI", "TMB"]
-    assert updated["expected_files"] == ["hrd", "msi"]
+    assert updated["expected_files"] == ["biomarkers"]
     assert original["expected_files"] == ["biomarkers"]
     db = mongomock.MongoClient().test
     db.asp_configs.insert_one({**original, "asp_id": "assay"})
@@ -261,7 +322,7 @@ def test_migration_applies_configuration_but_not_saved_evidence(monkeypatch):
     db.reports.insert_one({"report_sections": ["BIOMARKER"]})
     assert migrate(db, analyses=["HRD", "MSI"], apply=True)["samples"] == 1
     assert db.asp_configs.find_one()["analysis_types"] == ["HRD", "MSI"]
-    assert set(db.samples.find_one()["files"]) == {"hrd", "msi"}
+    assert set(db.samples.find_one()["files"]) == {"biomarkers"}
     assert db.biomarkers.find_one() == original
     assert db.reports.find_one()["report_sections"] == ["BIOMARKER"]
     assert migrate(db, analyses=["HRD", "MSI"], apply=True)["samples"] == 0

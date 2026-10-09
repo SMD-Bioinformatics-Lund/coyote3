@@ -1,5 +1,11 @@
 {
   "name": "DEMO_CASE",
+  "HRD": {
+    "tai": 2,
+    "hrd": 3,
+    "lst": 4,
+    "sum": 9
+  },
   "MSIS": {
     "tot": 100,
     "som": 0,
@@ -9,5 +15,9 @@
     "tot": 100,
     "som": 1,
     "per": 1.0
+  },
+  "TMB": {
+    "value": 12.4,
+    "unit": "mut/Mb"
   }
 }

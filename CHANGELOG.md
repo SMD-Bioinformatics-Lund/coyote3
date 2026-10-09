@@ -1,12 +1,5 @@
 # Changelog
 
-## Unreleased
-
-- Add optional self-hosted load testing with synthetic fixtures, target checks,
-  authenticated workflows and separate measurement of ingest completion.
-- Preserve watched ingest manifests when processing is disabled during a scan.
-- Return clinical rule publication results from the committed transaction attempt.
-
 ## v4.0.0 - 2026-08-10
 
 Version 4 replaces the Flask/Jinja application with a production-oriented
@@ -22,6 +15,9 @@ FastAPI and React platform while preserving its supported clinical workflows.
   and complete operator and clinical documentation.
 - Removed the legacy Flask application, compatibility paths, and automatic
   first-run orchestration.
+- Add optional self-hosted load testing with synthetic fixtures, target checks,
+  authenticated workflows and separate measurement of ingest completion.
+
 
 ## v3.1.23
 - Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.

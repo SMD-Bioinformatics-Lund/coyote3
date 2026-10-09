@@ -127,7 +127,7 @@ def test_other_analysis_and_missing_measurement_fixtures(demo_db):
     )
     missing = demo_db.samples.find_one({"name": "DEMO_MYELOID_MISSING"})
     assert missing["ingest_status"] == "ready"
-    assert set(missing["missing_expected_files"]) == {"hrd", "msi", "tmb"}
+    assert set(missing["missing_expected_files"]) == {"biomarkers"}
     assert not demo_db.biomarkers.count_documents({"SAMPLE_ID": str(missing["_id"])})
     for name in ("DEMO_FUSION", "DEMO_WTS"):
         rna = demo_db.samples.find_one({"name": name})

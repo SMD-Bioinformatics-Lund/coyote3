@@ -27,9 +27,7 @@
       "cnvprofile",
       "cov",
       "transloc",
-      "hrd",
-      "msi",
-      "tmb",
+      "biomarkers",
       "pgx"
     ],
     "required_files": [
@@ -66,9 +64,7 @@
       "cnvprofile",
       "cov",
       "transloc",
-      "hrd",
-      "msi",
-      "tmb",
+      "biomarkers",
       "pgx"
     ],
     "required_files": [
@@ -105,9 +101,7 @@
       "cnvprofile",
       "cov",
       "transloc",
-      "hrd",
-      "msi",
-      "tmb",
+      "biomarkers",
       "pgx"
     ],
     "required_files": [
@@ -144,9 +138,7 @@
       "cnvprofile",
       "cov",
       "transloc",
-      "hrd",
-      "msi",
-      "tmb",
+      "biomarkers",
       "pgx"
     ],
     "required_files": [
@@ -183,9 +175,7 @@
       "cnvprofile",
       "cov",
       "transloc",
-      "hrd",
-      "msi",
-      "tmb",
+      "biomarkers",
       "pgx"
     ],
     "required_files": [

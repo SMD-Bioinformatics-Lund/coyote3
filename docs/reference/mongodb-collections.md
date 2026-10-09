@@ -18,7 +18,7 @@ This is the canonical collection-key reference used by ingestion validation.
 
 ## DNA vs RNA sample rules
 
-- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `hrd`, `msi`, `tmb`, `transloc`, `pgx`.
+- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`.
 - `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`.
 - Mixed DNA+RNA file-key payloads are rejected by model validation.
 

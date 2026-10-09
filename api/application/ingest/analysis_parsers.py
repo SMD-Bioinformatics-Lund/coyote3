@@ -139,19 +139,16 @@ class DnaIngestParser:
             preload["cnvs"] = self._parse_cnvs_only(cnv_doc)
 
         measurements: dict[str, Any] = {}
-        for analysis, fields in BIOMARKER_FIELDS.items():
-            path = runtime_file_path(args, primary_analysis_file_key("dna", analysis))
-            if not path:
-                continue
-            require_exists(f"{analysis} JSON", path)
-            document = read_ingest_json(path, analysis)
+        path = runtime_file_path(args, primary_analysis_file_key("dna", "HRD"))
+        if path:
+            require_exists("Biomarkers JSON", path)
+            document = read_ingest_json(path, "Biomarkers")
             if not isinstance(document, dict) or not document.get("name"):
-                raise ValueError(f"{analysis} JSON requires an object with a name")
+                raise ValueError("Biomarkers JSON requires an object with a name")
+            fields = tuple(field for fields in BIOMARKER_FIELDS.values() for field in fields)
             selected = {key: document[key] for key in fields if document.get(key) is not None}
             if not selected:
-                raise ValueError(f"{analysis} JSON requires a measurement: {', '.join(fields)}")
-            if measurements.get("name", document["name"]) != document["name"]:
-                raise ValueError("Independent biomarker files must use the same source name")
+                raise ValueError(f"Biomarkers JSON requires a measurement: {', '.join(fields)}")
             measurements.update(name=document["name"], **selected)
         if measurements:
             preload["biomarkers"] = measurements

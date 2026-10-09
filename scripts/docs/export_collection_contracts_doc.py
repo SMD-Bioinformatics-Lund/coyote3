@@ -125,7 +125,7 @@ def main() -> int:
     lines.append("## DNA vs RNA sample rules")
     lines.append("")
     lines.append(
-        "- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `hrd`, `msi`, `tmb`, `transloc`, `pgx`."
+        "- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`."
     )
     lines.append(
         "- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`."

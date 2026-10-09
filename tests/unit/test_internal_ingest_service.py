@@ -155,9 +155,7 @@ def _store_stub(sample_docs=None):
                         "cov",
                         "cnvprofile",
                         "transloc",
-                        "hrd",
-                        "msi",
-                        "tmb",
+                        "biomarkers",
                     ],
                     "required_files": ["vcf_files"],
                 },
@@ -175,9 +173,7 @@ def _store_stub(sample_docs=None):
                         "cov",
                         "cnvprofile",
                         "transloc",
-                        "hrd",
-                        "msi",
-                        "tmb",
+                        "biomarkers",
                     ],
                     "required_files": ["vcf_files"],
                 },
@@ -379,7 +375,7 @@ def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
             "omics_layer": "dna",
             "files": {
                 "cnv": {"path": str(cnv_path)},
-                "hrd": {"path": str(biomarker_path)},
+                "biomarkers": {"path": str(biomarker_path)},
                 "transloc": {"path": str(transloc_path)},
                 "cov": {"path": str(cov_path)},
             },
@@ -778,7 +774,7 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         "vcf_files": str(vcf_path),
         "cov": str(cov_path),
         "cnv": "/data/a.cnv.json",
-        "hrd": "/data/a.hrd.json",
+        "biomarkers": "/data/a.biomarkers.json",
         "_runtime_files": {
             "vcf_files": str(runtime_vcf_path),
             "cov": str(runtime_cov_path),
@@ -786,7 +782,7 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         },
     }
 
-    with pytest.raises(ValueError, match="cnv, hrd"):
+    with pytest.raises(ValueError, match="biomarkers, cnv"):
         service._validate_payload_file_keys(payload)
 
 
@@ -1264,7 +1260,7 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     for p in [vcf, transloc]:
         p.write_text("x", encoding="utf-8")
     cnv.write_text(json.dumps({"k": {"ratio": 1}}), encoding="utf-8")
-    bio.write_text(json.dumps({"name": "b"}), encoding="utf-8")
+    bio.write_text(json.dumps({"name": "b", "TMB": {"value": 0}}), encoding="utf-8")
     cov.write_text(json.dumps({"genes": {}}), encoding="utf-8")
     fus.write_text(
         json.dumps(

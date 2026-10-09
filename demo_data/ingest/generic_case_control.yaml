@@ -34,3 +34,9 @@ vcf_files: generic_case_control.final.filtered.vcf
 cnv: generic_case_control.cnvs.merged.json
 cnvprofile: generic_case_control.modeled.png
 cov: generic_case_control.cov.json
+
+# Optional IGV references; supply filenames only when matching files are served.
+case_bam: null
+case_bai: null
+control_bam: null
+control_bai: null

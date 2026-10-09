@@ -9,13 +9,27 @@ The DNA structural VCF covers an annotated breakend, a reciprocal custom feature
 pair, a deletion and a duplication. Its five source records produce four findings
 with embedded SnpEff evidence and explicit interval endpoints.
 
+Every manifest declares `case_bam`, `case_bai`, `control_bam`, and `control_bai`.
+They are explicitly `null`: this bundle has no alignment files and does not test
+IGV read review. Null does not fabricate a file or a control specimen. For IGV,
+provide a coordinate-sorted case BAM and its matching BAI, and a control BAM/BAI
+for paired review. Configure the ASP IGV folder and make those files available
+through the alignment service. See [alignment resources](../../docs/reference/ingest-files/images-and-alignments.md).
+
+The `biomarkers` manifest key points to one shared JSON containing synthetic HRD,
+MSI and TMB values. Production files may omit TMB until the pipeline produces it.
+The other raw evidence files are included; no additional file is needed for the
+in-memory ingest replay. Live ingestion also requires the setup catalogs described
+in the workflow guide. A design BED and the configured reference genome resources
+are needed only for the corresponding browser tracks, not for parsing these findings.
+
 Follow the [workflow guide](../../docs/testing/clinical-workflow-demo.md) for setup,
 ingest, expected selections, review actions and reporting checks.
 
 | Directory | Contents |
 | --- | --- |
 | `setup/` | Seven demo ASPs, eight testing ASPCs, a named subpanel/association, an ISGL and seven unpublished report-rule drafts. |
-| `raw/` | Paired/unpaired VCFs, translocation VCF, CNVs, coverage, separate HRD/MSI/TMB JSON, PGX, RNA fusions/expression/classification/QC and a placeholder CNV profile image. |
+| `raw/` | Paired/unpaired VCFs, translocation VCF, CNVs, coverage, shared HRD/MSI/TMB JSON, PGX, RNA fusions/expression/classification/QC and a placeholder CNV profile image. |
 | `manifests/` | Ten valid pipeline manifests with relative resource paths. |
 | `negative/` | Deliberately invalid missing-file, missing-ASPC and RNA/SNV manifests. |
 | `scenarios/` | Stable raw-variant labels and editable query-rule draft requests. |

@@ -25,7 +25,7 @@ WEIGHTS = {
     "ingest": 1,
 }
 DEFAULT_WORKFLOWS = ["browsing", "findings", "dashboard"]
-INGEST_FILES = {"msi": {"path": "/load/synthetic/msi.json"}}
+INGEST_FILES = {"biomarkers": {"path": "/load/synthetic/msi.json"}}
 ROUTES = {
     "about": ("GET", "/api/v1/public/about", 200, {"application": dict, "databases": dict}),
     "login": ("POST", "/api/v1/auth/sessions", 200, {"csrf_token": str, "user": dict}),

@@ -153,7 +153,7 @@ ASPC, ISGL, named subpanel or clinical report-rule set.
 | Group / family / category | `hematology` / `panel-dna` / `dna` | `wts` / `wts` / `rna` |
 | Covered genes | UBA1, APOB, EGFR, PHIP, ASXL2, ASXL1, FLT3, KMT2D, GNB1, TP53 | BCR, ABL1, ETV6, RUNX1 |
 | Germline genes | BRCA1 | Empty |
-| Expected file keys | `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, `hrd`, `msi` | `fusion_files`, `expression_path`, `classification_path`, `qc` |
+| Expected file keys | `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, `biomarkers` | `fusion_files`, `expression_path`, `classification_path`, `qc` |
 | Required file keys | `vcf_files` | `fusion_files` |
 | ASPC ID | `assay_1_base_production` | `assay_rna_1_base_production` |
 | Enabled analyses | SNV, CNV, COVERAGE | FUSION, EXPRESSION, CLASSIFICATION, QC |
@@ -162,7 +162,7 @@ ASPC, ISGL, named subpanel or clinical report-rule set.
 Both ASPs and ASPCs are active. Both configurations use `GRCh38`, `Illumina`,
 environment `production`, intent `somatic`, and the unscoped `base` context.
 Expected files do not enable analyses by themselves: the DNA ASP, for example,
-expects HRD/MSI files but its demo ASPC does not enable those analyses.
+expects a shared biomarker file but its demo ASPC does not enable those analyses.
 
 The DNA filter defaults are:
 

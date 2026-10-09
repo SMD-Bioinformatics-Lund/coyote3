@@ -1,6 +1,6 @@
 # MSI: JSON measurement
 
-Manifest key: `msi`. Analysis type: `MSI`. Stored collection: `biomarkers`.
+Manifest key: `biomarkers` (shared measurement file). Analysis type: `MSI`. Stored collection: `biomarkers`.
 
 ## Raw structure
 
@@ -46,13 +46,13 @@ producer-reported percentage, not a fraction; it is not recomputed from counts.
 The two methods remain separate measurements in clinical rule collections.
 An MSI update replaces the complete supplied method set.
 
-A numeric zero is a measured result. Omit the file when this analysis is unavailable;
+A numeric zero is a measured result. Omit this measurement when the analysis is unavailable;
 do not fabricate zero values or submit an empty measurement object. Missing optional
 expected files are recorded separately from successful measurements. Required files
 must be readable, and all readable inputs must pass parsing and schema validation.
 
-The parser selects only MSI fields from this file. An update preserves other
-analyses in the same stored document. Review and reporting are governed independently
+The shared file can also contain other supported measurements. The parser retains
+all supplied analyses; an update preserves analyses omitted from the file. Review and reporting are governed independently
 by the sample's ASPC analysis types and report sections.
 
 See [measurement analysis behavior](../measurement-analyses.md),

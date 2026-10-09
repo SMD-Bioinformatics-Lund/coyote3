@@ -138,7 +138,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               <div key={file.key || file.path || index} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background/70 px-3 py-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold">{sampleArtifactPresentation(file.analysis_type).label}</span>
+                    <span className="text-sm font-semibold">{sampleArtifactPresentation(file.analysis_type, file.key).label}</span>
                     <StatusPill tone={file.required ? "blue" : "muted"}>{file.required ? "Required" : "Optional"}</StatusPill>
                     {formatFileSize(file.size_bytes) && (
                       <StatusPill tone="muted">{formatFileSize(file.size_bytes)}</StatusPill>
@@ -148,7 +148,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                     )}
                   </div>
                   <p className={`mt-0.5 break-all type-meta ${file.path && file.exists === false ? "text-fail" : "text-muted-foreground"}`}>
-                    {file.path || sampleArtifactPresentation(file.analysis_type).missingMessage}
+                    {file.path || sampleArtifactPresentation(file.analysis_type, file.key).missingMessage}
                   </p>
                   {file.checksum && (
                     <p className="mt-0.5 truncate type-label text-muted-foreground">

@@ -31,7 +31,10 @@ const DEFAULT_PRESENTATION: ArtifactPresentation = {
   missingMessage: "No file available",
 }
 
-export function sampleArtifactPresentation(analysisType: unknown): ArtifactPresentation {
+export function sampleArtifactPresentation(analysisType: unknown, fileKey?: unknown): ArtifactPresentation {
+  if (fileKey === "biomarkers") {
+    return { label: "Biomarker JSON (HRD / MSI / TMB)", missingMessage: "No biomarker file available" }
+  }
   return ARTIFACT_PRESENTATION[String(analysisType || "").trim().toUpperCase()] || DEFAULT_PRESENTATION
 }
 
@@ -60,6 +63,6 @@ export function sampleArtifactStatus(availability: unknown): { label: string; to
 
 export const FILE_ANALYSIS_LABELS: Record<string, string> = {
   vcf_files: "SNV", cnv: "CNV", transloc: "Translocations", cov: "Coverage",
-  hrd: "HRD", msi: "MSI", tmb: "TMB", fusion_files: "Fusion", expression_path: "Expression",
+  biomarkers: "HRD / MSI / TMB", fusion_files: "Fusion", expression_path: "Expression",
   classification_path: "Classification", qc: "QC", cnvprofile: "CNV profile",
 }

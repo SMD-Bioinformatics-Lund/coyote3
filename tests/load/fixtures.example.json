@@ -20,6 +20,6 @@
     "pipeline": "synthetic_load",
     "genome_build": 38,
     "database_versions": {"vep": "103"},
-    "files": {"msi": {"path": "/load/synthetic/msi.json"}}
+    "files": {"biomarkers": {"path": "/load/synthetic/msi.json"}}
   }
 }

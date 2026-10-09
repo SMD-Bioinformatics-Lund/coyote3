@@ -25,3 +25,9 @@ fusion_files: ../collections/all_collections_dummy/fusions.json
 expression_path: generic_rna_expression.json
 classification_path: generic_rna_classification.json
 qc: generic_rna_qc.json
+
+# Optional IGV references; supply filenames only when matching files are served.
+case_bam: null
+case_bai: null
+control_bam: null
+control_bai: null

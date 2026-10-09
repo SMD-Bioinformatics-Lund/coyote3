@@ -20,9 +20,9 @@ example, normalization behavior, and constraints to check before submission.
 | [Copy-number variants: JSON](copy-number-json.md) | `cnv` | JSON array or object keyed by interval |
 | [DNA translocations: SnpEff-annotated VCF](translocations-vcf.md) | `transloc` | SnpEff-annotated breakend VCF |
 | [Panel coverage: JSON](coverage-json.md) | `cov` | JSON object keyed by gene under `genes` |
-| [HRD JSON](hrd-json.md) | `hrd` | JSON object with sample label and HRD measurements |
-| [MSI JSON](msi-json.md) | `msi` | JSON object with sample label and MSI measurements |
-| [TMB JSON](tmb-json.md) | `tmb` | JSON object with sample label and TMB measurements |
+| [HRD JSON](hrd-json.md) | `biomarkers` | JSON object with sample label and HRD measurements |
+| [MSI JSON](msi-json.md) | `biomarkers` | JSON object with sample label and MSI measurements |
+| [TMB JSON](tmb-json.md) | `biomarkers` | JSON object with sample label and TMB measurements |
 | [RNA fusions: caller evidence JSON](fusions-json.md) | `fusion_files` | JSON array of fusions with caller observations |
 | [RNA expression: sample and reference JSON](expression-json.md) | `expression_path` | JSON object with sample and reference arrays |
 | [RNA classification: score JSON](classification-json.md) | `classification_path` | JSON object with classifier result array |
