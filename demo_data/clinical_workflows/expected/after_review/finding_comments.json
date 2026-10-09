@@ -1,8 +1,8 @@
 [
   {
-    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_oid": "029f2978888a36aa73630c02",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "6e11cb319ccde1de3a852a4a",
+    "finding_oid": "99706ace86ce1244957c7181",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10001_A_G",
@@ -27,9 +27,9 @@
     }
   },
   {
-    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_oid": "029f2978888a36aa73630c02",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "f5427c02d42c96870221aa44",
+    "finding_oid": "579024fb4d650d30158c5b14",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10002_A_G",
@@ -54,9 +54,9 @@
     }
   },
   {
-    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_oid": "029f2978888a36aa73630c02",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "8ae52dfbd39f269513ec8503",
+    "finding_oid": "54f31f14b984ced71f6071c0",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10003_A_G",
@@ -81,9 +81,9 @@
     }
   },
   {
-    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_oid": "029f2978888a36aa73630c02",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "d14d5cce5497eee308ba0f0b",
+    "finding_oid": "ef3d06db40ba3f7c31a662f2",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10004_A_G",
@@ -108,9 +108,9 @@
     }
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "e8e084c990e226e1f6a8affb",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "8afe7ddff1dbee4677a5bd3e",
+    "finding_oid": "ee75b2bfa66a84030219f790",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10001_A_G",
@@ -135,9 +135,9 @@
     }
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "e8e084c990e226e1f6a8affb",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "7cdf4bd569bb5361864cfef7",
+    "finding_oid": "f0f00e14d254feef08b216eb",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10002_A_G",
@@ -162,9 +162,9 @@
     }
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "e8e084c990e226e1f6a8affb",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "ebdd8e609c2978b87faf6f03",
+    "finding_oid": "24e86e96042cdfcee0f9044d",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10003_A_G",
@@ -189,9 +189,9 @@
     }
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "e8e084c990e226e1f6a8affb",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "d43fee6f8eb27ed2fff9d53f",
+    "finding_oid": "2991c5e88c73e1bc977de038",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10004_A_G",
@@ -213,6 +213,114 @@
     "time_hidden": null,
     "_id": {
       "$oid": "f1d9a4c0db43182e688f05e2"
+    }
+  },
+  {
+    "sample_oid": "dd54815825da439747a7082d",
+    "sample_name": "DEMO_GROUP_DNA",
+    "finding_oid": "f6a2bf3165c77d43ab51ee74",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10001_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10001_A_G",
+    "genomic_hash": "1c9d579ae08873ce1bf2f4ae2252f6df",
+    "gene": "TP53",
+    "transcript": "ENSTDEMO0000.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 1 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "ea246a838e8e8e86643f64cd"
+    }
+  },
+  {
+    "sample_oid": "dd54815825da439747a7082d",
+    "sample_name": "DEMO_GROUP_DNA",
+    "finding_oid": "98dbc284eba4c334e814328d",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10002_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10002_A_G",
+    "genomic_hash": "f8264755d699a971372df224ae7305fa",
+    "gene": "FLT3",
+    "transcript": "ENSTDEMO0001.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 2 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "8e0685517691d2a653e713aa"
+    }
+  },
+  {
+    "sample_oid": "dd54815825da439747a7082d",
+    "sample_name": "DEMO_GROUP_DNA",
+    "finding_oid": "786911f3675e7acede4a8ae6",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10003_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10003_A_G",
+    "genomic_hash": "1aaa2b081b1ef1761794692f252f9627",
+    "gene": "CEBPA",
+    "transcript": "ENSTDEMO0002.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 3 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "307650e41e4017aea4b6322a"
+    }
+  },
+  {
+    "sample_oid": "dd54815825da439747a7082d",
+    "sample_name": "DEMO_GROUP_DNA",
+    "finding_oid": "3a7fa3ce1849c52b0aa25d74",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10004_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10004_A_G",
+    "genomic_hash": "2c8201ee4638f34a9abf0c7513d67cf1",
+    "gene": "NFKBIE",
+    "transcript": "ENSTDEMO0003.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 4 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "092e19fb8a10f61554aae82c"
     }
   }
 ]

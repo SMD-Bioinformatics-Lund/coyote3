@@ -9,9 +9,24 @@
       }
     ],
     "classifier_version": "1.0.0",
-    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
     "_id": {
       "$oid": "e639003f8fbad94677979a76"
+    }
+  },
+  {
+    "classifier_results": [
+      {
+        "class": "SYNTHETIC_CLASS",
+        "score": 0.98,
+        "true": 98,
+        "total": 100
+      }
+    ],
+    "classifier_version": "1.0.0",
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "_id": {
+      "$oid": "1efe136ed4ccd4fc2bfeaf1e"
     }
   }
 ]

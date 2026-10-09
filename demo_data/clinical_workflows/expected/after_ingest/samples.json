@@ -91,6 +91,284 @@
     }
   },
   {
+    "name": "DEMO_GROUP_DNA",
+    "asp_id": "demo_e2e_demo_dna",
+    "subpanel_id": "base",
+    "environment": "testing",
+    "current_aspc_id": {
+      "$oid": "83bdec0afb40c4dfda163bd8"
+    },
+    "current_aspc_key": "demo_e2e_demo_dna_base_testing",
+    "current_aspc_version": 1,
+    "aspc_resolution": {
+      "requested_subpanel_id": "base",
+      "resolved_subpanel_id": "base",
+      "used_base_configuration": false,
+      "resolved_from_sample_revision": false,
+      "warning": null
+    },
+    "genome_build": 38,
+    "database_versions": {
+      "assembly": "GRCh38.p13",
+      "vep": "103"
+    },
+    "case_id": "DEMO_CASE",
+    "control_id": "DEMO_CONTROL",
+    "sample_no": 2,
+    "paired": true,
+    "sequencing_scope": "panel",
+    "omics_layer": "dna",
+    "sex": "female",
+    "platform": "illumina",
+    "read_mode": "PE",
+    "read_technology": "short_read",
+    "pipeline": "SyntheticFixture",
+    "pipeline_version": "1.0",
+    "files": {
+      "vcf_files": {
+        "path": "raw/dna.vcf",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "cnv": {
+        "path": "raw/cnvs.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "cnvprofile": {
+        "path": "raw/cnvprofile.png",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "cov": {
+        "path": "raw/coverage.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "transloc": {
+        "path": "raw/translocations.vcf",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "biomarkers": {
+        "path": "raw/biomarkers.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "pgx": {
+        "path": "raw/pgx.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      }
+    },
+    "missing_expected_files": [],
+    "analysis_intents": [
+      "somatic"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1.0,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": [],
+          "adhoc_genes": {}
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": [],
+          "adhoc_genes": {}
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        }
+      },
+      "germline": null
+    },
+    "case": {
+      "bam": "",
+      "bai": "",
+      "id": "DEMO_CASE",
+      "clarity_id": "demo_case_clarity",
+      "clarity_pool_id": "demo_case_pool",
+      "ffpe": false,
+      "sequencing_run": "DEMO_RUN",
+      "reads": 49039064,
+      "purity": null
+    },
+    "control": {
+      "bam": "",
+      "bai": "",
+      "id": "DEMO_CONTROL",
+      "clarity_id": "demo_control_clarity",
+      "clarity_pool_id": "demo_control_pool",
+      "ffpe": false,
+      "sequencing_run": "DEMO_RUN",
+      "reads": 45889968,
+      "purity": null
+    },
+    "ingest_status": "ready",
+    "reported": false,
+    "latest_report_id": null,
+    "latest_report_on": null,
+    "time_added": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "ingested_by": "demo.ingester",
+    "ingest_source": "api",
+    "_id": {
+      "$oid": "dd54815825da439747a7082d"
+    },
+    "data_counts": {
+      "snvs": 30,
+      "cnvs": 5,
+      "biomarkers": true,
+      "transloc": 4,
+      "cov": true,
+      "pgx": true,
+      "hrd": 1,
+      "msi": 1,
+      "tmb": 1
+    }
+  },
+  {
+    "name": "DEMO_GROUP_RNA",
+    "asp_id": "demo_e2e_demo_rna",
+    "subpanel_id": "base",
+    "environment": "testing",
+    "current_aspc_id": {
+      "$oid": "38f9a4df7035c4618afca342"
+    },
+    "current_aspc_key": "demo_e2e_demo_rna_base_testing",
+    "current_aspc_version": 1,
+    "aspc_resolution": {
+      "requested_subpanel_id": "base",
+      "resolved_subpanel_id": "base",
+      "used_base_configuration": false,
+      "resolved_from_sample_revision": false,
+      "warning": null
+    },
+    "genome_build": 38,
+    "database_versions": {},
+    "case_id": "DEMO_CASE",
+    "control_id": null,
+    "sample_no": 1,
+    "paired": false,
+    "sequencing_scope": "wts",
+    "omics_layer": "rna",
+    "sex": "female",
+    "platform": "illumina",
+    "read_mode": "PE",
+    "read_technology": "short_read",
+    "pipeline": "SyntheticFixture",
+    "pipeline_version": "1.0",
+    "files": {
+      "fusion_files": {
+        "path": "raw/fusions.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "expression_path": {
+        "path": "raw/expression.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "classification_path": {
+        "path": "raw/classification.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      },
+      "qc": {
+        "path": "raw/qc.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
+      }
+    },
+    "missing_expected_files": [],
+    "analysis_intents": [
+      "somatic"
+    ],
+    "filters": {
+      "somatic": {
+        "fusion": {
+          "fusion_callers": [],
+          "fusion_descriptions": [],
+          "fusion_effects": [],
+          "fusionlists": [],
+          "min_spanning_pairs": 0,
+          "min_spanning_reads": 0,
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "case": {
+      "bam": "",
+      "bai": "",
+      "id": "DEMO_CASE",
+      "clarity_id": "demo_rna_case_clarity",
+      "clarity_pool_id": "demo_rna_pool",
+      "ffpe": false,
+      "sequencing_run": "DEMO_RUN",
+      "reads": 1000000,
+      "purity": null
+    },
+    "control": null,
+    "ingest_status": "ready",
+    "reported": false,
+    "latest_report_id": null,
+    "latest_report_on": null,
+    "time_added": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "ingested_by": "demo.ingester",
+    "ingest_source": "api",
+    "_id": {
+      "$oid": "119ffba3832c12b4165f46dd"
+    },
+    "data_counts": {
+      "fusions": 2,
+      "rna_expr": true,
+      "rna_class": true,
+      "rna_qc": true
+    }
+  },
+  {
     "name": "DEMO_HEMATOLOGY",
     "asp_id": "demo_e2e_hematology",
     "subpanel_id": "base",
@@ -249,7 +527,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "dd54815825da439747a7082d"
+      "$oid": "2bc12c9832e8356c4d92a49d"
     },
     "data_counts": {
       "snvs": 30,
@@ -422,7 +700,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "119ffba3832c12b4165f46dd"
+      "$oid": "1fa75a28b581f1e6a53cce3d"
     },
     "data_counts": {
       "snvs": 30,
@@ -595,7 +873,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "2bc12c9832e8356c4d92a49d"
+      "$oid": "029f2978888a36aa73630c02"
     },
     "data_counts": {
       "snvs": 30,
@@ -768,7 +1046,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "1fa75a28b581f1e6a53cce3d"
+      "$oid": "41e289bc028c176b28409af8"
     },
     "data_counts": {
       "snvs": 30,
@@ -937,7 +1215,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "029f2978888a36aa73630c02"
+      "$oid": "e8e084c990e226e1f6a8affb"
     },
     "data_counts": {
       "snvs": 30,
@@ -1096,7 +1374,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "41e289bc028c176b28409af8"
+      "$oid": "53866644ef84fef9de195a7b"
     },
     "data_counts": {
       "snvs": 30,
@@ -1269,7 +1547,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "e8e084c990e226e1f6a8affb"
+      "$oid": "a3990b112e6f32660ee9c636"
     },
     "data_counts": {
       "snvs": 30,
@@ -1442,7 +1720,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "53866644ef84fef9de195a7b"
+      "$oid": "09a7efe1c1798b912925a34a"
     },
     "data_counts": {
       "snvs": 30,
@@ -1552,7 +1830,7 @@
     "ingested_by": "demo.ingester",
     "ingest_source": "api",
     "_id": {
-      "$oid": "a3990b112e6f32660ee9c636"
+      "$oid": "4878e6d12fc826101d3917f6"
     },
     "data_counts": {
       "fusions": 2,

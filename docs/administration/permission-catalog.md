@@ -37,6 +37,7 @@ or delete installed definitions. Catalog updates use the controlled installation
 | `app.controls:edit` | Edit application controls | Change application module, Celery task-family, and retention control values. |
 | `app.controls:view` | View application controls | View effective application module, Celery task-family, retention, and observed runtime state. |
 | `app.maintenance:run` | Run application maintenance | Queue an explicit operational retention and cleanup maintenance run. |
+| `demo:install` | Install demonstration data | Install packaged synthetic testing configuration and samples without replacing existing data. |
 | `notification.broadcast:create` | Broadcast application notifications | Publish application, feature, maintenance, warning, and security notifications to all, role-targeted, or selected active users. |
 
 ## Assay Configuration Management

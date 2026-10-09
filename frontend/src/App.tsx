@@ -44,6 +44,7 @@ const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage").then((m
 const AdminControlsPage = lazy(() => import("./pages/admin/AdminControlsPage").then((module) => ({ default: module.AdminControlsPage })))
 const AdminIngestPage = lazy(() => import("./pages/admin/AdminIngestPage").then((module) => ({ default: module.AdminIngestPage })))
 const AdminSchemasPage = lazy(() => import("./pages/admin/AdminSchemasPage"))
+const DemoInstallationPage = lazy(() => import("./pages/admin/DemoInstallationPage"))
 const PublicCatalog = lazy(() => import("./pages/catalog/PublicCatalogPage").then((module) => ({ default: module.PublicCatalog })))
 const PublicCatalogMatrix = lazy(() => import("./pages/catalog/PublicCatalogMatrixPage").then((module) => ({ default: module.PublicCatalogMatrix })))
 const TieredVariantContext = lazy(() => import("./pages/search/TieredVariantContext").then((module) => ({ default: module.TieredVariantContext })))
@@ -166,6 +167,7 @@ export default function App() {
               "ingest_workspace",
             )} />
             <Route path="/admin/schemas" element={withAdminPermission(<AdminSchemasPage />, ADMIN_UTILITY_PERMISSIONS.schemasView)} />
+            <Route path="/admin/demo-installation" element={withAdminPermission(<DemoInstallationPage />, ADMIN_UTILITY_PERMISSIONS.demoInstall)} />
             <Route path="/admin/ui-routes" element={withAdminPermission(<UiRouteAuditPage />, ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView)} />
             <Route path="/admin/notifications" element={withAdminPermission(<AdminNotificationBroadcastPage />, ADMIN_UTILITY_PERMISSIONS.broadcastCreate)} />
             <Route path="/admin/clinical-rules" element={withAdminPermission(<ClinicalRulesPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesView)} />

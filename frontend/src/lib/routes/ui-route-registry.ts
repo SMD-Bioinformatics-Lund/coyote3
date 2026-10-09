@@ -529,6 +529,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["ingest workspace state", "ingest task result"],
   },
   {
+    path: "/admin/demo-installation",
+    page: "DemoInstallationPage",
+    area: "admin",
+    api: ["GET /admin/demo-installation", "POST /admin/demo-installation/configuration", "POST /admin/demo-installation/samples/:key"],
+    dataUsed: ["demo configuration counts", "synthetic sample installation state"],
+  },
+  {
     path: "/admin/ui-routes",
     page: "UiRouteAuditPage",
     area: "admin",

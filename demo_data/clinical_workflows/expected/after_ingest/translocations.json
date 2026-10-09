@@ -501,7 +501,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -579,7 +579,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -846,7 +846,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -924,7 +924,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -1002,7 +1002,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -1080,7 +1080,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -1347,7 +1347,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -1425,7 +1425,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -1503,7 +1503,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -1581,7 +1581,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -1848,7 +1848,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -1926,7 +1926,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -2004,7 +2004,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -2082,7 +2082,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -2349,7 +2349,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -2427,7 +2427,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -2505,7 +2505,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -2583,7 +2583,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -2850,7 +2850,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -2928,7 +2928,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -3006,7 +3006,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -3084,7 +3084,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -3351,7 +3351,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -3429,7 +3429,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -3507,7 +3507,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "CHROM": "1",
     "POS": 10001,
     "END": null,
@@ -3585,7 +3585,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "CHROM": "1",
     "POS": 30001,
     "END": null,
@@ -3852,7 +3852,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "CHROM": "1",
     "POS": 50001,
     "END": 51001,
@@ -3930,7 +3930,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "CHROM": "1",
     "POS": 60001,
     "END": 61001,
@@ -4005,6 +4005,507 @@
     "blacklisted": "",
     "_id": {
       "$oid": "80376bd6a16af18bd9bc6d2a"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "6d276a37ebcdc98434f82e41"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "3dcc7b5bd154469c132fd425"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "df77bce81c7930d8b655c7a2"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "dc175d040e47f04d601569b4"
     }
   }
 ]

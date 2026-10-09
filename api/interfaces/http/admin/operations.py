@@ -7,9 +7,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from api.app.container import util
-from api.app.deps.services import get_audit_service
+from api.app.deps.services import get_audit_service, get_demo_installation_service
 from api.app.runtime_state import app as runtime_app
 from api.application.audit.service import AuditService
+from api.application.demo_installation import DemoInstallationService
 from api.application.ingest.tokens import issue_audited_ingest_token
 from api.config.security import get_internal_api_token, get_runtime_environment
 from api.contracts.admin import (
@@ -18,11 +19,50 @@ from api.contracts.admin import (
     IngestTokenIssueRequest,
     IngestTokenIssueResponse,
 )
+from api.contracts.demo_installation import DemoInstallationPlan, DemoInstallResult
 from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 from api.interfaces.http.tags import TAG_ADMIN_OPERATIONS
 from api.security.access import ApiUser, require_access
 
 router = APIRouter(tags=[TAG_ADMIN_OPERATIONS])
+
+
+@router.get(
+    "/api/v1/admin/demo-installation", response_model=DemoInstallationPlan, include_in_schema=False
+)
+def demo_installation_plan(
+    user: ApiUser = Depends(require_access(permission="demo:install")),
+    service: DemoInstallationService = Depends(get_demo_installation_service),
+):
+    """Inspect packaged demo configuration and sample status with demo:install permission."""
+    return service.plan()
+
+
+@router.post(
+    "/api/v1/admin/demo-installation/configuration",
+    response_model=DemoInstallResult,
+    include_in_schema=False,
+)
+def install_demo_configuration(
+    user: ApiUser = Depends(require_access(permission="demo:install")),
+    service: DemoInstallationService = Depends(get_demo_installation_service),
+):
+    """Install synthetic testing configuration; existing fixture identities are never replaced."""
+    return service.install_configuration(user.username)
+
+
+@router.post(
+    "/api/v1/admin/demo-installation/samples/{key}",
+    response_model=DemoInstallResult,
+    include_in_schema=False,
+)
+def install_demo_sample(
+    key: str,
+    user: ApiUser = Depends(require_access(permission="demo:install")),
+    service: DemoInstallationService = Depends(get_demo_installation_service),
+):
+    """Ingest an allowlisted synthetic sample with demo:install permission."""
+    return service.install_sample(key, user.username)
 
 
 @router.post(

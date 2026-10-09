@@ -27,7 +27,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "name": "DEMO_CASE",
     "MSIS": {
       "tot": 100,
@@ -54,7 +54,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "name": "DEMO_CASE",
     "MSIS": {
       "tot": 100,
@@ -81,7 +81,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "name": "DEMO_CASE",
     "MSIS": {
       "tot": 100,
@@ -135,7 +135,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "name": "DEMO_CASE",
     "MSIS": {
       "tot": 100,
@@ -162,7 +162,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "name": "DEMO_CASE",
     "MSIS": {
       "tot": 100,
@@ -186,6 +186,33 @@
     },
     "_id": {
       "$oid": "ba3b06076403cadeb1438fd3"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "e9dfaab70d0ae1b27b21246b"
     }
   }
 ]

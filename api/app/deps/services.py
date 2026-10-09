@@ -17,6 +17,7 @@ from api.application.classification.tiering import ResourceClassificationService
 from api.application.classification.variant_annotation import ResourceAnnotationService
 from api.application.common.query_service import CommonQueryService
 from api.application.dashboard.analytics import DashboardService
+from api.application.demo_installation import DemoInstallationService
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.ingest.service import InternalIngestService
@@ -246,6 +247,15 @@ def get_internal_ingest_service() -> InternalIngestService:
         audit_service=get_audit_service(),
         notification_service=get_notification_service(),
         monitoring_group=str(runtime_app.config.get("ERROR_EMAIL_GROUP") or "monitoring_group"),
+    )
+
+
+def get_demo_installation_service() -> DemoInstallationService:
+    """Bind the private demonstration installer to application storage and normal ingest."""
+    from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository
+
+    return DemoInstallationService(
+        DemoInstallationRepository(get_store().coyote_db), get_internal_ingest_service()
     )
 
 

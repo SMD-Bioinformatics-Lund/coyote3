@@ -57,5 +57,39 @@
         "RNA was extracted from the submitted specimen and analysed for reportable gene fusions."
       ]
     }
+  },
+  "DEMO_GROUP_DNA": {
+    "sections": {
+      "Report introduction": [
+        "DNA was extracted from the submitted specimen and analysed using the configured assay."
+      ],
+      "Reportable SNVs and small INDELs": [
+        "TP53 contains a reportable small variant.",
+        "FLT3 contains a reportable small variant.",
+        "CEBPA contains a reportable small variant."
+      ],
+      "Synthetic CNV": [
+        "Synthetic CNV evidence is present; no clinical interpretation is implied."
+      ],
+      "Synthetic TRANSLOCATION": [
+        "Synthetic TRANSLOCATION evidence is present; no clinical interpretation is implied."
+      ],
+      "Synthetic HRD": [
+        "Synthetic HRD evidence is present; no clinical interpretation is implied."
+      ],
+      "Synthetic MSI": [
+        "Synthetic MSI evidence is present; no clinical interpretation is implied."
+      ],
+      "Synthetic TMB": [
+        "Synthetic TMB evidence is present; no clinical interpretation is implied."
+      ]
+    }
+  },
+  "DEMO_GROUP_RNA": {
+    "sections": {
+      "Report summary": [
+        "RNA was extracted from the submitted specimen and analysed for reportable gene fusions."
+      ]
+    }
   }
 }

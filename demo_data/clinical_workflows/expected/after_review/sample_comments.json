@@ -1,6 +1,6 @@
 [
   {
-    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_oid": "029f2978888a36aa73630c02",
     "sample_name": "DEMO_MYELOID",
     "author": "demo.reviewer",
     "text": "Synthetic sample comment",
@@ -15,7 +15,7 @@
     }
   },
   {
-    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_oid": "029f2978888a36aa73630c02",
     "sample_name": "DEMO_MYELOID",
     "author": "demo.reviewer",
     "text": "Synthetic sample comment — hidden example",
@@ -32,7 +32,7 @@
     }
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "e8e084c990e226e1f6a8affb",
     "sample_name": "DEMO_MYELOID_MISSING",
     "author": "demo.reviewer",
     "text": "Synthetic sample comment",
@@ -47,7 +47,7 @@
     }
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "e8e084c990e226e1f6a8affb",
     "sample_name": "DEMO_MYELOID_MISSING",
     "author": "demo.reviewer",
     "text": "Synthetic sample comment — hidden example",
@@ -96,7 +96,7 @@
     }
   },
   {
-    "sample_oid": "a3990b112e6f32660ee9c636",
+    "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_WTS",
     "author": "demo.reviewer",
     "text": "Synthetic sample comment",
@@ -111,7 +111,7 @@
     }
   },
   {
-    "sample_oid": "a3990b112e6f32660ee9c636",
+    "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_WTS",
     "author": "demo.reviewer",
     "text": "Synthetic sample comment — hidden example",
@@ -125,6 +125,70 @@
     },
     "_id": {
       "$oid": "585c33fadfaa2f98acd28cbe"
+    }
+  },
+  {
+    "sample_oid": "dd54815825da439747a7082d",
+    "sample_name": "DEMO_GROUP_DNA",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment",
+    "hidden": false,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "5519dddbb88ce0dea993fb8d"
+    }
+  },
+  {
+    "sample_oid": "dd54815825da439747a7082d",
+    "sample_name": "DEMO_GROUP_DNA",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment — hidden example",
+    "hidden": true,
+    "hidden_by": "demo.reviewer",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "15b1b2c6080e20a999e3c273"
+    }
+  },
+  {
+    "sample_oid": "119ffba3832c12b4165f46dd",
+    "sample_name": "DEMO_GROUP_RNA",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment",
+    "hidden": false,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "c8ad92af218031b0e358b0b0"
+    }
+  },
+  {
+    "sample_oid": "119ffba3832c12b4165f46dd",
+    "sample_name": "DEMO_GROUP_RNA",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment — hidden example",
+    "hidden": true,
+    "hidden_by": "demo.reviewer",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "0e9b593ecf977ef7bef0d7e6"
     }
   }
 ]

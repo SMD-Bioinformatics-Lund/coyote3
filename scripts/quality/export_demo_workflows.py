@@ -160,7 +160,14 @@ def review_examples(db):
         row["id"]: row for row in json.loads((ROOT / "scenarios/variants.json").read_text())
     }
     previews = {}
-    for name in ("DEMO_MYELOID", "DEMO_MYELOID_MISSING", "DEMO_FUSION", "DEMO_WTS"):
+    for name in (
+        "DEMO_MYELOID",
+        "DEMO_MYELOID_MISSING",
+        "DEMO_FUSION",
+        "DEMO_WTS",
+        "DEMO_GROUP_DNA",
+        "DEMO_GROUP_RNA",
+    ):
         sample = db.samples.find_one({"name": name})
         sid = str(sample["_id"])
         asp = db.assay_specific_panels.find_one({"asp_id": sample["asp_id"]})

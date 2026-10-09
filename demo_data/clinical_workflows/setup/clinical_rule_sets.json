@@ -3252,5 +3252,724 @@
     "published_by": null,
     "effective_from": null,
     "content_hash": null
+  },
+  {
+    "rule_set_id": "demo_e2e_demo_dna__base__en",
+    "schema_version": 1,
+    "content_version": 1,
+    "revision": 1,
+    "scope": {
+      "asp_id": "demo_e2e_demo_dna",
+      "subpanel_id": "base",
+      "analyte": "dna",
+      "language": "en"
+    },
+    "name": "Synthetic demo DNA report",
+    "status": "draft",
+    "active": false,
+    "analysis_declarations": {
+      "SNV": {
+        "narrative": "enabled"
+      },
+      "CNV": {
+        "narrative": "enabled"
+      },
+      "TRANSLOCATION": {
+        "narrative": "enabled"
+      },
+      "HRD": {
+        "narrative": "enabled"
+      },
+      "MSI": {
+        "narrative": "enabled"
+      },
+      "TMB": {
+        "narrative": "enabled"
+      }
+    },
+    "terminology": {},
+    "blocks": [
+      {
+        "block_id": "demo_dna_intro",
+        "name": "Introduction",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Report introduction",
+        "section_order": 100,
+        "block_order": 10,
+        "show_heading": false,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_dna_intro_text",
+            "name": "Standard introduction",
+            "order": 10,
+            "enabled": true,
+            "output": [
+              {
+                "type": "text",
+                "value": "DNA was extracted from the submitted specimen and analysed using the configured assay."
+              }
+            ],
+            "references": []
+          }
+        ]
+      },
+      {
+        "block_id": "demo_dna_findings",
+        "name": "Small variants",
+        "analysis": "SNV",
+        "evaluation": {
+          "mode": "each_finding"
+        },
+        "section": "Reportable SNVs and small INDELs",
+        "section_order": 200,
+        "block_order": 10,
+        "show_heading": true,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_dna_tiered_finding",
+            "name": "Tiered finding",
+            "order": 10,
+            "enabled": true,
+            "condition": {
+              "type": "predicate",
+              "fact": "finding.tier",
+              "operator": "in",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            "output": [
+              {
+                "type": "fact",
+                "path": "finding.gene",
+                "formatter": "gene_symbol",
+                "missing": "error"
+              },
+              {
+                "type": "text",
+                "value": " contains a reportable small variant."
+              }
+            ],
+            "references": []
+          }
+        ]
+      },
+      {
+        "block_id": "demo_cnv",
+        "name": "Synthetic CNV",
+        "analysis": "CNV",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Synthetic CNV",
+        "section_order": 300,
+        "block_order": 10,
+        "show_heading": true,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_cnv_present",
+            "name": "Evidence present",
+            "order": 10,
+            "enabled": true,
+            "condition": {
+              "type": "predicate",
+              "fact": "aggregates.cnv_count",
+              "operator": "gt",
+              "value": 0
+            },
+            "output": [
+              {
+                "type": "text",
+                "value": "Synthetic CNV evidence is present; no clinical interpretation is implied."
+              }
+            ],
+            "references": []
+          }
+        ]
+      },
+      {
+        "block_id": "demo_translocation",
+        "name": "Synthetic TRANSLOCATION",
+        "analysis": "TRANSLOCATION",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Synthetic TRANSLOCATION",
+        "section_order": 400,
+        "block_order": 10,
+        "show_heading": true,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_translocation_present",
+            "name": "Evidence present",
+            "order": 10,
+            "enabled": true,
+            "condition": {
+              "type": "predicate",
+              "fact": "aggregates.translocation_count",
+              "operator": "gt",
+              "value": 0
+            },
+            "output": [
+              {
+                "type": "text",
+                "value": "Synthetic TRANSLOCATION evidence is present; no clinical interpretation is implied."
+              }
+            ],
+            "references": []
+          }
+        ]
+      },
+      {
+        "block_id": "demo_hrd",
+        "name": "Synthetic HRD",
+        "analysis": "HRD",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Synthetic HRD",
+        "section_order": 500,
+        "block_order": 10,
+        "show_heading": true,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_hrd_present",
+            "name": "Evidence present",
+            "order": 10,
+            "enabled": true,
+            "condition": {
+              "type": "predicate",
+              "fact": "aggregates.hrd_count",
+              "operator": "gt",
+              "value": 0
+            },
+            "output": [
+              {
+                "type": "text",
+                "value": "Synthetic HRD evidence is present; no clinical interpretation is implied."
+              }
+            ],
+            "references": []
+          }
+        ]
+      },
+      {
+        "block_id": "demo_msi",
+        "name": "Synthetic MSI",
+        "analysis": "MSI",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Synthetic MSI",
+        "section_order": 600,
+        "block_order": 10,
+        "show_heading": true,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_msi_present",
+            "name": "Evidence present",
+            "order": 10,
+            "enabled": true,
+            "condition": {
+              "type": "predicate",
+              "fact": "aggregates.msi_count",
+              "operator": "gt",
+              "value": 0
+            },
+            "output": [
+              {
+                "type": "text",
+                "value": "Synthetic MSI evidence is present; no clinical interpretation is implied."
+              }
+            ],
+            "references": []
+          }
+        ]
+      },
+      {
+        "block_id": "demo_tmb",
+        "name": "Synthetic TMB",
+        "analysis": "TMB",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Synthetic TMB",
+        "section_order": 700,
+        "block_order": 10,
+        "show_heading": true,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_tmb_present",
+            "name": "Evidence present",
+            "order": 10,
+            "enabled": true,
+            "condition": {
+              "type": "predicate",
+              "fact": "aggregates.tmb_count",
+              "operator": "gt",
+              "value": 0
+            },
+            "output": [
+              {
+                "type": "text",
+                "value": "Synthetic TMB evidence is present; no clinical interpretation is implied."
+              }
+            ],
+            "references": []
+          }
+        ]
+      }
+    ],
+    "test_cases": [
+      {
+        "test_id": "demo_dna_base",
+        "name": "DNA Base report without findings",
+        "facts": {
+          "sample": {
+            "name": "DEMO_HEMATOLOGY",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "dna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_dna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_dna_base_testing",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "HRD",
+                "MSI",
+                "TMB"
+              ]
+            }
+          }
+        },
+        "expected_rule_ids": [
+          "demo_dna_intro_text"
+        ],
+        "expected_sections": {
+          "Report introduction": [
+            "DNA was extracted from the submitted specimen and analysed using the configured assay."
+          ]
+        }
+      },
+      {
+        "test_id": "tier_1",
+        "name": "Synthetic tier 1",
+        "facts": {
+          "sample": {
+            "name": "DEMO_HEMATOLOGY",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "dna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_dna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_dna_base_testing",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "HRD",
+                "MSI",
+                "TMB"
+              ]
+            }
+          },
+          "findings": [
+            {
+              "kind": "snv",
+              "gene": "TP53",
+              "tier": 1
+            }
+          ]
+        },
+        "expected_rule_ids": [
+          "demo_dna_intro_text",
+          "demo_dna_tiered_finding"
+        ],
+        "expected_sections": {
+          "Report introduction": [
+            "DNA was extracted from the submitted specimen and analysed using the configured assay."
+          ],
+          "Reportable SNVs and small INDELs": [
+            "TP53 contains a reportable small variant."
+          ]
+        }
+      },
+      {
+        "test_id": "tier_2",
+        "name": "Synthetic tier 2",
+        "facts": {
+          "sample": {
+            "name": "DEMO_HEMATOLOGY",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "dna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_dna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_dna_base_testing",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "HRD",
+                "MSI",
+                "TMB"
+              ]
+            }
+          },
+          "findings": [
+            {
+              "kind": "snv",
+              "gene": "TP53",
+              "tier": 2
+            }
+          ]
+        },
+        "expected_rule_ids": [
+          "demo_dna_intro_text",
+          "demo_dna_tiered_finding"
+        ],
+        "expected_sections": {
+          "Report introduction": [
+            "DNA was extracted from the submitted specimen and analysed using the configured assay."
+          ],
+          "Reportable SNVs and small INDELs": [
+            "TP53 contains a reportable small variant."
+          ]
+        }
+      },
+      {
+        "test_id": "tier_3",
+        "name": "Synthetic tier 3",
+        "facts": {
+          "sample": {
+            "name": "DEMO_HEMATOLOGY",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "dna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_dna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_dna_base_testing",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "HRD",
+                "MSI",
+                "TMB"
+              ]
+            }
+          },
+          "findings": [
+            {
+              "kind": "snv",
+              "gene": "TP53",
+              "tier": 3
+            }
+          ]
+        },
+        "expected_rule_ids": [
+          "demo_dna_intro_text",
+          "demo_dna_tiered_finding"
+        ],
+        "expected_sections": {
+          "Report introduction": [
+            "DNA was extracted from the submitted specimen and analysed using the configured assay."
+          ],
+          "Reportable SNVs and small INDELs": [
+            "TP53 contains a reportable small variant."
+          ]
+        }
+      },
+      {
+        "test_id": "tier_4",
+        "name": "Synthetic tier 4",
+        "facts": {
+          "sample": {
+            "name": "DEMO_HEMATOLOGY",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "dna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_dna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_dna_base_testing",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "HRD",
+                "MSI",
+                "TMB"
+              ]
+            }
+          },
+          "findings": [
+            {
+              "kind": "snv",
+              "gene": "TP53",
+              "tier": 4
+            }
+          ]
+        },
+        "expected_rule_ids": [
+          "demo_dna_intro_text"
+        ],
+        "expected_sections": {
+          "Report introduction": [
+            "DNA was extracted from the submitted specimen and analysed using the configured assay."
+          ]
+        }
+      },
+      {
+        "test_id": "evidence_present",
+        "name": "All additional DNA evidence present",
+        "facts": {
+          "sample": {
+            "name": "DEMO_HEMATOLOGY",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "dna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_dna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_dna_base_testing",
+            "asp_id": "demo_e2e_demo_dna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "HRD",
+                "MSI",
+                "TMB"
+              ]
+            }
+          },
+          "aggregates": {
+            "cnv_count": 1,
+            "translocation_count": 1,
+            "hrd_count": 1,
+            "msi_count": 1,
+            "tmb_count": 1
+          }
+        },
+        "expected_rule_ids": [
+          "demo_dna_intro_text",
+          "demo_cnv_present",
+          "demo_translocation_present",
+          "demo_hrd_present",
+          "demo_msi_present",
+          "demo_tmb_present"
+        ],
+        "expected_sections": {
+          "Report introduction": [
+            "DNA was extracted from the submitted specimen and analysed using the configured assay."
+          ],
+          "Synthetic CNV": [
+            "Synthetic CNV evidence is present; no clinical interpretation is implied."
+          ],
+          "Synthetic TRANSLOCATION": [
+            "Synthetic TRANSLOCATION evidence is present; no clinical interpretation is implied."
+          ],
+          "Synthetic HRD": [
+            "Synthetic HRD evidence is present; no clinical interpretation is implied."
+          ],
+          "Synthetic MSI": [
+            "Synthetic MSI evidence is present; no clinical interpretation is implied."
+          ],
+          "Synthetic TMB": [
+            "Synthetic TMB evidence is present; no clinical interpretation is implied."
+          ]
+        }
+      }
+    ],
+    "references": [],
+    "change_summary": "Initial demo rule set",
+    "review": {},
+    "lifecycle": [],
+    "created_at": "2026-01-01T00:00:00+00:00",
+    "created_by": "system.bootstrap",
+    "updated_at": "2026-01-01T00:00:00+00:00",
+    "updated_by": "system.bootstrap",
+    "published_at": null,
+    "published_by": null,
+    "effective_from": null,
+    "content_hash": null
+  },
+  {
+    "rule_set_id": "demo_e2e_demo_rna__base__en",
+    "schema_version": 1,
+    "content_version": 1,
+    "revision": 1,
+    "scope": {
+      "asp_id": "demo_e2e_demo_rna",
+      "subpanel_id": "base",
+      "analyte": "rna",
+      "language": "en"
+    },
+    "name": "Synthetic demo RNA report",
+    "status": "draft",
+    "active": false,
+    "analysis_declarations": {
+      "FUSION": {
+        "narrative": "enabled"
+      },
+      "EXPRESSION": {
+        "narrative": "none"
+      },
+      "CLASSIFICATION": {
+        "narrative": "none"
+      },
+      "QC": {
+        "narrative": "none"
+      }
+    },
+    "terminology": {},
+    "blocks": [
+      {
+        "block_id": "demo_rna_summary",
+        "name": "Fusion summary",
+        "analysis": "FUSION",
+        "evaluation": {
+          "mode": "once"
+        },
+        "section": "Report summary",
+        "section_order": 100,
+        "block_order": 10,
+        "show_heading": false,
+        "match_strategy": "first_match",
+        "rules": [
+          {
+            "rule_id": "demo_rna_summary_text",
+            "name": "Standard fusion summary",
+            "order": 10,
+            "enabled": true,
+            "output": [
+              {
+                "type": "text",
+                "value": "RNA was extracted from the submitted specimen and analysed for reportable gene fusions."
+              }
+            ],
+            "references": []
+          }
+        ]
+      }
+    ],
+    "test_cases": [
+      {
+        "test_id": "demo_rna_base",
+        "name": "RNA Base report without findings",
+        "facts": {
+          "sample": {
+            "name": "DEMO_WTS",
+            "asp_id": "demo_e2e_demo_rna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "omics_layer": "rna"
+          },
+          "asp": {
+            "asp_id": "demo_e2e_demo_rna"
+          },
+          "aspc": {
+            "aspc_id": "demo_e2e_demo_rna_base_testing",
+            "asp_id": "demo_e2e_demo_rna",
+            "subpanel_id": "base",
+            "environment": "testing",
+            "reporting": {
+              "language": "en",
+              "report_sections": [
+                "FUSION",
+                "EXPRESSION",
+                "CLASSIFICATION",
+                "QC"
+              ]
+            }
+          }
+        },
+        "expected_rule_ids": [
+          "demo_rna_summary_text"
+        ],
+        "expected_sections": {
+          "Report summary": [
+            "RNA was extracted from the submitted specimen and analysed for reportable gene fusions."
+          ]
+        }
+      }
+    ],
+    "references": [],
+    "change_summary": "Initial demo rule set",
+    "review": {},
+    "lifecycle": [],
+    "created_at": "2026-01-01T00:00:00+00:00",
+    "created_by": "system.bootstrap",
+    "updated_at": "2026-01-01T00:00:00+00:00",
+    "updated_by": "system.bootstrap",
+    "published_at": null,
+    "published_by": null,
+    "effective_from": null,
+    "content_hash": null
   }
 ]

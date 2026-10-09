@@ -115,7 +115,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -138,7 +138,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -161,7 +161,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -184,7 +184,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -207,7 +207,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -230,7 +230,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -253,7 +253,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -276,7 +276,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -299,7 +299,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -322,7 +322,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -345,7 +345,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -368,7 +368,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -391,7 +391,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -414,7 +414,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -437,7 +437,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -460,7 +460,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -483,7 +483,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -506,7 +506,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -529,7 +529,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -552,7 +552,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -575,7 +575,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -598,7 +598,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -621,7 +621,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -644,7 +644,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -667,7 +667,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -690,7 +690,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -713,7 +713,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -736,7 +736,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -759,7 +759,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -782,7 +782,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -805,7 +805,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "chr": "1",
     "start": 10000,
     "end": 20000,
@@ -828,7 +828,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "chr": "1",
     "start": 3030000,
     "end": 3050000,
@@ -851,7 +851,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "chr": "1",
     "start": 6030000,
     "end": 6050000,
@@ -874,7 +874,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "chr": "1",
     "start": 9030000,
     "end": 9030050,
@@ -897,7 +897,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "chr": "1",
     "start": 12030000,
     "end": 14030000,
@@ -917,6 +917,121 @@
     ],
     "_id": {
       "$oid": "3a42f63efa6cb75d65630857"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": {
+      "$oid": "a9b073b865b450f641d7cf93"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": {
+      "$oid": "8715a470c6ef8e308d98f7b4"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": {
+      "$oid": "101116ff1a9cd2d097fc7338"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": {
+      "$oid": "d6e98122483121748c5aa721"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": {
+      "$oid": "a56922466bea1280d8f9f47a"
     }
   }
 ]

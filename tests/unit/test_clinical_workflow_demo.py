@@ -33,6 +33,30 @@ def test_demo_structural_events_reach_the_collection_with_embedded_evidence(demo
     assert demo_db.translocations.find_one({"ID": "demo-duplication"})["END"] == 61001
 
 
+@pytest.mark.parametrize(
+    "name,assay,collection",
+    [
+        ("DEMO_GROUP_DNA", "demo_e2e_demo_dna", "variants"),
+        ("DEMO_GROUP_RNA", "demo_e2e_demo_rna", "fusions"),
+    ],
+)
+def test_demo_group_has_complete_sample_and_reporting_configuration(
+    demo_db, name, assay, collection
+):
+    """Dedicated demo-group samples resolve their own profiles, evidence and report drafts."""
+    sample = demo_db.samples.find_one({"name": name})
+    assert sample["asp_id"] == assay
+    asp = demo_db.assay_specific_panels.find_one({"asp_id": assay})
+    assert asp["asp_group"] == "demo"
+    aspc = demo_db.asp_configs.find_one({"aspc_id": sample["current_aspc_key"]})
+    assert aspc["asp_group"] == "demo"
+    assert aspc["environment"] == "testing"
+    assert demo_db[collection].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
+    rule = demo_db.clinical_rule_sets.find_one({"scope.asp_id": assay})
+    assert rule["status"] == "draft"
+    assert not rule["active"]
+
+
 def selected_labels(db, name, **overrides):
     """Resolve installed policies and return scenario labels for selected raw SNVs."""
     sample = db.samples.find_one({"name": name})
@@ -149,8 +173,8 @@ def test_review_examples_preserve_tier_and_measurement_rendering():
     missing = previews["DEMO_MYELOID_MISSING"]["sections"]
     assert not {"Synthetic HRD", "Synthetic MSI", "Synthetic TMB"} & set(missing)
     assert {row["class"] for row in db.annotation.find()} == {1, 2, 3, 4}
-    assert db.finding_comments.count_documents({}) == 8
-    assert db.sample_comments.count_documents({"hidden": True}) == 4
+    assert db.finding_comments.count_documents({}) == 12
+    assert db.sample_comments.count_documents({"hidden": True}) == 6
 
 
 def test_query_draft_examples_use_current_contract():

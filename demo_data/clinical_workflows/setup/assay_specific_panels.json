@@ -249,5 +249,76 @@
     ],
     "version": 1,
     "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_demo_dna",
+    "asp_group": "demo",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Synthetic demo DNA",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_demo_rna",
+    "asp_group": "demo",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "display_name": "Synthetic demo RNA",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
   }
 ]

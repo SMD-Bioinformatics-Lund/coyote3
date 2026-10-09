@@ -129,6 +129,13 @@ const utilityModules = [
     permission: ADMIN_UTILITY_PERMISSIONS.ingestManage,
   },
   {
+    title: "Demo installation",
+    description: "Install synthetic assay configuration and sample data for training and validation.",
+    href: "/admin/demo-installation",
+    icon: Beaker,
+    permission: ADMIN_UTILITY_PERMISSIONS.demoInstall,
+  },
+  {
     title: "UI Route Audit",
     description: "Review frontend routes, API dependencies, and consumed payload fields.",
     href: "/admin/ui-routes",

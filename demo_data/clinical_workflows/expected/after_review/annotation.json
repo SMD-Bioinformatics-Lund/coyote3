@@ -78,5 +78,85 @@
     "_id": {
       "$oid": "098328d10300e2111b095e99"
     }
+  },
+  {
+    "variant": "1_10001_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10001_A_G",
+    "genomic_hash": "1c9d579ae08873ce1bf2f4ae2252f6df",
+    "gene": "TP53",
+    "assay": "demo",
+    "subpanel": "base",
+    "author": "demo.reviewer",
+    "nomenclature": "g",
+    "transcript": "ENSTDEMO0000.1",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "class": 1,
+    "_id": {
+      "$oid": "be056489564fae89e5add9a9"
+    }
+  },
+  {
+    "variant": "1_10002_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10002_A_G",
+    "genomic_hash": "f8264755d699a971372df224ae7305fa",
+    "gene": "FLT3",
+    "assay": "demo",
+    "subpanel": "base",
+    "author": "demo.reviewer",
+    "nomenclature": "g",
+    "transcript": "ENSTDEMO0001.1",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "class": 2,
+    "_id": {
+      "$oid": "58143c53a8fac6fddef5dd42"
+    }
+  },
+  {
+    "variant": "1_10003_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10003_A_G",
+    "genomic_hash": "1aaa2b081b1ef1761794692f252f9627",
+    "gene": "CEBPA",
+    "assay": "demo",
+    "subpanel": "base",
+    "author": "demo.reviewer",
+    "nomenclature": "g",
+    "transcript": "ENSTDEMO0002.1",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "class": 3,
+    "_id": {
+      "$oid": "c657dc6749f4679578e2dea9"
+    }
+  },
+  {
+    "variant": "1_10004_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10004_A_G",
+    "genomic_hash": "2c8201ee4638f34a9abf0c7513d67cf1",
+    "gene": "NFKBIE",
+    "assay": "demo",
+    "subpanel": "base",
+    "author": "demo.reviewer",
+    "nomenclature": "g",
+    "transcript": "ENSTDEMO0003.1",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "class": 4,
+    "_id": {
+      "$oid": "12e33c3fdcd46c9202d1e8e8"
+    }
   }
 ]

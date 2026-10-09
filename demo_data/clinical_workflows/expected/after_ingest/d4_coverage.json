@@ -66,7 +66,7 @@
       }
     },
     "SAMPLE_ID": "dd54815825da439747a7082d",
-    "sample": "DEMO_HEMATOLOGY",
+    "sample": "DEMO_GROUP_DNA",
     "_id": {
       "$oid": "21b45519d5e1095c64c2ac2e"
     }
@@ -137,8 +137,8 @@
         }
       }
     },
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
-    "sample": "DEMO_LYMPHOID",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "sample": "DEMO_HEMATOLOGY",
     "_id": {
       "$oid": "f499c4a933f121f77530ee67"
     }
@@ -209,8 +209,8 @@
         }
       }
     },
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
-    "sample": "DEMO_MYELOID",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "sample": "DEMO_LYMPHOID",
     "_id": {
       "$oid": "9628a28b72ed029e555e5c7e"
     }
@@ -281,8 +281,8 @@
         }
       }
     },
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "sample": "DEMO_MYELOID_FOCUS",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "sample": "DEMO_MYELOID",
     "_id": {
       "$oid": "99cf3b95304a6b45ee65fb4a"
     }
@@ -353,8 +353,8 @@
         }
       }
     },
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
-    "sample": "DEMO_MYELOID_MISSING",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "sample": "DEMO_MYELOID_FOCUS",
     "_id": {
       "$oid": "66c15b3bfc379fe1c202dce3"
     }
@@ -425,8 +425,8 @@
         }
       }
     },
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
-    "sample": "DEMO_MYELOID_UNPAIRED",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "sample": "DEMO_MYELOID_MISSING",
     "_id": {
       "$oid": "a58370e639eab6eecda484d7"
     }
@@ -497,8 +497,8 @@
         }
       }
     },
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
-    "sample": "DEMO_SOLID",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "sample": "DEMO_MYELOID_UNPAIRED",
     "_id": {
       "$oid": "d41a5a667d77a25b9d8571d4"
     }
@@ -569,10 +569,82 @@
         }
       }
     },
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
-    "sample": "DEMO_TUMWGS",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "sample": "DEMO_SOLID",
     "_id": {
       "$oid": "0437aa0320e9c77a8bdb3d40"
+    }
+  },
+  {
+    "genes": {
+      "TP53": {
+        "covered_by_panel": true,
+        "transcript": {
+          "chr": "1",
+          "start": 10000,
+          "end": 20000,
+          "transcript_id": "ENST000001"
+        },
+        "exons": {
+          "1": {
+            "chr": "1",
+            "start": 10100,
+            "end": 10190,
+            "nbr": 1,
+            "cov": 50.0
+          },
+          "2": {
+            "chr": "1",
+            "start": 10200,
+            "end": 10290,
+            "nbr": 2,
+            "cov": 100.0
+          },
+          "3": {
+            "chr": "1",
+            "start": 10300,
+            "end": 10390,
+            "nbr": 3,
+            "cov": 499.0
+          },
+          "4": {
+            "chr": "1",
+            "start": 10400,
+            "end": 10490,
+            "nbr": 4,
+            "cov": 500.0
+          },
+          "5": {
+            "chr": "1",
+            "start": 10500,
+            "end": 10590,
+            "nbr": 5,
+            "cov": 800.0
+          }
+        },
+        "CDS": {
+          "1": {
+            "chr": "1",
+            "start": 10020,
+            "end": 10100,
+            "nbr": 1,
+            "cov": 118.0
+          }
+        },
+        "probes": {
+          "p1": {
+            "chr": "1",
+            "start": 10000,
+            "end": 10050,
+            "cov": null
+          }
+        }
+      }
+    },
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "sample": "DEMO_TUMWGS",
+    "_id": {
+      "$oid": "197485d76604ac319e90d180"
     }
   }
 ]

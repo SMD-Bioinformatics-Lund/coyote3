@@ -54,7 +54,7 @@
     }
   },
   {
-    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
     "gene1": "BCR",
     "gene2": "ABL1",
     "genes": "BCR-ABL1",
@@ -81,7 +81,7 @@
     }
   },
   {
-    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
     "gene1": "ETV6",
     "gene2": "RUNX1",
     "genes": "ETV6-RUNX1",
@@ -105,6 +105,60 @@
     ],
     "_id": {
       "$oid": "3712e7d23b6cfe554941335c"
+    }
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "gene1": "BCR",
+    "gene2": "ABL1",
+    "genes": "BCR-ABL1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 20,
+        "spanreads": 42,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "commonreads": 0,
+        "desc": "synthetic_example"
+      }
+    ],
+    "_id": {
+      "$oid": "101fb8369b5021dcea1bd52c"
+    }
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "gene1": "ETV6",
+    "gene2": "RUNX1",
+    "genes": "ETV6-RUNX1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 0,
+        "spanreads": 1,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "commonreads": 0,
+        "desc": "synthetic_example"
+      }
+    ],
+    "_id": {
+      "$oid": "6e421b23fe6056a7c6ea1206"
     }
   }
 ]

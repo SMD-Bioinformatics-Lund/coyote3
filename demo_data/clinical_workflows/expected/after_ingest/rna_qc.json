@@ -40,9 +40,32 @@
     "provider_called_genotypes": 0,
     "flendist": 150,
     "sample_id": "DEMO_CASE",
-    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
     "_id": {
       "$oid": "2c0f3bc169aac11946424faf"
+    }
+  },
+  {
+    "tot_reads": 1000000,
+    "mapped_pct": 95.0,
+    "multimap_pct": 3.0,
+    "mismatch_pct": 0.5,
+    "canon_splice": 12000,
+    "non_canon_splice": 200,
+    "splice_ratio": 60,
+    "genebody_cov": [
+      100,
+      102,
+      99
+    ],
+    "genebody_cov_slope": -0.5,
+    "provider_genotypes": {},
+    "provider_called_genotypes": 0,
+    "flendist": 150,
+    "sample_id": "DEMO_CASE",
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "_id": {
+      "$oid": "d09c88d7bad3d7db82511336"
     }
   }
 ]

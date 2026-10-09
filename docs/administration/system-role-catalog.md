@@ -41,7 +41,7 @@ to authoring and review; granting both roles does not waive the independence che
 | [`query_rule_tester`](#query-rule-tester) | Query Rule Tester | Tests query policies against samples within assigned assay and environment scopes without editing or publishing rules. | 2 |
 | [`query_rule_viewer`](#query-rule-viewer) | Query Rule Viewer | Inspects query-rule versions and previews effective inherited policies. | 1 |
 | [`superuser`](#superuser) | Superuser | Emergency platform access for initial setup and controlled recovery, not routine administration. | 100 |
-| [`sys_admin`](#sys-admin) | System administrator | Manages accounts, access assignments, application controls and operational health. Clinical access requires separate roles. | 36 |
+| [`sys_admin`](#sys-admin) | System administrator | Manages accounts, access assignments, application controls and operational health. Clinical access requires separate roles. | 37 |
 | [`tester`](#tester) | Tester | Can test full features except user, schema, or config-level access. | 46 |
 | [`user`](#user) | Standard User | Can view and interact with samples assigned to their group. No admin or config access. | 35 |
 | [`user_account_manager`](#user-account-manager) | User Account Manager | Creates and manages user accounts and their role and scope assignments while passwords remain in dedicated security flows. | 11 |
@@ -547,6 +547,7 @@ Role: `sys_admin`. Manages accounts, access assignments, application controls an
 - `assay.panel:view`
 - `audit_log:view`
 - `dashboard.admin:view`
+- `demo:install`
 - `ingest.token:issue`
 - `internal.task:view`
 - `notification.broadcast:create`

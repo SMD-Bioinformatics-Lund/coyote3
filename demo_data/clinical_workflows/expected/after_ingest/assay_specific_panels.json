@@ -417,5 +417,124 @@
     "_id": {
       "$oid": "be61f400885b77ea4823df5d"
     }
+  },
+  {
+    "asp_id": "demo_e2e_demo_dna",
+    "asp_group": "demo",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Synthetic demo DNA",
+    "description": "Synthetic workflow validation only",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": {
+      "$oid": "96b81b8cb92c393725f5f63c"
+    }
+  },
+  {
+    "asp_id": "demo_e2e_demo_rna",
+    "asp_group": "demo",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "display_name": "Synthetic demo RNA",
+    "description": "Synthetic workflow validation only",
+    "igv": null,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": {
+      "$oid": "f9bcd8e4f54dca8e0dddd133"
+    }
   }
 ]

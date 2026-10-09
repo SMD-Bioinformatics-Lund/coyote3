@@ -27,9 +27,42 @@
       }
     ],
     "expression_version": "1.0.0",
-    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
     "_id": {
       "$oid": "0dc6d73112bddada0f03d1ff"
+    }
+  },
+  {
+    "sample": [
+      {
+        "hgnc_symbol": "TP53",
+        "ensembl_gene_id": "ENSG000001",
+        "sample_expression": 12.0,
+        "reference_sd": 2.0,
+        "reference_mean": 10.0,
+        "reference_median": 9.5,
+        "reference_mean_mod": 10.0,
+        "sample_mod": 12.0,
+        "z": 1.0
+      }
+    ],
+    "reference": [
+      {
+        "hgnc_symbol": "TP53",
+        "ensembl_gene_id": "ENSG000001",
+        "reference_sd": 2.0,
+        "reference_mean": 10.0,
+        "reference_median": 9.5,
+        "quant_values": {
+          "reference_a": 9.0,
+          "reference_b": 11.0
+        }
+      }
+    ],
+    "expression_version": "1.0.0",
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "_id": {
+      "$oid": "1949703c1afe500551118612"
     }
   }
 ]

@@ -13,7 +13,7 @@
     }
   },
   {
-    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -26,7 +26,7 @@
     }
   },
   {
-    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -39,7 +39,7 @@
     }
   },
   {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -52,7 +52,7 @@
     }
   },
   {
-    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -65,7 +65,7 @@
     }
   },
   {
-    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -78,7 +78,7 @@
     }
   },
   {
-    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -91,7 +91,7 @@
     }
   },
   {
-    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
     "pipeline_version": "synthetic-1",
     "records": [
       {
@@ -101,6 +101,19 @@
     ],
     "_id": {
       "$oid": "34b075a749aa6dfc91bc370e"
+    }
+  },
+  {
+    "SAMPLE_ID": "09a7efe1c1798b912925a34a",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": {
+      "$oid": "eca5d27d96d8259a96e9134d"
     }
   }
 ]

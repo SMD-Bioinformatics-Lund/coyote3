@@ -30,6 +30,37 @@ for responsibilities. No credentials or accounts are included in the fixtures.
 
 ## 2. Install the demo configuration
 
+### Administration interface
+
+Open **Administration → Demo installation** with the `demo:install` permission.
+The bundled system-administrator role includes this permission; existing
+installations must synchronize their [RBAC catalog](../administration/system-role-catalog.md)
+before assigning it. Read the installation summary and acknowledge that the data
+is synthetic, then choose:
+
+- **Install configuration only** for assays, testing ASPCs, gene-list/subpanel
+  configuration and unpublished report-rule drafts.
+- **Install configuration and samples** to install that configuration followed
+  by each packaged sample through normal ingestion.
+
+The page displays progress and refreshes sample presence after completion or an
+error. Each sample commits independently. Completed samples remain available if a
+later sample fails; retry installs only missing items. Existing configuration is
+preserved, and conflicting or partial configuration requires administrator review.
+No users, knowledgebase releases, BAM files or saved clinical reports are installed.
+The review and publication exercises below remain separate operator actions.
+
+> [!IMPORTANT]
+> Installation targets this application's configured database. Profiles use the
+> `testing` environment; users need matching environment and assay access to review
+> these samples. Use an isolated demonstration deployment for training.
+
+The authenticated administrative endpoints are excluded from public OpenAPI,
+Swagger and ReDoc. Hiding their documentation does not replace authorization:
+every operation enforces `demo:install` and the application's session protections.
+
+### Standalone configuration installation
+
 Run from the repository root with development dependencies installed. Substitute
 your local replica-set name and existing demo administrator:
 
@@ -47,6 +78,8 @@ samples, assign roles, publish rules or reset databases.
 
 | Assay | Group / family | Configuration |
 | --- | --- | --- |
+| `demo_e2e_demo_dna` | demo / panel-dna | Full synthetic DNA evidence and application-default query selection |
+| `demo_e2e_demo_rna` | demo / wts | RNA fusion, expression, classification and QC evidence |
 | `demo_e2e_hematology` | hematology / panel-dna | Full synthetic DNA evidence |
 | `demo_e2e_myeloid` | myeloid / panel-dna | Full DNA evidence; base and `demo_focus` ASPCs |
 | `demo_e2e_solid` | solid / panel-dna | Solid-specific query comparison |
@@ -123,6 +156,8 @@ and [Raw ingest formats](../reference/ingest-files/README.md).
 | `DEMO_MYELOID_MISSING` | Ready with HRD/MSI/TMB missing; no biomarker document. Missing optional files are shown as unavailable, not as zero measurements. |
 | `DEMO_FUSION` | 2 RNA fusions and QC; no SNVs or RNA expression/classification. |
 | `DEMO_WTS` | 2 RNA fusions plus expression, classification and QC. |
+| `DEMO_GROUP_DNA` | Dedicated `demo` group DNA sample with small variants, CNVs, structural events, coverage, biomarkers and PGX. |
+| `DEMO_GROUP_RNA` | Dedicated `demo` group RNA sample with fusions, expression, classification and QC. |
 
 Inspect the data-status tooltip, sample metadata, selected transcript and annotation
 vault. Compare shapes with `expected/after_ingest/`, allowing for real IDs, times,

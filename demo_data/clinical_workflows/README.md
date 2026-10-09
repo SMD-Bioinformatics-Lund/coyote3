@@ -28,14 +28,14 @@ ingest, expected selections, review actions and reporting checks.
 
 | Directory | Contents |
 | --- | --- |
-| `setup/` | Seven demo ASPs, eight testing ASPCs, a named subpanel/association, an ISGL and seven unpublished report-rule drafts. |
+| `setup/` | Nine demo ASPs, ten testing ASPCs, a named subpanel/association, an ISGL and nine unpublished report-rule drafts. Includes dedicated DNA and RNA assays in the `demo` group. |
 | `raw/` | Paired/unpaired VCFs, translocation VCF, CNVs, coverage, shared HRD/MSI/TMB JSON, PGX, RNA fusions/expression/classification/QC and a placeholder CNV profile image. |
-| `manifests/` | Ten valid pipeline manifests with relative resource paths. |
+| `manifests/` | Twelve valid pipeline manifests with relative resource paths. |
 | `negative/` | Deliberately invalid missing-file, missing-ASPC and RNA/SNV manifests. |
 | `scenarios/` | Stable raw-variant labels and editable query-rule draft requests. |
 | `expected/after_ingest/` | Twenty collection snapshots produced by real ingest parsing, normalization and writes in an isolated in-memory database. Includes supporting configuration. |
 | `expected/after_review/` | Contract-validated examples of tiers and sample/finding comments linked to the ingested examples; these are illustrative user actions, not ingest output. |
-| `expected/report_previews.json` | Actual report-engine section output for four synthetic review contexts. These are previews, not saved report documents. |
+| `expected/report_previews.json` | Actual report-engine section output for six synthetic review contexts. These are previews, not saved report documents. |
 
 The examples use Extended JSON for BSON IDs/dates. Export IDs are deterministic
 substitutes and timestamps are fixed to `2026-01-01T00:00:00Z`; live ingest generates
