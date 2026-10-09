@@ -212,6 +212,7 @@ nav:
           - "OncoKB Integration": reference/knowledgebases/oncokb-integration.md
           - "ClinPGx Integration": reference/knowledgebases/clinpgx-integration.md
           - "VEP reference library": reference/knowledgebases/vep-reference.md
+          - "HGNC gene installation": operations/hgnc-gene-installation.md
       - "Operational files and artifacts": reference/operational-files.md
   - Test and validate Coyote3:
       - Section guide: testing/README.md

@@ -57,7 +57,7 @@ the [v2 procedure](../migration_from_v2/migration-guide.md) and
 | --- | --- | --- | --- |
 | `bootstrap/bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes application and identity baselines; does not connect to or populate the knowledgebase |
 | `bootstrap/install_reference_data.py` | Explicit opt-in | [Installation operations](../deployment/installation-operations.md) | Loads bundled HGNC/VEP into empty knowledgebase collections, preserving populated references; does not build indexes |
-| `deployment/install_center.sh` | Manual operation | First-installation guide | Selectable deployment stages with `--steps`; application/identity bootstrap and indexes by default; knowledgebase loading/indexing require explicit options |
+| `deployment/install_center.sh` | Manual operation | First-installation guide | `--setup-center` installs the application baseline and bundled HGNC/VEP references; `--steps` selects individual stages; external imports and knowledgebase-wide indexing remain separate |
 | `deployment/installation_checks.py` | Standalone command and helper | `install_center.sh` and guarded bootstrap | Read-only configuration, endpoint, installation-state and scoped index-readiness checks |
 | `knowledgebase/migrate_reference_database.py` | Manual maintenance | Existing deployments | Backs up and moves HGNC/VEP to the knowledgebase database; removes the superseded subpanel collection only after checking current replacements |
 | `deployment/center_preflight.sh` | Manual operation | Initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, and optional seed or ingest inputs without writing data |
@@ -79,6 +79,11 @@ stop for inspection. The installer applies compatible indexes before application
 startup and never drops or resets a database. Follow the
 [first-installation guide](../deployment/first-installation.md#8-build-images-and-install-the-database-baseline)
 for parameters, maintenance credentials and recovery boundaries.
+
+The standalone [`gene_db_creation.py`](../operations/hgnc-gene-installation.md)
+converts reviewed HGNC TSV and Ensembl BioMart CSV files into contract-valid gene
+documents. `--apply --backup FILE` installs them into the configured knowledgebase;
+the default creates a review artifact without database access.
 
 ## Quality and generated contracts
 
