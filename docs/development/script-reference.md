@@ -4,6 +4,16 @@ The `scripts/` directory contains executable maintenance and validation tools fo
 FastAPI, React, MongoDB, Celery, and center deployments. Run operator commands
 from the repository root with the target environment explicitly configured.
 
+## Synthetic clinical workflow tools
+
+The [workflow guide](../testing/clinical-workflow-demo.md) documents the raw fixture
+bundle and deployment exercises.
+
+| Tool | Inputs and behavior |
+| --- | --- |
+| `scripts/bootstrap/install_demo_workflows.py` | Requires `--mongo-uri`, `--db`, `--actor`; plans validated configuration by default, inserts atomically with `--apply`. Restricted to loopback MongoDB and `coyote3_demo` database names. Requires the standard baseline, rejects existing fixture identities, and leaves report rules as drafts. |
+| `scripts/quality/export_demo_workflows.py` | Replays the bundle offline through ingest and report evaluation using development dependencies. Writes deterministic expected artifacts; `--check` compares them without writes. Never reads deployment credentials or contacts a database. |
+
 The [script directory index](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/README.md) groups commands by purpose.
 [V3 clinical migrations](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/upgrade_from_v3/README.md) have a dedicated
 source contract and run order. [V2 clinical migrations](../migration_from_v2/README.md)
@@ -45,23 +55,30 @@ the [v2 procedure](../migration_from_v2/migration-guide.md) and
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
-| `bootstrap/bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes `IDENTITY_DB` with initial administrators and RBAC, `KNOWLEDGEBASE_DB` with HGNC/VEP references, and `COYOTE3_DB` with optional synthetic center data |
+| `bootstrap/bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes application and identity baselines; does not connect to or populate the knowledgebase |
+| `bootstrap/install_reference_data.py` | Explicit opt-in | [Installation operations](../deployment/installation-operations.md) | Loads bundled HGNC/VEP into empty knowledgebase collections, preserving populated references; does not build indexes |
+| `deployment/install_center.sh` | Manual operation | First-installation guide | Selectable deployment stages with `--steps`; application/identity bootstrap and indexes by default; knowledgebase loading/indexing require explicit options |
+| `deployment/installation_checks.py` | Standalone command and helper | `install_center.sh` and guarded bootstrap | Read-only configuration, endpoint, installation-state and scoped index-readiness checks |
 | `knowledgebase/migrate_reference_database.py` | Manual maintenance | Existing deployments | Backs up and moves HGNC/VEP to the knowledgebase database; removes the superseded subpanel collection only after checking current replacements |
 | `deployment/center_preflight.sh` | Manual operation | Initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, and optional seed or ingest inputs without writing data |
-| `deployment/prepare_center_config.py` | Manual operation | Center configuration deployment | Validates and stages four center-owned files from a local directory or a pinned Git commit, records hashes, and refuses to overwrite an existing release |
+| `deployment/prepare_center_config.py` | Manual operation | Center configuration deployment | Validates and stages three center-owned files from a local directory or a pinned Git commit, records hashes, and refuses to overwrite an existing release |
 | `bootstrap/build_seed_bundle.py` | Internal helper and manual operation | `bootstrap/bootstrap_database.py`; controlled seed preparation | Normalizes center seed sources into deterministic collection documents |
 | `bootstrap/install_assay_groups.py` | Manual operation | Assay-group administration guide | Plans or installs missing group definitions without renaming existing scopes |
+| `bootstrap/install_query_rules.py` | Manual operation | Query-rule installation and upgrade guide | Validates bundled and TOML criteria, reports missing scopes, and inserts them transactionally with `--apply`; preserves every existing scope |
+| `bootstrap/query_rule_seed.py` | Internal helper | Bootstrap and query-rule installer | Converts typed installation criteria into attributed version-one database policies; rejects unresolved group or unsupported assay/subpanel scopes |
 | `deployment/center_check.sh` | Manual operation | Composed CI verification | Runs authenticated health, baseline-resource, manifest-validation, and ingest checks after services are online |
 | `bootstrap/validate_assay_consistency.py` | Automated | preflight, contract integrity, bootstrap, tests | Verifies ASP, ASPC, ISGL, sample, catalog, and reporting-rule references before import |
 | `ingest/validate_ingest_spec.py` | Automated | `deployment/center_check.sh`; deployment checklist | Validates a DNA or RNA manifest through the current `SamplesDoc` contract and optionally checks every configured file path |
 | `ingest/api_login.py` | Internal helper | bootstrap and composed-workflow scripts | Creates an authenticated API session for script-driven checks |
 | `ingest/submit_ingest_manifest.py` | Manual operation | Sample ingestion guide | Submits a manifest through the authenticated ingest API |
 
-The application does not provide an all-in-one first-run orchestrator. Database
-provisioning, direct bootstrap, application startup, and sample ingest are
-separate operational steps. The application stack always uses the configured
-`COYOTE3_MONGO_URI`; the first local Coyote3 account is created before the API is
-started through `bootstrap/bootstrap_database.py`.
+`deployment/install_center.sh` orchestrates application installation against prepared
+MongoDB endpoints. MongoDB provisioning and sample ingestion remain separate operations.
+Existing installations skip bootstrap completely; partial or unrecognized targets
+stop for inspection. The installer applies compatible indexes before application
+startup and never drops or resets a database. Follow the
+[first-installation guide](../deployment/first-installation.md#8-build-images-and-install-the-database-baseline)
+for parameters, maintenance credentials and recovery boundaries.
 
 ## Quality and generated contracts
 
@@ -75,7 +92,7 @@ started through `bootstrap/bootstrap_database.py`.
 | `docs/check_markdown_links.py` | Internal helper | `quality/check_contract_integrity.sh`; tests | Rejects broken repository-local Markdown links |
 | `quality/check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
 | `docs/export_collection_contracts_doc.py` | Automated | contract integrity | Regenerates the collection-contract reference from Pydantic schemas |
-| `docs/export_permissions_reference.py` | Automated | contract integrity | Regenerates the permission catalog from application-owned permission definitions |
+| `docs/export_permissions_reference.py` | Automated | contract integrity | Regenerates permission and system-role catalogs from application-owned RBAC definitions |
 | `release/sync-package-version.js` | Automated | frontend package lifecycle | Synchronizes the frontend package version with `api/version.py` |
 
 ## Deployment and database operations

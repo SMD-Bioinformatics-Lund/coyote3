@@ -1,17 +1,50 @@
-# Clinical query policy file
+# Installed query criteria and predicate reference
 
-The active file comes from the external center configuration directory. The
-repository copy under `api/config/center/` is the initial example. This file is
-one input to finding retrieval; it is not the query builder. Analysis-specific
+Database-managed rules also support [nested condition trees](../administration/query-rules.md#nested-condition-builder)
+using the [registered field/operator catalog](../reference/query-condition-fields.md).
+Within an exception, a tree and the additional criteria documented below are joined
+with AND. A condition tree does not replace mandatory sample or access boundaries.
+
+The application-owned `api/config/clinical_query_seed.toml` supplies installation criteria for
+[database-managed finding query rules](../administration/query-rules.md). Bootstrap
+combines these criteria with the bundled group catalog and stores published versions.
+Runtime queries read application defaults and published database rules, not this file.
+Editing or restarting with a changed file does not update an installed policy.
+
+## When this file is used
+
+| Operation | Role of the file |
+| --- | --- |
+| First installation | `scripts/bootstrap/bootstrap_database.py` combines its typed criteria with the bundled query-rule catalog and installs database publications. |
+| Existing installation | `scripts/bootstrap/install_query_rules.py` reads it when planning or installing missing scopes. Existing scopes, including retired ones, are preserved. |
+| Routine clinical policy changes | Use **Administration → Query rules** to draft, review and publish database versions. Editing this file does not update existing rules. |
+| Live finding retrieval | Not read. Retrieval uses application-owned defaults, published database policies and sample filters. |
+
+Python bootstrap tools load this file from the application package. It is not
+editable center configuration, cannot be redirected through the center directory,
+and has no installer command-line override. Database publications are the supported
+way to change clinical selection criteria after installation.
+
+!!! warning "SNV intent is not a classification of variant origin"
+
+    Current somatic SNV queries can also return germline variants. The dedicated
+    germline SNV pathway is not yet fully implemented. The `somatic` and `germline`
+    settings documented here scope query criteria; they do not guarantee distinct
+    result sets or a complete germline analysis workflow.
+
+## Policy inputs and runtime boundaries
+
+The seed file belongs to the software release. Its typed grammar also describes
+the predicates available in the database query-rule editor. It is not the query builder. Analysis-specific
 Python builders combine the validated policy with sample filters, ASPC settings,
 gene-list selections, and request controls. The
 [query filtering reference](../reference/assay-filtering.md#clinical-query-policy)
 describes these layers and their execution order.
 
-This file controls released finding-retrieval policy. It has independent
+This file describes typed finding-retrieval criteria. It has independent
 namespaces for `snv`, `cnv`, `translocation`, `fusion`, and `pgx`. It is
 constrained configuration, not a free-form MongoDB query file: the application
-validates all values at startup and converts only documented fields into the
+validates seed values during installation, and converts only documented fields into the
 stored contract for that analysis. A key accepted by one namespace is rejected
 in every namespace where it has no defined meaning.
 
@@ -21,8 +54,8 @@ depth, alternate-read, control-frequency, population-frequency, consequence,
 ISGL, and ad-hoc gene values. `paired` and `case_only` apply those basic
 values and may extend or exclude a narrow subset. `exception_only`
 intentionally omits the general threshold/consequence admission branch and
-admits only findings matching an approved `admit` exception. The policy file
-therefore selects the evidence model; it never duplicates threshold values.
+admits only findings matching an approved `admit` exception. The application baseline and explicit assay-group policy
+select the evidence model; it never duplicates threshold values.
 
 SNV has a configurable baseline evidence model because paired, case-only, and
 exception-only SNV review use materially different genotype evidence. CNV,
@@ -33,15 +66,15 @@ PGX finding query is introduced.
 
 ## Required values and defaults
 
-The external file is required; the application does not merge missing entries
-from the bundled example. All five analysis tables are required. A missing table
-or invalid key prevents startup. A default below means loader behavior, not a
+The seed file is packaged with the application; centers do not supply it. Application baseline settings come from
+`api/config/clinical_query_defaults.toml`. All five seed analysis tables are required. A missing table
+or invalid key fails configuration validation. A default below means loader behavior, not a
 clinically approved center choice.
 
 | Setting | Requirement | Behavior if omitted |
 | --- | --- | --- |
-| `snv.default_somatic_policy`, `snv.default_germline_policy` | Required valid mode | Validation fails; there is no fallback mode. `paired`/`exception_only` in the example are explicit values. |
-| `snv.population_frequency_fields` | Optional array; normally configured explicitly | Empty list; no population-field predicates are added by this policy. Omitting it can broaden retrieval. |
+| `snv.default_somatic_policy`, `snv.default_germline_policy` | Application-owned; prohibited in center files | Release values are `paired` and `exception_only`, respectively. |
+| `snv.population_frequency_fields` | Application-owned; prohibited in center files | Release fields are `gnomad_frequency`, `gnomad_max`, `exac_frequency` and `thousandG_frequency`. |
 | `snv.assay_group_policies` | Optional mapping | No group overrides; use the configured somatic default. |
 | Each analysis's `exceptions` | Optional array of tables | No additional exceptions. |
 | Exception `id`, `mode` and at least one match condition | Required for each exception | Validation fails. |
@@ -53,6 +86,13 @@ clinically approved center choice.
 Do not copy an exception without reviewing its scope. Empty/missing scope can
 make it apply more widely. The following tables specify valid modes, keys and
 combinations and explain how conditions compose.
+
+The application seed supports default and registered group scopes. Assay/subpanel-scoped
+file exceptions are rejected by the installer; create those through the editor once
+the assay and subpanel exist. Empty PGX configuration is required because no PGX
+retrieval namespace is implemented. At installation, file exceptions replace catalog
+exceptions with the same ID and scope. Missing or empty arrays do not remove bundled
+rules; retire or replace unwanted publications through the editor.
 
 ## File format
 
@@ -130,9 +170,6 @@ coordinate, INFO, FILTER, or ALT condition.
 
 ```toml
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = ["gnomad_frequency", "gnomad_max"]
 
 [[snv.exceptions]]
 id = "endometrial_specific_variant"
@@ -158,12 +195,16 @@ uses the default for all supported assay groups.
 
 ## Baseline Keys
 
+Default modes and population-field names below describe the application-owned
+file, not editable center keys. The application seed accepts `assay_group_policies`
+and typed exceptions. Attempts to override release defaults fail startup.
+
 | TOML path | Required | TOML format | Allowed values | Runtime behavior |
 | --- | --- | --- | --- | --- |
 | `[snv]` | Yes | Table | One table only | Owns all released SNV retrieval settings. |
 | `snv.default_somatic_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline policy for a somatic assay group that has no explicit override. Production default is `paired`. |
 | `snv.default_germline_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline germline policy. Production configuration uses `exception_only`, so only approved `admit` exceptions return germline findings. |
-| `snv.population_frequency_fields` | No; explicitly configure for population filtering | Array of unique strings | Stored scalar population-frequency field names, for example `gnomad_frequency` | Each numeric value must be at or below the sample `max_popfreq`; absent, null, and non-numeric values remain eligible. Use the exact stored field spelling. |
+| `snv.population_frequency_fields` | Application-owned | Array of unique strings | Stored scalar population-frequency field names, for example `gnomad_frequency` | Each numeric value must be at or below the sample `max_popfreq`; absent, null, and non-numeric values remain eligible. Use the exact stored field spelling. |
 | `[snv.assay_group_policies]` | No | Table | Zero or more registered assay-group identifiers | Overrides the somatic default for named assay groups. |
 | `snv.assay_group_policies.<assay_group>` | No, repeatable | String value within the table | `paired`, `case_only`, `exception_only` | Applies only to somatic retrieval in that exact normalized assay group. Use a registered assay-group identifier, such as `solid` or `hematology`. |
 
@@ -511,8 +552,8 @@ empty; configuring an exception does not enable PGX finding retrieval.
    `extend_consequence` when the
    normal case, control, depth, VAF, and population-frequency gates must remain
    mandatory.
-2. Use the narrowest applicable scope: add `asp_ids` and `subpanel_ids` before
-   adding a broad `assay_groups` scope.
+2. Use the narrowest applicable scope. The editor supports group, assay and subpanel
+   policies; installation files support default and group scopes only.
 3. Use match keys from the selected analysis only. For SNV, use `simple_ids`
    for one identity or `genes` plus `consequence_terms` for a gene-level rule.
    For structural findings, prefer an exact `gene_pairs` rule over a broad gene
@@ -521,8 +562,9 @@ empty; configuring an exception does not enable PGX finding retrieval.
    translocation, and fusion, `admit` is an explicit alternative to the normal
    analysis filter. Use `exclude` only for a reviewed removal; it applies after
    the baseline and every admission branch.
-5. Add a representative fixture and expected result count to the release
-   review. Restart API, worker, and beat together after deployment.
+5. Add a representative fixture and expected result count to the release review.
+   Validate installed rules before use. Publish subsequent reviewed changes through
+   the editor; query-rule publication requires no application restart.
 
 At least one clinical match field is required for every exception. The policy
 cannot name an arbitrary MongoDB field, operator, aggregation expression, or
@@ -531,7 +573,7 @@ JavaScript fragment.
 > **Warning: Release discipline**
 >
 >
-> Any change to this file can change finding visibility. Validate it with a
-> representative fixture and documented expected count before deploying it
-> with API, worker, and beat.
+> Importing installation criteria or publishing a rule can change finding visibility.
+> Validate representative fixtures and expected counts before clinical use. Editing
+> this file alone does not change the database or live queries.
 >

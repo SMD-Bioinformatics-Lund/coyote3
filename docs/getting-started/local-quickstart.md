@@ -77,6 +77,11 @@ rather than mixing data into a partially initialized identity database. To
 install the synthetic ASP, ASPC, and ISGL demonstration catalog for a
 nonclinical local environment, add `--with-demo-center`.
 
+For a new knowledgebase, install bundled references separately with
+`python3 scripts/bootstrap/install_reference_data.py --actor YOUR_ADMIN_USERNAME`
+using the same deployment environment. Reference loading and knowledgebase indexes
+are optional operations; see [installation operations](../deployment/installation-operations.md).
+
 The omitted system-administrator password is requested through a hidden prompt;
 omit `--password` to prompt for the emergency account too. Both accounts must
 replace their temporary password on first sign-in before opening the workspace.

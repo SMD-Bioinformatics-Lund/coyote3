@@ -10,15 +10,28 @@ For the purpose, format and ownership of each installed catalog, see
 
 ## Deployment Flow
 
+The image build packages `api/config/clinical_capabilities.toml`,
+`api/config/clinical_query_defaults.toml` and `api/config/collections.toml` with
+the API code. These files are application contracts, not database seed documents.
+They supply supported clinical identifiers, base query settings and collection
+bindings on the first installation and subsequent releases. The
+[first-installation validation](first-installation.md#8-build-images-and-install-the-database-baseline)
+loads them together with the three editable center files before bootstrap writes.
+
 ![URL and reverse-proxy request flow](../assets/diagrams/url-request-flow.svg)
 
 ![First-deployment bootstrap data flow](../assets/diagrams/bootstrap-data-flow.svg)
 
-1. Provision or select MongoDB and create its application user.
-2. Run the explicit database bootstrap command.
-3. Start the API, worker, UI, proxy, and documentation services.
-4. Verify UI/API and administrative access.
-5. Import approved center configuration and ingest data when ready.
+1. Prepare deployment configuration, storage, MongoDB endpoints and database users.
+2. Run `scripts/deployment/install_center.sh` to build images and validate configuration
+   and database readiness.
+3. The installer bootstraps empty application/identity targets, preserves existing
+   installations, checks and applies compatible indexes, then starts services.
+4. Verify browser and administrative access and complete initial password changes.
+5. Configure and validate clinical workflows before ingesting clinical data.
+
+The installer stops on unrecognized initialization states or index conflicts.
+It does not reset databases, replace populated seed collections or run data migrations.
 
 ## Authoritative Procedure
 
@@ -41,9 +54,12 @@ Before first sample ingest, ensure these are seeded:
 8. `insilico_genelists` when the center uses in-silico gene-list filtering
 
 The explicit database bootstrap installs the application-owned RBAC catalog,
-creates a named system administrator and an emergency superuser, and imports
-the bundled HGNC and VEP snapshot. It
+creates a named system administrator and an emergency superuser. It
 runs only against empty governance collections.
+Bundled HGNC and VEP references are installed separately with
+`scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME`, or the
+installer's `--with-knowledgebase-seeds` option. Knowledgebase indexing is a separate
+opt-in operation. See [installation operations](installation-operations.md).
 
 ## Seed Source Policy
 
@@ -52,7 +68,7 @@ runs only against empty governance collections.
   definitions are immutable at runtime but remain assignable through roles.
 - `api/config/bootstrap/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
 - `api/config/bootstrap/reference` contains the release-bundled HGNC and VEP
-  snapshots loaded by the direct bootstrap command when their collections are
+  snapshots loaded by the reference installer when their collections are
   empty.
 - Normal application startup does not seed or synchronize governance documents.
 
@@ -150,10 +166,12 @@ ASPC contract rule for first-load data:
 - `asp_configs` entries include `filters` and `reporting` objects.
 - Every enabled reporting scope resolves to a published exact or assay Base release for its analyte and `reporting.language`.
 - DNA SNV base behavior is configured with `filters`.
-- DNA SNV retrieval uses the `generic_germline` and `generic_somatic` base groups, and center-specific SNV clauses are added through `query.snv`.
-- DNA assay-specific SNV operator rules are configured with `query.snv`.
-- DNA CNV behavior is configured with `filters.cnv_*`.
-- RNA fusion behavior is configured with `filters.fusion_*`.
+- Evidence modes and typed finding exceptions resolve through
+  [query rules](../administration/query-rules.md): application baseline, database
+  default, assay group, assay and subpanel. Bootstrap installs the bundled group
+  rules and typed installation-file criteria as attributed version-one publications.
+- DNA CNV thresholds use `filters.somatic.cnv`; RNA fusion thresholds use
+  `filters.somatic.fusion`.
 
 ## Related References
 

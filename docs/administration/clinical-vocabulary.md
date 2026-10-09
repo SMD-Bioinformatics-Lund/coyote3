@@ -8,63 +8,64 @@ It is loaded and validated when the API or a worker starts. A malformed
 configuration prevents startup rather than allowing an ingest or login flow to
 run with an ambiguous contract.
 
-> **Info: Configuration boundary**
->
->
-> TOML configures names and enabled choices that differ between centers.
-> Python implements the workflow and typed persistence. This TOML file owns
-> the selectable values, manifest vocabulary, and center policy labels used
-> by those workflows.
->
-
 ## Format, required values and defaults
 
-TOML groups settings under headings such as `[environment]`. A quoted value is
-text; square brackets after `=` contain a list. Dotted headings such as
-`[assay.family_categories]` define nested mappings. The examples below are a
-complete starting vocabulary, not implicit defaults for missing entries.
+The center file contains clinical policy and presentation metadata. Application
+capabilities are loaded separately from `api/config/clinical_capabilities.toml`.
+That release-owned file defines categories, families, scopes, the base subpanel,
+environments, authentication providers, gene-list types, supported fusion callers,
+manifest keys, required-file baselines, transcript selection order and analysis mappings. Center configuration
+cannot redefine these sections, even with identical values.
 
-| Settings | Required? | Behavior when omitted |
+| Center setting | Required? | Behavior when omitted |
 | --- | --- | --- |
-| `assay`, `environment`, `authentication`, `genelist` and their documented keys | Yes | Startup validation fails; no replacement identifiers are invented. |
-| `files` and `analysis`, including per-category and per-family mappings | Yes | Startup validation fails. Mappings must agree with declared categories, families and analysis types. |
-| `reporting.transcript_selection_order` | Yes | Startup validation fails. Every supported selector must appear exactly once. |
-| `reporting.annotation_tumor_types` | Yes, table; entries may be empty | Omitting the table fails validation. A group without an entry has an empty annotation descriptor. |
-| `fusion.callers` and `fusion.description_terms` | Yes | Startup validation fails. Description categories must be `important`, `not_important` and `context`. |
-| `snv.callers`, `cnv.callers`, `translocation.callers` | No | Each defaults to an empty list; its entire table may be omitted. |
+| `fusion.description_terms` | Yes | Requires disjoint `important`, `not_important` and `context` term lists. |
+| `snv.callers`, `cnv.callers`, `translocation.callers` | No | Empty presentation registries; historical provenance is preserved. |
 
-Unknown sections and unsupported keys fail validation. `environment.default` is
-an explicitly configured clinical-profile default, not a fallback for an absent
-configuration field. The field tables below describe accepted values and effects.
-For caller-specific flag text, use the separate
+TOML dotted headings group fields. Unknown keys and application-owned sections
+in the center file prevent startup. Authentication is selected separately through
+`AUTHENTICATION_PROVIDERS`; assay capabilities are selected through ASP/ASPC records.
+For caller-specific flag text, see the
 [flag metadata reference](../configuration/filter-flag-metadata-file.md).
 
 ## Runtime consumers
 
-Every supported vocabulary section has an application consumer. Configuration
+The combined application vocabulary and center policy have the following consumers. Configuration
 does not implement a parser, finding type, authentication protocol, or sequencing
 capability. Retain the software-supported semantics when changing identifiers.
 
 | Vocabulary | Application consumer | Effect and limits |
 | --- | --- | --- |
 | `assay.categories`, `families`, `family_categories`, `family_scopes` | `api/config/constants.py`, assay/sample contracts, and ingest helpers | ASP choices, category validation, family-to-omics mapping, and sample sequencing scope. |
-| `assay.base_subpanel_id` | `SUBPANEL_BASE_ID`, ASPC resolution, catalog and reporting services | Identifies the base configuration scope; changing it requires reviewing existing database references. |
-| `environment.options`, `default` | Environment normalization, sample catalog defaults, ingest, user scopes, and public catalog | Defines clinical profiles and their default. This does not replace the deployment's `ENV_NAME`. |
-| `authentication.providers` | Authentication constants and login configuration | Enables implemented local/LDAP providers; `AUTHENTICATION_PROVIDERS` can override it for a deployment. |
+| `assay.base_subpanel_id` | `SUBPANEL_BASE_ID`, ASPC resolution, catalog and reporting services | Identifies the application-owned base configuration scope. |
+| `environment.options`, `default` | Environment normalization, sample catalog defaults, ingest, user scopes, and public catalog | Defines application-owned clinical profiles and their default. This does not replace the deployment's `ENV_NAME`. |
+| `authentication.providers` | Authentication constants and login configuration | Defines implemented local/LDAP providers; `AUTHENTICATION_PROVIDERS` can override it for a deployment. |
 | `genelist.standard_types`, `adhoc_types` | Gene-list contracts, managed forms, and filter normalization | Curated and ad-hoc gene-list choices. |
 | `files.*.keys`, `files.required_by_family` | Sample contracts, ASP required-file defaults, manifest normalization and ingest | Defines pipeline file keys and baseline required inputs. ASP records can specify their required files. |
 | `analysis.*.types`, `file_keys`, `allowed_by_family` | Analysis constants, ingest preload bindings, ASPC validation and managed forms | Binds implemented analyses to files and assay families. Adding a name does not create ingest or review support. |
-| `reporting.annotation_tumor_types` | `api/application/interpretation/report_summary.py` | Assay-group descriptors in automatic Tier III annotation text; absent groups yield an empty descriptor. |
-| `reporting.transcript_selection_order` | `api/application/ingest/parsers.py` | Ordered selection of persisted transcript evidence during ingest. Existing findings are not reselected on configuration reload. |
+| Application `reporting.transcript_selection_order` | `api/application/ingest/parsers.py` | Fixed order for persisted transcript evidence during ingest. Not editable by centers; existing findings retain their selected transcript. |
 | `fusion.callers` | Fusion contracts, query builder, managed filters, RNA view contexts and caller-specific flag validation | Normalizes caller IDs and validates supported fusion caller selections. |
 | `fusion.description_terms` | RNA view contexts and fusion annotation badges | Categorizes caller evidence text for display; it is not a reporting-rule predicate. |
 | `snv.callers`, `cnv.callers`, `translocation.callers` | Filter metadata validation and SNV/CNV/translocation flag display | Registers caller-specific explanations. Historical caller names are retained; these lists do not filter findings or reject stored provenance. |
 
+## Whole-exome family
+
+The bundled vocabulary defines `wes` with DNA category and sequencing scope `wes`.
+Its baseline required input is `vcf_files`. The family permits implemented DNA
+analyses; the ASP and ASPC select the analyses actually provided by the pipeline.
+This permission does not establish that every analysis is validated for exome data.
+
+Define the ASP's `covered_genes` from its capture design. Gene-list coverage uses
+those declared genes; WES does not inherit the whole-genome assumption that every
+selected gene is covered. Existing WGS-specific CNV query behavior is unchanged.
+WES is supplied by the application release; centers create ASPs using this family
+without adding vocabulary entries.
+
 ## Caller registries and flag descriptions
 
 Fusion supports the implemented caller IDs `arriba`, `fusioncatcher`, and
-`starfusion`. Use only these values in `fusion.callers`; adding a name does not
-implement another fusion workflow.
+`starfusion`. These IDs are supplied by the application; do not add `fusion.callers`
+to the center file. Select from them through assay and sample filter settings.
 
 The SNV, CNV, and translocation registries are optional presentation settings.
 They default to empty and their tables may be omitted. Combined inputs do not
@@ -78,8 +79,6 @@ callers = []
 callers = []
 [translocation]
 callers = []
-[fusion]
-callers = ["arriba", "fusioncatcher", "starfusion"]
 ```
 
 ### Caller filtering and provenance
@@ -89,7 +88,7 @@ callers = ["arriba", "fusioncatcher", "starfusion"]
 | SNV | Ingest splits the combined VCF's `INFO.variant_callers` on `\|` and preserves all callers. No caller query filter is implemented. | Optional caller-specific flag descriptions only. |
 | CNV | Normalized JSON preserves `callers`. Query-policy exceptions can match this array; the ordinary CNV filters have no caller selector. | Optional caller-specific flag descriptions; it does not configure those query exceptions. |
 | Translocation | Views can display recorded caller provenance. No caller query filter is implemented. | Optional caller-specific flag descriptions only. |
-| Fusion | The `fusion_callers` filter and fusion query-policy exceptions match `calls[].caller`. | Defines the selectable subset of the three implemented caller IDs. |
+| Fusion | The `fusion_callers` filter and fusion query-policy exceptions match `calls[].caller`. | Application-owned caller IDs; centers select supported callers in assay/sample filters. |
 
 An empty DNA registry does not discard provenance or exclude findings. It also
 does not make raw input fields optional: the current SNV ingest parser requires
@@ -144,33 +143,7 @@ configuration release before switching services.
 ## File Layout
 
 ```toml
-[assay]
-categories = ["dna", "rna"]
-families = ["panel-dna", "panel-rna", "wgs", "wts"]
-base_subpanel_id = "base"
-
-[assay.family_categories]
-panel-dna = "dna"
-panel-rna = "rna"
-wgs = "dna"
-wts = "rna"
-
-[assay.family_scopes]
-panel-dna = "panel"
-panel-rna = "panel"
-wgs = "wgs"
-wts = "wts"
-
-[environment]
-options = ["production", "development", "testing", "validation"]
-default = "production"
-
-[authentication]
-providers = ["local", "ldap"]
-
-[genelist]
-standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
-adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
+# Center clinical policy and presentation metadata. Technical identifiers are application-owned.
 
 [snv]
 callers = []
@@ -181,67 +154,25 @@ callers = []
 [translocation]
 callers = []
 
-[fusion]
-callers = ["arriba", "fusioncatcher", "starfusion"]
-
 [fusion.description_terms]
-important = ["mitelman", "known", "oncogene", "cancer", "cosmic", "high"]
-not_important = ["1000genomes", "banned", "matched-normal", "readthrough"]
-context = ["distance100kbp", "duplicates", "healthy", "short_distance"]
-
-[reporting]
-transcript_selection_order = [
-  "ncbi_mane_plus_clinical",
-  "ensembl_mane_plus_clinical",
-  "ncbi_mane_select",
-  "ensembl_mane_select",
-  "vep_canonical_protein_coding",
-  "first_protein_coding",
-  "first_available",
+important = [
+  "mitelman", "18cancers", "known", "oncogene", "cgp", "cancer", "cosmic",
+  "gliomas", "oesophagus", "tumor", "pancreases", "prostates", "tcga", "ticdb", "high",
+]
+not_important = [
+  "1000genomes", "banned", "bodymap2", "cacg", "conjoing", "cortex", "cta", "ctb",
+  "ctc", "ctd", "distance1000bp", "ensembl_fully_overlapping",
+  "ensembl_same_strand_overlapping", "gtex", "hpa", "matched-normal", "mt",
+  "non_cancer_tissues", "non_tumor_cells", "pair_pseudo_genes", "paralogs",
+  "readthrough", "refseq_fully_overlapping", "rp11", "rp", "rrna", "similar_reads",
+  "similar_symbols", "ucsc_fully_overlapping", "ucsc_same_strand_overlapping",
+]
+context = [
+  "distance100kbp", "distance10kbp", "duplicates", "ensembl_partially_overlapping",
+  "fragments", "healthy", "short_repeats", "long_repeats", "partial-matched-normal",
+  "refseq_partially_overlapping", "short_distance", "ucsc_partially_overlapping",
 ]
 
-[files.dna]
-keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "hrd", "msi", "tmb", "pgx"]
-
-[files.rna]
-keys = ["fusion_files", "expression_path", "classification_path", "qc", "pgx"]
-
-[files.required_by_family]
-panel-dna = ["vcf_files"]
-wgs = ["vcf_files"]
-panel-rna = ["fusion_files"]
-wts = ["fusion_files"]
-
-[analysis.dna]
-types = ["SNV", "CNV", "TRANSLOCATION", "HRD", "MSI", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"]
-
-[analysis.dna.file_keys]
-SNV = ["vcf_files"]
-CNV = ["cnv"]
-TRANSLOCATION = ["transloc"]
-HRD = ["hrd"]
-MSI = ["msi"]
-CNV_PROFILE = ["cnvprofile"]
-COVERAGE = ["cov"]
-FUSION = ["transloc"]
-TMB = ["tmb"]
-PGX = ["pgx"]
-
-[analysis.rna]
-types = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]
-
-[analysis.rna.file_keys]
-FUSION = ["fusion_files"]
-EXPRESSION = ["expression_path"]
-CLASSIFICATION = ["classification_path"]
-QC = ["qc"]
-PGX = ["pgx"]
-
-[analysis.allowed_by_family]
-panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
-wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "FUSION", "TMB", "PGX"]
-panel-rna = ["FUSION", "QC", "PGX"]
-wts = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]
 ```
 
 The ASPC editor applies this matrix dynamically. Selecting the DNA or RNA
@@ -256,23 +187,7 @@ validates the same matrix and rejects incompatible submitted values.
 
 | TOML table | Key | Allowed value form | How the application uses it |
 | --- | --- | --- | --- |
-| `[assay]` | `categories` | Non-empty unique lowercase identifiers | Defines the omics categories used by ASPs and the `files.<category>` and `analysis.<category>` tables. |
-| `[assay]` | `families` | Non-empty unique lowercase identifiers | Defines selectable ASP families and the required family mapping tables. |
-| `[assay]` | `base_subpanel_id` | One lowercase identifier | The synthetic subpanel identifier used for an assay-wide ASPC when no named subpanel applies. |
-| `[assay.family_categories]` | one value per family | A configured assay category | Maps every family to the omics category that owns its file-key vocabulary. |
-| `[assay.family_scopes]` | one value per family | One non-empty identifier | Maps every family to the sequencing scope stored with samples. |
-| `[environment]` | `options`, `default` | Unique identifiers; default must be one listed option | Defines selectable ASPC/sample environments and the initial environment used where none is provided. |
-| `[authentication]` | `providers` | One or both of `local`, `ldap` | Defines the enabled values permitted in a user's `auth_type` list. `local` uses username and local password; `ldap` uses email and directory credentials. |
-| `[genelist]` | `standard_types`, `adhoc_types` | Non-empty unique identifiers with no overlap | Defines selectable ISGL list types and determines which options appear when the ISGL ad-hoc switch is enabled. |
-| `[fusion]` | `callers` | Unique lowercase caller IDs, for example `arriba`, `fusioncatcher`, and `starfusion` | Defines the canonical IDs accepted on ingested `fusions.calls[].caller`, persisted in `filters.somatic.fusion.fusion_callers`, offered by ASPC and sample filter forms, and used in MongoDB predicates. Input capitalization and separators are normalized to these IDs; unconfigured callers are rejected at typed write boundaries. |
 | `[fusion.description_terms]` | `important`, `not_important`, `context` | Unique lowercase exact terms with no term repeated across groups | Categorizes comma-delimited caller annotations in both the fusion filter selector and table tooltips. Important terms are green, not-important/artifact terms are red, contextual terms are gray, and unlisted terms remain neutral. Selecting terms applies exact, case-insensitive token filters; these categories do not assign a clinical tier. |
-| `[reporting]` | `transcript_selection_order` | Ordered array containing every selector in the table below exactly once | Determines the clinical transcript selection order during DNA VCF ingest. The first selector with a matching CSQ row wins; within that selector, VEP impact is ordered HIGH, MODERATE, LOW, then MODIFIER. |
-| `[files.dna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for DNA sample YAML `files`. |
-| `[files.rna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for RNA sample YAML `files`. |
-| `[files.required_by_family]` | family arrays | Keys declared for that family's omics category | Establishes the baseline required input files for `panel-dna`, `wgs`, `panel-rna`, and `wts`. ASP-specific requirements can make additional configured keys mandatory. |
-| `[analysis.dna]` / `[analysis.rna]` | `types` | Supported application analysis types | Enables the analysis types that the center intends to use for that omics category. |
-| `[analysis.<omics>.file_keys]` | one array per enabled type | One or more configured keys for that omics category | Binds each analysis workflow to the manifest field(s) it reads. The first key is the primary path used by single-file consumers such as report images. |
-| `[analysis.allowed_by_family]` | one array for every configured assay family | Analysis types declared by the family's omics category | Narrows implemented analysis types by sequencing family. Targeted `panel-rna` can enable fusion, QC, and PGX; only `wts` can enable expression and classification. ASPC create/update validation rejects incompatible selections. |
 
 ### Fusion Annotation Vocabulary
 
@@ -281,8 +196,9 @@ example, pipeline values `FusionCatcher`, `fusion-catcher`, and
 `fusioncaller_fusion_catcher` all resolve to the configured `fusioncatcher`
 ID. The API returns the configured IDs to the filter UI instead of maintaining
 a separate frontend list. This keeps checkbox state, persisted sample filters,
-and `calls.caller` query values identical. Add a new released caller to
-`fusion.callers` before ingesting records produced by it.
+and `calls.caller` query values identical. Supporting another caller requires an
+application release with validated ingestion and query behavior; editing center
+configuration cannot add that support.
 
 Fusion descriptions and frame effects are supplied by the upstream fusion
 caller. They do not pass through VEP, the DNA transcript-selection order, or
@@ -310,9 +226,10 @@ from implying that every RNA assay produces every RNA resource.
 | Family | Default allowed analysis | Operational meaning |
 | --- | --- | --- |
 | `panel-dna` | DNA analysis types listed in TOML | Targeted DNA panels may enable only analyses implemented for DNA. |
+| `wes` | DNA analysis types defined by the release | Exome capture uses the ASP’s declared covered genes. |
 | `wgs` | DNA analysis types listed in TOML | WGS uses the DNA workflow vocabulary but may select a different subset per ASPC. |
-| `panel-rna` | `FUSION`, `QC`, `PGX` | Targeted fusion panels do not expose expression or classification. |
-| `wts` | `FUSION`, `EXPRESSION`, `CLASSIFICATION`, `QC`, `PGX` | Whole-transcriptome configurations may enable expression and classification. |
+| `panel-rna` | `FUSION`, `QC` | Targeted fusion panels do not expose expression or classification. |
+| `wts` | `FUSION`, `EXPRESSION`, `CLASSIFICATION`, `QC` | Whole-transcriptome configurations may enable expression and classification. |
 
 The resolved ASPC still determines which allowed analyses are active for a
 specific sample. A family allowance makes an option valid; it does not enable
@@ -320,9 +237,14 @@ that option automatically.
 
 ### Transcript Selection Selectors
 
-`reporting.transcript_selection_order` is ordered policy, not an arbitrary
-numeric priority. It must contain each selector below exactly once. The default
-puts RefSeq/NCBI sources before their Ensembl equivalents.
+`reporting.transcript_selection_order` belongs to the application release in
+`api/config/clinical_capabilities.toml`. Centers cannot change its order. It puts
+RefSeq/NCBI sources before their Ensembl equivalents. Within a selector, VEP impact
+is ordered HIGH, MODERATE, LOW, then MODIFIER.
+
+Tumor-type wording for automatic Tier III annotations belongs to published
+[reporting rules](../reference/clinical-reporting-rules.md), under
+`terminology.automatic_annotation_tumor_type`. It is not vocabulary configuration.
 
 | Selector | Stored source fields and collections | Candidate requirement | Default position | Notes |
 | --- | --- | --- | --- | --- |
@@ -389,7 +311,7 @@ VCF. They remain distinct analysis sections downstream.
 
 ## Validation Rules
 
-1. Every table shown above is required.
+1. Required center policy tables must be present; application-owned tables must be absent.
 2. Values must be unique, non-empty, and use identifier-safe file-key names.
 3. Every configured assay family requires a category and sequencing-scope mapping.
 4. Every configured assay family requires a baseline file declaration.
@@ -431,7 +353,7 @@ The related fields have different responsibilities:
 | Field | Examples | Meaning |
 | --- | --- | --- |
 | `asp_group` | `hematology`, `solid`, `tumwgs`, `myeloid` | Registered assay/workflow scope used to link ASPs, ASPCs, ISGLs, annotations, user access, and query logic. |
-| `asp_family` | `panel-dna`, `wgs`, `panel-rna`, `wts` | Sequencing design family. It is not an assay group. |
+| `asp_family` | `panel-dna`, `wes`, `wgs`, `panel-rna`, `wts` | Sequencing design family. It is not an assay group. |
 | `asp_category` | `dna`, `rna` | Omics category that selects the allowed manifest and analysis vocabulary. |
 | `subpanel_id` | `base`, `endometrie`, `breast`, `colon` | In-silico clinical target subset within a design panel. `base` means no named subpanel. |
 
@@ -448,31 +370,22 @@ The application exposes `analysis_file_keys(omics, analysis)` and
 delivery, report rendering, and sample-omics inference use these accessors;
 they do not depend on a hardcoded center file-field name.
 
-Internal collection names are deliberately separate. For example, a center can
-rename the DNA coverage manifest key from `cov` to `coverage_json`, while the
-parsed data still writes to the software-owned `d4_coverage` collection.
+Manifest identifiers and collection names are separate application contracts.
+For example, `cov` maps to the D4 coverage ingest workflow and `d4_coverage`
+storage. Centers cannot rename that manifest key through vocabulary configuration.
 
 ## Change Procedure
 
-1. Add the required input file name to `[files.dna]` or `[files.rna]`.
-2. Bind it to the selected analysis label under `[analysis.<omics>.file_keys]`.
-3. Update the center's sample YAML producers and seed examples to use the new
-   key.
-4. Review baseline requirements for affected assay families and any
-   ASP-specific `required_files` settings.
-5. Restart API and worker services together so every process has the same
-   validated contract.
-6. Ingest a representative non-production sample and verify the source-file
-   card, parsed collection, analysis tab, and report section.
+1. Edit only center policy fields in a private configuration release.
+2. Review evidence categorization and caller display metadata with the clinical owner.
+3. Validate the release against the target application version.
+4. Recreate API, worker, beat and monitor together.
+5. Verify affected ingest, review and reporting workflows with synthetic fixtures.
 
-> **Warning: Renaming an active manifest key**
->
->
-> Existing sample documents retain their historical `files` keys. Plan a
-> controlled data migration or retain the old data until historical samples
-> no longer require it. Do not change the TOML while active workers are
-> ingesting the same watch directory.
->
+Creating an ASP, assay group, subpanel or ISGL uses administration workflows and
+supported application identifiers; it does not require editing the capability file.
+See [configuration upgrade](../deployment/center-configuration.md#application-owned-definitions)
+for removing technical definitions from older center files.
 
 ## Authorization Model
 

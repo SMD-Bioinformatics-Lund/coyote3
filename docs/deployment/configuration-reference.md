@@ -13,10 +13,10 @@ permissions, retirement, persistence and existing-installation setup.
 
 ## Annotation vocabulary and sample profiles
 
-`reporting.annotation_tumor_types` in `api/config/center/clinical_vocabulary.toml`
-maps assay-group identifiers to non-empty tumor descriptors used by the automatic
-Tier III annotation generator. Unlisted groups contribute an empty descriptor.
-Changes require clinical review and an API/worker restart.
+`terminology.automatic_annotation_tumor_type` in the published clinical reporting
+rule set supplies tumor-type wording for automatic Tier III annotations. Configure
+it through the reporting-rule editor and publish a reviewed version; no restart
+is required. See [annotation terminology](../reference/clinical-reporting-rules.md#automatic-tier-iii-annotation-terminology).
 
 Sample catalog requests default to the deployed environment. The frontend explicitly
 sends `profile_scope`; `all` selects all authorized profiles, never bypassing user
@@ -91,8 +91,10 @@ as a clinical/configuration change rather than hidden in application code.
 | File | Format | Detailed field reference | Purpose |
 | --- | --- | --- | --- |
 | `center/contact.toml` | TOML | [Contact table](../configuration/contact-file.md) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
-| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](center-configuration.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups are managed in the database registry, not this file. |
-| `center/clinical_query_policy.toml` | TOML | [Query-policy table](../configuration/clinical-query-policy-file.md) | Released SNV evidence models plus independent typed CNV, translocation, fusion, and PGX exception scopes. |
+| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](center-configuration.md#clinical_vocabularytoml) | Fusion evidence terms and optional DNA caller metadata. |
+| `clinical_capabilities.toml` | TOML, application-owned | [Ownership and upgrade](center-configuration.md#application-owned-definitions) | Fixed families, file keys, analyses, gene-list types and supported providers/callers. Not editable through center configuration. |
+| `clinical_query_defaults.toml` | TOML, application-owned | [Query baseline](../configuration/clinical-query-policy-file.md#baseline-keys) | Release-owned SNV evidence modes and population-field names. |
+| `clinical_query_seed.toml` | TOML, application-owned | [Query-policy table](../configuration/clinical-query-policy-file.md) | Bundled installation criteria loaded by Python bootstrap tools. Not editable center configuration. |
 | `collections.toml` | TOML | [Collection table](../configuration/collection-mapping-file.md) | Application-owned physical collection names. Database names are environment settings. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../configuration/filter-flag-metadata-file.md) | Human-facing variant flag labels, severity, and tooltip descriptions. |
 

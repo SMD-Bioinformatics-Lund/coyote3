@@ -38,8 +38,7 @@ api/config/
   loaders/                      # Python loaders for center-owned assets
   center/
     contact.toml                # public center identity and support contacts
-    clinical_vocabulary.toml    # center vocabulary and sample-file bindings
-    clinical_query_policy.toml  # released analysis-specific query policy
+    clinical_vocabulary.toml    # clinical policy and presentation metadata
     filter_flag_metadata.yaml   # human-facing VCF filter badge metadata
 ```
 
@@ -50,7 +49,7 @@ then edit the three TOML files and the filter metadata YAML:
 
 ```bash
 mkdir -p /srv/coyote3/center-config-work
-cp api/config/center/{contact.toml,clinical_vocabulary.toml,clinical_query_policy.toml,filter_flag_metadata.yaml} \
+cp api/config/center/{contact.toml,clinical_vocabulary.toml,filter_flag_metadata.yaml} \
   /srv/coyote3/center-config-work/
 
 .venv/bin/python scripts/deployment/prepare_center_config.py \
@@ -70,7 +69,7 @@ Alternatively, stage the same files from a separate GitHub or other Git reposito
 
 Replace the repository URL, commit ID, and paths. SSH repositories are supported;
 use an SSH agent or Git credential helper for private access. Do not embed tokens
-in URLs. The command retrieves only the four data files, validates them with the
+in URLs. The command retrieves only the three data files, validates them with the
 installed application, writes a SHA-256 manifest, and refuses an existing destination.
 A branch name, tag, or shortened commit ID is not accepted. No remote configuration
 is downloaded during application startup or requests.
@@ -98,7 +97,7 @@ docker build -f docker/Dockerfile.docs \
   -t coyote3-docs:local .
 ```
 
-An explicit directory must contain all four files; missing files fail startup
+An explicit directory must contain all three files; missing files fail startup
 instead of falling back to bundled examples. `collections.toml` is always loaded
 from the application package, even if the external directory contains a file with
 that name. When no external directory is selected, development uses the bundled
@@ -120,8 +119,7 @@ review before use at a laboratory.
 | File or setting | Required review | Deployment action |
 | --- | --- | --- |
 | `contact.toml` | Organization, department, support contacts, named recipients, and service hours. | Edit the external copy and keep `organization.name` aligned with `ORGANIZATION_NAME`. Rebuild documentation when identity changes. |
-| `clinical_vocabulary.toml` | Authentication providers, assay families, environments, gene-list types, reporting vocabulary, transcript-selection order, pipeline file keys, required files, and analysis bindings. | Retain implemented identifiers unless a reviewed workflow requires a supported change. Validate representative ingest manifests against the selected vocabulary. |
-| `clinical_query_policy.toml` | Default evidence models, assay-group overrides, and every admission or exclusion exception. | Obtain clinical approval for the selected policy. Remove center-specific exceptions only through a reviewed policy change; an exception can change which findings are visible. |
+| `clinical_vocabulary.toml` | Fusion evidence terms and optional DNA caller metadata. | Review display effects and validate against the application's fixed capabilities. |
 | `api/config/collections.toml` | Application-owned physical collection mappings. | Do not edit for a center. Set database names and connection strings in the environment file. |
 | `filter_flag_metadata.yaml` | Labels, severity, descriptions, and hidden flags for the center's pipeline FILTER values. | Review explanations against actual pipeline output. These settings affect presentation, not finding admission. |
 | Private environment file | All four MongoDB URI/name pairs, organization name, public URL, TLS proxy settings, authentication, mail, integrations, secrets, storage, and network. | Start from `deploy/env/example.env`; use separate values and storage for each deployment. |
@@ -154,7 +152,7 @@ clinical workflow or a security rule.
 | Layer | Location | Owner | Typical contents | Change method |
 | --- | --- | --- | --- | --- |
 | Runtime settings | A copied `deploy/env/example.env` file | Platform administrator | Database connection, secrets, public mount, paths, resource limits, local timezone | Update the environment and recreate affected containers. Rebuild images when a changed value is also a build argument. |
-| Center configuration | External directory selected by `COYOTE3_CENTER_CONFIG_HOST_DIR` | Center clinical and technical owners | Local terminology, manifest field names, contacts, caller registries, filter explanations | Validate a reviewed release and recreate API, worker, beat, and monitor. Rebuild documentation for changed contact content. |
+| Center configuration | External directory selected by `COYOTE3_CENTER_CONFIG_HOST_DIR` | Center clinical and technical owners | Clinical policy, contacts, DNA caller metadata, filter explanations | Validate a reviewed release and recreate API, worker, beat, and monitor. Rebuild documentation for changed contact content. |
 | Software contract | Python modules under `api/config/` and typed contracts | Coyote3 maintainers | Implemented analysis types, authentication mechanisms, permission semantics, persistence schemas | Change code, tests, and release documentation. |
 
 The complete environment-variable table is maintained in
@@ -177,20 +175,47 @@ requirements, omission behavior, examples and validation.
 
 ## `clinical_vocabulary.toml`
 
-This file configures center-controlled vocabulary and manifest field names.
+This file configures center clinical policy and presentation metadata.
 It is validated during API and worker startup. The full schema, supported
 workflow options, validation rules, and change procedure are documented in
 [Clinical Vocabulary Configuration](../administration/clinical-vocabulary.md).
 
-Use it when a center needs to change local authentication-provider
-availability, a sample YAML file key, baseline file requirement, the file
-bound to an implemented analysis type, or the approved transcript-selection
-order. It also controls exact fusion-description evidence categories and the
-implemented analysis subset allowed for each assay family. Sequencing platforms
-and their read capabilities are software-owned and cannot be changed in this
-file. The transcript selector names are implemented software contracts, but
-their released order is center configuration and is validated strictly at
-startup.
+Use it to change fusion-description categories or optional DNA caller display metadata. Families,
+gene-list types, file keys and analysis bindings are application-owned. Choose
+supported authentication providers through `AUTHENTICATION_PROVIDERS`, and select
+assay capabilities through ASP/ASPC administration.
+
+## Application-owned definitions
+
+Python loads `api/config/clinical_capabilities.toml` and
+`api/config/clinical_query_defaults.toml` from the application package. Neither
+path can be redirected through the center directory. These are software release
+assets, like `api/config/collections.toml`; centers must not edit or copy them.
+New ASPs, groups, subpanels and gene lists remain center-managed database resources.
+
+Before upgrading a deployment that has older center files:
+
+1. Back up the current private configuration release.
+2. Compare its technical definitions with the target application's capability file.
+   Stop if custom identifiers or mappings are used by existing records or pipelines;
+   resolve their compatibility and migration before deployment.
+3. Remove `assay`, `environment`, `authentication`, `genelist`, `files` and `analysis`
+   sections from the center `clinical_vocabulary.toml`. Remove `fusion.callers`,
+   retaining `fusion.description_terms`. Remove the entire `reporting` section:
+   transcript priority is application-owned. Preserve any annotation descriptors in
+   the deployment record and configure them in approved reporting-rule successors
+   under `terminology.automatic_annotation_tumor_type` before using automatic Tier III text.
+4. Archive any older center `clinical_query_policy.toml` outside the active bundle.
+   It is no longer loaded. Compare its criteria with the installed database rules;
+   preserve required center differences through reviewed query-rule publications
+   before reopening clinical access. Application defaults and seed criteria cannot
+   be overridden with center files.
+5. Validate the new center release with the target application's configuration
+   preparation command, then follow the [upgrade procedure](application-upgrades.md).
+
+Old protected entries fail validation even when their values match the release.
+They are not silently ignored. This configuration change does not rewrite stored
+samples, ASPs, ASPCs or reports, and does not publish new database-managed query rules.
 
 > **Important: Assay groups are registered in the database**
 >
@@ -203,10 +228,13 @@ startup.
 > concepts.
 >
 
-## `clinical_query_policy.toml`
+## Query-rule installation definitions
 
-See the [clinical_query_policy.toml reference](../configuration/clinical-query-policy-file.md) for fields,
-requirements, omission behavior, examples and validation.
+`api/config/clinical_query_seed.toml` is application-owned and loaded by Python
+bootstrap tools. Do not copy it into a center configuration release. Manage live
+criteria through [query rules](../administration/query-rules.md); the
+[seed and predicate reference](../configuration/clinical-query-policy-file.md)
+describes supported fields and installation behavior.
 
 ## `collections.toml`
 
@@ -296,7 +324,7 @@ application behavior and changing them requires a software change.
 | Item | Defined in | Why it is software-owned |
 | --- | --- | --- |
 | Permission identifiers and permission categories | `api/config/constants.py` and authorization contracts | Centers assign existing permissions to roles; they do not define new authorization semantics. |
-| Authentication implementation | `api/config/security.py` and authentication services | The vocabulary file can enable `local` and/or `ldap`, but it cannot add an authentication protocol. |
+| Authentication implementation | `api/config/security.py` and authentication services | `AUTHENTICATION_PROVIDERS` selects supported providers; center vocabulary cannot add a protocol. |
 | Supported analysis types | Typed contracts, parsers, repositories, UI, and reporting services | A new type requires end-to-end ingestion, storage, display, report, and test support. |
 | Reporting-rule operators and rendering behavior | Reporting contracts and rule engine | Clinical content follows its own controlled reporting-rule release process. |
 | Normalized database-version keys | `api/config/database_versions.py` | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |

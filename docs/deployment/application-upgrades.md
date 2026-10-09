@@ -47,6 +47,9 @@ if directory creation fails. Keep its contents private; it will contain secrets.
 Read the target release notes before changing the checkout. Identify required
 configuration keys, schema changes, RBAC/index maintenance, compatibility and
 rollback restrictions. Agree on the maintenance window and recovery plan.
+For center files that still declare families, manifest keys, analysis bindings or
+base query settings, follow the [application-owned definitions upgrade](center-configuration.md#application-owned-definitions)
+before validating the new configuration release.
 For configuration-only changes, retain the current reviewed commit throughout.
 
 ## 2. Preserve the current release and configuration
@@ -124,11 +127,9 @@ API or workers or writing to MongoDB:
 
 ```bash
 coyote_compose run --rm --no-deps -T api python3 -c '
-from api.config.clinical_query_policy import load_clinical_query_policy
 from api.config.loaders.filter_flags import load_filter_flag_metadata
 from api.config.loaders.contact import load_contact_config
 from api.config.paths import CONTACT_CONFIG_PATH
-load_clinical_query_policy()
 load_filter_flag_metadata()
 load_contact_config(CONTACT_CONFIG_PATH, organization_name="Validation", public_base_url="", script_name="")
 print("Center configuration valid")
@@ -236,6 +237,30 @@ coyote_compose run --rm --no-deps -T api python3 scripts/database/manage_mongo_i
 reviewed operation. Retain plans/results and migration evidence in the deployment
 record. If maintenance fails, keep writers stopped and follow its recovery plan;
 do not start old or new services against a partially migrated database.
+
+### Database-managed query policies and annotation wording
+
+When upgrading from runtime TOML query policies, install the application seed rules
+before starting the new API. The new runtime reads published database rules only. Complete
+the protected-field cleanup in the [center configuration guide](center-configuration.md#application-owned-definitions),
+RBAC synchronization and index plan above. Assay groups must already be registered.
+
+```bash
+coyote_compose run --rm --no-deps -T api python3 scripts/bootstrap/install_query_rules.py --actor ADMIN_USERNAME
+coyote_compose run --rm --no-deps -T api python3 scripts/bootstrap/install_query_rules.py --actor ADMIN_USERNAME --apply
+```
+
+Review the first command's plan before applying it. Existing scopes, including retired
+ones, are preserved. The installer uses application-owned criteria and does not import
+old center files. Compare archived center policies with the planned and existing
+rules, then recreate any required differences through reviewed publications in the
+editor before reopening clinical access. Validate effective policies for representative
+sample scopes after startup.
+
+For automatic Tier III annotations, move previous tumor-type descriptors into
+`terminology.automatic_annotation_tumor_type` on reviewed reporting-rule successors.
+Do not edit published documents or their hashes directly. Automatic text remains
+unavailable until suitable wording is published; ordinary classification is unaffected.
 
 ## 7. Replace services and verify
 

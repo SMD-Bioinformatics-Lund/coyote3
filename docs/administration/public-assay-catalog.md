@@ -5,6 +5,12 @@ presentation content with active assay definitions, production configurations,
 and public gene lists. Catalog editing never changes ingest requirements,
 clinical filters, reporting rules, or existing samples.
 
+Before catalog entries are available, the public catalog displays **Add catalog**
+setup guidance. An empty catalog is a normal installation state. The shared layout
+also reads catalog context to build navigation, even outside the catalog page;
+this background read returns an empty context without a request-failure notification.
+Requests for a specific unavailable entry still return a not-found response.
+
 ## Create the dependent records first
 
 Anonymous gene-list endpoints, catalog gene tables, exports, and the matrix expose

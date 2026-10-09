@@ -73,8 +73,8 @@ filters still apply. Review that behavior before choosing an unrestricted scope.
 ## Reporting rules and query policy
 
 Clinical reporting rules are governed database releases. They select report content
-and wording; they are not the same as `clinical_query_policy.toml`, which configures
-supported finding-retrieval policies and exceptions. `filter_flag_metadata.yaml`
+and wording; separate [query rules](query-rules.md) govern finding retrieval and
+exceptions. `filter_flag_metadata.yaml`
 only controls flag presentation.
 
 Reporting resolution uses assay, subpanel, analyte and language. It prefers an

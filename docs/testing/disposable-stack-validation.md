@@ -205,8 +205,8 @@ EOF
 ```
 
 Public OncoKB and ClinPGx lookups are disabled so these requests do not leave the
-rehearsal environment. Local HGNC and VEP reference snapshots loaded by bootstrap
-remain available; bootstrap does not populate an external knowledgebase database.
+rehearsal environment. Bundled HGNC and VEP snapshots can be installed separately
+into the disposable knowledgebase; no external reference downloads are required.
 
 All four logical databases use explicit URI/name pairs on this disposable replica
 set. The `mongo` profile creates the application MongoDB service and initializer;
@@ -400,11 +400,22 @@ Bootstrap loads:
 
 - system-managed permissions and roles;
 - the first local superuser;
-- the bundled HGNC and VEP reference snapshots; and
 - synthetic ASP, ASPC, and ISGL records required by the DNA fixture.
 
 Bootstrap is intentionally explicit and refuses to initialize an already
 governed database. A second successful bootstrap is not expected.
+
+Install bundled reference snapshots separately when required by the rehearsal:
+
+```bash
+bash scripts/deployment/compose-with-version.sh \
+  -p "$VALIDATION_APP_PROJECT" --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.yml run --rm --no-deps -T api \
+  python scripts/bootstrap/install_reference_data.py --actor center.operator
+```
+
+Use `manage_mongo_indexes.py apply --scope all` during this disposable rehearsal
+to provision both application and knowledgebase indexes explicitly.
 
 ## 7. Start the complete application stack
 

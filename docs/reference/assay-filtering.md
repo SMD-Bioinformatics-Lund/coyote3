@@ -23,6 +23,11 @@ The resolution of analytic strategies follows a deterministic inheritance model 
    into repository queries for SNVs, CNVs, fusions, translocations, and quality
    data.
 
+Finding selection also resolves [published query rules](../administration/query-rules.md)
+from installed defaults through assay group, assay and subpanel. This hierarchy is
+independent of ASPC resolution and supplies supported evidence modes and typed
+exceptions to the fixed query implementation.
+
 ## Analysis Availability and Tab Dispatch
 
 The sample workspace does not infer available analyses from a file name alone.
@@ -88,8 +93,21 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 
 ### Intent-specific SNV review
 
+!!! warning "Query intent does not establish variant origin"
+
+    Somatic SNV results can include germline variants under the current queries.
+    Somatic and germline query intents do not partition the stored findings into
+    mutually exclusive biological categories. The dedicated germline SNV pathway
+    is not yet fully implemented; the configuration and routing described below
+    do not constitute a complete germline analysis workflow. Enabling germline
+    intent does not remove germline variants from somatic results.
+    Published germline query exceptions also contribute to somatic SNV selection
+    for the same scope, even when the sample has only somatic intent enabled.
+    Somatic evidence settings remain active; germline admissions and exclusions
+    are evaluated alongside the somatic rules. See [query-rule composition](../administration/query-rules.md#scope-and-inheritance).
+
 Somatic and germline SNVs use the same underlying VCF-derived collection but
-are separate analytical views. Their filter profiles, result queries, table
+have separately configured analytical views. Their filter profiles, result queries, table
 state, comment suggestions, and report contexts are intent-specific:
 
 ![Independent somatic and germline SNV filter state](../assets/diagrams/snv-intent-filter-routing.svg)
@@ -187,7 +205,7 @@ and every configured match condition apply.
 | Review configuration | Sample's recorded ASPC revision | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
 | Per-sample review state | `samples.filters` | reviewer-selected ISGLs, ad-hoc genes, and permitted threshold changes | assay-group policy |
 | Versioned annotation metadata | VEP metadata referenced by `sample.database_versions.vep` | expansion of UI consequence groups to VEP terms | query threshold values |
-| Clinical query policy | External `clinical_query_policy.toml` plus domain-core Python; bundled examples in `api/config/center/` | released SNV evidence models and analysis-specific typed exceptions | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
+| Clinical query policy | Application-owned Python/defaults plus published `query_rule_sets`; application seed criteria are installed by bootstrap | SNV evidence modes and analysis-specific typed exceptions resolved through default, group, assay and subpanel scopes | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
 
 This design prevents an administrative form from broadening a clinical query by
 storing raw operators in MongoDB. A change to query semantics requires code
@@ -256,9 +274,9 @@ transcript.
 
 ### Released SNV policies and exceptions
 
-`clinical_query_policy.toml` is a released clinical configuration asset. It is
-reviewed and deployed with the application, but it is intentionally not stored
-in ASPC and cannot contain arbitrary MongoDB syntax. The application supports
+Published `query_rule_sets` provide the live selection policy. Installation imports
+application-owned criteria from `api/config/clinical_query_seed.toml`; subsequent changes use the editor.
+These rules are separate from ASPCs and cannot contain arbitrary MongoDB syntax. The application supports
 only the following baseline policies:
 
 | Policy | Required evidence | Population frequencies | Control evidence | Intended use |
@@ -331,8 +349,8 @@ typed policy vocabulary; no example represents raw MongoDB syntax.
 
 ### Analysis-specific query-policy blocks
 
-The only authorable clinical query-policy document is
-`api/config/center/clinical_query_policy.toml`. It does **not** contain sample
+The query-rule editor manages live policy. Its exception grammar also applies to
+the application seed file `api/config/clinical_query_seed.toml`. Neither contains sample
 documents, ASPC filters, selected ISGLs, UI tabs, or request parameters. Those
 values are persisted and resolved at runtime. The policy file supplies the SNV
 evidence model and narrowly typed, analysis-specific exception branches under
@@ -344,7 +362,7 @@ namespace cannot affect another analysis.
 >
 > This strategy guide explains how the query policy affects retrieval. The
 > authoritative authoring contract is the
-> [Center Configuration Reference](../configuration/clinical-query-policy-file.md).
+> [Installed criteria and predicate reference](../configuration/clinical-query-policy-file.md).
 > Consult that reference before changing the TOML file. It defines every
 > permitted block heading and key, required fields, allowed values, bracket
 > syntax, condition-combination rules, compatible policy and exception
@@ -372,14 +390,6 @@ content before release.
 
 ```toml
 [snv]
-default_somatic_policy = "paired"
-default_germline_policy = "exception_only"
-population_frequency_fields = [
-  "gnomad_frequency",
-  "gnomad_max",
-  "exac_frequency",
-  "thousandG_frequency",
-]
 
 [cnv]
 
@@ -553,3 +563,7 @@ diagnosis and subpanel context with eligible ISGL definitions. Matching lists
 can then be attached when the sample is initialized or its gene-list selection
 is reset. The selected list identifiers are stored with the sample context so
 that filtering and report generation use the same gene scope.
+
+Application baseline evidence modes and population-field names are defined in
+`api/config/clinical_query_defaults.toml`. Centers manage scoped exceptions and
+supported evidence-mode overrides through database query rules, not TOML files.

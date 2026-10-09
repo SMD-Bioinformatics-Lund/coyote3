@@ -6,6 +6,8 @@ Use synthetic fixtures to test ingestion, API responses and collection contracts
 
 Test data lives in these directories:
 
+- `demo_data/clinical_workflows/`: Portable raw evidence, setup records, expected collections
+  and [clinical workflow exercises](clinical-workflow-demo.md).
 - `demo_data/ingest/`: Synthetic input files for ingest tests.
 - `demo_data/collections/`: Example documents for collection contract tests.
 - `tests/fixtures/api/`: API fixtures and payload snapshots.

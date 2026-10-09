@@ -59,7 +59,7 @@ description and renders directly in GitHub and the documentation site.
 | [Ingestion](../assets/diagrams/celery-ingest-flow.svg) | Durable jobs, configuration resolution, transactional persistence, and failure handling. |
 | [Clinical review](../assets/diagrams/clinical-review-flow.svg) | Filters, interpretation, preview, and saved evidence. |
 | [Sample analysis](../assets/diagrams/sample-analysis-resolution.svg) | Configured analyses, gene scope, query policy, and client refresh. |
-| [Transcript selection](../assets/diagrams/transcript-selection-flow.svg) | Configured transcript priority and within-stage consequence tie-breaking. |
+| [Transcript selection](../assets/diagrams/transcript-selection-flow.svg) | Application-owned transcript priority and within-stage consequence tie-breaking. |
 | [Report generation](../assets/diagrams/report-generation-flow.svg) | Typed facts, published rules, preview, confirmation, and stable outputs. |
 | [Configuration authority](../assets/diagrams/configuration-authority.svg) | Deployment settings, application catalogs, clinical resources, and sample state. |
 | [Resource updates](../assets/diagrams/configuration-resource-update.svg) | Permissions, validation, version changes, and preserved report provenance. |

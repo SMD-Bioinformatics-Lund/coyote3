@@ -19,5 +19,6 @@ and infrastructure, with explicit contracts for data ingestion, access, and repo
 | [Transactions and ingest recovery](transactions-and-ingest-recovery.md) | Understand atomic writes, durable jobs, and recovery behavior. |
 | [Clinical Data Preparation And Reporting Flow](clinical-data-and-reporting.md) | Trace configuration and findings into report generation. |
 | [Architecture decisions](decisions/README.md) | Read accepted architecture decisions and their rationale. |
+| [Future work](../project/future-work.md) | Review the proposed separation of finding observations, origin assessments and clinical interpretations. |
 
 [Documentation home](../README.md)

@@ -249,7 +249,7 @@ corresponding COSMIC product is unavailable, not that the finding has no evidenc
 See [Knowledgebase Evidence](../reference/knowledgebases/evidence-sources.md) for source and
 matching semantics.
 
-The selected transcript follows the configured transcript priority. Alternate
+The selected transcript follows the application-owned transcript priority. Alternate
 transcripts remain available in the transcript table and gene symbols link to
 the gene information page. See
 [DNA clinical review](dna-review.md) for the transcript and evidence

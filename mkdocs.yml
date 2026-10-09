@@ -56,6 +56,7 @@ nav:
           - "Choose a procedure": deployment/production-deployment.md
           - "Production requirements": deployment/production-requirements.md
           - "First installation": deployment/first-installation.md
+          - "Installation operations": deployment/installation-operations.md
           - "Installation checklist": deployment/installation-checklist.md
           - "Deployment acceptance": deployment/acceptance-checklist.md
           - "Upgrade an existing installation": deployment/application-upgrades.md
@@ -93,14 +94,17 @@ nav:
       - "Interface Visual Reference": user-guide/interface-screenshots.md
   - Administer Coyote3:
       - Section guide: administration/README.md
+      - "Installed defaults and demo configuration": administration/installed-defaults.md
       - "Application administration": administration/administration-guide.md
       - "Permissions and access control": administration/permissions-and-access.md
       - "System permission catalog": administration/permission-catalog.md
+      - "System role catalog": administration/system-role-catalog.md
       - "Clinical configuration resources": administration/clinical-configuration-resources.md
       - "Planning configuration changes": administration/planning-configuration-changes.md
       - "Assay Groups": administration/assay-groups.md
       - "Assay Subpanels": administration/assay-subpanels.md
       - "Assay Setup": administration/assay-setup.md
+      - "Finding query rules": administration/query-rules.md
       - "Assay analysis and reporting availability": administration/assay-analysis-availability.md
       - "Clinical resource fields and defaults": administration/clinical-resource-fields.md
       - "Center Vocabulary Configuration": administration/clinical-vocabulary.md
@@ -198,6 +202,7 @@ nav:
       - Measurement analyses: reference/measurement-analyses.md
       - "Assay configuration and query filtering": reference/assay-filtering.md
       - "Review filter fields and defaults": reference/filter-profile-fields.md
+      - "Query condition fields and operators": reference/query-condition-fields.md
       - "Clinical Reporting Rules": reference/clinical-reporting-rules.md
       - "Reporting workflow and finding snapshots": reference/report-snapshots.md
       - "MongoDB collection contracts": reference/mongodb-collections.md
@@ -212,11 +217,13 @@ nav:
       - Section guide: testing/README.md
       - "Test strategy and quality gates": testing/test-strategy-and-quality-gates.md
       - "Validation Datasets and Test Fixtures": testing/test-data-and-fixtures.md
+      - "Synthetic clinical workflow exercises": testing/clinical-workflow-demo.md
       - "Local disposable full-stack validation": testing/disposable-stack-validation.md
       - "Browser And Release Validation": testing/browser-and-release-validation.md
       - "Load and capacity testing": testing/load-and-capacity-testing.md
   - Project:
       - Section guide: project/README.md
+      - Future work: project/future-work.md
       - "Contributing": project/contributing.md
       - "Maintainer guide": project/maintainer-guide.md
       - "Governance Overview": project/governance.md

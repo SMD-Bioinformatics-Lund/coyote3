@@ -13,6 +13,7 @@ account setup and resource validation. Legacy databases use separate
 | [Choose a deployment procedure](production-deployment.md) | Select first installation, an upgrade, or redeployment according to the installation's state. |
 | [Minimum Production Baseline](production-requirements.md) | Review infrastructure, access, backup, and monitoring prerequisites. |
 | [First installation](first-installation.md) | Follow one ordered procedure from environment files through network creation, storage, bootstrap, startup and first sign-in. |
+| [Installation operations](installation-operations.md) | Select installer stages, opt in to knowledgebase operations, and run each operation independently. |
 | [Initial deployment checklist](installation-checklist.md) | Record completion evidence for the first-installation procedure. |
 | [Deployment acceptance checklist](acceptance-checklist.md) | Collect center-specific acceptance checks and evidence. |
 | [Upgrade an existing installation](application-upgrades.md) | Preserve recovery artifacts, validate the release, pause writes, back up, apply required maintenance and verify or roll back. |

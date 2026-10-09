@@ -17,13 +17,15 @@ reference imports, migration inputs, backups and generated artifacts.
 | Compose definition or private storage override | Infrastructure operator | [Compose files](compose-files.md): services, mounts, networks, overlays and rebuild behavior. |
 | External `contact.toml` | Center administrator | [Center identity and contact fields](contact-file.md). Public information only. |
 | External `clinical_vocabulary.toml` | Clinical configuration owner | [Vocabulary fields and supported choices](../administration/clinical-vocabulary.md). |
-| External `clinical_query_policy.toml` | Clinical configuration owner | [Query-policy keys, scopes, defaults and examples](clinical-query-policy-file.md). |
+| Application `clinical_query_seed.toml` | Software maintainers | [Installed query criteria and predicate grammar](clinical-query-policy-file.md). Live changes use the database query-rule editor. |
 | External `filter_flag_metadata.yaml` | Clinical configuration owner | [Flag labels, severity, descriptions and optional caller overrides](filter-flag-metadata-file.md). |
 | Application `collections.toml` | Software maintainers | [Logical collection mappings](collection-mapping-file.md). Centers do not edit it. |
+| Application `clinical_capabilities.toml` | Software maintainers | [Supported identifiers and configuration ownership](../deployment/center-configuration.md#application-owned-definitions). Packaged with the API; not a center file or database seed. |
+| Application `clinical_query_defaults.toml` | Software maintainers | [Base query settings](clinical-query-policy-file.md#baseline-keys). Center exceptions cannot replace these definitions. |
 | Bootstrap catalogs | Software release | [Baseline accounts, permissions and reference data](../deployment/bootstrap-data-flow.md). Do not edit release catalogs as a substitute for center administration. |
 
 The [center configuration guide](../deployment/center-configuration.md) describes
-where the four editable center files live, how local/Git releases are prepared,
+where the three editable center files live, how local/Git releases are prepared,
 and which processes load them. The environment filename is independent of this
 center directory. Never place passwords in public contact or clinical-policy files.
 

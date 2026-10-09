@@ -7,7 +7,7 @@ sign-in. The bootstrap command runs inside the API image; a host Python virtual
 environment is not required for this procedure.
 
 For an installation that is already running, do not repeat bootstrap to troubleshoot
-the UI. Start at step 9 to check service status and the browser URL.
+the UI. Start at **step 9** to check service status and the browser URL.
 
 ## 1. Check prerequisites
 
@@ -16,7 +16,7 @@ Have the following available before proceeding:
 - A checkout of the reviewed application release.
 - Docker Engine and Docker Compose v2, accessible to the deploying account.
 - Host Python 3.12 or later for the deployment wrapper, plus Bash and `curl`.
-- An existing MongoDB deployment, or permission to provision one using step 6.
+- An existing MongoDB deployment, or permission to provision one using **step 6**.
   Application and identity writes require a writable replica-set primary.
 - Distinct application, identity, knowledgebase and BAM database names and the
   required database credentials. Preserve an existing knowledgebase when installing
@@ -61,8 +61,8 @@ If a command is missing or Docker cannot contact its daemon, complete the linked
 installation and account-access steps before proceeding. Check `mongod --version`
 and `mongosh --version` as well when choosing host-installed MongoDB.
 
-MongoDB has an independent lifecycle. Step 6 provides Docker and host-installed
-paths before the database bootstrap in step 8. An existing healthy replica set
+MongoDB has an independent lifecycle. **Step 6** provides Docker and host-installed
+paths before the database bootstrap in **step 8**. An existing healthy replica set
 needs verification, not reinitialization. Never substitute `localhost` in a
 container URI for a database on the host: it identifies the container itself.
 
@@ -108,10 +108,10 @@ Set or confirm these values in the selected environment file:
 | Four MongoDB URI settings | Set `COYOTE3_MONGO_URI`, `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` to endpoints reachable from containers. |
 | Four database names | Set distinct `COYOTE3_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`. |
 | Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, and `REDIS_PASSWORD` with separate random values. |
-| `COYOTE3_APP_NETWORK` | Choose the external Docker network name; step 6 creates it if absent. |
-| `COYOTE3_DATA_HOST_ROOT`, `COYOTE3_LOGS_HOST_ROOT` | Absolute persistent host paths; step 7 prepares them. |
+| `COYOTE3_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
+| `COYOTE3_DATA_HOST_ROOT`, `COYOTE3_LOGS_HOST_ROOT` | Absolute persistent host paths; **step 7** prepares them. |
 | `COYOTE3_UID`, `COYOTE3_GID` | Numeric container identity with access to those paths; defaults are `10001:10001`. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the four center files described in step 4. |
+| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the three center files described in **step 4**. |
 | `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE` | Center identity and timezone. |
 | Authentication and email | Select the intended authentication providers and configure SMTP before relying on email delivery. |
 
@@ -148,7 +148,7 @@ the reviewed absolute directory in this command:
 ```bash
 COYOTE_CENTER_DIR="/srv/coyote3/config/center"
 mkdir -p "$COYOTE_CENTER_DIR"
-for name in contact.toml clinical_vocabulary.toml clinical_query_policy.toml filter_flag_metadata.yaml; do
+for name in contact.toml clinical_vocabulary.toml filter_flag_metadata.yaml; do
   if [ ! -f "$COYOTE_CENTER_DIR/$name" ]; then
     cp "api/config/center/$name" "$COYOTE_CENTER_DIR/$name"
   fi
@@ -160,14 +160,12 @@ Review each file before building or initializing the database:
 | File | Review |
 | --- | --- |
 | [`contact.toml`](../configuration/contact-file.md) | Center name, department, support contacts and hours. |
-| [`clinical_vocabulary.toml`](../administration/clinical-vocabulary.md) | Supported clinical vocabulary and file bindings. DNA caller metadata registries may remain empty. |
-| [`clinical_query_policy.toml`](../configuration/clinical-query-policy-file.md) | Evidence models and scoped exceptions approved for the center. Example exceptions are not evidence of local clinical approval. |
+| [`clinical_vocabulary.toml`](../administration/clinical-vocabulary.md) | Fusion evidence terms and optional DNA caller metadata. Transcript selection belongs to the application; annotation wording is configured in reporting rules. |
 | [`filter_flag_metadata.yaml`](../configuration/filter-flag-metadata-file.md) | Labels and explanations for actual pipeline flags. Caller-specific overrides may remain empty. |
 
-Do not copy or edit `collections.toml`; it belongs to the application.
-The container UID/GID must be able to read all four files. Configuration is mounted
+The container UID/GID must be able to read all three files. Configuration is mounted
 read-only. ASP, ASPC, gene lists and reporting rules are database resources added
-through the application after startup, in step 12.
+through the application after startup, in **step 12**.
 
 ## 5. Load the environment and define the Compose command
 
@@ -187,7 +185,7 @@ coyote_compose() {
 
 Use `coyote_compose` for every command below. This keeps the project name,
 environment file, image version and base production Compose file consistent.
-This command controls application services only; step 6 uses a separate command
+This command controls application services only; **step 6** uses a separate command
 if Docker MongoDB is selected. No development overlay is used. The
 [Compose file reference](../configuration/compose-files.md) explains the base file,
 overrides, mounts, networks and what changes require a rebuild.
@@ -213,7 +211,7 @@ are attached.
 
 ### Choose and prepare MongoDB
 
-Complete **one** path below before proceeding to step 7. The examples create a
+Complete **one** path below before proceeding to **step 7**. The examples create a
 single-member replica set, which supports transactions but has no failover.
 For a center-managed multi-member or sharded deployment, retain its existing
 configuration and obtain the connection/grant details from its database operator.
@@ -222,7 +220,7 @@ configuration and obtain the connection/grant details from its database operator
 | --- | --- | --- |
 | Dedicated Docker MongoDB | Option A | `mongo-app:27017` on the application network. |
 | MongoDB installed on the Linux/WSL host | Option B | A stable hostname reachable from both the host and API/worker containers. |
-| Already managed and writable replica set | Verify primary and grants, then step 7 | Operator-provided URI and replica-set name; do not run initialization commands. |
+| Already managed and writable replica set | Verify primary and grants, then **step 7** | Operator-provided URI and replica-set name; do not run initialization commands. |
 
 A local service on `27017` and SSH tunnels on `28802`/`28803` are different
 endpoints. Keep their URIs separate. Never initialize a tunnel destination as
@@ -326,12 +324,12 @@ mongo_compose exec mongo sh -c 'exec gosu "$MONGO_UID:$MONGO_GID" mongosh "mongo
 ```
 
 Run the maintenance-account block under **Credentials for bootstrap** below,
-then exit `mongosh`. Continue at step 7 after reloading the application file.
+then exit `mongosh`. Continue at **step 7** after reloading the application file.
 
 ### Option B: Host-installed MongoDB, including WSL
 
 **B1. Inspect the intended local service.** Install the server/shell using the
-links in step 1 if absent. For the official Ubuntu package, inspect its service:
+links in **step 1** if absent. For the official Ubuntu package, inspect its service:
 
 ```bash
 sudo systemctl status mongod --no-pager
@@ -365,7 +363,7 @@ Check the host's resolution before adding the name to MongoDB configuration:
 getent hosts mongo-host.example.internal
 ```
 
-The result must identify this MongoDB host. Step 8 checks the same endpoint from
+The result must identify this MongoDB host. **Step 8** checks the same endpoint from
 the application container; both perspectives must work.
 
 For a native Docker Engine inside WSL, `host.docker.internal` is already mapped
@@ -488,9 +486,11 @@ reachable advertised member; normal application connections use replica discover
 
 ### Credentials for bootstrap
 
-On each knowledgebase endpoint receiving bundled reference data, use an existing
-approved maintenance identity or create a dedicated account while authenticated
-as its administrator. Replace the database name with the selected `KNOWLEDGEBASE_DB`:
+Optional reference installation and knowledgebase indexing use `KNOWLEDGEBASE_MONGO_URI`.
+Only these operations require writes and index management on `KNOWLEDGEBASE_DB`.
+If the configured runtime account is read-only, use an existing approved maintenance
+identity or create a dedicated account while authenticated as its administrator.
+Replace the database name with the selected `KNOWLEDGEBASE_DB`:
 
 ```javascript
 db.getSiblingDB("admin").createUser({
@@ -504,9 +504,10 @@ db.getSiblingDB("admin").createUser({
 ```
 
 This account is for bootstrap/reference maintenance, not routine API connections.
-Keep its URI in the center's secret store and enter it only for the bootstrap
-command in step 8. Application and identity bootstrap use their configured
-read/write accounts; knowledgebase runtime access remains read-only.
+Keep its URI in a restricted secret file and supply that file through
+`--knowledgebase-maintenance-uri-file` in **step 8**. This override leaves the
+runtime connection unchanged. Application and identity bootstrap use their
+configured read/write accounts.
 
 After editing application endpoints, reload the trusted file in the original shell:
 
@@ -516,7 +517,7 @@ set -a
 set +a
 ```
 
-Continue at step 7. Step 8 verifies connectivity from the API container before
+Continue at **step 7**. **Step 8** verifies connectivity from the API container before
 installing any baseline data.
 
 ## 7. Prepare storage and validate Compose
@@ -532,7 +533,7 @@ coyote_compose --prepare-directories config --quiet
 Do not proceed if either command fails. Resolve missing values, missing center
 files, invalid Compose settings or filesystem permissions first. This render checks
 Compose structure; the API configuration loaders validate center-file contents
-when the API image is used in step 8.
+when the API image is used in **step 8**.
 
 | Directory | Required state before application startup |
 | --- | --- |
@@ -541,7 +542,7 @@ when the API image is used in step 8.
 | `<data root>/coyote3_prod/ingest_staging` | Created automatically. |
 | `<data root>/coyote3_prod/copied_sample_files/yaml` | Created automatically, including parents. |
 | `COYOTE3_LOGS_HOST_ROOT` | Created automatically; service log and spool subdirectories are created at runtime. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Already contains the four reviewed files from step 4. |
+| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Already contains the three reviewed files from **step 4**. |
 | Additional pipeline input directories | Already contain real pipeline files if mounted through a center override. |
 | Database and backup storage | Provisioned separately; application preparation does not manage it. |
 
@@ -555,141 +556,154 @@ sudo install -d -o "$COYOTE3_UID" -g "$COYOTE3_GID" -m 0750 "$COYOTE3_LOGS_HOST_
 
 Then rerun storage preparation with an account able to create subdirectories for
 the container identity. The wrapper does not invoke sudo automatically.
-For deployments with a prepared host virtual environment, the additional
-`center_preflight.sh` checks can be run now; they are not required to follow the
-container-based bootstrap below.
+Deployments with a host virtual environment can run `center_preflight.sh` for
+additional checks. The installer validates configuration inside the API container
+and does not require a host virtual environment.
 
 ## 8. Build images and install the database baseline
 
-Build the application, frontend and documentation images:
+Run the application installer after completing the environment, center configuration,
+MongoDB and database-user prerequisites in steps 1–7. Use the same shell session
+and the `COYOTE_ENV_FILE` and `COYOTE_PROJECT` values defined in **step 2**:
 
 ```bash
-coyote_compose build
+bash scripts/deployment/install_center.sh \
+  --env-file "$COYOTE_ENV_FILE" \
+  --project "$COYOTE_PROJECT" \
+  --compose-file deploy/compose/docker-compose.yml
 ```
 
-Stop here if the build fails. The frontend embeds the URL prefix and other public
-settings at build time; build only after selecting the values in step 3.
+The installer executes the following sequence:
 
-Validate the mounted center files using the built API image before any bootstrap
-writes. This command checks configuration without connecting to MongoDB:
+1. Validate secrets and render the selected Compose configuration.
+2. Reuse the application network, or create it if absent, and prepare host directories.
+3. Build images and validate mounted center configuration using the API image.
+4. Verify all four MongoDB endpoints and inspect application/identity installation state.
+5. On a fresh target only, prompt for initial accounts and invoke database bootstrap.
+6. Check application, identity and BAM indexes, stop on conflicts, create compatible missing indexes, and
+   verify that every required index is present before starting services.
+7. Start services with health waiting, display service status, and check the local proxy's
+   health and browser routes.
 
-```bash
-coyote_compose run --rm --no-deps -T api python3 -c '
-from api.config.clinical_query_policy import load_clinical_query_policy
-from api.config.loaders.filter_flags import load_filter_flag_metadata
-from api.config.loaders.contact import load_contact_config
-from api.config.paths import CONTACT_CONFIG_PATH
-load_clinical_query_policy()
-load_filter_flag_metadata()
-load_contact_config(CONTACT_CONFIG_PATH, organization_name="Validation", public_base_url="", script_name="")
-print("Center configuration valid")
-'
-```
+Do not run the individual bootstrap or index commands in addition to this sequence.
+The script does not provision MongoDB, initialize replica sets, create database users,
+or change an existing network. Complete those prerequisites before running it.
 
-Before bootstrap, verify all four endpoints from the API container, which uses
-the same DNS, host mapping and credentials as the application. This command only
-reads server state and reports endpoint labels, not credential-bearing URIs:
+Index checks report counts of present, missing and conflicting indexes. Missing
+indexes are expected on a first installation. A conflict identifies the repository,
+collection and index name; it is not resolved by dropping data or indexes automatically.
+Use the index status command in **step 10** to inspect a conflicting contract.
 
-```bash
-coyote_compose run --rm --no-deps -T api python3 -c '
-import os
-from pymongo import MongoClient
-for key in ("COYOTE3_MONGO_URI", "IDENTITY_MONGO_URI", "KNOWLEDGEBASE_MONGO_URI", "BAM_MONGO_URI"):
-    uri = os.environ.get(key) or os.environ["COYOTE3_MONGO_URI"]
-    try:
-        with MongoClient(uri, serverSelectionTimeoutMS=7000) as client:
-            client.admin.command("ping")
-            info = client.admin.command("hello")
-            if not info.get("isWritablePrimary") or not (info.get("setName") or info.get("msg") == "isdbgrid"):
-                raise RuntimeError("primary_required")
-    except Exception as error:
-        raise SystemExit(f"{key}: check connection, authentication and primary state ({type(error).__name__})") from None
-    print(f"{key}: ready")
-'
-```
+Knowledgebase loading and indexing are disabled by default. Reuse an existing
+knowledgebase without these options. For a new, empty knowledgebase, add
+`--with-knowledgebase-seeds --with-knowledgebase-indexes` to the installer command.
+This loads bundled HGNC and VEP references; external sources such as CIViC, COSMIC
+and BRCA Exchange have separate [import procedures](../reference/knowledgebases/README.md).
+Reference data must be available before clinical use; starting the application does
+not certify reference completeness.
 
-Resolve any failed check before continuing. A connection test does not prove write
-grants; verify the account roles prepared in step 6. Enter the knowledgebase
-maintenance URI at a hidden prompt. It uses the same endpoint and database as the
-runtime knowledgebase connection, with the separate maintenance credentials:
+Use `--steps` to select individual operations. The
+[installation operations reference](installation-operations.md) lists every stage,
+default, prerequisite and standalone command.
 
-```bash
-read -rsp "Knowledgebase maintenance URI for bootstrap: " COYOTE_KB_BOOTSTRAP_URI
-printf '\n'
-test -n "$COYOTE_KB_BOOTSTRAP_URI"
-```
+### Existing data and repeated runs
 
-Enter the real initial account details at the prompts:
+| Detected state | Installer behavior |
+| --- | --- |
+| Application and identity databases contain no documents | Bootstrap accounts, RBAC and group/query policies. Empty collections do not count as installed data. |
+| Application data and the initial governance baseline already exist | Skip database bootstrap entirely. Preserve accounts, permissions, roles, query rules, references and clinical data; continue index checks and service startup. |
+| Only part of application/identity initialization is recognized | Stop before bootstrap or index writes. Inspect the target selection and initialization state; do not drop databases to retry. |
+| Bundled reference installation is explicitly selected | Populate empty HGNC/VEP collections only; preserve populated collections, including on repeated runs. |
+| Conflicting indexes or an earlier step fails | Stop. No index is automatically dropped; completed operations are not rolled back or undone. |
 
-```bash
-read -r -p "Named administrator username: " COYOTE_ADMIN_USERNAME
-read -r -p "Named administrator email: " COYOTE_ADMIN_EMAIL
-read -r -p "Emergency superuser username: " COYOTE_SUPERUSER_USERNAME
-read -r -p "Emergency superuser email: " COYOTE_SUPERUSER_EMAIL
+Bootstrap rechecks that both application and identity targets are still empty
+immediately before its writes. Run only one installer against a deployment at a time.
+A failed bootstrap can leave partial data across databases; inspect it before an
+explicit recovery operation. Rerunning the installer never resets populated databases.
 
-coyote_compose run --rm --no-deps -it \
-  -e KNOWLEDGEBASE_MONGO_URI="$COYOTE_KB_BOOTSTRAP_URI" api \
-  python3 scripts/bootstrap/bootstrap_database.py \
-  --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB" \
-  --sys-admin-username "$COYOTE_ADMIN_USERNAME" \
-  --sys-admin-email "$COYOTE_ADMIN_EMAIL" \
-  --username "$COYOTE_SUPERUSER_USERNAME" \
-  --email "$COYOTE_SUPERUSER_EMAIL"
-```
+Detection of an existing installation prevents reseeding. Release compatibility
+requires the applicable
+[upgrade maintenance](application-upgrades.md), including RBAC or query-rule
+synchronization. Complete these operations separately; the installer does not run
+data migrations.
 
-The API container receives the reviewed MongoDB endpoints, knowledgebase database
-and mounted center files from Compose. This command initializes the selected
-databases; it does not start the API server or its dependencies. Enter and confirm
-two distinct temporary passwords at the hidden prompts, each at least 12 characters.
-Use distinct usernames and email addresses. Do not place passwords in command history.
+### Prompts and options
 
-After successful bootstrap, run `unset COYOTE_KB_BOOTSTRAP_URI` to clear the
-temporary shell value. The ordinary service environment retains the runtime reader URI.
+Optional knowledgebase operations use the configured `KNOWLEDGEBASE_MONGO_URI`
+without prompting for another URI. The default installation needs no knowledgebase write access.
+If the runtime account is read-only, supply `--knowledgebase-maintenance-uri-file FILE`
+with the maintenance identity from **step 6**. The override must use the same hosts,
+replica-set selection and logical database as the runtime knowledgebase connection.
+It applies only to maintenance containers; application services retain their
+configured runtime credentials.
 
-Continue only after `[ok] database bootstrap completed`. If bootstrap fails,
-resolve its reported configuration, transaction or connection error before startup.
-Do not drop databases or reset an existing knowledgebase to retry.
+On fresh targets, enter the named administrator and emergency superuser details.
+Bootstrap prompts privately for two different temporary passwords, each at least
+12 characters, and requires distinct usernames and email addresses. Existing targets
+do not request new account credentials.
 
-Permissions, roles, and both accounts are committed together in one identity-database
-transaction. MongoDB must support transactions, including a single-member replica set
-for local development. Existing governance with a superuser is left unchanged;
-partially initialized governance without a superuser is rejected. Reference and
-optional demonstration collections are loaded separately, only when empty.
+| Option | Requirement and behavior |
+| --- | --- |
+| `--env-file FILE` | Required private deployment environment file. |
+| `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
+| `--compose-file FILE` | Required; repeat for overlays in precedence order. |
+| `--sys-admin-username NAME`, `--sys-admin-email EMAIL` | Optional initial named-administrator details; prompted on a fresh target when omitted. |
+| `--username NAME`, `--email EMAIL` | Optional initial emergency-superuser details; prompted on a fresh target when omitted. |
+| `--knowledgebase-maintenance-uri-file FILE` | Optional private file containing a separate maintenance URI when the configured knowledgebase connection lacks write/index privileges. Defaults to the configured connection. Protect the file with restricted filesystem permissions. |
+| `--with-demo-center` | Install synthetic ASP, ASPC and ISGL examples on fresh targets only. Not clinical configuration. |
+| `--skip-build` | Use already-built images after confirming that they match the selected release and deployment settings. |
+| `--steps LIST` | Comma-separated stages; default `network,directories,build,validate,bootstrap,indexes,start,health`. Executes selected stages in dependency order. |
+| `--with-knowledgebase-seeds` | Opt in to bundled HGNC/VEP installation, including on an existing application. Requires an administrator username for provenance. |
+| `--with-knowledgebase-indexes` | Opt in to knowledgebase index planning, creation and verification. Large collections can take considerable time. |
 
-Installed documents are attributed to the normalized `--sys-admin-username` account
-in their audit fields. Catalogs supporting `system_managed` are marked as system
-records. Document versions start at `1`, including clinical rule content versions
-and revisions and generated subpanel versions. Demonstration rule review and
-publication metadata use the same administrator and installation time; these are
-synthetic baselines, not evidence of clinical approval. External reference release
-identifiers, such as VEP releases, retain their original values. Rerunning bootstrap
-does not reset versions or attribution in populated collections.
+Password values are not installer command-line options. Do not enable shell tracing
+when handling credentials. The temporary Compose rendering is private and removed
+on exit. The script never runs database drop, restore or reset operations.
 
-| Data installed | Collection | Ownership and behavior |
-| --- | --- | --- |
-| System permissions | `permissions` | Shipped with Coyote3. Assign through roles; do not rename or delete. |
-| System roles | `roles` | Shipped role baselines. Protected from ordinary editing, deactivation, and deletion. |
-| Initial local accounts | `users` | One `sys_admin` and one `superuser`, with operator-supplied credentials. Both must change their password at first sign-in. Profiles, activation, and deletion are protected; password workflows and UI preferences remain available. |
-| HGNC gene reference | `hgnc_genes` in `KNOWLEDGEBASE_DB` | Bundled reference snapshot loaded only when the collection is empty. |
-| VEP metadata and diagrams | `vep_metadata`, `vep_diagrams` in `KNOWLEDGEBASE_DB` | Bundled metadata and diagram assets loaded only when the respective collection is empty. |
+### Installed application definitions and baseline
 
-For a disposable demonstration environment, append `--with-demo-center`. This additionally installs synthetic ASP, ASPC, and ISGL records. These records are useful for interface and ingest validation; they are not approved clinical configuration.
+See [Installed defaults and demonstration configuration](../administration/installed-defaults.md)
+for the complete group inventory, exact query-rule conditions, optional demo assays,
+subpanels, gene lists, report rules and default role responsibilities.
+
+The image packages `clinical_capabilities.toml`, `clinical_query_defaults.toml`,
+`clinical_query_seed.toml` and `collections.toml` under `api/config/`. These are
+application-owned; do not copy them into the editable center directory.
+
+Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one
+emergency `superuser`, assay groups and query-rule publications. Optional reference
+installation loads HGNC and VEP metadata/diagrams into empty knowledgebase collections. Installed
+records are attributed to the named administrator, and document versions start at
+1; external reference release identifiers retain their original values. Installation
+metadata is not evidence of clinical review. Optional demonstration records are
+synthetic and require separate clinical configuration before real use.
+
+See [bootstrap data flow](bootstrap-data-flow.md) for ownership and transaction
+boundaries. Successful installation includes index creation and service startup.
+Verify browser access in **step 9**, then proceed to **step 11** for first sign-in.
+Use **step 10** only for manual index inspection or troubleshooting.
 
 ## 9. Start services and verify the browser URL
 
+The installer starts services and checks routes through the local proxy's published
+port (`COYOTE3_PORT`) before reporting success and displays it as **Local application**.
+The separately labelled **Public application** address comes from `PUBLIC_BASE_URL`;
+for direct localhost access, use the same port in both
+settings. External HTTPS ingress and DNS require separate browser verification.
+Use the following commands to inspect service state and diagnose access failures:
+
 ```bash
-coyote_compose up -d --wait --wait-timeout 180
 coyote_compose ps
 ```
 
-The command must complete successfully. API and Redis must be healthy; other
+The installer must complete successfully. API and Redis must be healthy; other
 services must be running. If startup fails or a container restarts, inspect:
 
 ```bash
 coyote_compose logs --tail=100 api redis proxy worker beat monitor
 ```
 
-After successful startup, check the public routes:
+For a manual check of the public routes, run:
 
 ```bash
 COYOTE_BROWSER_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME%/}"
@@ -698,7 +712,7 @@ curl --fail --show-error --output /dev/null "$COYOTE_BROWSER_URL/"
 printf 'Open %s/ in the browser\n' "$COYOTE_BROWSER_URL"
 ```
 
-For the local values in step 3, open **http://localhost:6802/coyote3/**.
+For the local values in **step 3**, open **http://localhost:6802/coyote3/**.
 Documentation is served at **http://localhost:6802/coyote3/docs-site/**.
 A running container does not imply that the published port supports HTTPS.
 
@@ -722,7 +736,11 @@ coyote_compose up -d --build --force-recreate --wait --wait-timeout 180
 
 ## 10. Review and apply the index plan
 
-With Redis available, inspect the application and security index contracts:
+The installer performs this step before starting the application. The commands
+below are for manual inspection and troubleshooting; do not repeat index application
+after a successful installation without a specific maintenance need.
+
+Inspect the application and security index contracts:
 
 ```bash
 coyote_compose run --rm --no-deps -T api python3 scripts/database/manage_mongo_indexes.py plan
@@ -731,18 +749,13 @@ coyote_compose run --rm --no-deps -T api python3 scripts/database/manage_mongo_i
 Review conflicts before proceeding. Create compatible missing indexes:
 
 ```bash
-read -rsp "Knowledgebase maintenance URI for index creation: " COYOTE_KB_INDEX_URI
-printf '\n'
-test -n "$COYOTE_KB_INDEX_URI"
-coyote_compose run --rm --no-deps -T \
-  -e KNOWLEDGEBASE_MONGO_URI="$COYOTE_KB_INDEX_URI" api \
-  python3 scripts/database/manage_mongo_indexes.py apply
-unset COYOTE_KB_INDEX_URI
+coyote_compose run --rm --no-deps -T api \
+  python3 scripts/database/manage_mongo_indexes.py apply --scope application --summary
 ```
 
-Use the maintenance identity prepared in step 6: index application includes
-knowledgebase repositories, whose runtime reader cannot create indexes.
-Do not continue with an empty URI. The command does not drop indexes. Resolve reported conflicts before admitting
+Knowledgebase indexing requires an explicit `--scope knowledgebase` and appropriate
+maintenance credentials; see [installation operations](installation-operations.md).
+The command does not drop indexes. Resolve reported conflicts before admitting
 clinical samples; do not retire an existing index without reviewing its purpose.
 
 ## 11. Complete first sign-in
@@ -801,6 +814,16 @@ status. Creating a catalog entry cannot resolve any of these clinical prerequisi
 
 The [assay setup procedure](../administration/assay-setup.md#step-by-step-add-a-new-assay)
 provides the form-level steps for this same workflow when adding later assays.
+If the assay needs finding-selection exceptions, prepare and independently approve
+[query rules](../administration/query-rules.md) after activation and before validation
+ingest. Group rules may be published earlier; assay and named-subpanel scopes need
+their active registry records. Missing scoped query rules use the installed defaults.
+These rules are separate from the reporting rules in step 6. Bootstrap installs
+the [group and default query policies](../administration/query-rules.md#installation-and-storage)
+and four dedicated query-rule roles. Review their effective criteria for each assay.
+If automatic Tier III annotations are needed, set **Tumor-type wording** in the
+assay's reporting-rule draft, then review and publish it. This optional text currently
+requires Swedish reporting rules; leaving it unset does not prevent ordinary classification.
 The [resource reference](../administration/clinical-configuration-resources.md)
 describes each item's purpose, relationships and missing-prerequisite behavior.
 JSON import/export remains subject to the same validation and permissions; it is

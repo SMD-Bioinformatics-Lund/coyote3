@@ -36,6 +36,22 @@ In Classic, use the **Filters** button beside a finding section to open the righ
 
 The Small Variants table is the primary DNA review table for SNVs and indels.
 
+!!! warning "Somatic SNV results can include germline variants"
+
+    The current somatic SNV queries can also return germline variants that satisfy
+    their selection criteria. The **Somatic** label identifies the review workflow;
+    it does not establish a variant's somatic origin or guarantee exclusion of
+    germline findings. The dedicated germline SNV pathway is not yet fully
+    implemented and must not be treated as a complete germline analysis workflow.
+    Published germline query exceptions also run in this somatic workflow for the
+    matching assay scope. Their findings remain in the somatic SNV results; the
+    rules do not reclassify a finding's biological origin.
+    See [SNV query intent](../reference/assay-filtering.md#intent-specific-snv-review)
+    for the distinction between query configuration and variant origin.
+
+The proposed shared-finding model and separate interpretation contexts are recorded
+as [future work](../project/future-work.md#shared-findings-with-separate-somatic-and-germline-interpretation).
+
 | Column | Meaning |
 | --- | --- |
 | Select | Checkbox used for bulk actions. |

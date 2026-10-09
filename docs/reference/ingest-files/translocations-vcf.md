@@ -1,10 +1,22 @@
-# DNA translocations: SnpEff-annotated VCF
+# DNA structural findings: SnpEff-annotated VCF
 
 Manifest key: `transloc`. Stored destination: `translocations`.
 
 ## Before submission
 
-Provide breakend alleles and SnpEff `ANN` annotations. A generic structural-variant VCF is insufficient: symbolic alleles are skipped, and only records annotated with `gene_fusion` or `bidirectional_gene_fusion` are retained. Unlike small variants, translocation parsing does not resolve case/control roles from manifest IDs.
+Provide SnpEff `ANN` annotations on DNA `BND`, `DEL` or `DUP` records with
+`FILTER=PASS`. Eligible consequences are `gene_fusion`, `bidirectional_gene_fusion`,
+`feature_fusion`, `frameshift_variant` and `transcript_ablation`. An annotation with
+an explicitly declared `pseudogene` biotype does not qualify a finding for retention.
+Other event types, failed filters and records without eligible annotations are
+excluded with aggregate counts in the ingest warnings. A frameshift or transcript
+ablation describes a gene-disrupting event; it does not establish a two-gene fusion.
+
+These are **SnpEff consequences**, independent of VEP consequence catalogs. All
+annotations remain embedded in the finding; no shared transcript-vault entry is
+created. RNA fusion JSON uses a separate parser and collection.
+Unlike small variants, translocation parsing does not resolve case/control roles
+from manifest IDs; source genotype column names are preserved.
 
 [Download the complete synthetic VCF](../../assets/examples/ingest/translocations-vcf.vcf), including header declarations and tab-separated records. All example identifiers and values are synthetic.
 Ingest assigns `SAMPLE_ID` from the parent sample. Do not supply database IDs or review
@@ -28,6 +40,7 @@ HGVS.c | HGVS.p`. Header-declared extra fields remain possible.
 | --- | --- | --- |
 | Standard VCF columns | Contig, position, alleles, source ID, quality | Same top-level fields; FILTER and FORMAT become lists |
 | `INFO.SVTYPE` | Structural event type | Same nested key |
+| `INFO.END` | Required explicit end for symbolic DEL/DUP, in 1-based inclusive coordinates | Top-level `END`; preserved explicitly because pysam reserves this INFO field |
 | `INFO.MATEID`, `INFO.EVENT` | Mate record and event identifiers | Same nested keys |
 | `INFO.SVINSLEN`, `INFO.SVINSSEQ` | Inserted sequence length and sequence | Same nested keys |
 | `INFO.SOMATIC` | Somatic flag | Boolean, default false |
@@ -48,29 +61,88 @@ HGVS.c | HGVS.p`. Header-declared extra fields remain possible.
 | Genotype `UR` | Unique-read evidence | Float or null |
 | Sample column name | Genotype source | `GT[].sample`; translocation parser does not apply the SNV case/control role resolver |
 
-`INFO.MANE_ANN` is not selected by the current file parser because its MANE map
-is empty. Symbolic ALT values containing `<` are skipped. Do not submit a generic
-unannotated SV VCF and assume every structural variant will become a translocation.
+## Transcript selection
+
+The ingest service supplies the same internal `hgnc_genes` reference maps used for
+SNV transcript selection. The selection order is:
+
+1. NCBI MANE Plus Clinical.
+2. Ensembl MANE Plus Clinical.
+3. NCBI MANE Select.
+4. Ensembl MANE Select.
+5. First eligible protein-coding annotation.
+6. First eligible available annotation.
+
+The shared VEP-canonical step is inapplicable to SnpEff and is skipped. Within each
+step, SnpEff impact orders candidates as HIGH, MODERATE, LOW, MODIFIER, then missing
+impact. HGNC lookup supports approved, previous and alias symbols. A MANE match
+requires an exact version-independent transcript accession in `Feature_ID`,
+`HGVSc` or `HGVSp` for **every gene partner**. Missing HGNC records never create a
+MANE designation. When the entire reference is unavailable, ingest records a warning
+and uses the applicable fallback.
+
+The selected annotation occupies `INFO.ANN[0]`; the remaining annotations stay
+embedded. `INFO.ANN_selection_source` records the selection criterion.
+`INFO.MANE_ANN` is populated only for a MANE selection, never for a fallback.
+
+## Custom feature-fusion pairs
+
+A `feature_fusion` annotation with `Feature_Type=CUSTOM&sorted` requires a
+`Feature_ID` in `GENE_IDENTIFIER` format and a distinct reciprocal `MATEID` pair.
+Both partners must be retained PASS BND records. Mixed consequence lists containing
+`feature_fusion` are handled in the same way.
+
+One finding represents the pair. Its representative is selected by chromosome,
+position and source ID, independently of VCF record order. Both normalized source
+records, including genotype evidence and every original annotation, remain in
+`source_records`. All combinations of custom partner annotations are retained;
+they are possible annotated partners, not evidence of fusion direction or a
+uniquely resolved transcript. Paired annotations retain a common impact only when
+both sources agree; otherwise the combined impact is null.
+
+Duplicate IDs, malformed custom identifiers, self-links, nonreciprocal links,
+multiple mate IDs or missing/filtered mates fail file parsing. No partial finding
+list is returned. Correct the VCF and resubmit the ingest job. Ordinary annotated
+breakends that already describe a gene fusion do not require custom pairing.
 
 ## Requirements and missing values
 
 | Input | Requirement / omission behavior |
 | --- | --- |
-| Standard VCF identity and alleles | Required; no coordinate or allele default. Symbolic ALT records are skipped. |
-| `INFO.ANN` and header order | Required to produce supported gene-fusion findings; nonqualifying annotations do not become stored translocations. |
+| Standard VCF identity and alleles | Required; no coordinate or allele default. Symbolic DEL/DUP requires explicit END at or after POS. |
+| `INFO.ANN` and header order | Required on supported PASS records. Missing ANN fails parsing; nonqualifying annotations alone do not become findings. |
 | ANN `Allele`, `Gene_Name`, `Gene_ID`, `Feature_Type`, `Feature_ID` | Required in a retained annotation; no substitute gene or transcript IDs. |
-| ANN `Annotation` | Must include a qualifying fusion term for retention. |
+| ANN `Annotation` | At least one annotation must include an eligible SnpEff term and qualifying biotype. |
 | Other listed ANN fields | Optional in the stored contract; missing fields remain absent/null rather than inferred. |
 | `INFO.SOMATIC` | Missing normalizes to `false`; absence is not independent germline evidence. |
 | Optional INFO event, insertion, score and depth fields | No measured default; missing values remain absent/null. |
 | `INFO.PANEL` | Empty list when no panel/set values are supplied. |
 | Genotype `PR`, `SR` | Missing becomes empty text, not zero support. |
 | Genotype `UR` | Missing becomes null. |
-| `ID`, `QUAL` | Missing ID becomes `.`; missing quality remains null. |
+| `ID`, `QUAL` | Ordinary missing ID remains `.`; custom pairs require explicit unique IDs. Missing quality remains null. |
 
 The stored annotation contract is not permission to omit the VCF structure that
 the parser needs. Use the downloadable file as a syntax example and validate real
 producer outputs in an isolated test deployment.
+
+## Existing installations and API consumers
+
+`END`, `source_records` and `INFO.ANN_selection_source` are additive fields. Existing
+stored findings remain readable without a database migration. Re-ingestion from
+the source VCF is required to recover previously excluded events, pair provenance,
+or missing interval endpoints; these cannot be reconstructed from incomplete
+stored documents. Re-ingestion must follow the normal reviewed replacement workflow.
+
+Translocation list and detail responses expose `snpeff_conseq_translations` instead
+of `vep_conseq_translations`. Deploy matching API and frontend versions together.
+SnpEff annotations do not require a sample VEP version to display. Query rules can
+use `END`, `INFO.ANN_selection_source`, `INFO.SVTYPE` and embedded annotation fields.
+Query rules cannot recover records excluded during ingest.
+
+Symbolic interval identities include END: `CHROM:POS-END^ALT`. Classifications,
+annotation lookup, exports and report snapshots therefore distinguish events with
+the same start but different ends. Existing breakend identities remain
+`CHROM:POS^ALT`.
 
 ## Related contracts
 

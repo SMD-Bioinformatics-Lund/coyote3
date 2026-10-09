@@ -133,6 +133,12 @@ rebuilt or rescanned.
 | `apply` | Creates missing compatible indexes | Provision a reviewed release contract; never drops indexes. |
 | `retire` | Drops one exact confirmed index | Remove an obsolete definition during a maintenance window. |
 
+All commands default to `--scope application`, covering application, identity and
+BAM indexes. Knowledgebase maintenance requires `--scope knowledgebase` or
+`--scope all`. The center installer skips knowledgebase index operations unless
+`--with-knowledgebase-indexes` is selected. See the
+[installation operations reference](../deployment/installation-operations.md).
+
 ```bash
 PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py status
 PYTHONPATH=. python3 scripts/database/manage_mongo_indexes.py plan

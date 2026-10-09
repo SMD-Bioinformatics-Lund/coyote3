@@ -15,9 +15,30 @@ does not load rule files or evaluate arbitrary templates.
 
 > **Important: classification annotations are separate**
 >
-> Rule sets produce report narrative only. The optional automatic text used during
-> bulk Tier III classification remains finding annotation behavior and is not read
-> from an ASPC or clinical rule set.
+> Rule blocks produce report narrative. Bulk Tier III classification uses a separate
+> application sentence generator, with tumor-type wording from the published rule
+> set's terminology. Publishing rules does not classify findings or rewrite annotations.
+
+## Automatic Tier III annotation terminology
+
+In **Administration → Clinical reporting rules**, open a DNA draft and set
+**Automatic Tier III annotation → Tumor-type wording**. The field is stored as
+`terminology.automatic_annotation_tumor_type`; for example, `hematologiska` or
+`solida` completes the existing Swedish sentence before “maligniteter”.
+
+| Property | Requirement or behavior |
+| --- | --- |
+| Value | Optional trimmed text, 1–120 characters when supplied. Clear the field to omit it. |
+| Scope | Published DNA rules for the sample's assay, subpanel and ASPC reporting language. The assay Base release is the fallback when no exact subpanel release exists. |
+| Inheritance | Terminology comes from the selected release as a whole. An exact subpanel release with no term does not borrow a term from Base. |
+| Language | Automatic sentence generation currently supports `sv` only. |
+| Governance | Included in the content hash, draft revision, independent review and publication lifecycle, using existing clinical-rule permissions. |
+| Missing wording or invalid release | An explicit request for automatic text fails before classifications are written. Ordinary classification remains available. |
+| Existing annotations | Preserved. Publication does not rewrite or translate stored text. |
+
+This field supplies one phrase; it is not a free-form annotation template and does not
+change query filters, transcript selection or tier assignment. See the
+[system role catalog](../administration/system-role-catalog.md) for reporting-rule roles.
 
 ## Report metadata outputs
 

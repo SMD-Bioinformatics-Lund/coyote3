@@ -38,9 +38,9 @@
 <text x="540" y="391" class="detail">preserved</text>
 </g>
 <g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
-<text x="980" y="254" class="name">3 · Load configured order</text>
-<text x="980" y="299" class="detail">transcript_selection.priority</text>
-<text x="980" y="322" class="detail">from center clinical vocabulary</text>
+<text x="980" y="254" class="name">3 · Load application order</text>
+<text x="980" y="299" class="detail">Fixed transcript selector order</text>
+<text x="980" y="322" class="detail">from application capabilities</text>
 <text x="980" y="345" class="detail">selectors are validated at startup</text>
 </g>
 <g class="card" data-node="3"><rect x="80" y="580" width="320" height="120" rx="10"/>

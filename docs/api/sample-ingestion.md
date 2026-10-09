@@ -606,7 +606,8 @@ Seed source policy for a new deployment:
 - `api/config/bootstrap/demo_center` provides synthetic ASP, ASPC, and ISGL
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
-- HGNC and VEP metadata are bundled release snapshots. The bootstrap command
+- HGNC and VEP metadata are bundled release snapshots. The optional
+  `scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME` command
   loads them only when the target collection is empty; it never takes data from
   test fixtures.
 - Keep center seed changes deterministic and version-controlled in the center's

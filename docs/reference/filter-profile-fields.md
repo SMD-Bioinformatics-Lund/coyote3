@@ -3,7 +3,7 @@
 ASPCs define initial review filters; samples retain their own saved filter state.
 These are structured application fields, not environment variables or raw pipeline
 measurements. For query behavior and precedence, use [assay filtering](assay-filtering.md).
-For center exceptions, use the separate [query-policy file](../configuration/clinical-query-policy-file.md).
+For center exceptions, use the [database query-rule editor](../administration/query-rules.md).
 
 ## Profile structure
 

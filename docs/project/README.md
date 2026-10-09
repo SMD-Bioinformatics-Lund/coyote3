@@ -7,6 +7,7 @@ community conduct, licensing, and clinical-use notices.
 
 | Guide | Use it to |
 | --- | --- |
+| [Future work](future-work.md) | Review proposed capabilities, design boundaries and implementation prerequisites. |
 | [Contributing](contributing.md) | Prepare a contribution and run the required checks. |
 | [Maintainer guide](maintainer-guide.md) | Review changes, preserve contracts, and maintain release quality. |
 | [Governance Overview](governance.md) | Find governance responsibilities and their source documents. |

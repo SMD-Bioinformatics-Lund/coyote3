@@ -451,7 +451,7 @@ Notes:
 - `expression_path` and `classification_path` are valid only for an ASP whose
   sequencing family is `wts`, and only when the resolved ASPC enables the
   corresponding `EXPRESSION` or `CLASSIFICATION` analysis. Targeted
-  `panel-rna` configurations may enable fusion, QC, and PGX, but cannot enable
+  `panel-rna` configurations may enable fusion and QC, but cannot enable
   expression or classification.
 - A selected fusion ISGL contains one gene symbol per line. A fusion passes the
   gene-list predicate when either `gene1` or `gene2` occurs in the effective
