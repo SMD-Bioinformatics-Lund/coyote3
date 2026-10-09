@@ -1,5 +1,9 @@
 # Demo collection fixtures
 
+For collection snapshots derived from raw VCF/JSON inputs, use the
+[clinical workflow bundle](../clinical_workflows/README.md). Its post-ingest and
+illustrative post-review states retain consistent sample/finding references.
+
 `all_collections_dummy/` contains one non-empty `*.json` file for every MongoDB
 collection registered by the application contract registry.
 

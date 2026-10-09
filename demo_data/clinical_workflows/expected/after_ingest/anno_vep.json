@@ -1,0 +1,1052 @@
+[
+  {
+    "simple_id_hash": "1c9d579ae08873ce1bf2f4ae2252f6df",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "bfbddc0590977028083a83a1"
+    },
+    "simple_id": "1_10001_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0000.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "f8264755d699a971372df224ae7305fa",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "162597fc9c58ddda8e927a47"
+    },
+    "simple_id": "1_10002_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0001.1",
+        "HGNC_ID": null,
+        "SYMBOL": "FLT3",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "1aaa2b081b1ef1761794692f252f9627",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "aa47d2703af71764e83f93c2"
+    },
+    "simple_id": "1_10003_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0002.1",
+        "HGNC_ID": null,
+        "SYMBOL": "CEBPA",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "2c8201ee4638f34a9abf0c7513d67cf1",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "906638c5931c04aa875eef4d"
+    },
+    "simple_id": "1_10004_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0003.1",
+        "HGNC_ID": null,
+        "SYMBOL": "NFKBIE",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "597fa8ab8f9dafe7cea6d8e25a3dab45",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "96c8a3b4545524bc840f49ee"
+    },
+    "simple_id": "1_10005_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0004.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "0a2ef7cd1642778f4025b1707cd62aac",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "34e048bcadd9bc66f8e8e85f"
+    },
+    "simple_id": "1_10006_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0005.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "4cf32a6bc8e8e1c3e68baea0c02c372f",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "38912a53009659e449b8def2"
+    },
+    "simple_id": "1_10007_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0006.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "c50bffa2914ff84a66bfe5e130b4f7d5",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "490f6024014df64e5be080f1"
+    },
+    "simple_id": "1_10008_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0007.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "4af7bceb24559a4933f8a8d4dcf31579",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "e57259c996d66422427979cf"
+    },
+    "simple_id": "1_10009_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0008.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "8a8f0a8f06075c341c9fc02288f03e1b",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "438512ff74065e203efaf0ba"
+    },
+    "simple_id": "1_10010_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0009.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "abaeb5e48eacd8c9674f4c39c3768657",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "c9408754cc22fe41fa07ed64"
+    },
+    "simple_id": "1_10011_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0010.1",
+        "HGNC_ID": null,
+        "SYMBOL": "FLT3",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "78c84e52b534772972c646eda3319acc",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "93b007c6973ae606814ce50f"
+    },
+    "simple_id": "1_10012_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0011.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "d61582407351b6748adfc2581d6c3dfc",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "9c22df8934b81052b6e7574f"
+    },
+    "simple_id": "1_10013_A_ACGTACGTAC",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0012.1",
+        "HGNC_ID": null,
+        "SYMBOL": "FLT3",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "c54a779d67284d8a958f57006af889a8",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "8faf35a8334cb9276dc3a976"
+    },
+    "simple_id": "1_10014_A_ACGTACGTA",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0013.1",
+        "HGNC_ID": null,
+        "SYMBOL": "FLT3",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "2485dfde98f82fd7f5394d315762305d",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "d0cac86d10b7d4524a9a2972"
+    },
+    "simple_id": "1_10015_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0014.1",
+        "HGNC_ID": null,
+        "SYMBOL": "FLT3",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "78f0b22d4974f439a4b527caa36167ad",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "b0d4dd9a168fc8445b7e9175"
+    },
+    "simple_id": "1_10016_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0015.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "f39ceb556ed53cf4582c41c8a8866477",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "7dc5b52c92f5279bb71f538b"
+    },
+    "simple_id": "1_10017_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0016.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "3411449ce60cb803182a48fa9aa49d17",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "c0e523688b9a1681b905e417"
+    },
+    "simple_id": "1_10018_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0017.1",
+        "HGNC_ID": null,
+        "SYMBOL": "CEBPA",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "d85dec6e0aa22ce0d2ff3cc54711e281",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "2e532385626caaa0d6c4ef2c"
+    },
+    "simple_id": "1_10019_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0018.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "ee089448fab5c2cc900aa97862f4b200",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "1b5cdecbf20a839e1ff0afd6"
+    },
+    "simple_id": "1_115256520_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0019.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "3e74909dedfb5fcd7a1a2d0b59d9dc34",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "3255369340b6623edb5d935d"
+    },
+    "simple_id": "1_115256521_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0020.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "8467a310a2dae4367c6e56fea24787ad",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "d9e29e66130a7814e7064480"
+    },
+    "simple_id": "1_115256537_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0021.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "b36a94bede825030ffb7b74fb77bbea2",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "f92f7636f97c0bd26a8ffb51"
+    },
+    "simple_id": "1_115256538_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0022.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "intron_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "3f301de143cfc97bb99a53bf59c4746d",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "dd0eac139f51ac70e4c775c4"
+    },
+    "simple_id": "1_10024_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0023.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TERT",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "regulatory_region_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "a4ee71882b3119a61d516181c8b1b24c",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "2d9d9a04b54c5e7915c5c3dc"
+    },
+    "simple_id": "1_10025_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0024.1",
+        "HGNC_ID": null,
+        "SYMBOL": "NFKBIE",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "TF_binding_site_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "42e3b654ae4ae39c5b1ec69321ad521f",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "70afd4e5f88bb9c87c18139d"
+    },
+    "simple_id": "1_10026_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0025.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "regulatory_region_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "2b778376d6f35c8b157f4aaf27325461",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "c1c5eee107ee839d576805a2"
+    },
+    "simple_id": "1_10028_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0027.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "baa1316feefc0b5a8df3c0e0b7ce8445",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "9fd2027e1e0d17e35344f221"
+    },
+    "simple_id": "1_10029_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0028.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "34ec203e1f51c929101b5d8c6b55b704",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "dd9e92f6083e230bdc230b0d"
+    },
+    "simple_id": "1_10030_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0029.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  },
+  {
+    "simple_id_hash": "bb9638909091d6c2244fdab4956a0edb",
+    "vep_version": "103",
+    "_id": {
+      "$oid": "41bc67021c2c774d5c7cdb78"
+    },
+    "simple_id": "1_10031_A_G",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "ENSTDEMO0030.1",
+        "HGNC_ID": null,
+        "SYMBOL": "TP53",
+        "PolyPhen": null,
+        "SIFT": null,
+        "Consequence": [
+          "missense_variant"
+        ],
+        "ENSP": null,
+        "BIOTYPE": "protein_coding",
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": "YES",
+        "STRAND": null,
+        "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
+        "VARIANT_CLASS": "SNV",
+        "HGVSp": "p.Lys4Glu",
+        "HGVSc": "c.10A>G",
+        "MANE_SELECT": null,
+        "MANE_PLUS_CLINICAL": null
+      }
+    ]
+  }
+]

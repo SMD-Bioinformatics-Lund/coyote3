@@ -1,0 +1,191 @@
+[
+  {
+    "SAMPLE_ID": "dd54815825da439747a7082d",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "55c39322abf3b740e3fb058b"
+    }
+  },
+  {
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "c086f318b1c3644a7168e9e5"
+    }
+  },
+  {
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "615e29c61ca9523e4e7a8415"
+    }
+  },
+  {
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "46da2ffb86b3a558efef06de"
+    }
+  },
+  {
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "b44a95038c99b15e90c3c8b6"
+    }
+  },
+  {
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "d37fe0bf1b7f7f1fadb29502"
+    }
+  },
+  {
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": {
+      "$oid": "ba3b06076403cadeb1438fd3"
+    }
+  }
+]

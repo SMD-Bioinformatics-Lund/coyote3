@@ -1,0 +1,97 @@
+[
+  {
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  },
+  {
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  },
+  {
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  },
+  {
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  },
+  {
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  }
+]

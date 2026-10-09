@@ -1,0 +1,263 @@
+[
+  {
+    "asp_id": "demo_e2e_hematology",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Synthetic hematology",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "hrd",
+      "msi",
+      "tmb",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_myeloid",
+    "asp_group": "myeloid",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Synthetic myeloid",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "hrd",
+      "msi",
+      "tmb",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_solid",
+    "asp_group": "solid",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Synthetic solid",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "hrd",
+      "msi",
+      "tmb",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_tumwgs",
+    "asp_group": "tumwgs",
+    "asp_family": "wgs",
+    "asp_category": "dna",
+    "display_name": "Synthetic tumwgs",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "hrd",
+      "msi",
+      "tmb",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_lymphoid",
+    "asp_group": "lymphoid",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Synthetic lymphoid",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "hrd",
+      "msi",
+      "tmb",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_fusion",
+    "asp_group": "fusion",
+    "asp_family": "panel-rna",
+    "asp_category": "rna",
+    "display_name": "Synthetic fusion",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "fusion_files",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo_e2e_wts",
+    "asp_group": "wts",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "display_name": "Synthetic wts",
+    "description": "Synthetic workflow validation only",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  }
+]

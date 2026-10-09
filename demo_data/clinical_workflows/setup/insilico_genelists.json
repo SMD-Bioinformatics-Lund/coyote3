@@ -1,0 +1,29 @@
+[
+  {
+    "isgl_id": "demo_e2e_focus",
+    "name": "Synthetic focus",
+    "displayname": "Synthetic focus",
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "diagnosis": [
+      "demo_focus"
+    ],
+    "asp_groups": [
+      "myeloid"
+    ],
+    "asp_ids": [
+      "demo_e2e_myeloid"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  }
+]

@@ -1,0 +1,630 @@
+[
+  {
+    "aspc_id": "demo_e2e_hematology_base_testing",
+    "display_name": "Synthetic hematology",
+    "asp_group": "hematology",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "COVERAGE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "TMB",
+      "PGX"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV",
+        "TRANSLOCATION",
+        "HRD",
+        "MSI",
+        "TMB"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_hematology",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_myeloid_base_testing",
+    "display_name": "Synthetic myeloid",
+    "asp_group": "myeloid",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "COVERAGE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "TMB",
+      "PGX"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV",
+        "TRANSLOCATION",
+        "HRD",
+        "MSI",
+        "TMB"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_myeloid",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_solid_base_testing",
+    "display_name": "Synthetic solid",
+    "asp_group": "solid",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "COVERAGE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "TMB",
+      "PGX"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV",
+        "TRANSLOCATION",
+        "HRD",
+        "MSI",
+        "TMB"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_solid",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_tumwgs_base_testing",
+    "display_name": "Synthetic tumwgs",
+    "asp_group": "tumwgs",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "COVERAGE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "TMB",
+      "PGX"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV",
+        "TRANSLOCATION",
+        "HRD",
+        "MSI",
+        "TMB"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_tumwgs",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_lymphoid_base_testing",
+    "display_name": "Synthetic lymphoid",
+    "asp_group": "lymphoid",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "COVERAGE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "TMB",
+      "PGX"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV",
+        "TRANSLOCATION",
+        "HRD",
+        "MSI",
+        "TMB"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_lymphoid",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_fusion_base_testing",
+    "display_name": "Synthetic fusion",
+    "asp_group": "fusion",
+    "asp_category": "rna",
+    "description": "Demo ASP configuration for first-run RNA WTS workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "FUSION",
+      "QC"
+    ],
+    "filters": {
+      "somatic": {
+        "fusion": {
+          "fusion_callers": [],
+          "fusion_descriptions": [],
+          "fusion_effects": [],
+          "fusionlists": [],
+          "min_spanning_pairs": 0,
+          "min_spanning_reads": 0,
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "FUSION",
+        "QC"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_fusion",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_wts_base_testing",
+    "display_name": "Synthetic wts",
+    "asp_group": "wts",
+    "asp_category": "rna",
+    "description": "Demo ASP configuration for first-run RNA WTS workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "FUSION",
+      "EXPRESSION",
+      "CLASSIFICATION",
+      "QC"
+    ],
+    "filters": {
+      "somatic": {
+        "fusion": {
+          "fusion_callers": [],
+          "fusion_descriptions": [],
+          "fusion_effects": [],
+          "fusionlists": [],
+          "min_spanning_pairs": 0,
+          "min_spanning_reads": 0,
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "FUSION",
+        "EXPRESSION",
+        "CLASSIFICATION",
+        "QC"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_wts",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  },
+  {
+    "aspc_id": "demo_e2e_myeloid_demo_focus_testing",
+    "display_name": "Synthetic myeloid",
+    "asp_group": "myeloid",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "testing",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "COVERAGE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "TMB",
+      "PGX"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        },
+        "translocation": {
+          "fusionlists": [],
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV",
+        "TRANSLOCATION",
+        "HRD",
+        "MSI",
+        "TMB"
+      ],
+      "report_header": "SYNTHETIC \u2014 NOT FOR CLINICAL USE",
+      "report_method": "Artificial fixture evidence",
+      "report_description": "Workflow verification",
+      "language": "en",
+      "plots_path": "/tmp",
+      "report_folder": "demo-e2e"
+    },
+    "verification_samples": {},
+    "asp_id": "demo_e2e_myeloid",
+    "subpanel_id": "demo_focus",
+    "analysis_intents": [
+      "somatic"
+    ],
+    "created_by": "demo.author"
+  }
+]

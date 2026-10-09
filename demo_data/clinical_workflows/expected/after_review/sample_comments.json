@@ -1,0 +1,130 @@
+[
+  {
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_name": "DEMO_MYELOID",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment",
+    "hidden": false,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "1a03719848ebd72ebe5ceb46"
+    }
+  },
+  {
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_name": "DEMO_MYELOID",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment — hidden example",
+    "hidden": true,
+    "hidden_by": "demo.reviewer",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "638fc162e737e95a37aa8efa"
+    }
+  },
+  {
+    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_name": "DEMO_MYELOID_MISSING",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment",
+    "hidden": false,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "932db6d776516253fa35d963"
+    }
+  },
+  {
+    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_name": "DEMO_MYELOID_MISSING",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment — hidden example",
+    "hidden": true,
+    "hidden_by": "demo.reviewer",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "8eaa846a065dfdd09348c7a8"
+    }
+  },
+  {
+    "sample_oid": "edb431fec55fbfcaa64c174e",
+    "sample_name": "DEMO_FUSION",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment",
+    "hidden": false,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "5f158fcf3cf73d7995577205"
+    }
+  },
+  {
+    "sample_oid": "edb431fec55fbfcaa64c174e",
+    "sample_name": "DEMO_FUSION",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment — hidden example",
+    "hidden": true,
+    "hidden_by": "demo.reviewer",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "d8da6349397ca9f636e35949"
+    }
+  },
+  {
+    "sample_oid": "a3990b112e6f32660ee9c636",
+    "sample_name": "DEMO_WTS",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment",
+    "hidden": false,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "e9dc3237fc1497444f5e34ac"
+    }
+  },
+  {
+    "sample_oid": "a3990b112e6f32660ee9c636",
+    "sample_name": "DEMO_WTS",
+    "author": "demo.reviewer",
+    "text": "Synthetic sample comment — hidden example",
+    "hidden": true,
+    "hidden_by": "demo.reviewer",
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "585c33fadfaa2f98acd28cbe"
+    }
+  }
+]

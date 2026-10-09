@@ -1,0 +1,18 @@
+##fileformat=VCFv4.2
+##contig=<ID=1,length=248956422>
+##contig=<ID=2,length=242193529>
+##INFO=<ID=SOMATIC,Number=0,Type=Flag,Description="Somatic event">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Structural variant type">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Inclusive structural interval end">
+##INFO=<ID=MATEID,Number=1,Type=String,Description="Reciprocal breakend identifier">
+##INFO=<ID=ANN,Number=.,Type=String,Description="Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=PR,Number=2,Type=Integer,Description="Reference and alternate paired-read counts">
+##FORMAT=<ID=SR,Number=2,Type=Integer,Description="Reference and alternate split-read counts">
+##FORMAT=<ID=UR,Number=1,Type=Integer,Description="Unique-read evidence">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	DEMO_CASE
+1	10001	bnd1	A	A]2:20001]	60	PASS	SOMATIC;SVTYPE=BND;ANN=A|gene_fusion|HIGH|BCR&ABL1|ENSG000001&ENSG000002|transcript|ENST000001&ENST000002|protein_coding||c.?|p.?	GT:PR:SR:UR	0/1:10,5:8,3:3
+1	30001	custom-left	N	N]2:40001]	60	PASS	SOMATIC;SVTYPE=BND;MATEID=custom-right;ANN=N|feature_fusion|LOW|KMT2A|DEMO_GENE_3|CUSTOM&sorted|KMT2A_DEMO_GENE_3||||	GT:PR:SR:UR	0/1:20,6:10,4:4
+2	40001	custom-right	N	N]1:30001]	60	PASS	SOMATIC;SVTYPE=BND;MATEID=custom-left;ANN=N|feature_fusion|LOW|NPM1|DEMO_GENE_4|CUSTOM&sorted|NPM1_DEMO_GENE_4||||	GT:PR:SR:UR	0/1:18,7:9,5:5
+1	50001	demo-deletion	N	<DEL>	60	PASS	SOMATIC;SVTYPE=DEL;END=51001;ANN=N|transcript_ablation|HIGH|TP53|DEMO_GENE_5|transcript|ENST000005|protein_coding||c.?|p.?	GT:PR:SR:UR	0/1:20,6:10,4:4
+1	60001	demo-duplication	N	<DUP>	60	PASS	SOMATIC;SVTYPE=DUP;END=61001;ANN=N|frameshift_variant|HIGH|CEBPA|DEMO_GENE_6|transcript|ENST000006|protein_coding||c.?|p.?	GT:PR:SR:UR	0/1:20,6:10,4:4

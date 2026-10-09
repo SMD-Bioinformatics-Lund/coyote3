@@ -1,0 +1,173 @@
+[
+  {
+    "group_id": "hematology",
+    "display_name": "Hematology",
+    "description": "Hematological assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "c981f91a16c98bf3384c270b"
+    }
+  },
+  {
+    "group_id": "myeloid",
+    "display_name": "Myeloid",
+    "description": "Myeloid assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "e6b7aead97e880435afb84df"
+    }
+  },
+  {
+    "group_id": "lymphoid",
+    "display_name": "Lymphoid",
+    "description": "Lymphoid assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "be4d20d0b77065f5a2fd02aa"
+    }
+  },
+  {
+    "group_id": "solid",
+    "display_name": "Solid tumors",
+    "description": "Solid tumor assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "3dcbd1c880b805dfa41ffa99"
+    }
+  },
+  {
+    "group_id": "pgx",
+    "display_name": "Pharmacogenomics",
+    "description": "Pharmacogenomic assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "f171d9a7ebb10f25ad8ac18f"
+    }
+  },
+  {
+    "group_id": "tumwgs",
+    "display_name": "Tumor WGS",
+    "description": "Tumor whole-genome assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "558265c14f0619a5b22b9023"
+    }
+  },
+  {
+    "group_id": "wts",
+    "display_name": "Whole transcriptome",
+    "description": "Whole-transcriptome assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "063a1e52c3619d1c39dd49d7"
+    }
+  },
+  {
+    "group_id": "fusion",
+    "display_name": "Fusion",
+    "description": "Fusion assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "4fc5b19b09ab6f93ccb8ea15"
+    }
+  },
+  {
+    "group_id": "demo",
+    "display_name": "Demo",
+    "description": "Demonstration and training assays",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": {
+      "$oid": "a3d5652f2da6f187af405cea"
+    }
+  }
+]

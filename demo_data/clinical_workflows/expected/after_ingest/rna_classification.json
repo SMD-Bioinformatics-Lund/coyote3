@@ -1,0 +1,17 @@
+[
+  {
+    "classifier_results": [
+      {
+        "class": "SYNTHETIC_CLASS",
+        "score": 0.98,
+        "true": 98,
+        "total": 100
+      }
+    ],
+    "classifier_version": "1.0.0",
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "_id": {
+      "$oid": "e639003f8fbad94677979a76"
+    }
+  }
+]

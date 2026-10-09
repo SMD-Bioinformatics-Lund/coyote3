@@ -1,0 +1,17 @@
+[
+  {
+    "display_name": "Synthetic focus",
+    "description": "Synthetic scope testing",
+    "is_active": true,
+    "subpanel_id": "demo_focus",
+    "version": 1,
+    "is_current": true,
+    "updated_by": "demo.author",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "acf862698a81de4694c22da1"
+    }
+  }
+]

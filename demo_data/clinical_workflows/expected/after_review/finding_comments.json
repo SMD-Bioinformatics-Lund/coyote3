@@ -1,0 +1,218 @@
+[
+  {
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_name": "DEMO_MYELOID",
+    "finding_oid": "6e11cb319ccde1de3a852a4a",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10001_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10001_A_G",
+    "genomic_hash": "1c9d579ae08873ce1bf2f4ae2252f6df",
+    "gene": "TP53",
+    "transcript": "ENSTDEMO0000.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 1 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "c7a5843810c3efe31da6c536"
+    }
+  },
+  {
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_name": "DEMO_MYELOID",
+    "finding_oid": "f5427c02d42c96870221aa44",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10002_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10002_A_G",
+    "genomic_hash": "f8264755d699a971372df224ae7305fa",
+    "gene": "FLT3",
+    "transcript": "ENSTDEMO0001.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 2 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "7c970d2cedda484c02d6f9e6"
+    }
+  },
+  {
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_name": "DEMO_MYELOID",
+    "finding_oid": "8ae52dfbd39f269513ec8503",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10003_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10003_A_G",
+    "genomic_hash": "1aaa2b081b1ef1761794692f252f9627",
+    "gene": "CEBPA",
+    "transcript": "ENSTDEMO0002.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 3 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "d450ff02cb151b04ecb9e60a"
+    }
+  },
+  {
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
+    "sample_name": "DEMO_MYELOID",
+    "finding_oid": "d14d5cce5497eee308ba0f0b",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10004_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10004_A_G",
+    "genomic_hash": "2c8201ee4638f34a9abf0c7513d67cf1",
+    "gene": "NFKBIE",
+    "transcript": "ENSTDEMO0003.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 4 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "81276f40d53eb43e71110acf"
+    }
+  },
+  {
+    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_name": "DEMO_MYELOID_MISSING",
+    "finding_oid": "8afe7ddff1dbee4677a5bd3e",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10001_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10001_A_G",
+    "genomic_hash": "1c9d579ae08873ce1bf2f4ae2252f6df",
+    "gene": "TP53",
+    "transcript": "ENSTDEMO0000.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 1 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "613e2e4e8d0282dc0f882cb2"
+    }
+  },
+  {
+    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_name": "DEMO_MYELOID_MISSING",
+    "finding_oid": "7cdf4bd569bb5361864cfef7",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10002_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10002_A_G",
+    "genomic_hash": "f8264755d699a971372df224ae7305fa",
+    "gene": "FLT3",
+    "transcript": "ENSTDEMO0001.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 2 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "5f88662500946c601e836705"
+    }
+  },
+  {
+    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_name": "DEMO_MYELOID_MISSING",
+    "finding_oid": "ebdd8e609c2978b87faf6f03",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10003_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10003_A_G",
+    "genomic_hash": "1aaa2b081b1ef1761794692f252f9627",
+    "gene": "CEBPA",
+    "transcript": "ENSTDEMO0002.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 3 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "21cdb037b451cfde5a2ad4ad"
+    }
+  },
+  {
+    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_name": "DEMO_MYELOID_MISSING",
+    "finding_oid": "d43fee6f8eb27ed2fff9d53f",
+    "finding_type": "small_variant",
+    "nomenclature": "g",
+    "variant": "1_10004_A_G",
+    "hgvsp": "p.Lys4Glu",
+    "hgvsc": "c.10A>G",
+    "genomic": "1_10004_A_G",
+    "genomic_hash": "2c8201ee4638f34a9abf0c7513d67cf1",
+    "gene": "NFKBIE",
+    "transcript": "ENSTDEMO0003.1",
+    "gene1": null,
+    "gene2": null,
+    "author": "demo.reviewer",
+    "text": "Synthetic tier 4 review exercise; not a clinical assessment.",
+    "hidden": 0,
+    "hidden_by": null,
+    "time_created": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "time_hidden": null,
+    "_id": {
+      "$oid": "f1d9a4c0db43182e688f05e2"
+    }
+  }
+]

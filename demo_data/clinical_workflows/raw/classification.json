@@ -1,0 +1,11 @@
+{
+  "classifier_version": "1.0.0",
+  "classifier_results": [
+    {
+      "class": "SYNTHETIC_CLASS",
+      "score": 0.98,
+      "true": 98,
+      "total": 100
+    }
+  ]
+}

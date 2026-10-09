@@ -1,0 +1,110 @@
+[
+  {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "gene1": "BCR",
+    "gene2": "ABL1",
+    "genes": "BCR-ABL1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 20,
+        "spanreads": 42,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "commonreads": 0,
+        "desc": "synthetic_example"
+      }
+    ],
+    "_id": {
+      "$oid": "0b8c6184033cfa5846ecf621"
+    }
+  },
+  {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "gene1": "ETV6",
+    "gene2": "RUNX1",
+    "genes": "ETV6-RUNX1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 0,
+        "spanreads": 1,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "commonreads": 0,
+        "desc": "synthetic_example"
+      }
+    ],
+    "_id": {
+      "$oid": "bab00a1c2635b256a21d5b64"
+    }
+  },
+  {
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "gene1": "BCR",
+    "gene2": "ABL1",
+    "genes": "BCR-ABL1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 20,
+        "spanreads": 42,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "commonreads": 0,
+        "desc": "synthetic_example"
+      }
+    ],
+    "_id": {
+      "$oid": "8e9faae810093e2a523f9a22"
+    }
+  },
+  {
+    "SAMPLE_ID": "a3990b112e6f32660ee9c636",
+    "gene1": "ETV6",
+    "gene2": "RUNX1",
+    "genes": "ETV6-RUNX1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 0,
+        "spanreads": 1,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "in-frame",
+        "commonreads": 0,
+        "desc": "synthetic_example"
+      }
+    ],
+    "_id": {
+      "$oid": "3712e7d23b6cfe554941335c"
+    }
+  }
+]

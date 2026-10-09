@@ -1,0 +1,4010 @@
+[
+  {
+    "SAMPLE_ID": "dd54815825da439747a7082d",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "4268b9768f04b8c9e039673d"
+    }
+  },
+  {
+    "SAMPLE_ID": "dd54815825da439747a7082d",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "66371b74bbefdc4e78b6979a"
+    }
+  },
+  {
+    "SAMPLE_ID": "dd54815825da439747a7082d",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "3fe60c4df3fe23cc9f096b68"
+    }
+  },
+  {
+    "SAMPLE_ID": "dd54815825da439747a7082d",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "74909936ea79aae9e5e55a5d"
+    }
+  },
+  {
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "2b4a94ca1a4eb2d14a8774ec"
+    }
+  },
+  {
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "3f6f59d7741a00f22be020cb"
+    }
+  },
+  {
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "949760077ddc8b525a3426b1"
+    }
+  },
+  {
+    "SAMPLE_ID": "119ffba3832c12b4165f46dd",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "56febb09f8705379d3fd4d67"
+    }
+  },
+  {
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "e5ab5fb2c2eb9a517fd3601e"
+    }
+  },
+  {
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "9c4b7e0b9db7179bd448e040"
+    }
+  },
+  {
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "1979f68b857b1b9d4038b0b0"
+    }
+  },
+  {
+    "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "d95944da0e9f3b3b78852b72"
+    }
+  },
+  {
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "34cf5f78a66db856f40b71ef"
+    }
+  },
+  {
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "f074a8273c6886c0ff337e1f"
+    }
+  },
+  {
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "cb3a13087c3947df5d2ebd4c"
+    }
+  },
+  {
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "9ca3046eb2689b1321b56ed4"
+    }
+  },
+  {
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "ccc85243797c0a453d847b6b"
+    }
+  },
+  {
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "84c92c9e8693cd265ddda6f6"
+    }
+  },
+  {
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "feb185162b5c72b38ae62372"
+    }
+  },
+  {
+    "SAMPLE_ID": "029f2978888a36aa73630c02",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "337e599952c91a055b05b55b"
+    }
+  },
+  {
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "cfe67abcac89110d24263d78"
+    }
+  },
+  {
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "b7e55a56adb8a5aa79bc6e80"
+    }
+  },
+  {
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "465dc5d5496a7fce6bf363fd"
+    }
+  },
+  {
+    "SAMPLE_ID": "41e289bc028c176b28409af8",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "2b1ea5d3b2277b2a1ff9423d"
+    }
+  },
+  {
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "cdf3ea66b011059822d1c220"
+    }
+  },
+  {
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "2b2375d5a29a4ede643e1644"
+    }
+  },
+  {
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "3e9ec36e14930e96755e53f4"
+    }
+  },
+  {
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "7411192d17df1d6715a56ddf"
+    }
+  },
+  {
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "CHROM": "1",
+    "POS": 10001,
+    "END": null,
+    "source_records": [],
+    "REF": "A",
+    "ALT": "A]2:20001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "bnd1",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 3.0,
+        "sample": "DEMO_CASE",
+        "PR": "10,5",
+        "SR": "8,3",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "A",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG000001&ENSG000002",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000001&ENST000002",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "b8c9df385b8d1c8e70f55935"
+    }
+  },
+  {
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "CHROM": "1",
+    "POS": 30001,
+    "END": null,
+    "source_records": [
+      {
+        "CHROM": "1",
+        "POS": 30001,
+        "END": null,
+        "ID": "custom-left",
+        "REF": "N",
+        "ALT": "N]2:40001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 4.0,
+            "sample": "DEMO_CASE",
+            "PR": "20,6",
+            "SR": "10,4",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-right",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "KMT2A",
+              "Gene_ID": "DEMO_GENE_3",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "KMT2A_DEMO_GENE_3",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      },
+      {
+        "CHROM": "2",
+        "POS": 40001,
+        "END": null,
+        "ID": "custom-right",
+        "REF": "N",
+        "ALT": "N]1:30001]",
+        "QUAL": 60.0,
+        "FILTER": [
+          "PASS"
+        ],
+        "FORMAT": [
+          "GT",
+          "PR",
+          "SR",
+          "UR"
+        ],
+        "GT": [
+          {
+            "UR": 5.0,
+            "sample": "DEMO_CASE",
+            "PR": "18,7",
+            "SR": "9,5",
+            "GT": "0/1"
+          }
+        ],
+        "INFO": {
+          "SVTYPE": "BND",
+          "MATEID": "custom-left",
+          "SVINSLEN": null,
+          "SVINSSEQ": null,
+          "EVENT": null,
+          "SOMATIC": true,
+          "SOMATICSCORE": null,
+          "JUNCTION_SOMATICSCORE": null,
+          "BND_DEPTH": null,
+          "MATE_BND_DEPTH": null,
+          "PANEL": [],
+          "ANN": [
+            {
+              "Allele": "N",
+              "Annotation": [
+                "feature_fusion"
+              ],
+              "Annotation_Impact": "LOW",
+              "Gene_Name": "NPM1",
+              "Gene_ID": "DEMO_GENE_4",
+              "Feature_Type": "CUSTOM&sorted",
+              "Feature_ID": "NPM1_DEMO_GENE_4",
+              "Transcript_BioType": "",
+              "Rank": "",
+              "HGVSc": "",
+              "HGVSp": "",
+              "cDNApos": null,
+              "cDNAlength": null,
+              "CDSpos": null,
+              "CDSlength": null,
+              "AApos": null,
+              "AAlength": null,
+              "Distance": null,
+              "ERRORS": null,
+              "WARNINGS": null,
+              "INFO": null
+            }
+          ],
+          "MANE_ANN": null,
+          "ANN_selection_source": null
+        }
+      }
+    ],
+    "REF": "N",
+    "ALT": "N]2:40001]",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "custom-left",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "BND",
+      "MATEID": "custom-right",
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A&NPM1",
+          "Gene_ID": "DEMO_GENE_3&DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3&NPM1_DEMO_GENE_4",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "KMT2A",
+          "Gene_ID": "DEMO_GENE_3",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "KMT2A_DEMO_GENE_3",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        },
+        {
+          "Allele": "N",
+          "Annotation": [
+            "feature_fusion"
+          ],
+          "Annotation_Impact": "LOW",
+          "Gene_Name": "NPM1",
+          "Gene_ID": "DEMO_GENE_4",
+          "Feature_Type": "CUSTOM&sorted",
+          "Feature_ID": "NPM1_DEMO_GENE_4",
+          "Transcript_BioType": "",
+          "Rank": "",
+          "HGVSc": "",
+          "HGVSp": "",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_available"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "9547e22d676f01201abe8285"
+    }
+  },
+  {
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "CHROM": "1",
+    "POS": 50001,
+    "END": 51001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DEL>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-deletion",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DEL",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "transcript_ablation"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "TP53",
+          "Gene_ID": "DEMO_GENE_5",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000005",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "58dbe61ad29bbfdbae814958"
+    }
+  },
+  {
+    "SAMPLE_ID": "53866644ef84fef9de195a7b",
+    "CHROM": "1",
+    "POS": 60001,
+    "END": 61001,
+    "source_records": [],
+    "REF": "N",
+    "ALT": "<DUP>",
+    "FILTER": [
+      "PASS"
+    ],
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR",
+      "UR"
+    ],
+    "ID": "demo-duplication",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 4.0,
+        "sample": "DEMO_CASE",
+        "PR": "20,6",
+        "SR": "10,4",
+        "GT": "0/1"
+      }
+    ],
+    "INFO": {
+      "SVTYPE": "DUP",
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
+      "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "frameshift_variant"
+          ],
+          "Annotation_Impact": "HIGH",
+          "Gene_Name": "CEBPA",
+          "Gene_ID": "DEMO_GENE_6",
+          "Feature_Type": "transcript",
+          "Feature_ID": "ENST000006",
+          "Transcript_BioType": "protein_coding",
+          "Rank": "",
+          "HGVSc": "c.?",
+          "HGVSp": "p.?",
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
+        }
+      ],
+      "MANE_ANN": null,
+      "ANN_selection_source": "first_protein_coding"
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
+    "_id": {
+      "$oid": "80376bd6a16af18bd9bc6d2a"
+    }
+  }
+]

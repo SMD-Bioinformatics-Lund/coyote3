@@ -1,0 +1,656 @@
+[
+  {
+    "scope": {
+      "assay_group": "hematology",
+      "analysis": "snv",
+      "intent": "germline"
+    },
+    "name": "hematology__all__base__germline_snvs",
+    "content": {
+      "exceptions": [
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "predicate",
+            "field": "INFO.MYELOID_GERMLINE",
+            "operator": "eq",
+            "value": 1
+          },
+          "id": "germline_myeloid_marker"
+        },
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "CEBPA"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "FILTER",
+                "operator": "in",
+                "value": [
+                  "GERMLINE"
+                ]
+              }
+            ]
+          },
+          "id": "germline_cebpa_filter"
+        },
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "CHROM",
+                "operator": "in",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "POS",
+                "operator": "gte",
+                "value": 115256521
+              },
+              {
+                "type": "predicate",
+                "field": "POS",
+                "operator": "lte",
+                "value": 115256537
+              }
+            ]
+          },
+          "id": "germline_chr1_interval"
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "hematology__all__base__germline_snvs",
+    "query_id": "hematology__all__base__germline_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "b4818984524f3f6f46cfacb7"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "hematology",
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "name": "hematology__all__base__somatic_snvs",
+    "content": {
+      "evidence_mode": "paired",
+      "exceptions": [
+        {
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "FLT3"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "INFO.SVTYPE",
+                "operator": "exists",
+                "value": true
+              }
+            ]
+          },
+          "id": "flt3_svtype"
+        },
+        {
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "FLT3"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "ALT",
+                "operator": "regex",
+                "value": "[A-Za-z0-9_]{10,200}"
+              }
+            ]
+          },
+          "id": "flt3_large_insertion"
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "hematology__all__base__somatic_snvs",
+    "query_id": "hematology__all__base__somatic_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "46ee243b3b5771624b88fe89"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "myeloid",
+      "analysis": "snv",
+      "intent": "germline"
+    },
+    "name": "myeloid__all__base__germline_snvs",
+    "content": {
+      "exceptions": [
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "predicate",
+            "field": "INFO.MYELOID_GERMLINE",
+            "operator": "eq",
+            "value": 1
+          },
+          "id": "germline_myeloid_marker"
+        },
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "CEBPA"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "FILTER",
+                "operator": "in",
+                "value": [
+                  "GERMLINE"
+                ]
+              }
+            ]
+          },
+          "id": "germline_cebpa_filter"
+        },
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "CHROM",
+                "operator": "in",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "POS",
+                "operator": "gte",
+                "value": 115256521
+              },
+              {
+                "type": "predicate",
+                "field": "POS",
+                "operator": "lte",
+                "value": 115256537
+              }
+            ]
+          },
+          "id": "germline_chr1_interval"
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "myeloid__all__base__germline_snvs",
+    "query_id": "myeloid__all__base__germline_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "c4ee7e5a3f2f9bb198d02673"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "myeloid",
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "name": "myeloid__all__base__somatic_snvs",
+    "content": {
+      "evidence_mode": "paired",
+      "exceptions": [
+        {
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "FLT3"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "INFO.SVTYPE",
+                "operator": "exists",
+                "value": true
+              }
+            ]
+          },
+          "id": "flt3_svtype"
+        },
+        {
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "FLT3"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "ALT",
+                "operator": "regex",
+                "value": "[A-Za-z0-9_]{10,200}"
+              }
+            ]
+          },
+          "id": "flt3_large_insertion"
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "myeloid__all__base__somatic_snvs",
+    "query_id": "myeloid__all__base__somatic_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "a6881dd89f011184cbd89b8a"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "solid",
+      "analysis": "snv",
+      "intent": "germline"
+    },
+    "name": "solid__all__base__germline_snvs",
+    "content": {
+      "evidence_mode": "exception_only",
+      "exceptions": [
+        {
+          "id": "solid_germline_filter",
+          "mode": "admit",
+          "condition": {
+            "type": "predicate",
+            "field": "FILTER",
+            "operator": "in",
+            "value": [
+              "GERMLINE"
+            ]
+          }
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "solid__all__base__germline_snvs",
+    "query_id": "solid__all__base__germline_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "ee072827e0a13dd3ca09e9c0"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "solid",
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "name": "solid__all__base__somatic_snvs",
+    "content": {
+      "evidence_mode": "paired",
+      "exceptions": [
+        {
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "TERT",
+                  "NFKBIE"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "consequence_terms",
+                "operator": "in",
+                "value": [
+                  "regulatory_region_variant",
+                  "TF_binding_site_variant"
+                ]
+              }
+            ]
+          },
+          "id": "solid_regulatory_tert_nfkbie"
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "solid__all__base__somatic_snvs",
+    "query_id": "solid__all__base__somatic_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "d263e824a464c0e58663b14f"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "tumwgs",
+      "analysis": "snv",
+      "intent": "germline"
+    },
+    "name": "tumwgs__all__base__germline_snvs",
+    "content": {
+      "exceptions": [
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "predicate",
+            "field": "INFO.MYELOID_GERMLINE",
+            "operator": "eq",
+            "value": 1
+          },
+          "id": "germline_myeloid_marker"
+        },
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "CEBPA"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "FILTER",
+                "operator": "in",
+                "value": [
+                  "GERMLINE"
+                ]
+              }
+            ]
+          },
+          "id": "germline_cebpa_filter"
+        },
+        {
+          "mode": "admit",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "CHROM",
+                "operator": "in",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "POS",
+                "operator": "gte",
+                "value": 115256521
+              },
+              {
+                "type": "predicate",
+                "field": "POS",
+                "operator": "lte",
+                "value": 115256537
+              }
+            ]
+          },
+          "id": "germline_chr1_interval"
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "tumwgs__all__base__germline_snvs",
+    "query_id": "tumwgs__all__base__germline_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "78f258fe42bd018b8ded35d8"
+    }
+  },
+  {
+    "scope": {
+      "assay_group": "tumwgs",
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "name": "tumwgs__all__base__somatic_snvs",
+    "content": {
+      "evidence_mode": "paired",
+      "exceptions": [
+        {
+          "id": "flt3_svtype",
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "FLT3"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "INFO.SVTYPE",
+                "operator": "exists",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "flt3_large_insertion",
+          "mode": "extend_consequence",
+          "condition": {
+            "type": "all",
+            "children": [
+              {
+                "type": "predicate",
+                "field": "INFO.selected_CSQ.SYMBOL",
+                "operator": "in",
+                "value": [
+                  "FLT3"
+                ]
+              },
+              {
+                "type": "predicate",
+                "field": "ALT",
+                "operator": "regex",
+                "value": "[A-Za-z0-9_]{10,200}"
+              }
+            ]
+          }
+        }
+      ],
+      "exception_mode": "replace"
+    },
+    "reason": "Installed query policy; validate before clinical use",
+    "scope_key": "tumwgs__all__base__somatic_snvs",
+    "query_id": "tumwgs__all__base__somatic_snvs",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "demo.installer",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "demo.installer",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "demo.installer",
+    "published_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "system_installed": true,
+    "_id": {
+      "$oid": "61b29bc4064ca51055eec425"
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "pipeline_version": "synthetic-1",
+  "records": [
+    {
+      "gene": "TP53",
+      "result": "example"
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+[
+  {
+    "id": "baseline_pass",
+    "simple_id": "1_10001_A_G",
+    "gene": "TP53",
+    "purpose": "baseline pass"
+  },
+  {
+    "id": "tier2_candidate",
+    "simple_id": "1_10002_A_G",
+    "gene": "FLT3",
+    "purpose": "tier2 candidate"
+  },
+  {
+    "id": "tier3_candidate",
+    "simple_id": "1_10003_A_G",
+    "gene": "CEBPA",
+    "purpose": "tier3 candidate"
+  },
+  {
+    "id": "tier4_candidate",
+    "simple_id": "1_10004_A_G",
+    "gene": "NFKBIE",
+    "purpose": "tier4 candidate"
+  },
+  {
+    "id": "population_high",
+    "simple_id": "1_10005_A_G",
+    "gene": "TP53",
+    "purpose": "population high"
+  },
+  {
+    "id": "low_af",
+    "simple_id": "1_10006_A_G",
+    "gene": "TP53",
+    "purpose": "low af"
+  },
+  {
+    "id": "low_depth",
+    "simple_id": "1_10007_A_G",
+    "gene": "TP53",
+    "purpose": "low depth"
+  },
+  {
+    "id": "low_alt_reads",
+    "simple_id": "1_10008_A_G",
+    "gene": "TP53",
+    "purpose": "low alt reads"
+  },
+  {
+    "id": "control_high",
+    "simple_id": "1_10009_A_G",
+    "gene": "TP53",
+    "purpose": "control high"
+  },
+  {
+    "id": "consequence_excluded",
+    "simple_id": "1_10010_A_G",
+    "gene": "TP53",
+    "purpose": "consequence excluded"
+  },
+  {
+    "id": "flt3_svtype",
+    "simple_id": "1_10011_A_G",
+    "gene": "FLT3",
+    "purpose": "flt3 svtype"
+  },
+  {
+    "id": "flt3_svtype_wrong_gene",
+    "simple_id": "1_10012_A_G",
+    "gene": "TP53",
+    "purpose": "flt3 svtype wrong gene"
+  },
+  {
+    "id": "flt3_long_alt",
+    "simple_id": "1_10013_A_ACGTACGTAC",
+    "gene": "FLT3",
+    "purpose": "flt3 long alt"
+  },
+  {
+    "id": "flt3_short_alt",
+    "simple_id": "1_10014_A_ACGTACGTA",
+    "gene": "FLT3",
+    "purpose": "flt3 short alt"
+  },
+  {
+    "id": "flt3_low_evidence",
+    "simple_id": "1_10015_A_G",
+    "gene": "FLT3",
+    "purpose": "flt3 low evidence"
+  },
+  {
+    "id": "marker_admitted",
+    "simple_id": "1_10016_A_G",
+    "gene": "TP53",
+    "purpose": "marker admitted"
+  },
+  {
+    "id": "marker_zero",
+    "simple_id": "1_10017_A_G",
+    "gene": "TP53",
+    "purpose": "marker zero"
+  },
+  {
+    "id": "cebpa_germline",
+    "simple_id": "1_10018_A_G",
+    "gene": "CEBPA",
+    "purpose": "cebpa germline"
+  },
+  {
+    "id": "non_cebpa_germline",
+    "simple_id": "1_10019_A_G",
+    "gene": "TP53",
+    "purpose": "non cebpa germline"
+  },
+  {
+    "id": "interval_before",
+    "simple_id": "1_115256520_A_G",
+    "gene": "TP53",
+    "purpose": "interval before"
+  },
+  {
+    "id": "interval_first",
+    "simple_id": "1_115256521_A_G",
+    "gene": "TP53",
+    "purpose": "interval first"
+  },
+  {
+    "id": "interval_last",
+    "simple_id": "1_115256537_A_G",
+    "gene": "TP53",
+    "purpose": "interval last"
+  },
+  {
+    "id": "interval_after",
+    "simple_id": "1_115256538_A_G",
+    "gene": "TP53",
+    "purpose": "interval after"
+  },
+  {
+    "id": "tert_regulatory",
+    "simple_id": "1_10024_A_G",
+    "gene": "TERT",
+    "purpose": "tert regulatory"
+  },
+  {
+    "id": "nfkbie_binding",
+    "simple_id": "1_10025_A_G",
+    "gene": "NFKBIE",
+    "purpose": "nfkbie binding"
+  },
+  {
+    "id": "wrong_gene_regulatory",
+    "simple_id": "1_10026_A_G",
+    "gene": "TP53",
+    "purpose": "wrong gene regulatory"
+  },
+  {
+    "id": "parser_rejected",
+    "simple_id": "1_10027_A_G",
+    "gene": "TP53",
+    "purpose": "parser rejected"
+  },
+  {
+    "id": "af_boundary",
+    "simple_id": "1_10028_A_G",
+    "gene": "TP53",
+    "purpose": "af boundary"
+  },
+  {
+    "id": "depth_boundary",
+    "simple_id": "1_10029_A_G",
+    "gene": "TP53",
+    "purpose": "depth boundary"
+  },
+  {
+    "id": "alt_reads_boundary",
+    "simple_id": "1_10030_A_G",
+    "gene": "TP53",
+    "purpose": "alt reads boundary"
+  },
+  {
+    "id": "control_boundary",
+    "simple_id": "1_10031_A_G",
+    "gene": "TP53",
+    "purpose": "control boundary"
+  }
+]

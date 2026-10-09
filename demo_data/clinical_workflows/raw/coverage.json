@@ -1,0 +1,67 @@
+{
+  "genes": {
+    "TP53": {
+      "covered_by_panel": true,
+      "transcript": {
+        "chr": "1",
+        "start": 10000,
+        "end": 20000,
+        "transcript_id": "ENST000001"
+      },
+      "exons": {
+        "1": {
+          "chr": "1",
+          "start": 10100,
+          "end": 10190,
+          "nbr": 1,
+          "cov": 50
+        },
+        "2": {
+          "chr": "1",
+          "start": 10200,
+          "end": 10290,
+          "nbr": 2,
+          "cov": 100
+        },
+        "3": {
+          "chr": "1",
+          "start": 10300,
+          "end": 10390,
+          "nbr": 3,
+          "cov": 499
+        },
+        "4": {
+          "chr": "1",
+          "start": 10400,
+          "end": 10490,
+          "nbr": 4,
+          "cov": 500
+        },
+        "5": {
+          "chr": "1",
+          "start": 10500,
+          "end": 10590,
+          "nbr": 5,
+          "cov": 800
+        }
+      },
+      "CDS": {
+        "1": {
+          "chr": "1",
+          "start": 10020,
+          "end": 10100,
+          "nbr": 1,
+          "cov": 118.0
+        }
+      },
+      "probes": {
+        "p1": {
+          "chr": "1",
+          "start": 10000,
+          "end": 10050,
+          "cov": null
+        }
+      }
+    }
+  }
+}

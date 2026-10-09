@@ -1,0 +1,125 @@
+[
+  {
+    "scenario": "assay_inherit",
+    "request": {
+      "scope": {
+        "assay_group": "myeloid",
+        "asp_id": "demo_e2e_myeloid",
+        "analysis": "snv",
+        "intent": "somatic"
+      },
+      "content": {
+        "evidence_mode": null,
+        "exception_mode": "replace",
+        "exceptions": null
+      },
+      "reason": "Synthetic query inheritance exercise"
+    }
+  },
+  {
+    "scenario": "assay_extend",
+    "request": {
+      "scope": {
+        "assay_group": "myeloid",
+        "asp_id": "demo_e2e_myeloid",
+        "analysis": "snv",
+        "intent": "somatic"
+      },
+      "content": {
+        "evidence_mode": null,
+        "exception_mode": "extend",
+        "exceptions": [
+          {
+            "id": "demo_exclude_tp53",
+            "mode": "exclude",
+            "condition": {
+              "type": "predicate",
+              "field": "INFO.selected_CSQ.SYMBOL",
+              "operator": "in",
+              "value": [
+                "TP53"
+              ]
+            }
+          }
+        ]
+      },
+      "reason": "Synthetic query inheritance exercise"
+    }
+  },
+  {
+    "scenario": "subpanel_replace",
+    "request": {
+      "scope": {
+        "assay_group": "myeloid",
+        "asp_id": "demo_e2e_myeloid",
+        "subpanel_id": "demo_focus",
+        "analysis": "snv",
+        "intent": "somatic"
+      },
+      "content": {
+        "evidence_mode": null,
+        "exception_mode": "replace",
+        "exceptions": []
+      },
+      "reason": "Synthetic query inheritance exercise"
+    }
+  },
+  {
+    "scenario": "nested_logic",
+    "request": {
+      "scope": {
+        "assay_group": "lymphoid",
+        "asp_id": "demo_e2e_lymphoid",
+        "analysis": "snv",
+        "intent": "somatic"
+      },
+      "content": {
+        "evidence_mode": null,
+        "exception_mode": "extend",
+        "exceptions": [
+          {
+            "id": "demo_nested",
+            "mode": "admit",
+            "condition": {
+              "type": "all",
+              "children": [
+                {
+                  "type": "any",
+                  "children": [
+                    {
+                      "type": "predicate",
+                      "field": "INFO.selected_CSQ.SYMBOL",
+                      "operator": "in",
+                      "value": [
+                        "FLT3",
+                        "CEBPA"
+                      ]
+                    },
+                    {
+                      "type": "predicate",
+                      "field": "INFO.MYELOID_GERMLINE",
+                      "operator": "eq",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "not",
+                  "child": {
+                    "type": "predicate",
+                    "field": "FILTER",
+                    "operator": "in",
+                    "value": [
+                      "GERMLINE"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "reason": "Synthetic query inheritance exercise"
+    }
+  }
+]

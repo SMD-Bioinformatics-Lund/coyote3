@@ -2,6 +2,9 @@
 
 These files are privacy-safe, compact fixtures for sample ingestion flows.
 
+For multi-sample query, filter, tiering, comment and reporting exercises, use the
+[clinical workflow bundle](../clinical_workflows/README.md).
+
 - `generic_case_control.yaml`: Canonical DNA case-control ingestion manifest,
   including an explicit database-version snapshot.
 - `generic_rna_sample.yaml`: Canonical unpaired WTS ingestion manifest with

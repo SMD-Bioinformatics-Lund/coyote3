@@ -1,0 +1,44 @@
+##fileformat=VCFv4.2
+##contig=<ID=1,length=248956422>
+##INFO=<ID=variant_callers,Number=1,Type=String,Description="Calling tools separated by pipes">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Synthetic structural type">
+##INFO=<ID=MYELOID_GERMLINE,Number=1,Type=Integer,Description="Synthetic admission marker">
+##FILTER=<ID=GERMLINE,Description="Synthetic germline flag">
+##FILTER=<ID=FAIL_NVAF,Description="Synthetic parser exclusion">
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Synthetic VEP annotation. Format: Allele|Consequence|IMPACT|SYMBOL|Feature|BIOTYPE|CANONICAL|HGVSc|HGVSp|VARIANT_CLASS|gnomAD_AF">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##FORMAT=<ID=VAF,Number=1,Type=Float,Description="Alternate allele fraction">
+##FORMAT=<ID=VD,Number=1,Type=Integer,Description="Alternate read depth">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	DEMO_CASE
+1	10001	baseline_pass	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0000.1|protein_coding|YES|ENSTDEMO0000.1:c.10A>G|ENSPDEMO0000.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10002	tier2_candidate	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|FLT3|ENSTDEMO0001.1|protein_coding|YES|ENSTDEMO0001.1:c.10A>G|ENSPDEMO0001.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10003	tier3_candidate	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|CEBPA|ENSTDEMO0002.1|protein_coding|YES|ENSTDEMO0002.1:c.10A>G|ENSPDEMO0002.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10004	tier4_candidate	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|NFKBIE|ENSTDEMO0003.1|protein_coding|YES|ENSTDEMO0003.1:c.10A>G|ENSPDEMO0003.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10005	population_high	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0004.1|protein_coding|YES|ENSTDEMO0004.1:c.10A>G|ENSPDEMO0004.1:p.Lys4Glu|SNV|0.1	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10006	low_af	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0005.1|protein_coding|YES|ENSTDEMO0005.1:c.10A>G|ENSPDEMO0005.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.01:80
+1	10007	low_depth	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0006.1|protein_coding|YES|ENSTDEMO0006.1:c.10A>G|ENSPDEMO0006.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	10008	low_alt_reads	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0007.1|protein_coding|YES|ENSTDEMO0007.1:c.10A>G|ENSPDEMO0007.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:2
+1	10009	control_high	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0008.1|protein_coding|YES|ENSTDEMO0008.1:c.10A>G|ENSPDEMO0008.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10010	consequence_excluded	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0009.1|protein_coding|YES|ENSTDEMO0009.1:c.10A>G|ENSPDEMO0009.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10011	flt3_svtype	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|FLT3|ENSTDEMO0010.1|protein_coding|YES|ENSTDEMO0010.1:c.10A>G|ENSPDEMO0010.1:p.Lys4Glu|SNV|0;SVTYPE=INS	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10012	flt3_svtype_wrong_gene	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0011.1|protein_coding|YES|ENSTDEMO0011.1:c.10A>G|ENSPDEMO0011.1:p.Lys4Glu|SNV|0;SVTYPE=INS	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10013	flt3_long_alt	A	ACGTACGTAC	60	PASS	variant_callers=sage;CSQ=ACGTACGTAC|intron_variant|MODERATE|FLT3|ENSTDEMO0012.1|protein_coding|YES|ENSTDEMO0012.1:c.10A>G|ENSPDEMO0012.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10014	flt3_short_alt	A	ACGTACGTA	60	PASS	variant_callers=sage;CSQ=ACGTACGTA|intron_variant|MODERATE|FLT3|ENSTDEMO0013.1|protein_coding|YES|ENSTDEMO0013.1:c.10A>G|ENSPDEMO0013.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10015	flt3_low_evidence	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|FLT3|ENSTDEMO0014.1|protein_coding|YES|ENSTDEMO0014.1:c.10A>G|ENSPDEMO0014.1:p.Lys4Glu|SNV|0;SVTYPE=INS	GT:DP:VAF:VD	0/1:20:0.4:80
+1	10016	marker_admitted	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0015.1|protein_coding|YES|ENSTDEMO0015.1:c.10A>G|ENSPDEMO0015.1:p.Lys4Glu|SNV|0;MYELOID_GERMLINE=1	GT:DP:VAF:VD	0/1:20:0.4:80
+1	10017	marker_zero	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0016.1|protein_coding|YES|ENSTDEMO0016.1:c.10A>G|ENSPDEMO0016.1:p.Lys4Glu|SNV|0;MYELOID_GERMLINE=0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	10018	cebpa_germline	A	G	60	GERMLINE	variant_callers=sage;CSQ=G|intron_variant|MODERATE|CEBPA|ENSTDEMO0017.1|protein_coding|YES|ENSTDEMO0017.1:c.10A>G|ENSPDEMO0017.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	10019	non_cebpa_germline	A	G	60	GERMLINE	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0018.1|protein_coding|YES|ENSTDEMO0018.1:c.10A>G|ENSPDEMO0018.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	115256520	interval_before	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0019.1|protein_coding|YES|ENSTDEMO0019.1:c.10A>G|ENSPDEMO0019.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	115256521	interval_first	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0020.1|protein_coding|YES|ENSTDEMO0020.1:c.10A>G|ENSPDEMO0020.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	115256537	interval_last	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0021.1|protein_coding|YES|ENSTDEMO0021.1:c.10A>G|ENSPDEMO0021.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	115256538	interval_after	A	G	60	PASS	variant_callers=sage;CSQ=G|intron_variant|MODERATE|TP53|ENSTDEMO0022.1|protein_coding|YES|ENSTDEMO0022.1:c.10A>G|ENSPDEMO0022.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:20:0.4:80
+1	10024	tert_regulatory	A	G	60	PASS	variant_callers=sage;CSQ=G|regulatory_region_variant|MODERATE|TERT|ENSTDEMO0023.1|protein_coding|YES|ENSTDEMO0023.1:c.10A>G|ENSPDEMO0023.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10025	nfkbie_binding	A	G	60	PASS	variant_callers=sage;CSQ=G|TF_binding_site_variant|MODERATE|NFKBIE|ENSTDEMO0024.1|protein_coding|YES|ENSTDEMO0024.1:c.10A>G|ENSPDEMO0024.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10026	wrong_gene_regulatory	A	G	60	PASS	variant_callers=sage;CSQ=G|regulatory_region_variant|MODERATE|TP53|ENSTDEMO0025.1|protein_coding|YES|ENSTDEMO0025.1:c.10A>G|ENSPDEMO0025.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10027	parser_rejected	A	G	60	FAIL_NVAF	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0026.1|protein_coding|YES|ENSTDEMO0026.1:c.10A>G|ENSPDEMO0026.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80
+1	10028	af_boundary	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0027.1|protein_coding|YES|ENSTDEMO0027.1:c.10A>G|ENSPDEMO0027.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.03:80
+1	10029	depth_boundary	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0028.1|protein_coding|YES|ENSTDEMO0028.1:c.10A>G|ENSPDEMO0028.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:100:0.4:80
+1	10030	alt_reads_boundary	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0029.1|protein_coding|YES|ENSTDEMO0029.1:c.10A>G|ENSPDEMO0029.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:5
+1	10031	control_boundary	A	G	60	PASS	variant_callers=sage;CSQ=G|missense_variant|MODERATE|TP53|ENSTDEMO0030.1|protein_coding|YES|ENSTDEMO0030.1:c.10A>G|ENSPDEMO0030.1:p.Lys4Glu|SNV|0	GT:DP:VAF:VD	0/1:200:0.4:80

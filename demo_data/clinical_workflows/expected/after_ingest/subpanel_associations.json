@@ -1,0 +1,16 @@
+[
+  {
+    "asp_id": "demo_e2e_myeloid",
+    "subpanel_id": "demo_focus",
+    "is_active": true,
+    "version": 1,
+    "is_current": true,
+    "updated_by": "demo.author",
+    "updated_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "_id": {
+      "$oid": "db30dfa59860670c1ecb23ea"
+    }
+  }
+]

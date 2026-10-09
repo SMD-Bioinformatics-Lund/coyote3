@@ -1,0 +1,44 @@
+[
+  {
+    "isgl_id": "demo_e2e_focus",
+    "diagnosis": [
+      "demo_focus"
+    ],
+    "name": "Synthetic focus",
+    "displayname": "Synthetic focus",
+    "aliases": [],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "is_active": true,
+    "asp_groups": [
+      "myeloid"
+    ],
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "germline_genes": [],
+    "asp_ids": [
+      "demo_e2e_myeloid"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": {
+      "$oid": "ca47981c89088d6570d3cdcc"
+    }
+  }
+]
