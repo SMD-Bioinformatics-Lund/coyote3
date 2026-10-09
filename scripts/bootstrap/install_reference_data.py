@@ -14,6 +14,9 @@ from pymongo import MongoClient  # noqa: E402
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.config.mongo import mongo_endpoints  # noqa: E402
+from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
+    record_reference_publication,
+)
 from scripts.bootstrap.bootstrap_database import (  # noqa: E402
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
@@ -49,6 +52,8 @@ def install_references(database, *, actor: str, reference_dir: Path) -> None:
         ("vep_metadata", "vep_metadata_collection"),
     ):
         result = _insert_if_empty(database, mapping[key], seed[name])
+        if result == "loaded":
+            record_reference_publication(database, source=name, release="bundled")
         print(f"[{result}] knowledgebase reference: {name}")
 
 

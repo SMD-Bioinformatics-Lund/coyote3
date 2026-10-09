@@ -55,3 +55,5 @@ def test_reference_install_preserves_existing_data_and_does_not_create_indexes(m
         for name in db.list_collection_names():
             assert set(db[name].index_information()) == {"_id_"}
     assert client.list_database_names() == ["knowledgebase"]
+    assert db.versions.count_documents({}) == 2
+    assert {row["source"] for row in db.versions.find()} == {"vep_metadata", "vep_diagrams"}

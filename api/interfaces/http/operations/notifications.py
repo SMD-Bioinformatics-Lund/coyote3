@@ -26,11 +26,12 @@ router = APIRouter(tags=[TAG_NOTIFICATIONS])
 )
 def notification_inbox(
     limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     user: ApiUser = Depends(require_access()),
     service: NotificationService = Depends(get_notification_service),
 ):
     """Return only notifications visible to the authenticated user."""
-    return service.inbox(username=user.username, limit=limit)
+    return service.inbox(username=user.username, limit=limit, offset=offset)
 
 
 @router.patch(
@@ -58,6 +59,20 @@ def notification_mark_read(
 ):
     """Mark one visible notification as read for the authenticated user."""
     return service.mark_read(notification_id=notification_id, username=user.username)
+
+
+@router.patch(
+    "/api/v1/notifications/{notification_id}/unread",
+    response_model=NotificationChangePayload,
+    include_in_schema=False,
+)
+def notification_mark_unread(
+    notification_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: NotificationService = Depends(get_notification_service),
+):
+    """Mark one visible notification unread for the authenticated recipient."""
+    return service.mark_unread(notification_id=notification_id, username=user.username)
 
 
 @router.delete(

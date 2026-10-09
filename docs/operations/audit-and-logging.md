@@ -295,15 +295,16 @@ Visibility is evaluated as:
 2. the message is neither withdrawn nor expired;
 3. for personal messages, the authenticated username is not in `dismissed_by`.
 
-Read state is scoped to one username. Personal-message dismissal affects only
-that recipient. Broadcasts cannot be dismissed by recipients; only their sender
-can withdraw them for everyone. Administrative publication emits `notification.broadcast.created` in
+Read/unread state is scoped to one username. The tray's close and clear actions
+hide messages only in that user's current browser-tab session, including broadcasts.
+They do not delete database records or withdraw messages. Only a broadcast's sender
+can withdraw it for everyone through **Sent broadcasts**. Administrative publication emits `notification.broadcast.created` in
 the audit collection. A valid local password-reset request emits a security
 notification to active admin/superuser accounts and a corresponding
 `authentication.password_reset.requested` audit event.
 
 Marking a notification read does not clear it. Read messages remain in the tray
-until their visibility deadline, personal-message clearing, or sender withdrawal.
+until session clearing, their visibility deadline, or sender withdrawal.
 Closing a toast marks it read without clearing the inbox item. New administrative
 broadcasts snapshot the selected active recipients, including the all-users option;
 accounts created later do not inherit earlier broadcasts. Optional email delivery
@@ -311,8 +312,33 @@ uses recipient-specific leases in the same notification document. See
 [email and notifications](email-and-notifications.md) for delivery and test setup.
 
 Browser-generated API success and failure messages remain local workflow
-feedback. They are stored under `coyote3.notifications:<username>` and are not
+feedback. They and session-hidden IDs are stored in sessionStorage under
+`coyote3:notification-tray:<username>` and are not
 treated as durable operational broadcasts.
+
+### Shared activity and reported samples
+
+| Event | Notification audience |
+| --- | --- |
+| Assay, ASPC, assay group, ISGL, subpanel, association or assay setup changed through administration | All signed-in active users |
+| Knowledgebase release published through the release-registry workflow, or public OncoKB refresh completed | All signed-in active users |
+| Sample report saved successfully | Active users assigned to the sample's assay group whose assay and environment scopes also match; wildcard assignments are respected |
+
+Missing samples or missing group assignments never expand a report audience to
+everyone. Failed operations, report previews, password events and sample edits do
+not become global activity notices. Private security notifications retain their
+existing recipient rules. Activity notifications are in-app messages, not automatic emails.
+
+The audit replay worker delivers committed activity in batches of at most 100.
+It reads managed-resource success events, transaction-owned report-save receipts,
+and published knowledgebase release metadata from their configured databases.
+Bundled reference installation and VEP metadata/diagram maintenance also register
+successful publications. Skipping an already installed reference does not create a notice.
+Stable event IDs make delivery retry-safe and preserve existing recipient state.
+Late audit-outbox arrivals remain eligible within the notification retention window.
+The worker and beat must be running; browser polling retrieves the resulting notices.
+Direct MongoDB edits without a supported audit event or release-registry entry do
+not generate notifications. No database migration is required for this delivery path.
 
 ## Application Controls
 

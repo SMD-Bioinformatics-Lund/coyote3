@@ -21,6 +21,7 @@ from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.ingest.service import InternalIngestService
 from api.application.knowledgebase.oncokb_refresh import PublicOncoKbRefreshService
+from api.application.notifications.activity import ActivityNotificationService
 from api.application.notifications.service import NotificationService
 from api.application.public.catalog import PublicCatalogService
 from api.application.query_rule_testing import QueryRuleTestingService
@@ -318,6 +319,11 @@ def get_email_config() -> dict:
         **runtime_app.config,
         "EMAIL_ENABLED": get_app_controls_service().get_controls().email.enabled,
     }
+
+
+def get_activity_notification_service() -> ActivityNotificationService:
+    """Return the committed-activity notification delivery service."""
+    return ActivityNotificationService.from_store(get_store(), config=runtime_app.config)
 
 
 def get_notification_service() -> NotificationService:

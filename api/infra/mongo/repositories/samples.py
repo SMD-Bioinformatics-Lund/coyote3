@@ -456,6 +456,24 @@ class SampleRepository(BaseRepository):
         """
         return self.get_collection().find_one({"name": name})
 
+    def get_notification_sample(self, sample_id: str) -> dict | None:
+        """Read report notification context without treating database errors as missing samples.
+
+        Args:
+            sample_id: Committed report's sample ObjectId as text.
+
+        Returns:
+            Minimal identity and scope fields, or None when the sample was deleted.
+
+        Raises:
+            InvalidId: The source event has an invalid sample identifier.
+            PyMongoError: MongoDB is unavailable; notification delivery must retry.
+        """
+        return self.get_collection().find_one(
+            {"_id": ObjectId(sample_id)},
+            {"name": 1, "asp_id": 1, "asp_group": 1, "environment": 1},
+        )
+
     def get_sample_by_id(self, id: str) -> dict | None:
         """
         Retrieve a sample document by its unique identifier.

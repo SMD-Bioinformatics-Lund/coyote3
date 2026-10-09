@@ -203,23 +203,31 @@ class NotificationsRepository(BaseRepository):
         return bool(result.modified_count)
 
     def create(self, document: dict[str, Any]) -> str:
-        """Insert a shallow copy of a notification document.
+        """Insert a notification, preserving existing state for a stable source-event ID.
 
         Args:
-            document: Notification fields prepared by the caller.
+            document: Notification fields; an optional _id makes repeated delivery insert-only.
 
         Returns:
             Serialized inserted document ID.
         """
+        if document.get("_id") is not None:
+            self.get_collection().update_one(
+                {"_id": document["_id"]}, {"$setOnInsert": dict(document)}, upsert=True
+            )
+            return str(document["_id"])
         result = self.get_collection().insert_one(dict(document))
         return str(result.inserted_id)
 
-    def list_for_user(self, username: str, *, limit: int = 200) -> list[dict[str, Any]]:
+    def list_for_user(
+        self, username: str, *, limit: int = 200, offset: int = 0
+    ) -> list[dict[str, Any]]:
         """List a user's undismissed notifications with newest messages first.
 
         Args:
             username: Recipient identity, stripped and lowercased for matching.
             limit: Maximum results, clamped to 1 through 500; falsey values use 200.
+            offset: Number of newest messages to skip when loading older pages.
 
         Returns:
             Broadcasts and addressed messages not dismissed by this user.
@@ -228,7 +236,8 @@ class NotificationsRepository(BaseRepository):
         return list(
             self.get_collection()
             .find(self._visible_query(username))
-            .sort("created_on", -1)
+            .sort([("created_on", -1), ("_id", -1)])
+            .skip(max(0, offset))
             .limit(bounded)
         )
 
@@ -252,6 +261,29 @@ class NotificationsRepository(BaseRepository):
             query,
             {
                 "$addToSet": {"read_by": str(username).strip().lower()},
+                "$set": {"updated_on": datetime.now(timezone.utc)},
+            },
+        )
+        return bool(result.matched_count)
+
+    def mark_unread(self, notification_id: str, username: str) -> bool:
+        """Remove only this recipient's read marker from a visible notification.
+
+        Args:
+            notification_id: Stored notification ObjectId as text.
+            username: Authenticated recipient login.
+
+        Returns:
+            Whether a visible notification matched, including one already unread.
+        """
+        try:
+            identity = ObjectId(notification_id)
+        except Exception:
+            return False
+        result = self.get_collection().update_one(
+            {"_id": identity, **self._visible_query(username)},
+            {
+                "$pull": {"read_by": str(username).strip().lower()},
                 "$set": {"updated_on": datetime.now(timezone.utc)},
             },
         )

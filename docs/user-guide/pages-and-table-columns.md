@@ -845,9 +845,18 @@ exposing raw stack traces or generic `500` text.
 | Context | Sample, variant, report, ASP, or admin resource when applicable. |
 | Time | Human relative timestamp with full date available. |
 
-Marking, dismissing, or clearing a durable notification changes state only for
-the current user. It does not remove a broadcast from another recipient's
-inbox. The notification retention policy sets the database expiry date.
+**Mark as read** and **Mark as unread** update only your account's read state.
+Reading or opening a message leaves it in the tray. **Close** hides one message;
+**Clear** hides all currently listed messages, including broadcasts, for your
+current browser-tab session. Hidden items stay hidden across refreshes in that
+session and return in a new session if still active. Neither action withdraws a
+message for other users. Signing out clears local session history. Server retention,
+explicit broadcast expiry and sender withdrawal still determine message visibility.
+
+Shared assay, ISGL, subpanel and knowledgebase activity appears for everyone.
+Saved-report notifications go to matching sample-group members with the required
+assay/environment scope. Older inbox pages are loaded automatically; reading a
+message or receiving a new one does not evict another visible message.
 
 ### Broadcast notifications
 

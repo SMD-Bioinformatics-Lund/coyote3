@@ -6,6 +6,7 @@ export type NotificationContextValue = {
   unreadCount: number
   push: (input: NotificationInput) => AppNotification | null
   markRead: (id: string) => void
+  markUnread: (id: string) => void
   markAllRead: () => void
   remove: (id: string) => void
   clear: () => void

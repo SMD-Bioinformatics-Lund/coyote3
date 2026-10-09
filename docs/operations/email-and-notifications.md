@@ -80,8 +80,11 @@ Raw HTML is escaped; links use the renderer's supported HTTP(S) syntax. Stored
 message text remains Markdown, not pre-rendered HTML.
 
 The tray shows a title and severity badge. Expanding a message reveals its body and
-marks it read. Reading never withdraws a broadcast. Recipients cannot clear it,
-including through the bulk-clear API. Only its sender can withdraw it for everyone.
+marks it read. **Mark as unread** reverses the recipient's read state. Reading never
+withdraws a broadcast. Recipients can close or clear it from their current browser
+session; the message remains stored and visible to other recipients. The bulk-clear
+API retains its personal-message behavior and is not called by session clearing.
+Only its sender can withdraw a broadcast for everyone.
 The sender can review and withdraw messages under **Sent broadcasts**, even when
 the sender was not a recipient. Withdrawal records the sender and timestamp and
 emits `notification.broadcast.withdrawn` in the audit log.
@@ -91,6 +94,18 @@ timezone-aware timestamp. Past or timezone-less values are rejected. Without an
 expiry, a broadcast remains visible until withdrawn. Withdrawal and expiry hide
 the message on inbox refresh, normally within 30 seconds, and stop new email claims.
 Already accepted or in-flight SMTP delivery cannot be recalled.
+
+| Recipient operation | API |
+| --- | --- |
+| Read the inbox, including read messages | `GET /api/v1/notifications?limit=200&offset=0`; increment offset for older pages |
+| Mark one message read | `PATCH /api/v1/notifications/{id}/read` |
+| Mark one message unread | `PATCH /api/v1/notifications/{id}/unread` |
+| Mark all visible server messages read | `PATCH /api/v1/notifications/read-all` |
+| Close one or clear the browser tray for this session | Browser session state only; no server deletion request |
+
+All recipient endpoints use the authenticated account. Requests cannot select
+another account's read state. Shared activity audiences are described in
+[audit and notifications](audit-and-logging.md#shared-activity-and-reported-samples).
 
 | Stored field | Purpose |
 | --- | --- |

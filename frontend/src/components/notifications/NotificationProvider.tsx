@@ -25,11 +25,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const usernameRef = useRef("")
   const initializedServerInbox = useRef(false)
   const seenServerIds = useRef(new Set<string>())
+  const hiddenIds = useRef(new Set<string>())
+  const sessionKey = () => `coyote3:notification-tray:${usernameRef.current}`
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [visibleToasts, setVisibleToasts] = useState<AppNotification[]>([])
 
   useEffect(() => {
     const reset = () => {
+      try { if (usernameRef.current) window.sessionStorage.removeItem(sessionKey()) } catch { /* Storage may be disabled. */ }
+      hiddenIds.current.clear()
       sessionGeneration.current += 1
       usernameRef.current = ""
       setNotifications([])
@@ -54,6 +58,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const identityResponse = await fetch(apiPath("/auth/whoami"), { credentials: "same-origin" })
       if (generation !== sessionGeneration.current) return
       if (!identityResponse.ok) {
+        try { if (usernameRef.current) window.sessionStorage.removeItem(sessionKey()) } catch { /* Storage may be disabled. */ }
+        hiddenIds.current.clear()
         usernameRef.current = ""
         setNotifications([])
         setVisibleToasts([])
@@ -73,6 +79,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setVisibleToasts([])
         initializedServerInbox.current = false
         seenServerIds.current.clear()
+        try {
+          const saved = JSON.parse(window.sessionStorage.getItem(sessionKey()) || "{}") as { hidden?: string[]; local?: AppNotification[] }
+          hiddenIds.current = new Set(saved.hidden || [])
+          setNotifications(saved.local || [])
+        } catch { hiddenIds.current.clear() }
       }
 
       const inboxResponse = await fetch(apiPath("/notifications?limit=200"), {
@@ -80,8 +91,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       })
       if (!inboxResponse.ok) return
       const payload = await inboxResponse.json() as { notifications?: ServerNotification[] }
+      let pageSize = payload.notifications?.length || 0
+      let offset = pageSize
+      while (pageSize === 200) {
+        const page = await fetch(apiPath(`/notifications?limit=200&offset=${offset}`), { credentials: "same-origin" })
+        if (!page.ok || generation !== sessionGeneration.current) return
+        const older = await page.json() as { notifications?: ServerNotification[] }
+        pageSize = older.notifications?.length || 0
+        offset += pageSize
+        payload.notifications = [...(payload.notifications || []), ...(older.notifications || [])]
+      }
       if (generation !== sessionGeneration.current || usernameRef.current !== nextUsername) return
-      const serverNotifications = (payload.notifications || []).map(mapServerNotification)
+      const serverNotifications = [...new Map((payload.notifications || []).map((item) => [item.id, item])).values()].map(mapServerNotification)
+        .filter((item) => !hiddenIds.current.has(item.id))
 
       if (initializedServerInbox.current) {
         serverNotifications
@@ -92,12 +114,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       seenServerIds.current = new Set(serverNotifications.map((item) => item.id))
       initializedServerInbox.current = true
       setNotifications((current) => {
-        const local = changedUser
-          ? []
-          : current.filter((item) => !item.persisted)
+        const local = current.filter((item) => !item.persisted)
         return [...serverNotifications, ...local]
           .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-          .slice(0, 400)
       })
     } catch {
       // Notification polling must never interrupt the active clinical workflow.
@@ -116,8 +135,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [refreshServerInbox])
 
   useEffect(() => {
+    if (!usernameRef.current) return
+    try {
+      window.sessionStorage.setItem(sessionKey(), JSON.stringify({
+        hidden: [...hiddenIds.current], local: notifications.filter((item) => !item.persisted),
+      }))
+    } catch { /* The current tab remains usable when browser storage is unavailable. */ }
+  }, [notifications])
+
+  useEffect(() => {
     return subscribeNotifications((notification) => {
-      setNotifications((current) => [notification, ...current].slice(0, 200))
+      setNotifications((current) => [notification, ...current])
       showToast(notification)
     })
   }, [showToast])
@@ -150,21 +178,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [notifications, updateServerState])
 
-  const remove = useCallback((id: string) => {
-    if (notifications.find((item) => item.id === id)?.canClear === false) return
+  const markUnread = useCallback((id: string) => {
     const persisted = notifications.some((item) => item.id === id && item.persisted)
-    setNotifications((current) => current.filter((notification) => notification.id !== id))
-    setVisibleToasts((current) => current.filter((notification) => notification.id !== id))
-    if (persisted) void updateServerState(`/notifications/${encodeURIComponent(id)}`, "DELETE")
+    setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: false } : item))
+    if (persisted) void updateServerState(`/notifications/${encodeURIComponent(id)}/unread`, "PATCH")
   }, [notifications, updateServerState])
 
+  const remove = useCallback((id: string) => {
+    hiddenIds.current.add(id)
+    setNotifications((current) => current.filter((notification) => notification.id !== id))
+    setVisibleToasts((current) => current.filter((notification) => notification.id !== id))
+  }, [])
+
   const clear = useCallback(() => {
-    setNotifications((current) => current.filter((item) => item.isBroadcast))
-    setVisibleToasts((current) => current.filter((item) => item.isBroadcast))
-    if (notifications.some((item) => item.persisted)) {
-      void updateServerState("/notifications", "DELETE")
-    }
-  }, [notifications, updateServerState])
+    for (const item of notifications) hiddenIds.current.add(item.id)
+    setNotifications([])
+    setVisibleToasts([])
+  }, [notifications])
 
   const value = useMemo<NotificationContextValue>(
     () => ({
@@ -172,11 +202,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       unreadCount: notifications.filter((notification) => !notification.read).length,
       push,
       markRead,
+      markUnread,
       markAllRead,
       remove,
       clear,
     }),
-    [clear, markAllRead, markRead, notifications, push, remove]
+    [clear, markAllRead, markRead, markUnread, notifications, push, remove]
   )
 
   return (

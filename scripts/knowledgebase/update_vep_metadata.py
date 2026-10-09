@@ -34,6 +34,9 @@ sys.path.insert(0, str(ROOT))
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.contracts.schemas.reference import VepMetadataDoc  # noqa: E402
+from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
+    record_reference_publication,
+)
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
 from scripts.knowledgebase.vep_diagram_storage import (  # noqa: E402
     seed_diagram,
@@ -511,6 +514,9 @@ def install(collection, documents: list[dict], backup: Path) -> None:
                     collection.database, row["consequence_diagram"], session
                 )
             collection.replace_one({"vep_id": row["vep_id"]}, row, upsert=True, session=session)
+            record_reference_publication(
+                collection.database, source="vep_metadata", release=row["vep_id"], session=session
+            )
 
     run_transaction(collection.database.client, replace)
 

@@ -19,6 +19,9 @@ from pymongo import MongoClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
+    record_reference_publication,
+)
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
 from scripts.knowledgebase.update_vep_metadata import SEED, fetch_diagram  # noqa: E402
 from scripts.knowledgebase.vep_diagram_storage import seed_diagram, store_diagram  # noqa: E402
@@ -72,6 +75,9 @@ def install(collection, diagrams: dict[str, dict], backup: Path) -> None:
             descriptor = store_diagram(collection.database, diagram, session)
             collection.update_one(
                 {"vep_id": release}, {"$set": {"consequence_diagram": descriptor}}, session=session
+            )
+            record_reference_publication(
+                collection.database, source="vep_diagrams", release=release, session=session
             )
 
     run_transaction(collection.database.client, update)

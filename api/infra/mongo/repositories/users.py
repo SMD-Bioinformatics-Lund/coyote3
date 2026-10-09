@@ -231,6 +231,9 @@ class UsersRepository(BaseRepository):
             "fullname": 1,
             "email": 1,
             "roles": 1,
+            "asp_ids": 1,
+            "asp_groups": 1,
+            "envs": 1,
         }
         return list(self.get_collection().find(query, projection).sort("username", 1))
 

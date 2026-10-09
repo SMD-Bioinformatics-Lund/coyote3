@@ -71,18 +71,21 @@ class NotificationService:
         self.email_sender = email_sender
         self.inbox_url = inbox_url
 
-    def inbox(self, *, username: str, limit: int = 200) -> dict[str, Any]:
+    def inbox(self, *, username: str, limit: int = 200, offset: int = 0) -> dict[str, Any]:
         """List notifications visible to a recipient with per-recipient read state.
 
         Args:
             username: Recipient login, stripped and lowercased before lookup.
             limit: Maximum rows requested from the repository, defaulting to 200.
+            offset: Number of newest messages to skip for older pages.
 
         Returns:
             Serialized notifications and the unread count within those rows.
         """
         normalized = self._username(username)
-        rows = self.notification_repository.list_for_user(normalized, limit=limit)
+        rows = self.notification_repository.list_for_user(
+            normalized, limit=limit, **({"offset": offset} if offset else {})
+        )
         notifications = [self._serialize(item, username=normalized) for item in rows]
         return {
             "notifications": notifications,
@@ -104,6 +107,23 @@ class NotificationService:
         """
         changed = self.notification_repository.mark_read(notification_id, self._username(username))
         if not changed:
+            raise api_error(404, "Notification not found")
+        return {"status": "ok", "changed": 1}
+
+    def mark_unread(self, *, notification_id: str, username: str) -> dict[str, Any]:
+        """Mark a visible message unread for one recipient.
+
+        Args:
+            notification_id: Notification identity.
+            username: Authenticated recipient login.
+
+        Returns:
+            Success and one matched notification, including an already unread message.
+
+        Raises:
+            AppError: Notification is missing or outside the recipient's inbox.
+        """
+        if not self.notification_repository.mark_unread(notification_id, self._username(username)):
             raise api_error(404, "Notification not found")
         return {"status": "ok", "changed": 1}
 
@@ -420,6 +440,8 @@ class NotificationService:
         is_broadcast: bool = False,
         severity: str = "info",
         expires_at: datetime | None = None,
+        event_id: Any | None = None,
+        created_at: datetime | None = None,
     ) -> str:
         """Persist a notification with expiry and initially empty recipient states.
 
@@ -437,6 +459,8 @@ class NotificationService:
             is_broadcast: Whether only the sender may withdraw the message.
             severity: Semantic message importance shown independently of category.
             expires_at: Optional UTC-aware broadcast visibility deadline; None means no expiry.
+            event_id: Stable source-event identity for insert-only, retry-safe delivery.
+            created_at: Original committed event time; None uses delivery time.
 
         Returns:
             Identifier returned by the notification repository.
@@ -453,12 +477,14 @@ class NotificationService:
         if not title or not message:
             raise api_error(400, "Notification title and message are required")
         now = datetime.now(timezone.utc)
+        event_time = created_at or now
         if severity not in {"info", "important", "warning", "critical", "success"}:
             raise api_error(400, "Unsupported notification severity")
         if expires_at is not None and (expires_at.tzinfo is None or expires_at <= now):
             raise api_error(400, "Expiry must be a future timezone-aware date")
         return self.notification_repository.create(
             {
+                **({"_id": event_id} if event_id is not None else {}),
                 "audience": audience,
                 "recipients": recipients,
                 "tone": normalized_tone,
@@ -468,11 +494,11 @@ class NotificationService:
                 "source": source[:160],
                 "resource": resource or None,
                 "created_by": self._username(created_by) or "system",
-                "created_on": now,
+                "created_on": event_time,
                 "updated_on": now,
                 "expires_on": expires_at
                 if is_broadcast
-                else now + timedelta(days=self.retention_days),
+                else event_time + timedelta(days=self.retention_days),
                 "is_broadcast": is_broadcast,
                 "severity": severity,
                 "read_by": [],

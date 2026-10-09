@@ -8,6 +8,7 @@ from celery.utils.log import get_task_logger
 from filelock import FileLock, Timeout
 
 from api.app.deps.services import (
+    get_activity_notification_service,
     get_app_controls_service,
     get_audit_service,
     get_dashboard_service,
@@ -26,14 +27,16 @@ DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote3-dashboard-metrics-refresh.lock"
 
 @celery_app.task(name="api.tasks.maintenance.replay_audit_events")
 def replay_audit_events() -> dict[str, Any]:
-    """Replay up to 100 audit events per queue independently of optional maintenance controls.
+    """Replay audit queues and publish committed activity independently of maintenance controls.
 
     Returns:
-        Number delivered; zero when no initialized audit service is available.
+        Audit delivery count and up to 100 activity notifications processed this run.
     """
     _ensure_worker_runtime()
     service = get_audit_service()
-    return {"delivered": service.replay_pending() if service is not None else 0}
+    delivered = service.replay_pending() if service is not None else 0
+    notifications = get_activity_notification_service().deliver()
+    return {"delivered": delivered, "notifications": notifications}
 
 
 @celery_app.task(name="api.tasks.maintenance.deliver_notification_emails")

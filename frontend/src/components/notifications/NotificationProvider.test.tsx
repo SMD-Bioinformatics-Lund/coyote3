@@ -12,6 +12,7 @@ function Probe({ title = "Local warning" }: { title?: string }) {
       {inbox.notifications.map((item) => <span key={item.id}>{item.title}</span>)}
       <button type="button" onClick={() => inbox.push({ tone: "warning", title, message: "Review it" })}>Push</button>
       <button type="button" onClick={() => inbox.markRead("server-1")}>Read one</button>
+      <button type="button" onClick={() => inbox.markUnread("server-1")}>Unread one</button>
       <button type="button" onClick={inbox.markAllRead}>Read all</button>
       <button type="button" onClick={() => inbox.remove("server-1")}>Remove one</button>
       <button type="button" onClick={inbox.clear}>Clear</button>
@@ -24,7 +25,7 @@ function response(data: unknown, ok = true) {
 }
 
 describe("NotificationProvider", () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => { vi.unstubAllGlobals(); window.sessionStorage.clear() })
 
   it("merges the current user's server inbox with local notifications and persists server actions", async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -69,10 +70,21 @@ describe("NotificationProvider", () => {
 
     await user.click(screen.getByRole("button", { name: "Read all" }))
     expect(screen.getByLabelText("Unread count")).toHaveTextContent("0")
+    expect(screen.getByText("Server notice")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Unread one" }))
+    expect(screen.getByLabelText("Unread count")).toHaveTextContent("1")
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/notifications/server-1/unread"),
+      expect.objectContaining({ method: "PATCH" }),
+    ))
     await user.click(screen.getByRole("button", { name: "Remove one" }))
     expect(screen.queryByText("Server notice")).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Clear" }))
     expect(screen.getByLabelText("Unread count")).toHaveTextContent("0")
+    window.dispatchEvent(new Event("focus"))
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) => String(input).includes("whoami"))).toHaveLength(2))
+    expect(screen.queryByText("Server notice")).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false)
   })
 
   it("clears inbox state when the session endpoint is unauthenticated", async () => {
