@@ -26,15 +26,28 @@ API_DESCRIPTION = (
 
 The API serves the Coyote3 interface and integrations with laboratory pipelines.
 Sample and finding endpoints provide access to small variants, copy-number changes,
-fusions, translocations, biomarkers and coverage, subject to the sample's assay
+fusions, DNA translocations, HRD, MSI, TMB and coverage, subject to the sample's assay
 configuration. Review operations record classifications and comments. Reporting
 operations generate previews and save reports with their finding snapshots.
 
 Administration endpoints manage assays, assay configurations (ASPC), in-silico gene
-lists (ISGL), reporting rules and the public assay catalog. Clinical reporting rules
+lists (ISGL), finding query rules, reporting rules and the public assay catalog. Clinical reporting rules
 follow a draft, independent review and publication workflow. API access is subject
 to the same permissions and assay, environment and sample-access restrictions as
 the application; using an integration does not bypass those checks.
+
+## Finding query rules
+
+Published query policies resolve from application defaults through group, assay
+and subpanel scopes. Application defaults use analysis-specific evidence and saved
+sample filters; group-specific exceptions are stored in database rule sets.
+Drafts do not affect clinical retrieval. Preview the effective policy and test a
+saved version against a sample before approval and publication. Query-rule
+operations require their corresponding authoring, review, publication or testing
+permissions.
+
+Only supported integration and administration operations appear in this reference.
+Private demonstration-installation endpoints are excluded from the OpenAPI schema.
 
 ## Authentication
 
@@ -58,6 +71,12 @@ helper to rename the YAML to `.done`; `status=failed` permits `.failed`.
 A timeout or missing acknowledgement is an unknown outcome: inspect the audit
 before retrying. Async endpoints and task polling require a user session token.
 The built-in Celery watcher reads mounted files directly and uses no HTTP token.
+
+DNA manifests declare a single `biomarkers` file. Ingestion separates its HRD, MSI
+and TMB measurements into the corresponding analyses. Declare alignment resources
+with `case_bam`, `case_bai`, `control_bam` and `control_bai` when they are available.
+DNA translocations use SnpEff-annotated VCF input; RNA fusions use their separate
+caller-evidence input format.
 
 ## Requests and errors
 

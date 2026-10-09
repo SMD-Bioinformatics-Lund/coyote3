@@ -61,3 +61,25 @@ def test_adjacent_callouts_keep_separate_titles_and_bodies():
     assert "Second body" not in first
     assert "admonition note" in second
     assert "Second body" in second
+
+
+@pytest.mark.parametrize("kind", ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"])
+@pytest.mark.parametrize("separator", ["\n>", ""])
+def test_github_alerts_preserve_body_and_formatting(kind, separator):
+    """GitHub alerts render native colored containers with intact rich body content."""
+    source = f"> [!{kind}]{separator}\n> Read **this** [guide](guide.md).\n>\n> - Item"
+    rendered = markdown.markdown(source, extensions=[EXTENSION()])
+    assert f'class="admonition {kind.lower()}"' in rendered
+    assert f'class="admonition-title">{kind.title()}</p>' in rendered
+    assert "<strong>this</strong>" in rendered
+    assert '<a href="guide.md">guide</a>' in rendered
+    assert "<li>Item</li>" in rendered
+    assert "[!" not in rendered
+
+
+def test_github_alerts_in_code_remain_literal():
+    """Alert syntax in a fenced example must not create a rendered alert."""
+    source = "```markdown\n> [!WARNING]\n> Example\n```"
+    assert markdown.markdown(source, extensions=["fenced_code", EXTENSION()]) == markdown.markdown(
+        source, extensions=["fenced_code"]
+    )

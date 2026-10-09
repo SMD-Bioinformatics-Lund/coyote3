@@ -40,7 +40,7 @@ they should not depend on external API availability during case review.
 
 ![OncoKB reference refresh and local clinical evidence](../../assets/diagrams/oncokb-local-evidence-flow.svg)
 
-> **Warning**
+> [!WARNING]
 >
 > Do not call the external OncoKB API once per rendered table row or during
 > sample ingest. Use the explicit administrator refresh or explicit
@@ -171,7 +171,7 @@ Coyote3 exposes deployment controls for this integration:
 The public API root is a fixed application contract:
 `https://public.api.oncokb.org/api/v1`.
 
-> **Caution**
+> [!CAUTION]
 >
 > Public OncoKB responses exclude therapeutic data. They are useful for gene,
 > variant, mutation-effect, diagnostic, and prognostic context where available,

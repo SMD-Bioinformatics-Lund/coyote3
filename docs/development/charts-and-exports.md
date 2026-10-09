@@ -26,13 +26,13 @@ Charts can export:
 - SVG for vector output.
 - CSV for the underlying plotted rows.
 
-> **Tip**
+> [!TIP]
 >
 > Prefer CSV export for clinical review or audit discussions. PNG and SVG are
 > visual snapshots; CSV preserves the data that produced the chart.
 >
 
-> **Caution**
+> [!CAUTION]
 >
 > Browser-generated PNG export serializes the current SVG chart and draws it to
 > a canvas. Browser security restrictions can block this if future chart

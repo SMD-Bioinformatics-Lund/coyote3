@@ -49,6 +49,9 @@ def test_openapi_exposes_supported_contract_and_hides_runtime_plumbing():
     assert "/api/v1/notifications/read-all" not in paths
     assert "/api/v1/admin/notifications/recipients" not in paths
     assert "/api/v1/admin/notifications/broadcast" in paths
+    assert not any("/admin/demo-installation" in path for path in paths)
+    assert "/api/v1/admin/query-rule-sets" in paths
+    assert "single `biomarkers` file" in schema["info"]["description"]
 
 
 def test_hidden_routers_remain_registered_at_runtime():

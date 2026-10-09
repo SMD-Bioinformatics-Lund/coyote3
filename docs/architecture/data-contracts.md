@@ -162,7 +162,7 @@ for the complete producer/consumer protocol.
   consequence mappings.
 - Evolve contracts intentionally and keep all writes contract-valid.
 
-> **Caution**
+> [!CAUTION]
 >
 > A schema version does not by itself make historical output reproducible.
 > Saved reports must retain the exact configuration, filters, and finding

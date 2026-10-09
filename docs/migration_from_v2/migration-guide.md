@@ -7,6 +7,12 @@ format; these scripts do not migrate ASP, ASPC, ISGL, subpanel, or identity conf
 
 ## Required before conversion
 
+> [!WARNING]
+> Use a consistent offline source export and an isolated migration target.
+> Do not apply migration bundles to the legacy production database. Required
+> target configuration must exist before conversion; missing metadata must be
+> resolved from verified sources, not invented.
+
 Provision an isolated MongoDB replica set for migration and validation. Install its
 indexes, current application configuration, and required reference data first.
 The target namespace must start with `coyote4_migration_`; the apply tool accepts

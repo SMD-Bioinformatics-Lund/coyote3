@@ -1,8 +1,9 @@
 # Sample readiness and missing results
 
-Sample visibility, analysis availability, and query results depend on different
-conditions. A successful ingest does not by itself establish that an analysis is
-available, a query contains results, or a report has been saved.
+> [!NOTE]
+> Sample visibility, analysis availability, and query results depend on different
+> conditions. A successful ingest does not by itself establish that an analysis is
+> available, a query contains results, or a report has been saved.
 
 ![Sample visibility and analysis readiness](../assets/diagrams/sample-readiness-checks.svg)
 

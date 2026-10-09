@@ -7,6 +7,7 @@ from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 
 CALLOUT = re.compile(r"^(Note|Info|Important|Tip|Warning|Caution|Danger)(?::.*)?$", re.I)
+GITHUB_CALLOUT = re.compile(r"^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\n|$)")
 
 
 class NativeCallouts(Treeprocessor):
@@ -42,6 +43,22 @@ class NativeCallouts(Treeprocessor):
         Returns:
             The same tree with recognized callout containers and titles restyled.
         """
+        # Normalize GitHub alert markers before applying the existing native renderer.
+        for quote in list(root.iter("blockquote")):
+            for position, child in reversed(list(enumerate(list(quote)))):
+                if child.tag != "p":
+                    continue
+                match = GITHUB_CALLOUT.match(child.text or "")
+                if match is None:
+                    continue
+                heading = Element("p")
+                label = Element("strong")
+                label.text = match[1].title()
+                heading.append(label)
+                child.text = (child.text or "")[match.end() :]
+                quote.insert(position, heading)
+                if not child.text and not len(child):
+                    quote.remove(child)
         for parent in list(root.iter()):
             for quote in list(parent):
                 if quote.tag != "blockquote" or not len(quote):

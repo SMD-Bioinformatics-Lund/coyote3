@@ -179,7 +179,7 @@ or independently decide which findings are reportable.
 > exclusion, and tier reportability.
 >
 
-> **Warning**
+> [!WARNING]
 >
 > The clinical rule evaluator renders wording from this prepared context.
 > Evaluation does not query MongoDB, apply filters, assign

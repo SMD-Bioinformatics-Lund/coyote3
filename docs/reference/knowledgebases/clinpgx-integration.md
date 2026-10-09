@@ -23,7 +23,7 @@ The ClinPGx table signal is gene-level:
 - The public API action fetches the current ClinPGx knowledge summary for the
   selected variant gene without storing that API response in MongoDB.
 
-> **Warning**
+> [!WARNING]
 >
 > ClinPGx content is a knowledgebase context signal. It does not replace
 > clinical interpretation, reporting policy, or local laboratory sign-out
@@ -74,7 +74,7 @@ https://api.clinpgx.org/v1/report/connectedObjects/{id}/Pathway
 The identifier route is preferred when the local cache has a
 `pharmgkb_accession_id`. Symbol query is used only as a fallback.
 
-> **Caution**
+> [!CAUTION]
 >
 > ClinPGx asks API clients to limit requests to 2 requests per second. Coyote3
 > therefore does not call the external ClinPGx API for each rendered table row.
@@ -99,7 +99,7 @@ python scripts/knowledgebase/seed_clinpgx_genes_public.py \
 The seed is an upsert by approved symbol. It does not contain sample identifiers
 and it does not mutate variant, sample, report, or annotation collections.
 
-> **Tip**
+> [!TIP]
 >
 > Re-run the seed after replacing the ClinPGx export zip with a newer official
 > file. The importer updates `last_seen_at` and refreshes the public gene

@@ -149,7 +149,7 @@ active/reserved/scheduled tasks, registered task names, Beat schedules, and
 startup index conflicts. A configured switch does not prove that a Celery
 worker or Beat process is running; use the observed state for that distinction.
 
-> **Caution**
+> [!CAUTION]
 >
 > Role and permission-policy editing can change what every user is allowed to
 > do. Keep `role:edit` and `permission.policy:edit` within the security
@@ -245,7 +245,7 @@ same import mechanism without requiring an intermediate file download.
 | ASPC | Create a configuration for another profile/environment or a related panel/subpanel. | Change the ASP, subpanel, or environment as appropriate. The server derives a new `aspc_id` from these fields. Review enabled analyses, filters, report sections, and defaults. |
 | ISGL | Start a related curated or ad-hoc gene list. | Change `isgl_id` and name. Review list type, member genes, ASP/assay-group scope, diagnosis tags, and visibility. |
 
-> **Warning**
+> [!WARNING]
 >
 > Importing JSON is a convenience for creating a new configuration. It does
 > not update the exported source record, bypass a required field, or make an

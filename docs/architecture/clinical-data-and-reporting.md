@@ -113,7 +113,7 @@ lineage:
 
 ![Clinical report generation and persistence](../assets/diagrams/report-generation-flow.svg)
 
-> **Warning**
+> [!WARNING]
 >
 > Current operational reads resolve the exact active ASPC by ASP, subpanel,
 > and environment. When a legacy sample has no subpanel-specific ASPC, the
@@ -166,7 +166,7 @@ is evaluated as follows:
 5. The sample, parsed evidence, ready state, and completion receipt commit in one
    required transaction. Warnings about missing optional evidence are delivered after commit.
 
-> **Caution**
+> [!CAUTION]
 >
 > A failed clinical transaction must not expose partial writes as ready. A ready
 > sample can still lack optional expected evidence. Failure must preserve
@@ -297,7 +297,7 @@ spanning-read, and ad-hoc-gene settings.
   assay, subpanel, and environment.
 - Saved reports retain their own filter snapshot and are not changed.
 
-> **Tip**
+> [!TIP]
 >
 > The table search box filters the already returned table rows. Analytical
 > filters in the sidebar change the backend query and therefore change the
@@ -510,7 +510,7 @@ The CNV profile is an image artifact, not a CNV call and not coverage data.
 - An image alone does not provide a structured result such as `normal` or
   `complex_abnormal`.
 
-> **Warning**
+> [!WARNING]
 >
 > Clinical text must not match on an interpreted CNV-profile status until a
 > typed status, authoritative producer, allowed values, and provenance are
@@ -538,7 +538,7 @@ The report context selects HRD, MSI, and TMB independently through their report 
 Visible report text requires an explicit template or a validated clinical text
 rule.
 
-> **Caution**
+> [!CAUTION]
 >
 > Thresholds, units, and missing-value behavior must be defined before a
 > biomarker can drive conditional clinical wording. A workbook label is not

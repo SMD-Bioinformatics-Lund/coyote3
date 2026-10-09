@@ -95,7 +95,7 @@ group. The coverage service applies these entries when it builds subsequent
 low-coverage gene and region results. The original ingested coverage
 measurements are not changed.
 
-> **Warning**
+> [!WARNING]
 >
 > Blacklisting changes how a region is handled in subsequent review. Apply
 > it only under the laboratory's approved quality procedure and confirm the

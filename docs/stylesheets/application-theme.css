@@ -306,6 +306,10 @@ html[data-theme="dark"] .rst-content .warning,
 html[data-theme="dark"] .rst-content .important { background: #403423; }
 html[data-theme="dark"] .rst-content .warning > .admonition-title,
 html[data-theme="dark"] .rst-content .important > .admonition-title { background: #71501e; }
+html[data-theme="dark"] .rst-content .caution { background: #403423; }
+html[data-theme="dark"] .rst-content .caution > .admonition-title { background: #71501e; }
+html[data-theme="dark"] .rst-content .tip { background: #253c32; }
+html[data-theme="dark"] .rst-content .tip > .admonition-title { background: #326147; }
 html[data-theme="dark"] .rst-content .btn-neutral {
   background: var(--docs-subtle) !important;
   color: var(--docs-text) !important;

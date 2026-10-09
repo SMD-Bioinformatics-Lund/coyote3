@@ -102,7 +102,7 @@ an ergonomic reflection of the session payload.
 > storage changes from silently changing access behavior.
 >
 
-> **Warning**
+> [!WARNING]
 >
 > Do not add user-level allow/deny overrides or ad-hoc role gates in route
 > handlers. A route should declare the required permission id and let the
@@ -229,7 +229,7 @@ The seed catalog is validated against route declarations by the API security
 test suite. A route cannot introduce an undeployable permission identifier
 without causing that validation to fail.
 
-> **Warning**
+> [!WARNING]
 >
 > `role:edit` and `permission.policy:edit` can change authorization policy.
 > Assign them only to trusted security administrators. A manager who only

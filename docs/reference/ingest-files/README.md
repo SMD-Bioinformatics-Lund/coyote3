@@ -32,9 +32,14 @@ example, normalization behavior, and constraints to check before submission.
 
 ## Prepare a sample bundle
 
+> [!IMPORTANT]
+> Complete all analysis files before submitting the manifest. Their paths must be
+> readable inside the ingest runtime, not only on the pipeline host. A queued job
+> is not confirmation that a sample has been persisted successfully.
+
 1. Identify the assay, subpanel, environment, and DNA or RNA omics layer in the
    [sample manifest](../sample-manifest.md). File keys are case-sensitive; the names
-   above are the center vocabulary defaults. Even keys ending in `_files` accept
+   above are application-defined keys. Even keys ending in `_files` accept
    one path string, not an array.
 2. Confirm the ASP's required and expected file policy. ASPC configuration controls
    analysis availability and review defaults; it does not define required input files.

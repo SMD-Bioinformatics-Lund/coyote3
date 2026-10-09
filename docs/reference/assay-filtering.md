@@ -64,7 +64,7 @@ exposes the RNA fusion tab. The RNA fusion API also validates the modality and
 returns a client-visible configuration error if it is called for a non-RNA
 sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 
-> **Important**
+> [!IMPORTANT]
 >
 > Hidden tabs are not mounted in the React tree. This prevents background
 > requests for analyses that are unavailable for the sample. A sample page

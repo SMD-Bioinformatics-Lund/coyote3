@@ -15,9 +15,11 @@ contracts are separate from the database documents produced by the service.
 | `update_existing` | No | `false` | Explicit permission to use the existing-sample update path, subject to scope and validation. |
 | `increment` | No | `false` | Requests the supported increment naming behavior; review the sample identity returned. |
 
-Supplying both content fields or neither is rejected. Input paths must be readable
-by the consuming process. A submitted background task ID confirms submission,
-not successful sample persistence; inspect task/job completion and its result.
+> [!IMPORTANT]
+> Supplying both content fields or neither is rejected. Input paths must be readable
+> by the consuming process. A submitted background task ID confirms submission,
+> not successful sample persistence; inspect task/job completion and its result.
+
 The operation descriptions below distinguish synchronous, queued and upload flows.
 
 ## Authorization and write boundaries

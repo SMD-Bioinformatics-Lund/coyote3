@@ -46,7 +46,7 @@ Generated contract pages must be updated through their source schemas and genera
 
 Use standard Markdown callouts so they render in both GitHub and MkDocs:
 
-> **Important**
+> [!IMPORTANT]
 >
 > Keep the callout short and place it directly beside the rule it qualifies.
 

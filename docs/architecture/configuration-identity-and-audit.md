@@ -117,7 +117,7 @@ ingest success or failure, sample deletion, report creation, and variant
 curation. This provides an operational timeline without making audit records a
 replacement for clinical report snapshots.
 
-> **Caution**
+> [!CAUTION]
 >
 > Audit metadata must not include passwords, session tokens, API tokens, or
 > unrestricted source-file content. Error details are sanitized before they

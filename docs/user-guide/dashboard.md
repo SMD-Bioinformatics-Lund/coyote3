@@ -183,7 +183,7 @@ warms metrics at half this interval, with a minimum interval of 30 seconds.
 `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` determines how long an unused Redis
 entry can remain available.
 
-> **Note**
+> [!NOTE]
 >
 > A displayed zero is a real count only when the corresponding aggregate was
 > calculated successfully. Refresh failures leave an existing cached value
