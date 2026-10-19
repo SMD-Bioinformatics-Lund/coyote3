@@ -163,6 +163,7 @@ class PublicAssayCatalogManagementService:
                         "isgl_id": item.get("isgl_id"),
                         "label": item.get("displayname") or item.get("name") or item.get("isgl_id"),
                         "asp_ids": item.get("asp_ids") or [],
+                        "asp_groups": item.get("asp_groups") or [],
                         "diagnosis": item.get("diagnosis") or [],
                         "list_type": item.get("list_type") or [],
                     }
@@ -666,12 +667,13 @@ class PublicAssayCatalogManagementService:
         Raises:
             AppError: With status 422 for empty sections/labels, inactive assays,
                 missing or mismatched production configurations, unavailable or duplicate
-                gene lists within an entry, or unsupported analysis badges.
+                gene lists within an entry, unsupported analysis badges, ineligible assay/group
+                links, or incomplete or contradictory per-analysis gene-list assignments.
         """
         options = self.source_options()
-        asps = {a["asp_id"] for a in options["asps"]}
+        asps = {a["asp_id"]: a for a in options["asps"]}
         configs = {a["aspc_id"]: a for a in options["aspcs"]}
-        lists = {a["isgl_id"] for a in options["gene_lists"]}
+        lists = {a["isgl_id"]: a for a in options["gene_lists"]}
         if not catalog.get("modalities"):
             raise api_error(422, "Add at least one catalog section")
         for modality in catalog["modalities"].values():
@@ -693,6 +695,11 @@ class PublicAssayCatalogManagementService:
                             422, "Choose an active production configuration for the selected assay"
                         )
                 selected_lists: set[str] = set()
+                analyses = set(category.get("analysis") or [])
+                no_gene_list = set(category.get("no_gene_list") or [])
+                assigned: set[str] = set()
+                if not analyses or no_gene_list - analyses:
+                    raise api_error(422, "Select analyses before assigning gene lists")
                 for item in category.get("gene_lists", []):
                     list_id = item.get("isgl_id") or item.get("key")
                     if list_id not in lists:
@@ -700,6 +707,22 @@ class PublicAssayCatalogManagementService:
                     if list_id in selected_lists:
                         raise api_error(422, "Each gene list can appear only once within an entry")
                     selected_lists.add(list_id)
+                    source = lists[list_id]
+                    if category["asp_id"] not in source["asp_ids"] or (
+                        source.get("asp_groups")
+                        and asps[category["asp_id"]].get("group") not in source["asp_groups"]
+                    ):
+                        raise api_error(
+                            422, "Gene lists must belong to the selected assay and group"
+                        )
+                    linked_analyses = set(item.get("analysis") or [])
+                    if not linked_analyses or linked_analyses - analyses:
+                        raise api_error(422, "Assign each gene list to selected analyses")
+                    assigned.update(linked_analyses)
+                if assigned & no_gene_list:
+                    raise api_error(422, "An analysis cannot have gene lists and No gene list")
+                if analyses - assigned - no_gene_list:
+                    raise api_error(422, "Select gene lists or No gene list for every analysis")
                 for presentation in [category, *category.get("gene_lists", [])]:
                     if set(presentation.get("analysis") or []) - set(ALL_ANALYSIS_TYPE_OPTIONS):
                         raise api_error(422, "Choose supported analysis badges")

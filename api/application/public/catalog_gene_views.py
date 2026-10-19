@@ -448,6 +448,7 @@ class PublicCatalogGeneViewsMixin:
         cat_spans: dict[str, int] = {}
         all_genes: set[str] = set()
         column_genes: list[tuple[dict[str, Any], set[str]]] = []
+        gene_cache: dict[str, set[str]] = {}
 
         for mod_key in order:
             mod_data = modalities.get(mod_key) or {}
@@ -457,7 +458,24 @@ class PublicCatalogGeneViewsMixin:
             for cat_key, cat_data in categories.items():
                 asp_id = cat_data.get("asp_id")
                 gene_lists = cat_data.get("gene_lists") or []
-                real_lists = [gl for gl in gene_lists if gl.get("key")]
+                real_lists = [
+                    {**gl, "matrix_analysis": analysis}
+                    for gl in gene_lists
+                    if gl.get("key")
+                    for analysis in (gl.get("analysis") or ["Unassigned"])
+                ]
+                real_lists.extend(
+                    {
+                        "key": f"__no_gene_list__::{analysis}",
+                        "label": "No gene list",
+                        "matrix_analysis": analysis,
+                        "no_gene_list": True,
+                    }
+                    for analysis in cat_data.get("no_gene_list") or []
+                )
+                real_lists.sort(
+                    key=lambda item: (item["matrix_analysis"], item.get("label") or item["key"])
+                )
                 cat_label = cat_data.get("label") or cat_data.get("title") or cat_key
                 assay_label = cat_label
                 subpanel_label = cat_data.get("subpanel_id") or SUBPANEL_BASE_ID
@@ -490,10 +508,14 @@ class PublicCatalogGeneViewsMixin:
                 for gl in real_lists:
                     isgl_key = gl["key"]
                     isgl_label = gl.get("label") or isgl_key
-                    if (asp_id and asp_id == isgl_key) or isgl_key == "single_gene":
+                    if gl.get("no_gene_list"):
+                        genes_here = set()
+                    elif (asp_id and asp_id == isgl_key) or isgl_key == "single_gene":
                         genes_here = set(self._covered_genes(asp_id)[0])
                     else:
-                        genes_here = self.isgl_genes_for_matrix(isgl_key)
+                        if isgl_key not in gene_cache:
+                            gene_cache[isgl_key] = self.isgl_genes_for_matrix(isgl_key)
+                        genes_here = gene_cache[isgl_key]
                     col = {
                         "mod": mod_key,
                         "cat": cat_key,
@@ -504,6 +526,8 @@ class PublicCatalogGeneViewsMixin:
                         "cat_label": str(cat_label),
                         "isgl_key": isgl_key,
                         "isgl_label": isgl_label,
+                        "analysis": gl["matrix_analysis"],
+                        "no_gene_list": bool(gl.get("no_gene_list")),
                         "placeholder": False,
                         "modality_label": mod_data.get("label") or mod_key,
                     }

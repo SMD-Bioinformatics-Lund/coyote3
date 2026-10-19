@@ -52,7 +52,9 @@ const catalogPayload = {
       categories: {
         hematology: {
           label: "Hematology",
-          gene_lists: [{ key: "myeloid", label: "Myeloid genes" }],
+          analysis: ["SNV", "CNV"],
+          no_gene_list: ["CNV"],
+          gene_lists: [{ key: "myeloid", label: "Myeloid genes", analysis: ["SNV"] }],
         },
       },
     },
@@ -116,6 +118,7 @@ const matrixPayload = {
       cat: "panel::hematology::hema_gmsv1::base",
       isgl_key: "myeloid",
       isgl_label: "Myeloid genes",
+      analysis: "SNV",
     },
     {
       mod: "dna",
@@ -123,6 +126,7 @@ const matrixPayload = {
       cat: "panel::solid::solid_gmsv3::colon",
       isgl_key: "colon",
       isgl_label: "Colon genes",
+      analysis: "CNV",
     },
   ],
   genes: ["TP53", "DNMT3A"],
@@ -157,6 +161,7 @@ describe("PublicCatalog", () => {
     fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
     expect(await screen.findByText("DNA catalog description")).toBeVisible()
     fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
+    fireEvent.click(await screen.findByRole("tab", { name: "SNV" }))
     fireEvent.click(await screen.findByRole("button", { name: "Myeloid genes" }))
 
     await waitFor(() => {
@@ -166,6 +171,20 @@ describe("PublicCatalog", () => {
     })
     expect(await screen.findByText("Selected gene list")).toBeVisible()
     expect(screen.getByText("Selected list details")).toBeVisible()
+  })
+
+  it("shows only the active analysis lists and keeps no-list analyses distinct", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: catalogPayload } as never)
+    renderPage(<PublicCatalog />)
+    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
+    fireEvent.click(await screen.findByRole("tab", { name: "SNV" }))
+    expect(await screen.findByRole("button", { name: "Myeloid genes" })).toBeVisible()
+    fireEvent.click(screen.getByRole("tab", { name: "CNV" }))
+    expect(await screen.findByText("No gene list for CNV.")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Myeloid genes" })).not.toBeInTheDocument()
+    expect(screen.queryByTestId("gene-table")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Catalog CSV" })).toBeDisabled()
   })
 
   it("downloads the selected catalog as CSV", async () => {
@@ -225,7 +244,7 @@ describe("PublicCatalogMatrix", () => {
     expect(await screen.findByRole("checkbox", { name: "Annotations" })).toBeChecked()
   })
 
-  it("abbreviates sequencing headers and wraps all header labels without truncation", async () => {
+  it("preserves editable sequencing headers and wraps labels without truncation", async () => {
     vi.mocked(api.get).mockResolvedValue({ data: {
       ...matrixPayload,
       columns: matrixPayload.columns.map((column, index) => ({
@@ -240,9 +259,9 @@ describe("PublicCatalogMatrix", () => {
     } } as never)
     renderPage(<PublicCatalogMatrix />)
 
-    const wgs = await screen.findByRole("columnheader", { name: "WGS" })
+    const wgs = await screen.findByRole("columnheader", { name: "Whole Genome Sequencing (WGS)" })
     expect(wgs).toHaveAttribute("title", "Whole Genome Sequencing (WGS)")
-    expect(screen.getByRole("columnheader", { name: "WTS" })).toBeVisible()
+    expect(screen.getByRole("columnheader", { name: "Whole Transcriptome Sequencing (WTS)" })).toBeVisible()
     for (const header of screen.getAllByRole("columnheader")) {
       const label = header.querySelector("span")
       if (!label) continue
@@ -259,6 +278,17 @@ describe("PublicCatalogMatrix", () => {
     fireEvent.change(screen.getByLabelText("Section"), { target: { value: "hematology" } })
     expect(screen.getByText("1 visible catalog column(s)")).toBeVisible()
     expect(vi.mocked(api.get).mock.calls).toHaveLength(callsBefore)
+  })
+
+  it("filters matrix analyses locally without additional requests", async () => {
+    renderPage(<PublicCatalogMatrix />)
+    await screen.findByText("2 visible catalog column(s)")
+    const calls = vi.mocked(api.get).mock.calls.length
+    fireEvent.change(screen.getByLabelText("Analysis"), { target: { value: "CNV" } })
+    expect(screen.getByText("1 visible catalog column(s)")).toBeVisible()
+    expect(screen.getByRole("columnheader", { name: "CNV Colon genes" })).toBeVisible()
+    expect(screen.queryByRole("columnheader", { name: "SNV Myeloid genes" })).not.toBeInTheDocument()
+    expect(vi.mocked(api.get).mock.calls).toHaveLength(calls)
   })
 
   it("searches a gene on the server and resets pagination", async () => {

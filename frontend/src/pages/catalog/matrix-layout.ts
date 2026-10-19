@@ -52,9 +52,7 @@ export function matrixBoundaryStyle(boundary: string) {
 }
 
 export function matrixModalityLabel(label: string) {
-  if (/\bWGS\b|whole[ -]genome sequencing/i.test(label)) return "WGS"
-  if (/\bWTS\b|whole[ -]transcriptome sequencing/i.test(label)) return "WTS"
-  return labelText(label)
+  return label.trim() || "-"
 }
 
 export function matrixColumnWidth(label: unknown) {

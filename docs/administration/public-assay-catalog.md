@@ -22,12 +22,51 @@ descriptions use the same restricted public HTML formatting policy.
 2. Create the relevant public ISGLs, linked to their assays and subpanels.
 3. Create and activate the production ASPCs for those assays and subpanels.
 4. Open **Admin > Public Assay Catalog** at `/admin/assay-catalog`.
-5. Link each public entry to its ASP, production ASPC, and applicable ISGLs.
+5. Link each public entry to its ASP and production ASPC, then select its analyses.
+6. For each analysis, select one or more eligible ISGLs or check **No gene list**.
 
 The builder lists active assays, active production configurations, and active,
 public, non-ad-hoc gene lists. It does not expose sample data. Publishing does
 not make a private gene list public. Each entry can link a given gene list only
 once; duplicate references prevent submission for approval.
+That reference can serve multiple analyses. The builder filters lists by the
+selected assay and, where a list declares group restrictions, the assay group.
+Changing the assay clears its gene-list assignments so they can be reviewed for
+the new assay.
+
+## Gene lists by analysis
+
+Each selected analysis has its own selection card. Search narrows the eligible
+lists without clearing checked values. Select multiple lists when an analysis
+uses more than one diagnostic or reporting gene set. List descriptions remain
+editable under **Selected gene-list descriptions**.
+
+**No gene list** is an explicit catalog declaration, not an empty selection. It
+removes list links for that analysis while retaining their links to other analyses.
+Submission and publication reject incomplete assignments, contradictory selections,
+and lists that are no longer active, public or eligible for the assay and group.
+Catalog assignments describe the public offering; they do not alter sample filters.
+
+| Stored field | Meaning |
+| --- | --- |
+| Entry `analysis` | Analyses offered by the catalog entry |
+| Entry `gene_lists[].isgl_id` | Reference to the public ISGL; gene contents remain in the source list |
+| Entry `gene_lists[].analysis` | One or more entry analyses that use this list |
+| Entry `no_gene_list` | Entry analyses explicitly declared to have no linked gene list; defaults to an empty list |
+
+The catalog and draft preview show analysis tabs beneath each selected entry.
+Selecting a tab shows only that analysis's lists. Selecting a list displays its
+genes. The matrix adds analysis to the section, assay, subpanel and gene-list
+dimensions, with filters for each. Rows remain paginated; shared lists are read
+once per matrix request. **N/A** means no list is assigned to an analysis, while
+the absence marker means a gene is not in a selected list.
+
+> [!IMPORTANT]
+> Existing publications remain readable. Lists without explicit analysis assignments
+> appear under **Unassigned**. Before submitting a successor draft, assign those
+> lists to analyses or remove the references and select **No gene list** where
+> appropriate. No assignment is inferred from a list name or gene content, and no
+> published document is rewritten automatically.
 
 ## Hierarchy and identity
 
@@ -36,6 +75,13 @@ can be **Whole Genome Sequencing (WGS)**, **Whole Transcriptome Sequencing (WTS)
 or **Targeted Gene Panels**. Entries such as **Hematology** and **Solid** sit
 under those sections. Gene-list descriptions represent diagnoses or subpanels.
 Centers can add sections and change display names without renaming an assay.
+
+WGS, WTS and Targeted Gene Panels are editable starting sections, not a closed
+list of offerings. In a draft, use **Add section** for another service, edit
+**Section display name** to rename it, use the arrow controls to reorder it, or
+choose **Remove section**. The public catalog and matrix retain the entered name.
+Section identifiers remain stable when display names change. These presentation
+sections are separate from application-owned assay families and analysis types.
 
 | Identifier | Purpose | Editable in builder |
 | --- | --- | --- |
@@ -64,6 +110,14 @@ Select a section or entry in the structure sidebar to edit its fields. Add,
 remove, and reorder sections; add or remove assay entries and gene-list
 descriptions. Use the introduction view for the catalog heading, introduction,
 and maintainer.
+
+Introductions, section descriptions, assay and gene-list descriptions, limitations
+and public notes have visual formatting controls for **bold**, *italic*, underline,
+bulleted and numbered lists, hyperlinks, link removal and clearing inline formatting.
+Select text before applying a format or inserting a link. Links accept `https://`,
+`http://` and `mailto:` addresses. Pasted text is inserted without external formatting;
+apply the editor controls as needed. Saved and displayed HTML is sanitized.
+Display names, identifiers, badges and other structured fields remain plain text.
 
 | Field | Input and validation |
 | --- | --- |

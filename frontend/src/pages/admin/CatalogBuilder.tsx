@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TextField, PresentationFields } from "./CatalogFields"
 import type { Catalog, Category, Workspace } from "./catalog-types"
+import { CatalogAnalysisLists } from "./CatalogAnalysisLists"
 
 export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange }: {
   catalog: Catalog; section: string; entryKey: string; workspace: Workspace
@@ -52,7 +53,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
   return <div className="space-y-5 p-4">
     <label className="grid gap-1 type-label">Assay
       <select aria-label="Assay" className="paper-inset rounded-lg p-2 type-body" value={entry.asp_id || ""}
-        onChange={(e) => updateCategory({ ...entry, asp_id: e.target.value, aspc_id: null, aspc_ids: {}, subpanel_id: null })}>
+        onChange={(e) => updateCategory({ ...entry, asp_id: e.target.value, aspc_id: null, aspc_ids: {}, subpanel_id: null, gene_lists: [], no_gene_list: [] })}>
         <option value="">Select assay</option>
         {workspace.sources.asps.map((v) => <option key={v.asp_id} value={v.asp_id}>{v.label} ({v.asp_id})</option>)}
       </select>
@@ -68,30 +69,27 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
         {configurations.map((v) => <option key={v.aspc_id} value={v.aspc_id}>{v.subpanel_id || "Base"}</option>)}
       </select>
     </label>
-    <PresentationFields key={entryKey} value={entry} presets={workspace.presets} onChange={(v) => updateCategory({ ...entry, ...v })} />
-    <section className="space-y-3 border-t border-border pt-4">
-      <div className="flex items-center justify-between gap-2"><h3 className="type-body font-semibold">Gene lists and diagnoses</h3>
-        <Button size="sm" variant="outline" onClick={() => updateCategory({ ...entry, gene_lists: [...genes, {}] })}><Plus /> Add gene list</Button></div>
+    <PresentationFields key={entryKey} value={entry} presets={workspace.presets} onChange={(v) => updateCategory({ ...entry, ...v,
+      no_gene_list: (entry.no_gene_list || []).filter((analysis) => v.analysis?.includes(analysis)),
+      gene_lists: genes.flatMap((gene) => {
+        if (!gene.analysis?.length) return [gene]
+        const analysis = gene.analysis.filter((item) => v.analysis?.includes(item))
+        return analysis.length ? [{ ...gene, analysis }] : []
+      }),
+    })} />
+    <CatalogAnalysisLists key={`${entryKey}:${entry.asp_id || ""}`} entry={entry} sources={workspace.sources} onChange={updateCategory} />
+    <details className="space-y-3 border-t border-border pt-4">
+      <summary className="type-body font-semibold cursor-pointer">Selected gene-list descriptions ({genes.length})</summary>
       {genes.map((gene, index) => <details key={index} open className="border-b border-border pb-3">
         <summary className="cursor-pointer type-body font-semibold">{gene.label || "New gene list"}</summary>
         <div className="mt-3 space-y-3">
-          <label className="grid gap-1 type-label">Gene list
-            <select className="paper-inset rounded-lg p-2 type-body" value={gene.isgl_id || gene.key || ""}
-              onChange={(e) => {
-                const source = workspace.sources.gene_lists.find((v) => v.isgl_id === e.target.value)
-                updateCategory({ ...entry, gene_lists: genes.map((v, i) => i === index
-                  ? { ...gene, isgl_id: e.target.value, key: e.target.value, label: source?.label || "" } : v) })
-              }}>
-              <option value="">Select gene list</option>
-              {workspace.sources.gene_lists.map((v) => <option key={v.isgl_id} value={v.isgl_id}>{v.label} ({v.isgl_id})</option>)}
-            </select>
-          </label>
-          <PresentationFields value={gene} presets={workspace.presets} onChange={(next) =>
+          <p className="type-meta text-muted-foreground">{gene.isgl_id || gene.key}</p>
+          <PresentationFields value={gene} presets={workspace.presets} showAnalysis={false} onChange={(next) =>
             updateCategory({ ...entry, gene_lists: genes.map((v, i) => i === index ? { ...v, ...next } : v) })} />
           <Button size="sm" variant="outline" onClick={() => updateCategory({ ...entry, gene_lists: genes.filter((_, i) => i !== index) })}><Trash2 /> Remove gene list</Button>
         </div>
       </details>)}
-    </section>
+    </details>
     <details><summary className="type-label cursor-pointer">Database references</summary>
       <dl className="mt-2 grid gap-2 type-body-sm">
         <dt>assay_specific_panels.asp_id</dt><dd>{entry.asp_id || "Not linked"}</dd>

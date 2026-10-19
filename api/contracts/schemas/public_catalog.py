@@ -145,6 +145,10 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
     subpanel_id: str | None = None
     aspc_ids: dict[str, str] = Field(default_factory=dict)
     gene_lists: list[PublicCatalogGeneListDoc] = Field(default_factory=list)
+    no_gene_list: list[str] = Field(
+        default_factory=list,
+        description="Selected analyses explicitly declared to have no linked public gene list.",
+    )
 
     @field_validator("catalog_id", "asp_id", "aspc_id", "subpanel_id", mode="before")
     @classmethod

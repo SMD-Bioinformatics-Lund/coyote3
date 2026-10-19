@@ -1,0 +1,56 @@
+import { fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { RichTextEditor } from "./rich-text-editor"
+
+const originalCommand = Object.getOwnPropertyDescriptor(document, "execCommand")
+afterEach(() => {
+  vi.restoreAllMocks()
+  if (originalCommand) Object.defineProperty(document, "execCommand", originalCommand)
+  else Reflect.deleteProperty(document, "execCommand")
+})
+describe("Rich text editor", () => {
+  it("renders allowed formatting and removes active content on input", () => {
+    const change = vi.fn()
+    render(<RichTextEditor label="Description" value="<strong>Clinical scope</strong>" onChange={change} />)
+    const editor = screen.getByRole("textbox", { name: "Description" })
+    expect(editor.querySelector("strong")).toHaveTextContent("Clinical scope")
+    editor.innerHTML = '<em>Updated</em><img src=x onerror=alert(1)><script>alert(1)</script>'
+    fireEvent.input(editor)
+    expect(change).toHaveBeenLastCalledWith("<em>Updated</em>")
+  })
+  it("applies bold to the retained selection", () => {
+    const command = vi.fn()
+    Object.defineProperty(document, "execCommand", { configurable: true, value: command })
+    render(<RichTextEditor label="Notes" value="Selected words" onChange={vi.fn()} />)
+    const editor = screen.getByRole("textbox", { name: "Notes" })
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+    fireEvent.mouseUp(editor)
+    fireEvent.click(screen.getByRole("button", { name: "Bold" }))
+    expect(command).toHaveBeenCalledWith("bold", false, undefined)
+    expect(window.getSelection()?.toString()).toBe("Selected words")
+  })
+  it("rejects unsafe link protocols and requires selected link text", () => {
+    const command = vi.fn()
+    Object.defineProperty(document, "execCommand", { configurable: true, value: command })
+    render(<RichTextEditor label="Notes" value="Link text" onChange={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Notes link URL" }), { target: { value: "javascript:alert(1)" } })
+    fireEvent.click(screen.getByRole("button", { name: "Apply link" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter an https://")
+    expect(command).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByRole("textbox", { name: "Notes link URL" }), { target: { value: "https://example.org/guide" } })
+    fireEvent.click(screen.getByRole("button", { name: "Apply link" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("Select the text")
+    const editor = screen.getByRole("textbox", { name: "Notes" })
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+    fireEvent.mouseUp(editor)
+    fireEvent.click(screen.getByRole("button", { name: "Apply link" }))
+    expect(command).toHaveBeenCalledWith("createLink", false, "https://example.org/guide")
+  })
+})

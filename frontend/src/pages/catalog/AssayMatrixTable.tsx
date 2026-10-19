@@ -129,6 +129,9 @@ export function AssayMatrixTable({
         {[
           ["mod", "Modality"],
           ["assayGroup", "Section"],
+          ["assay", "Assay"],
+          ["subpanel", "Subpanel"],
+          ["analysis", "Analysis"],
           ["list", "Gene list"],
         ].map(([key, label]) => (
           <label key={key} className="grid gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
@@ -209,9 +212,11 @@ export function AssayMatrixTable({
                     key={col.key}
                     className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle type-label font-medium uppercase text-foreground last:border-r-0"
                     title={col.isgl_key}
+                    aria-label={`${col.analysis || "Unassigned"} ${col.isgl_label || col.isgl_key}`}
                     style={matrixBoundaryStyle(boundary)}
                   >
                     <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
+                      <span className="mb-1 block type-label text-primary">{col.analysis}</span>
                       {col.isgl_label || col.isgl_key}
                     </span>
                   </th>
@@ -244,7 +249,7 @@ export function AssayMatrixTable({
                       key={`${gene}:${col.key}`}
                       className="h-7 border-b border-r border-border/40 px-0.5 py-1 text-center last:border-r-0"
                     >
-                      {present ? (
+                      {col.no_gene_list ? <span className="type-meta text-muted-foreground" title="No gene list is assigned to this analysis">N/A</span> : present ? (
                         <Check className="mx-auto h-4 w-4 rounded-full text-pass" strokeWidth={2.4} />
                       ) : (
                         <span className="text-muted-foreground/65">-</span>

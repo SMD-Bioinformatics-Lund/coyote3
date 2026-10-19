@@ -2,14 +2,14 @@ import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import type { Presentation } from "./catalog-types"
 
 export function TextField({ label, value, onChange, multiline = false }: {
   label: string; value?: string | null; onChange: (value: string) => void; multiline?: boolean
 }) {
-  return <label className="grid gap-1 type-label">{label}{multiline
-    ? <textarea className="paper-inset min-h-24 w-full rounded-lg p-2 type-body" value={value || ""} onChange={(e) => onChange(e.target.value)} />
-    : <Input value={value || ""} onChange={(e) => onChange(e.target.value)} />}</label>
+  if (multiline) return <RichTextEditor label={label} value={value || ""} onChange={onChange} />
+  return <label className="grid gap-1 type-label">{label}<Input value={value || ""} onChange={(e) => onChange(e.target.value)} /></label>
 }
 
 export function Choices({ label, value = [], presets, custom = false, onChange }: {
@@ -55,9 +55,10 @@ export function Turnaround({ value = "", onChange }: { value?: string; onChange:
   </div>
 }
 
-export function PresentationFields({ value, presets, onChange }: {
+export function PresentationFields({ value, presets, onChange, showAnalysis = true }: {
   value: Presentation; presets: { analysis: string[]; input_material: string[]; sample_modes: string[] }
   onChange: (value: Presentation) => void
+  showAnalysis?: boolean
 }) {
   return <div className="space-y-4">
     <div className="grid gap-3 md:grid-cols-2">
@@ -70,7 +71,7 @@ export function PresentationFields({ value, presets, onChange }: {
       <Turnaround value={value.tat} onChange={(tat) => onChange({ ...value, tat })} />
       <Choices label="Sample modes" value={value.sample_modes} presets={presets.sample_modes} onChange={(sample_modes) => onChange({ ...value, sample_modes })} />
     </div>
-    <Choices label="Analysis" value={value.analysis} presets={presets.analysis} onChange={(analysis) => onChange({ ...value, analysis })} />
+    {showAnalysis && <Choices label="Analysis" value={value.analysis} presets={presets.analysis} onChange={(analysis) => onChange({ ...value, analysis })} />}
     <details><summary className="cursor-pointer type-body font-semibold">Additional public content</summary>
       <div className="mt-3 space-y-3">
         <TextField label="Limitations" multiline value={value.limitations} onChange={(limitations) => onChange({ ...value, limitations })} />

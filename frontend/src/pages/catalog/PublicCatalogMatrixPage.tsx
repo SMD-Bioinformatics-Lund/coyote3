@@ -46,7 +46,8 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
           assayGroup: col.assay_group || col.cat_label || assayGroup,
           assay: col.assay || assay,
           subpanel: col.subpanel || subpanel,
-          key: `${col.mod}:${col.cat}:${col.isgl_key}`,
+          analysis: col.analysis || "Unassigned",
+          key: `${col.mod}:${col.cat}:${col.analysis || ""}:${col.isgl_key}`,
         }
       })
   }, [data])
@@ -56,6 +57,9 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
       if (filters.mod && col.mod !== filters.mod) return false
       if (filters.assayGroup && col.assayGroup !== filters.assayGroup) return false
       if (filters.list && String(col.isgl_label || col.isgl_key) !== filters.list) return false
+      if (filters.analysis && col.analysis !== filters.analysis) return false
+      if (filters.assay && col.assay !== filters.assay) return false
+      if (filters.subpanel && col.subpanel !== filters.subpanel) return false
       return true
     })
   }, [allMatrixColumns, filters])
@@ -64,6 +68,9 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
     mod: uniqueOptions(allMatrixColumns.map((col) => col.mod)),
     assayGroup: uniqueOptions(allMatrixColumns.map((col) => col.assayGroup)),
     list: uniqueOptions(allMatrixColumns.map((col) => String(col.isgl_label || col.isgl_key))),
+    analysis: uniqueOptions(allMatrixColumns.map((col) => col.analysis)),
+    assay: uniqueOptions(allMatrixColumns.map((col) => col.assay)),
+    subpanel: uniqueOptions(allMatrixColumns.map((col) => col.subpanel)),
   }), [allMatrixColumns])
 
   const headerSpans = useMemo(() => {

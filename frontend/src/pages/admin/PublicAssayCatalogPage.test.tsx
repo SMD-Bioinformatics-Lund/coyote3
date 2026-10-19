@@ -62,6 +62,19 @@ beforeEach(() => {
 })
 
 describe("Public assay catalog governance", () => {
+  it("adds and renames a custom section without a fixed modality list", async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: "Edit published catalog" }))
+    await user.click(await screen.findByRole("button", { name: "Add section" }))
+    const name = screen.getByLabelText("Section display name")
+    await user.clear(name)
+    await user.type(name, "Future assay service")
+    expect(screen.getByRole("button", { name: "Future assay service" })).toBeVisible()
+    expect(screen.getByRole("textbox", { name: "Section description" })).toHaveAttribute("contenteditable", "true")
+    await user.click(screen.getByRole("button", { name: /Remove section/ }))
+    expect(screen.queryByRole("button", { name: "Future assay service" })).not.toBeInTheDocument()
+  })
   it("opens the published catalog read-only and creates a separate draft for editing", async () => {
     const user = userEvent.setup()
     renderPage()

@@ -637,7 +637,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "tat": item.get("tat") or category_overlay.get("tat"),
             "input_material": item.get("input_material") or category_overlay.get("input_material"),
             "sample_modes": item.get("sample_modes") or category_overlay.get("sample_modes"),
-            "analysis": item.get("analysis") or category_overlay.get("analysis"),
+            "analysis": item.get("analysis") or [],
         }
 
     def modalities_order(self) -> List[str]:

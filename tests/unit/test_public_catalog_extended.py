@@ -21,6 +21,38 @@ def test_empty_catalog_landing_is_a_valid_setup_state(monkeypatch):
         service.catalog_context("dna")
 
 
+def test_matrix_separates_analyses_and_reuses_gene_list_reads(monkeypatch):
+    """Repeated list references create separate analysis columns with one list read."""
+    service = _service()
+    monkeypatch.setattr(
+        service,
+        "load_catalog",
+        lambda **kwargs: {
+            "modalities": {
+                "dna": {
+                    "categories": {
+                        "panel": {
+                            "asp_id": "panel_a",
+                            "analysis": ["SNV", "CNV", "MSI"],
+                            "gene_lists": [{"key": "solid_list", "analysis": ["SNV", "CNV"]}],
+                            "no_gene_list": ["MSI"],
+                        }
+                    }
+                }
+            },
+        },
+    )
+    calls = []
+    monkeypatch.setattr(service, "isgl_genes_for_matrix", lambda key: calls.append(key) or {"TP53"})
+    result = service.assay_catalog_matrix_payload()
+    assert calls == ["solid_list"]
+    assert {column["analysis"] for column in result["columns"]} == {"SNV", "CNV", "MSI"}
+    assert next(column for column in result["columns"] if column["analysis"] == "MSI")[
+        "no_gene_list"
+    ]
+    assert result["matrix"]["TP53"]["dna"]["panel"]["solid_list"] is True
+
+
 class _AspRepository:
     def group_options(self):
         return ["solid", "wts"]

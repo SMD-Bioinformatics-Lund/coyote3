@@ -1,11 +1,12 @@
 import { sanitizeRichText } from "@/lib/safe-html"
+import { cn } from "@/lib/utils"
 import { type ReactNode } from "react"
 import { asArray, FIRST_CLASS_CATALOG_FIELDS, formatScalar } from "./catalog-values"
 
 export function HtmlText({ html, className }: { html: unknown; className?: string }) {
   const text = String(html ?? "").trim()
   if (!text) return null
-  return <div className={className} dangerouslySetInnerHTML={{ __html: sanitizeRichText(text) }} />
+  return <div className={cn("[&_a]:text-primary [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p+p]:mt-2", className)} dangerouslySetInnerHTML={{ __html: sanitizeRichText(text) }} />
 }
 
 export function CatalogField({ label, children }: { label: string; children: ReactNode }) {

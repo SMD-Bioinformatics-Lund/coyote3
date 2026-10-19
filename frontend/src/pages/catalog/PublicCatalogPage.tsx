@@ -17,7 +17,7 @@ import { formatScalar } from "./catalog-values"
 
 export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?: Catalog; onMatrix?: () => void }) {
   const annotations = useAnnotationVisibility("catalog")
-  const [selection, setSelection] = useState<{ mod?: string; cat?: string; isgl_key?: string }>({})
+  const [selection, setSelection] = useState<{ mod?: string; cat?: string; isgl_key?: string; analysis?: string }>({})
   const params = new URLSearchParams()
   if (selection.mod) params.set("mod", selection.mod)
   if (selection.cat) params.set("cat", selection.cat)
@@ -114,7 +114,7 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
         <>
           <button
             onClick={() => downloadCsv.mutate()}
-            disabled={!selection.mod || downloadCsv.isPending || isLoading}
+            disabled={!selection.mod || (Boolean(selection.cat) && !selection.isgl_key) || downloadCsv.isPending || isLoading}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
           >
             {downloadCsv.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
@@ -176,12 +176,20 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                           >
                             {cat.label || cat.title || catKey}
                           </button>
-                          {selection.cat === catKey && (cat.gene_lists || []).length > 0 && (
+                          {selection.cat === catKey && ((cat.analysis || []).length > 0 || (cat.gene_lists || []).length > 0) && (
                             <div className="ml-2 mt-1 border-l border-border pl-2">
-                              {(cat.gene_lists || []).filter((gl: any) => gl.key).map((gl: any) => (
+                              <div role="tablist" aria-label="Available analyses" className="mb-2 flex flex-wrap gap-1">
+                                {[...(cat.analysis || []) as string[], ...((cat.gene_lists || []).some((list: { analysis?: string[] }) => !list.analysis?.length) ? ["Unassigned"] : [])].map((analysis) => <button key={analysis} role="tab" aria-selected={selection.analysis === analysis}
+                                  className={`rounded-lg border border-border px-2 py-1 type-label ${selection.analysis === analysis ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}
+                                  onClick={() => setSelection({ mod: modKey, cat: catKey, analysis,
+                                    isgl_key: (cat.gene_lists || []).find((list: { key?: string; analysis?: string[] }) => analysis === "Unassigned" ? !list.analysis?.length : list.analysis?.includes(analysis))?.key,
+                                  })}>{analysis}</button>)}
+                              </div>
+                              {selection.analysis && cat.no_gene_list?.includes(selection.analysis) && <p className="type-body-sm text-muted-foreground">No gene list for {selection.analysis}.</p>}
+                              {(cat.gene_lists || []).filter((gl: { key?: string; analysis?: string[] }) => gl.key && selection.analysis && (selection.analysis === "Unassigned" ? !gl.analysis?.length : gl.analysis?.includes(selection.analysis))).map((gl: any) => (
                                 <button
                                   key={gl.key}
-                                  onClick={() => setSelection({ mod: modKey, cat: catKey, isgl_key: gl.key })}
+                                  onClick={() => setSelection({ ...selection, mod: modKey, cat: catKey, isgl_key: gl.key })}
                                   className={`mb-1 block w-full rounded-md px-2 py-1 text-left type-meta font-semibold hover:bg-muted ${selection.isgl_key === gl.key ? "bg-genelist/10 text-genelist" : "text-muted-foreground"}`}
                                 >
                                   {gl.label || gl.key}
@@ -227,11 +235,13 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                   <BadgeList values={right.sample_modes} empty="No Info" />
                 </CatalogField>
                 <CatalogField label="Genes">
+                  {selection.cat && !selection.isgl_key ? <span className="type-body-sm text-muted-foreground">{selection.analysis ? "No gene list selected" : "Select an analysis"}</span> : <>
                   <span className="font-semibold text-primary">{data?.stats?.total ?? 0}</span>
                   <span className="ml-2 text-xs text-muted-foreground">
                     covered {data?.stats?.covered_total ?? 0}
                     {typeof data?.stats?.germline_total === "number" ? `, germline ${data.stats.germline_total}` : ""}
                   </span>
+                  </>}
                 </CatalogField>
               </div>
 
@@ -297,7 +307,9 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
 
             <section className="surface-panel dashboard-panel dashboard-panel--rose border-border/50 p-3">
               <div className="mb-2 flex justify-end">{annotations.toggle}</div>
-              <DataTable columns={geneColumns} data={data?.genes || []} filename="assay_catalog_genes.csv" />
+              {selection.cat && !selection.isgl_key
+                ? <p className="type-body-sm text-muted-foreground">{selection.analysis ? "No gene list is selected for this analysis." : "Select an analysis and gene list to view its genes."}</p>
+                : <DataTable columns={geneColumns} data={data?.genes || []} filename="assay_catalog_genes.csv" />}
             </section>
           </div>
         </div>

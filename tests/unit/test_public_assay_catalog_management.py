@@ -90,7 +90,14 @@ def service():
             ]
         ),
         gene_list_repository=SimpleNamespace(
-            get_all_isgl=lambda **kw: [{"isgl_id": "diagnosis", "genes": ["GENE1"]}]
+            get_all_isgl=lambda **kw: [
+                {
+                    "isgl_id": "diagnosis",
+                    "genes": ["GENE1"],
+                    "asp_ids": ["assay"],
+                    "asp_groups": ["demo"],
+                }
+            ]
         ),
     )
     service.notification_service = Mock()
@@ -110,7 +117,8 @@ def content():
                         "asp_id": "assay",
                         "aspc_id": "assay_base",
                         "tat": "7-10 days",
-                        "gene_lists": [{"isgl_id": "diagnosis"}],
+                        "analysis": ["SNV"],
+                        "gene_lists": [{"isgl_id": "diagnosis", "analysis": ["SNV"]}],
                     }
                 },
             }
@@ -284,6 +292,47 @@ def test_sources_exclude_nonproduction_and_gene_contents(service):
     options = service.source_options()
     assert [v["aspc_id"] for v in options["aspcs"]] == ["assay_base"]
     assert "genes" not in options["gene_lists"][0]
+
+
+def test_analysis_assignments_accept_multiple_lists_and_explicit_none(service):
+    """List references can be shared across analyses without copying gene contents."""
+    service.gene_list_repository.get_all_isgl = lambda **kw: [
+        {"isgl_id": key, "asp_ids": ["assay"], "asp_groups": ["demo"]}
+        for key in ("diagnosis", "second")
+    ]
+    data = content()
+    entry = data["modalities"]["wgs"]["categories"]["solid"]
+    entry.update(analysis=["SNV", "CNV", "MSI"], no_gene_list=["MSI"])
+    entry["gene_lists"] = [
+        {"isgl_id": "diagnosis", "analysis": ["SNV", "CNV"]},
+        {"isgl_id": "second", "analysis": ["SNV"]},
+    ]
+    service.validate_links(data)
+
+
+@pytest.mark.parametrize(
+    "problem", ["missing", "conflict", "wrong_group", "wrong_assay", "unselected"]
+)
+def test_invalid_analysis_assignments_block_submission(service, problem):
+    """Publication rejects incomplete mappings, contradictions and ineligible lists."""
+    data = content()
+    entry = data["modalities"]["wgs"]["categories"]["solid"]
+    if problem == "missing":
+        entry["analysis"].append("CNV")
+    elif problem == "conflict":
+        entry["no_gene_list"] = ["SNV"]
+    elif problem == "unselected":
+        entry["gene_lists"][0]["analysis"] = ["CNV"]
+    else:
+        service.gene_list_repository.get_all_isgl = lambda **kw: [
+            {
+                "isgl_id": "diagnosis",
+                "asp_ids": ["other" if problem == "wrong_assay" else "assay"],
+                "asp_groups": ["other" if problem == "wrong_group" else "demo"],
+            }
+        ]
+    with pytest.raises(ApiError):
+        service.validate_links(data)
 
 
 def test_import_removes_executable_html_but_keeps_public_formatting(service):

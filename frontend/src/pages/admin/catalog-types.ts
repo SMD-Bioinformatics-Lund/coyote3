@@ -20,6 +20,7 @@ export type Category = Presentation & {
   subpanel_id?: string | null
   aspc_ids?: Record<string, string>
   gene_lists?: GeneEntry[]
+  no_gene_list?: string[]
 }
 export type Modality = Presentation & { categories: Record<string, Category> }
 export type Catalog = {
@@ -36,7 +37,7 @@ export type Version = {
 export type SourceOptions = {
   asps: { asp_id: string; label: string; category?: string; group?: string }[]
   aspcs: { aspc_id: string; asp_id: string; subpanel_id?: string }[]
-  gene_lists: { isgl_id: string; label: string; asp_ids: string[]; diagnosis: string[] }[]
+  gene_lists: { isgl_id: string; label: string; asp_ids: string[]; asp_groups?: string[]; diagnosis: string[] }[]
 }
 export type Workspace = {
   catalog: Catalog; has_published: boolean; sources: SourceOptions
