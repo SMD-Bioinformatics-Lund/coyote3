@@ -5,9 +5,19 @@ import { TierBadge } from "@/lib/variant-ui"
 export type ReportType = "dna" | "rna"
 export type ReportSnapshotRow = Record<string, any>
 
+export function isCompactReportBiomarker(type: string): type is "HRD" | "MSI" | "TMB" {
+  return type === "HRD" || type === "MSI" || type === "TMB"
+}
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-"
-  return typeof value === "string" ? value : JSON.stringify(value)
+  if (Array.isArray(value)) return value.map(formatValue).join("; ")
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([key, entry]) => `${key.replaceAll("_", " ")}: ${formatValue(entry)}`)
+      .join(" · ")
+  }
+  return String(value)
 }
 
 function renderClippedValue(value: unknown, className = "max-w-[34rem]") {

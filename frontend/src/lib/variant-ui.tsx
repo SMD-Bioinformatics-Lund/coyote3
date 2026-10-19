@@ -111,7 +111,8 @@ export function CopyNumberBadge({
   const normalized = String(value || "").trim().toLowerCase()
   const isGain = normalized.includes("gain") || normalized.includes("amplif") || normalized === "dup"
   const isLoss = normalized.includes("loss") || normalized.includes("delet") || normalized === "del"
-  const className = isGain ? "badge-cnv-gain" : isLoss ? "badge-cnv-loss" : "badge-neutral"
+  const className = isGain ? "badge-cnv-gain" : isLoss ? "badge-cnv-loss"
+    : normalized === "normal" ? "badge-success" : "badge-neutral"
 
   return (
     <TableBadge className={cn("gap-1 whitespace-normal uppercase", className)}>

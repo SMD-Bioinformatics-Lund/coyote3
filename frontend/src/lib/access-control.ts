@@ -11,6 +11,7 @@ export type CurrentUserAccess = {
   permissions: string[]
   must_change_password?: boolean
   ui_settings?: {
+    theme?: "auto" | "light" | "dark"
     analysis_layout?: "classic" | "modern"
     sample_list_layout?: "classic" | "modern"
     analysis_modern_view_tried?: boolean

@@ -16,7 +16,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -202,7 +202,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -388,7 +388,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -481,7 +481,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -574,7 +574,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -667,7 +667,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -760,7 +760,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -853,7 +853,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1041,7 +1041,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1417,7 +1417,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1511,7 +1511,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1605,7 +1605,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -1698,7 +1698,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1791,7 +1791,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1884,7 +1884,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -1977,7 +1977,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2070,7 +2070,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2349,7 +2349,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2442,7 +2442,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2535,7 +2535,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2628,7 +2628,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2721,7 +2721,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -2814,7 +2814,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3000,7 +3000,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -3186,7 +3186,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3279,7 +3279,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3372,7 +3372,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3465,7 +3465,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3558,7 +3558,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3651,7 +3651,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -3839,7 +3839,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4215,7 +4215,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4309,7 +4309,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4403,7 +4403,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -4496,7 +4496,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4589,7 +4589,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4682,7 +4682,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4775,7 +4775,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -4868,7 +4868,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5147,7 +5147,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5240,7 +5240,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5333,7 +5333,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5426,7 +5426,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5519,7 +5519,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5612,7 +5612,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -5798,7 +5798,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -5984,7 +5984,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -6077,7 +6077,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -6170,7 +6170,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -6263,7 +6263,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -6356,7 +6356,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -6449,7 +6449,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -6637,7 +6637,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7013,7 +7013,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7107,7 +7107,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7201,7 +7201,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -7294,7 +7294,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7387,7 +7387,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7480,7 +7480,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7573,7 +7573,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7666,7 +7666,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -7945,7 +7945,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8038,7 +8038,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8131,7 +8131,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8224,7 +8224,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8317,7 +8317,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8410,7 +8410,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8596,7 +8596,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -8782,7 +8782,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8875,7 +8875,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -8968,7 +8968,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9061,7 +9061,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9154,7 +9154,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9247,7 +9247,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9435,7 +9435,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9811,7 +9811,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9905,7 +9905,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -9999,7 +9999,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -10092,7 +10092,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10185,7 +10185,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10278,7 +10278,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10371,7 +10371,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10464,7 +10464,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10743,7 +10743,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10836,7 +10836,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -10929,7 +10929,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11022,7 +11022,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11115,7 +11115,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11208,7 +11208,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11394,7 +11394,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -11580,7 +11580,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11673,7 +11673,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11766,7 +11766,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11859,7 +11859,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -11952,7 +11952,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -12045,7 +12045,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -12233,7 +12233,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -12609,7 +12609,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -12703,7 +12703,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -12797,7 +12797,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -12890,7 +12890,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -12983,7 +12983,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13076,7 +13076,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13169,7 +13169,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13262,7 +13262,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13541,7 +13541,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13634,7 +13634,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13727,7 +13727,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13820,7 +13820,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -13913,7 +13913,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14006,7 +14006,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14192,7 +14192,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -14378,7 +14378,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14471,7 +14471,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14564,7 +14564,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14657,7 +14657,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14750,7 +14750,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -14843,7 +14843,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15031,7 +15031,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15407,7 +15407,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15501,7 +15501,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15595,7 +15595,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -15688,7 +15688,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15781,7 +15781,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15874,7 +15874,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -15967,7 +15967,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16060,7 +16060,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16339,7 +16339,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16432,7 +16432,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16525,7 +16525,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16618,7 +16618,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16711,7 +16711,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16804,7 +16804,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -16974,7 +16974,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -17144,7 +17144,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -17229,7 +17229,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -17314,7 +17314,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -17399,7 +17399,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -17484,7 +17484,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -17569,7 +17569,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -17741,7 +17741,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18085,7 +18085,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18171,7 +18171,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18257,7 +18257,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -18342,7 +18342,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18427,7 +18427,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18512,7 +18512,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18597,7 +18597,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18682,7 +18682,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -18937,7 +18937,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19022,7 +19022,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19107,7 +19107,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19192,7 +19192,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19277,7 +19277,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19362,7 +19362,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19548,7 +19548,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -19734,7 +19734,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19827,7 +19827,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -19920,7 +19920,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20013,7 +20013,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20106,7 +20106,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20199,7 +20199,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20387,7 +20387,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20763,7 +20763,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20857,7 +20857,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -20951,7 +20951,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -21044,7 +21044,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21137,7 +21137,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21230,7 +21230,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21323,7 +21323,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21416,7 +21416,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21695,7 +21695,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21788,7 +21788,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21881,7 +21881,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -21974,7 +21974,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22067,7 +22067,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22160,7 +22160,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0000.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22346,7 +22346,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0002.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -22532,7 +22532,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0004.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22625,7 +22625,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0005.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22718,7 +22718,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0006.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22811,7 +22811,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0007.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22904,7 +22904,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0008.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -22997,7 +22997,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0009.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -23185,7 +23185,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0011.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -23561,7 +23561,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0015.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -23655,7 +23655,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0016.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -23749,7 +23749,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0017.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:1833",
         "SYMBOL": "CEBPA",
         "PolyPhen": null,
         "SIFT": null,
@@ -23842,7 +23842,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0018.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -23935,7 +23935,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0019.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24028,7 +24028,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0020.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24121,7 +24121,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0021.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24214,7 +24214,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0022.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24493,7 +24493,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0025.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24586,7 +24586,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0027.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24679,7 +24679,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0028.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24772,7 +24772,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0029.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,
@@ -24865,7 +24865,7 @@
       ],
       "selected_CSQ": {
         "Feature": "ENSTDEMO0030.1",
-        "HGNC_ID": null,
+        "HGNC_ID": "HGNC:11998",
         "SYMBOL": "TP53",
         "PolyPhen": null,
         "SIFT": null,

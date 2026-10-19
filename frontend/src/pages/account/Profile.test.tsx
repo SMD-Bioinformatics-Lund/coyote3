@@ -97,7 +97,7 @@ describe("Profile", () => {
       },
     })
 
-    expect(await screen.findByText("User settings")).toBeVisible()
+    expect(await screen.findByRole("heading", { name: "Preferences" })).toBeVisible()
     fireEvent.click(screen.getAllByRole("tab", { name: "Modern" })[0])
 
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(

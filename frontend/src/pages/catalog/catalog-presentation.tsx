@@ -11,7 +11,7 @@ export function HtmlText({ html, className }: { html: unknown; className?: strin
 
 export function CatalogField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3">
+    <div className="content-item p-3">
       <span className="mb-1.5 block type-label font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
       {children}
     </div>

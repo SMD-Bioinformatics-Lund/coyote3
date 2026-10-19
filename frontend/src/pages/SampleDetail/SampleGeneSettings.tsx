@@ -181,7 +181,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
           ))}
         </div>
 
-        <div className="rounded-xl border border-border bg-background/70 p-3">
+        <div className="content-item p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Selectable lists</h3>
@@ -311,7 +311,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
           )}
         </div>
 
-        <div className="rounded-xl border border-border bg-background/70 p-3">
+        <div className="content-item p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ad-hoc genes</h3>
             <div className="flex gap-2">
@@ -349,7 +349,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
           />
         </div>
 
-        <div className="rounded-xl border border-border bg-background/70 p-3">
+        <div className="content-item p-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Effective genes</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {effective.length} effective gene(s), {effectiveGenes.data?.asp_covered_genes_count ?? 0} covered by assay.

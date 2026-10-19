@@ -70,6 +70,7 @@ export function selectedFusionCall(fusion: any) {
 }
 
 export function fusionGenes(fusion: any) {
+  if (fusion?.gene1 || fusion?.gene2) return [fusion.gene1 || "", fusion.gene2 || ""]
   if (typeof fusion?.genes === "string") return fusion.genes.split("^")
   if (Array.isArray(fusion?.genes)) return fusion.genes
   if (typeof fusion?.fusion_name === "string") return fusion.fusion_name.split("--")

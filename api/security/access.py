@@ -88,6 +88,7 @@ class ApiUser:
     job_title: str = ""
     ui_settings: dict[str, str | bool | int] = field(
         default_factory=lambda: {
+            "theme": "auto",
             "analysis_layout": "classic",
             "sample_list_layout": "classic",
             "analysis_modern_view_tried": False,
@@ -306,6 +307,7 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
         credential_version=sha256(str(user_doc.get("password") or "").encode()).hexdigest(),
         ui_settings={
+            "theme": "auto",
             "analysis_layout": "classic",
             "sample_list_layout": "classic",
             "analysis_modern_view_tried": False,

@@ -49,7 +49,8 @@ def test_plan_install_and_collision_preserve_existing_configuration(installer):
         assert all(row["system_installed"] for row in database[name].find())
     assert service.plan().configuration_installed
     assert {r["environment"] for r in database.asp_configs.find()} == {"testing"}
-    assert {r["status"] for r in database.clinical_rule_sets.find()} == {"draft"}
+    assert {r["status"] for r in database.clinical_rule_sets.find()} == {"published"}
+    assert all(r["active"] for r in database.clinical_rule_sets.find())
     assert database.clinical_rule_revisions.count_documents({}) == 9
     before = list(database.asp_configs.find())
     with pytest.raises(AppError, match="already exists"):
@@ -229,7 +230,7 @@ def test_demo_samples_use_normal_ingest_and_never_update_existing(installer):
     assert ingest.ingest_sample_bundle.call_count == 1
 
 
-def test_drafts_are_validated_before_any_repository_write(installer, tmp_path):
+def test_configuration_is_validated_before_any_repository_write(installer, tmp_path):
     service, _, _ = installer
     setup = tmp_path / "setup"
     setup.mkdir()
@@ -239,3 +240,21 @@ def test_drafts_are_validated_before_any_repository_write(installer, tmp_path):
     service.bundle = tmp_path
     with pytest.raises(AppError, match="testing"):
         service.install_configuration("admin")
+
+
+def test_published_demo_rules_cannot_target_other_assays(installer, tmp_path):
+    """Reject published examples outside the assays owned by the demo bundle."""
+    service, database, _ = installer
+    setup = tmp_path / "setup"
+    setup.mkdir()
+    (setup / "assay_specific_panels.json").write_text(
+        (BUNDLE / "setup/assay_specific_panels.json").read_text()
+    )
+    rules = json.loads((BUNDLE / "setup/clinical_rule_sets.json").read_text())
+    rules[0]["scope"]["asp_id"] = "other_assay"
+    rules[0]["rule_set_id"] = "other_assay__base__en"
+    (setup / "clinical_rule_sets.json").write_text(json.dumps(rules))
+    service.bundle = tmp_path
+    with pytest.raises(AppError, match="packaged assay"):
+        service.install_configuration("admin")
+    assert database.clinical_rule_sets.count_documents({}) == 0

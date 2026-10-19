@@ -21,6 +21,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic hematology",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -141,6 +142,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic myeloid",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -261,6 +263,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic solid",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -381,6 +384,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic tumwgs",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -501,6 +505,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic lymphoid",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -614,6 +619,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic fusion",
     "description": "Demo ASP configuration for first-run RNA WTS workflows",
@@ -693,6 +699,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic wts",
     "description": "Demo ASP configuration for first-run RNA WTS workflows",
@@ -779,6 +786,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic myeloid",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -899,6 +907,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic demo DNA",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -1014,6 +1023,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Synthetic demo RNA",
     "description": "Demo ASP configuration for first-run RNA WTS workflows",

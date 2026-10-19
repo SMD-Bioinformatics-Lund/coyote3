@@ -313,7 +313,8 @@ describe("sample analysis table tabs", () => {
     mount(<ReportsTab sampleId="DNA_REPORT" />, "/samples/DNA_REPORT?tab=reports")
 
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered DNA report")
-    expect(screen.getByText(/Rules: assay__base__sv/)).toHaveTextContent("v2 · sv · Assay Base scope")
+    fireEvent.click(screen.getByText("Report rule details"))
+    expect(screen.getByText(/assay__base__sv/)).toHaveTextContent("v2 · sv · Assay Base scope")
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false")
     fireEvent.click(screen.getByRole("button", { name: "Save report" }))
     expect(screen.getByRole("heading", { name: "Confirm report save" })).toBeVisible()
@@ -329,7 +330,7 @@ describe("sample analysis table tabs", () => {
     )
   })
 
-  it("groups every included clinical finding type into its own snapshot table", async () => {
+  it("groups included findings by analysis and shows a compact TMB result", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "MULTI_REPORT" },
       meta: { snapshot_count: 6, template_status: { status: "ready", has_html: true } },
@@ -359,15 +360,11 @@ describe("sample analysis table tabs", () => {
     ]) {
       expect(screen.getAllByText(section)[0]).toBeVisible()
     }
-    expect(mocks.dataTable).toHaveBeenCalledTimes(6)
-    expect(mocks.dataTable.mock.calls.map(([props]) => props.filename)).toEqual([
-      "MULTI_REPORT_dna_snv_snapshot.csv",
-      "MULTI_REPORT_dna_cnv_snapshot.csv",
-      "MULTI_REPORT_dna_translocation_snapshot.csv",
-      "MULTI_REPORT_dna_fusion_snapshot.csv",
-      "MULTI_REPORT_dna_tmb_snapshot.csv",
-      "MULTI_REPORT_dna_pgx_snapshot.csv",
-    ])
+    for (const value of ["TP53", "EGFR", "KMT2A", "AFF1", "BCR::ABL1", "CYP2C19"]) {
+      expect(screen.getByText(value)).toBeVisible()
+    }
+    expect(screen.getByText("12.4")).toBeVisible()
+    expect(screen.getByText("mut/Mb")).toBeVisible()
   })
 
   it("uses the fixed RNA report workflow for an RNA sample", async () => {
@@ -400,10 +397,9 @@ describe("sample analysis table tabs", () => {
     expect(screen.getByText("8 / 13")).toBeVisible()
     expect(screen.getByText("2")).toBeVisible()
     expect(screen.getByText("Reviewed fusion")).toBeVisible()
-    const reportTable = mocks.dataTable.mock.calls.at(-1)?.[0]
-    expect(reportTable.columns.map((column: { id: string }) => column.id)).toEqual([
-      "fusion", "breakpoints", "effect", "support", "classification", "text",
-    ])
+    for (const label of ["Fusion", "Breakpoints", "Effect", "Pairs / reads", "Classification", "Annotation"]) {
+      expect(screen.getByText(label)).toBeVisible()
+    }
   })
 
   it("keeps report actions disabled when no approved HTML is available", async () => {
@@ -416,7 +412,7 @@ describe("sample analysis table tabs", () => {
 
     expect(await screen.findByText("No reporting rules")).toBeVisible()
     expect(screen.getByRole("button", { name: "Save report" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "PDF" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled()
   })
 
   it.each([

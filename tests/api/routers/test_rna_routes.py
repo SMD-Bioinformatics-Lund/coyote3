@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from fastapi.routing import iter_route_contexts
@@ -64,7 +65,8 @@ def test_change_payload_shape():
     assert payload["resource_id"] == "F1"
 
 
-def test_list_rna_fusions_success(monkeypatch):
+@pytest.mark.parametrize("paginate", [True, False])
+def test_list_rna_fusions_success(monkeypatch, paginate):
     """Test list rna fusions success.
 
     Args:
@@ -138,18 +140,25 @@ def test_list_rna_fusions_success(monkeypatch):
         "attach_rna_analysis_sections",
         lambda self, s: s,
     )
-    service.clinical_rule_service = SimpleNamespace(
-        evaluate=lambda **kwargs: SimpleNamespace(
-            sections={"Report summary": ["summary"]},
-            section_headings={"Report summary": False},
-        )
-    )
+    evaluator = Mock(side_effect=ValueError("No active published clinical rule set"))
+    service.clinical_rule_service = SimpleNamespace(evaluate=evaluator)
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = rna.list_rna_fusions(_Req(), "S1", user=fx.api_user(), service=service)
+    payload = service.list_fusions_payload(
+        request=_Req(), sample=sample, util_module=rna.util, paginate=paginate
+    )
     assert payload["meta"]["count"] == 1
     assert payload["fusions"][0]["gene1"] == fusions[0]["gene1"]
-    assert payload["ai_text"] == "summary"
+    assert payload["ai_text"] == ""
+    evaluator.assert_not_called()
+    with pytest.raises(ValueError, match="No active published clinical rule set"):
+        service.list_fusions_payload(
+            request=_Req(),
+            sample=sample,
+            util_module=rna.util,
+            paginate=False,
+            include_report_context=True,
+        )
 
 
 def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
@@ -184,6 +193,7 @@ def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
     )
 
     assert captured["paginate"] is False
+    assert captured["include_report_context"] is True
     assert payload == {
         "sample_id": "sample-1",
         "sample_name": "S1",

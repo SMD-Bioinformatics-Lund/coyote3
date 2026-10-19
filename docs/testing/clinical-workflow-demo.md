@@ -85,7 +85,7 @@ its modalities, analysis tabs and gene lists.
 Under **Additional workflow scenarios**, choose:
 
 - **Install configuration only** for assays, testing ASPCs, gene-list/subpanel
-  configuration and unpublished report-rule drafts.
+  configuration and published demo report-rule sets.
 - **Install configuration and samples** to install that configuration followed
   by each packaged sample through normal ingestion.
 
@@ -94,8 +94,8 @@ error. Each sample commits independently. Completed samples remain available if 
 later sample fails; retry installs only missing items. Existing configuration is
 preserved, and conflicting or partial configuration requires administrator review.
 No users, knowledgebase releases, BAM files or saved clinical reports are installed.
-The review and publication exercises below apply to the additional workflow suite;
-its reporting rules remain unpublished drafts.
+For review and publication exercises, create a new draft version from an installed
+demo rule set.
 
 > [!IMPORTANT]
 > Installation targets this application's configured database. Profiles use the
@@ -130,9 +130,9 @@ your local replica-set name and existing demo administrator:
 ```
 
 This prints a plan. Repeat with `--apply` to insert the validated configuration
-and report-draft baseline revisions in one transaction. Existing fixture identities
+and published demo report-rule baseline revisions in one transaction. Existing fixture identities
 cause the command to stop; nothing is overwritten. The loader does not ingest
-samples, assign roles, publish rules or reset databases.
+samples, assign roles or reset databases.
 
 | Assay | Group / family | Configuration |
 | --- | --- | --- |
@@ -151,14 +151,16 @@ TRANSLOCATION, HRD, MSI, TMB and PGX. RNA has no SNVs. The focus ISGL contains
 FLT3 and CEBPA; initially it is available for selection, not automatically applied.
 The focus ASPC starts with the same filter values as base to isolate scope tests.
 
-Report sets are **drafts**, language `en`. They include synthetic wording, tiered
-SNV output and presence-based CNV/translocation/HRD/MSI/TMB sections. Review and
-publish them through the reporting-rule workflow before normal report generation.
+Report sets are **published software examples**, language `en`, scoped to the
+packaged demo assays. They use the existing DNA and RNA fusion report templates.
+They include synthetic wording, tiered SNV output and presence-based
+CNV/translocation/HRD/MSI/TMB sections and support report preview immediately.
 They contain no clinical assertions about the supplied measurements.
 
-The drafts include 32 embedded cases: no-findings output, each SNV tier and
+The rule sets include 32 embedded cases: no-findings output, each SNV tier and
 additional-evidence presence for DNA, plus the RNA summary cases. They pass
-submission-time rule validation; independent review/publication is still required.
+submission-time rule validation. Center-authored versions follow the normal
+independent review and publication workflow.
 
 ## 3. Validate and ingest the raw files
 
@@ -319,11 +321,12 @@ checks; the offline exporter does not claim to execute them.
 
 ## 7. Test report rules, save and export
 
-Preview the installed demo report drafts using **Test with a sample**. The DNA
+Preview the installed demo reports from the sample's **Reports** tab, or test the
+rule sets using **Test with a sample**. The DNA
 intro renders once. Only tiers 1–3 receive the example per-finding sentence; the
 tier-4 NFKBIE candidate receives none. Present CNV, translocation, HRD, MSI and TMB
 evidence enables its corresponding synthetic section. The missing-result sample
-has no HRD/MSI/TMB section. RNA drafts produce a synthetic fusion summary.
+has no HRD/MSI/TMB section. RNA rules produce a synthetic fusion summary.
 
 `expected/report_previews.json` contains real engine output for these constructed
 review contexts. It does not prove report preparation selected the same findings;

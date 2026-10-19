@@ -276,7 +276,13 @@ class RnaService:
         )
 
     def list_fusions_payload(
-        self, *, request, sample: dict, util_module, paginate: bool = True
+        self,
+        *,
+        request,
+        sample: dict,
+        util_module,
+        paginate: bool = True,
+        include_report_context: bool = False,
     ) -> dict[str, Any]:
         """Return the fusion-list payload for a sample.
 
@@ -284,6 +290,9 @@ class RnaService:
             request: Active request used for metadata.
             sample: Sample payload to inspect.
             util_module: Common utility module used by the route layer.
+            paginate: Limit findings to the requested page when true.
+            include_report_context: Evaluate clinical report rules for a comment
+                suggestion. False keeps finding retrieval independent of reporting setup.
 
         Returns:
             dict[str, Any]: Fusion list payload with filters and summary data.
@@ -365,25 +374,27 @@ class RnaService:
             page_fusions, pagination_meta = paginate_items(fusions, page=page, per_page=per_page)
         page_genes = [gene for fusion in page_fusions for gene in _fusion_genes(fusion)]
         sample = self.workflow.attach_rna_analysis_sections(sample)
-        selected_list_ids = list(filter_context.get("checked_fusionlists") or [])
-        selected_list_docs = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
-        applied_gene_lists = [
-            {**document, "isgl_id": isgl_id, "selected_for": ["fusion"]}
-            for isgl_id, document in selected_list_docs.items()
-        ]
-        context = prepare_report_context(
-            sample=sample,
-            asp=assay_panel_doc or {},
-            aspc=assay_config,
-            analyte="rna",
-            applied_gene_lists=applied_gene_lists,
-            report_sections_data={"fusions": tiered_fusions},
-        )
-        ai_text = rendered_summary(
-            self.clinical_rule_service.evaluate(aspc=assay_config, context=context)
-            if self.clinical_rule_service is not None
-            else None
-        )
+        ai_text = ""
+        if include_report_context:
+            selected_list_ids = list(filter_context.get("checked_fusionlists") or [])
+            selected_list_docs = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+            applied_gene_lists = [
+                {**document, "isgl_id": isgl_id, "selected_for": ["fusion"]}
+                for isgl_id, document in selected_list_docs.items()
+            ]
+            context = prepare_report_context(
+                sample=sample,
+                asp=assay_panel_doc or {},
+                aspc=assay_config,
+                analyte="rna",
+                applied_gene_lists=applied_gene_lists,
+                report_sections_data={"fusions": tiered_fusions},
+            )
+            ai_text = rendered_summary(
+                self.clinical_rule_service.evaluate(aspc=assay_config, context=context)
+                if self.clinical_rule_service is not None
+                else None
+            )
         return {
             "sample": sample,
             "meta": {

@@ -18,6 +18,7 @@ export function normalizeUserUiSettings(
   value: Partial<UserUiSettings> | null | undefined,
 ): UserUiSettings {
   return {
+    theme: value?.theme === "light" || value?.theme === "dark" ? value.theme : "auto",
     analysis_layout: value?.analysis_layout === "modern" ? "modern" : "classic",
     sample_list_layout: value?.sample_list_layout === "modern" ? "modern" : "classic",
     analysis_modern_view_tried: Boolean(value?.analysis_modern_view_tried),

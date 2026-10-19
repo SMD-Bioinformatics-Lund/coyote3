@@ -8,7 +8,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       version: 1, layout: { order: ["wgs"] }, modalities: {
         wgs: { label: "Whole Genome Sequencing (WGS)", categories: {
           solid: { label: "Solid", asp_id: "assay", aspc_id: "assay_base",
-            input_material: ["DNA"], analysis: ["somatic"], tat: "7-10 days", gene_lists: [] },
+            input_material: ["DNA"], analysis: ["SNV"], tat: "7-10 days", gene_lists: [] },
         } },
       } }
     let version = { _id: "draft-one", status: "draft", revision: 1, base_version: 1,
@@ -24,7 +24,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
         sources: { asps: [{ asp_id: "assay", label: "Assay" }],
           aspcs: [{ asp_id: "assay", aspc_id: "assay_base", subpanel_id: "base" }],
           gene_lists: [] },
-        presets: { input_material: ["DNA", "RNA", "FFPE"], analysis: ["somatic", "germline"],
+        presets: { input_material: ["DNA", "RNA", "FFPE"], analysis: ["SNV", "CNV"],
           sample_modes: ["Tumor-only", "Tumor-normal"] },
         reviewers: [{ username: "reviewer", name: "Reviewer" }], publishers: [],
       } }
@@ -33,7 +33,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
         const selected = url.searchParams.get("cat") === "solid"
         return { json: {
           order: document.layout.order, modalities: document.modalities,
-          right: selected ? { ...document.modalities.wgs.categories.solid, title: "Solid" }
+          right: selected ? { ...document.modalities.wgs.categories.solid, title: "Solid",
+            gene_lists: [{ key: "assay", label: "Covered genes", analysis: ["SNV"] }] }
             : { title: document.header, description: document.description },
           genes: selected ? [{ display_symbol: "TP53", gene_name: "Synthetic gene" }] : [],
           stats: { total: selected ? 1 : 0, covered_total: selected ? 1 : 0, germline_total: 0 },

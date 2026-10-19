@@ -142,7 +142,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/samples/:id/translocation/:varId",
     page: "TranslocationDetail",
     area: "clinical",
-    api: ["GET /samples/:id/translocations/:varId"],
+    api: ["GET /samples/:id/translocations/:varId", "PATCH /samples/:id/translocations/:varId/selected-transcript"],
     dataUsed: ["translocation", "genes", "breakpoints", "classifications", "comments"],
   },
   {
@@ -605,8 +605,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/profile",
     page: "Profile",
     area: "account",
-    api: ["GET /auth/session", "POST /auth/password/change"],
-    dataUsed: ["session payload", "password change status"],
+    api: ["GET /auth/session", "POST /auth/password/change", "PATCH /auth/profile", "PATCH /users/me/ui-settings"],
+    dataUsed: ["session payload", "password change status", "account theme and interface preferences (shared with top navigation)"],
   },
   {
     path: "*",
@@ -618,5 +618,5 @@ export const uiRouteRegistry: UiRouteAudit[] = [
   },
 ]
 
-// The shared error boundary reports diagnostics from any authenticated route.
-export const sharedUiApiDependencies = ["POST /client-errors"]
+// Shared navigation saves account preferences; the error boundary reports diagnostics.
+export const sharedUiApiDependencies = ["POST /client-errors", "PATCH /users/me/ui-settings"]

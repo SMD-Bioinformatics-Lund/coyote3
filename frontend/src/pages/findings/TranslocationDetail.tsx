@@ -1,6 +1,9 @@
 import { useEffect } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { notifyActionError } from "@/lib/notifications"
+import { StructuralTranscriptTable, type StructuralTranscriptRow } from "@/components/detail/StructuralTranscriptTable"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
@@ -42,6 +45,20 @@ export function TranslocationDetail() {
   const { id, varId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const access = useCurrentUserAccess()
+  const transcriptSelection = useMutation({
+    mutationFn: (key: string) => api.patch(
+      `/samples/${id}/translocations/${varId}/selected-transcript`, { annotation_key: key },
+    ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['translocation', id, varId] })
+      queryClient.invalidateQueries({ queryKey: ['sample-translocations'] })
+      queryClient.invalidateQueries({ queryKey: ['sample-comment-suggestion'] })
+      queryClient.invalidateQueries({ queryKey: ['report-preview'] })
+    },
+    onError: err => notifyActionError("Unable to select transcript", err, "Transcript selection"),
+  })
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['translocation', id, varId],
@@ -75,7 +92,8 @@ export function TranslocationDetail() {
   const { sample, latest_classification } = data
   const annotation = selectedTranslocationAnnotation(translocation)
   const genes = translocationGenes(translocation)
-  const annRows = Array.isArray(translocation?.INFO?.ANN) ? translocation.INFO.ANN : []
+  const annRows: StructuralTranscriptRow[] = data.transcript_combinations || []
+  const selectedKey = annRows.find(row => JSON.stringify(row.annotation) === JSON.stringify(annotation))?.annotation_key
   const position = translocationPositionLabel(translocation)
   const callers = translocation?.INFO?.variant_callers || translocation?.callers
   const readEvidence = genotypeRows(translocation)
@@ -156,17 +174,13 @@ export function TranslocationDetail() {
 
             <DetailCard title="Transcript Combinations">
               <p className="mb-2 type-body-sm text-muted-foreground">SnpEff annotations · selection: {translocation?.INFO?.ANN_selection_source?.replaceAll("_", " ") || "Not recorded"}</p>
-              <DetailDataTable
+              <StructuralTranscriptTable
                 rows={annRows}
-                empty="No alternate transcript combinations available."
-                columns={[
-                  { key: "selected", header: "", render: (row: any) => JSON.stringify(row) === JSON.stringify(annotation) ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : null },
-                  { key: "gene", header: "Genes", render: (row: any) => displayValue(row.Gene_Name || row.SYMBOL) },
-                  { key: "feature", header: "Transcript", render: (row: any) => <span className="">{row.Feature_ID || row.Feature || "-"}</span> },
-                  { key: "protein", header: "Protein", render: (row: any) => row.HGVS_p || row.HGVSp || "-" },
-                  { key: "cdna", header: "cDNA", render: (row: any) => row.HGVS_c || row.HGVSc || "-" },
-                  { key: "consequence", header: "SnpEff consequence", render: (row: any) => <ConsequenceBadges value={row.Annotation} translations={data.snpeff_conseq_translations} wide /> },
-                ]}
+                selectedKey={selectedKey}
+                canSelect={hasPermission(access.data, "translocation:manage")}
+                pending={transcriptSelection.isPending}
+                onSelect={key => transcriptSelection.mutate(key)}
+                translations={data.snpeff_conseq_translations}
               />
             </DetailCard>
 

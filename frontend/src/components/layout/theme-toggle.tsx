@@ -1,26 +1,27 @@
 "use client"
 
-import { Moon, Sun } from "lucide-react"
+import { Moon, Sun, SunMoon } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({ className, value, onChange, disabled = false }: {
+  className?: string
+  value?: "auto" | "light" | "dark"
+  onChange?: (theme: "auto" | "light" | "dark") => void
+  disabled?: boolean
+}) {
   const { theme, setTheme } = useTheme()
+  const current = value || (theme === "light" || theme === "dark" ? theme : "auto")
+  const next = current === "auto" ? "light" : current === "light" ? "dark" : "auto"
+  const Icon = current === "auto" ? SunMoon : current === "light" ? Sun : Moon
+  const label = `Theme: ${current}. Switch to ${next}`
 
   return (
-    <label className={cn("inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-foreground", className)}>
-      <Sun aria-hidden="true" className="h-4 w-4 shrink-0 dark:hidden" />
-      <Moon aria-hidden="true" className="hidden h-4 w-4 shrink-0 dark:block" />
-      <span className="sr-only">Theme</span>
-      <select value={theme || "auto"} onChange={(event) => setTheme(event.target.value)}
-        className="min-w-0 rounded bg-card py-1 type-body-sm text-foreground focus-visible:outline-ring"
-        title="Automatic: light 07:00–19:00, dark otherwise (device local time)">
-        <option value="auto">Automatic</option>
-        <option value="system">Device preference</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-    </label>
+    <button type="button" aria-label={label} title={label} disabled={disabled}
+      onClick={() => onChange ? onChange(next) : setTheme(next)}
+      className={cn("inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50", className)}>
+      <Icon aria-hidden="true" className="h-5 w-5" />
+    </button>
   )
 }

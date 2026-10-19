@@ -120,7 +120,7 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
 
   return (
     <PageShell
-      className="rounded-lg bg-card"
+      className="flex-1"
       eyebrow="Public"
       title="Assay Catalog"
       description="Explore assay modalities, categories, gene lists, and covered genes."
@@ -157,7 +157,7 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
             : "No assay catalog is available yet. An administrator can create and publish one under Administration → Assay catalog."}</p>
         </section>
       ) : (
-        <div className="grid items-start gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <div className="grid items-start gap-4 xl:flex-1 xl:grid-cols-[22rem_minmax(0,1fr)] xl:items-stretch">
           <div className="surface-panel dashboard-panel dashboard-panel--blue space-y-3 p-3">
             {selection.mod && <button className="type-body-sm font-semibold text-primary hover:underline"
               onClick={() => setSelection({})}>Catalog overview</button>}
@@ -193,9 +193,9 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
             })}
           </div>
 
-          <div className="min-w-0 space-y-4">
+          <div className="flex min-w-0 flex-col gap-4">
             {!selection.mod ? (
-              <section aria-label="Catalog introduction" className="surface-panel dashboard-panel dashboard-panel--teal space-y-4 p-6">
+              <section aria-label="Catalog introduction" className="surface-panel dashboard-panel dashboard-panel--teal flex-1 space-y-4 p-6">
                 <h2 className="type-section-title">{right.title || "Assay Catalog"}</h2>
                 <HtmlText html={right.description} className="max-w-5xl type-body leading-relaxed text-foreground" />
                 <p className="border-t border-border pt-4 type-supporting text-muted-foreground">
@@ -269,7 +269,7 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
 
               <AdditionalCatalogDetails value={right} />
             </section>
-            <section aria-label="Gene table" className="surface-panel dashboard-panel dashboard-panel--rose border-border/50 p-3">
+            <section aria-label="Gene table" className="surface-panel dashboard-panel dashboard-panel--rose flex-1 border-border/50 p-3">
               {selectedGeneList && (
                 <section className="mb-3">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

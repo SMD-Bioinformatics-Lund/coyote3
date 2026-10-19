@@ -1,27 +1,28 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { ColumnDef } from "@tanstack/react-table"
 import { Link } from "react-router-dom"
-import { Activity, AlertTriangle, CheckCircle2, ChevronDown, Download, Eye, FileText, Layers3, Save } from "lucide-react"
+import { Activity, AlertTriangle, CheckCircle2, ChevronDown, Download, FileText, Save } from "lucide-react"
 
-import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { ReportFindings } from "@/components/reports/ReportFindings"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import {
   REPORT_SNAPSHOT_SECTIONS,
+  isCompactReportBiomarker,
   reportSnapshotAnalysisType,
   type ReportSnapshotRow,
   type ReportType,
 } from "@/components/reports/report-snapshot"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { api } from "@/lib/api"
 import { downloadBlob } from "@/lib/browser-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { apiPath } from "@/lib/runtime-paths"
+import { AnalysisTableCard } from "./AnalysisTableCard"
+import "@/styles/report-workspace.css"
 
 export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId: string; reportType?: ReportType }) {
   const queryClient = useQueryClient()
@@ -115,15 +116,21 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   const ruleSource = data?.report?.context?.clinical_rule_evaluation?.source
 
   return (
-    <div className="space-y-4">
-      <Card size="sm">
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="size-4 text-primary" aria-hidden="true" />
-            Clinical Report Preview
-          </CardTitle>
-          <CardDescription>Review the rendered document and the findings preserved with this report.</CardDescription>
-          <CardAction className="flex flex-wrap items-center justify-end gap-2">
+    <AnalysisTableCard className="report-workspace">
+      <header className="report-toolbar">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="report-title-icon"><FileText className="size-5" aria-hidden="true" /></span>
+          <div className="min-w-0 space-y-1">
+            <h2 className="type-card-title text-foreground">Report preview</h2>
+            <p className="type-body-sm text-muted-foreground">Review your document before saving</p>
+          </div>
+        </div>
+        <div className="report-actions">
+            <span className="report-ready type-meta">
+              {isLoading ? <Activity className="size-3 animate-spin" /> : hasRenderedHtml
+                ? <CheckCircle2 className="size-3 text-pass" /> : <AlertTriangle className="size-3 text-warn" />}
+              {isLoading ? "Preparing preview" : hasRenderedHtml ? "Ready to review" : "Preview unavailable"}
+            </span>
             {!fixedReportType && (
               <SegmentedControl
                 ariaLabel="Report type"
@@ -132,49 +139,36 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
                 items={[{ value: "dna", label: "DNA" }, { value: "rna", label: "RNA" }]}
               />
             )}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={includeSnapshot}
-              aria-label="Include finding snapshot"
-              onClick={() => setIncludeSnapshot((current) => !current)}
-              className="paper-raised-control interaction-transition inline-flex h-9 items-center gap-2 rounded-lg px-3 type-body-sm font-semibold"
-            >
-              <Layers3 className="size-4 text-primary" aria-hidden="true" />
-              Include findings
-              <Badge variant={includeSnapshot ? "default" : "secondary"}>{includeSnapshot ? "On" : "Off"}</Badge>
-            </button>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={() => downloadPreviewPdf.mutate()}
               disabled={!hasRenderedHtml || downloadPreviewPdf.isPending}
               title={hasRenderedHtml ? "Download preview PDF" : templateStatusMessage}
             >
               {downloadPreviewPdf.isPending ? <Activity className="size-4 animate-spin" /> : <Download className="size-4" />}
-              PDF
+              Download PDF
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
+              nativeButton={false}
               render={<Link to={`/reports?sample_id=${encodeURIComponent(sampleId)}&report_type=${reportType}`} />}
             >
               <FileText className="size-4" aria-hidden="true" />
               Workspace
             </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{sampleName}</Badge>
-          <Badge variant="outline">{reportType.toUpperCase()}</Badge>
-          <Badge variant={templateStatus?.status === "ready" ? "secondary" : "destructive"}>
-            {templateStatus?.status === "ready" ? <CheckCircle2 className="size-3" /> : <AlertTriangle className="size-3" />}
-            {templateStatus?.status === "ready" ? "Template ready" : "Template unavailable"}
-          </Badge>
-          <span className="type-meta ml-auto text-muted-foreground">
-            {snapshotCount} included finding{snapshotCount === 1 ? "" : "s"}
-          </span>
-        </CardContent>
-      </Card>
+            <Button
+              type="button"
+              className="report-save"
+              onClick={() => setConfirmOpen(true)}
+              disabled={!hasRenderedHtml || !data?.meta?.preview_fingerprint || saveReport.isPending}
+              title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
+            >
+              {saveReport.isPending ? <Activity className="size-4 animate-spin" /> : <Save className="size-4" />}
+              Save report
+            </Button>
+        </div>
+      </header>
 
       {isLoading ? (
         <Card><CardContent><AppLoader label="Loading report preview" /></CardContent></Card>
@@ -189,83 +183,87 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
           </CardContent>
         </Card>
       ) : (
-        <>
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="size-4 text-primary" aria-hidden="true" />
-                Rendered report preview
-              </CardTitle>
-              <CardDescription>The preview remains temporary until it is saved.</CardDescription>
-              {ruleSource && <p className="type-meta text-muted-foreground break-words">
-                Rules: {ruleSource.rule_set_id} · v{ruleSource.content_version} · {ruleSource.language}
-                {ruleSource.resolved_subpanel_id === "base" && ruleSource.requested_subpanel_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
-              </p>}
-              <CardAction>
-                <Button
-                  type="button"
-                  size="lg"
-                  onClick={() => setConfirmOpen(true)}
-                  disabled={!hasRenderedHtml || !data?.meta?.preview_fingerprint || saveReport.isPending}
-                  title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
-                >
-                  {saveReport.isPending ? <Activity className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  Save report
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
+        <div className="report-layout">
+          <section aria-label="Rendered report preview" className="report-document min-w-0">
+              <div className="report-document-caption">
+                <div className="min-w-0">
+                  <h3 className="type-card-title text-foreground">{reportType.toUpperCase()} report</h3>
+                  <p className="mt-1 break-words type-body-sm text-muted-foreground">{sampleName}</p>
+                </div>
+                <span className="report-preview-state type-meta"><span className="size-1.5 rounded-full bg-warn" aria-hidden="true" />Unsaved preview</span>
+              </div>
               {!hasRenderedHtml && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/35 bg-warn/10 px-3 py-2 text-warn">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                   <p className="type-body-sm">{templateStatusMessage}</p>
                 </div>
               )}
-              <div className="rounded-lg bg-muted/35 p-2 sm:p-3">
+              <div className="report-paper-scroll" role="region" aria-label="Report document" tabIndex={0}>
                 <ReportHtmlFrame
                   title="Report preview"
                   html={hasRenderedHtml ? data?.report?.html : "<p>No report preview available.</p>"}
-                  className="shadow-surface-sm"
+                  className="report-paper"
                 />
               </div>
-            </CardContent>
-          </Card>
+          </section>
 
-          {includeSnapshot && (
-            <Card>
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center gap-2">
-                  <Layers3 className="size-4 text-primary" aria-hidden="true" />
-                  Included findings
-                </CardTitle>
-                <CardDescription>These rows are preserved with the saved report.</CardDescription>
-                <CardAction><Badge variant="secondary">{snapshotCount}</Badge></CardAction>
-              </CardHeader>
-              <CardContent className="divide-y divide-border px-0">
-                {visibleSnapshotSections.length > 0 ? visibleSnapshotSections.map((section) => (
-                  <details key={section.type} open className="group/report-section px-(--card-spacing) py-3 first:pt-0 last:pb-0">
+            <aside className="report-inspector" aria-label="Report review">
+              <div className="report-inspector-heading">
+                <div className="min-w-0">
+                  <h3 className="type-card-title text-foreground">Review summary</h3>
+                  <p className="mt-1 type-body-sm text-muted-foreground">
+                    {includeSnapshot
+                      ? `${snapshotCount} included ${snapshotCount === 1 ? "finding" : "findings"}`
+                      : "Finding snapshot off"}
+                  </p>
+                </div>
+                <label className="report-snapshot-toggle type-body-sm">
+                  <span>Include findings</span>
+                  <input type="checkbox" role="switch" aria-label="Include finding snapshot"
+                    checked={includeSnapshot} onChange={(event) => setIncludeSnapshot(event.target.checked)} />
+                </label>
+              </div>
+              <div className="report-inspector-body">
+              <div className="report-findings-list">
+                {includeSnapshot && visibleSnapshotSections.length > 0 ? visibleSnapshotSections.map((section) => isCompactReportBiomarker(section.type) ? (
+                  <section key={section.type} aria-label={`${section.label} included findings`} className="report-finding-section report-biomarker-section">
+                    <h4 className="font-semibold type-body-sm">{section.label}</h4>
+                    <div className="pt-3">
+                      <ReportFindings analysisType={section.type} columns={section.columns} rows={section.rows} />
+                    </div>
+                  </section>
+                ) : (
+                  <details key={section.type} open className="report-finding-section report-record-section group/report-section">
                     <summary className="interaction-transition flex cursor-pointer list-none items-center gap-2 rounded-md py-1 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <ChevronDown className="size-4 text-muted-foreground transition-transform group-open/report-section:rotate-180" aria-hidden="true" />
-                      <span className="type-section-title text-foreground">{section.label}</span>
-                      <Badge variant="outline" className="ml-auto">{section.rows.length}</Badge>
+                      <span className="font-semibold type-body-sm text-foreground">{section.label}</span>
+                      <span className="ml-auto type-meta text-muted-foreground">{section.rows.length}</span>
+                      <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open/report-section:rotate-180" aria-hidden="true" />
                     </summary>
                     <div className="pt-3">
-                      <DataTable
-                        columns={section.columns as ColumnDef<ReportSnapshotRow, any>[]}
-                        data={section.rows}
-                        filename={`${sampleId}_${reportType}_${section.type.toLowerCase()}_snapshot.csv`}
+                      <ReportFindings
+                        analysisType={section.type}
+                        columns={section.columns}
+                        rows={section.rows}
                       />
                     </div>
                   </details>
                 )) : (
-                  <div className="px-(--card-spacing) py-10 text-center type-body-sm text-muted-foreground">
-                    No reportable findings are included in this snapshot.
+                  <div className="py-4 type-body-sm text-muted-foreground">
+                    {includeSnapshot ? "No reportable findings are included in this snapshot." : "The finding snapshot is turned off for this preview."}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
-        </>
+              </div>
+              <p className="report-save-note type-meta text-muted-foreground">This preview is temporary. Save report to preserve the document and its findings.</p>
+              {ruleSource && <details className="report-rule-details type-meta text-muted-foreground">
+                <summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Report rule details</summary>
+                <p className="mt-2 break-words">
+                  {ruleSource.rule_set_id} · v{ruleSource.content_version} · {ruleSource.language}
+                  {ruleSource.resolved_subpanel_id === "base" && ruleSource.requested_subpanel_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
+                </p>
+              </details>}
+              </div>
+            </aside>
+        </div>
       )}
 
       <ConfirmationDialog
@@ -285,6 +283,6 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
         onConfirm={() => saveReport.mutate()}
         onCancel={() => setConfirmOpen(false)}
       />
-    </div>
+    </AnalysisTableCard>
   )
 }

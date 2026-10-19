@@ -65,7 +65,7 @@ export default function DemoInstallationPage() {
             <Button disabled={!confirmed || install.isPending || plan.data.starter_installed} onClick={() => install.mutate("starter")}>Install starter demo and samples</Button>
           </div>
           <details className="space-y-3"><summary className="cursor-pointer type-body-sm font-semibold">Additional workflow scenarios</summary>
-            <p className="type-body-sm">Install the broader multi-assay training suite. Its reporting rules remain drafts for review and publication exercises.</p>
+            <p className="type-body-sm">Install the broader multi-assay training suite with published demo reporting rules and the existing DNA and RNA fusion report templates. Create new draft versions for review and publication exercises.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={!confirmed || install.isPending || plan.data.configuration_installed} onClick={() => install.mutate(false)}>Install configuration only</Button>
               <Button variant="outline" disabled={!confirmed || install.isPending || (plan.data.configuration_installed && plan.data.samples.every((sample) => sample.installed))} onClick={() => install.mutate(true)}>Install configuration and samples</Button>

@@ -258,40 +258,44 @@ export function SampleDetail() {
     <PageFrame className="flex-1">
       <SampleDetailHero sample={sample} context={data} />
 
-      <div className="mt-3 flex items-start gap-3">
+      <nav className="sample-workspace-navigation" aria-label="Sample workspace">
+        <div className="sample-workspace-tab-scroll">
+          <SegmentedControl
+            ariaLabel="Sample analysis views"
+            className="sample-workspace-tabs min-w-max"
+            value={activeTab}
+            onValueChange={selectTab}
+            items={navigationTabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+          />
+        </div>
+        {activeTab !== "reports" && (
+          <div className="sample-workspace-layout">
+            <SegmentedControl
+              ariaLabel="Analysis layout"
+              className="min-w-[190px]"
+              value={analysisLayout}
+              onValueChange={selectAnalysisLayout}
+              items={[
+                { value: "classic", label: "Classic" },
+                { value: "modern", label: "Modern" },
+              ]}
+            />
+          </div>
+        )}
+      </nav>
+
+      <div className="flex items-start gap-3">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
-            <div className="rounded-xl overflow-hidden py-1 lg:py-2">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 glass-panel p-1">
-                <div className="overflow-x-auto whitespace-nowrap scrollbar-none">
-                  <SegmentedControl
-                    ariaLabel="Sample analysis views"
-                    className="min-w-max"
-                    value={activeTab}
-                    onValueChange={selectTab}
-                    items={navigationTabs.map((tab) => ({ value: tab.id, label: tab.label }))}
-                  />
-                </div>
-                <SegmentedControl
-                  ariaLabel="Analysis layout"
-                  className="min-w-[190px]"
-                  value={analysisLayout}
-                  onValueChange={selectAnalysisLayout}
-                  items={[
-                    { value: "classic", label: "Classic" },
-                    { value: "modern", label: "Modern" },
-                  ]}
-                />
-              </div>
-
-              {analysisLayout === "classic" && !modernViewTried && (
+            <div className="rounded-xl overflow-hidden">
+              {activeTab !== "reports" && analysisLayout === "classic" && !modernViewTried && (
                 <div className="mb-3">
                   <LayoutDiscoveryBanner onTryModern={() => selectAnalysisLayout("modern")} />
                 </div>
               )}
 
               <div className="space-y-3">
-                {activeTab !== "overview" && activeTab !== "coverage" && (
+                {activeTab !== "overview" && activeTab !== "coverage" && activeTab !== "reports" && (
                   <PanelSummary sample={sample} context={data} />
                 )}
 

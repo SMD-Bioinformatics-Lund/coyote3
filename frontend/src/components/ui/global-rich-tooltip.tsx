@@ -12,10 +12,6 @@ type TooltipState = {
   tone: string
 }
 
-const TOOLTIP_WIDTH = 288
-const TOOLTIP_HEIGHT = 96
-const CURSOR_GAP = 14
-const VIEWPORT_MARGIN = 12
 const TOOLTIP_ID = "global-rich-tooltip"
 
 function isTooltipTarget(value: EventTarget | null): value is Element {
@@ -32,21 +28,9 @@ function eligibleTarget(value: EventTarget | null) {
   return target
 }
 
-function tooltipPosition(clientX: number, clientY: number) {
-  const rightSpace = window.innerWidth - clientX
-  const bottomSpace = window.innerHeight - clientY
-  const left = rightSpace >= TOOLTIP_WIDTH + CURSOR_GAP + VIEWPORT_MARGIN
-    ? clientX + CURSOR_GAP
-    : Math.max(VIEWPORT_MARGIN, clientX - TOOLTIP_WIDTH - CURSOR_GAP)
-  const top = bottomSpace >= TOOLTIP_HEIGHT + CURSOR_GAP + VIEWPORT_MARGIN
-    ? clientY + CURSOR_GAP
-    : Math.max(VIEWPORT_MARGIN, clientY - TOOLTIP_HEIGHT - CURSOR_GAP)
-  return { left, top }
-}
-
 function focusPosition(target: HTMLElement) {
   const rect = target.getBoundingClientRect()
-  return tooltipPosition(rect.left + Math.min(rect.width / 2, 24), rect.bottom)
+  return { left: rect.left + Math.min(rect.width / 2, 24), top: rect.bottom }
 }
 
 function tooltipLabel(target: HTMLElement, title: string) {
@@ -133,13 +117,12 @@ export function GlobalRichTooltip() {
     const onPointerOver = (event: PointerEvent) => {
       const target = eligibleTarget(event.target)
       if (!target) return
-      const position = tooltipPosition(event.clientX, event.clientY)
-      activate(target, position.left, position.top)
+      activate(target, event.clientX, event.clientY)
     }
     const onPointerMove = (event: PointerEvent) => {
       if (!activeTarget.current) return
-      const position = tooltipPosition(event.clientX, event.clientY)
-      setTooltip((current) => current ? { ...current, ...position } : current)
+      setTooltip((current) => current
+        ? { ...current, left: event.clientX, top: event.clientY } : current)
     }
     const onPointerOut = (event: PointerEvent) => {
       const target = activeTarget.current
@@ -195,6 +178,7 @@ export function GlobalRichTooltip() {
   return (
     <TooltipSurface
       id={TOOLTIP_ID}
+      anchor="pointer"
       position={{ left: tooltip.left, top: tooltip.top }}
       className={tooltipToneClass(tooltip.tone)}
     >

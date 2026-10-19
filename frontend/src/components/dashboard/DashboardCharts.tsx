@@ -633,6 +633,7 @@ export function PanelAnalysisCapabilityChart({
   const accessibleSummary = rows
     .map((row) => `${row.name}: ${row.Reportable} of ${row.Enabled} reportable, ${row.Enabled ? Math.round((row.Reportable / row.Enabled) * 100) : 0} percent`)
     .join("; ")
+  const canvasWidth = Math.max(360, rows.length * 160)
 
   return (
     <ChartPanel
@@ -647,13 +648,14 @@ export function PanelAnalysisCapabilityChart({
         aria-label={`Panel analysis capability. ${accessibleSummary}`}
       >
         <svg
-          viewBox="0 0 1120 260"
-          className="h-full min-h-[230px] w-full min-w-[840px]"
-          preserveAspectRatio="xMidYMid meet"
+          viewBox={`0 0 ${canvasWidth} 260`}
+          className="h-full min-h-[230px] w-full"
+          style={{ minWidth: canvasWidth }}
+          preserveAspectRatio="xMinYMid meet"
           aria-hidden="true"
         >
           {rows.map((row, index) => {
-            const cellWidth = 1120 / Math.max(rows.length, 1)
+            const cellWidth = canvasWidth / Math.max(rows.length, 1)
             const centerX = cellWidth * index + cellWidth / 2
             const centerY = 112
             const radius = 58
@@ -679,20 +681,22 @@ export function PanelAnalysisCapabilityChart({
                   cy={centerY}
                   r={radius}
                   fill="none"
-                  stroke="var(--muted)"
+                  className="panel-capability-track"
+                  stroke="var(--chart-track)"
                   strokeWidth="15"
                 />
-                <circle
+                {progress > 0 && <circle
                   cx={centerX}
                   cy={centerY}
                   r={radius}
                   fill="none"
                   stroke="var(--color-pass)"
+                  className="panel-capability-progress"
                   strokeWidth="15"
                   strokeLinecap="round"
                   strokeDasharray={`${progress} ${circumference - progress}`}
                   transform={`rotate(-90 ${centerX} ${centerY})`}
-                />
+                />}
                 <text
                   x={centerX}
                   y={centerY - 1}
@@ -725,10 +729,10 @@ export function PanelAnalysisCapabilityChart({
               </g>
             )
           })}
-          <g transform="translate(398 239)">
+          <g transform={`translate(${(canvasWidth - 324) / 2} 239)`}>
             <circle cx="0" cy="0" r="5" fill="var(--color-pass)" />
             <text x="10" y="3.5" fill="var(--muted-foreground)" fontSize="10">Reportable</text>
-            <circle cx="128" cy="0" r="5" fill="var(--muted)" />
+            <circle cx="128" cy="0" r="5" fill="var(--chart-track)" />
             <text x="138" y="3.5" fill="var(--muted-foreground)" fontSize="10">Enabled, not reportable</text>
           </g>
         </svg>

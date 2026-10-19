@@ -95,15 +95,8 @@ describe("sample overview presentation", () => {
     expect(screen.getByText("NPM1")).toHaveAttribute("title", "This gene is not covered in the panel")
   })
 
-  it("shows the clinical sample summary, selected analyses, fallback warning, and files", async () => {
+  it("shows the clinical sample summary, fallback warning, and files", async () => {
     wrapper(<OverviewTab sampleId="CASE_001" sample={sample} context={context} />)
-
-    expect(screen.getByText("1.4K raw")).toBeVisible()
-    expect(screen.getByText("187 filtered")).toBeVisible()
-    expect(screen.getByText("3 raw")).toBeVisible()
-    expect(screen.getByText("2 filtered")).toBeVisible()
-    expect(screen.getByText("filter on demand")).toBeVisible()
-    expect(screen.queryByText("Fusions")).not.toBeInTheDocument()
 
     expect(screen.getByText("Base configuration in use.")).toBeVisible()
     expect(screen.getByText("mpn")).toBeVisible()
@@ -185,7 +178,7 @@ describe("sample overview presentation", () => {
     expect(screen.getByRole("link", { name: "Download" }).getAttribute("href")).toContain("/samples/CASE_001/reports/REPORT_1/download")
   })
 
-  it("shows missing analysis and not-paired states without fabricating control values", () => {
+  it("shows not-paired states without fabricating control values", () => {
     const unpaired = {
       ...sample,
       paired: false,
@@ -196,18 +189,8 @@ describe("sample overview presentation", () => {
       aspc_resolution: undefined,
     }
     wrapper(<OverviewTab sampleId="CASE_002" sample={unpaired} context={{ analysis_sections: ["snv"] }} />)
-    expect(screen.getByText("Not available")).toBeVisible()
     expect(screen.getAllByText("Not paired").length).toBeGreaterThan(1)
     expect(screen.queryByText("Base configuration in use.")).not.toBeInTheDocument()
   })
 
-  it("does not treat an unavailable declared translocation path as ready", () => {
-    wrapper(<OverviewTab sampleId="CASE_001" sample={{ ...sample,
-      files: { transloc: { path: "/missing/transloc.vcf" } },
-      missing_expected_files: ["transloc"],
-    }} context={{ analysis_sections: ["translocation"] }} />)
-    expect(screen.getByText("Translocations")).toBeVisible()
-    expect(screen.getByText("Not available")).toBeVisible()
-    expect(screen.queryByText("Ready")).not.toBeInTheDocument()
-  })
 })

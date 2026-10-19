@@ -86,6 +86,7 @@ class ApiUiSettingsUpdateRequest(BaseModel):
     analysis_modern_view_tried: bool | None = None
     sample_list_modern_view_tried: bool | None = None
     table_page_size: int | None = None
+    theme: str | None = Field(default=None, pattern="^(auto|light|dark)$")
 
     @field_validator("table_page_size")
     @classmethod

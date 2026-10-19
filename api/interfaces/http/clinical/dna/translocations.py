@@ -7,12 +7,14 @@ from fastapi import APIRouter, Depends, Request
 from api.app import http
 from api.app.container import store, util
 from api.app.deps.services import get_dna_service, get_dna_structural_service
+from api.application.common.change_payload import change_payload
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.interpretation import annotation_enrichment
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.dna import (
     DnaCsvExportContextPayload,
+    DnaStructuralTranscriptSelectionRequest,
     DnaTranslocationContextPayload,
     DnaTranslocationsPayload,
 )
@@ -24,6 +26,37 @@ from api.interfaces.http.tags import TAG_STRUCTURAL_VARIANTS
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 router = APIRouter(tags=[TAG_STRUCTURAL_VARIANTS])
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/translocations/{transloc_id}/selected-transcript",
+    response_model=SampleChangePayload,
+)
+def select_translocation_transcript(
+    sample_id: str,
+    transloc_id: str,
+    payload: DnaStructuralTranscriptSelectionRequest,
+    user: ApiUser = Depends(require_access(permission="translocation:manage")),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
+):
+    """Select an embedded SnpEff combination for an accessible sample.
+
+    Requires translocation:manage. Keeps all annotations on the finding; the
+    selected row becomes its display and reporting anchor.
+    """
+    sample = _get_sample_for_api(sample_id, user)
+    operation = service.select_translocation_transcript(
+        sample=sample, transloc_id=transloc_id, key=payload.annotation_key
+    )
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="translocation",
+            resource_id=transloc_id,
+            action="select_transcript",
+            operation=operation,
+        )
+    )
 
 
 def _translocation_flag_change(

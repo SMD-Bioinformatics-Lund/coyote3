@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -30,6 +30,7 @@ class UserUiSettingsDoc(BaseModel):
     analysis_modern_view_tried: bool = False
     sample_list_modern_view_tried: bool = False
     table_page_size: int = DEFAULT_TABLE_PAGE_SIZE
+    theme: Literal["auto", "light", "dark"] = "auto"
 
     @field_validator("analysis_layout")
     @classmethod

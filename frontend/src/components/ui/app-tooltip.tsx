@@ -16,11 +16,13 @@ import {
 
 export function TooltipSurface({
   position,
+  anchor,
   children,
   className,
   id,
 }: {
   position: TooltipPosition
+  anchor?: "pointer"
   children: ReactNode
   className?: string
   id?: string
@@ -32,12 +34,23 @@ export function TooltipSurface({
     const surface = surfaceRef.current
     if (!surface) return
     const margin = 12
+    const gap = 14
     const rect = surface.getBoundingClientRect()
+    const left = anchor === "pointer"
+      ? position.left + gap + rect.width <= window.innerWidth - margin
+        ? position.left + gap
+        : position.left - rect.width - gap
+      : position.left
+    const top = anchor === "pointer"
+      ? position.top + gap + rect.height <= window.innerHeight - margin
+        ? position.top + gap
+        : position.top - rect.height - gap
+      : position.top
     setAdjustedPosition({
-      left: Math.max(margin, Math.min(position.left, window.innerWidth - rect.width - margin)),
-      top: Math.max(margin, Math.min(position.top, window.innerHeight - rect.height - margin)),
+      left: Math.max(margin, Math.min(left, window.innerWidth - rect.width - margin)),
+      top: Math.max(margin, Math.min(top, window.innerHeight - rect.height - margin)),
     })
-  }, [position.left, position.top, children])
+  }, [position.left, position.top, anchor, children])
 
   return createPortal(
     <div
@@ -45,7 +58,7 @@ export function TooltipSurface({
       id={id}
       role="tooltip"
       className={cn(
-        "pointer-events-none fixed z-[10000] min-w-44 max-w-[min(18rem,calc(100vw-1.5rem))] rounded-lg border bg-popover px-3 py-2 text-left text-xs shadow-xl",
+        "pointer-events-none fixed z-[10000] w-max min-w-44 max-w-[min(18rem,calc(100vw-1.5rem))] rounded-lg border bg-popover px-3 py-2 text-left text-xs shadow-xl",
         className,
       )}
       style={{ left: adjustedPosition.left, top: adjustedPosition.top }}

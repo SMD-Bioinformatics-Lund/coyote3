@@ -54,13 +54,16 @@ control, notifications, and account menu. The side bar provides routes for the
 current user. Routes that require a permission or a disabled application module
 are not offered as usable actions.
 
-The **Theme** selector offers **Automatic**, **Device preference**, **Light**, and
-**Dark**. Automatic is the initial setting: light from 07:00 until 19:00 and dark
+The **Theme** selector beside the account menu and **Profile → User settings → Theme**
+control the same account preference: **Auto**, **Light**, or **Dark**.
+The top-bar icon cycles **Auto → Light → Dark → Auto**; its tooltip identifies
+the current setting and the next setting. Profile settings offer direct selection.
+Auto is the initial setting: light from 07:00 until 19:00 and dark
 overnight, using the browser's local clock and timezone. It rechecks the clock
-while the page is open and when returning to the tab. Device preference follows
-the operating system's light/dark preference. A manual selection persists in that
-browser and takes priority over the automatic schedule. Existing saved preferences
-are retained; choose Automatic to enable the schedule.
+while the page is open and when returning to the tab. Signed-in changes are saved
+to the account and applied on subsequent sign-ins, including other browsers.
+Light and Dark override the schedule. Before signing in, changes apply only to
+the current browser; the account preference takes precedence after sign-in.
 
 Dark mode changes surfaces, chart axes, tooltips and contrast while retaining
 the meanings of clinical tier, warning, failure, gain/loss and other domain colors.
@@ -183,7 +186,6 @@ The Overview page shows the exact context used for review.
 | Card | Content |
 | --- | --- |
 | Sample | Sample name, pairing, readiness, report state, case ID, and added time. |
-| Analysis status | Raw and filtered counts for enabled analyses. |
 | Sample meta | Omics, platform, sequencing scope, assembly, environment, ASP, ASPC, pipeline, purity, FFPE, and biomarkers. |
 | Case and control | IDs, LIMS IDs, pool IDs, run, reads, FFPE state, and purity. |
 | Files and QC | Declared inputs, required/optional state, availability, size, and record count. |
@@ -281,6 +283,17 @@ source counts and flags.
 
 ### DNA fusions and translocations
 
+The **Transcript combinations** table displays Gene 1, Transcript 1, Gene 2 and
+Transcript 2 separately. MANE Select and MANE Plus Clinical badges identify matches
+to each partner's internal HGNC reference record, with RefSeq and Ensembl sources
+distinguished. A missing badge does not imply a MANE match.
+
+Users with `translocation:manage` can select a SnpEff annotation combination as the
+display and reporting anchor. All combinations remain embedded in the finding's
+`INFO.ANN` array; the selected row appears first and the selection source becomes
+`manual_override`. Existing saved reports retain their snapshots. Concurrent
+annotation changes require reloading before selection.
+
 Structural finding tables show gene partners, breakpoints, type, HGVS or
 event identity, caller, status, and available actions. Gene filtering uses the
 ISGL selected for that analysis. It does not reuse an SNV list unless that list
@@ -300,6 +313,10 @@ coverage configuration.
 
 The RNA fusion table uses the same table, badge, sorting, filtering, export,
 and action conventions as DNA tables.
+
+Viewing and exporting fusion findings does not require a published clinical
+report-rule set. Generating a sample-comment suggestion uses the published rules
+for the sample's assay, subpanel, and reporting language.
 
 | Column | Meaning |
 | --- | --- |
@@ -421,7 +438,7 @@ The Profile page contains safe account fields and user-owned UI settings.
 | Analysis layout | Classic or Modern sample analysis presentation. |
 | Samples layout | Classic or Modern sample worklist presentation. |
 | Table page size | Default rows per page for supported tables. |
-| Theme | Automatic (device local time), Device preference, Light or Dark. |
+| Theme | Auto (device local time), Light or Dark; shared with the top navigation. |
 
 ## Administration
 

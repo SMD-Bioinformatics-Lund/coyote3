@@ -100,6 +100,7 @@ def test_whoami_sorts_permission_list(monkeypatch):
 
     assert payload["permissions"] == ["a", "b"]
     assert payload["ui_settings"] == {
+        "theme": "auto",
         "analysis_layout": "classic",
         "sample_list_layout": "classic",
         "analysis_modern_view_tried": False,
@@ -127,6 +128,27 @@ def test_current_user_can_update_analysis_layout():
     )
 
     assert payload == {"status": "ok", "ui_settings": {"analysis_layout": "modern"}}
+
+
+@pytest.mark.parametrize("theme", ["auto", "light", "dark"])
+def test_current_user_can_update_theme(theme):
+    """Theme updates target the authenticated account and preserve partial updates."""
+    user = fx.api_user()
+    calls = []
+
+    def update(**kwargs):
+        calls.append(kwargs)
+        return {"status": "ok", "ui_settings": kwargs["payload"]}
+
+    result = auth_router.update_current_ui_settings(
+        auth_router.ApiUiSettingsUpdateRequest(theme=theme),
+        user=user,
+        service=SimpleNamespace(update_own_ui_settings=update),
+    )
+    assert calls == [{"username": user.username, "payload": {"theme": theme}}]
+    assert result["ui_settings"]["theme"] == theme
+    with pytest.raises(ValueError):
+        auth_router.ApiUiSettingsUpdateRequest(theme="unsupported")
 
 
 def test_auth_login_rejects_invalid_credentials(monkeypatch):

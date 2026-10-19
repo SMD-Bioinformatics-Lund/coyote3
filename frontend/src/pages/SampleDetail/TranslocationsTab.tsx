@@ -96,13 +96,27 @@ export function TranslocationsTab({
   const cosmicCancerGeneMap = data?.cosmic_cancer_gene_map || {};
 
   const columns: ColumnDef<any, any>[] = [
-    {
-      id: "filter_flags",
-      header: "Filter flags",
-      enableSorting: false,
-      cell: ({ row }) => <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} analysis="translocation" callers={row.original.INFO?.variant_callers ?? row.original.callers} />,
-    },
     createRowSelectionColumn<any>(),
+    {
+      id: "badges",
+      header: "Info",
+      meta: {
+        exportValue: statusLabels,
+        headerClassName: "w-24 min-w-24 max-w-24",
+        cellClassName: "w-24 min-w-24 max-w-24",
+      },
+      accessorFn: (row) => statusLabels(row),
+      enableSorting: false,
+      cell: ({ row }) => (
+        <StatusBadges
+          finding={row.original}
+          cosmicCancerGenes={matchedKnowledgebaseGenes(
+            translocationGenes(row.original),
+            cosmicCancerGeneMap,
+          )}
+        />
+      ),
+    },
     {
       id: "gene1",
       header: "Gene 1",
@@ -195,23 +209,10 @@ export function TranslocationsTab({
       cell: ({ row }) => <TierBadge tier={tierValue(row.original)} />,
     },
     {
-      id: "badges",
-      header: "Status",
-      meta: {
-        exportValue: statusLabels,
-        headerClassName: "w-24 min-w-24 max-w-24",
-        cellClassName: "w-24 min-w-24 max-w-24",
-      },
-      accessorFn: (row) => statusLabels(row),
-      cell: ({ row }) => (
-        <StatusBadges
-          finding={row.original}
-          cosmicCancerGenes={matchedKnowledgebaseGenes(
-            translocationGenes(row.original),
-            cosmicCancerGeneMap,
-          )}
-        />
-      ),
+      id: "filter_flags",
+      header: "Filter flags",
+      enableSorting: false,
+      cell: ({ row }) => <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} analysis="translocation" callers={row.original.INFO?.variant_callers ?? row.original.callers} />,
     },
     {
       id: "actions",

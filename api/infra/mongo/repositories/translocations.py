@@ -34,6 +34,33 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
 
     finding_type = "translocation"
 
+    def select_annotation(
+        self, transloc_id: str, sample_id: str, annotations: list, selected: dict
+    ) -> OperationResult:
+        """Atomically reorder embedded annotations when the reviewed evidence is unchanged.
+
+        Args:
+            transloc_id: Finding identifier.
+            sample_id: Owning sample identifier.
+            annotations: Exact previously read ANN array for optimistic concurrency.
+            selected: Existing row to move to the first position.
+
+        Returns:
+            Update counts; zero matches indicates a concurrent edit or missing finding.
+        """
+        index = annotations.index(selected)
+        ordered = [selected] + annotations[:index] + annotations[index + 1 :]
+        result = self.get_collection().update_one(
+            {"_id": ObjectId(transloc_id), "SAMPLE_ID": sample_id, "INFO.ANN": annotations},
+            {
+                "$set": {"INFO.ANN": ordered, "INFO.ANN_selection_source": "manual_override"},
+                "$unset": {"INFO.MANE_ANN": ""},
+            },
+        )
+        if result.matched_count:
+            self.invalidate_dashboard_metrics()
+        return OperationResult.from_update(result)
+
     def __init__(self, adapter):
         """
         Initialize the repository with a given adapter and bind the collection.

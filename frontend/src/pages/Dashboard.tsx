@@ -2,7 +2,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { Link } from "react-router-dom"
 import { Suspense, lazy, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCw } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, RefreshCw } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -219,6 +219,20 @@ export function Dashboard() {
       className="gap-3"
       actions={
         <>
+          {(metricMetadata.some((meta) => meta?.stale) || refreshPending) && (
+            <span
+              role="status"
+              title={refreshPending
+                ? "Dashboard metrics are refreshing in the background. Current values remain available."
+                : "Some dashboard sections are showing cached values while updated metrics are prepared."}
+              className="inline-flex items-center gap-2 self-center rounded-full bg-warn/10 px-3 py-1.5 type-meta font-medium text-warn"
+            >
+              {refreshPending
+                ? <RefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                : <Clock3 className="size-3.5" aria-hidden="true" />}
+              {refreshPending ? "Updating metrics" : "Cached metrics"}
+            </span>
+          )}
           {refreshButton}
           <Link to="/samples" className={buttonVariants({ size: "sm" })}>Open samples</Link>
           <Link to="/variants/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "paper-raised-control")}>Variant search</Link>
@@ -234,16 +248,6 @@ export function Dashboard() {
             Some dashboard sections could not be updated: {failedMetrics.join(", ").replaceAll("_", " ")}.
           </span>
           {refreshButton}
-        </div>
-      )}
-
-      {(metricMetadata.some((meta) => meta?.stale) || refreshPending) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
-          {refreshPending ? (
-            <span>Dashboard metrics are refreshing in the background. Current values remain available.</span>
-          ) : (
-            <span>One or more dashboard sections are showing cached values while updated metrics are prepared.</span>
-          )}
         </div>
       )}
 

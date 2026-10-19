@@ -11,14 +11,13 @@ import { ThemeToggle } from "./theme-toggle"
 describe("ThemeToggle", () => {
   it.each([
     ["light", "dark"],
-    ["dark", "light"],
-    ["light", "auto"],
-    ["auto", "system"],
+    ["dark", "auto"],
+    ["auto", "light"],
   ])("switches %s to %s", async (current, expected) => {
     useTheme.mockReturnValue({ theme: current, setTheme })
     const user = userEvent.setup()
     render(<ThemeToggle />)
-    await user.selectOptions(screen.getByRole("combobox", { name: "Theme" }), expected)
+    await user.click(screen.getByRole("button", { name: `Theme: ${current}. Switch to ${expected}` }))
     expect(setTheme).toHaveBeenCalledWith(expected)
   })
 })

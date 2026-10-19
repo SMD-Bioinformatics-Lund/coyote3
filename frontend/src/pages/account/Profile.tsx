@@ -7,6 +7,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { useUpdateUiSettings } from "@/lib/user-settings"
+import "@/styles/account-profile.css"
 
 export function Profile() {
   const queryClient = useQueryClient()
@@ -80,70 +81,58 @@ export function Profile() {
           {error instanceof Error ? error.message : "Unable to load profile"}
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[1fr_28rem]">
-          <section className="glass-card p-4">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-primary/10 p-3 text-primary">
-                <User className="h-6 w-6" />
+        <div className="account-profile grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <section className="min-w-0">
+            <section aria-label="Account details" className="account-card account-identity overflow-hidden rounded-2xl">
+              <div className="flex items-start gap-3 p-4 sm:p-5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <User className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="type-card-title break-words text-foreground">
+                    {user.fullname || [user.firstname, user.lastname].filter(Boolean).join(" ") || user.username || "Current user"}
+                  </h2>
+                  {user.job_title && <p className="mt-1 type-body-sm text-muted-foreground">{user.job_title}</p>}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 type-body-sm">
+                    <span className="break-all text-muted-foreground">
+                      <span className="sr-only">Username: </span>@{user.username || user._id || "—"}
+                    </span>
+                    {user.email && (
+                      <a className="link-text inline-flex min-w-0 items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${user.email}`}>
+                        <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span className="break-all">{user.email}</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold">{data?.user?.fullname || data?.user?.username || "Current user"}</h2>
-                <p className="text-sm text-muted-foreground">{data?.user?.job_title || effectiveRole}</p>
-              </div>
-            </div>
-            <dl className="grid gap-3 rounded-lg border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Username</dt>
-                <dd className="mt-1 font-semibold">{data?.user?.username || data?.user?._id || "-"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</dt>
-                <dd className="mt-1 font-semibold">
-                  {data?.user?.email ? (
-                    <a className="link-text inline-flex items-center gap-1" href={`mailto:${data.user.email}`}>
-                      <Mail className="h-3.5 w-3.5" />
-                      {data.user.email}
-                    </a>
-                  ) : "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</dt>
-                <dd className="mt-1 font-semibold">{data?.user?.firstname || data?.user?.lastname ? `${data?.user?.firstname || ""} ${data?.user?.lastname || ""}`.trim() : "-"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Highest role</dt>
-                <dd className="mt-1"><RoleChip role={effectiveRole} /></dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Access level</dt>
-                <dd className="mt-1 font-semibold">{data?.user?.access_level ?? "-"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Authentication</dt>
-                <dd className="mt-2 flex flex-wrap gap-1">
-                  {authTypes.length ? authTypes.map((auth: string) => <AuthChip key={auth} value={auth} />) : "-"}
-                </dd>
-              </div>
-              <div className="sm:col-span-2 xl:col-span-3">
-                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Assigned roles</dt>
-                <dd className="mt-2 flex flex-wrap gap-2">
-                  {assignedRoles.length ? assignedRoles.map((role: string) => (
-                    <label
-                      key={role}
-                      className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold"
-                    >
-                      <input type="checkbox" checked readOnly className="h-3.5 w-3.5 accent-primary" />
-                      <RoleChip role={role} />
-                    </label>
-                  )) : (
-                    <span className="text-sm text-muted-foreground">No roles assigned</span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-            <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Editable profile</h3>
+              <dl className="grid border-t border-border/40 sm:grid-cols-3">
+                <div className="p-4 sm:p-5">
+                  <dt className="type-label text-muted-foreground">Highest role</dt>
+                  <dd className="mt-2"><RoleChip role={effectiveRole} /></dd>
+                </div>
+                <div className="p-4 sm:p-5">
+                  <dt className="type-label text-muted-foreground">Authentication</dt>
+                  <dd className="mt-2 flex flex-wrap gap-1.5">
+                    {authTypes.length ? authTypes.map((auth: string) => <AuthChip key={auth} value={auth} />) : <span className="type-body-sm text-muted-foreground">Not specified</span>}
+                  </dd>
+                </div>
+                <div className="p-4 sm:p-5">
+                  <dt className="type-label text-muted-foreground">Access level</dt>
+                  <dd className="mt-2 type-body-sm font-medium tabular-nums text-foreground">{user.access_level ?? "—"}</dd>
+                </div>
+                <div className="px-4 pb-5 sm:col-span-3 sm:px-5">
+                  <dt className="type-label text-muted-foreground">Assigned roles</dt>
+                  <dd className="mt-2 flex flex-wrap gap-2">
+                    {assignedRoles.length ? assignedRoles.map((role: string) => (
+                      <RoleChip key={role} role={role} />
+                    )) : <span className="type-body-sm text-muted-foreground">No roles assigned</span>}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+            <section className="account-card mt-6 rounded-2xl p-5 sm:p-6">
+              <h3 className="mb-4 type-card-title text-foreground">Personal details</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 {([
                   ["firstname", "First name"],
@@ -155,9 +144,9 @@ export function Profile() {
               <button type="button" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending} className="mt-3 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Save profile</button>
               <p className="mt-2 text-xs text-muted-foreground">Roles, assay scope, authentication providers, account status, email, username, and passwords are managed through their dedicated administrative or security workflows.</p>
             </section>
-            <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
+            <section className="account-card mt-6 rounded-2xl p-5 sm:p-6">
               <div className="mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">User settings</h3>
+                <h3 className="type-card-title text-foreground">Preferences</h3>
                 <p className="mt-1 text-xs text-muted-foreground">Layout choices are saved to your account and restored on future sessions.</p>
               </div>
               <UserUiSettingsControls
@@ -171,7 +160,7 @@ export function Profile() {
               <ScopeCard title="Assays" icon={Dna} values={assays} empty="No assay scope" />
               <ScopeCard title="Assay groups" icon={ShieldCheck} values={assayGroups} empty="No assay group scope" />
             </div>
-            <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
+            <section className="account-card mt-6 rounded-2xl p-5 sm:p-6">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Effective permissions</h3>
               {permissions.length ? (
                 <div className="flex max-h-48 flex-wrap gap-1.5 overflow-auto pr-1">
@@ -187,10 +176,10 @@ export function Profile() {
             </section>
           </section>
 
-          <section className="glass-card p-4">
+          <section className="account-card rounded-2xl p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Change Password</h2>
+              <h2 className="type-card-title">Password & security</h2>
             </div>
             <div className="space-y-3">
               {user.must_change_password && (
@@ -239,21 +228,21 @@ export function Profile() {
 }
 
 function RoleChip({ role }: { role: string }) {
-  return <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 type-meta font-semibold uppercase text-primary">{role}</span>
+  return <span className="inline-flex items-center rounded-md border border-primary/25 bg-primary/10 px-2 py-1 type-meta font-medium text-primary">{role}</span>
 }
 
 function AuthChip({ value }: { value: string }) {
-  const isLocal = value === "local"
   return (
-    <span className={isLocal ? "rounded-full border border-tier3/30 bg-tier3/10 px-2 py-0.5 type-meta font-semibold uppercase text-tier3" : "rounded-full border border-pass/30 bg-pass/10 px-2 py-0.5 type-meta font-semibold uppercase text-pass"}>
-      {value}
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 type-meta font-medium text-foreground">
+      <KeyRound className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+      {value === "local" ? "Local account" : value.toUpperCase()}
     </span>
   )
 }
 
 function ScopeCard({ title, icon: Icon, values, empty }: { title: string; icon: any; values: string[]; empty: string }) {
   return (
-    <div className="rounded-lg border border-border bg-background/70 p-3">
+    <div className="account-card rounded-xl p-4">
       <div className="mb-2 flex items-center gap-2">
         <Icon className="h-4 w-4 text-primary" />
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>

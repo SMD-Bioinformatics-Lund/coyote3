@@ -1219,6 +1219,7 @@ def test_user_can_update_only_validated_ui_settings():
     )
 
     assert payload["ui_settings"] == {
+        "theme": "auto",
         "analysis_layout": "modern",
         "sample_list_layout": "classic",
         "analysis_modern_view_tried": True,
@@ -1231,8 +1232,15 @@ def test_user_can_update_only_validated_ui_settings():
     with pytest.raises(AppError, match="not supported"):
         service.update_own_ui_settings(
             username="tester",
-            payload={"theme": "dark"},
+            payload={"unknown_setting": "dark"},
         )
+
+    for theme in ("dark", "light", "auto"):
+        updated = service.update_own_ui_settings(username="tester", payload={"theme": theme})
+        assert updated["ui_settings"]["theme"] == theme
+        assert repo.updated_user[1]["roles"] == ["admin"]
+    with pytest.raises(AppError, match="Invalid UI settings"):
+        service.update_own_ui_settings(username="tester", payload={"theme": "invalid"})
 
 
 def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):

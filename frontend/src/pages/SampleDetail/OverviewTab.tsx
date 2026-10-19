@@ -13,7 +13,6 @@ import { SampleGeneSettings, SettingsCard } from "@/pages/SampleDetail/SampleGen
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, RefreshCw } from "lucide-react"
 import { Link } from "react-router-dom"
-import { AnalysisStatusStrip } from "./AnalysisStatusStrip"
 import { displayValue, fileItems, formatFileSize, formatPurityPercentage, overviewFilterGroups, reportItems } from "./overview-data"
 import { StatusPill } from "./OverviewStatusPill"
 
@@ -45,8 +44,6 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
 
   return (
     <div className="space-y-3">
-      <AnalysisStatusStrip sample={sample} context={context} />
-
       {sample?.aspc_resolution?.used_base_configuration && (
         <section className="glass-card flex items-start gap-2 border-warn/35 bg-card/95 p-3 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
@@ -135,7 +132,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         <SettingsCard title={`Files & QC (${sample?.omics_layer || "-"})`} tone="border-t-orange-800" className="xl:col-span-2">
           <div className="space-y-2">
             {files.length ? files.map((file: any, index: number) => (
-              <div key={file.key || file.path || index} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background/70 px-3 py-2">
+              <div key={file.key || file.path || index} className="content-item flex items-start justify-between gap-3 px-3 py-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">{sampleArtifactPresentation(file.analysis_type, file.key).label}</span>
@@ -172,7 +169,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               const reportId = report?._id || report?.id || report?.report_id || report?.report_num || index
               const label = report?.report_name || report?.file || report?.report_id || `Report ${index + 1}`
               return (
-                <div key={String(reportId)} className="rounded-xl border border-border bg-background/70 p-3">
+                <div key={String(reportId)} className="content-item p-3">
                   <p className="break-all text-sm font-semibold">{label}</p>
                   <TimeDisplay
                     value={report?.created_at || report?.time_created || report?.date}
@@ -235,7 +232,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               <h3 className="type-label text-tier3">Sample Ad-Hoc Genes</h3>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {Object.keys(adhoc).length ? Object.entries(adhoc).map(([scope, entry]: [string, any]) => (
-                  <div key={scope} className="rounded-xl border border-border bg-background/70 p-2">
+                  <div key={scope} className="content-item p-2">
                     <p className="type-label text-muted-foreground">{scope}</p>
                     <p className="type-body-sm mt-0.5 text-foreground">{entry?.label || "Ad Hoc"}</p>
                     <p className="type-meta text-muted-foreground">{(entry?.genes || []).length} gene(s)</p>
@@ -246,16 +243,16 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="col-span-4">
-          <div className="space-y-3">
+        <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="col-span-full">
+          <div className="space-y-2">
             {filterGroups.length ? filterGroups.map((group) => (
-              <section key={group.key} aria-labelledby={`filter-group-${group.key}`} className="rounded-xl border border-border bg-background/55 p-2.5">
-                <h3 id={`filter-group-${group.key}`} className="type-label mb-2 text-foreground">{group.label}</h3>
-                <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <section key={group.key} aria-labelledby={`filter-group-${group.key}`} className="content-item grid min-w-0 gap-3 px-3 py-3 lg:grid-cols-[10rem_minmax(0,1fr)]">
+                <h3 id={`filter-group-${group.key}`} className="type-label border-b border-border/60 pb-2 text-foreground lg:border-b-0 lg:pt-1 lg:pr-3 lg:pb-0">{group.label}</h3>
+                <dl className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-x-3 gap-y-2">
                   {group.rows.map(([label, rowValue]) => (
-                    <div key={label} className="rounded-lg bg-card px-2.5 py-2 shadow-sm">
-                      <dt className="type-meta text-muted-foreground">{label}</dt>
-                      <dd className="type-body-sm mt-0.5 break-words text-foreground">{displayValue(rowValue)}</dd>
+                    <div key={label} className={`min-w-0 border-l border-border/60 py-0.5 pl-3 ${Array.isArray(rowValue) && rowValue.length > 2 ? "sm:col-span-2" : ""}`}>
+                      <dt className="type-meta mb-1 text-muted-foreground">{label}</dt>
+                      <dd className="type-body-sm break-words font-semibold text-foreground">{displayValue(rowValue)}</dd>
                     </div>
                   ))}
                 </dl>

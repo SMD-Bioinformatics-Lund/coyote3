@@ -1,0 +1,45 @@
+.account-profile {
+  --account-surface: var(--card);
+  --account-control: var(--input);
+  --account-edge: var(--paper-edge);
+}
+
+.dark .account-profile {
+  --account-control: var(--background);
+}
+
+.account-profile .account-card {
+  background: var(--account-surface);
+  border: 1px solid var(--account-edge);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--foreground) 3%, transparent);
+}
+
+.account-profile .account-identity {
+  border-top: 3px solid var(--primary);
+}
+
+.account-profile .preference-item {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--account-edge);
+  border-radius: 0;
+  padding: 1rem 0;
+}
+
+.account-profile input,
+.account-profile select,
+.account-profile .segmented-control {
+  background: var(--account-control);
+  border: 1px solid var(--account-edge);
+  box-shadow: none;
+}
+
+.account-profile input:focus-visible,
+.account-profile select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.account-profile .segmented-control-indicator {
+  box-shadow: none;
+}

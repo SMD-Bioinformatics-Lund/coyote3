@@ -1,0 +1,227 @@
+.report-workspace {
+  --report-surface: var(--card);
+  --report-edge: var(--paper-edge);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-card);
+  width: 100%;
+}
+
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-bottom: var(--space-card);
+  border-bottom: 1px solid var(--report-edge);
+}
+
+.report-title-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.report-actions [data-slot="button"] { color: var(--foreground); }
+
+.report-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.report-workspace .report-save {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 0;
+  border-radius: 0.5rem;
+  box-shadow: none;
+  padding-inline: 1rem;
+}
+
+.report-workspace .report-save:hover {
+  background: color-mix(in srgb, var(--primary) 90%, var(--foreground));
+}
+
+.report-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 52rem) minmax(20rem, 1fr);
+  align-items: start;
+  column-gap: clamp(1.5rem, 2vw, 2.5rem);
+  row-gap: var(--space-section);
+}
+
+.report-document,
+.report-inspector {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--report-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.report-document-caption,
+.report-inspector-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 4.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--table-header-surface);
+  background-image: var(--surface-sheen);
+  color: var(--muted-foreground);
+}
+
+.report-document-caption,
+.report-inspector-heading {
+  border-bottom: 1px solid var(--report-edge);
+}
+
+.report-preview-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.report-workspace .report-paper {
+  display: block;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.report-paper-scroll {
+  overflow-x: auto;
+}
+
+.report-paper-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.report-inspector {
+  min-width: 0;
+  width: 100%;
+  max-width: 74rem;
+  background: var(--report-review-surface);
+}
+
+.report-inspector-body { padding: 1rem; }
+
+.report-snapshot-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-block: 0.25rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.report-snapshot-toggle input {
+  appearance: none;
+  width: 2.25rem;
+  height: 1.25rem;
+  padding: 0.125rem;
+  border: 1px solid var(--report-edge);
+  border-radius: 2rem;
+  background: var(--muted);
+  cursor: pointer;
+  display: block;
+  box-shadow: none;
+  background-image: none;
+}
+
+.report-snapshot-toggle input::before {
+  content: "";
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--report-surface);
+}
+
+.report-snapshot-toggle input:checked { background: var(--primary); box-shadow: none; }
+.report-snapshot-toggle input:checked::before { transform: translateX(1rem); }
+.report-snapshot-toggle input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.report-finding-section {
+  border: 1px solid transparent;
+  background: var(--inner-card-background);
+  box-shadow: var(--inner-card-shadow);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.report-findings-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.report-record-section { grid-column: 1 / -1; }
+.report-biomarker-section { width: 100%; max-width: 24rem; align-self: stretch; }
+
+.report-biomarker-score { display: grid; gap: 0.375rem; }
+.report-biomarker-score .type-page-title { font-weight: 600; }
+.report-biomarker-components {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  border-top: 1px solid var(--report-edge);
+  padding-top: 0.75rem;
+}
+.report-biomarker-components > div { display: grid; gap: 0.25rem; }
+.report-biomarker-msi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.report-biomarker-msi > div { display: grid; gap: 0.75rem; align-content: start; }
+.report-biomarker-msi > div + div { border-left: 1px solid var(--report-edge); padding-left: 1rem; }
+
+.report-finding-value,
+.report-finding-value span {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  max-width: none;
+}
+
+.report-save-note,
+.report-rule-details { line-height: 1.6; padding-top: 1rem; }
+
+.report-measurements {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.625rem 1rem;
+}
+
+.report-measurements dt { color: var(--muted-foreground); }
+.report-measurements dd {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+@media (max-width: 70rem) {
+  .report-layout { grid-template-columns: minmax(0, 1fr); }
+  .report-document { overflow-x: auto; }
+  .report-workspace .report-paper { min-width: 42rem; }
+}

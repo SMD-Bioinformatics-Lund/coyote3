@@ -2,7 +2,8 @@
 """Plan or install synthetic workflow configuration in a local demo database.
 
 Requires an initialized local replica set and application baseline. This command
-never installs samples, findings, accounts or published report rules. Existing
+installs published reporting examples only for packaged demo assays, without
+installing samples, findings or accounts. Existing
 fixture scopes are rejected rather than overwritten.
 """
 
@@ -65,7 +66,7 @@ def main() -> None:
             print("Plan only; repeat with --apply to install this configuration")
             return
         repository.install(documents, args.actor)
-        print("Installed synthetic configuration; report rules remain unpublished drafts")
+        print("Installed synthetic configuration and published demo reporting rules")
 
 
 if __name__ == "__main__":

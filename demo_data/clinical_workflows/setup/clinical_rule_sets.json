@@ -11,8 +11,8 @@
       "language": "en"
     },
     "name": "Synthetic hematology report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -600,9 +600,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -617,8 +617,8 @@
       "language": "en"
     },
     "name": "Synthetic myeloid report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -1206,9 +1206,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -1223,8 +1223,8 @@
       "language": "en"
     },
     "name": "Synthetic solid report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -1812,9 +1812,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -1829,8 +1829,8 @@
       "language": "en"
     },
     "name": "Synthetic tumwgs report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -2418,9 +2418,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -2435,8 +2435,8 @@
       "language": "en"
     },
     "name": "Synthetic lymphoid report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -3024,9 +3024,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -3041,8 +3041,8 @@
       "language": "en"
     },
     "name": "Synthetic fusion report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "FUSION": {
         "narrative": "enabled"
@@ -3135,9 +3135,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -3152,8 +3152,8 @@
       "language": "en"
     },
     "name": "Synthetic wts report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "FUSION": {
         "narrative": "enabled"
@@ -3248,9 +3248,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -3265,8 +3265,8 @@
       "language": "en"
     },
     "name": "Synthetic demo DNA report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -3854,9 +3854,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   },
   {
@@ -3871,8 +3871,8 @@
       "language": "en"
     },
     "name": "Synthetic demo RNA report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "FUSION": {
         "narrative": "enabled"
@@ -3967,9 +3967,9 @@
     "created_by": "system.bootstrap",
     "updated_at": "2026-01-01T00:00:00+00:00",
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": "2026-01-01T00:00:00+00:00",
+    "published_by": "system.bootstrap",
+    "effective_from": "2026-01-01T00:00:00+00:00",
     "content_hash": null
   }
 ]

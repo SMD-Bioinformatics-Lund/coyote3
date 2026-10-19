@@ -102,7 +102,7 @@ class DemoInstallationRepository:
                     action="baseline_captured",
                     actor=actor,
                     occurred_at=now,
-                    reason="Synthetic demonstration draft installed",
+                    reason="Packaged synthetic demonstration reporting baseline installed",
                     previous_revision_hash=None,
                 )
                 for row in documents["clinical_rule_sets"]

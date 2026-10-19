@@ -556,6 +556,7 @@ class UserManagementService:
         if not user_doc:
             raise api_error(404, "User not found")
         supported_settings = {
+            "theme",
             "analysis_layout",
             "sample_list_layout",
             "analysis_modern_view_tried",

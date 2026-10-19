@@ -16,6 +16,9 @@ import { BrandWordmark } from "@/components/layout/BrandWordmark"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { useTheme } from "next-themes"
+import { useUpdateUiSettings } from "@/lib/user-settings"
+import { notifyActionError } from "@/lib/notifications"
 
 type PublicContactPayload = {
   support?: Record<string, string>
@@ -24,6 +27,8 @@ type PublicContactPayload = {
 }
 
 export function Layout() {
+  const { setTheme } = useTheme()
+  const updateUiSettings = useUpdateUiSettings()
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
@@ -59,6 +64,11 @@ export function Layout() {
       return response.json()
     },
   })
+
+  const accountTheme = user?.ui_settings?.theme || "auto"
+  useEffect(() => {
+    if (user?.username) setTheme(accountTheme)
+  }, [user?.username, accountTheme, setTheme])
 
   const { data: catalogData } = useQuery({
     queryKey: ['assay-catalog-nav'],
@@ -383,7 +393,11 @@ export function Layout() {
           )}
 
           <div className="ml-auto flex h-full items-center gap-2">
-            <ThemeToggle className="h-10 shrink-0" />
+            <ThemeToggle className="border-[var(--chrome-border)] text-chrome-muted-foreground hover:bg-[var(--chrome-control-hover)] hover:text-chrome-foreground" value={user ? accountTheme : undefined}
+              disabled={updateUiSettings.isPending}
+              onChange={user ? (theme) => updateUiSettings.mutate({ theme }, {
+                onError: (error) => notifyActionError("Unable to save theme", error, "User settings"),
+              }) : undefined} />
             {!publicOnlyMode && (
               <Link
                 to="/notifications"
@@ -552,7 +566,7 @@ export function Layout() {
         </aside>
 
         <main ref={mainScrollRef} className="flex-1 overflow-y-auto">
-          <div className="w-full py-3">
+          <div className="flex min-h-full w-full flex-col py-3">
             <Outlet />
           </div>
         </main>

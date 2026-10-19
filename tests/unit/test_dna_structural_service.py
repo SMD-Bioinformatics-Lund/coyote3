@@ -10,6 +10,7 @@ import pytest
 import api.application.dna.structural_variants as service_module
 from api.application.common.change_payload import change_payload
 from api.application.dna.structural_variants import DnaStructuralService
+from api.contracts.dna import DnaTranslocationContextPayload, DnaTranslocationsPayload
 from api.domain.core.exceptions import AppError
 
 
@@ -46,7 +47,7 @@ class _TranslocHandlerStub:
         return [{"annotation": "t"}]
 
     def hidden_transloc_comments(self, _transloc_id: str):
-        return [{"text": "hidden"}]
+        return True
 
 
 class _RepoStub:
@@ -265,6 +266,7 @@ def test_list_translocations_payload_returns_count(monkeypatch):
     )
     assert payload["meta"]["count"] == 1
     assert "snpeff_conseq_translations" in payload
+    DnaTranslocationsPayload.model_validate(payload)
     assert "vep_conseq_translations" not in payload
 
 
@@ -383,6 +385,7 @@ def test_show_translocation_payload_returns_detail(monkeypatch):
     )
 
     assert payload["translocation"]["_id"] == "t1"
+    DnaTranslocationContextPayload.model_validate(payload)
     assert "snpeff_conseq_translations" in payload
     assert "vep_conseq_translations" not in payload
 

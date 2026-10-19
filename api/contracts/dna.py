@@ -147,7 +147,7 @@ class DnaTranslocationsPayload(BaseModel):
     sample: dict[str, Any]
     meta: dict[str, Any]
     filters: dict[str, Any]
-    vep_conseq_translations: dict[str, Any]
+    snpeff_conseq_translations: dict[str, Any]
     translocations: list[dict[str, Any]]
     cosmic_cancer_gene_map: dict[str, Any] = Field(default_factory=dict)
 
@@ -158,12 +158,13 @@ class DnaTranslocationContextPayload(BaseModel):
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     translocation: dict[str, Any]
+    transcript_combinations: list[dict[str, Any]] = Field(default_factory=list)
     annotations: list[dict[str, Any]]
     sample_ids: dict[str, str]
     bam_id: Any
     bai_id: dict[str, str] = Field(default_factory=dict)
     design_bed_paths: list[str] = Field(default_factory=list)
-    vep_conseq_translations: dict[str, Any]
+    snpeff_conseq_translations: dict[str, Any]
     has_hidden_comments: bool
     hidden_comments: bool
     assay_group: str
@@ -258,6 +259,12 @@ class DnaClinPgxPublicPayload(BaseModel):
     query: dict[str, Any]
     local_record: dict[str, Any] | None = None
     response: Any = None
+
+
+class DnaStructuralTranscriptSelectionRequest(BaseModel):
+    """Select one exact embedded SnpEff annotation combination."""
+
+    annotation_key: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
 class DnaTranscriptSelectionRequest(BaseModel):

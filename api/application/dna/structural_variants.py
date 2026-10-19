@@ -18,6 +18,7 @@ from api.application.common.table_state import (
 )
 from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
 from api.application.query_rules import QueryRuleService, effective_policy
+from api.contracts.operations import OperationResult
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
     has_sample_gene_restriction,
@@ -30,7 +31,12 @@ from api.domain.common.sample_filters import (
 )
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
-from api.domain.core.dna.structural_annotations import snpeff_consequence_metadata
+from api.domain.core.dna.structural_annotations import (
+    annotation_key,
+    snpeff_consequence_metadata,
+    structural_transcript_rows,
+)
+from api.domain.core.dna.transcript_payloads import build_hgnc_lookup_maps
 from api.domain.core.dna.translocqueries import (
     build_transloc_query,
     filter_translocations_by_genes,
@@ -225,6 +231,7 @@ class DnaStructuralService:
             vep_metadata_repository=store.vep_metadata_repository,
             cosmic_repository=store.cosmic_repository,
             query_rule_service=QueryRuleService.from_store(store),
+            hgnc_repository=getattr(store, "hgnc_repository", None),
         )
 
     def __init__(
@@ -239,6 +246,7 @@ class DnaStructuralService:
         vep_metadata_repository: Any,
         cosmic_repository: Any,
         query_rule_service=None,
+        hgnc_repository=None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.copy_number_variant_repository = copy_number_variant_repository
@@ -250,6 +258,38 @@ class DnaStructuralService:
         self.vep_metadata_repository = vep_metadata_repository
         self.cosmic_repository = cosmic_repository
         self.query_rule_service = query_rule_service
+        self.hgnc_repository = hgnc_repository
+
+    def select_translocation_transcript(
+        self, *, sample: dict, transloc_id: str, key: str
+    ) -> OperationResult:
+        """Select an embedded combination after checking sample ownership and current evidence.
+
+        Args:
+            sample: Authorized owning sample.
+            transloc_id: Finding identifier.
+            key: Digest identifying one stored SnpEff annotation row.
+
+        Returns:
+            Repository operation counts for the completed selection.
+
+        Raises:
+            AppError: Finding is missing or belongs to another sample, the key is
+                unavailable, or annotations changed concurrently.
+        """
+        finding = self.translocation_repository.get_transloc(transloc_id)
+        if not finding or str(finding.get("SAMPLE_ID")) != str(sample["_id"]):
+            raise api_error(404, "Translocation not found for sample")
+        annotations = (finding.get("INFO") or {}).get("ANN") or []
+        selected = next((row for row in annotations if annotation_key(row) == key), None)
+        if selected is None:
+            raise api_error(422, "Requested SnpEff annotation is not available for this finding")
+        result = self.translocation_repository.select_annotation(
+            transloc_id, str(sample["_id"]), annotations, selected
+        )
+        if not result.matched_count:
+            raise api_error(409, "Annotations changed; reload the finding before selecting")
+        return result
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
         """Resolve formatted assay config using injected repositories when available."""
@@ -646,6 +686,14 @@ class DnaStructuralService:
         cosmic = self.cosmic_repository.get_translocation_evidence(
             transloc, genome_build=sample.get("genome_build")
         )
+        annotations = (transloc.get("INFO") or {}).get("ANN") or []
+        genes = [gene for row in annotations for gene in str(row.get("Gene_Name") or "").split("&")]
+        records = (
+            self.hgnc_repository.get_metadata_by_ids_and_symbols([], genes)
+            if self.hgnc_repository
+            else []
+        )
+        by_id, by_symbol = build_hgnc_lookup_maps(records)
         return {
             "sample": sample,
             "sample_summary": {
@@ -655,6 +703,7 @@ class DnaStructuralService:
                 "assay_group": assay_group,
             },
             "translocation": transloc,
+            "transcript_combinations": structural_transcript_rows(annotations, by_id, by_symbol),
             "annotations": self.translocation_repository.get_transloc_annotations(transloc),
             "sample_ids": sample_ids,
             **alignment_files_payload(

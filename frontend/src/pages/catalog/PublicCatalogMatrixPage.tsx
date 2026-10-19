@@ -100,7 +100,6 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
     <PageShell
       eyebrow="Public"
       title="Assay Catalog Matrix"
-      className="rounded-lg bg-card"
       description="Gene coverage matrix across public assay catalog modalities and gene lists."
       actions={
         onCatalog ? <button onClick={onCatalog} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Catalog</button> : <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">

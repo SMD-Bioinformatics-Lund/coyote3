@@ -9,6 +9,8 @@ from api.application.query_rules import QueryRuleService
 from api.config.clinical_query_policy import resolved_query_policy
 from api.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleScope
 from api.domain.core.dna.cnvqueries import build_cnv_query
+from api.domain.core.dna.structural_annotations import structural_transcript_rows
+from api.domain.core.dna.transcript_payloads import build_hgnc_lookup_maps
 from api.domain.core.dna.varqueries import build_query
 from api.domain.core.rna.fusion_query_builder import build_fusion_query
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository
@@ -33,6 +35,21 @@ def test_demo_structural_events_reach_the_collection_with_embedded_evidence(demo
     assert demo_db.translocations.find_one({"ID": "demo-duplication"})["END"] == 61001
 
 
+def test_demo_transcripts_have_reference_backed_mane_and_alternatives(demo_db):
+    """Real ingest selects MANE for both partners and retains alternative combinations."""
+    by_id, by_symbol = build_hgnc_lookup_maps(list(demo_db.hgnc_genes.find()))
+    for identifier in ("bnd1", "demo-deletion", "demo-duplication"):
+        info = demo_db.translocations.find_one({"ID": identifier})["INFO"]
+        assert len(info["ANN"]) == 2
+        assert info["ANN_selection_source"] == "ncbi_mane_select"
+        assert info["MANE_ANN"] == info["ANN"][0]
+        rows = structural_transcript_rows(info["ANN"], by_id, by_symbol)
+        assert all("ncbi_mane_select" in p["mane_flags"] for p in rows[0]["partners"])
+        assert all("ensembl_mane_select" in p["mane_flags"] for p in rows[1]["partners"])
+    fusion = demo_db.translocations.find_one({"ID": "bnd1"})
+    assert fusion["INFO"]["MANE_ANN"]["Feature_ID"] == "NM_004327.4&NM_005157.6"
+
+
 @pytest.mark.parametrize(
     "name,assay,collection",
     [
@@ -53,8 +70,8 @@ def test_demo_group_has_complete_sample_and_reporting_configuration(
     assert aspc["environment"] == "testing"
     assert demo_db[collection].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
     rule = demo_db.clinical_rule_sets.find_one({"scope.asp_id": assay})
-    assert rule["status"] == "draft"
-    assert not rule["active"]
+    assert rule["status"] == "published"
+    assert rule["active"] is True
 
 
 def selected_labels(db, name, **overrides):

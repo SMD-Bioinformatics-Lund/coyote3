@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from typing import Any
 
@@ -28,6 +30,58 @@ MANE_SELECTORS = {
     "ensembl_mane_select": ("ensembl_mane_select", "ensembl"),
 }
 _ACCESSION = re.compile(r"(?<![A-Za-z0-9_])(?:ENST\d+|N[MR]_\d+)(?:\.\d+)?(?![A-Za-z0-9_])")
+
+
+def annotation_key(annotation: dict[str, Any]) -> str:
+    """Identify an exact embedded row independently of its current order.
+
+    Args:
+        annotation: Original SnpEff annotation without display enrichment.
+
+    Returns:
+        SHA-256 digest of its canonical JSON representation.
+    """
+    return hashlib.sha256(json.dumps(annotation, sort_keys=True).encode()).hexdigest()
+
+
+def structural_transcript_rows(annotations: list[dict], by_id: dict, by_symbol: dict) -> list[dict]:
+    """Expose separate partners and HGNC MANE matches without changing stored annotations.
+
+    Args:
+        annotations: Embedded SnpEff combinations in stored order.
+        by_id: HGNC documents indexed by ID.
+        by_symbol: HGNC documents indexed by gene symbol.
+
+    Returns:
+        Rows with stable selection keys and ordered partner metadata. Missing
+        partner transcripts remain blank rather than being inferred.
+    """
+    rows = []
+    for annotation in annotations:
+        genes = str(annotation.get("Gene_Name") or "").split("&")
+        transcripts = str(annotation.get("Feature_ID") or "").split("&")
+        partners = []
+        for index, gene in enumerate(genes):
+            transcript = transcripts[index] if index < len(transcripts) else ""
+            document = hgnc_doc_for_transcript({"SYMBOL": gene}, by_id, by_symbol)
+            flags = [
+                selector
+                for selector, (key, namespace) in MANE_SELECTORS.items()
+                if document
+                and transcript
+                and matches_mane_source(
+                    {"Feature": transcript}, document, hgnc_key=key, namespace=namespace
+                )
+            ]
+            partners.append({"gene": gene, "transcript": transcript, "mane_flags": flags})
+        rows.append(
+            {
+                "annotation_key": annotation_key(annotation),
+                "annotation": annotation,
+                "partners": partners,
+            }
+        )
+    return rows
 
 
 def eligible_annotation(annotation: dict[str, Any]) -> bool:
@@ -62,12 +116,15 @@ def _matches_mane(annotation: dict[str, Any], selector: str, by_id: dict, by_sym
     key, namespace = MANE_SELECTORS[selector]
     symbols = str(annotation.get("Gene_Name") or "").split("&")
     genes = str(annotation.get("Gene_ID") or "").split("&")
-    accessions = _ACCESSION.findall(
-        " ".join(str(annotation.get(field) or "") for field in ("Feature_ID", "HGVSc", "HGVSp"))
-    )
-    if not symbols or not accessions or len(symbols) != len(genes):
+    if not symbols or len(symbols) != len(genes):
         return False
-    for symbol, gene in zip(symbols, genes, strict=True):
+    for index, (symbol, gene) in enumerate(zip(symbols, genes, strict=True)):
+        evidence = []
+        for field in ("Feature_ID", "HGVSc", "HGVSp"):
+            partners = str(annotation.get(field) or "").split("&")
+            if len(partners) == len(genes):
+                evidence.append(partners[index])
+        accessions = _ACCESSION.findall(" ".join(evidence))
         document = hgnc_doc_for_transcript(
             {"SYMBOL": symbol, "HGNC_ID": gene if gene.startswith("HGNC:") else None},
             by_id,

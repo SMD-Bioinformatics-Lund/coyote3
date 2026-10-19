@@ -39,8 +39,8 @@ class DemoInstallationService:
             starter: Select the connected starter package with assay-scoped active rules.
 
         Returns:
-            Current-schema synthetic records. Starter rules are published only for
-            the dedicated starter assay; additional workflow rules remain drafts.
+            Current-schema synthetic records with published rules restricted to
+            assays supplied by the selected demonstration package.
 
         Raises:
             AppError: Bundle is absent, a profile is not for testing, or a rule has an unsafe scope.
@@ -87,8 +87,17 @@ class DemoInstallationService:
                             raise api_error(
                                 422, "Starter rules must belong to the demo starter assay"
                             )
-                    elif row["status"] != "draft" or row.get("active"):
-                        raise api_error(422, "Demo reporting rules must be inactive drafts")
+                    else:
+                        demo_assays = {
+                            item["asp_id"]
+                            for item in json.loads(
+                                (directory / "setup/assay_specific_panels.json").read_text()
+                            )
+                        }
+                        if row["scope"]["asp_id"] not in demo_assays:
+                            raise api_error(
+                                422, "Demo reporting rules must belong to a packaged assay"
+                            )
                     row["content_hash"] = content_hash(ClinicalRuleSetDoc.model_validate(row))
                 rows.append(normalize_collection_document(path.stem, row))
             documents[path.stem] = rows

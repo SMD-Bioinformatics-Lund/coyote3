@@ -139,6 +139,26 @@ describe("dashboard charts", () => {
     }))
   })
 
+  it("keeps eleven capability rings separated and shows zero results without a progress dot", () => {
+    const data = Array.from({ length: 11 }, (_, index) => ({
+      name: `Analysis ${index + 1}`, Enabled: 8, Reportable: index === 0 ? 0 : 8,
+    }))
+    const { container } = render(<PanelAnalysisCapabilityChart data={data} />)
+    const tracks = [...container.querySelectorAll(".panel-capability-track")]
+    expect(tracks).toHaveLength(11)
+    tracks.forEach((track, index) => {
+      expect(track).toHaveAttribute("stroke", "var(--chart-track)")
+      if (!index) return
+      const previous = tracks[index - 1]
+      const separation = Number(track.getAttribute("cx")) - Number(previous.getAttribute("cx"))
+      const diameters = Number(track.getAttribute("r")) + Number(previous.getAttribute("r"))
+      expect(separation - diameters).toBeGreaterThan(15)
+    })
+    expect(container.querySelectorAll(".panel-capability-progress")).toHaveLength(10)
+    expect(tracks[0].parentElement!.querySelector(".panel-capability-progress")).toBeNull()
+    expect(screen.getByText("0/8")).toBeVisible()
+  })
+
   it("renders composition donuts and stacked pipeline throughput", () => {
     render(
       <SampleCompositionCharts

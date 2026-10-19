@@ -117,6 +117,7 @@ def rna_sample_comment_suggestion(
         sample=sample,
         util_module=util,
         paginate=False,
+        include_report_context=True,
     )
     return util.common.convert_to_serializable(
         {

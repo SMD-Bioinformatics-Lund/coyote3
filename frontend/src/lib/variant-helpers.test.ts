@@ -22,6 +22,12 @@ import {
 } from "./variant-helpers"
 
 describe("variant display normalization", () => {
+  it("uses the stored fusion partners independently of the display name", () => {
+    expect(fusionGenes({ gene1: "BCR", gene2: "ABL1", genes: "BCR-ABL1" }))
+      .toEqual(["BCR", "ABL1"])
+    expect(fusionGenes({ gene1: "ETV6", gene2: "RUNX1", genes: "ETV6-RUNX1" }))
+      .toEqual(["ETV6", "RUNX1"])
+  })
   it("shows the explicit interval for symbolic DNA structural alleles", () => {
     expect(translocationPositionLabel({ CHROM: "1", POS: 100, END: 800, ALT: "<DEL>" })).toBe("1:100–800")
     expect(translocationAnnotationIdentity({ CHROM: "1", POS: 100, END: 800, ALT: "<DEL>" })).toBe("1:100-800^<DEL>")

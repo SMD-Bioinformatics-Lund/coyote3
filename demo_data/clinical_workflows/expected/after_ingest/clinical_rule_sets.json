@@ -11,8 +11,8 @@
       "language": "en"
     },
     "name": "Synthetic hematology report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -635,9 +635,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -657,8 +661,8 @@
       "language": "en"
     },
     "name": "Synthetic myeloid report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -1281,9 +1285,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -1303,8 +1311,8 @@
       "language": "en"
     },
     "name": "Synthetic solid report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -1927,9 +1935,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -1949,8 +1961,8 @@
       "language": "en"
     },
     "name": "Synthetic tumwgs report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -2573,9 +2585,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -2595,8 +2611,8 @@
       "language": "en"
     },
     "name": "Synthetic lymphoid report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -3219,9 +3235,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -3241,8 +3261,8 @@
       "language": "en"
     },
     "name": "Synthetic fusion report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "FUSION": {
         "narrative": "enabled"
@@ -3351,9 +3371,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -3373,8 +3397,8 @@
       "language": "en"
     },
     "name": "Synthetic wts report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "FUSION": {
         "narrative": "enabled"
@@ -3485,9 +3509,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -3507,8 +3535,8 @@
       "language": "en"
     },
     "name": "Synthetic demo DNA report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "SNV": {
         "narrative": "enabled"
@@ -4131,9 +4159,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,
@@ -4153,8 +4185,8 @@
       "language": "en"
     },
     "name": "Synthetic demo RNA report",
-    "status": "draft",
-    "active": false,
+    "status": "published",
+    "active": true,
     "analysis_declarations": {
       "FUSION": {
         "narrative": "enabled"
@@ -4265,9 +4297,13 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "updated_by": "system.bootstrap",
-    "published_at": null,
-    "published_by": null,
-    "effective_from": null,
+    "published_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "published_by": "system.bootstrap",
+    "effective_from": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
     "retired_at": null,
     "retired_by": null,
     "content_hash": null,

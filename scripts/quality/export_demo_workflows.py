@@ -8,6 +8,7 @@ audit delivery are outside this in-memory reference export.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import sys
@@ -69,6 +70,13 @@ def replay():
         ValueError: A setup record or raw ingest resource violates its contract.
     """
     db = mongomock.MongoClient().synthetic_demo
+    # Use the same bundled HGNC reference as deployment, without inventing MANE flags.
+    reference = ROOT.parents[1] / "api/config/bootstrap/reference/hgnc_genes.seed.ndjson.gz"
+    with gzip.open(reference, "rt") as source:
+        genes = [json.loads(line) for line in source]
+    db.hgnc_genes.insert_many(
+        [row for row in genes if row.get("hgnc_symbol") in {"BCR", "ABL1", "TP53", "CEBPA"}]
+    )
     catalog = load_reference_seed_pack(
         ROOT.parents[1] / "api/config/bootstrap/reference", include_knowledgebase=False
     )
@@ -120,8 +128,13 @@ def portable_documents(db):
     Returns:
         Collection arrays with stable example IDs and a fixed demonstration time.
         Shapes and parsed evidence remain those produced by application ingestion.
+        HGNC reference input is excluded; it remains in the bootstrap seed.
     """
-    raw = {name: list(db[name].find()) for name in sorted(db.list_collection_names())}
+    raw = {
+        name: list(db[name].find())
+        for name in sorted(db.list_collection_names())
+        if name != "hgnc_genes"
+    }
     identities = {
         str(row["_id"]): hashlib.sha256(f"{name}/{index}".encode()).hexdigest()[:24]
         for name, rows in raw.items()

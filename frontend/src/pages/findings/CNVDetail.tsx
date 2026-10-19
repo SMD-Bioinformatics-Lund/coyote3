@@ -128,7 +128,7 @@ export function CNVDetail() {
           />
         }
         statLabel="Copy Number"
-        statValue={copyNumber(cnv)}
+        statValue={<CopyNumberBadge value={type} label={copyNumber(cnv)} />}
       />
 
       <FindingMainGrid
@@ -141,7 +141,7 @@ export function CNVDetail() {
                 <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
                 <DetailField label="Type"><CopyNumberBadge value={type} /></DetailField>
                 <DetailField label="Ratio (log2)">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
-                <DetailField label="Copy number" valueClassName="text-tier4">{copyNumber(cnv)}</DetailField>
+                <DetailField label="Copy number"><CopyNumberBadge value={type} label={copyNumber(cnv)} /></DetailField>
                 <DetailField label="Status"><StatusBadges finding={cnv} /></DetailField>
                 <DetailField label="Artefact evidence"><ArtefactFrequencyBadges finding={cnv} /></DetailField>
               </FindingIdentityCard>

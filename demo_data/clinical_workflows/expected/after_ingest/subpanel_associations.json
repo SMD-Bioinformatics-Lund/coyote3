@@ -4,6 +4,7 @@
     "subpanel_id": "demo_focus",
     "is_active": true,
     "version": 1,
+    "system_installed": false,
     "is_current": true,
     "updated_by": "demo.author",
     "updated_on": {

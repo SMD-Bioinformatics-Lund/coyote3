@@ -41,12 +41,14 @@ describe("variant UI semantics", () => {
       <>
         <CopyNumberBadge value="gain" />
         <CopyNumberBadge value="loss" />
+        <CopyNumberBadge value="normal" />
         <AnalysisIntentBadges somatic="yes" germline />
       </>,
     )
 
     expect(screen.getByText("gain").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-gain")
     expect(screen.getByText("loss").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-loss")
+    expect(screen.getByText("normal").closest("[data-slot='table-badge']")).toHaveClass("badge-success")
     expect(screen.getByText("somatic")).toHaveClass("badge-somatic")
     expect(screen.getByText("germline")).toHaveClass("badge-germline")
   })

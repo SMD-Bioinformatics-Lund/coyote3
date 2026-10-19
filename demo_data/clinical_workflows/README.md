@@ -28,12 +28,12 @@ ingest, expected selections, review actions and reporting checks.
 
 | Directory | Contents |
 | --- | --- |
-| `setup/` | Nine demo ASPs, ten testing ASPCs, a named subpanel/association, an ISGL and nine unpublished report-rule drafts. Includes dedicated DNA and RNA assays in the `demo` group. |
+| `setup/` | Nine demo ASPs, ten testing ASPCs, a named subpanel/association, an ISGL and nine published demo report-rule sets. Includes dedicated DNA and RNA assays in the `demo` group. |
 | `raw/` | Paired/unpaired VCFs, translocation VCF, CNVs, coverage, shared HRD/MSI/TMB JSON, PGX, RNA fusions/expression/classification/QC and a placeholder CNV profile image. |
 | `manifests/` | Twelve valid pipeline manifests with relative resource paths. |
 | `negative/` | Deliberately invalid missing-file, missing-ASPC and RNA/SNV manifests. |
 | `scenarios/` | Stable raw-variant labels and editable query-rule draft requests. |
-| `expected/after_ingest/` | Twenty collection snapshots produced by real ingest parsing, normalization and writes in an isolated in-memory database. Includes supporting configuration. |
+| `expected/after_ingest/` | Twenty collection snapshots produced by real ingest parsing, normalization and writes in an isolated in-memory database. Includes supporting configuration. HGNC reference input is loaded from the bootstrap seed and is not duplicated in these snapshots. |
 | `expected/after_review/` | Contract-validated examples of tiers and sample/finding comments linked to the ingested examples; these are illustrative user actions, not ingest output. |
 | `expected/report_previews.json` | Actual report-engine section output for six synthetic review contexts. These are previews, not saved report documents. |
 
@@ -42,6 +42,20 @@ substitutes and timestamps are fixed to `2026-01-01T00:00:00Z`; live ingest gene
 its own IDs and times. References are substituted consistently. Absolute fixture
 paths become bundle-relative paths. Do not import expected snapshots into a running
 installation: ingest raw files and perform the review actions instead.
+
+### SnpEff transcript examples
+
+`raw/translocations.vcf` supplies Ensembl and RefSeq MANE Select combinations for
+BCR–ABL1, TP53 and CEBPA. Accessions match the bundled HGNC reference seed. The
+ingest replay loads those reference genes from that seed and follows the standard
+transcript selection order; both alternatives remain embedded in `INFO.ANN`.
+Select the other combination in the finding detail view to exercise manual selection.
+
+Breakpoints and read counts are synthetic test values, not biological examples of
+these rearrangements; `c.?` and `p.?` explicitly leave HGVS changes unspecified.
+The reciprocal KMT2A/NPM1 custom-feature records test non-transcript SnpEff evidence
+and therefore have no MANE flags. No MANE Plus Clinical flag is fabricated for genes
+whose reference records do not contain one.
 
 From the repository root, with development dependencies installed:
 

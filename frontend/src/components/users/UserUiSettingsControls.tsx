@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { LayoutGrid, Rows3, TableProperties } from "lucide-react"
+import { LayoutGrid, Rows3, TableProperties, SunMoon } from "lucide-react"
 
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
@@ -45,7 +45,13 @@ export function UserUiSettingsControls({
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+    <div className="user-preferences grid gap-4 lg:grid-cols-2">
+      <SettingRow icon={SunMoon} title="Theme"
+        description="Auto follows your local time: light 07:00–19:00, dark overnight. Saved to your account.">
+        <SegmentedControl ariaLabel="Theme preference" value={settings.theme}
+          onValueChange={(theme: UserUiSettings["theme"]) => { if (!disabled) onChange({ ...settings, theme }) }}
+          items={[{ value: "auto", label: "Auto", disabled }, { value: "light", label: "Light", disabled }, { value: "dark", label: "Dark", disabled }]} />
+      </SettingRow>
       <SettingRow
         icon={LayoutGrid}
         title="Analysis workspace"
@@ -105,7 +111,7 @@ function SettingRow({
   children: ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background/70 p-3">
+    <div className="preference-item rounded-lg border border-border bg-background/70 p-3">
       <div className="mb-3 flex items-start gap-2">
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <div>

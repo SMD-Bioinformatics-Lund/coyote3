@@ -60,19 +60,17 @@ export function AssayMatrixTable({
   return (
     <div className="surface-panel dashboard-panel dashboard-panel--blue border-border/50 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
+          <p className="text-xs font-normal text-muted-foreground">
+            {columns.length} visible catalog column(s)
+            {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           <span className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
             {genes.length} genes
           </span>
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
-            <p className="text-xs font-normal text-muted-foreground">
-              {columns.length} visible catalog column(s)
-              {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
           {annotations.toggle}
           <label className="flex items-center gap-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Rows
@@ -153,7 +151,7 @@ export function AssayMatrixTable({
         <div className="overflow-x-auto">
         {/* Explicit column totals avoid Firefox's max-content overflow with spanning headers. */}
         <table
-          className="type-table-cell min-w-full table-fixed border-separate border-spacing-0 text-left type-numeric"
+          className="catalog-matrix type-table-cell min-w-full table-fixed border-separate border-spacing-0 text-left type-numeric"
           style={{ width: `calc(${annotations.visible ? 18 : 11}rem + ${columns.reduce((width, col) => width + matrixColumnWidth(col.isgl_label || col.isgl_key), 0)}px)` }}
         >
           <colgroup>
@@ -180,6 +178,7 @@ export function AssayMatrixTable({
                 <th
                   key={span.key}
                   colSpan={span.span}
+                  data-tone={index % 2 === 0 ? "brand" : "warm"}
                   className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase text-primary last:border-r-0"
                   title={span.label}
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
@@ -216,8 +215,8 @@ export function AssayMatrixTable({
                     style={matrixBoundaryStyle(boundary)}
                   >
                     <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
-                      <span className="mb-1 block type-label text-primary">{col.analysis}</span>
-                      {col.isgl_label || col.isgl_key}
+                      <span className="matrix-analysis-label mb-1 inline-flex type-label">{col.analysis}</span>
+                      <span className="block">{col.isgl_label || col.isgl_key}</span>
                     </span>
                   </th>
                 )
@@ -247,10 +246,13 @@ export function AssayMatrixTable({
                   return (
                     <td
                       key={`${gene}:${col.key}`}
+                      data-covered={present && !col.no_gene_list ? "true" : undefined}
                       className="h-7 border-b border-r border-border/40 px-0.5 py-1 text-center last:border-r-0"
                     >
                       {col.no_gene_list ? <span className="type-meta text-muted-foreground" title="No gene list is assigned to this analysis">N/A</span> : present ? (
-                        <Check className="mx-auto h-4 w-4 rounded-full text-pass" strokeWidth={2.4} />
+                        <span className="matrix-coverage-mark" aria-label="Included" title="Included in this gene list">
+                          <Check className="size-3.5" strokeWidth={2.4} aria-hidden="true" />
+                        </span>
                       ) : (
                         <span className="text-muted-foreground/65">-</span>
                       )}
