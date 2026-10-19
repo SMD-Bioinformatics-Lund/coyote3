@@ -44,6 +44,10 @@ Charts can export:
 - Do not call Recharts directly from new pages unless the page is defining a
   reusable plot component.
 - Use theme tokens, not hard-coded chart colors.
+- Recharts axes, grids, legends and default tooltips use shared styles in
+  `frontend/src/styles/charts.css`. Preserve clinical series colors; use neutral
+  foreground tokens for labels and values. Chart exports resolve displayed SVG
+  styles and retain the active theme.
 - Every chart must define an empty state.
 - Every chart with clinical or operational value should expose CSV export.
 - Genome-track style views can use custom SVG when the layout is genomic rather

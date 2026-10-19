@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./styles/tailwind-theme.css";
+@import "./styles/charts.css";
 
 @custom-variant dark (&:is(.dark *));
 

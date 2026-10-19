@@ -25,8 +25,8 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
+  const { resolvedTheme, forcedTheme } = useTheme()
+  const isDark = (forcedTheme || resolvedTheme) === "dark"
   const { appVersion, organizationName } = runtimeConfig
 
   useEffect(() => {

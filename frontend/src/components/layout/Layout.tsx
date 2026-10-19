@@ -383,7 +383,7 @@ export function Layout() {
           )}
 
           <div className="ml-auto flex h-full items-center gap-2">
-            <ThemeToggle className="rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-chrome-muted-foreground hover:bg-[var(--chrome-control-hover)] hover:text-chrome-foreground h-10 w-10" />
+            <ThemeToggle className="h-10 shrink-0" />
             {!publicOnlyMode && (
               <Link
                 to="/notifications"

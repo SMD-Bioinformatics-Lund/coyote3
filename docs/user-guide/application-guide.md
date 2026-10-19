@@ -54,6 +54,19 @@ control, notifications, and account menu. The side bar provides routes for the
 current user. Routes that require a permission or a disabled application module
 are not offered as usable actions.
 
+The **Theme** selector offers **Automatic**, **Device preference**, **Light**, and
+**Dark**. Automatic is the initial setting: light from 07:00 until 19:00 and dark
+overnight, using the browser's local clock and timezone. It rechecks the clock
+while the page is open and when returning to the tab. Device preference follows
+the operating system's light/dark preference. A manual selection persists in that
+browser and takes priority over the automatic schedule. Existing saved preferences
+are retained; choose Automatic to enable the schedule.
+
+Dark mode changes surfaces, chart axes, tooltips and contrast while retaining
+the meanings of clinical tier, warning, failure, gain/loss and other domain colors.
+Use labels and values alongside colors when interpreting findings. Report documents
+and supplied reference images retain their original presentation for fidelity.
+
 | Area | Use |
 | --- | --- |
 | Dashboard | Review workload, sample composition, finding counts, and assay configuration summaries. |
@@ -408,7 +421,7 @@ The Profile page contains safe account fields and user-owned UI settings.
 | Analysis layout | Classic or Modern sample analysis presentation. |
 | Samples layout | Classic or Modern sample worklist presentation. |
 | Table page size | Default rows per page for supported tables. |
-| Theme | Light or dark display. |
+| Theme | Automatic (device local time), Device preference, Light or Dark. |
 
 ## Administration
 

@@ -1,0 +1,42 @@
+/* Recharts ships inline light-mode defaults. Override only presentation, never data colors. */
+.recharts-wrapper .recharts-default-tooltip {
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+  border: 1px solid var(--paper-edge) !important;
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.recharts-wrapper .recharts-tooltip-label,
+.recharts-wrapper .recharts-tooltip-item,
+.recharts-wrapper .recharts-legend-item-text {
+  color: var(--foreground) !important;
+}
+
+.recharts-wrapper .recharts-cartesian-axis-tick-value,
+.recharts-wrapper .recharts-label {
+  fill: var(--muted-foreground);
+}
+
+.recharts-wrapper .recharts-cartesian-axis-line,
+.recharts-wrapper .recharts-cartesian-axis-tick-line {
+  stroke: var(--paper-edge);
+}
+
+.recharts-wrapper .recharts-cartesian-grid {
+  opacity: 1;
+}
+
+.recharts-wrapper .recharts-cartesian-grid line {
+  stroke: var(--chart-grid);
+}
+
+.recharts-wrapper .recharts-tooltip-cursor {
+  fill: var(--chart-tooltip-cursor);
+  stroke: var(--paper-edge);
+}
+
+.recharts-wrapper:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

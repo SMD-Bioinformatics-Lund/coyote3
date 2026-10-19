@@ -3,23 +3,24 @@
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      title="Toggle theme"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className={cn("bg-transparent text-foreground hover:bg-muted", className)}
-    >
-      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-transform duration-100 dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-transform duration-100 dark:rotate-0 dark:scale-100" />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
+    <label className={cn("inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-foreground", className)}>
+      <Sun aria-hidden="true" className="h-4 w-4 shrink-0 dark:hidden" />
+      <Moon aria-hidden="true" className="hidden h-4 w-4 shrink-0 dark:block" />
+      <span className="sr-only">Theme</span>
+      <select value={theme || "auto"} onChange={(event) => setTheme(event.target.value)}
+        className="min-w-0 rounded bg-card py-1 type-body-sm text-foreground focus-visible:outline-ring"
+        title="Automatic: light 07:00–19:00, dark otherwise (device local time)">
+        <option value="auto">Automatic</option>
+        <option value="system">Device preference</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
   )
 }

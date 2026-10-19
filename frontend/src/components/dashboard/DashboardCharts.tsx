@@ -192,7 +192,7 @@ export function SampleCompositionCharts({
                   cursor={{ fill: "var(--chart-tooltip-cursor)" }}
                 />
                 <Bar dataKey="Analysed" stackId="pipeline" fill="var(--color-pass)" radius={[4, 0, 0, 4]} isAnimationActive={false} />
-                <Bar dataKey="Awaiting review" stackId="pipeline" fill="var(--color-warning)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
+                <Bar dataKey="Awaiting review" stackId="pipeline" fill="var(--status-warning)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

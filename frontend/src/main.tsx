@@ -14,7 +14,7 @@ window.addEventListener("unhandledrejection", (event) => reportUiError(event.rea
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme" attribute="class">
+      <ThemeProvider defaultTheme="auto" storageKey="vite-ui-theme" attribute="class">
         <NotificationProvider>
           <App />
           <GlobalRichTooltip />

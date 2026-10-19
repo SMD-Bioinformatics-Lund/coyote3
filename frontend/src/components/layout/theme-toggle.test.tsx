@@ -12,11 +12,13 @@ describe("ThemeToggle", () => {
   it.each([
     ["light", "dark"],
     ["dark", "light"],
+    ["light", "auto"],
+    ["auto", "system"],
   ])("switches %s to %s", async (current, expected) => {
     useTheme.mockReturnValue({ theme: current, setTheme })
     const user = userEvent.setup()
     render(<ThemeToggle />)
-    await user.click(screen.getByRole("button", { name: "Toggle theme" }))
+    await user.selectOptions(screen.getByRole("combobox", { name: "Theme" }), expected)
     expect(setTheme).toHaveBeenCalledWith(expected)
   })
 })
