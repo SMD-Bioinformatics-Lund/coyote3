@@ -158,6 +158,33 @@ def check_indexes(*, require_present: bool = False, scope: str = "application") 
         )
 
 
+def check_redis() -> None:
+    """Verify authenticated Redis access from the application container.
+
+    Raises:
+        ValueError: A required Redis URL is missing or its PING fails. Messages
+            identify the setting and exception type without disclosing credentials.
+    """
+    import redis
+
+    for key in ("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND"):
+        url = os.environ.get(key)
+        if not url:
+            raise ValueError(f"{key} is required for the Redis connectivity check")
+        try:
+            with redis.Redis.from_url(url, socket_connect_timeout=3, socket_timeout=3) as client:
+                client.ping()
+        except Exception as error:
+            raise ValueError(
+                f"{key} PING failed ({type(error).__name__}). "
+                "Redis must be reachable from application containers, not only from its own "
+                "health check. Check credentials for authentication errors; for connection "
+                "timeouts inspect Docker bridge forwarding and host firewall policy. "
+                "See docs/operations/troubleshooting.md."
+            ) from None
+    print("[ok] Redis cache, broker and result backend are reachable")
+
+
 def main() -> int:
     """Run one installation gate; suppress connection details in error messages.
 
@@ -166,7 +193,8 @@ def main() -> int:
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "operation", choices=("configuration", "state", "maintenance", "indexes", "indexes-ready")
+        "operation",
+        choices=("configuration", "state", "maintenance", "indexes", "indexes-ready", "redis"),
     )
     parser.add_argument(
         "--scope", choices=("application", "knowledgebase", "all"), default="application"
@@ -179,6 +207,8 @@ def main() -> int:
             print(check_endpoints())
         elif args.operation == "maintenance":
             validate_maintenance_endpoint()
+        elif args.operation == "redis":
+            check_redis()
         else:
             check_indexes(require_present=args.operation == "indexes-ready", scope=args.scope)
     except Exception as error:
@@ -189,6 +219,7 @@ def main() -> int:
             "maintenance",
             "indexes",
             "indexes-ready",
+            "redis",
         }:
             print(str(error))
         return 1

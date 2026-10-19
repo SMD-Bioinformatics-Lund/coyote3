@@ -34,7 +34,7 @@ describe("Admin navigation permissions", () => {
     state.roles = ["superuser"]
     show()
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument()
-    expect(screen.getAllByRole("link")).toHaveLength(21)
+    expect(screen.getAllByRole("link")).toHaveLength(22)
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: " testing " } })
     expect(screen.getAllByRole("link")).toHaveLength(2)
     expect(screen.getByRole("link", { name: /Clinical Rule Testing/ })).toBeVisible()
@@ -42,7 +42,7 @@ describe("Admin navigation permissions", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: "no match" } })
     expect(screen.queryAllByRole("link")).toHaveLength(0)
     fireEvent.click(screen.getAllByRole("button", { name: "Clear search" })[1])
-    expect(screen.getAllByRole("link")).toHaveLength(21)
+    expect(screen.getAllByRole("link")).toHaveLength(22)
   })
   it("does not expose links without permission", () => {
     show()
@@ -89,7 +89,7 @@ describe("Admin navigation permissions", () => {
     expect(screen.getByRole("region", { name: "Identity and access" })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Application operations" })).toBeInTheDocument()
     const destinations = screen.getAllByRole("link").map((link) => link.getAttribute("href"))
-    expect(destinations).toHaveLength(21)
+    expect(destinations).toHaveLength(22)
     expect(new Set(destinations).size).toBe(destinations.length)
   })
   it("omits empty sections for limited access", () => {
@@ -97,5 +97,19 @@ describe("Admin navigation permissions", () => {
     show()
     expect(screen.getAllByRole("region")).toHaveLength(1)
     expect(screen.getByRole("region", { name: "Clinical rules and catalog" })).toBeInTheDocument()
+  })
+  it("shows demo installation in operations with its dedicated permission", () => {
+    state.permissions = ["demo:install"]
+    show()
+    const operations = screen.getByRole("region", { name: "Application operations" })
+    expect(within(operations).getByRole("link", { name: /^Demo installation/ }))
+      .toHaveAttribute("href", "/admin/demo-installation")
+    expect(screen.getAllByRole("link")).toHaveLength(1)
+  })
+  it("hides demo installation from operators without its permission", () => {
+    state.permissions = ["app.controls:view"]
+    show()
+    expect(screen.getByRole("link", { name: /^Application Controls/ })).toBeVisible()
+    expect(screen.queryByRole("link", { name: /^Demo installation/ })).not.toBeInTheDocument()
   })
 })

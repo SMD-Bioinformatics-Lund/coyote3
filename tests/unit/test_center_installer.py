@@ -12,11 +12,50 @@ import pytest
 
 from scripts.deployment.installation_checks import (
     check_indexes,
+    check_redis,
     installation_state,
     validate_maintenance_endpoint,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_redis_gate_checks_all_three_endpoints(monkeypatch):
+    """Cache, broker and results must all accept an authenticated PING."""
+    factory = Mock()
+    client = factory.return_value.__enter__ = Mock(return_value=Mock())
+    factory.return_value.__exit__ = Mock(return_value=False)
+    monkeypatch.setattr("redis.Redis.from_url", factory)
+    for index, key in enumerate(("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND")):
+        monkeypatch.setenv(key, f"redis://synthetic.invalid/{index}")
+    check_redis()
+    assert factory.call_count == 3
+    assert client.return_value.ping.call_count == 3
+
+
+def test_redis_gate_redacts_driver_details(monkeypatch):
+    """Driver errors must not disclose credentials in deployment output."""
+    monkeypatch.setenv("CACHE_REDIS_URL", "redis://:private@synthetic.invalid/0")
+    monkeypatch.setattr("redis.Redis.from_url", Mock(side_effect=TimeoutError("private")))
+    with pytest.raises(ValueError, match="CACHE_REDIS_URL PING failed") as error:
+        check_redis()
+    assert "private" not in str(error.value)
+
+
+def test_redis_failure_stops_before_bootstrap_or_application_start(fake_installation):
+    """A healthy Redis container alone cannot authorize installation writes or startup."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        command,
+        env={**env, "INSTALL_TEST_STATE": "fresh", "INSTALL_TEST_REDIS_FAILURE": "1"},
+        capture_output=True,
+    )
+    assert result.returncode == 1
+    calls = log.read_text()
+    assert calls.index("--wait-timeout 60 redis") < calls.index("installation_checks redis")
+    assert "bootstrap_database.py" not in calls
+    assert "manage_mongo_indexes.py apply" not in calls
+    assert "up -d --no-build --wait" not in calls
 
 
 def test_target_detection_preserves_existing_and_rejects_partial_installations():
@@ -76,6 +115,7 @@ if [[ "$*" == *"installation_checks state"* ]]; then
 fi
 if [[ "$*" == *"installation_checks indexes"* && "${INSTALL_TEST_CONFLICT:-0}" == 1 ]]; then exit 1; fi
 if [[ "$*" == *"installation_checks indexes-ready"* && "${INSTALL_TEST_INCOMPLETE:-0}" == 1 ]]; then exit 1; fi
+if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}" == 1 ]]; then exit 1; fi
 """
     binaries = tmp_path / "bin"
     binaries.mkdir()
@@ -153,18 +193,18 @@ def test_bootstrap_runs_only_for_fresh_databases(fake_installation, state):
     )
     calls = log.read_text()
     assert ("bootstrap_database.py" in calls) == (state == "fresh")
-    assert ("up -d" in calls) == (state != "partial")
+    assert ("up -d --no-build --wait" in calls) == (state != "partial")
     assert result.returncode == (1 if state == "partial" else 0), result.stderr
     if state == "partial":
         assert "installation_checks indexes" not in calls
     if state == "fresh":
         assert "--require-empty-target" in calls
     if state != "partial":
-        assert calls.index("manage_mongo_indexes.py apply") < calls.index("up -d")
+        assert calls.index("manage_mongo_indexes.py apply") < calls.index("up -d --no-build --wait")
         assert (
             calls.index("manage_mongo_indexes.py apply")
             < calls.index("installation_checks indexes-ready")
-            < calls.index("up -d")
+            < calls.index("up -d --no-build --wait")
         )
         assert "http://127.0.0.1:5815/coyote3/api/v1/health" in calls
         assert "synthetic.invalid:6802" not in calls
@@ -232,7 +272,7 @@ def test_empty_maintenance_override_stops_before_writes(fake_installation):
     calls = log.read_text()
     assert "bootstrap_database.py" not in calls
     assert "manage_mongo_indexes.py apply" not in calls
-    assert "up -d" not in calls
+    assert "up -d --no-build --wait" not in calls
 
 
 def test_index_conflict_stops_before_apply_and_start(fake_installation):
@@ -246,7 +286,7 @@ def test_index_conflict_stops_before_apply_and_start(fake_installation):
     calls = log.read_text()
     assert "bootstrap_database.py" not in calls
     assert "manage_mongo_indexes.py apply" not in calls
-    assert "up -d" not in calls
+    assert "up -d --no-build --wait" not in calls
 
 
 def test_installer_help_and_unknown_options_do_not_run_docker():
@@ -269,11 +309,11 @@ def test_setup_center_installs_references_without_external_maintenance(fake_inst
     assert result.returncode == (1 if state == "partial" else 0), result.stderr
     assert ("bootstrap_database.py" in calls) == (state == "fresh")
     assert ("install_reference_data.py" in calls) == (state != "partial")
-    assert ("up -d" in calls) == (state != "partial")
+    assert ("up -d --no-build --wait" in calls) == (state != "partial")
     assert "--scope knowledgebase" not in calls
     assert "--with-demo-center" not in calls
     if state != "partial":
-        assert calls.index("install_reference_data.py") < calls.index("up -d")
+        assert calls.index("install_reference_data.py") < calls.index("up -d --no-build --wait")
 
 
 @pytest.mark.parametrize(
@@ -328,7 +368,7 @@ def test_knowledgebase_operations_are_independent_opt_ins(
     assert ("install_reference_data.py" in calls) == seeds
     assert ("--scope knowledgebase" in calls) == indexes
     assert "bootstrap_database.py" not in calls
-    assert "up -d" not in calls
+    assert "up -d --no-build --wait" not in calls
 
 
 def test_start_cannot_bypass_missing_baseline(fake_installation):
@@ -341,7 +381,7 @@ def test_start_cannot_bypass_missing_baseline(fake_installation):
     )
     assert result.returncode == 1
     assert "baseline is missing" in result.stderr
-    assert "up -d" not in log.read_text()
+    assert "up -d --no-build --wait" not in log.read_text()
 
 
 @pytest.mark.parametrize(
@@ -393,7 +433,7 @@ def test_unfinished_index_application_prevents_startup(fake_installation):
     assert result.returncode == 1
     calls = log.read_text()
     assert "manage_mongo_indexes.py apply" in calls
-    assert "up -d" not in calls
+    assert "up -d --no-build --wait" not in calls
 
 
 @pytest.mark.parametrize(

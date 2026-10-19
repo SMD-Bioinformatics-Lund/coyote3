@@ -117,6 +117,11 @@ if selected network && ! docker network inspect "${settings[0]}" >/dev/null 2>&1
 fi
 if selected directories; then compose --prepare-directories config --quiet; fi
 if selected build && [[ "$skip_build" == 0 ]]; then compose build; fi
+if selected start; then
+  # A Redis-local health check cannot establish connectivity across the Docker bridge.
+  compose up -d --no-deps --no-build --wait --wait-timeout 60 redis
+  compose run --rm --no-deps -T api python3 -m scripts.deployment.installation_checks redis
+fi
 state="unchecked"
 if selected validate || selected bootstrap || selected indexes || selected start; then
 compose run --rm --no-deps -T api python3 -m scripts.deployment.installation_checks configuration

@@ -41,6 +41,11 @@ regardless of their order in the argument. The default selects all eight stages.
 Secret validation and Compose rendering always run. Selecting bootstrap, indexes
 or startup also validates center configuration and checks database state.
 
+Selecting `start` also starts Redis and checks authenticated cache, broker and
+result-backend connections from a temporary API container before any selected
+bootstrap or index operations. Failure stops the installer. The check does not
+change host firewall rules; see [connection troubleshooting](../operations/troubleshooting.md#api-startup-fails-while-connecting-to-redis).
+
 | Stage | Default | Operation and prerequisites | Standalone command |
 | --- | --- | --- | --- |
 | `network` | On | Create the configured application network only if absent. Docker must be running. | Installer with `--steps network` |

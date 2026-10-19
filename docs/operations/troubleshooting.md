@@ -79,6 +79,20 @@ Check the connection from the API container, not only the Redis health check.
 Redis's container health check uses a local connection and can pass while traffic
 between containers is blocked.
 
+The center installer starts Redis and checks all three configured Redis connections
+from a temporary API container whenever the `start` stage is selected. This gate runs
+before database bootstrap and index operations. Authentication and connection errors
+stop installation without printing connection credentials.
+
+To repeat the check independently after Redis is running:
+
+```bash
+bash scripts/deployment/compose-with-version.sh \
+  --env-file "$COYOTE_ENV_FILE" -p "$COYOTE_PROJECT" \
+  -f deploy/compose/docker-compose.yml \
+  run --rm --no-deps -T api python3 -m scripts.deployment.installation_checks redis
+```
+
 | Observation | Next check |
 | --- | --- |
 | Authentication error | Compare the configured cache credentials with Redis's runtime credentials without printing either value. |
@@ -93,6 +107,7 @@ without changing them:
 sudo iptables -S FORWARD
 sudo iptables -S DOCKER-USER
 sudo iptables -S DOCKER-FORWARD
+sudo iptables -S DOCKER
 ```
 
 Chain names depend on the Docker version and firewall backend; an absent chain

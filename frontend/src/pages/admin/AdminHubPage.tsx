@@ -155,7 +155,7 @@ const adminSections = [
   { id: "assays", title: "Assays and subpanels", icon: Dna, paths: ["assay-groups", "assay-setups", "asp", "subpanels", "assay-subpanels", "aspc", "genelists"] },
   { id: "reporting", title: "Clinical rules and catalog", icon: BookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
   { id: "access", title: "Identity and access", icon: UsersRound, paths: ["users", "roles", "permissions"] },
-  { id: "operations", title: "Application operations", icon: Settings2, paths: ["samples", "ingest", "controls", "notifications", "audit", "ui-routes"] },
+  { id: "operations", title: "Application operations", icon: Settings2, paths: ["samples", "ingest", "demo-installation", "controls", "notifications", "audit", "ui-routes"] },
 ] as const
 
 export function AdminHubPage() {

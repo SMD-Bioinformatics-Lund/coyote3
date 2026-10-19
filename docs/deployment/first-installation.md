@@ -579,7 +579,8 @@ The installer executes the following sequence:
 
 1. Validate secrets and render the selected Compose configuration.
 2. Reuse the application network, or create it if absent, and prepare host directories.
-3. Build images and validate mounted center configuration using the API image.
+3. Build images, start Redis, and verify authenticated cache, task-broker and result-backend
+   connections from a temporary API container. Validate mounted center configuration.
 4. Verify all four MongoDB endpoints and inspect application/identity installation state.
 5. On a fresh target only, prompt for initial accounts and invoke database bootstrap.
 6. Check application, identity and BAM indexes, stop on conflicts, create compatible missing indexes, and
@@ -591,6 +592,13 @@ The installer executes the following sequence:
 Do not run the individual bootstrap or index commands in addition to this sequence.
 The script does not provision MongoDB, initialize replica sets, create database users,
 or change an existing network. Complete those prerequisites before running it.
+
+> [!IMPORTANT]
+> Redis must be reachable between containers on the application network. Its local
+> health check alone does not prove this. A failed connectivity check stops installation
+> before database bootstrap or application startup. Follow
+> [Redis connection troubleshooting](../operations/troubleshooting.md#api-startup-fails-while-connecting-to-redis)
+> to correct the host configuration before retrying.
 
 Index checks report counts of present, missing and conflicting indexes. Missing
 indexes are expected on a first installation. A conflict identifies the repository,
