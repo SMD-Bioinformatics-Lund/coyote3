@@ -55,17 +55,18 @@ export function Turnaround({ value = "", onChange }: { value?: string; onChange:
   </div>
 }
 
-export function PresentationFields({ value, presets, onChange, showAnalysis = true }: {
+export function PresentationFields({ value, presets, onChange, showAnalysis = true, showHeading = true }: {
   value: Presentation; presets: { analysis: string[]; input_material: string[]; sample_modes: string[] }
   onChange: (value: Presentation) => void
   showAnalysis?: boolean
+  showHeading?: boolean
 }) {
   return <div className="space-y-4">
-    <div className="grid gap-3 md:grid-cols-2">
+    {showHeading && <><div className="grid gap-3 md:grid-cols-2">
       <TextField label="Display name" value={value.label || value.title} onChange={(label) => onChange({ ...value, label, title: label })} />
       <TextField label="Subheading" value={value.subheading} onChange={(subheading) => onChange({ ...value, subheading })} />
     </div>
-    <TextField label="Description" multiline value={value.description} onChange={(description) => onChange({ ...value, description })} />
+    <TextField label="Description" multiline value={value.description} onChange={(description) => onChange({ ...value, description })} /></>}
     <Choices label="Input material" value={value.input_material} presets={presets.input_material} custom onChange={(input_material) => onChange({ ...value, input_material })} />
     <div className="grid gap-4 md:grid-cols-2">
       <Turnaround value={value.tat} onChange={(tat) => onChange({ ...value, tat })} />
@@ -76,7 +77,6 @@ export function PresentationFields({ value, presets, onChange, showAnalysis = tr
       <div className="mt-3 space-y-3">
         <TextField label="Limitations" multiline value={value.limitations} onChange={(limitations) => onChange({ ...value, limitations })} />
         <TextField label="Public notes" multiline value={value.public_notes} onChange={(public_notes) => onChange({ ...value, public_notes })} />
-        <Choices label="Report sections" value={value.report_sections} presets={presets.analysis} onChange={(report_sections) => onChange({ ...value, report_sections })} />
         <Choices label="Clinical indications" value={value.clinical_indications} presets={[]} custom onChange={(clinical_indications) => onChange({ ...value, clinical_indications })} />
       </div>
     </details>

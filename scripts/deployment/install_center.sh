@@ -18,6 +18,7 @@ Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
 Missing initial account details and passwords are prompted only for fresh targets.
 --setup-center selects every stage and bundled HGNC/VEP references; cannot combine with --steps.
 Demo configuration and knowledgebase-wide indexes remain separate opt-ins.
+--with-demo-center installs both connected demo workflows and samples after baseline/index setup.
 Knowledgebase operations use the configured URI unless overridden; external releases are not imported.
 Steps run in the listed canonical order; validation and startup safety gates remain mandatory.
 No database is dropped, restored, reset or migrated. Index conflicts stop installation.
@@ -31,7 +32,8 @@ skip_build=0
 setup_center=0 steps_explicit=0
 steps="network,directories,build,validate,bootstrap,indexes,start,health"
 kb_seeds=0 kb_indexes=0
-compose_files=() demo_args=()
+compose_files=()
+with_demo=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h) usage; exit 0 ;;
@@ -39,7 +41,7 @@ while [[ $# -gt 0 ]]; do
     --setup-center) setup_center=1; shift ;;
     --with-knowledgebase-seeds) kb_seeds=1; shift ;;
     --with-knowledgebase-indexes) kb_indexes=1; shift ;;
-    --with-demo-center) demo_args=(--with-demo-center); shift ;;
+    --with-demo-center) with_demo=1; shift ;;
     --env-file|--project|--compose-file|--sys-admin-username|--sys-admin-email|--username|--email|--knowledgebase-maintenance-uri-file|--steps)
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo "Missing value for $1" >&2; exit 2; }
       case "$1" in
@@ -159,7 +161,7 @@ if selected bootstrap && [[ "$state" == fresh ]]; then
     python3 scripts/bootstrap/bootstrap_database.py --require-empty-target \
     --db "${settings[1]}" --identity-db "${settings[2]}" \
     --sys-admin-username "$admin_username" --sys-admin-email "$admin_email" \
-    --username "$emergency_username" --email "$emergency_email" "${demo_args[@]}"
+    --username "$emergency_username" --email "$emergency_email"
   state="existing"
 elif selected bootstrap; then
   echo "[skip] Existing installation: accounts, roles and application policies are preserved."
@@ -186,6 +188,12 @@ if [[ "$kb_indexes" == 1 ]]; then
     python3 -m scripts.deployment.installation_checks indexes-ready --scope knowledgebase
 fi
 unset COYOTE_INSTALL_KB_URI
+if [[ "$with_demo" == 1 ]]; then
+  [[ "$state" == existing ]] || { echo "Application baseline is required before demo installation" >&2; exit 1; }
+  [[ -n "$admin_username" ]] || read -rp "Existing administrator username for demo provenance: " admin_username
+  compose run --rm --no-deps -T api \
+    python3 -m scripts.bootstrap.install_demo_starter --actor "$admin_username" --apply
+fi
 if selected start; then
 [[ "$state" == existing ]] || { echo "Application baseline is missing; run bootstrap first" >&2; exit 1; }
 if ! selected indexes; then

@@ -533,6 +533,7 @@ class AspcService:
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         config.setdefault("is_active", True)
         config["system_managed"] = False
+        config["system_installed"] = False
         config["asp_id"] = asp_id
         config["subpanel_id"] = str(config.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
         self._validate_subpanel(config)
@@ -592,6 +593,7 @@ class AspcService:
         updated_doc = {**assay_config, **updated_config}
         updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
         updated_doc["system_managed"] = bool(assay_config.get("system_managed"))
+        updated_doc["system_installed"] = bool(assay_config.get("system_installed"))
         updated_doc.pop("_id", None)
         updated_doc["subpanel_id"] = str(updated_doc.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
         self._validate_subpanel(updated_doc, previous=assay_config)

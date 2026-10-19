@@ -102,6 +102,7 @@ class AspService:
             raise api_error(400, "Missing panel config payload")
         config.setdefault("is_active", True)
         config["system_managed"] = False
+        config["system_installed"] = False
         config["asp_id"] = config.get("asp_id")
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
@@ -149,6 +150,7 @@ class AspService:
         updated_doc = {**panel, **updated}
         updated_doc["asp_id"] = panel.get("asp_id", panel_id)
         updated_doc["system_managed"] = bool(panel.get("system_managed"))
+        updated_doc["system_installed"] = bool(panel.get("system_installed"))
         updated_doc.pop("_id", None)
         actor = current_actor(actor_username)
         now = utc_now()

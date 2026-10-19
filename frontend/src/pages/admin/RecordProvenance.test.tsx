@@ -4,6 +4,12 @@ import { RecordProvenance } from "./RecordProvenance"
 import { adminExportValue, adminFields } from "./resource-list"
 
 describe("Administrative record provenance", () => {
+  it("shows packaged origin without requiring protected system ownership", () => {
+    render(<RecordProvenance record={{ system_installed: true, system_managed: false, created_by: "installer" }} />)
+    expect(screen.getByRole("img", { name: "System installed" })).toBeVisible()
+    expect(screen.queryByText("installer")).not.toBeInTheDocument()
+    expect(adminExportValue("record_provenance", { system_installed: true })).toBe("System")
+  })
   it("identifies system ownership without presenting the installer as a user creator", () => {
     render(<RecordProvenance record={{ system_managed: true, created_by: "bootstrap" }} />)
     expect(screen.getByRole("img", { name: "System installed" })).toBeVisible()

@@ -1,5 +1,6 @@
 """Transactional installation and collision checks for packaged demonstration configuration."""
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
@@ -7,6 +8,7 @@ from api.config.loaders.collections import load_collection_section
 from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.clinical_rule_sets import build_revision_snapshot
+from api.infra.mongo.repositories.query_rule_revisions import build_query_revision
 from api.infra.mongo.transactions import run_transaction
 
 IDENTITIES = {
@@ -16,6 +18,8 @@ IDENTITIES = {
     "insilico_genelists": ("insilico_genelist_collection", "isgl_id"),
     "subpanels": ("subpanels_collection", "subpanel_id"),
     "subpanel_associations": ("subpanel_associations_collection", "subpanel_id"),
+    "query_rule_sets": ("query_rule_sets_collection", "scope_key"),
+    "public_assay_catalog_versions": ("public_assay_catalog_versions_collection", "_id"),
 }
 
 
@@ -27,12 +31,15 @@ class DemoInstallationRepository:
         self.database = database
         self.mapping = load_collection_section("primary")
 
-    def configuration_installed(self, documents: dict, session: Any = None) -> bool:
+    def configuration_installed(
+        self, documents: dict, session: Any = None, *, require_packaged: bool = False
+    ) -> bool:
         """Check whether every bundled configuration identity is already present.
 
         Args:
             documents: Validated bundled configuration grouped by logical collection.
             session: Optional session on this repository's client.
+            require_packaged: Require recorded package provenance before resuming a starter install.
 
         Returns:
             True only when all identities are present.
@@ -41,7 +48,9 @@ class DemoInstallationRepository:
             collection, key = IDENTITIES[name]
             for row in rows:
                 if not self.database[self.mapping[collection]].find_one(
-                    {key: row[key]}, {"_id": 1}, session=session
+                    {key: row[key], **({"system_installed": True} if require_packaged else {})},
+                    {"_id": 1},
+                    session=session,
                 ):
                     return False
         return True
@@ -49,7 +58,7 @@ class DemoInstallationRepository:
     def sample(self, name: str) -> dict | None:
         """Return identity fields for an existing named sample, or None."""
         return self.database[self.mapping["samples_collection"]].find_one(
-            {"name": name}, {"_id": 1, "name": 1, "asp_id": 1, "environment": 1}
+            {"name": name}, {"_id": 1, "name": 1, "asp_id": 1, "environment": 1, "subpanel_id": 1}
         )
 
     def install(self, documents: dict, actor: str) -> None:
@@ -63,9 +72,27 @@ class DemoInstallationRepository:
             AppError: Application baseline is missing or a fixture identity already exists.
         """
 
+        documents = deepcopy(documents)
+
         def write(session: Any) -> None:
             """Validate prerequisites and insert all configuration in one transaction."""
             self.preflight(documents, session)
+            live = self.database[self.mapping["public_assay_catalog_collection"]]
+            for row in documents.get("public_assay_catalog_versions", []):
+                if live.find_one({}, session=session) is None:
+                    now = datetime.now(timezone.utc)
+                    row.update(
+                        status="published", content_version=1, published_at=now, published_by=actor
+                    )
+                    row["lifecycle"] = [
+                        {
+                            "action": "system_installed",
+                            "actor": actor,
+                            "occurred_at": now,
+                            "reason": "Packaged synthetic demonstration catalog baseline",
+                        }
+                    ]
+                    live.insert_one(row["catalog"], session=session)
             for name, rows in documents.items():
                 self.database[self.mapping[IDENTITIES[name][0]]].insert_many(rows, session=session)
             now = datetime.now(timezone.utc)
@@ -83,6 +110,15 @@ class DemoInstallationRepository:
             self.database[self.mapping["clinical_rule_revisions_collection"]].insert_many(
                 revisions, session=session
             )
+            for row in documents.get("query_rule_sets", []):
+                self.database[self.mapping["query_rule_revisions_collection"]].insert_one(
+                    build_query_revision(row, "system_installed"), session=session
+                )
+            for row in documents.get("public_assay_catalog_versions", []):
+                self.database[self.mapping["public_assay_catalog_revisions_collection"]].insert_one(
+                    {"version_id": str(row["_id"]), "revision": row["revision"], "document": row},
+                    session=session,
+                )
             enqueue_audit(
                 self.database,
                 session,

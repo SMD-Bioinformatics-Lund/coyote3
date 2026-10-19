@@ -1,4 +1,5 @@
 import { AppLoader } from "@/components/layout/AppLoader"
+import { RecordProvenance } from "./RecordProvenance"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -172,8 +173,8 @@ export function ClinicalRulesPage() {
       setDirty(false)
       setHistoryOpen(false)
       queryClient.invalidateQueries({ queryKey: ["clinical-rule-sets"] })
-      queryClient.removeQueries({ queryKey: ["clinical-rule-set", documentId] })
-      queryClient.removeQueries({ queryKey: ["clinical-rule-revisions", documentId] })
+      queryClient.removeQueries({ queryKey: ["clinical-rule-set", documentId], type: "inactive" })
+      queryClient.removeQueries({ queryKey: ["clinical-rule-revisions", documentId], type: "inactive" })
     },
   })
   const createRevision = () => draft && actionMutation.mutate({ path: "/admin/clinical-rule-sets/drafts", body: { source_version_id: draft._id, source: "template" } })
@@ -322,7 +323,7 @@ export function ClinicalRulesPage() {
             <label className="type-label mt-3 block">Tumor-type wording<Input disabled={!editableDraft} maxLength={120} value={String(draft.terminology.automatic_annotation_tumor_type ?? "")} placeholder="For example: hematologiska or solida" onChange={event => mutateDraft(document => { const value = event.target.value; if (value) document.terminology.automatic_annotation_tumor_type = value; else delete document.terminology.automatic_annotation_tumor_type })} /></label>
           </section>}
           {editableDraft && <label className="type-label mt-5 block">Change summary<textarea className="paper-inset mt-1 min-h-24 w-full rounded-lg p-2 text-sm" value={draft.change_summary} onChange={(event) => mutateDraft((document) => { document.change_summary = event.target.value })} /></label>}
-          {draft && <div className="mt-5 border-t border-border pt-4 text-xs"><p className="font-semibold">Governance</p><dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 text-muted-foreground"><dt>Draft author</dt><dd>{draft.created_by || "Unknown"}</dd>{draft.review?.clinical_reviewer && <><dt>Clinical reviewer</dt><dd>{draft.review.clinical_reviewer}</dd></>}{draft.review?.publisher && <><dt>Assigned publisher</dt><dd>{draft.review.publisher}</dd></>}</dl>{draft.review?.clinical_decision_reason && <p className="mt-2 text-foreground">{draft.review.clinical_decision_reason}</p>}</div>}
+          {draft && <div className="mt-5 border-t border-border pt-4 text-xs"><p className="font-semibold">Governance</p><dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 text-muted-foreground"><dt>Installed by</dt><dd><RecordProvenance record={draft} /></dd>{draft.review?.clinical_reviewer && <><dt>Clinical reviewer</dt><dd>{draft.review.clinical_reviewer}</dd></>}{draft.review?.publisher && <><dt>Assigned publisher</dt><dd>{draft.review.publisher}</dd></>}</dl>{draft.review?.clinical_decision_reason && <p className="mt-2 text-foreground">{draft.review.clinical_decision_reason}</p>}</div>}
           {draft && <section className="mt-5 border-t border-border pt-4">
             <Button className="w-full justify-between" type="button" variant="outline" onClick={() => setHistoryOpen((current) => !current)}><span className="flex items-center gap-2"><History /> Revision history</span><span className="text-xs">r{draft.revision}</span></Button>
             {historyOpen && <div className="mt-3 space-y-3">

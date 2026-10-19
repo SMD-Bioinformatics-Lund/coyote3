@@ -15,7 +15,7 @@ to authoring and review; granting both roles does not waive the independence che
 
 | Role ID | Label | Responsibility | Grants |
 | --- | --- | --- | --- |
-| [`admin`](#admin) | Clinical administrator | Manages assays, assay configurations, gene lists, clinical reporting rules and catalog governance. Does not manage accounts or system controls. | 70 |
+| [`admin`](#admin) | Clinical administrator | Manages assays, assay configurations, gene lists, clinical reporting rules and catalog governance. Does not manage accounts or system controls. | 71 |
 | [`app_control_operator`](#app-control-operator) | Application Control Operator | Views and changes runtime controls and can run approved maintenance. | 4 |
 | [`asp_manager`](#asp-manager) | ASP Manager | Creates and manages assay panel definitions. | 5 |
 | [`aspc_manager`](#aspc-manager) | ASPC Manager | Creates and manages environment-specific assay configurations and filters. | 5 |
@@ -28,6 +28,7 @@ to authoring and review; granting both roles does not waive the independence che
 | [`clinical_rule_reviewer`](#clinical-rule-reviewer) | Clinical Rule Reviewer | Performs independent clinical review of submitted reporting rules. | 3 |
 | [`clinical_rule_tester`](#clinical-rule-tester) | Clinical Rule Tester | Runs read-only rule-set validation and sample-backed report previews without authoring, reviewing, publishing, or retiring clinical content. | 2 |
 | [`clinical_rule_viewer`](#clinical-rule-viewer) | Clinical Rule Viewer | Reads governed clinical reporting rule sets, their release history, provenance, and exported canonical JSON without changing clinical content. | 1 |
+| [`demo_installer`](#demo-installer) | Demo installer | Installs packaged synthetic demonstration configuration and samples. Clinical sample access requires separate roles and assay/environment scopes. | 1 |
 | [`developer`](#developer) | Developer | Full access to configurations and testing features, no user management. | 54 |
 | [`external`](#external) | External | Restricted read-only access, typically used for external collaborators. | 5 |
 | [`intern`](#intern) | Intern | Intern with limited analysis specific access | 24 |
@@ -81,6 +82,7 @@ Role: `admin`. Manages assays, assay configurations, gene lists, clinical report
 - `cnv:manage`
 - `coverage.blacklist:manage`
 - `coverage.low:download`
+- `demo:install`
 - `fusion:download`
 - `fusion:manage`
 - `gene.annotation:view`
@@ -220,6 +222,12 @@ Role: `clinical_rule_tester`. Runs read-only rule-set validation and sample-back
 Role: `clinical_rule_viewer`. Reads governed clinical reporting rule sets, their release history, provenance, and exported canonical JSON without changing clinical content.
 
 - `clinical_rules:view`
+
+### demo-installer
+
+Role: `demo_installer`. Installs packaged synthetic demonstration configuration and samples. Clinical sample access requires separate roles and assay/environment scopes.
+
+- `demo:install`
 
 ### developer
 

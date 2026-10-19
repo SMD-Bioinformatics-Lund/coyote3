@@ -20,8 +20,19 @@ function show() {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><MemoryRouter><DemoInstallationPage /></MemoryRouter></QueryClientProvider>)
 }
 
+it("installs the connected starter and first sample with one authorized operation", async () => {
+  show()
+  const button = await screen.findByRole("button", { name: "Install starter demo and samples" })
+  expect(button).toBeDisabled()
+  fireEvent.click(screen.getByRole("checkbox"))
+  fireEvent.click(button)
+  await waitFor(() => expect(calls.post).toHaveBeenCalledWith("/admin/demo-installation/starter"))
+  expect(calls.post).toHaveBeenCalledTimes(1)
+})
+
 it("requires acknowledgement and installs configuration before samples", async () => {
   show()
+  fireEvent.click(await screen.findByText("Additional workflow scenarios"))
   const install = await screen.findByRole("button", { name: "Install configuration and samples" })
   expect(install).toBeDisabled()
   fireEvent.click(screen.getByRole("checkbox"))
@@ -35,6 +46,7 @@ it("requires acknowledgement and installs configuration before samples", async (
 it("stops on configuration failure and displays recovery status", async () => {
   calls.post.mockRejectedValue(new Error("Existing configuration conflicts"))
   show()
+  fireEvent.click(await screen.findByText("Additional workflow scenarios"))
   await screen.findByRole("checkbox")
   fireEvent.click(screen.getByRole("checkbox"))
   fireEvent.click(screen.getByRole("button", { name: "Install configuration and samples" }))
@@ -47,6 +59,7 @@ it("does not reinstall existing samples or configuration", async () => {
   calls.get.mockResolvedValue({ data: { configuration: {}, configuration_installed: true,
     samples: [{ key: "demo_group_dna", name: "DEMO_GROUP_DNA", installed: true }] } })
   show()
+  fireEvent.click(await screen.findByText("Additional workflow scenarios"))
   await screen.findByRole("checkbox")
   fireEvent.click(screen.getByRole("checkbox"))
   expect(screen.getByRole("button", { name: "Install configuration and samples" })).toBeDisabled()

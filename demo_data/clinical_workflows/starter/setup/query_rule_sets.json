@@ -1,0 +1,53 @@
+[
+  {
+    "scope": {
+      "assay_group": "hematology",
+      "asp_id": "demo_starter_dna",
+      "subpanel_id": "demo_starter_focus",
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "scope_key": "hematology__demo_starter_dna__demo_starter_focus__somatic_snvs",
+    "name": "hematology__demo_starter_dna__demo_starter_focus__somatic_snvs",
+    "content": {
+      "evidence_mode": "paired",
+      "exceptions": []
+    },
+    "reason": "Packaged synthetic starter policy",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "system",
+    "updated_by": "system",
+    "published_by": "system",
+    "created_on": "2026-01-01T00:00:00+00:00",
+    "updated_on": "2026-01-01T00:00:00+00:00",
+    "published_on": "2026-01-01T00:00:00+00:00",
+    "system_installed": true
+  },
+  {
+    "scope": {
+      "assay_group": "fusion",
+      "asp_id": "demo_starter_rna",
+      "subpanel_id": "demo_starter_fusion",
+      "analysis": "fusion",
+      "intent": "somatic"
+    },
+    "scope_key": "fusion__demo_starter_rna__demo_starter_fusion__somatic_fusions",
+    "name": "fusion__demo_starter_rna__demo_starter_fusion__somatic_fusions",
+    "content": {
+      "exceptions": []
+    },
+    "reason": "Packaged synthetic starter policy",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "system",
+    "updated_by": "system",
+    "published_by": "system",
+    "created_on": "2026-01-01T00:00:00+00:00",
+    "updated_on": "2026-01-01T00:00:00+00:00",
+    "published_on": "2026-01-01T00:00:00+00:00",
+    "system_installed": true
+  }
+]

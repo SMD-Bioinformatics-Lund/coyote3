@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { QueryConditionBuilder } from "./QueryConditionBuilder"
 import { QueryConditionSummary } from "./QueryConditionSummary"
+import { RecordProvenance } from "./RecordProvenance"
 import { newQueryPredicate } from "./query-condition-types"
 import type { QueryCondition, QueryConditionCatalog } from "./query-condition-types"
 import { QueryConditionTestPanel } from "./QueryConditionTestPanel"
@@ -173,7 +174,7 @@ export function QueryRulesPage() {
               <span className="block truncate type-body-sm font-semibold" title={rule.name}>{rule.name}</span>
               <span className="mt-0.5 block truncate type-meta text-muted-foreground" title={`${rule.scope.assay_group ?? "All groups"} / ${rule.scope.asp_id ?? "All assays"} / ${rule.scope.subpanel_id ?? "All subpanels"}`}>{rule.scope.assay_group ?? "Default: all groups"} · {rule.scope.asp_id ?? "All assays"} · {rule.scope.subpanel_id ?? "All subpanels"}</span>
               <span className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5"><span className="type-meta text-muted-foreground">{rule.scope.analysis.toUpperCase()} · {label(rule.scope.intent)}</span><ClinicalRuleStatusBadge status={rule.status} prefix={`v${rule.version} `} /></span>
-              {rule.system_installed && <span className="mt-0.5 block type-meta text-muted-foreground">System installed</span>}
+              {rule.system_installed && <span className="mt-0.5 block"><RecordProvenance record={rule} /></span>}
             </button>)}
           </nav>
         </>}

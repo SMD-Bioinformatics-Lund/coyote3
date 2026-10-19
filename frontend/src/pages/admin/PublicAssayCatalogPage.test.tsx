@@ -6,11 +6,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Catalog, Version, Workspace } from "./catalog-types"
 
 const mocks = vi.hoisted(() => ({
-  get: vi.fn(), post: vi.fn(), patch: vi.fn(),
+  get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn(),
   permissions: ["catalog:view", "catalog:draft", "catalog:submit"],
   downloadJson: vi.fn(),
 }))
-vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post, patch: mocks.patch } }))
+vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post, patch: mocks.patch, delete: mocks.delete } }))
 vi.mock("@/lib/access-control", async (original) => ({
   ...await original<typeof import("@/lib/access-control")>(),
   useCurrentUserAccess: () => ({
@@ -62,6 +62,49 @@ beforeEach(() => {
 })
 
 describe("Public assay catalog governance", () => {
+  it.each([false, true])("does not reload a deleted version (history open: %s)", async (historyOpen) => {
+    const user = userEvent.setup()
+    let deleted = false
+    const readsAfterDelete: string[] = []
+    mocks.get.mockImplementation((path: string) => {
+      if (deleted && path.includes("/versions/draft-one")) {
+        readsAfterDelete.push(path)
+        return Promise.reject(new Error("Catalog version not found"))
+      }
+      return Promise.resolve({ data: path.endsWith("/revisions") ? { items: [] } : path.endsWith("/versions/draft-one") ? version : workspace })
+    })
+    mocks.delete.mockImplementation(() => {
+      deleted = true
+      workspace = { ...workspace, items: [] }
+      return Promise.resolve({ data: version })
+    })
+    renderPage("/admin/assay-catalog?version=draft-one")
+    if (historyOpen) {
+      await user.click(await screen.findByText("Revision snapshots"))
+      await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/admin/assay-catalog/versions/draft-one/revisions", expect.anything()))
+    }
+    await user.click(await screen.findByRole("button", { name: "Delete unpublished version" }))
+    const dialog = screen.getByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "Delete version" }))
+    await screen.findByRole("button", { name: "Edit published catalog" })
+    expect(mocks.delete).toHaveBeenCalledWith("/admin/assay-catalog/versions/draft-one?revision=1")
+    expect(readsAfterDelete).toEqual([])
+  })
+  it("lets a center remove a starter modality in its first draft", async () => {
+    workspace.has_published = false
+    workspace.items = []
+    const user = userEvent.setup()
+    renderPage()
+    expect(await screen.findByRole("button", { name: "Starter catalog" })).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Create first draft" }))
+    await user.click(await screen.findByRole("button", { name: "Whole Genome Sequencing (WGS)" }))
+    await user.click(screen.getByRole("button", { name: /Remove section/ }))
+    expect(screen.queryByRole("button", { name: "Whole Genome Sequencing (WGS)" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Save draft" }))
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalled())
+    expect(mocks.patch.mock.calls[0][1].catalog.modalities).toEqual({})
+    expect(mocks.patch.mock.calls[0][1].catalog.layout.order).toEqual([])
+  })
   it("adds and renames a custom section without a fixed modality list", async () => {
     const user = userEvent.setup()
     renderPage()

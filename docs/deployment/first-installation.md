@@ -666,7 +666,7 @@ do not request new account credentials.
 | `--sys-admin-username NAME`, `--sys-admin-email EMAIL` | Optional initial named-administrator details; prompted on a fresh target when omitted. |
 | `--username NAME`, `--email EMAIL` | Optional initial emergency-superuser details; prompted on a fresh target when omitted. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private file containing a separate maintenance URI when the configured knowledgebase connection lacks write/index privileges. Defaults to the configured connection. Protect the file with restricted filesystem permissions. |
-| `--with-demo-center` | Install synthetic ASP, ASPC and ISGL examples on fresh targets only. Not clinical configuration. |
+| `--with-demo-center` | Install connected hematology DNA and RNA fusion demos, testing and catalog configurations, analysis-linked catalog, published demo rules and both samples. Publish the demo catalog only when no public catalog exists; otherwise retain it as a draft. Synchronize demo installation-role grants. Existing records are preserved. |
 | `--skip-build` | Use already-built images after confirming that they match the selected release and deployment settings. |
 | `--steps LIST` | Comma-separated stages; default `network,directories,build,validate,bootstrap,indexes,start,health`. Executes selected stages in dependency order. |
 | `--with-knowledgebase-seeds` | Install bundled HGNC/VEP references independently of full setup, including on an existing application. Included in `--setup-center`. Requires an administrator username for provenance. |
@@ -683,6 +683,17 @@ when handling credentials. The temporary Compose rendering is private and remove
 on exit. The script never runs database drop, restore or reset operations.
 
 ### Installed application definitions and baseline
+
+For a first installation with both demo workflows, use:
+
+```bash
+bash scripts/deployment/install_center.sh \
+  --env-file "$COYOTE_ENV_FILE" \
+  --project "$COYOTE_PROJECT" \
+  --compose-file deploy/compose/docker-compose.yml \
+  --setup-center \
+  --with-demo-center
+```
 
 See [Installed defaults and demonstration configuration](../administration/installed-defaults.md)
 for the complete group inventory, exact query-rule conditions, optional demo assays,

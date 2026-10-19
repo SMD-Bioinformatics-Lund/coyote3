@@ -5,6 +5,31 @@ presentation content with active assay definitions, production configurations,
 and public gene lists. Catalog editing never changes ingest requirements,
 clinical filters, reporting rules, or existing samples.
 
+The public view presents offered analyses, included genes, categories, sample
+requirements and turnaround times. Reporting sections are controlled by the ASPC
+and reporting rules, not the catalog. Internal catalog, assay, configuration and
+subpanel identifiers are omitted from public detail cards; administrators can
+inspect the underlying links in the editor's **Database references** section.
+
+The landing page displays the configured **Catalog heading** and **Introduction**
+beside the category navigation. The introduction supports formatted text and links.
+Assay details and gene tables appear after selecting a category; **Catalog overview**
+returns to the introduction. Set this public introduction in the catalog editor and
+preview it before publishing.
+
+Navigation arrows expand or collapse branches without changing the displayed entry.
+Select an entry's name to view its details. The gene table includes available HGNC,
+OMIM and MANE transcript references from the installed gene database; missing values
+are shown as a dash. These references describe genes and transcripts, not a clinical
+classification of a sample finding.
+
+Platform, read mode and read length come from the linked assay definition. In
+**Administration → Assays**, the form offers editable defaults of **Illumina**,
+**PE (paired-end)** and **150 bp per read**. Confirm these values before saving;
+**SE** means single-end, and available modes depend on the platform. Update the
+assay definition to change these catalog details. Missing stored values are not
+presented as confirmed sequencing specifications.
+
 Before catalog entries are available, the public catalog displays **Add catalog**
 setup guidance. An empty catalog is a normal installation state. The shared layout
 also reads catalog context to build navigation, even outside the catalog page;
@@ -54,30 +79,100 @@ Catalog assignments describe the public offering; they do not alter sample filte
 | Entry `gene_lists[].analysis` | One or more entry analyses that use this list |
 | Entry `no_gene_list` | Entry analyses explicitly declared to have no linked gene list; defaults to an empty list |
 
-The catalog and draft preview show analysis tabs beneath each selected entry.
-Selecting a tab shows only that analysis's lists. Selecting a list displays its
+The catalog and draft preview show analysis tabs in the gene-table card on the right.
+The first analysis and its first linked list open automatically. Selecting a tab
+shows only that analysis's lists. Selecting a list displays its
 genes. The matrix adds analysis to the section, assay, subpanel and gene-list
 dimensions, with filters for each. Rows remain paginated; shared lists are read
 once per matrix request. **N/A** means no list is assigned to an analysis, while
 the absence marker means a gene is not in a selected list.
 
 > [!IMPORTANT]
-> Existing publications remain readable. Lists without explicit analysis assignments
-> appear under **Unassigned**. Before submitting a successor draft, assign those
+> When analyses are defined, assign all linked lists to those analyses.
+> Before submitting a successor draft, assign those
 > lists to analyses or remove the references and select **No gene list** where
 > appropriate. No assignment is inferred from a list name or gene content, and no
 > published document is rewritten automatically.
 
 ## Hierarchy and identity
 
-The public layout has sections, entries, and gene-list descriptions. A section
-can be **Whole Genome Sequencing (WGS)**, **Whole Transcriptome Sequencing (WTS)**,
-or **Targeted Gene Panels**. Entries such as **Hematology** and **Solid** sit
-under those sections. Gene-list descriptions represent diagnoses or subpanels.
-Centers can add sections and change display names without renaming an assay.
+The left navigation represents the catalog hierarchy. For example:
 
-WGS, WTS and Targeted Gene Panels are editable starting sections, not a closed
-list of offerings. In a draft, use **Add section** for another service, edit
+```text
+DNA
+  WGS
+    Hematology
+    Solid
+  Panels
+    Solid
+      Breast
+      Colon
+RNA
+  Panels
+    Fusion
+  WTS
+```
+
+These are example offerings, not installed clinical definitions. Each section has
+a DNA/RNA category. **Folder** entries organize families and groups; **Assay or
+subpanel** entries reference installed clinical resources. Use **Add child entry**
+and **Parent entry** to build or move branches. A parent cannot be removed while
+it has children. Missing parents and cycles are rejected when a draft is saved.
+Without a published catalog, collection-derived navigation groups active assays
+by DNA/RNA, family, and assay group.
+
+The right panel describes the selected entry. Analysis tabs belong to its gene-table
+card, not the navigation tree. Each tab offers only gene lists assigned to that
+analysis. Changing the gene list does not replace the selected entry's heading or
+available analyses.
+
+Entry details remain independent of gene-table selection. The coverage summary
+describes the assay, while the table count describes the selected list. List-specific
+wording appears inside the gene-table card. Navigation typography distinguishes
+sections, families, groups and deeper entries.
+
+If an entry has no analyses after inheritance, its first general gene list opens
+automatically. General lists are references without analysis assignments and can
+be configured under **General gene lists** in the editor. An unspecified list
+inherits from the nearest parent that defines one. Assay, group, subpanel and
+public-visibility checks still apply. An analysis explicitly marked **No gene list**
+does not fall back to a general list.
+
+### Inherited information
+
+An unspecified field inherits from the immediate parent, recursively up to the
+section. Nonempty values replace the inherited field; lists are replaced rather
+than appended. Labels, navigation identities and entry types are always local.
+**Suppress inherited details** keeps selected fields empty. **No gene list** is an
+explicit per-analysis declaration and removes inherited list bindings for that analysis.
+
+| Field | Inheritance and validation |
+| --- | --- |
+| Description, material, sample modes, turnaround, indications, limitations, notes | Inherit when blank; override locally or explicitly suppress |
+| Analyses | Inherit the complete list; local selections replace it |
+| Assay, configuration and subpanel references | Inherit when unspecified; all resolved references must match on publication |
+| Gene lists and analysis assignments | Inherit the list of references; no gene content is copied |
+| `parent_key` | Entry key in the same section; absent means section root |
+| `node_kind` | `folder` for organization or `entry` for an assay/subpanel offering |
+| `clear_fields` | Names of fields that must not inherit; defaults to an empty list |
+| Section `omics` | `dna` or `rna`; determines supported analysis choices |
+
+> [!IMPORTANT]
+> Presentation inheritance does not change query rules, reporting rules, assay
+> membership or sample filters. The resolved gene lists must belong to the selected
+> assay, respect declared group and subpanel restrictions, and support the analysis
+> through their ISGL `list_type`. The supported ISGL types are a subset of the DNA/RNA
+> analysis types. An analysis without an applicable list uses **No gene list**.
+
+DNA/RNA analysis choices come from the application-owned clinical capability
+constants. A center cannot introduce an unsupported analysis by editing catalog text.
+The packaged demo uses DNA → Panels → Hematology and RNA → Panels → Fusion, with
+an inherited DNA focus entry demonstrating child presentation defaults.
+
+DNA and RNA are starter sections containing editable WGS, WES, WTS and Panels
+folders. On a new installation, select **Create first draft** beneath
+**Starter catalog** in the sidebar. For an existing publication, select
+**Edit published catalog**. In a draft, use **Add section** for another section, edit
 **Section display name** to rename it, use the arrow controls to reorder it, or
 choose **Remove section**. The public catalog and matrix retain the entered name.
 Section identifiers remain stable when display names change. These presentation

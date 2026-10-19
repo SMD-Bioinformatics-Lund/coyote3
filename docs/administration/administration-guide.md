@@ -15,6 +15,14 @@ files and their settings are listed in the [configuration reference](../configur
 
 ## Deleting unpublished documents
 
+The **Installed by** column uses a shield labelled **System installed** for records
+supplied with Coyote3, including demonstration configuration. Installation provenance
+is separate from protection: the shield does not itself prevent editing or deletion.
+The authenticated installer remains recorded in the document and installation audit.
+Center-authored records display their recorded creator. Records installed before
+package provenance was recorded retain their existing attribution until reconciled;
+names and username prefixes are not used to infer package ownership.
+
 Publication workflows allow authorized users to delete versions before publication.
 Select the version and confirm its deletion. A concurrent edit, review or publication
 prevents deletion; refresh and inspect the current version before retrying.

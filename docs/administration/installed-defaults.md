@@ -11,14 +11,15 @@ create an assay, enable an analysis, or grant users access to samples.
 | --- | --- | --- |
 | Assay groups | Nine registered groups, listed below | Standard bootstrap |
 | Finding query rules | Eight published SNV sets across four groups, with immutable baseline revisions | Standard bootstrap |
-| System roles | 31 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
+| System roles | 32 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
 | Initial accounts | One named system administrator and one separate emergency superuser | Operator supplies identities and temporary passwords during bootstrap |
-| Demonstration configuration | Two ASPs, two ASPCs, one ISGL, one named subpanel and its assay association, and two published report-rule sets | Only with `--with-demo-center` |
+| Starter demonstration | Two assays (hematology DNA and RNA fusion), two testing and two production catalog configurations, two gene lists, two named subpanels with associations, two published query policies, two published report-rule sets, an analysis-linked catalog and two ingested samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | `install_center.sh --with-demo-center` or Administration → Demo installation |
 | Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Included in `--setup-center`; independently available with `--with-knowledgebase-seeds` |
 
 Installed versioned catalogs start at version 1 and are attributed to the named
 initial administrator. Query sets start at version 1, revision 1 and carry
-`system_installed`; other supported catalogs use `system_managed`. Report-rule
+`system_installed`; protected baseline catalogs use `system_managed`. Starter demo
+records carry `system_installed` independently of edit/delete protection. Report-rule
 content versions and revisions also start at 1. Reference release identifiers are
 preserved. Installation provenance does not establish independent clinical approval.
 
@@ -144,11 +145,13 @@ sets are changed through that governed workflow. Seed sources are
 `api/config/clinical_query_seed.toml`; the latter supplies installation criteria,
 not a runtime center-editable policy.
 
-## Optional demonstration configuration
+## Low-level bootstrap configuration examples
 
-Pass `--with-demo-center` to the center installer to include this configuration on
-a fresh target. It supplies configuration and synthetic report-rule test cases,
-not ingested samples or findings. Without this option, bootstrap creates no ASP,
+The following legacy examples are available through the low-level
+`bootstrap_database.py --with-demo-center` option on a fresh target. They contain
+configuration and report-rule test cases only. The center installer uses the
+complete [DNA and RNA starter package](../testing/clinical-workflow-demo.md) instead,
+including ingested samples. Without a demo option, bootstrap creates no ASP,
 ASPC, ISGL, named subpanel or clinical report-rule set.
 
 ### Assays and configurations

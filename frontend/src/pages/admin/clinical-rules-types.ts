@@ -111,6 +111,7 @@ export type ClinicalRuleSet = {
   updated_by: string
   created_at?: string
   created_by?: string
+  system_installed?: boolean
 }
 
 export type ClinicalRuleRevision = {

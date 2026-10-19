@@ -129,9 +129,11 @@ that directory appears in a running container, the container was built from an
 older image or an external deployment mount; rebuild and recreate the container
 from the current Compose definition.
 
-For a nonclinical local demonstration, add `--with-demo-center`. The flag
-loads only the bundled synthetic ASP, ASPC, and ISGL documents; it does not
-create samples or run ingest.
+The low-level `bootstrap_database.py --with-demo-center` option loads bundled
+configuration examples only. For the complete connected demonstration, use
+`install_center.sh --setup-center --with-demo-center`: after baseline and index
+installation it runs `scripts.bootstrap.install_demo_starter`, which installs
+the hematology DNA and RNA fusion configurations and ingests both starter samples.
 
 Start Coyote3 after database bootstrap:
 

@@ -14,6 +14,7 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { CatalogBuilder } from "./CatalogBuilder"
 import type { Catalog, Version, Workspace } from "./catalog-types"
 import { CatalogPreview } from "./CatalogPreview"
+import { CatalogTree } from "../catalog/CatalogTree"
 
 export function PublicAssayCatalogPage() {
   const access = useCurrentUserAccess()
@@ -39,17 +40,24 @@ export function PublicAssayCatalogPage() {
   })
   const versionQuery = useQuery({
     queryKey: ["catalog-version", id],
-    queryFn: () => api.get<Version>(`/admin/assay-catalog/versions/${id}`).then((r) => r.data),
+    queryFn: ({ signal }) => api.get<Version>(`/admin/assay-catalog/versions/${id}`, { signal }).then((r) => r.data),
     enabled: Boolean(id) && allowed("catalog:view"),
     refetchOnWindowFocus: false,
   })
   const version = id ? versionQuery.data : undefined
   const deletion = useMutation({
-    mutationFn: () => api.delete(`/admin/assay-catalog/versions/${id}?revision=${version!.revision}`),
+    mutationFn: async () => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: ["catalog-version", id] }),
+        qc.cancelQueries({ queryKey: ["catalog-history", id] }),
+      ])
+      return api.delete(`/admin/assay-catalog/versions/${id}?revision=${version!.revision}`)
+    },
     onSuccess: () => {
-      setConfirmDelete(false); setParams({}); setDraft(null); setEditing(false)
-      qc.removeQueries({ queryKey: ["catalog-version", id] })
-      qc.removeQueries({ queryKey: ["catalog-history", id] })
+      setConfirmDelete(false); setParams({}, { replace: true }); setDraft(null); setEditing(false)
+      // Active observers detach after navigation; removing them now would trigger a new GET.
+      qc.removeQueries({ queryKey: ["catalog-version", id], type: "inactive" })
+      qc.removeQueries({ queryKey: ["catalog-history", id], type: "inactive" })
       void qc.invalidateQueries({ queryKey: ["admin-public-assay-catalog"] })
       notifySuccess("Unpublished catalog version deleted", "", "Catalog")
     },
@@ -106,8 +114,8 @@ export function PublicAssayCatalogPage() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const history = useQuery({
     queryKey: ["catalog-history", id, version?.revision],
-    queryFn: () => api.get<{ items: { revision: number; document: Version }[] }>(
-      `/admin/assay-catalog/versions/${id}/revisions`).then((r) => r.data.items),
+    queryFn: ({ signal }) => api.get<{ items: { revision: number; document: Version }[] }>(
+      `/admin/assay-catalog/versions/${id}/revisions`, { signal }).then((r) => r.data.items),
     enabled: Boolean(id) && historyOpen && allowed("catalog:view"),
   })
   const [snapshot, setSnapshot] = useState<Version | null>(null)
@@ -131,14 +139,17 @@ export function PublicAssayCatalogPage() {
       kind: "coyote3.public_assay_catalog_modality", schema_version: 1, modality: section,
       definition: displayedCatalog.modalities[section],
     })}><Download /> Export section</Button>}
-    {!id && <Button disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "create" })}><Edit /> {data.has_published ? "Edit published catalog" : "Create first draft"}</Button>}
     {version?.status === "rejected" && <Button disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "import", document: version.catalog })}><Plus /> Revise as new draft</Button>}
     {editable && !snapshot && <><Button variant="outline" disabled={busy} onClick={() => setEditing(!editing)}>{editing ? <Eye /> : <Edit />}{editing ? "Preview changes" : "Edit draft"}</Button>
       <Button disabled={!dirty || busy} onClick={() => mutation.mutate({ action: "save" })}><Save /> Save draft</Button></>}
   </>}>
     <div className="grid gap-3 rounded-lg border border-border bg-card text-card-foreground lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="space-y-4 border-r border-border p-3">
-        <Button className="w-full" variant={!id ? "default" : "outline"} onClick={() => select("")}>Published catalog {data.has_published ? `v${data.catalog.version}` : ""}</Button>
+        <Button className="w-full" variant={!id ? "default" : "outline"} onClick={() => select("")}>{data.has_published ? `Published catalog v${data.catalog.version}` : "Starter catalog"}</Button>
+        {!id && <div className="space-y-2">
+          <Button className="w-full whitespace-normal" disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "create" })}><Edit /> {data.has_published ? "Edit published catalog" : "Create first draft"}</Button>
+          <p className="type-body-sm text-muted-foreground">Organize DNA and RNA sections into families, groups and assay or subpanel entries. Starter folders are optional.</p>
+        </div>}
         <div className="max-h-64 space-y-1 overflow-auto">
           {data.items.map((item) => <button key={item._id} onClick={() => select(item._id)}
             className={`w-full rounded-md px-2 py-2 text-left type-body-sm ${id === item._id ? "bg-primary/10" : "hover:bg-muted"}`}>
@@ -151,9 +162,7 @@ export function PublicAssayCatalogPage() {
           {order.map((key) => <div key={key}>
             <button className={`w-full rounded-md p-2 text-left font-semibold type-body ${section === key ? "bg-primary/10" : "hover:bg-muted"}`}
               onClick={() => { setSection(key); setEntry("") }}>{draft.modalities[key].label || key}</button>
-            {section === key && Object.entries(draft.modalities[key].categories).map(([categoryKey, category]) =>
-              <button key={categoryKey} className={`ml-2 block w-[calc(100%-0.5rem)] rounded-md p-2 text-left type-body-sm ${entry === categoryKey ? "bg-muted" : "hover:bg-muted"}`}
-                onClick={() => setEntry(categoryKey)}>{category.label || "New entry"}</button>)}
+            {section === key && <CatalogTree categories={draft.modalities[key].categories} selected={entry} onSelect={setEntry} />}
           </div>)}
           {editing && editable && <Button size="sm" variant="outline" onClick={() => {
             const key = `section_${crypto.randomUUID().replaceAll("-", "_")}`

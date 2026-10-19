@@ -268,7 +268,7 @@ export function parseCellValue(value: string) {
 
 export function adminFields(preferred: string[], rows: any[]) {
   const seen = new Set<string>()
-  const hidden = new Set(["_id", "id", "version_history", "created_by", "installed_by", "system_managed", "record_provenance"])
+  const hidden = new Set(["_id", "id", "version_history", "created_by", "installed_by", "system_managed", "system_installed", "record_provenance"])
   const rowHas = (key: string) => rows.some((row) => row?.[key] !== undefined)
   const selected = preferred.filter((key) => !hidden.has(key) && rowHas(key) && !seen.has(key) && seen.add(key))
   if (selected.length >= 5) return [...selected, "record_provenance"]

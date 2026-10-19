@@ -7,8 +7,8 @@ import type { Category, SourceOptions } from "./catalog-types"
 const sources: SourceOptions = {
   asps: [{ asp_id: "panel", label: "Panel", group: "solid" }], aspcs: [],
   gene_lists: [
-    { isgl_id: "a", label: "List A", asp_ids: ["panel"], asp_groups: ["solid"], diagnosis: [] },
-    { isgl_id: "b", label: "List B", asp_ids: ["panel"], asp_groups: [], diagnosis: [] },
+    { isgl_id: "a", label: "List A", asp_ids: ["panel"], asp_groups: ["solid"], diagnosis: [], list_type: ["snv", "cnv"] },
+    { isgl_id: "b", label: "List B", asp_ids: ["panel"], asp_groups: [], diagnosis: [], list_type: ["snv"] },
     { isgl_id: "other", label: "Other assay", asp_ids: ["other"], diagnosis: [] },
     { isgl_id: "wrong", label: "Other group", asp_ids: ["panel"], asp_groups: ["myeloid"], diagnosis: [] },
   ],
@@ -18,6 +18,16 @@ function Editor() {
   return <><CatalogAnalysisLists entry={entry} sources={sources} onChange={setEntry} /><output data-testid="value">{JSON.stringify(entry)}</output></>
 }
 describe("Analysis gene-list assignments", () => {
+  it("supports a general gene list when no analyses are defined", () => {
+    function GeneralEditor() {
+      const [entry, setEntry] = useState<Category>({ asp_id: "panel" })
+      return <><CatalogAnalysisLists entry={entry} sources={sources} onChange={setEntry} /><output data-testid="general-value">{JSON.stringify(entry)}</output></>
+    }
+    render(<GeneralEditor />)
+    fireEvent.click(within(screen.getByRole("group", { name: "General gene lists" })).getByRole("checkbox", { name: "List A" }))
+    expect(screen.getByTestId("general-value")).toHaveTextContent('"analysis":[]')
+    expect(screen.getByTestId("general-value")).toHaveTextContent('"isgl_id":"a"')
+  })
   it("filters by assay and group and supports multiple lists independently per analysis", () => {
     render(<Editor />)
     expect(screen.queryByText("Other assay")).not.toBeInTheDocument()

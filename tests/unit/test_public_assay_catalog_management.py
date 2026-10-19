@@ -94,6 +94,7 @@ def service():
                 {
                     "isgl_id": "diagnosis",
                     "genes": ["GENE1"],
+                    "list_type": ["snv", "cnv"],
                     "asp_ids": ["assay"],
                     "asp_groups": ["demo"],
                 }
@@ -297,7 +298,7 @@ def test_sources_exclude_nonproduction_and_gene_contents(service):
 def test_analysis_assignments_accept_multiple_lists_and_explicit_none(service):
     """List references can be shared across analyses without copying gene contents."""
     service.gene_list_repository.get_all_isgl = lambda **kw: [
-        {"isgl_id": key, "asp_ids": ["assay"], "asp_groups": ["demo"]}
+        {"isgl_id": key, "asp_ids": ["assay"], "asp_groups": ["demo"], "list_type": ["snv", "cnv"]}
         for key in ("diagnosis", "second")
     ]
     data = content()
@@ -308,6 +309,42 @@ def test_analysis_assignments_accept_multiple_lists_and_explicit_none(service):
         {"isgl_id": "second", "analysis": ["SNV"]},
     ]
     service.validate_links(data)
+
+
+def test_inherited_catalog_links_are_validated_at_child_scope(service):
+    """Children inherit links, but cannot silently reuse them with another assay."""
+    data = content()
+    entries = data["modalities"]["wgs"]["categories"]
+    entries["child"] = {"label": "Child", "parent_key": "solid"}
+    service.validate_links(data)
+    entries["child"]["asp_id"] = "other_assay"
+    with pytest.raises(ApiError, match="active assay"):
+        service.validate_links(data)
+
+
+def test_general_lists_are_valid_without_analysis_assignments(service):
+    """An entry may inherit an assay-linked general list without inventing analysis tabs."""
+    data = content()
+    entries = data["modalities"]["wgs"]["categories"]
+    entries["solid"]["analysis"] = []
+    entries["solid"]["gene_lists"] = [{"isgl_id": "diagnosis", "analysis": []}]
+    entries["child"] = {"label": "Child", "parent_key": "solid"}
+    service.validate_links(data)
+
+
+def test_rna_catalog_rejects_dna_analysis_and_wrong_list_type(service):
+    """Publication checks software capabilities and each ISGL's supported analyses."""
+    data = content()
+    service.assay_panel_repository.get_all_asps = lambda **kw: [
+        {"asp_id": "assay", "asp_group": "demo", "asp_category": "rna"}
+    ]
+    with pytest.raises(ApiError, match="DNA/RNA"):
+        service.validate_links(data)
+    entry = data["modalities"]["wgs"]["categories"]["solid"]
+    entry["analysis"] = ["FUSION"]
+    entry["gene_lists"][0]["analysis"] = ["FUSION"]
+    with pytest.raises(ApiError, match="Gene-list types"):
+        service.validate_links(data)
 
 
 @pytest.mark.parametrize(

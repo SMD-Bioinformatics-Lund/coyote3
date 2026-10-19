@@ -1,0 +1,69 @@
+[
+  {
+    "isgl_id": "demo_starter_genes",
+    "name": "Synthetic focus",
+    "displayname": "Demo starter genes",
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "diagnosis": [
+      "demo_starter_focus"
+    ],
+    "asp_groups": [
+      "hematology"
+    ],
+    "asp_ids": [
+      "demo_starter_dna"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "demo_starter_fusion_genes",
+    "name": "Demo fusion genes",
+    "displayname": "Demo fusion genes",
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "list_type": [
+      "fusion"
+    ],
+    "diagnosis": [
+      "demo_starter_fusion"
+    ],
+    "asp_groups": [
+      "fusion"
+    ],
+    "asp_ids": [
+      "demo_starter_rna"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  }
+]

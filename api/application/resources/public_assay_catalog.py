@@ -8,13 +8,18 @@ from typing import Any
 from uuid import uuid4
 
 from api.application.resources.availability import available_panels
-from api.config.constants import ALL_ANALYSIS_TYPE_OPTIONS
+from api.config.constants import (
+    ALL_ANALYSIS_TYPE_OPTIONS,
+    DNA_ANALYSIS_TYPE_OPTIONS,
+    RNA_ANALYSIS_TYPE_OPTIONS,
+)
 from api.contracts.schemas.public_catalog import (
     PublicAssayCatalogDoc,
     PublicAssayCatalogVersionDoc,
     PublicCatalogModalityExport,
 )
 from api.contracts.schemas.registry import normalize_collection_document
+from api.domain.catalog_hierarchy import resolve_catalog_categories
 from api.domain.common.errors import api_error
 
 
@@ -189,6 +194,10 @@ class PublicAssayCatalogManagementService:
             "publishers": self.eligible("catalog:publish"),
             "presets": {
                 "analysis": list(ALL_ANALYSIS_TYPE_OPTIONS),
+                "analysis_by_omics": {
+                    "dna": list(DNA_ANALYSIS_TYPE_OPTIONS),
+                    "rna": list(RNA_ANALYSIS_TYPE_OPTIONS),
+                },
                 "input_material": [
                     "DNA",
                     "RNA",
@@ -698,7 +707,20 @@ class PublicAssayCatalogManagementService:
         for modality in catalog["modalities"].values():
             if not modality.get("label") or not modality.get("categories"):
                 raise api_error(422, "Each section needs a display name and an entry")
-            for category in modality["categories"].values():
+            for category in resolve_catalog_categories(modality).values():
+                section_analyses = {
+                    "dna": DNA_ANALYSIS_TYPE_OPTIONS,
+                    "rna": RNA_ANALYSIS_TYPE_OPTIONS,
+                }.get(modality.get("omics"), ALL_ANALYSIS_TYPE_OPTIONS)
+                if set(category.get("analysis") or []) - set(section_analyses):
+                    raise api_error(422, "Choose supported DNA/RNA analysis types")
+                if category.get("node_kind") == "folder":
+                    if not category.get("label"):
+                        raise api_error(422, "Each folder needs a display name")
+                    if not category.get("asp_id"):
+                        if category.get("gene_lists"):
+                            raise api_error(422, "Link an assay before assigning gene lists")
+                        continue
                 if not category.get("label") or category.get("asp_id") not in asps:
                     raise api_error(422, "Each entry needs a display name and an active assay")
                 refs = list((category.get("aspc_ids") or {}).values())
@@ -713,11 +735,26 @@ class PublicAssayCatalogManagementService:
                         raise api_error(
                             422, "Choose an active production configuration for the selected assay"
                         )
+                    if (category.get("subpanel_id") or "base") != (
+                        configs[ref].get("subpanel_id") or "base"
+                    ):
+                        raise api_error(422, "The configuration must match the selected subpanel")
                 selected_lists: set[str] = set()
                 analyses = set(category.get("analysis") or [])
+                omics = modality.get("omics") or asps[category["asp_id"]].get("category")
+                supported = {
+                    "dna": DNA_ANALYSIS_TYPE_OPTIONS,
+                    "rna": RNA_ANALYSIS_TYPE_OPTIONS,
+                }.get(omics, ALL_ANALYSIS_TYPE_OPTIONS)
+                if modality.get("omics") and asps[category["asp_id"]].get("category") != omics:
+                    raise api_error(422, "The assay must match the section's DNA/RNA category")
+                if analyses - set(supported):
+                    raise api_error(
+                        422, "Choose analyses supported by the assay's DNA/RNA category"
+                    )
                 no_gene_list = set(category.get("no_gene_list") or [])
                 assigned: set[str] = set()
-                if not analyses or no_gene_list - analyses:
+                if no_gene_list - analyses:
                     raise api_error(422, "Select analyses before assigning gene lists")
                 for item in category.get("gene_lists", []):
                     list_id = item.get("isgl_id") or item.get("key")
@@ -735,8 +772,15 @@ class PublicAssayCatalogManagementService:
                             422, "Gene lists must belong to the selected assay and group"
                         )
                     linked_analyses = set(item.get("analysis") or [])
-                    if not linked_analyses or linked_analyses - analyses:
+                    if (analyses and not linked_analyses) or linked_analyses - analyses:
                         raise api_error(422, "Assign each gene list to selected analyses")
+                    if {a.lower() for a in linked_analyses} - set(source.get("list_type") or []):
+                        raise api_error(422, "Gene-list types must support their selected analyses")
+                    if (
+                        source.get("diagnosis")
+                        and category.get("subpanel_id") not in source["diagnosis"]
+                    ):
+                        raise api_error(422, "Gene lists must support the selected subpanel")
                     assigned.update(linked_analyses)
                 if assigned & no_gene_list:
                     raise api_error(422, "An analysis cannot have gene lists and No gene list")
@@ -748,17 +792,31 @@ class PublicAssayCatalogManagementService:
 
     @staticmethod
     def _new_document() -> PublicAssayCatalogDoc:
-        """Construct an unpersisted catalog with the three starter modality headings.
+        """Construct an unpersisted DNA/RNA catalog with editable family folders.
 
         Returns:
-            Catalog headed Assay Catalog with WGS, WTS, and gene-panel sections.
+            Catalog with DNA and RNA roots and optional sequencing-family folders.
         """
         return PublicAssayCatalogDoc(
             header="Assay Catalog",
-            layout={"order": ["wgs", "wts", "genepanels"]},
+            layout={"order": ["dna", "rna"]},
             modalities={
-                "wgs": {"label": "Whole Genome Sequencing (WGS)"},
-                "wts": {"label": "Whole Transcriptome Sequencing (WTS)"},
-                "genepanels": {"label": "Targeted Gene Panels"},
+                "dna": {
+                    "label": "DNA",
+                    "omics": "dna",
+                    "categories": {
+                        "wgs": {"label": "WGS", "node_kind": "folder"},
+                        "wes": {"label": "WES", "node_kind": "folder"},
+                        "panels": {"label": "Panels", "node_kind": "folder"},
+                    },
+                },
+                "rna": {
+                    "label": "RNA",
+                    "omics": "rna",
+                    "categories": {
+                        "wts": {"label": "WTS", "node_kind": "folder"},
+                        "panels": {"label": "Panels", "node_kind": "folder"},
+                    },
+                },
             },
         )

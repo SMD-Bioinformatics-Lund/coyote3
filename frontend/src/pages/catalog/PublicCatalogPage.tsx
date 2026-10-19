@@ -9,11 +9,12 @@ import type { Catalog } from "@/pages/admin/catalog-types"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { ColumnDef } from "@tanstack/react-table"
 import { Activity, Download, Grid2X2, Info, ListTree } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useAnnotationVisibility } from "./annotation-visibility"
 import { AdditionalCatalogDetails, BadgeList, CatalogBadge, CatalogField, HtmlText } from "./catalog-presentation"
 import { formatScalar } from "./catalog-values"
+import { CatalogTree } from "./CatalogTree"
 
 export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?: Catalog; onMatrix?: () => void }) {
   const annotations = useAnnotationVisibility("catalog")
@@ -23,11 +24,15 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
   if (selection.cat) params.set("cat", selection.cat)
   if (selection.isgl_key) params.set("isgl_key", selection.isgl_key)
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery({
     queryKey: previewDocument ? ["catalog-preview", previewDocument, selection] : ["public-catalog", selection],
     queryFn: () => previewDocument
       ? api.post(`/admin/assay-catalog/preview?${params.toString()}`, { document: previewDocument }).then((res) => res.data)
       : api.get(`/public/assay-catalog/context?${params.toString()}`).then((res) => res.data),
+    placeholderData: (previous, query) => {
+      const prior = query?.queryKey.at(-1) as typeof selection | undefined
+      return prior?.mod === selection.mod && prior?.cat === selection.cat ? previous : undefined
+    },
   })
 
   const downloadCsv = useMutation({
@@ -52,29 +57,31 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
 
   const geneColumns: ColumnDef<any, any>[] = useMemo(() => {
     const genes = data?.genes || []
-    const preferredKeys = [
-      "display_symbol",
-      "hgnc_id",
-      "hgnc_symbol",
-      "gene_name",
-      "status",
-      "locus",
-      "locus_sortable",
-      "alias_symbol",
-    ]
+    const labels: Record<string, string> = {
+      display_symbol: "Gene symbol",
+      hgnc_id: "HGNC ID",
+      hgnc_symbol: "Approved symbol",
+      omim_id: "OMIM",
+      locus: "Locus",
+      refseq_mane_select: "MANE Select (RefSeq)",
+      ensembl_mane_select: "MANE Select (Ensembl)",
+      refseq_mane_plus_clinical: "MANE Plus Clinical (RefSeq)",
+      ensembl_canonical: "Ensembl canonical",
+      gene_name: "Gene name",
+      status: "HGNC status",
+      alias_symbol: "Aliases",
+    }
     const availableKeys = new Set<string>(
       genes.flatMap((gene: any) => Object.keys(gene || {})).filter((key: string) => key !== "knowledgebase_markers"),
     )
-    const keys = preferredKeys
-      .filter((key) => availableKeys.has(key))
-      .concat(Array.from(availableKeys).filter((key) => !preferredKeys.includes(key)))
-      .slice(0, 8)
+    const keys = Object.keys(labels).filter((key) => availableKeys.has(key))
     const columns: ColumnDef<any, any>[] = keys.map((key) => ({
       id: key,
-      header: key.replaceAll("_", " "),
-      accessorFn: (row: any) => row[key] ?? "",
+      header: labels[key],
+      accessorFn: (row: any) => formatScalar(row[key]),
       cell: ({ row }) => {
-        const value = String(row.original[key] ?? "-")
+        const raw = row.original[key]
+        const value = typeof raw === "boolean" ? (raw ? "Yes" : "No") : formatScalar(raw)
         if (["display_symbol", "hgnc_symbol", "symbol", "gene"].includes(key)) {
           return (
             <GeneWithOncoKbBadge
@@ -99,6 +106,13 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
     return columns
   }, [data, annotations.visible])
   const right = data?.right || {}
+  useEffect(() => {
+    if (!data || isPlaceholderData || !selection.mod || selection.analysis || selection.isgl_key) return
+    const analysis: string | undefined = data.right?.analysis?.[0]
+    const list = (data.right?.gene_lists || []).find((item: { analysis?: string[] }) =>
+      analysis ? item.analysis?.includes(analysis) : !item.analysis?.length)
+    if (analysis || list?.key) setSelection((current) => ({ ...current, analysis, isgl_key: list?.key }))
+  }, [data, isPlaceholderData, selection.mod, selection.analysis, selection.isgl_key])
   const selectedGeneList = useMemo(() => {
     if (!selection.isgl_key) return null
     return (right.gene_lists || []).find((geneList: any) => geneList?.key === selection.isgl_key) || null
@@ -143,8 +157,10 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
             : "No assay catalog is available yet. An administrator can create and publish one under Administration → Assay catalog."}</p>
         </section>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <div className="grid items-start gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
           <div className="surface-panel dashboard-panel dashboard-panel--blue space-y-3 p-3">
+            {selection.mod && <button className="type-body-sm font-semibold text-primary hover:underline"
+              onClick={() => setSelection({})}>Catalog overview</button>}
             <h2 className="surface-panel-heading mb-0 flex items-center gap-2 text-sm font-semibold uppercase text-foreground">
               <ListTree className="h-4 w-4" />
               Modalities
@@ -156,7 +172,7 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                 <div key={modKey} className="rounded-lg border border-border bg-background">
                   <button
                     onClick={() => setSelection({ mod: modKey })}
-                    className={`w-full px-3 py-2 text-left text-sm font-bold ${activeMod ? "text-primary" : ""}`}
+                    className={`w-full px-3 py-2 text-left type-section-title ${activeMod ? "text-primary" : ""}`}
                   >
                     {mod.label || mod.title || modKey}
                   </button>
@@ -168,37 +184,8 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                           className="mb-2 rounded-md bg-muted/45 px-2 py-1.5 type-meta leading-relaxed text-muted-foreground"
                         />
                       )}
-                      {Object.entries(mod.categories || {}).map(([catKey, cat]: [string, any]) => (
-                        <div key={catKey} className="mb-1">
-                          <button
-                            onClick={() => setSelection({ mod: modKey, cat: catKey })}
-                            className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-semibold hover:bg-muted ${selection.cat === catKey ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
-                          >
-                            {cat.label || cat.title || catKey}
-                          </button>
-                          {selection.cat === catKey && ((cat.analysis || []).length > 0 || (cat.gene_lists || []).length > 0) && (
-                            <div className="ml-2 mt-1 border-l border-border pl-2">
-                              <div role="tablist" aria-label="Available analyses" className="mb-2 flex flex-wrap gap-1">
-                                {[...(cat.analysis || []) as string[], ...((cat.gene_lists || []).some((list: { analysis?: string[] }) => !list.analysis?.length) ? ["Unassigned"] : [])].map((analysis) => <button key={analysis} role="tab" aria-selected={selection.analysis === analysis}
-                                  className={`rounded-lg border border-border px-2 py-1 type-label ${selection.analysis === analysis ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}
-                                  onClick={() => setSelection({ mod: modKey, cat: catKey, analysis,
-                                    isgl_key: (cat.gene_lists || []).find((list: { key?: string; analysis?: string[] }) => analysis === "Unassigned" ? !list.analysis?.length : list.analysis?.includes(analysis))?.key,
-                                  })}>{analysis}</button>)}
-                              </div>
-                              {selection.analysis && cat.no_gene_list?.includes(selection.analysis) && <p className="type-body-sm text-muted-foreground">No gene list for {selection.analysis}.</p>}
-                              {(cat.gene_lists || []).filter((gl: { key?: string; analysis?: string[] }) => gl.key && selection.analysis && (selection.analysis === "Unassigned" ? !gl.analysis?.length : gl.analysis?.includes(selection.analysis))).map((gl: any) => (
-                                <button
-                                  key={gl.key}
-                                  onClick={() => setSelection({ ...selection, mod: modKey, cat: catKey, isgl_key: gl.key })}
-                                  className={`mb-1 block w-full rounded-md px-2 py-1 text-left type-meta font-semibold hover:bg-muted ${selection.isgl_key === gl.key ? "bg-genelist/10 text-genelist" : "text-muted-foreground"}`}
-                                >
-                                  {gl.label || gl.key}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                      <CatalogTree categories={mod.categories || {}} selected={selection.cat}
+                        onSelect={(cat) => setSelection({ mod: modKey, cat })} />
                     </div>
                   )}
                 </div>
@@ -207,50 +194,47 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
           </div>
 
           <div className="min-w-0 space-y-4">
-            <section className="surface-panel dashboard-panel dashboard-panel--teal p-4">
+            {!selection.mod ? (
+              <section aria-label="Catalog introduction" className="surface-panel dashboard-panel dashboard-panel--teal space-y-4 p-6">
+                <h2 className="type-section-title">{right.title || "Assay Catalog"}</h2>
+                <HtmlText html={right.description} className="max-w-5xl type-body leading-relaxed text-foreground" />
+                <p className="border-t border-border pt-4 type-supporting text-muted-foreground">
+                  Browse the categories to explore offered analyses, sample requirements,
+                  turnaround times and included genes. Use the matrix to compare gene coverage.
+                </p>
+              </section>
+            ) : <>
+            <section aria-label="Catalog entry details" className="surface-panel dashboard-panel dashboard-panel--teal p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-xl font-semibold">{right.title || right.label || "Assay Catalog"}</h2>
                   {right.subheading && <p className="mt-1 text-sm font-semibold text-primary">{right.subheading}</p>}
                   {right.description && <HtmlText html={right.description} className="mt-2 max-w-5xl text-sm leading-relaxed text-muted-foreground" />}
                 </div>
-                {(right.catalog_id || right.asp_id || right.aspc_id || right.subpanel_id) && (
-                  <div className="flex max-w-full flex-wrap justify-end gap-1.5">
-                    {right.catalog_id && <CatalogBadge label="Catalog" value={right.catalog_id} />}
-                    {right.asp_id && <CatalogBadge label="Assay" value={right.asp_id} />}
-                    {right.aspc_id && <CatalogBadge label="Configuration" value={right.aspc_id} />}
-                    {right.subpanel_id && right.subpanel_id !== "base" && <CatalogBadge label="Subpanel" value={right.subpanel_id} />}
-                  </div>
-                )}
               </div>
 
               <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                 <CatalogField label="Input material">
                   <BadgeList values={right.input_material} empty="No Info" />
                 </CatalogField>
-                <CatalogField label="TAT">
+                <CatalogField label="Turnaround time">
                   <span className="font-semibold">{formatScalar(right.tat)}</span>
                 </CatalogField>
                 <CatalogField label="Sample types">
                   <BadgeList values={right.sample_modes} empty="No Info" />
                 </CatalogField>
-                <CatalogField label="Genes">
-                  {selection.cat && !selection.isgl_key ? <span className="type-body-sm text-muted-foreground">{selection.analysis ? "No gene list selected" : "Select an analysis"}</span> : <>
-                  <span className="font-semibold text-primary">{data?.stats?.total ?? 0}</span>
+                <CatalogField label="Assay gene coverage">
+                  <span className="font-semibold text-primary">{right.asp?.covered_genes_count ?? "—"}</span>
                   <span className="ml-2 text-xs text-muted-foreground">
-                    covered {data?.stats?.covered_total ?? 0}
-                    {typeof data?.stats?.germline_total === "number" ? `, germline ${data.stats.germline_total}` : ""}
+                    {typeof right.asp?.covered_genes_count === "number" ? "covered" : "Not specified"}
+                    {typeof right.asp?.germline_genes_count === "number" ? `, germline ${right.asp.germline_genes_count}` : ""}
                   </span>
-                  </>}
                 </CatalogField>
               </div>
 
-              <div className="mt-3 grid gap-2 md:grid-cols-2">
+              <div className="mt-3">
                 <CatalogField label="Available analysis">
                   <BadgeList values={right.analysis} empty="No Info" tone="primary" />
-                </CatalogField>
-                <CatalogField label="Reporting sections">
-                  <BadgeList values={right.report_sections} empty="No Info" tone="secondary" />
                 </CatalogField>
               </div>
 
@@ -264,9 +248,9 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                   </CatalogField>
                   <CatalogField label="Technical assay details">
                     <div className="flex flex-wrap gap-1.5">
-                      {right.asp?.platform && <CatalogBadge label="Platform" value={right.asp.platform} />}
-                      {right.asp?.read_mode && <CatalogBadge label="Read mode" value={right.asp.read_mode} />}
-                      {right.asp?.read_length && <CatalogBadge label="Read length" value={right.asp.read_length} />}
+                      {right.asp?.platform && <CatalogBadge label="Platform" value={right.asp.platform === "illumina" ? "Illumina" : right.asp.platform} />}
+                      {right.asp?.read_mode && <CatalogBadge label="Read mode" value={right.asp.read_mode === "PE" ? "Paired-end (PE)" : right.asp.read_mode === "SE" ? "Single-end (SE)" : right.asp.read_mode} />}
+                      {right.asp?.read_length && <CatalogBadge label="Read length" value={`${right.asp.read_length} bp`} />}
                       {!right.asp?.platform && !right.asp?.read_mode && !right.asp?.read_length && <span className="text-sm text-muted-foreground">No Info</span>}
                     </div>
                   </CatalogField>
@@ -284,9 +268,10 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
               )}
 
               <AdditionalCatalogDetails value={right} />
-
+            </section>
+            <section aria-label="Gene table" className="surface-panel dashboard-panel dashboard-panel--rose border-border/50 p-3">
               {selectedGeneList && (
-                <section className="mt-4 border-t border-border pt-4">
+                <section className="mb-3">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected gene list</p>
@@ -295,22 +280,32 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
                     {selectedGeneList.tat && <CatalogBadge label="TAT" value={selectedGeneList.tat} />}
                   </div>
                   {selectedGeneList.description && <HtmlText html={selectedGeneList.description} className="max-w-5xl text-sm leading-relaxed text-muted-foreground" />}
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <BadgeList values={selectedGeneList.analysis} empty="" tone="primary" compact />
-                    <BadgeList values={selectedGeneList.sample_modes} empty="" compact />
-                    <BadgeList values={selectedGeneList.input_material} empty="" tone="secondary" compact />
-                    <BadgeList values={selectedGeneList.list_type} empty="" tone="success" compact />
-                  </div>
                 </section>
               )}
-            </section>
-
-            <section className="surface-panel dashboard-panel dashboard-panel--rose border-border/50 p-3">
+              {!!right.analysis?.length && <p className="mb-2 type-label text-muted-foreground">Analysis</p>}
+              <div role="tablist" aria-label="Available analyses" className="mb-3 flex flex-wrap gap-2 border-b border-border pb-3">
+                {(right.analysis || []).map((analysis: string) => <button key={analysis} role="tab"
+                  aria-selected={selection.analysis === analysis}
+                  className={`rounded-lg border border-border px-3 py-2 type-label ${selection.analysis === analysis ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+                  onClick={() => setSelection({ ...selection, analysis,
+                    isgl_key: (right.gene_lists || []).find((list: { key?: string; analysis?: string[] }) => list.analysis?.includes(analysis))?.key,
+                  })}>{analysis}</button>)}
+              </div>
+              <div aria-label="Choose gene list" className="mb-3 flex flex-wrap items-center gap-2">
+                {!!right.gene_lists?.length && <span className="type-label text-muted-foreground">Gene list</span>}
+                {(right.gene_lists || []).filter((list: { analysis?: string[] }) => selection.analysis ? list.analysis?.includes(selection.analysis) : !right.analysis?.length && !list.analysis?.length)
+                  .map((list: { key: string; label?: string }) => <button key={list.key}
+                    aria-pressed={selection.isgl_key === list.key}
+                    className={`rounded-lg border border-border px-2 py-1 type-body-sm ${selection.isgl_key === list.key ? "bg-genelist/10 text-genelist" : "hover:bg-muted"}`}
+                    onClick={() => setSelection({ ...selection, isgl_key: list.key })}>{list.label || list.key}</button>)}
+              </div>
+              {selection.analysis && right.no_gene_list?.includes(selection.analysis) && <p className="type-body-sm text-muted-foreground">No gene list for {selection.analysis}.</p>}
               <div className="mb-2 flex justify-end">{annotations.toggle}</div>
-              {selection.cat && !selection.isgl_key
-                ? <p className="type-body-sm text-muted-foreground">{selection.analysis ? "No gene list is selected for this analysis." : "Select an analysis and gene list to view its genes."}</p>
+              {isFetching ? <AppLoader label="Loading genes" /> : selection.mod && !selection.isgl_key
+                ? <p className="type-body-sm text-muted-foreground">{selection.analysis ? "No gene list is selected for this analysis." : "No general gene list is defined for this entry or its parents."}</p>
                 : <DataTable columns={geneColumns} data={data?.genes || []} filename="assay_catalog_genes.csv" />}
             </section>
+            </>}
           </div>
         </div>
       )}

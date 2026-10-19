@@ -75,6 +75,7 @@ class SubpanelDefinitionDoc(SubpanelCreate, _StrictCollectionDocBase):
     """Globally identified display metadata, independent of assay membership."""
 
     version: int = Field(default=1, ge=1)
+    system_installed: bool = False
     is_current: bool = True
     updated_by: str = Field(min_length=1)
     updated_on: datetime
@@ -87,6 +88,7 @@ class SubpanelAssociationDoc(_StrictCollectionDocBase):
     subpanel_id: str
     is_active: bool = True
     version: int = Field(default=1, ge=1)
+    system_installed: bool = False
     is_current: bool = True
     updated_by: str = Field(min_length=1)
     updated_on: datetime
@@ -103,6 +105,7 @@ class AssaySubpanelDoc(SubpanelCreate, _StrictCollectionDocBase):
 
     asp_id: str
     version: int = Field(default=1, ge=1)
+    system_installed: bool = False
     is_current: bool = True
     updated_by: str = Field(min_length=1)
     updated_on: datetime

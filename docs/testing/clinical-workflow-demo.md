@@ -33,10 +33,56 @@ for responsibilities. No credentials or accounts are included in the fixtures.
 ### Administration interface
 
 Open **Administration → Demo installation** with the `demo:install` permission.
-The bundled system-administrator role includes this permission; existing
+The bundled `demo_installer`, `admin` and `sys_admin` roles include this permission.
+The emergency `superuser` can also install demonstrations. Existing
 installations must synchronize their [RBAC catalog](../administration/system-role-catalog.md)
 before assigning it. Read the installation summary and acknowledge that the data
 is synthetic, then choose:
+
+- **Install starter demo and samples** for the connected hematology DNA and RNA
+  fusion workflows. Configuration commits first; `DEMO_STARTER_DNA` and
+  `DEMO_STARTER_RNA` are then processed by normal ingest.
+  A retry after an ingest failure reuses the committed configuration and retries the
+  sample. Existing sample content is never replaced.
+
+The starter package contains:
+
+| Resource | Hematology DNA | RNA fusion |
+| --- | --- | --- |
+| Assay group | `hematology` | `fusion` |
+| Assay | `demo_starter_dna` | `demo_starter_rna` |
+| Subpanel and assay association | `demo_starter_focus` | `demo_starter_fusion` |
+| Gene list | `demo_starter_genes` | `demo_starter_fusion_genes` |
+| Testing configuration | `demo_starter_dna_focus_testing` | `demo_starter_rna_fusion_testing` |
+| Published query rule | `hematology__demo_starter_dna__demo_starter_focus__somatic_snvs` | `fusion__demo_starter_rna__demo_starter_fusion__somatic_fusions` |
+| Published reporting rules | `demo_starter_dna__demo_starter_focus__en` | `demo_starter_rna__demo_starter_fusion__en` |
+| Sample | `DEMO_STARTER_DNA` | `DEMO_STARTER_RNA` |
+| Raw inputs | DNA VCF, CNV, coverage, translocation VCF, biomarkers, PGX and plot | RNA fusion JSON and QC JSON |
+
+A shared catalog contains both assays and their per-analysis gene-list links:
+DNA → Panels → Hematology → Demo starter DNA offers SNV and CNV; its Demo SNV focus
+child offers SNV only. RNA → Panels → Fusion offers FUSION. Separate production
+configurations support catalog publication; the synthetic samples use testing configurations.
+
+“Clinical rules” and “report rules” refer to the same governed reporting-rule set.
+Other finding types use the application baseline selection unless an additional
+scope-specific query rule is defined.
+
+Before installation, complete the application baseline, configure a working ingest
+service and grant the operator access to the `testing` environment and demo assay.
+Install the standard HGNC/VEP references for reference-backed transcript selection.
+After installation, open either starter sample in Samples to review findings and test
+query and report generation. Open the demo catalog in Assay Catalog to view
+its modalities, analysis tabs and gene lists.
+
+> [!IMPORTANT]
+> Starter query and reporting rules are supplied as published software examples,
+> scoped exclusively to the starter assays. They are not center-approved clinical
+> policies. When no public catalog exists, demo installation installs the catalog as
+> a published software baseline. If a public catalog already exists, the demo catalog
+> remains a draft and does not replace it. No report is automatically signed or issued.
+
+Under **Additional workflow scenarios**, choose:
 
 - **Install configuration only** for assays, testing ASPCs, gene-list/subpanel
   configuration and unpublished report-rule drafts.
@@ -48,7 +94,8 @@ error. Each sample commits independently. Completed samples remain available if 
 later sample fails; retry installs only missing items. Existing configuration is
 preserved, and conflicting or partial configuration requires administrator review.
 No users, knowledgebase releases, BAM files or saved clinical reports are installed.
-The review and publication exercises below remain separate operator actions.
+The review and publication exercises below apply to the additional workflow suite;
+its reporting rules remain unpublished drafts.
 
 > [!IMPORTANT]
 > Installation targets this application's configured database. Profiles use the
@@ -58,6 +105,17 @@ The review and publication exercises below remain separate operator actions.
 The authenticated administrative endpoints are excluded from public OpenAPI,
 Swagger and ReDoc. Hiding their documentation does not replace authorization:
 every operation enforces `demo:install` and the application's session protections.
+
+The installation page and navigation entry are also restricted to `demo:install`.
+Ordinary users cannot inspect the installation plan or invoke installation endpoints,
+even when they know the URL or can access hematology or fusion samples. Assigning
+`demo_installer` does not grant clinical viewing or reporting permissions.
+
+After installation, samples use the normal assay-group, assay and environment access
+checks. Users with the appropriate clinical permissions and access scopes can review
+the demo samples without `demo:install`; that permission is only for installation.
+Re-running installation preserves existing samples and configuration rather than
+replacing them.
 
 ### Standalone configuration installation
 

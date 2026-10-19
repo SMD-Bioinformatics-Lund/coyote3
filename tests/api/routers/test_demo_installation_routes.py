@@ -18,6 +18,7 @@ from tests.fixtures.api.mock_collections import api_user
     [
         ("GET", ""),
         ("POST", "/configuration"),
+        ("POST", "/starter"),
         ("POST", "/samples/demo_group_dna"),
     ],
 )
@@ -45,6 +46,7 @@ def test_demo_routes_require_permission_and_are_not_documented(monkeypatch, meth
         "samples": [],
     }
     service.install_configuration.return_value = {"status": "installed"}
+    service.install_starter.return_value = {"status": "installed"}
     service.install_sample.return_value = {"status": "installed"}
     app = FastAPI()
     app.include_router(router)
@@ -55,3 +57,23 @@ def test_demo_routes_require_permission_and_are_not_documented(monkeypatch, meth
         user.permissions = ["demo:install"]
         assert client.request(method, "/api/v1/admin/demo-installation" + path).status_code == 200
         assert not any("demo-installation" in route for route in app.openapi()["paths"])
+        service.reset_mock()
+        user.permissions = []
+        user.roles = ["superuser"]
+        assert client.request(method, "/api/v1/admin/demo-installation" + path).status_code == 200
+
+
+def test_only_installation_roles_receive_demo_permission():
+    """Clinical group membership alone never grants installation privileges."""
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[3] / "api/config/bootstrap/rbac/roles.seed.ndjson"
+    roles = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    assert {role["role_id"] for role in roles if "demo:install" in role["permissions"]} == {
+        "demo_installer",
+        "admin",
+        "sys_admin",
+    }
+    demo = next(role for role in roles if role["role_id"] == "demo_installer")
+    assert demo["permissions"] == ["demo:install"]

@@ -171,6 +171,7 @@ class AspConfigDoc(_StrictCollectionDocBase):
     analysis_types: list[str] = Field(default_factory=list)
     analysis_intents: list[str] = Field(default_factory=lambda: ["somatic"])
     system_managed: bool = False
+    system_installed: bool = False
     is_active: bool = True
     display_name: str
     description: str | None = None
@@ -514,6 +515,7 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     capture_method: str | None = None
     target_region_size: int | None = None
     system_managed: bool = False
+    system_installed: bool = False
     is_active: bool = True
     version: int = 1
     created_by: str | None = None
@@ -748,6 +750,7 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     adhoc: bool = False
     is_public: bool = False
     system_managed: bool = False
+    system_installed: bool = False
     is_active: bool = True
     asp_groups: list[str] = Field(default_factory=list)
     genes: list[str] = Field(default_factory=list)

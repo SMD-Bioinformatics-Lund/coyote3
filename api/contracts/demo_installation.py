@@ -1,6 +1,6 @@
 """Transport contracts for the private administrative demonstration installer."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DemoSampleStatus(BaseModel):
@@ -17,6 +17,9 @@ class DemoInstallationPlan(BaseModel):
     configuration: dict[str, int]
     configuration_installed: bool
     samples: list[DemoSampleStatus]
+    starter_installed: bool = False
+    starter_samples: list[DemoSampleStatus] = Field(default_factory=list)
+    starter_configuration: dict[str, int] = Field(default_factory=dict)
 
 
 class DemoInstallResult(BaseModel):

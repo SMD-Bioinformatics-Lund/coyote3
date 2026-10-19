@@ -39,6 +39,19 @@ def demo_installation_plan(
 
 
 @router.post(
+    "/api/v1/admin/demo-installation/starter",
+    response_model=DemoInstallResult,
+    include_in_schema=False,
+)
+def install_demo_starter(
+    user: ApiUser = Depends(require_access(permission="demo:install")),
+    service: DemoInstallationService = Depends(get_demo_installation_service),
+):
+    """Install connected starter configuration and its first synthetic sample; requires demo:install."""
+    return service.install_starter(user.username)
+
+
+@router.post(
     "/api/v1/admin/demo-installation/configuration",
     response_model=DemoInstallResult,
     include_in_schema=False,

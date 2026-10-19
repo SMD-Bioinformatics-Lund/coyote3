@@ -21,6 +21,74 @@ def test_empty_catalog_landing_is_a_valid_setup_state(monkeypatch):
         service.catalog_context("dna")
 
 
+def test_nested_preview_resolves_parent_details_and_keeps_entry_heading():
+    """Public preview and matrix consume resolved leaves without copying gene records."""
+    service = _service()
+    document = {
+        "modalities": {
+            "dna": {
+                "label": "DNA",
+                "omics": "dna",
+                "categories": {
+                    "panels": {"label": "Panels", "node_kind": "folder", "tat": "10 days"},
+                    "solid": {
+                        "label": "Solid",
+                        "node_kind": "folder",
+                        "parent_key": "panels",
+                        "description": "Inherited description",
+                    },
+                    "breast": {
+                        "label": "Breast",
+                        "parent_key": "solid",
+                        "asp_id": "panel_a",
+                        "aspc_id": "panel_a_base_production",
+                        "analysis": ["SNV"],
+                        "gene_lists": [{"isgl_id": "solid_list", "analysis": ["SNV"]}],
+                    },
+                    "focus": {"label": "Focus", "parent_key": "breast"},
+                },
+            }
+        }
+    }
+    context = service.catalog_context("dna", "focus", "solid_list", preview_document=document)
+    assert context["right"]["title"] == "Focus"
+    assert context["right"]["tat"] == "10 days"
+    assert context["right"]["description"] == "Inherited description"
+    assert context["right"]["analysis"] == ["SNV"]
+    assert context["genes"]
+    assert context["modalities"]["dna"]["categories"]["focus"]["parent_key"] == "breast"
+    matrix = service.assay_catalog_matrix_payload(preview_document=document)
+    assert all(column["cat"] in {"breast", "focus"} for column in matrix["columns"])
+
+
+def test_general_parent_list_does_not_invent_analysis_tabs_from_aspc():
+    """An untyped inherited list is a general list, even when the ASPC enables analyses."""
+    service = _service()
+    document = {
+        "modalities": {
+            "dna": {
+                "label": "DNA",
+                "categories": {
+                    "parent": {
+                        "label": "Parent",
+                        "asp_id": "panel_a",
+                        "aspc_id": "panel_a_base_production",
+                        "gene_lists": [{"isgl_id": "solid_list"}],
+                        "tat": "7 days",
+                        "clinical_indications": ["Synthetic indication"],
+                    },
+                    "child": {"label": "Child", "parent_key": "parent"},
+                },
+            }
+        }
+    }
+    result = service.catalog_context("dna", "child", "solid_list", preview_document=document)
+    assert result["right"]["analysis"] == []
+    assert result["right"]["tat"] == "7 days"
+    assert result["right"]["clinical_indications"] == ["Synthetic indication"]
+    assert result["genes"]
+
+
 def test_matrix_separates_analyses_and_reuses_gene_list_reads(monkeypatch):
     """Repeated list references create separate analysis columns with one list read."""
     service = _service()
@@ -250,7 +318,9 @@ def test_draft_context_matches_public_view_without_reading_the_published_documen
     catalog = service.load_catalog()
     monkeypatch.setattr(service, "load_catalog", lambda **kwargs: catalog)
     key = next(iter(catalog["modalities"]))
-    category = next(iter(catalog["modalities"][key]["categories"]))
+    category = next(
+        key for key, node in catalog["modalities"][key]["categories"].items() if node.get("asp_id")
+    )
     public = service.catalog_context(key, category)
     preview = service.catalog_context(key, category, preview_document=catalog)
     assert preview == public
@@ -457,8 +527,10 @@ def test_collection_catalog_builds_public_aspc_and_genelists(monkeypatch):
     assert catalog["layout"]["order"] == ["dna", "rna"]
     assert catalog["nav_groups"]
     dna_categories = catalog["modalities"]["dna"]["categories"]
-    assert len(dna_categories) == 1
-    category = next(iter(dna_categories.values()))
+    assert dna_categories["family_panel"]["label"] == "Panels"
+    assert dna_categories["family_panel_solid"]["parent_key"] == "family_panel"
+    category = next(node for node in dna_categories.values() if node.get("asp_id"))
+    assert category["parent_key"] == "family_panel_solid"
     assert category["asp_id"] == "panel_a"
     assert category["analysis"] == ["SNV", "CNV"]
     assert category["report_sections"] == ["SNV", "CNV"]
@@ -539,8 +611,8 @@ def test_catalog_navigation_and_hydration(monkeypatch):
     assert service.category_def("dna", "missing") is None
 
     hydrated = service.hydrate_category("dna", "solid_catalog", "solid_list")
-    assert hydrated["label"] == "Solid genes"
-    assert hydrated["analysis"] == ["SNV", "CNV"]
+    assert hydrated["label"] == "Solid"
+    assert hydrated["analysis"] == []
     assert hydrated["report_sections"] == ["SNV", "CNV"]
     assert service.hydrate_category("dna", "missing") is None
     assert service.hydrate_modality("dna")["title"] == "DNA assays"

@@ -10,6 +10,7 @@ from api.application.public.catalog_gene_views import PublicCatalogGeneViewsMixi
 from api.application.resources.availability import available_panels
 from api.config.constants import ASP_CATEGORY_OPTIONS, DEFAULT_ENVIRONMENT, SUBPANEL_BASE_ID
 from api.contracts.schemas.public_catalog import clean_catalog_html
+from api.domain.catalog_hierarchy import resolve_catalog_categories
 from api.domain.common.errors import api_error
 
 
@@ -306,6 +307,25 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                     continue
                 family = self._family_bucket(asp)
                 assay_group = str(asp.get("asp_group") or "unassigned").strip() or "unassigned"
+                family_key = f"family_{family}"
+                group_key = f"{family_key}_{assay_group}"
+                categories.setdefault(
+                    family_key,
+                    {
+                        "label": "Panels" if family == "panel" else family.upper(),
+                        "node_kind": "folder",
+                        "gene_lists": [],
+                    },
+                )
+                categories.setdefault(
+                    group_key,
+                    {
+                        "label": self._title(assay_group),
+                        "parent_key": family_key,
+                        "node_kind": "folder",
+                        "gene_lists": [],
+                    },
+                )
                 aspcs = self.assay_configuration_repository.get_active_aspcs_for_asp(
                     asp_id, self.DEFAULT_ENV
                 )
@@ -327,6 +347,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                         ),
                         overlay=overlay,
                     )
+                    categories[category_key]["parent_key"] = group_key
                 nav_key = (family, assay_group)
                 grouped_for_nav.setdefault(
                     nav_key,
@@ -354,9 +375,10 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 "description": (
                     (overlay.get("modalities") or {}).get(category, {}).get("description")
                     if isinstance((overlay.get("modalities") or {}).get(category), dict)
-                    else f"{category.upper()} asp_ids grouped by assay family and assay group."
+                    else f"Explore {category.upper()} assays by family and assay group."
                 ),
                 "categories": categories,
+                "omics": category,
                 "sample_groups": sorted(
                     grouped_for_nav.values(),
                     key=lambda item: (item["family"], item["assay_group"]),
@@ -458,7 +480,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             if not isinstance(modality_overlay, dict):
                 continue
             categories: dict[str, Any] = {}
-            raw_categories = modality_overlay.get("categories")
+            raw_categories = resolve_catalog_categories(modality_overlay)
             category_items = (
                 raw_categories.items()
                 if isinstance(raw_categories, dict)
@@ -467,7 +489,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             for raw_key, raw_category in category_items:
                 if not isinstance(raw_category, dict):
                     continue
-                if str(raw_category.get("asp_id") or "").strip() not in asp_by_id:
+                if str(raw_category.get("asp_id") or "").strip() not in asp_by_id and not (
+                    raw_category.get("node_kind") == "folder" and not raw_category.get("asp_id")
+                ):
                     continue
                 category_key = str(raw_category.get("category_key") or raw_key)
                 categories[category_key] = self._overlay_category_payload(
@@ -537,9 +561,12 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         assay_group = str(
             category_overlay.get("assay_group") or asp.get("asp_group") or category_key
         ).strip()
-        analysis = category_overlay.get("analysis") or self._aspc_available_analysis(aspc)
+        general_lists = any(not item.get("analysis") for item in gene_lists)
+        analysis = category_overlay.get("analysis") or (
+            [] if general_lists else self._aspc_available_analysis(aspc)
+        )
 
-        return {
+        payload = {
             **category_overlay,
             "catalog_id": category_overlay.get("catalog_id") or category_key,
             "label": category_overlay.get("label") or category_overlay.get("title") or category_key,
@@ -571,6 +598,9 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             },
             "gene_lists": gene_lists,
         }
+        for field in category_overlay.get("clear_fields") or []:
+            payload[field] = category_overlay.get(field)
+        return payload
 
     def _overlay_aspc(self, category_overlay: dict[str, Any], asp_id: str) -> dict[str, Any] | None:
         """Resolve the configuration reference selected by an overlay category.
@@ -941,6 +971,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             category_overlay.get("title") or category_overlay.get("label")
         ):
             display_name = f"{display_name} - {self._title(subpanel_id)}"
+        analyses = category_overlay.get("analysis") or self._aspc_available_analysis(aspc)
         list_entries = [
             {
                 "key": asp_id,
@@ -978,7 +1009,12 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                     or category_overlay.get("input_material"),
                     "sample_modes": list_overlay.get("sample_modes")
                     or category_overlay.get("sample_modes"),
-                    "analysis": list_overlay.get("analysis"),
+                    "analysis": list_overlay.get("analysis")
+                    or [
+                        analysis
+                        for analysis in analyses
+                        if analysis.lower() in (isgl.get("list_type") or [])
+                    ],
                 }
             )
         return {
@@ -1007,7 +1043,12 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "input_material": category_overlay.get("input_material") or asp.get("asp_category"),
             "tat": category_overlay.get("tat"),
             "sample_modes": category_overlay.get("sample_modes") or ["paired", "single"],
-            "analysis": category_overlay.get("analysis") or self._aspc_available_analysis(aspc),
+            "analysis": analyses,
+            "no_gene_list": [
+                analysis
+                for analysis in analyses
+                if not any(analysis in (item.get("analysis") or []) for item in list_entries)
+            ],
             "report_sections": self._aspc_report_sections(aspc),
             "clinical_indications": category_overlay.get("clinical_indications") or [],
             "limitations": category_overlay.get("limitations"),
@@ -1102,14 +1143,6 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         if not node:
             return None
 
-        gl_node: Dict[str, Any] = {}
-        gene_lists = node.get("gene_lists") or []
-        if gl_id:
-            for gl in gene_lists:
-                if gl_id == (gl.get("key") or gl.get("catalog_id")):
-                    gl_node = gl
-                    break
-
         asp_id = node.get("asp_id")
         aspc_id = node.get("aspc_id")
         aspc_ids = node.get("aspc_ids") or {}
@@ -1119,20 +1152,28 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             aspc = self._fetch_aspc(aspc_ids, env)
 
         analysis = node.get("analysis", []) or []
-        if aspc and not analysis:
+        if (
+            aspc
+            and not analysis
+            and "analysis" not in (node.get("clear_fields") or [])
+            and not any(not item.get("analysis") for item in node.get("gene_lists") or [])
+        ):
             analysis = self._aspc_available_analysis(aspc)
 
         return {
             "catalog_id": node.get("catalog_id") or cat_id,
-            "label": gl_node.get("label", node.get("label", cat_id)),
-            "title": gl_node.get("label", node.get("title", node.get("label", cat_id))),
-            "description": gl_node.get("description", node.get("description", "")),
-            "subheading": gl_node.get("subheading", node.get("subheading")),
-            "input_material": gl_node.get("input_material", node.get("input_material")),
-            "tat": gl_node.get("tat", node.get("tat")),
-            "sample_modes": gl_node.get("sample_modes", node.get("sample_modes", [])),
-            "analysis": gl_node.get("analysis", analysis),
-            "report_sections": node.get("report_sections") or self._aspc_report_sections(aspc),
+            "label": node.get("label", cat_id),
+            "title": node.get("title", node.get("label", cat_id)),
+            "description": node.get("description", ""),
+            "subheading": node.get("subheading"),
+            "input_material": node.get("input_material"),
+            "tat": node.get("tat"),
+            "sample_modes": node.get("sample_modes", []),
+            "analysis": analysis,
+            "no_gene_list": node.get("no_gene_list") or [],
+            "report_sections": node.get("report_sections")
+            if "report_sections" in (node.get("clear_fields") or [])
+            else node.get("report_sections") or self._aspc_report_sections(aspc),
             "asp_id": asp_id,
             "aspc_id": aspc_id,
             "aspc_ids": node.get("aspc_ids") or {},
@@ -1165,9 +1206,16 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "tat": modality.get("tat"),
             "sample_modes": modality.get("sample_modes", []),
             "analysis": modality.get("analysis", []),
+            "report_sections": modality.get("report_sections", []),
+            "clinical_indications": modality.get("clinical_indications", []),
+            "limitations": modality.get("limitations"),
+            "public_notes": modality.get("public_notes"),
             "asp_id": modality.get("asp_id"),
             "asp": modality.get("asp"),
-            "gene_lists": [],
+            "gene_lists": [
+                {**item, "key": item.get("key") or item.get("isgl_id")}
+                for item in modality.get("gene_lists") or []
+            ],
         }
 
     def catalog_context(
@@ -1229,7 +1277,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             )
         elif selected_mod and not selected_cat:
             right = self.hydrate_modality(selected_mod, catalog=catalog)
-            gene_mode, genes, stats = self.resolve_gene_table(right.get("asp_id"), None)
+            gene_mode, genes, stats = self.resolve_gene_table(right.get("asp_id"), selected_isgl)
         else:
             if selected_isgl:
                 hydrated_cat = self.hydrate_category(
@@ -1254,6 +1302,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 "tat": hydrated_cat.get("tat"),
                 "sample_modes": hydrated_cat.get("sample_modes") or [],
                 "analysis": hydrated_cat.get("analysis") or [],
+                "no_gene_list": hydrated_cat.get("no_gene_list") or [],
                 "report_sections": hydrated_cat.get("report_sections") or [],
                 "asp_id": hydrated_cat.get("asp_id"),
                 "aspc_id": hydrated_cat.get("aspc_id"),

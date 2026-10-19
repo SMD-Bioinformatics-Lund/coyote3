@@ -206,6 +206,7 @@ def _build_seed_documents(
             document["updated_on"] = installed_at
 
     for document in payload.get("clinical_rule_sets", []):
+        document["system_installed"] = True
         document["content_version"] = 1
         document["revision"] = 1
         for field in ("published_by", "retired_by"):

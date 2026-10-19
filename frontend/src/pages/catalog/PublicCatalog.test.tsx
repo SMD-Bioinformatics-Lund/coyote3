@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -69,6 +69,7 @@ const catalogPayload = {
     tat: "21 days",
     sample_modes: ["Tumor-normal"],
     analysis: ["SNV", "CNV"],
+    no_gene_list: ["CNV"],
     report_sections: ["Summary"],
     clinical_indications: ["Hematologic malignancy"],
     limitations: "Validated regions only",
@@ -100,9 +101,14 @@ it("renders draft preview with the public catalog navigation, details, and gene 
   vi.mocked(api.post).mockResolvedValue({ data: catalogPayload, status: 200 })
   renderPage(<PublicCatalog previewDocument={document} />)
   expect(await screen.findByText("Hematology GMSv1")).toBeVisible()
-  expect(screen.getByText("21 days")).toBeVisible()
-  expect(screen.getByTestId("gene-table")).toHaveTextContent("2 genes")
+  expect(screen.getByRole("region", { name: "Catalog introduction" })).toBeVisible()
+  expect(screen.queryByTestId("gene-table")).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
+  expect(await screen.findByText("21 days")).toBeVisible()
+  expect(screen.getByText("Illumina")).toBeVisible()
+  expect(screen.getByText("Paired-end (PE)")).toBeVisible()
+  expect(screen.getByText("150 bp")).toBeVisible()
+  expect(await screen.findByTestId("gene-table")).toHaveTextContent("2 genes")
   await screen.findByRole("button", { name: "Hematology" })
   fireEvent.click(screen.getByRole("button", { name: "Hematology" }))
   await waitFor(() => expect(api.post).toHaveBeenLastCalledWith(
@@ -149,14 +155,50 @@ describe("PublicCatalog", () => {
     vi.mocked(api.get).mockReset()
   })
 
+  it("opens the first analysis automatically and keeps its details separate from the gene table", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: catalogPayload } as never)
+    renderPage(<PublicCatalog />)
+    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
+    await waitFor(() => expect(screen.getByRole("tab", { name: "SNV" })).toHaveAttribute("aria-selected", "true"))
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/public/assay-catalog/context?mod=dna&cat=hematology&isgl_key=myeloid"))
+    expect(await screen.findByTestId("gene-table")).toBeVisible()
+    const details = screen.getByRole("region", { name: "Catalog entry details" })
+    const before = details.textContent
+    expect(within(details).queryByText("Selected gene list")).not.toBeInTheDocument()
+    expect(within(screen.getByRole("region", { name: "Gene table" })).getByText("Selected gene list")).toBeVisible()
+    fireEvent.click(screen.getByRole("tab", { name: "CNV" }))
+    expect(details.textContent).toBe(before)
+  })
+
+  it("opens the inherited general gene list when there are no analyses", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { ...catalogPayload,
+      right: { ...catalogPayload.right, analysis: [], no_gene_list: [],
+        gene_lists: [{ key: "general", label: "Inherited general genes", analysis: [] }] },
+    } } as never)
+    renderPage(<PublicCatalog />)
+    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/public/assay-catalog/context?mod=dna&cat=hematology&isgl_key=general"))
+    expect(await screen.findByTestId("gene-table")).toBeVisible()
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+  })
+
   it("loads the catalog and narrows it by modality, category, and gene list", async () => {
     vi.mocked(api.get).mockResolvedValue({ data: catalogPayload } as never)
     renderPage(<PublicCatalog />)
 
     expect(await screen.findByText("Hematology GMSv1")).toBeVisible()
-    expect(screen.getByTestId("gene-table")).toHaveTextContent("2 genes, 4 columns")
+    expect(screen.getByRole("region", { name: "Catalog introduction" })).toHaveTextContent("Panel description")
+    expect(screen.queryByText("Input material")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("gene-table")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
+    expect(await screen.findByTestId("gene-table")).toHaveTextContent("2 genes, 4 columns")
     expect(screen.getByText("Public note")).toBeVisible()
     expect(screen.getByText("Center detail")).toBeVisible()
+    expect(screen.queryByText("Reporting sections")).not.toBeInTheDocument()
+    expect(screen.queryByText("hema_catalog")).not.toBeInTheDocument()
+    expect(screen.queryByText("hema_gmsv1")).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
     expect(await screen.findByText("DNA catalog description")).toBeVisible()
@@ -171,6 +213,9 @@ describe("PublicCatalog", () => {
     })
     expect(await screen.findByText("Selected gene list")).toBeVisible()
     expect(screen.getByText("Selected list details")).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Catalog overview" }))
+    expect(await screen.findByRole("region", { name: "Catalog introduction" })).toBeVisible()
+    expect(screen.queryByRole("region", { name: "Gene table" })).not.toBeInTheDocument()
   })
 
   it("shows only the active analysis lists and keeps no-list analyses distinct", async () => {

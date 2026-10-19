@@ -456,6 +456,8 @@ class PublicCatalogGeneViewsMixin:
             modality_total = 0
 
             for cat_key, cat_data in categories.items():
+                if cat_data.get("node_kind") == "folder":
+                    continue
                 asp_id = cat_data.get("asp_id")
                 gene_lists = cat_data.get("gene_lists") or []
                 real_lists = [
@@ -488,7 +490,7 @@ class PublicCatalogGeneViewsMixin:
                         "mod": mod_key,
                         "cat": cat_key,
                         "family": str(cat_data.get("family") or cat_data.get("asp_family") or ""),
-                        "assay_group": str(cat_label),
+                        "assay_group": str(cat_data.get("assay_group") or cat_label),
                         "assay": str(assay_label),
                         "subpanel": str(subpanel_label),
                         "cat_label": str(cat_label),
@@ -520,7 +522,7 @@ class PublicCatalogGeneViewsMixin:
                         "mod": mod_key,
                         "cat": cat_key,
                         "family": str(cat_data.get("family") or cat_data.get("asp_family") or ""),
-                        "assay_group": str(cat_label),
+                        "assay_group": str(cat_data.get("assay_group") or cat_label),
                         "assay": str(assay_label),
                         "subpanel": str(subpanel_label),
                         "cat_label": str(cat_label),

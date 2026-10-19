@@ -91,6 +91,7 @@ Optional keys:
 - `analysis_types` (list[str])
 - `analysis_intents` (list[str])
 - `system_managed` (bool)
+- `system_installed` (bool)
 - `is_active` (bool)
 - `description` (str | None)
 - `reference_genome` (str | None)
@@ -194,6 +195,7 @@ Optional keys:
 - `capture_method` (str | None)
 - `target_region_size` (int | None)
 - `system_managed` (bool)
+- `system_installed` (bool)
 - `is_active` (bool)
 - `version` (int)
 - `created_by` (str | None)
@@ -355,6 +357,7 @@ Optional keys:
 - `test_cases` (list[api.contracts.schemas.clinical_rules.ClinicalRuleTestCase])
 - `references` (list[dict[str, Any]])
 - `provenance` (api.contracts.schemas.clinical_rules.ClinicalRuleProvenance | None)
+- `system_installed` (bool)
 - `change_summary` (str)
 - `review` (ClinicalRuleReview)
 - `lifecycle` (list[api.contracts.schemas.clinical_rules.ClinicalRuleLifecycleEvent])
@@ -791,6 +794,7 @@ Optional keys:
 - `adhoc` (bool)
 - `is_public` (bool)
 - `system_managed` (bool)
+- `system_installed` (bool)
 - `is_active` (bool)
 - `asp_groups` (list[str])
 - `genes` (list[str])
@@ -990,6 +994,7 @@ Required keys:
 Optional keys:
 - `id_` (Any | None)
 - `catalog_key` (Literal['default'])
+- `system_installed` (bool)
 - `schema_version` (Literal[1])
 - `content_version` (int | None)
 - `base_version` (int)
@@ -1261,6 +1266,7 @@ Optional keys:
 - `id_` (Any | None)
 - `is_active` (bool)
 - `version` (int)
+- `system_installed` (bool)
 - `is_current` (bool)
 
 ## `subpanels`
@@ -1276,6 +1282,7 @@ Optional keys:
 - `description` (str)
 - `is_active` (bool)
 - `version` (int)
+- `system_installed` (bool)
 - `is_current` (bool)
 
 ## `translocations`

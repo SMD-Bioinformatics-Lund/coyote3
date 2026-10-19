@@ -25,6 +25,9 @@ runbooks and inspect the plan before enabling writes. Keep credentials, database
 exports, migration plans containing identifiers, and backups outside the repository.
 
 The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
+also covers `python3 -m scripts.bootstrap.install_demo_starter --actor NAME --apply`
+for complete DNA/RNA starter configuration and sample installation using configured
+deployment databases. Omit `--apply` for a read-only plan. The guide
 documents `bootstrap/install_demo_workflows.py` (plan/apply configuration in an explicit
 local demo database) and `quality/export_demo_workflows.py` (offline ingest replay and
 collection/report snapshot verification). Neither belongs in production startup.

@@ -145,9 +145,15 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "options": list(ASP_FAMILY_OPTIONS),
         },
         "asp_category": {"display_type": "select", "options": list(ASP_CATEGORY_OPTIONS)},
-        "platform": {"display_type": "select", "options": list(PLATFORM_OPTIONS)},
+        "platform": {
+            "display_type": "select",
+            "options": list(PLATFORM_OPTIONS),
+            "default": "illumina",
+            "help": "Sequencing platform shown in the public catalog. Confirm for this assay.",
+        },
         "read_mode": {
             "display_type": "select",
+            "default": "PE",
             "options_by_field": {
                 "field": "platform",
                 "values": {
@@ -155,7 +161,12 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     for platform, capability in PLATFORM_CAPABILITIES.items()
                 },
             },
-            "help": "Read mode is limited to modes supported by the selected platform. It is not applicable to platforms without a selectable mode.",
+            "help": "PE means paired-end; SE means single-end. Select a mode supported by the platform. It is not applicable to platforms without a selectable mode.",
+        },
+        "read_length": {
+            "label": "Read length (bp)",
+            "default": 150,
+            "help": "Bases per read, not the combined length of a read pair. Confirm for this assay.",
         },
         "read_technology": {
             "readonly": True,
@@ -863,6 +874,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
                 "asp_category",
                 "platform",
                 "read_mode",
+                "read_length",
                 "read_technology",
                 "description",
             ],

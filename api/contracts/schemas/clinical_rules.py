@@ -456,6 +456,7 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
     test_cases: list[ClinicalRuleTestCase] = Field(default_factory=list)
     references: list[dict[str, Any]] = Field(default_factory=list)
     provenance: ClinicalRuleProvenance | None = None
+    system_installed: bool = Field(default=False, exclude_if=lambda value: not value)
     change_summary: str = ""
     review: ClinicalRuleReview = Field(default_factory=ClinicalRuleReview)
     lifecycle: list[ClinicalRuleLifecycleEvent] = Field(default_factory=list)

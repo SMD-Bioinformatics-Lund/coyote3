@@ -295,6 +295,27 @@ def test_installer_help_and_unknown_options_do_not_run_docker():
     assert subprocess.run(["bash", str(path), "--unknown"], capture_output=True).returncode == 2
 
 
+@pytest.mark.parametrize("state", ["fresh", "existing"])
+def test_demo_option_installs_complete_package_before_start(fake_installation, state):
+    """Use the repeatable starter installer on fresh and established deployments."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        command + ["--with-demo-center"],
+        env={**env, "INSTALL_TEST_STATE": state},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    calls = log.read_text()
+    assert "scripts.bootstrap.install_demo_starter" in calls
+    assert calls.index("manage_mongo_indexes.py apply") < calls.index(
+        "scripts.bootstrap.install_demo_starter"
+    )
+    assert calls.index("scripts.bootstrap.install_demo_starter") < calls.index(
+        "up -d --no-build --wait"
+    )
+
+
 @pytest.mark.parametrize("state", ["fresh", "existing", "partial"])
 def test_setup_center_installs_references_without_external_maintenance(fake_installation, state):
     """Full setup seeds fresh targets and preserves existing application baselines."""

@@ -532,7 +532,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/demo-installation",
     page: "DemoInstallationPage",
     area: "admin",
-    api: ["GET /admin/demo-installation", "POST /admin/demo-installation/configuration", "POST /admin/demo-installation/samples/:key"],
+    api: ["GET /admin/demo-installation", "POST /admin/demo-installation/starter", "POST /admin/demo-installation/configuration", "POST /admin/demo-installation/samples/:key"],
     dataUsed: ["demo configuration counts", "synthetic sample installation state"],
   },
   {

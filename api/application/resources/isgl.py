@@ -238,6 +238,7 @@ class IsglService:
             raise api_error(400, "Missing genelist config payload")
         config.setdefault("is_active", True)
         config["system_managed"] = False
+        config["system_installed"] = False
         config.pop("subpanel_id", None)
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
@@ -284,6 +285,7 @@ class IsglService:
         updated_doc = {**genelist, **updated}
         updated_doc["isgl_id"] = genelist.get("isgl_id", genelist_id)
         updated_doc["system_managed"] = bool(genelist.get("system_managed"))
+        updated_doc["system_installed"] = bool(genelist.get("system_installed"))
         updated_doc.pop("_id", None)
         updated_doc.pop("gene_count", None)
         updated_doc.pop("subpanel_id", None)

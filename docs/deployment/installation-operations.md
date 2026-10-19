@@ -32,8 +32,9 @@ For individual operations, use `--steps` and the flags below instead;
 when the matching release images are already built.
 
 > [!NOTE]
-> Synthetic demonstration configuration requires `--with-demo-center` on a fresh
-> target. External knowledgebase imports and knowledgebase-wide indexing are not
+> The connected DNA/RNA demos and both samples require `--with-demo-center`.
+> Existing installations can use the same option; installed samples are preserved.
+> External knowledgebase imports and knowledgebase-wide indexing are not
 > part of `--setup-center`.
 
 `--steps` accepts a comma-separated selection. Stages execute in the order below,
@@ -155,6 +156,22 @@ Passwords are requested privately. This command installs accounts, RBAC and
 application policies; it does not connect to the knowledgebase. `--with-demo-center`
 adds synthetic center configuration on fresh targets. See
 [bootstrap data flow](bootstrap-data-flow.md) for seed files and ownership.
+
+## Standalone demo installation
+
+The complete starter installer is also available independently in an API container
+with the deployment environment configured:
+
+```bash
+python3 -m scripts.bootstrap.install_demo_starter --actor center.admin
+python3 -m scripts.bootstrap.install_demo_starter --actor center.admin --apply
+```
+
+The first command is read-only. `--apply` synchronizes demo installation grants,
+installs the connected configuration and ingests both samples. Run after baseline
+and index installation, before starting the application. Existing accounts and
+role assignments are preserved. The actor must be an existing administrator.
+See the [demo workflow guide](../testing/clinical-workflow-demo.md) for contents.
 
 ## Standalone index maintenance
 

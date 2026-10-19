@@ -28,6 +28,15 @@ def test_managed_form_resource_labels(resource, key, label):
     assert form["fields"][key]["label"] == label
 
 
+def test_assay_sequencing_form_defaults():
+    """Expose editable sequencing defaults with platform-specific read modes."""
+    fields = build_form_spec(managed_resource_spec("asp"))["fields"]
+    assert fields["platform"]["default"] == "illumina"
+    assert fields["read_mode"]["default"] == "PE"
+    assert fields["read_length"]["default"] == 150
+    assert fields["read_mode"]["options_by_field"]["values"]["illumina"] == ["SE", "PE"]
+
+
 def test_user_assay_options_follow_active_groups():
     service = object.__new__(UserManagementService)
     service._common_util = SimpleNamespace(create_assay_group_map=create_assay_group_map)

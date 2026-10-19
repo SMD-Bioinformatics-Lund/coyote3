@@ -12,6 +12,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from api.config.constants import normalize_clinical_identifier
 from api.contracts.schemas.base import _StrictCollectionDocBase, _StrictDocBase
+from api.domain.catalog_hierarchy import INHERITED_CATALOG_FIELDS, resolve_catalog_categories
 
 
 def clean_catalog_html(value: str) -> str:
@@ -139,6 +140,9 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
     centers can extend wording without changing clinical collection contracts.
     """
 
+    parent_key: str | None = None
+    node_kind: Literal["entry", "folder"] = "entry"
+    clear_fields: list[str] = Field(default_factory=list)
     catalog_id: str | None = None
     asp_id: str | None = None
     aspc_id: str | None = None
@@ -149,6 +153,14 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
         default_factory=list,
         description="Selected analyses explicitly declared to have no linked public gene list.",
     )
+
+    @field_validator("clear_fields")
+    @classmethod
+    def validate_clear_fields(cls, value: list[str]) -> list[str]:
+        """Reject unknown inheritance controls rather than silently ignoring them."""
+        if set(value) - set(INHERITED_CATALOG_FIELDS):
+            raise ValueError("Unknown catalog inheritance field")
+        return value
 
     @field_validator("catalog_id", "asp_id", "aspc_id", "subpanel_id", mode="before")
     @classmethod
@@ -169,7 +181,7 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
         return normalize_clinical_identifier(value, label="public catalog identifier")
 
 
-class PublicCatalogModalityDoc(_PublicCatalogTextDoc):
+class PublicCatalogModalityDoc(PublicCatalogPresentationDoc):
     """Presentation metadata and categories for one DNA/RNA modality."""
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
@@ -178,6 +190,13 @@ class PublicCatalogModalityDoc(_PublicCatalogTextDoc):
     title: str | None = None
     description: str | None = None
     categories: dict[str, PublicCatalogCategoryDoc] = Field(default_factory=dict)
+    omics: Literal["dna", "rna"] | None = None
+
+    @model_validator(mode="after")
+    def validate_hierarchy(self):
+        """Reject missing parents and cycles even when saving an unpublished draft."""
+        resolve_catalog_categories(self.model_dump())
+        return self
 
 
 class PublicCatalogLayoutDoc(_StrictDocBase):
@@ -321,6 +340,7 @@ class PublicAssayCatalogVersionDoc(_StrictCollectionDocBase):
     """A draft or immutable published version of the public assay catalog."""
 
     catalog_key: Literal["default"] = "default"
+    system_installed: bool = False
     schema_version: Literal[1] = 1
     content_version: int | None = Field(default=None, ge=1)
     base_version: int = Field(default=0, ge=0)

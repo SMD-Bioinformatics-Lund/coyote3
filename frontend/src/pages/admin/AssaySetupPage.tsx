@@ -106,7 +106,7 @@ export function AssaySetupPage() {
     mutationFn: () => api.delete(`/admin/assay-setups/${selected}?revision=${setup!.revision}`),
     onSuccess: () => {
       setConfirmDelete(false); choose("")
-      client.removeQueries({ queryKey: ["assay-setup-context", selected] })
+      client.removeQueries({ queryKey: ["assay-setup-context", selected], type: "inactive" })
       void client.invalidateQueries({ queryKey: ["assay-setups"] })
       void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
       notifySuccess("Unpublished assay setup deleted")
