@@ -270,9 +270,9 @@ describe("ClinicalRulesPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
     await user.click(await screen.findByRole("button", { name: "Delete draft" }))
-    const confirmation = screen.getByRole("alertdialog", { name: "Delete draft?" })
+    const confirmation = screen.getByRole("alertdialog", { name: "Delete unpublished version?" })
     expect(confirmation).toBeVisible()
-    await user.click(within(confirmation).getByRole("button", { name: "Delete draft" }))
+    await user.click(within(confirmation).getByRole("button", { name: "Delete version" }))
 
     expect(mocks.delete).toHaveBeenCalledWith(
       "/admin/clinical-rule-sets/drafts/rule-version-1?revision=1",

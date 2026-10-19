@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from api.app.container import util
 from api.app.deps.services import get_assay_setup_service
@@ -38,6 +38,23 @@ def _response(request: Request, doc: dict, action: str) -> dict:
         },
     )
     return util.common.convert_to_serializable(doc)
+
+
+@router.delete("/{identifier}", response_model=AssaySetupDoc)
+def delete_setup(
+    request: Request,
+    identifier: str,
+    revision: int = Query(ge=1),
+    user: ApiUser = Depends(require_access(permission="assay.panel:delete")),
+    service: AssaySetupService = Depends(get_assay_setup_service),
+):
+    """Delete an unchanged draft or submitted setup; requires assay.panel:delete.
+
+    Published setups and operational assay records are preserved.
+    """
+    return _response(
+        request, service.delete_unpublished(identifier, revision, actor=user.username), "deleted"
+    )
 
 
 @router.get("", response_model=AssaySetupListPayload)

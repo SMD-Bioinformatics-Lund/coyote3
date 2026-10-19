@@ -62,6 +62,51 @@ class PublicAssayCatalogVersionRepository(BaseRepository):
         """
         return list(self.get_collection().find({}, {"catalog": 0}).sort("updated_at", -1))
 
+    def delete_unpublished(self, document_id: str, revision: int, actor: str) -> dict | None:
+        """Atomically discard an unpublished version and its snapshots, retaining audit.
+
+        Args:
+            document_id: Version ObjectId, not the live catalog identifier.
+            revision: Expected revision to protect concurrent review or publication.
+            actor: Authenticated operator recorded in the audit receipt.
+
+        Returns:
+            Removed version, or None if its state or revision no longer permits deletion.
+        """
+        try:
+            oid = ObjectId(document_id)
+        except (InvalidId, TypeError):
+            return None
+
+        def write(session):
+            """Remove only the matching pre-publication document within the transaction."""
+            deleted = self.get_collection().find_one_and_delete(
+                {
+                    "_id": oid,
+                    "revision": revision,
+                    "status": {"$in": ["draft", "submitted", "approved", "rejected"]},
+                    "published_at": None,
+                    "content_version": None,
+                },
+                session=session,
+            )
+            if deleted:
+                self.adapter.public_assay_catalog_revisions_collection.delete_many(
+                    {"version_id": str(oid)}, session=session
+                )
+                enqueue_audit(
+                    self.get_collection().database,
+                    session,
+                    event_type="public_catalog.version_deleted",
+                    resource_type="public_catalog",
+                    resource_id=oid,
+                    actor=actor,
+                    metadata={"revision": revision, "status": deleted["status"]},
+                )
+            return deleted
+
+        return run_transaction(self.get_collection().database.client, write)
+
     def revisions(self, document_id: str) -> list[dict[str, Any]]:
         """List stored snapshots for an exact serialized version ID.
 

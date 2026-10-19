@@ -28,6 +28,7 @@ export function PublicAssayCatalogPage() {
   const [publisher, setPublisher] = useState("")
   const [reason, setReason] = useState("")
   const [confirmPublish, setConfirmPublish] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const upload = useRef<HTMLInputElement>(null)
   const allowed = (p: string) => hasPermission(access.data, p)
   const workspace = useQuery({
@@ -43,6 +44,17 @@ export function PublicAssayCatalogPage() {
     refetchOnWindowFocus: false,
   })
   const version = id ? versionQuery.data : undefined
+  const deletion = useMutation({
+    mutationFn: () => api.delete(`/admin/assay-catalog/versions/${id}?revision=${version!.revision}`),
+    onSuccess: () => {
+      setConfirmDelete(false); setParams({}); setDraft(null); setEditing(false)
+      qc.removeQueries({ queryKey: ["catalog-version", id] })
+      qc.removeQueries({ queryKey: ["catalog-history", id] })
+      void qc.invalidateQueries({ queryKey: ["admin-public-assay-catalog"] })
+      notifySuccess("Unpublished catalog version deleted", "", "Catalog")
+    },
+    onError: (error) => notifyActionError("Catalog deletion failed", error, "Catalog"),
+  })
   const original = id ? version?.catalog : workspace.data?.catalog
   useEffect(() => { setDraft(original ? structuredClone(original) : null) }, [original])
   const dirty = Boolean(draft && original && JSON.stringify(draft) !== JSON.stringify(original))
@@ -106,7 +118,7 @@ export function PublicAssayCatalogPage() {
   if (!draft || !workspace.data || (id && !version)) return <PageShell title="Assay Catalog"><AppLoader label="Loading catalog" /></PageShell>
   const data = workspace.data
   const displayedCatalog = snapshot?.catalog || draft
-  const busy = mutation.isPending
+  const busy = mutation.isPending || deletion.isPending
   const editors = version?.content_editors || []
   const username = access.data?.username
   const independent = !editors.includes(username || "")
@@ -162,6 +174,7 @@ export function PublicAssayCatalogPage() {
         </fieldset> : <CatalogPreview catalog={displayedCatalog} />}
         {version && <section className="space-y-3 border-t border-border bg-muted/20 p-4">
           <h2 className="type-body font-semibold">Review and publication</h2>
+          {!snapshot && ["draft", "submitted", "approved", "rejected"].includes(version.status) && allowed("catalog:draft") && <Button variant="destructive" disabled={busy || dirty || deletion.isPending} onClick={() => setConfirmDelete(true)}>Delete unpublished version</Button>}
           {snapshot && <p role="status" className="type-body font-semibold">Viewing historical revision {snapshot.revision}. Return to the current revision to continue the workflow.</p>}
           {!snapshot && version.status === "draft" && allowed("catalog:submit") && <div className="flex flex-wrap gap-2">
             <select aria-label="Catalog reviewer" className="paper-inset rounded-lg p-2 type-body" value={reviewer} onChange={(e) => setReviewer(e.target.value)}>
@@ -193,6 +206,7 @@ export function PublicAssayCatalogPage() {
         </section>}
       </div>
     </div>
+    <ConfirmationDialog open={confirmDelete} title="Delete unpublished catalog version?" description="The selected version and its private snapshots will be removed. The published catalog is preserved and an audit receipt is retained." confirmLabel="Delete version" isPending={deletion.isPending} onConfirm={() => deletion.mutate()} onCancel={() => setConfirmDelete(false)} />
     <ConfirmationDialog open={confirmPublish} title="Publish catalog?" description="The approved catalog will become publicly visible." confirmLabel="Publish"
       isPending={busy} onConfirm={() => mutation.mutate({ action: "publish" })} onCancel={() => setConfirmPublish(false)} />
     <ConfirmationDialog open={pendingSelection !== null} title="Discard unsaved changes?" description="Your saved draft will remain available."

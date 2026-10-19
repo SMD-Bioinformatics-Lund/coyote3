@@ -1,6 +1,7 @@
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -71,6 +72,7 @@ export function AssaySetupPage() {
   const [step, setStep] = useState(0)
   const [editing, setEditing] = useState<number | null>(null)
   const [reason, setReason] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const client = useQueryClient()
   const canView = hasPermission(user, "assay.panel:view") && hasPermission(user, "assay.panel:list")
   const canWrite = writePermissions.every((permission) => hasPermission(user, permission))
@@ -100,6 +102,17 @@ export function AssaySetupPage() {
     onError: (error) => notifyActionError("Assay setup", error),
   })
   const choose = (identifier: string) => { navigate(`/admin/assay-setups${identifier ? `?setup=${encodeURIComponent(identifier)}` : ""}`); setStep(0); setEditing(null); setReason(""); mutation.reset() }
+  const deletion = useMutation({
+    mutationFn: () => api.delete(`/admin/assay-setups/${selected}?revision=${setup!.revision}`),
+    onSuccess: () => {
+      setConfirmDelete(false); choose("")
+      client.removeQueries({ queryKey: ["assay-setup-context", selected] })
+      void client.invalidateQueries({ queryKey: ["assay-setups"] })
+      void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
+      notifySuccess("Unpublished assay setup deleted")
+    },
+    onError: (error) => notifyActionError("Assay setup deletion failed", error),
+  })
   const save = (next: Content) => mutation.mutate({ content: next })
   const records = step === 2 ? content?.gene_lists || [] : content?.configurations || []
   const form = step === 2 ? context.data?.genelist_form : context.data?.configuration_form
@@ -152,5 +165,7 @@ export function AssaySetupPage() {
         {!isNew && <footer className="surface-panel flex min-w-0 flex-wrap items-center justify-between gap-2 p-3"><Button variant="outline" disabled={step === 0 || mutation.isPending} onClick={() => { setStep(step - 1); setEditing(null) }}><ArrowLeft />Previous</Button><span className="type-meta text-muted-foreground">Step {step + 1} of 6</span><Button variant="outline" disabled={step === 5 || mutation.isPending} onClick={() => { setStep(step + 1); setEditing(null) }}>Next<ArrowRight /></Button></footer>}
       </>}
     </>}
+    {setup && ["draft", "submitted"].includes(setup.status) && hasPermission(user, "assay.panel:delete") && <Button variant="destructive" disabled={mutation.isPending || deletion.isPending} onClick={() => setConfirmDelete(true)}><Trash2 />Delete unpublished setup</Button>}
+    <ConfirmationDialog open={confirmDelete} title="Delete unpublished assay setup?" description="The workspace and its private snapshots will be removed. Separately saved resources and published records are preserved. An audit receipt is retained." confirmLabel="Delete setup" isPending={deletion.isPending} onConfirm={() => deletion.mutate()} onCancel={() => setConfirmDelete(false)} />
   </PageShell>
 }

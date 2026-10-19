@@ -46,7 +46,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /admin/assay-catalog/versions/{oid}/revisions", "POST /admin/assay-catalog/drafts",
       "POST /admin/assay-catalog/imports", "POST /admin/assay-catalog/preview", "POST /admin/assay-catalog/preview/matrix", "PATCH /admin/assay-catalog/drafts/{oid}",
       "POST /admin/assay-catalog/drafts/{oid}/submit", "POST /admin/assay-catalog/drafts/{oid}/review",
-      "POST /admin/assay-catalog/drafts/{oid}/publish"],
+      "POST /admin/assay-catalog/drafts/{oid}/publish", "DELETE /admin/assay-catalog/versions/{identifier}"],
     dataUsed: ["center-owned public catalog metadata", "modality JSON exports"],
   },
   {
@@ -467,7 +467,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/assay-setups",
     page: "AssaySetupPage",
     area: "admin",
-    api: ["GET /admin/assay-setups", "GET /admin/assay-setups/context", "GET /admin/assay-setups/{identifier}/context", "POST /admin/assay-setups", "PUT /admin/assay-setups/{identifier}", "POST /admin/assay-setups/{identifier}/submit", "POST /admin/assay-setups/{identifier}/publish", "POST /admin/assay-setups/{identifier}/return"],
+    api: ["GET /admin/assay-setups", "GET /admin/assay-setups/context", "GET /admin/assay-setups/{identifier}/context", "POST /admin/assay-setups", "PUT /admin/assay-setups/{identifier}", "POST /admin/assay-setups/{identifier}/submit", "POST /admin/assay-setups/{identifier}/publish", "POST /admin/assay-setups/{identifier}/return", "DELETE /admin/assay-setups/{identifier}"],
     dataUsed: ["setup drafts", "managed resource forms", "scope readiness", "review history"],
   },
   {

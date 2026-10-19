@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from bson import ObjectId
@@ -51,3 +52,14 @@ def test_version_contract_and_expected_revision_validation():
     assert payload["status"] == "draft"
     with pytest.raises(ValidationError):
         PublicAssayCatalogUpdateRequest.model_validate({"catalog": {}})
+
+
+def test_delete_passes_inspected_revision_and_records_audit_metadata():
+    doc = document()
+    service = SimpleNamespace(delete_unpublished=Mock(return_value=doc))
+    request = Request({"type": "http", "method": "DELETE", "path": "/versions/id", "headers": []})
+    user = fx.api_user()
+    result = routes.delete_version(request, str(doc["_id"]), 1, user, service)
+    service.delete_unpublished.assert_called_once_with(str(doc["_id"]), 1, actor=user.username)
+    assert result["_id"] == str(doc["_id"])
+    assert request.state.audit_resource["metadata"]["revision"] == 1

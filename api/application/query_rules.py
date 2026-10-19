@@ -510,7 +510,7 @@ class QueryRuleService:
         return self.repository.change(identifier, payload.expected_revision, before, values, actor)
 
     def delete_draft(self, identifier: str, payload: QueryRuleTransition, actor: str) -> dict:
-        """Delete an inspected draft with an audited explanation.
+        """Delete an inspected pre-publication version with an audited explanation.
 
         Args:
             identifier: Draft version ObjectId.
@@ -518,7 +518,7 @@ class QueryRuleService:
             actor: Authenticated editor authorized by the route.
 
         Returns:
-            Deleted draft; published and approved versions cannot be deleted.
+            Deleted version; published and retired versions cannot be deleted.
         """
         return self.repository.delete_draft(
             identifier, payload.expected_revision, actor, payload.reason

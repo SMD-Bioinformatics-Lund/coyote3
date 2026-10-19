@@ -119,8 +119,8 @@ export function QueryRulesPage() {
   })
   const deletion = useMutation({
     mutationFn: () => api.delete(`/admin/query-rule-sets/${selected!._id}`, { body: JSON.stringify({ expected_revision: selected!.revision, reason: draft.reason }) }),
-    onSuccess: () => { choose(null); void client.invalidateQueries({ queryKey: ["query-rules"] }); notifySuccess("Draft deleted", "Published policies are unchanged.", "Query rules") },
-    onError: error => notifyActionError("Unable to delete draft", error, "Query rules"),
+    onSuccess: () => { choose(null); void client.invalidateQueries({ queryKey: ["query-rules"] }); notifySuccess("Unpublished version deleted", "Published policies are unchanged.", "Query rules") },
+    onError: error => notifyActionError("Unable to delete version", error, "Query rules"),
   })
   const inspect = useMutation({
     mutationFn: async () => {
@@ -188,7 +188,7 @@ export function QueryRulesPage() {
         <label className="block type-body-sm">Change or review reason<Input value={draft.reason} onChange={e => setDraft({ ...draft, reason: e.target.value })} /></label>
         <div className="flex flex-wrap gap-2">
           {editable && <Button size="sm" disabled={mutation.isPending || !draft.reason.trim() || draft.scope.assay_group === ""} onClick={() => mutation.mutate("save")}>Save draft</Button>}
-          {selected?.status === "draft" && editable && <Button size="sm" variant="outline" disabled={mutation.isPending || deletion.isPending || !draft.reason.trim()} onClick={() => setConfirmation({ title: "Delete this draft?", description: "This permanently removes the draft and its private revision snapshots. Published rules remain unchanged. The deletion reason is retained in the audit log.", run: () => deletion.mutate() })}>Delete draft</Button>}
+          {selected && ["draft", "approved"].includes(selected.status) && hasPermission(access, "query_rules:draft") && <Button size="sm" variant="outline" disabled={mutation.isPending || deletion.isPending || !draft.reason.trim()} onClick={() => setConfirmation({ title: "Delete this unpublished version?", description: "This permanently removes the selected version and its private revision snapshots. Published rules remain unchanged. The deletion reason is retained in the audit log.", run: () => deletion.mutate() })}>Delete version</Button>}
           {selected && [["draft", "approve", "review"], ["approved", "publish", "publish"], ["published", "retire", "retire"]].map(([status, action, permission]) => selected.status === status && hasPermission(access, `query_rules:${permission}`) && <Button size="sm" key={action} disabled={dirty || mutation.isPending || !draft.reason.trim()} onClick={() => setConfirmation({ title: `${label(action)} this saved version?`, description: action === "retire" ? "Parent policy will apply." : action === "publish" ? "This changes live finding retrieval for this scope and inheriting children." : "Confirm independent clinical review.", run: () => mutation.mutate(action) })}>{label(action)}</Button>)}
         </div>
         <nav aria-label="Query definition sections" className="flex flex-wrap gap-1 pt-2">

@@ -39,6 +39,53 @@ class AssaySetupRepository(BaseRepository):
         except (InvalidId, TypeError):
             return None
 
+    def delete_unpublished(self, identifier: str, revision: int, actor: str) -> dict | None:
+        """Remove an unpublished setup and private snapshots in an audited transaction.
+
+        Args:
+            identifier: Setup ObjectId selected by the operator.
+            revision: Expected revision; concurrent review or publication prevents deletion.
+            actor: Authenticated operator retained in the audit event.
+
+        Returns:
+            Deleted setup, or None if its revision or state does not permit deletion.
+        """
+        try:
+            oid = ObjectId(identifier)
+        except (InvalidId, TypeError):
+            return None
+
+        def write(session):
+            """Delete only unpublished workspace data and retain the audit receipt."""
+            deleted = self.get_collection().find_one_and_delete(
+                {
+                    "_id": oid,
+                    "revision": revision,
+                    "status": {"$in": ["draft", "submitted"]},
+                },
+                session=session,
+            )
+            if deleted:
+                self.adapter.assay_setup_revisions_collection.delete_many(
+                    {"setup_id": str(oid)}, session=session
+                )
+                enqueue_audit(
+                    self.get_collection().database,
+                    session,
+                    event_type="assay_setup.version_deleted",
+                    resource_type="assay_setup",
+                    resource_id=oid,
+                    actor=actor,
+                    metadata={
+                        "revision": revision,
+                        "status": deleted["status"],
+                        "asp_id": deleted["asp_id"],
+                    },
+                )
+            return deleted
+
+        return run_transaction(self.get_collection().database.client, write)
+
     def authoring_scopes(self) -> list[dict]:
         """Expose unpublished assay definitions only to clinical rule authoring."""
         return list(

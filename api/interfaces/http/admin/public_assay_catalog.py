@@ -58,6 +58,23 @@ def _result(request: Request, document: dict[str, Any], action: str):
     return util.common.convert_to_serializable(document)
 
 
+@router.delete("/versions/{identifier}", response_model=PublicAssayCatalogVersionDoc)
+def delete_version(
+    request: Request,
+    identifier: str,
+    revision: int = Query(ge=1),
+    user: ApiUser = Depends(require_access(permission="catalog:draft")),
+    service: PublicAssayCatalogManagementService = Depends(get_admin_public_assay_catalog_service),
+):
+    """Delete an unchanged unpublished version; requires catalog:draft.
+
+    Published catalog content is never removed by this operation.
+    """
+    return _result(
+        request, service.delete_unpublished(identifier, revision, actor=user.username), "deleted"
+    )
+
+
 @router.get("", response_model=PublicAssayCatalogAdminPayload)
 def workspace(
     user: ApiUser = Depends(require_access(permission="catalog:view")),

@@ -118,6 +118,7 @@ export function ClinicalRulesPage() {
   const rule = block?.rules[selectedRule]
   const can = (permission: string) => hasPermission(access.data, permission)
   const editableDraft = draft?.status === "draft" && can("clinical_rules:draft")
+  const deletableVersion = draft && ["draft", "submitted", "in_clinical_review", "approved", "rejected"].includes(draft.status) && can("clinical_rules:draft")
   const workflowReady = !dirty && !saveMutation.isPending
 
   const beginCreation = () => {
@@ -340,7 +341,8 @@ export function ClinicalRulesPage() {
           </section>}
         </aside>
       </div>
-      <ConfirmationDialog open={deleteDraftOpen} title="Delete draft?" description="This permanently removes the editable draft and its draft revision history. Published rule-set versions cannot be deleted." confirmLabel="Delete draft" isPending={deleteDraftMutation.isPending} onConfirm={deleteDraft} onCancel={() => setDeleteDraftOpen(false)} />
+      {deletableVersion && !editableDraft && <Button variant="destructive" disabled={!workflowReady || deleteDraftMutation.isPending} onClick={() => setDeleteDraftOpen(true)}><Trash2 />Delete unpublished version</Button>}
+      <ConfirmationDialog open={deleteDraftOpen} title="Delete unpublished version?" description="This permanently removes the selected pre-publication version and its private revision history. Published and retired versions are preserved. An audit receipt is retained." confirmLabel="Delete version" isPending={deleteDraftMutation.isPending} onConfirm={deleteDraft} onCancel={() => setDeleteDraftOpen(false)} />
     </PageShell>
   )
 }

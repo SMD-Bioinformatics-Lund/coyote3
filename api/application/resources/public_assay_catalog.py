@@ -658,6 +658,25 @@ class PublicAssayCatalogManagementService:
         self._notify(saved, doc["created_by"], actor, "Catalog published")
         return saved
 
+    def delete_unpublished(self, identifier: str, revision: int, *, actor: str) -> dict:
+        """Discard a pre-publication catalog version without touching the live publication.
+
+        Args:
+            identifier: Version identifier selected by the operator.
+            revision: Expected current revision.
+            actor: Authenticated operator authorized to author catalog drafts.
+
+        Returns:
+            Deleted version for the audit response.
+
+        Raises:
+            AppError: The version was published, changed, or does not exist.
+        """
+        deleted = self.versions.delete_unpublished(identifier, revision, actor)
+        if deleted is None:
+            raise api_error(409, "Only an unchanged unpublished catalog version can be deleted")
+        return deleted
+
     def validate_links(self, catalog: dict[str, Any]) -> None:
         """Check catalog entries against currently available public source choices.
 

@@ -153,6 +153,25 @@ class AssaySetupService:
             raise api_error(404, "Assay setup not found")
         return document
 
+    def delete_unpublished(self, identifier: str, revision: int, *, actor: str) -> dict:
+        """Discard a draft or submitted setup without deleting operational assay records.
+
+        Args:
+            identifier: Saved workspace identifier.
+            revision: Expected current revision.
+            actor: Authorized operator recorded in the deletion audit.
+
+        Returns:
+            Deleted workspace.
+
+        Raises:
+            AppError: The workspace is missing, changed, or already published.
+        """
+        deleted = self.repository.delete_unpublished(identifier, revision, actor)
+        if deleted is None:
+            raise api_error(409, "Only an unchanged unpublished assay setup can be deleted")
+        return deleted
+
     def list_payload(self) -> dict:
         """Return setup summaries without embedding their configuration content."""
         return {"items": self.repository.list()}

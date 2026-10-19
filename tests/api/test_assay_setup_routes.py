@@ -67,6 +67,7 @@ def client(monkeypatch):
         get=lambda _: doc,
         save=lambda *_, **__: doc,
         transition=lambda *_, **__: doc,
+        delete_unpublished=lambda *_, **__: doc,
     )
     app = FastAPI()
     app.include_router(router)
@@ -80,6 +81,17 @@ def test_read_permission_is_not_write_permission(client):
     user.permissions = ["assay.panel:list", "assay.panel:view"]
     assert http.get("/api/v1/admin/assay-setups").status_code == 200
     assert http.post("/api/v1/admin/assay-setups", json=doc["content"]).status_code == 403
+
+
+def test_delete_requires_permission_and_revision(client):
+    http, user, doc = client
+    path = f"/api/v1/admin/assay-setups/{doc['_id']}"
+    user.permissions = ["assay.panel:view"]
+    assert http.delete(path, params={"revision": 1}).status_code == 403
+    user.permissions = ["assay.panel:delete"]
+    assert http.delete(path).status_code == 422
+    assert http.delete(path, params={"revision": 0}).status_code == 422
+    assert http.delete(path, params={"revision": 1}).status_code == 200
 
 
 @pytest.mark.parametrize(

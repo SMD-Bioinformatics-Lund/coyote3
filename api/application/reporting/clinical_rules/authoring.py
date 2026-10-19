@@ -622,10 +622,20 @@ class ClinicalRuleAuthoringService:
         return parsed.model_dump(mode="python", by_alias=True)
 
     def delete_draft(self, document_id: str, *, expected_revision: int, actor: str) -> None:
-        """Permanently discard an editable draft before clinical governance begins."""
+        """Discard a pre-publication version while preserving released versions and audit."""
         document = self._document(document_id)
-        if document.status != ClinicalRuleStatus.DRAFT:
-            raise api_error(409, "Only a draft clinical rule set can be deleted")
+        if (
+            document.status
+            not in {
+                ClinicalRuleStatus.DRAFT,
+                ClinicalRuleStatus.SUBMITTED,
+                ClinicalRuleStatus.IN_CLINICAL_REVIEW,
+                ClinicalRuleStatus.APPROVED,
+                ClinicalRuleStatus.REJECTED,
+            }
+            or document.published_at is not None
+        ):
+            raise api_error(409, "Only an unpublished clinical rule version can be deleted")
         deleted = self.repository.delete_draft(
             document_id, expected_revision=expected_revision, actor=actor
         )

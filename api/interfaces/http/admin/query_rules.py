@@ -141,7 +141,7 @@ def delete_rule(
     user: ApiUser = Depends(require_access(permission="query_rules:draft")),
     service: QueryRuleService = Depends(get_query_rule_service),
 ):
-    """Delete an unchanged draft and private snapshots; requires query_rules:draft."""
+    """Delete an unpublished version and private snapshots; requires query_rules:draft."""
     return service.delete_draft(identifier, payload, user.username)
 
 

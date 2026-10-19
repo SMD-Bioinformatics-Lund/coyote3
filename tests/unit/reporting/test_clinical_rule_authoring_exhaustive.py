@@ -171,7 +171,10 @@ class Repository:
 
     def delete_draft(self, _document_id, *, expected_revision, actor):
         self.delete_actor = actor
-        if self.document["status"] != "draft" or self.document["revision"] != expected_revision:
+        if (
+            self.document["status"] in {"published", "retired"}
+            or self.document["revision"] != expected_revision
+        ):
             return None
         deleted = deepcopy(self.document)
         self.deleted_document = deleted
@@ -480,16 +483,19 @@ def test_validate_preview_and_update_actor() -> None:
     assert repository.update_actor == "author-2"
 
 
-def test_only_editable_drafts_can_be_deleted_and_the_action_is_audited() -> None:
-    repository = Repository(_document(status="draft"))
+@pytest.mark.parametrize(
+    "status", ["draft", "submitted", "in_clinical_review", "approved", "rejected"]
+)
+def test_unpublished_versions_can_be_deleted_and_the_action_is_audited(status) -> None:
+    repository = Repository(_document(status=status))
     service = ClinicalRuleAuthoringService(repository)
 
     service.delete_draft("id", expected_revision=1, actor="author")
 
-    assert repository.deleted_document["status"] == "draft"
+    assert repository.deleted_document["status"] == status
     assert repository.delete_actor == "author"
 
-    with pytest.raises(AppError, match="Only a draft"):
+    with pytest.raises(AppError, match="Only an unpublished"):
         ClinicalRuleAuthoringService(
             Repository(_document(status="published", active=True))
         ).delete_draft("id", expected_revision=1, actor="author")

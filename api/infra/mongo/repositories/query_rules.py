@@ -277,7 +277,7 @@ class QueryRuleRepository(BaseRepository):
             ) from error
 
     def delete_draft(self, identifier: str, revision: int, actor: str, reason: str) -> dict:
-        """Delete only the inspected draft, preserving published and approved versions.
+        """Delete the inspected unpublished version, preserving published and retired versions.
 
         Args:
             identifier: Version ObjectId selected by the operator.
@@ -300,10 +300,16 @@ class QueryRuleRepository(BaseRepository):
         def write(session):
             """Remove the draft and private snapshots with an atomic audit receipt."""
             deleted = collection.find_one_and_delete(
-                {"_id": oid, "revision": revision, "status": "draft"}, session=session
+                {
+                    "_id": oid,
+                    "revision": revision,
+                    "status": {"$in": ["draft", "approved"]},
+                    "published_on": None,
+                },
+                session=session,
             )
             if deleted is None:
-                raise api_error(409, "Only an unchanged draft can be deleted")
+                raise api_error(409, "Only an unchanged unpublished version can be deleted")
             self.revisions.delete_many({"rule_oid": str(oid)}, session=session)
             enqueue_audit(
                 collection.database,
@@ -312,7 +318,11 @@ class QueryRuleRepository(BaseRepository):
                 resource_type="query_rule",
                 resource_id=oid,
                 actor=actor,
-                metadata={"scope_key": deleted["scope_key"], "reason": reason},
+                metadata={
+                    "scope_key": deleted["scope_key"],
+                    "reason": reason,
+                    "status": deleted["status"],
+                },
             )
             return deleted
 

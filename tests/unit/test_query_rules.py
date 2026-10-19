@@ -141,9 +141,13 @@ def test_somatic_snv_composes_germline_exceptions_without_replacing_evidence(ser
     assert service.resolve(scope()).exceptions == []
 
 
-def test_draft_deletion_retains_audit_but_removes_private_history(service):
+@pytest.mark.parametrize("status", ["draft", "approved"])
+def test_draft_deletion_retains_audit_but_removes_private_history(service, status):
     row = service.create(draft(), "author")
     oid = str(row["_id"])
+    service.repository.get_collection().update_one(
+        {"_id": row["_id"]}, {"$set": {"status": status}}
+    )
     assert len(service.revisions(oid)) == 1
     service.delete_draft(
         oid, QueryRuleTransition(expected_revision=1, reason="Unused draft"), "author"
@@ -156,7 +160,7 @@ def test_published_versions_have_immutable_history_and_cannot_be_deleted(service
     row = release(service)
     oid = str(row["_id"])
     assert [r["action"] for r in service.revisions(oid)] == ["published", "approved", "created"]
-    with pytest.raises(AppError, match="Only an unchanged draft"):
+    with pytest.raises(AppError, match="Only an unchanged unpublished"):
         service.delete_draft(
             oid,
             QueryRuleTransition(expected_revision=row["revision"], reason="Forbidden"),

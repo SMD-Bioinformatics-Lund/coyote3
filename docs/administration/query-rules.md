@@ -224,10 +224,10 @@ stored in `query_rule_revisions`. Creation, edits, approval, publication, supers
 and retirement capture a revision in the same transaction as the version and audit
 receipt. **Revision history** displays and verifies the saved snapshots.
 
-An editor with `query_rules:draft` can enter a reason and select **Delete draft**.
-Deletion removes only the inspected draft and its private snapshots, with an audit
-receipt retained. Stale revisions, approved versions, published versions and retired
-versions cannot be deleted. Withdraw a publication with **Retire** instead.
+An editor with `query_rules:draft` can enter a reason and select **Delete version**
+for a draft or approved version. Deletion removes the inspected unpublished version
+and its private snapshots, with an audit receipt retained. Stale revisions, published
+versions and retired versions cannot be deleted. Withdraw a publication with **Retire** instead.
 
 For installations without query-rule snapshots, `scripts/bootstrap/install_query_rules.py`
 plans missing baselines by default and captures them with `--apply`. Baselines preserve

@@ -355,18 +355,18 @@ def delete_rule_set_draft(
     user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRuleAuthoringService = Depends(get_clinical_rule_authoring_service),
 ):
-    """Permanently delete an editable draft; requires `clinical_rules:draft`.
+    """Permanently delete an unpublished version; requires `clinical_rules:draft`.
 
     \u000c
 
     Args:
-        document_id: Draft version document identifier.
+        document_id: Unpublished version document identifier.
         revision: Expected current revision, at least 1.
         user: Authorized user recorded as the deletion audit actor.
-        service: Rule authoring service that deletes and audits the draft.
+        service: Rule authoring service that deletes and audits the version.
 
     Raises:
-        AppError: If the version is absent (404), is not a draft, or changed
+        AppError: If the version is absent (404), has been published, or changed
             before deletion (409).
 
     Notes:

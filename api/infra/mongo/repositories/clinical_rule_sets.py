@@ -538,7 +538,7 @@ class ClinicalRuleSetRepository(BaseRepository):
     def delete_draft(
         self, document_id: Any, *, expected_revision: int, actor: str | None = None
     ) -> dict[str, Any] | None:
-        """Delete one editable draft and its private revision snapshots together."""
+        """Delete a pre-publication version and private snapshots with an audit receipt."""
         object_id = _object_id(document_id)
         if object_id is None:
             return None
@@ -553,7 +553,14 @@ class ClinicalRuleSetRepository(BaseRepository):
                 Deleted draft, or ``None`` if status or revision no longer matches.
             """
             deleted = self.get_collection().find_one_and_delete(
-                {"_id": object_id, "status": "draft", "revision": expected_revision},
+                {
+                    "_id": object_id,
+                    "status": {
+                        "$in": ["draft", "submitted", "in_clinical_review", "approved", "rejected"]
+                    },
+                    "published_at": None,
+                    "revision": expected_revision,
+                },
                 session=session,
             )
             if deleted is not None:
@@ -566,7 +573,11 @@ class ClinicalRuleSetRepository(BaseRepository):
                     resource_type="clinical_rule_set",
                     resource_id=object_id,
                     actor=actor,
-                    metadata={"revision": expected_revision, "rule_set_id": deleted["rule_set_id"]},
+                    metadata={
+                        "revision": expected_revision,
+                        "rule_set_id": deleted["rule_set_id"],
+                        "status": deleted["status"],
+                    },
                 )
                 self.revision_collection.delete_many(
                     {"rule_set_oid": str(object_id)}, session=session

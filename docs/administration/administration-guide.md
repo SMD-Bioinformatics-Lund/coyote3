@@ -13,6 +13,28 @@ see [clinical configuration resources](clinical-configuration-resources.md).
 Follow [assay setup](assay-setup.md) when introducing an assay. Deployment-owned
 files and their settings are listed in the [configuration reference](../configuration/README.md).
 
+## Deleting unpublished documents
+
+Publication workflows allow authorized users to delete versions before publication.
+Select the version and confirm its deletion. A concurrent edit, review or publication
+prevents deletion; refresh and inspect the current version before retrying.
+
+| Document | Deletable states | Required permission |
+| --- | --- | --- |
+| Clinical report rules | Draft, submitted, clinical review, approved, rejected | `clinical_rules:draft` |
+| Query rules | Draft, approved | `query_rules:draft` |
+| Assay catalog | Draft, submitted, approved, rejected | `catalog:draft` |
+| Assay setup | Draft, submitted | `assay.panel:delete` |
+
+> [!WARNING]
+> Deletion permanently removes the unpublished version and its private revision
+> snapshots. An audit receipt remains. Published and retired versions cannot be
+> deleted through these actions. Deleting an assay setup does not delete separately
+> saved assays, gene lists or configurations.
+
+Ordinary administrative records use their resource-specific deletion permissions
+and protections; this workflow applies to documents with publication states.
+
 ## Finding an administrative page
 
 The administration home groups permitted destinations into **Assays and subpanels**,
