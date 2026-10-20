@@ -14,6 +14,7 @@ MAX_LIST_VALUES = 100
 # resolver expands selected gene lists and consequence groups. No values are persisted.
 FILTER_REFERENCES = {
     "snv": {
+        "exclude_flags": ("exclude_flags", "string_list", ["FILTER"]),
         "snvlists": ("filter_genes", "string_list", ["genes", "INFO.selected_CSQ.SYMBOL"]),
         "vep_consequences": (
             "filter_conseq",

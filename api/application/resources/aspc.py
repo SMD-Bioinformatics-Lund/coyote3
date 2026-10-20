@@ -26,6 +26,7 @@ from api.config.constants import (
     normalize_analysis_type,
     normalize_clinical_identifier,
 )
+from api.config.loaders.filter_flags import filter_flag_options
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.domain.common.errors import api_error
@@ -101,17 +102,21 @@ class AspcService:
     def _decorate_form_options(
         self, *, form: dict[str, Any], form_category: str, asp_ids: list[str]
     ) -> None:
-        """Populate assay-scoped gene-list, rule-set, and DNA consequence choices.
+        """Populate gene-list, rule-set, DNA consequence, and configured flag choices.
 
         Args:
             form: Mutable managed form receiving repository-backed options.
-            form_category: Exact DNA enables consequence choices; other values skip them.
+            form_category: Exact DNA enables consequence and flag choices.
             asp_ids: Assay IDs used to resolve gene-list and clinical-rule choices.
         """
         if form_category == "DNA":
             conseq_options = list(self.vep_metadata_repository.get_consequence_group_options())
             self._set_group_field_options(
                 form, top_field="filters", subfield_key="vep_consequences", options=conseq_options
+            )
+            flags = filter_flag_options("snv")
+            self._set_group_field_options(
+                form, top_field="filters", subfield_key="exclude_flags", options=flags
             )
         self._set_filter_gene_list_options(form, asp_ids)
         self._set_reporting_language_options(form, asp_ids)

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
 import { QueryConditionBuilder } from "./QueryConditionBuilder"
 import type { QueryCondition, QueryConditionCatalog } from "./query-condition-types"
 
@@ -22,6 +23,18 @@ function Harness({ start = initial }: { start?: QueryCondition }) {
 const current = () => JSON.parse(screen.getByTestId("condition").textContent ?? "{}")
 
 describe("Query condition builder", () => {
+  it("selects configured raw flags for membership conditions", async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<QueryConditionBuilder
+      value={{ type: "predicate", field: "FILTER", operator: "in", value: [] }}
+      fields={[{ path: "FILTER", label: "VCF filter flags", kind: "string_list", operators: ["in", "nin"], value_options: ["PASS", "WARN_NOVAR"] }]}
+      catalog={catalog} onChange={onChange}
+    />)
+    await user.selectOptions(screen.getByRole("listbox", { name: "Condition values" }), "WARN_NOVAR")
+    expect(onChange).toHaveBeenLastCalledWith({ type: "predicate", field: "FILTER", operator: "in", value: ["WARN_NOVAR"] })
+    expect(screen.queryByRole("textbox", { name: "Condition values" })).toBeNull()
+  })
   it("stores a sample filter key without copying genes, while retaining manual entry", () => {
     render(<Harness start={{ type: "predicate", field: "gene1", operator: "in", value: [] }} />)
     fireEvent.change(screen.getByLabelText("Condition value source"), { target: { value: "reference" } })

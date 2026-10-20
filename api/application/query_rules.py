@@ -11,6 +11,7 @@ from api.config.clinical_query_policy import (
     exception_payload,
     resolved_query_policy,
 )
+from api.config.loaders.filter_flags import filter_flag_options
 from api.contracts.schemas.query_rules import (
     QueryConditionTest,
     QueryRuleContent,
@@ -184,6 +185,9 @@ class QueryRuleService:
         for analysis, fields in catalog["fields"].items():
             for field in fields:
                 path = field["path"]
+                if analysis == "snv" and path == "FILTER":
+                    field["value_options"] = filter_flag_options("snv")
+                    field["label"] = "VCF filter flags"
                 if path in {
                     "genes",
                     "gene1",

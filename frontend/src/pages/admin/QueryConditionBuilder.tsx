@@ -41,14 +41,28 @@ function QueryValue({ condition, field, catalog, onChange }: {
   const sourceControl = references.length > 0 && <label className="block type-label">Value source<select aria-label="Condition value source" className={control} value={reference ? "reference" : "manual"} onChange={event => onChange(event.target.value === "reference" ? { source: "sample.filters", key: references[0].key } : list ? [] : numeric ? 0 : "")}><option value="reference">Sample filter reference</option><option value="manual">Enter manually</option></select></label>
   if (reference) return <div className="grid gap-3 md:grid-cols-2">{sourceControl}<label className="block min-w-0 type-label">Sample filter<select aria-label="Sample filter reference" className={control} value={reference.key} onChange={event => onChange({ source: "sample.filters", key: event.target.value })}>{references.map(ref => <option key={ref.key} value={ref.key}>{ref.path}</option>)}</select></label><p className="type-supporting text-muted-foreground md:col-span-2">Resolved from the sample’s active filters at evaluation time. No values are copied.</p></div>
   const values = Array.isArray(value) ? value : [value]
+  const configuredOptions = field?.value_options?.length
+    && (list && ["in", "nin", "all"].includes(operator) || ["eq", "ne"].includes(operator))
+    ? Array.from(new Set([...field.value_options, ...values.filter((item): item is string => typeof item === "string" && item !== "")]))
+    : []
   const error = numeric && value !== null && values.some(item => typeof item !== "number" || !Number.isFinite(item) || ((field?.kind === "integer" || operator === "size" || operator.startsWith("bits") || operator === "mod") && !Number.isInteger(item)))
     ? "Enter valid numbers of the indicated type."
     : list && (!Array.isArray(value) || value.length === 0 || value.length > catalog.max_list_values) ? `Enter 1–${catalog.max_list_values} values, one per line.`
     : operator === "mod" && (values.length !== 2 || values[0] === 0) ? "Enter a nonzero divisor, then the remainder, on separate lines." : ""
   return <div className="grid gap-3 md:grid-cols-2">
     {sourceControl}
-    {value !== null && <label className={cn("block min-w-0 type-label", !sourceControl && "md:col-span-2")}>{list ? commaSeparated ? "Values (comma-separated or one per line)" : "Values (one per line)" : "Value"}
-      {list ? <textarea aria-label="Condition values" className={control} rows={3} value={text} aria-invalid={!!error} onChange={event => update(event.target.value)} /> : field?.kind === "boolean" ? <select aria-label="Condition value" className={control} value={String(value)} onChange={event => onChange(event.target.value === "true")}><option value="true">True</option><option value="false">False</option></select> : <Input aria-label="Condition value" value={text} aria-invalid={!!error} onChange={event => update(event.target.value)} />}
+    {value !== null && <label className={cn("block min-w-0 type-label", !sourceControl && "md:col-span-2")}>{configuredOptions.length ? list ? "Configured flags (select one or more)" : "Configured flag" : list ? commaSeparated ? "Values (comma-separated or one per line)" : "Values (one per line)" : "Value"}
+      {configuredOptions.length ? (
+        <select aria-label={list ? "Condition values" : "Condition value"} className={control}
+          multiple={list} value={list ? values.map(String) : String(value ?? "")}
+          aria-invalid={!!error}
+          onChange={event => onChange(list
+            ? Array.from(event.target.selectedOptions, option => option.value)
+            : event.target.value)}>
+          {!list && <option value="">Select flag</option>}
+          {configuredOptions.map(option => <option key={option} value={option}>{option}</option>)}
+        </select>
+      ) : list ? <textarea aria-label="Condition values" className={control} rows={3} value={text} aria-invalid={!!error} onChange={event => update(event.target.value)} /> : field?.kind === "boolean" ? <select aria-label="Condition value" className={control} value={String(value)} onChange={event => onChange(event.target.value === "true")}><option value="true">True</option><option value="false">False</option></select> : <Input aria-label="Condition value" value={text} aria-invalid={!!error} onChange={event => update(event.target.value)} />}
     </label>}
     {["eq", "ne"].includes(operator) && <label className="flex items-center gap-2 type-label md:col-span-2"><input type="checkbox" checked={value === null} onChange={event => onChange(event.target.checked ? null : field?.kind === "boolean" ? true : numeric ? 0 : "")} />Compare with null</label>}
     {error && <p role="alert" className="text-destructive type-supporting md:col-span-2">{error}</p>}

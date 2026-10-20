@@ -6,6 +6,7 @@ import re
 from copy import deepcopy
 from typing import Any
 
+from api.config.constants import TUMOR_WGS_ASP_GROUPS
 from api.domain.common.assay_filters import get_sample_effective_genes, has_sample_gene_restriction
 from api.domain.common.biomarkers import biomarker_counts
 from api.domain.common.errors import api_error
@@ -427,7 +428,10 @@ class SampleCatalogFiltersMixin:
         elif (
             snv_genes
             and variant_stats_raw
-            and (len(snv_genes) < len(asp_covered_genes) or asp_group in ["tumwgs", "wts"])
+            and (
+                len(snv_genes) < len(asp_covered_genes)
+                or asp_group in (*TUMOR_WGS_ASP_GROUPS, "wts")
+            )
         ):
             variant_stats_filtered = self.variant_repository.get_variant_stats(
                 sample_id, genes=snv_genes

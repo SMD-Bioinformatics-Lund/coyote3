@@ -14,6 +14,8 @@ from tests.fixtures.api import mock_collections as fx
 def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> None:
     """The main SNV/INDEL table should arrive pre-sorted by case AF descending."""
     sample = fx.sample_doc()
+    sample["filters"]["somatic"]["snv"]["exclude_flags"] = ["WARN_NOVAR"]
+    queries = []
     assay_config = {
         "asp_group": "tumwgs",
         "analysis_types": [],
@@ -33,7 +35,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
             get_isgl_by_asp=lambda assay, is_active=True: [],
         ),
         variant_repository=SimpleNamespace(
-            get_case_variants=lambda query: variants,
+            get_case_variants=lambda query: queries.append(query) or variants,
             hydrate_finding_comments_many=lambda findings: findings,
         ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
@@ -70,6 +72,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     )
 
     assert [variant["_id"] for variant in payload["variants"]] == ["high", "mid", "low"]
+    assert queries[0]["exclude_flags"] == ["WARN_NOVAR"]
     assert [variant["_id"] for variant in payload["display_sections_data"]["snvs"]] == [
         "high",
         "mid",

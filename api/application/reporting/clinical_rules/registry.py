@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from api.config.loaders.filter_flags import filter_flag_options
+
 FactKind = Literal["boolean", "integer", "number", "string", "string_list", "object_list"]
 
 
@@ -175,6 +177,14 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         "%",
     ),
     _fact("finding.consequence", "Consequence", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact(
+        "finding.filter_flags",
+        "VCF filter flags",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+    ),
     _fact("finding.hgvsc", "HGVS.c", "Finding", "string", _EQUALITY, ("each_finding",)),
     _fact("finding.hgvsp", "HGVS.p", "Finding", "string", _EQUALITY, ("each_finding",)),
     _fact(
@@ -241,6 +251,14 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         value_format="gene",
     ),
     _fact("item.tier", "Item tier", "Current item", "integer", _NUMBER, ("each_item",)),
+    _fact(
+        "item.filter_flags",
+        "Item VCF filter flags",
+        "Current item",
+        "string_list",
+        _LIST,
+        ("each_item",),
+    ),
 )
 
 FACT_CATALOG += (
@@ -304,9 +322,14 @@ def validate_fact_path(path: str, *, scope: str | None = None) -> ClinicalFactDe
 
 
 def fact_catalog_payload() -> list[dict[str, object]]:
-    """Serialize the allowlisted facts for the rule editor.
+    """Serialize allowlisted facts and configured literal SNV flag choices for the editor.
 
     Returns:
         JSON-compatible fact definitions in catalog order.
     """
-    return [definition.model_dump(mode="json") for definition in FACT_CATALOG]
+    facts = [definition.model_dump(mode="json") for definition in FACT_CATALOG]
+    flags = filter_flag_options("snv")
+    for fact in facts:
+        if fact["path"] in {"finding.filter_flags", "item.filter_flags"}:
+            fact["value_options"] = list(flags)
+    return facts

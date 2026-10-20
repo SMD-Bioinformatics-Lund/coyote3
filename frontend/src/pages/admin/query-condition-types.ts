@@ -4,7 +4,7 @@ export type QueryCondition =
   | { type: "not"; child: QueryCondition }
   | { type: "elem_match"; field: string; condition: QueryCondition }
 
-export type QueryField = { path: string; label: string; kind: string; operators: string[]; value_role?: "gene"; hint?: string; filter_references?: { key: string; kind: string; path: string }[] }
+export type QueryField = { path: string; label: string; kind: string; operators: string[]; value_options?: string[]; value_role?: "gene"; hint?: string; filter_references?: { key: string; kind: string; path: string }[] }
 export type QueryConditionCatalog = {
   fields: Record<string, QueryField[]>
   operators: Record<string, string>

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
 import type { Condition, FactDefinition } from "./clinical-rules-types"
 import { ConditionBuilder, PredicateEditor } from "./RuleConditionBuilder"
 
@@ -14,6 +15,29 @@ const geneFact: FactDefinition = {
 }
 
 describe("clinical rule condition editor", () => {
+  it("keeps a contains operand scalar when no configured flag choices exist", () => {
+    const onChange = vi.fn()
+    const fact: FactDefinition = {
+      path: "finding.filter_flags", label: "VCF filter flags", group: "Finding", kind: "string_list",
+      operators: ["contains"], scopes: ["each_finding"],
+    }
+    render(<PredicateEditor facts={[fact]} controlledValues={{}}
+      value={{ type: "predicate", fact: fact.path, operator: "contains", value: "" }} onChange={onChange} />)
+    fireEvent.change(screen.getByRole("textbox", { name: "Condition value" }), { target: { value: "PASS" } })
+    expect(onChange).toHaveBeenLastCalledWith({ type: "predicate", fact: fact.path, operator: "contains", value: "PASS" })
+  })
+  it("selects configured raw flags for overlap conditions", async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    const fact: FactDefinition = {
+      path: "finding.filter_flags", label: "VCF filter flags", group: "Finding", kind: "string_list",
+      operators: ["contains", "overlaps"], scopes: ["each_finding"], value_options: ["PASS", "WARN_NOVAR"],
+    }
+    render(<PredicateEditor facts={[fact]} controlledValues={{}}
+      value={{ type: "predicate", fact: fact.path, operator: "overlaps", value: [] }} onChange={onChange} />)
+    await user.selectOptions(screen.getByRole("listbox", { name: "Condition value" }), "WARN_NOVAR")
+    expect(onChange).toHaveBeenLastCalledWith({ type: "predicate", fact: fact.path, operator: "overlaps", value: ["WARN_NOVAR"] })
+  })
   it("reports invalid gene symbols and emits a list for membership conditions", () => {
     const onChange = vi.fn()
     render(<PredicateEditor

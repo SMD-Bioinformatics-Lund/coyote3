@@ -42,9 +42,9 @@ def registry(monkeypatch):
 def test_installation_is_explicit_idempotent_and_preserves_custom_groups(registry):
     db, repository, panels = registry
     db.assay_specific_panels.insert_one({"asp_id": "demo", "asp_group": "custom-scope"})
-    assert install(db, actor="operator") == 10
+    assert install(db, actor="operator") == 12
     assert repository.list() == []
-    assert install(db, actor="operator", apply=True) == 10
+    assert install(db, actor="operator", apply=True) == 12
     before = repository.list()
     assert install(db, actor="other", apply=True) == 0
     assert repository.list() == before
@@ -52,6 +52,7 @@ def test_installation_is_explicit_idempotent_and_preserves_custom_groups(registr
     assert db.assay_groups.find_one({"group_id": "demo"})["system_managed"] is True
     assert db.assay_groups.find_one({"group_id": "custom-scope"})["system_managed"] is False
     assert "custom-scope" in panels.group_options()
+    assert {"tumwgs", "tumwgs-hema", "tumwgs-solid"} <= set(panels.group_options())
     assert db.assay_specific_panels.find_one()["asp_group"] == "custom-scope"
 
 
@@ -74,6 +75,20 @@ def test_create_custom_group_and_select_in_assay_form(registry):
         )
     assert error.value.status_code == 409
     assert db.assay_groups.find_one()["display_name"] == "Methylation"
+
+
+def test_upgrade_adds_two_wgs_groups_without_changing_legacy_assignments(registry):
+    """Missing subgroups are inserted while existing group status and assay scopes remain."""
+    db, repository, _ = registry
+    install(db, actor="operator", apply=True)
+    db.assay_groups.delete_many({"group_id": {"$in": ["tumwgs-hema", "tumwgs-solid"]}})
+    db.assay_groups.update_one({"group_id": "tumwgs"}, {"$set": {"version": 5, "is_active": False}})
+    db.assay_specific_panels.insert_one({"asp_id": "legacy_wgs", "asp_group": "tumwgs"})
+    legacy = db.assay_groups.find_one({"group_id": "tumwgs"})
+    assert install(db, actor="operator", apply=True) == 2
+    assert db.assay_groups.find_one({"group_id": "tumwgs"}) == legacy
+    assert db.assay_specific_panels.find_one({"asp_id": "legacy_wgs"})["asp_group"] == "tumwgs"
+    assert {"tumwgs-hema", "tumwgs-solid"} <= {group["group_id"] for group in repository.list()}
 
 
 def test_system_group_cannot_be_replaced_by_creation(registry):

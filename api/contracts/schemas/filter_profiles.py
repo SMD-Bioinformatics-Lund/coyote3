@@ -14,8 +14,33 @@ from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.base import _StrictDocBase
 
 
-class SnvFiltersDoc(_StrictDocBase):
-    """Somatic SNV frequency, read-support, consequence, and gene-scope filters."""
+class SnvFlagFiltersDoc(_StrictDocBase):
+    """Optional exclusions matching exact VCF FILTER names within an SNV profile."""
+
+    exclude_flags: list[str] = Field(default_factory=list, max_length=100)
+
+    @field_validator("exclude_flags")
+    @classmethod
+    def _validate_flags(cls, values: list[str]) -> list[str]:
+        """Trim and deduplicate literal flag names without changing their case.
+
+        Args:
+            values: Validated list of pipeline FILTER names.
+
+        Returns:
+            Nonempty flag names in selection order.
+
+        Raises:
+            ValueError: A flag is blank or exceeds 200 characters.
+        """
+        flags = list(dict.fromkeys(value.strip() for value in values))
+        if any(not flag or len(flag) > 200 for flag in flags):
+            raise ValueError("Flag names must contain 1–200 characters")
+        return flags
+
+
+class SnvFiltersDoc(SnvFlagFiltersDoc):
+    """Somatic SNV frequency, read-support, consequence, flag, and gene-scope filters."""
 
     max_freq: float = Field(default=1.0, ge=0.0, le=1.0)
     min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -42,7 +67,7 @@ class SnvFiltersDoc(_StrictDocBase):
         return self
 
 
-class GermlineSnvFiltersDoc(_StrictDocBase):
+class GermlineSnvFiltersDoc(SnvFlagFiltersDoc):
     """SNV filter profile for constitutional review.
 
     ``max_control_freq`` is intentionally absent. A tumour-normal exclusion

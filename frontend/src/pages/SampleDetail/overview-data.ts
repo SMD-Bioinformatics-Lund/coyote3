@@ -147,17 +147,33 @@ export function overviewFilterGroups(sample: any, context?: any): OverviewFilter
   if (omics !== "dna") return []
   const groups: OverviewFilterGroup[] = []
   if (include("snv", "snvs", "small_variant", "small_variants")) {
-    const snv = sampleFilterSection(sample, "snv")
-    groups.push({ key: "snv", label: "SNV filters", rows: [
-      ["Minimum depth", snv.min_depth],
-      ["Minimum alternate reads", snv.min_alt_reads],
-      ["Minimum VAF", snv.min_freq],
-      ["Maximum VAF", snv.max_freq],
-      ["Maximum control VAF", snv.max_control_freq],
-      ["Maximum population frequency", snv.max_popfreq],
-      ["Consequences", snv.vep_consequences],
-      ["Gene lists", snv.snvlists],
-    ] })
+    const intents = new Set<string>(sample?.analysis_intents?.length
+      ? sample.analysis_intents
+      : Object.keys(sample?.filters || {}).filter(intent => sample.filters[intent]?.snv))
+    if (!intents.size) intents.add("somatic")
+    for (const intent of ["somatic", "germline"] as const) {
+      if (!intents.has(intent)) continue
+      const snv = sampleFilterSection(sample, "snv", intent)
+      const rows: OverviewFilterGroup["rows"] = [
+        ["Minimum depth", snv.min_depth],
+        ["Minimum alternate reads", snv.min_alt_reads],
+        ["Minimum VAF", snv.min_freq],
+        ["Maximum VAF", snv.max_freq],
+      ]
+      if (intent === "somatic") rows.push(["Maximum control VAF", snv.max_control_freq])
+      rows.push(
+        ["Maximum population frequency", snv.max_popfreq],
+        ["Consequences", snv.vep_consequences],
+        ["Excluded filter flags", snv.exclude_flags],
+        ["Gene lists", snv.snvlists],
+      )
+      groups.push({
+        key: intent === "somatic" ? "snv" : "germline-snv",
+        label: intent === "germline" ? "Germline SNV filters"
+          : intents.has("germline") ? "Somatic SNV filters" : "SNV filters",
+        rows,
+      })
+    }
   }
   if (include("cnv", "cnvs")) {
     const cnv = sampleFilterSection(sample, "cnv")

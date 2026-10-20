@@ -6,6 +6,8 @@
 #   3. frontend fallback prefix rules
 #
 # Centers may edit labels/descriptions without changing application code.
+# Global and SNV caller-specific exact/terms keys also supply SNV exclusion choices.
+# Prefixes describe badge families and are not literal exclusion choices.
 # Optional caller overrides require recorded provenance and a reviewed definition.
 # No caller-specific flags are enabled by default. See the vocabulary reference.
 callers: {}

@@ -15,6 +15,8 @@ export const configuredValueClasses: Record<string, string> = {
   solid: "badge-warning",
   pgx: "badge-pgx",
   tumwgs: "badge-warning",
+  "tumwgs-hema": "badge-danger",
+  "tumwgs-solid": "badge-warning",
   wts: "badge-signal",
   myeloid: "badge-danger",
   lymphoid: "badge-success",

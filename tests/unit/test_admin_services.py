@@ -1569,6 +1569,15 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     assert subpanel_options_by_asp["field"] == "asp_id"
     assert subpanel_options_by_asp["values"]["wgs"][0]["value"] == "base"
     assert "somatic.snv.snvlists" in filter_keys
+    for intent in ("somatic", "germline"):
+        flag_field = next(
+            field
+            for group in filter_groups
+            for field in group.get("fields", [])
+            if field["key"] == f"{intent}.snv.exclude_flags"
+        )
+        assert "WARN_NOVAR" in flag_field["options"]
+        assert "PASS" in flag_field["options"]
     assert "somatic.cnv.cnvlists" in filter_keys
     assert "somatic.fusion.fusionlists" not in filter_keys
     assert "somatic.translocation.fusionlists" in filter_keys

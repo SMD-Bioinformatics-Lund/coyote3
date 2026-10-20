@@ -117,8 +117,8 @@ def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
         "solid", _settings(asp_id="solid_gmsv3", subpanel_id="colon"), policy=policy
     )
 
-    assert _contains_mapping(hema_query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["FLT3"]}})
-    assert _contains_mapping(solid_query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["TERT", "NFKBIE"]}})
+    assert _contains_mapping(hema_query, {"genes": {"$in": ["FLT3"]}})
+    assert _contains_mapping(solid_query, {"genes": {"$in": ["TERT", "NFKBIE"]}})
     assert _contains_mapping(
         solid_query,
         {"consequence_terms": {"$in": ["regulatory_region_variant", "TF_binding_site_variant"]}},
@@ -133,7 +133,7 @@ def test_germline_query_requires_a_typed_admission_exception() -> None:
     )
 
     assert _contains_mapping(query, {"INFO.MYELOID_GERMLINE": {"$eq": 1}})
-    assert _contains_mapping(query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["CEBPA"]}})
+    assert _contains_mapping(query, {"genes": {"$in": ["CEBPA"]}})
     assert _contains_mapping(query, {"FILTER": {"$in": ["GERMLINE"]}})
     assert _contains_mapping(query, {"CHROM": {"$in": ["1"]}})
 

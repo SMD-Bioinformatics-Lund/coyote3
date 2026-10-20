@@ -63,6 +63,7 @@ class HomeEditContextPayload(BaseModel):
     asp: dict[str, Any]
     sample_expected_files: list[dict[str, Any]] = Field(default_factory=list)
     snv_genelist_options: list[dict[str, Any]] = Field(default_factory=list)
+    snv_flag_options: list[str] = Field(default_factory=list)
     cnvlist_options: list[dict[str, Any]] = Field(default_factory=list)
     fusionlist_options: list[dict[str, Any]] = Field(default_factory=list)
     fusion_caller_options: list[str] = Field(default_factory=list)

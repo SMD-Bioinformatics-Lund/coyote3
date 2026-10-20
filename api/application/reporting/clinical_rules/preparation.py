@@ -84,6 +84,7 @@ def _snv_fact(variant: dict[str, Any]) -> dict[str, Any]:
         "control_vaf": control_vaf,
         "control_vaf_percent": (round(control_vaf * 100, 3) if control_vaf is not None else None),
         "consequence": consequence,
+        "filter_flags": variant.get("FILTER") or [],
         "hgvsc": csq.get("HGVSc") or variant.get("cdna") or variant.get("hgvsc"),
         "hgvsp": csq.get("HGVSp") or variant.get("variant") or variant.get("hgvsp"),
         "variant_type": variant.get("variant_class") or variant.get("var_type"),

@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from api.config.loaders.filter_flags import filter_flag_options
 from api.domain.common.biomarkers import project_biomarkers
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import (
@@ -148,6 +149,7 @@ class SampleCatalogMutationsMixin:
             "comments": sample_comments,
             "asp": asp,
             "sample_expected_files": self._file_rows_for_sample(sample, asp),
+            "snv_flag_options": filter_flag_options("snv"),
             "snv_genelist_options": self._genelist_options_for_target(
                 sample=sample, asp=asp, target="snv"
             ),

@@ -64,7 +64,7 @@ quoted numbers are not converted. A string-list comparison matches its elements.
 | `exac_frequency` | number | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod` | `max_popfreq` |
 | `thousandG_frequency` | number | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod` | `max_popfreq` |
 | `GT.AF` | number | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod` | `min_freq`, `max_freq` |
-| `FILTER` | string list | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$all`, `$size` | — |
+| `FILTER` | string list | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$all`, `$size` | `exclude_flags` |
 | `genes` | string list | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$all`, `$size` | `snvlists` |
 | `transcripts` | string list | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$all`, `$size` | — |
 | `HGVSc` | string list | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$all`, `$size` | — |

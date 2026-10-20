@@ -14,7 +14,7 @@ copy these application-owned files into the external center directory.
 | Directory | Collections | Authority | First-deployment behavior |
 | --- | --- | --- | --- |
 | `rbac/` | `permissions`, `roles` | Coyote3 application release | Installed before the first local superuser is created. Bundled records cannot be deleted through the UI. Roles may be deactivated or revised through their normal managed workflow. |
-| `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote3 application release | Nine groups and eight group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
+| `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote3 application release | Eleven groups and twelve group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
 | `reference/` knowledgebase snapshots | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Bundled reference snapshot in `KNOWLEDGEBASE_DB` | Separate optional reference installation imports only into empty destination collections. Existing reference collections are never merged or replaced. |
 | `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic demonstration configuration | Optional first-run configuration; bootstrap also derives named subpanels/associations and report-rule revision baselines. Add center-approved definitions before clinical use. |
 

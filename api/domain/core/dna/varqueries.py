@@ -220,6 +220,8 @@ def build_query(
     ``settings`` carries sample identity plus resolved ``asp_id`` and
     ``subpanel_id``. They select configured exception scopes; they are never
     interpreted as data-store field paths or query operators.
+    Nonempty excluded-flag selections reject literal FILTER values after admission
+    exceptions. An empty exclusion list does not restrict flags.
     """
     normalized_group = str(assay_group or "").strip().lower()
     normalized_intent = str(intent or "somatic").strip().lower()
@@ -302,6 +304,8 @@ def build_query(
     )
     if exclusion:
         clauses.append(exclusion)
+    if settings.get("exclude_flags"):
+        clauses.append({"FILTER": {"$nin": list(settings["exclude_flags"])}})
     return {"SAMPLE_ID": settings["id"], "$and": [clause for clause in clauses if clause]}
 
 

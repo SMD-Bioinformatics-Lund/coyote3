@@ -404,6 +404,12 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "type": "checkbox-group",
                             "options": [],
                         },
+                        {
+                            "key": "somatic.snv.exclude_flags",
+                            "label": "Excluded filter flags",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
                     ],
                 },
                 {
@@ -422,6 +428,12 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                         {
                             "key": "germline.snv.snvlists",
                             "label": "SNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                        {
+                            "key": "germline.snv.exclude_flags",
+                            "label": "Excluded filter flags",
                             "type": "checkbox-group",
                             "options": [],
                         },

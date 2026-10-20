@@ -93,7 +93,11 @@ export function PredicateEditor({ value, facts, controlledValues, onChange }: { 
   const fact = facts.find((item) => item.path === value.fact) || facts[0]
   const operators = fact?.operators || ["eq"]
   const noValue = ["is_empty", "is_unknown"].includes(value.operator)
-  const options = controlledValues[value.fact] || fact?.value_options || []
+  const configuredOptions = controlledValues[value.fact] || fact?.value_options || []
+  const options = value.fact.endsWith(".filter_flags") && configuredOptions.length
+    ? Array.from(new Set([...configuredOptions, ...(Array.isArray(value.value) ? value.value : [value.value])
+      .filter((item): item is string => typeof item === "string" && item !== "")]))
+    : configuredOptions
   const error = noValue ? "" : valueError(value.value, value.operator, { ...fact, value_options: options })
   return (
     <div className="mt-2 grid gap-2 lg:grid-cols-[1.2fr_1fr_1.4fr]">
@@ -105,9 +109,16 @@ export function PredicateEditor({ value, facts, controlledValues, onChange }: { 
       </select>
       {!noValue && (fact?.kind === "boolean" || value.operator === "exists" ? (
         <select className="paper-inset rounded-lg p-2 text-sm" value={String(value.value ?? true)} onChange={(event) => onChange({ ...value, value: event.target.value === "true" })}><option value="true">Yes</option><option value="false">No</option></select>
-      ) : options.length && !["in", "not_in", "overlaps", "between"].includes(value.operator) ? (
-        <select className="paper-inset rounded-lg p-2 text-sm" value={String(value.value ?? "")} onChange={(event) => onChange({ ...value, value: event.target.value })}>
-          <option value="">Select value</option>
+      ) : options.length && value.operator !== "between" ? (
+        <select aria-label="Condition value" className="paper-inset rounded-lg p-2 text-sm"
+          multiple={["in", "not_in", "overlaps"].includes(value.operator)}
+          value={["in", "not_in", "overlaps"].includes(value.operator)
+            ? Array.isArray(value.value) ? value.value.map(String) : []
+            : String(value.value ?? "")}
+          onChange={(event) => onChange({ ...value, value: ["in", "not_in", "overlaps"].includes(value.operator)
+            ? Array.from(event.target.selectedOptions, option => option.value)
+            : event.target.value })}>
+          {!["in", "not_in", "overlaps"].includes(value.operator) && <option value="">Select value</option>}
           {options.map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
       ) : (

@@ -51,6 +51,7 @@ const sample = {
 }
 
 const context = {
+  snv_flag_options: ["PASS", "FAIL_NVAF", "WARN_NOVAR"],
   snv_genelist_options: [
     { isgl_id: "heme", display_name: "Hematology" },
     { isgl_id: "myeloid", display_name: "Myeloid" },
@@ -89,6 +90,23 @@ describe("FiltersSidebar", () => {
     mocks.put.mockResolvedValue({ data: { ok: true } })
     mocks.post.mockResolvedValue({ data: { meta: { applied_aspc: { aspc_id: "hema_gmsv1_hem_production", version: 3 } } } })
     mocks.delete.mockResolvedValue({ data: { ok: true } })
+  })
+
+  it.each(["somatic", "germline"] as const)("saves configured flags only for the active %s SNV profile", async (intent) => {
+    const user = userEvent.setup()
+    renderSidebar({ intent })
+    await expand(user)
+    expect(screen.getByRole("heading", { name: "Excluded filter flags" })).toBeVisible()
+    await user.click(screen.getByRole("checkbox", { name: "WARN_NOVAR" }))
+    await user.click(screen.getByRole("button", { name: "Apply" }))
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/samples/CASE_001/filters", {
+      filters: {
+        ...sample.filters,
+        [intent]: { ...sample.filters[intent], snv: {
+          ...sample.filters[intent].snv, exclude_flags: ["WARN_NOVAR"],
+        } },
+      },
+    }))
   })
 
   it("shows the sampled ASPC and applies a newer revision only after confirmation", async () => {

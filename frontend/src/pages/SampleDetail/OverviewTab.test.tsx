@@ -73,6 +73,24 @@ const context = {
 }
 
 describe("sample overview presentation", () => {
+  it("shows each intent's excluded flags beside its other SNV filters", () => {
+    wrapper(<OverviewTab sampleId="CASE_001" context={context} sample={{
+      ...sample, analysis_intents: ["somatic", "germline"], filters: {
+        ...sample.filters,
+        somatic: { ...sample.filters.somatic, snv: {
+          ...sample.filters.somatic.snv, exclude_flags: ["WARN_NOVAR"],
+        } },
+        germline: { snv: { min_depth: 30, exclude_flags: ["FAIL_NVAF"] } },
+      },
+    }} />)
+    const somatic = screen.getByRole("region", { name: "Somatic SNV filters" })
+    const germline = screen.getByRole("region", { name: "Germline SNV filters" })
+    expect(within(somatic).getByText("Excluded filter flags")).toBeVisible()
+    expect(within(somatic).getByText("WARN_NOVAR")).toBeVisible()
+    expect(within(germline).getByText("FAIL_NVAF")).toBeVisible()
+    expect(within(germline).getByText("Minimum depth")).toBeVisible()
+    expect(within(germline).queryByText("Maximum control VAF")).toBeNull()
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.get.mockImplementation((url: string) => Promise.resolve({

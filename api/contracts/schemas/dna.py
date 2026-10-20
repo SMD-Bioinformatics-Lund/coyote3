@@ -12,12 +12,12 @@ from api.contracts.schemas.base import (
     _DocBase,
     _FindingDocBase,
     _StrictCollectionDocBase,
-    _StrictDocBase,
 )
+from api.contracts.schemas.filter_profiles import SnvFlagFiltersDoc
 from api.contracts.schemas.normalizers import normalize_ampersand_terms
 
 
-class DnaFiltersDoc(_StrictDocBase):
+class DnaFiltersDoc(SnvFlagFiltersDoc):
     """Flat DNA filter thresholds and gene-list selections with cross-field checks."""
 
     max_freq: float = Field(default=1.00, ge=0.0, le=1.0)
@@ -64,6 +64,7 @@ class DnaFiltersDoc(_StrictDocBase):
             "error_cov",
         }
         list_defaults_to_restore = {
+            "exclude_flags",
             "snvlists",
             "vep_consequences",
             "cnveffects",

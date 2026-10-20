@@ -29,7 +29,7 @@ export function newPredicate(facts: FactDefinition[]): Condition {
 export function parseValue(value: string, operator: string, fact?: FactDefinition): unknown {
   if (fact?.kind === "boolean") return value === "true"
   if (fact?.kind === "integer" || fact?.kind === "number") return Number(value)
-  if (fact?.kind === "string_list" || ["in", "not_in", "overlaps", "between"].includes(operator)) {
+  if (["in", "not_in", "overlaps", "between"].includes(operator)) {
     return value.split(",").map((item) => item.trim()).filter(Boolean)
   }
   return value

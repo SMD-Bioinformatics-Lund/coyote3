@@ -9,8 +9,8 @@ create an assay, enable an analysis, or grant users access to samples.
 
 | Installation component | Supplied records | Availability |
 | --- | --- | --- |
-| Assay groups | Nine registered groups, listed below | Standard bootstrap |
-| Finding query rules | Eight published SNV sets across four groups, with immutable baseline revisions | Standard bootstrap |
+| Assay groups | Eleven registered groups, listed below | Standard bootstrap |
+| Finding query rules | Twelve published SNV sets across six groups, with immutable baseline revisions | Standard bootstrap |
 | System roles | 32 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
 | Initial accounts | One named system administrator and one separate emergency superuser | Operator supplies identities and temporary passwords during bootstrap |
 | Starter demonstration | Two assays (hematology DNA and RNA fusion), two testing and two production catalog configurations, two gene lists, two named subpanels with associations, two published query policies, two published report-rule sets, an analysis-linked catalog and two ingested samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | `install_center.sh --with-demo-center` or Administration → Demo installation |
@@ -38,11 +38,20 @@ documented synchronization workflows; rerunning bootstrap does not reset catalog
 | `solid` | Solid tumors | Solid tumor assays | Somatic SNV regulatory extensions; GERMLINE-filter admission |
 | `pgx` | Pharmacogenomics | Pharmacogenomic assays | None; application query defaults apply |
 | `tumwgs` | Tumor WGS | Tumor whole-genome assays | Somatic SNV FLT3 extensions; three germline admissions |
+| `tumwgs-hema` | Tumor WGS — Hematology | Hematological tumor whole-genome assays | Somatic SNV FLT3 extensions; three germline admissions |
+| `tumwgs-solid` | Tumor WGS — Solid tumors | Solid tumor whole-genome assays | Somatic SNV regulatory extensions; GERMLINE-filter admission |
 | `wts` | Whole transcriptome | Whole-transcriptome assays | None; application query defaults apply |
 | `fusion` | Fusion | RNA fusion assays | None; application RNA fusion query defaults apply |
 | `demo` | Demo | Demonstration and training assays | None; application query defaults apply |
 
 Each assay group defines an independent registration and access scope.
+`tumwgs` remains available for existing assays. Its assignments, gene lists, permissions,
+and query rules are preserved; the two new groups do not inherit its access grants.
+For an existing deployment, run `scripts/bootstrap/install_assay_groups.py --actor ADMIN_USERNAME`
+to preview missing groups and repeat with `--apply` to insert them. Then preview
+`scripts/bootstrap/install_query_rules.py --actor ADMIN_USERNAME` and repeat with `--apply`
+to install the missing group policies. Both commands use the configured MongoDB connection
+and require `COYOTE3_DB` or `--db`. Existing group documents and published rules are preserved.
 The optional bootstrap examples use the `hematology` and `wts` groups.
 The [synthetic workflow bundle](../testing/clinical-workflow-demo.md) also provides
 DNA and RNA assays in the `demo` group, with matching sample manifests, raw data,
@@ -87,11 +96,13 @@ in [Finding query rules](query-rules.md).
 | `hematology` | `hematology__all__base__somatic_snvs` | `hematology__all__base__germline_snvs` |
 | `myeloid` | `myeloid__all__base__somatic_snvs` | `myeloid__all__base__germline_snvs` |
 | `tumwgs` | `tumwgs__all__base__somatic_snvs` | `tumwgs__all__base__germline_snvs` |
+| `tumwgs-hema` | `tumwgs-hema__all__base__somatic_snvs` | `tumwgs-hema__all__base__germline_snvs` |
+| `tumwgs-solid` | `tumwgs-solid__all__base__somatic_snvs` | `tumwgs-solid__all__base__germline_snvs` |
 | `solid` | `solid__all__base__somatic_snvs` | `solid__all__base__germline_snvs` |
 
 ### Hematology, myeloid and tumor WGS
 
-Each of these three groups receives the same two somatic exceptions and three germline
+Hematology, myeloid, legacy `tumwgs` and `tumwgs-hema` receive the same two somatic exceptions and three germline
 exceptions. Conditions within a row are combined with AND; alternative exception rows
 can independently match.
 
@@ -116,7 +127,7 @@ meaning against the assay's reference build before clinical use.
 | `solid_regulatory_tert_nfkbie` | Somatic: extend consequence eligibility | `genes` contains `TERT` or `NFKBIE`, and `consequence_terms` contains `regulatory_region_variant` or `TF_binding_site_variant`. |
 | `solid_germline_filter` | Germline: admit | `FILTER` contains `GERMLINE`; no gene condition is imposed by this exception. |
 
-Solid tumors do not receive the myeloid-marker, CEBPA or chromosome-1 admissions.
+`solid` and `tumwgs-solid` do not receive the myeloid-marker, CEBPA or chromosome-1 admissions.
 
 ### Effect on retrieved findings
 
@@ -125,11 +136,13 @@ ordinary evidence requirements. `admit` adds an alternative to the ordinary
 evidence/consequence branch. Neither action removes sample identity, applicable
 gene/position restrictions, false-positive/irrelevant exclusions or access checks.
 Explicit exclusion exceptions still apply to admitted findings.
+SNV `exclude_flags` selections also apply after admission.
+Their choices come from the [configured flag metadata](../configuration/filter-flag-metadata-file.md#snv-flag-filtering-and-rule-conditions).
 
 !!! warning "Somatic SNV results can include germline findings"
     The dedicated germline workflow is not fully implemented. Effective germline
     admission exceptions also contribute to somatic SNV retrieval for the same
-    scope. The three hematology-related scopes above and solid tumors therefore
+    scope. The four hematology-related scopes above and the two solid-tumor scopes therefore
     include their respective germline admissions in somatic results. Germline
     evidence settings do not replace somatic evidence settings. Inclusion in the
     somatic table does not establish somatic origin.

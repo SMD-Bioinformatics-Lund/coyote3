@@ -83,3 +83,22 @@ def load_filter_flag_metadata(
         if set(callers) - set(options[analysis]):
             raise ValueError(f"Filter metadata references unconfigured {analysis} callers")
     return {**config.model_dump(exclude_none=True), "caller_options": options}
+
+
+def filter_flag_options(analysis: str) -> list[str]:
+    """Return configured literal FILTER names for one analysis.
+
+    Args:
+        analysis: Registered analysis key, such as snv.
+
+    Returns:
+        Sorted global and caller-specific exact and term names. Hidden badges
+        remain selectable. Prefix styling rules are not literal flag values.
+
+    Raises:
+        OSError: The configured metadata file cannot be read.
+        ValueError: The configured flag metadata is invalid.
+    """
+    metadata = load_filter_flag_metadata()
+    groups = [metadata, *metadata.get("callers", {}).get(analysis, {}).values()]
+    return sorted({key for group in groups for kind in ("exact", "terms") for key in group[kind]})

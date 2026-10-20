@@ -578,10 +578,10 @@ and publication workflow. Installation is not evidence of clinical validation.
 
 | Scope | Intent | Installed criteria |
 | --- | --- | --- |
-| Hematology, myeloid and tumor WGS (`tumwgs`) | Somatic SNV | Paired evidence; extend eligible consequences for FLT3 with `SVTYPE` present or ALT matching `[A-Za-z0-9_]{10,200}`. |
-| Solid | Somatic SNV | Paired evidence; TERT/NFKBIE regulatory-region and TF-binding consequences. |
-| Hematology, myeloid and tumor WGS (`tumwgs`) | Germline SNV | Admission by `MYELOID_GERMLINE = 1`, CEBPA with `GERMLINE` filter, or chromosome 1 positions 115256521–115256537 inclusive. These exceptions also contribute to somatic SNV retrieval in these groups. |
-| Solid | Germline SNV | Admission of findings with the `GERMLINE` filter; the myeloid admissions do not apply. |
+| Hematology, myeloid, legacy tumor WGS (`tumwgs`) and `tumwgs-hema` | Somatic SNV | Paired evidence; extend eligible consequences for FLT3 with `SVTYPE` present or ALT matching `[A-Za-z0-9_]{10,200}`. |
+| Solid and `tumwgs-solid` | Somatic SNV | Paired evidence; TERT/NFKBIE regulatory-region and TF-binding consequences. |
+| Hematology, myeloid, legacy tumor WGS (`tumwgs`) and `tumwgs-hema` | Germline SNV | Admission by `MYELOID_GERMLINE = 1`, CEBPA with `GERMLINE` filter, or chromosome 1 positions 115256521–115256537 inclusive. These exceptions also contribute to somatic SNV retrieval in these groups. |
+| Solid and `tumwgs-solid` | Germline SNV | Admission of findings with the `GERMLINE` filter; the myeloid admissions do not apply. |
 
 These admissions are not global defaults. Lymphoid, WTS, fusion, demo and newly registered
 groups do not inherit them automatically. The legacy `master` implementation also

@@ -453,6 +453,7 @@ def _build_variant_query(
             "min_depth": snv_filters["min_depth"],
             "min_alt_reads": snv_filters["min_alt_reads"],
             "max_popfreq": snv_filters["max_popfreq"],
+            "exclude_flags": snv_filters.get("exclude_flags", []),
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
             "restrict_to_genes": restrict_to_genes,

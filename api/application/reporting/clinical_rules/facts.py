@@ -84,6 +84,7 @@ class PreparedFindingFacts(_FactModel):
     control_vaf: float | None = None
     control_vaf_percent: float | None = None
     consequence: list[str] = Field(default_factory=list)
+    filter_flags: list[str] = Field(default_factory=list)
     hgvsc: str | None = None
     hgvsp: str | None = None
     variant_type: str | None = None

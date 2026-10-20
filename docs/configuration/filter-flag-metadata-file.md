@@ -1,7 +1,15 @@
 # Filter flag metadata file
 
 This YAML file turns VCF `FILTER` values into readable badge labels and
-tooltips. It does not change filtering or tiering logic.
+tooltips. Its global and SNV caller-specific `exact` and `terms` keys also supply
+SNV flag-filter choices in sample review, assay configurations, finding query rules,
+and clinical report rules. Changing the metadata alone does not exclude any finding
+or change tiering logic.
+
+The bundled file is `api/config/center/filter_flag_metadata.yaml`. When
+`COYOTE3_CENTER_CONFIG_DIR` is set, the application reads `filter_flag_metadata.yaml`
+from that directory instead. Selectable flag keys come from this file rather than
+a frontend constant.
 
 ## Format and fields
 
@@ -44,6 +52,35 @@ terms:
 adding it here neither emits that flag during ingest nor changes query thresholds,
 classification or report wording. Deploy changes as part of a reviewed center
 configuration release and recreate the consuming application processes.
+
+## SNV flag filtering and rule conditions
+
+Somatic and germline SNV profiles each support one `exclude_flags` list, empty by
+default. It is stored alongside the other SNV values at
+`filters.somatic.snv.exclude_flags` or `filters.germline.snv.exclude_flags` in both
+ASPCs and sample snapshots. Each intent has its own selection. The field appears
+with the other SNV filters in assay-configuration forms, the sample's SNV filter
+sidebar, and the configured-filter overview for each enabled intent.
+
+Any selected flag removes a finding carrying that exact stored VCF `FILTER` value,
+including findings admitted by a query-rule exception. Matching is case-sensitive
+and does not use display labels, severity, substring matching, or regular expressions.
+An empty exclusion list removes no findings. Missing or empty `FILTER` values are
+retained by this filter.
+
+Choices include hidden flag definitions such as `WARN_NOVAR`; hiding a badge does not
+prevent explicitly filtering its raw value. `prefixes` entries describe families of
+badges and are not literal selectable flags. Define concrete flags under `terms` or
+`exact` to make them selectable. Selection is optional; existing filter snapshots need
+no rewrite and keep their previous behavior until flag selections are saved.
+
+The finding query editor exposes these choices for the SNV `FILTER` field with
+`in` (any selected flag), `nin` (none), or `all` (every selected flag), and supports
+references to the active sample's `exclude_flags`. Clinical report
+rules expose `finding.filter_flags` for each SNV and `item.filter_flags` inside a
+findings collection condition. Use `contains` for one exact flag or `overlaps` for
+any selected flag, and wrap the condition in an exclusion when appropriate. These
+facts retain raw flags in the prepared report context, including hidden flags.
 
 For caller-specific definitions, see [Caller registries and flag descriptions](../administration/clinical-vocabulary.md#caller-registries-and-flag-descriptions).
 Within a scope, matching order is: full `terms` match, full `exact` match, first matching

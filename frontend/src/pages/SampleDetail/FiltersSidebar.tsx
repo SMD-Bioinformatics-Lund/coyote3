@@ -457,6 +457,18 @@ export function FiltersSidebar({
             <Section title="SNV Gene Lists">
               <CheckboxList options={listOptions.snv} values={values("snvlists")} onChange={(next) => setValue("snvlists", next)} />
             </Section>
+            <Section title="Excluded filter flags">
+              <p className="type-meta text-muted-foreground">
+                Remove SNVs carrying any selected flag, including query-rule admissions.
+                An empty selection excludes no flags. Hidden badges remain selectable.
+              </p>
+              <CheckboxList
+                options={Array.from(new Set([...(context?.snv_flag_options || []), ...values("exclude_flags")]))}
+                values={values("exclude_flags")}
+                onChange={(next) => setValue("exclude_flags", next)}
+                empty="No configured flags."
+              />
+            </Section>
           </>
         )}
 

@@ -4,6 +4,10 @@
 
 [snv]
 
+[snv.assay_group_policies]
+tumwgs-hema = "paired"
+tumwgs-solid = "paired"
+
 # Analysis-specific policy namespaces. Their exception arrays are empty until
 # a reviewed rule is released for that finding type. A rule in one namespace
 # can never alter another analysis query.
@@ -19,7 +23,7 @@
 id = "flt3_svtype"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["hematology", "myeloid", "tumwgs"]
+assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -32,7 +36,7 @@ children = [
 id = "flt3_large_insertion"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["hematology", "myeloid", "tumwgs"]
+assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -45,7 +49,7 @@ children = [
 id = "solid_regulatory_tert_nfkbie"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["solid"]
+assay_groups = ["solid", "tumwgs-solid"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -58,7 +62,7 @@ children = [
 id = "germline_myeloid_marker"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["hematology", "myeloid", "tumwgs"]
+assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
 
 
 [snv.exceptions.condition]
@@ -71,7 +75,7 @@ value = 1
 id = "germline_cebpa_filter"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["hematology", "myeloid", "tumwgs"]
+assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -84,7 +88,7 @@ children = [
 id = "germline_chr1_interval"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["hematology", "myeloid", "tumwgs"]
+assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -93,3 +97,15 @@ children = [
   { type = "predicate", field = "POS", operator = "gte", value = 115256521 },
   { type = "predicate", field = "POS", operator = "lte", value = 115256537 },
 ]
+
+[[snv.exceptions]]
+id = "solid_germline_filter"
+mode = "admit"
+intents = ["germline"]
+assay_groups = ["tumwgs-solid"]
+
+[snv.exceptions.condition]
+type = "predicate"
+field = "FILTER"
+operator = "in"
+value = ["GERMLINE"]

@@ -15,6 +15,7 @@ ASP_CATEGORY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assa
 ASP_FAMILY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assay_families
 SEQUENCING_SCOPE_OPTIONS = CENTER_CLINICAL_CONTRACT.sequencing_scope_options
 TARGETED_PANEL_ASP_FAMILY_OPTIONS = CENTER_CLINICAL_CONTRACT.targeted_panel_asp_families
+TUMOR_WGS_ASP_GROUPS: tuple[str, ...] = ("tumwgs", "tumwgs-hema", "tumwgs-solid")
 
 GENOME_BUILD_TO_ASSEMBLY: dict[int, str] = {37: "GRCH37", 38: "GRCH38"}
 
