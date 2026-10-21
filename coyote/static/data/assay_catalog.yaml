@@ -28,27 +28,42 @@ modalities:
         sample_modes: ["Tumor-normal"]
         subheading: "Myeloid and lymphoid malignancies"
         description: |
-          A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM, GMS-HEM-myeloid, or GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+          A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM, GMS-HEM-myeloid, or GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the GMS-HEM (CNV) for CNV, and  GMS-HEM (Fusion) the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes derived .
         gene_lists:
           - key: ""
             label: ""
           - key: "hema_GMSv1"    # ISGL _id # (ISGL) fetch by _id
-            label: "GMS-HEM"
+            label: "GMS-HEM (COMBINED)"
+            analysis: ["SNV/INDEL"]
             description:  |
               A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
           - key: "hematology_myeloid"   # ISGL _id
             label: "GMS-HEM (myeloid)"
+            analysis: ["SNV/INDEL"]
             description:  |
               A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-myeloid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
           - key: "hematology_lymphoid"
             label: "GMS-HEM (lymphoid)"
+            analysis: ["SNV/INDEL"]
             description:  |
               A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
-          - key: "HematologyAddOns"
-            label: "Hematology Add-Ons"
+          - key: "WGS_GMS-HEM_PINDEL"
+            label: "GMS-HEM (PINDEL)"
+            analysis: ["SNV/INDEL"]
             description:  |
-              A complement gene list used for filtering CNV in WGS hematology analysis.
-            analysis: ""
+              A complement gene list used for filtering INDELS in WGS hematology using PINDEL.
+          - key: "WGS_GMS-HEM_CNV"
+            label: "GMS-HEM (CNV)"
+            analysis: ["CNV"]
+            description:  |
+              A complement gene list used for filtering CNV in WGS hematology.
+          - key: "WGS_GMS-HEM_FUSION"
+            label: "GMS-HEM (FUSION)"
+            analysis: ["TRANSLOCATION", "FUSIONS"]
+            description:  |
+              A fusion gene list used to prioritize fusion events in WGS hematology
+
+
 
       solid_tumors:
         catalog_id: "tumwgs-solid"
@@ -66,7 +81,21 @@ modalities:
           - key: "" # Empty intentionally
             label: ""
           - key: "GMS_BarnCancer_V1.0" # ISGL _id
-            label: "GMS Barn Cancer"
+            label: "GMS Barn Cancer (SNV/INDELS)"
+            analysis: ["SNV","INDEL"]
+            description:  |
+              A gene list used for filtering SNV/INDELS in WGS GMS Barn Cancer.
+          - key: "WGS_GMS-BARN_CNV"
+            label: "GMS BARN Cancer (CNV)"
+            analysis: ["CNV"]
+            description:  |
+              A gene list used for filtering CNV in WGS GMS Barn Cancer.
+          - key: "WGS_GMS-BARN_FUSION"
+            label: "GMS BARN Cancer (FUSION)"
+            analysis: ["TRANSLOCATION", "FUSIONS"]
+            description:  |
+              A fusion gene list used to prioritize fusion events in WGS GMS Barn Cancer
+
 
       drug_addon:
         catalog_id: "drug-addon"
@@ -239,4 +268,3 @@ modalities:
           - key: "RNA-fusion"               # (ISGL) Key must match ISGL _id
             label: "RNA Fusion Panel"
             description: "Gene fusion panel for solid tumors"
-
