@@ -32,11 +32,10 @@ modalities:
           A WGS analysis for hematological malignancies.
         gene_lists:
           - key: "hema_GMSv1"    # ISGL _id
-            label: "Hematological WGS-Paired"
+            label: "Hematology"
             description: |
               The assay is designed for the tumor-normal paired whole genome sequencing for hematological malignancies. The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the GMS hematology gene list shown below and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_PINDEL/view' target='blank' class='text-blue-800 hover:underline'>pindel list</a> for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
 
-      # 2) Myeloid malignancies
       Myeloid:
         catalog_id: "tumwgs-hema-myeloid"
         label: "Myeloid malignancies"
@@ -52,12 +51,10 @@ modalities:
           A WGS analysis for myeloid malignancies.
         gene_lists:
           - key: "hematology_myeloid"   # ISGL _id
-            label: "Myeloid malignancies WGS-Paired"
-            analysis: ["SNV/INDEL"]
+            label: "Myeloid"
             description: |
               The assay is designed for the tumor-normal paired whole genome sequencing for myeloid malignancies. The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the GMS myeloid gene list shown below and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_PINDEL/view' target='blank' class='text-blue-800 hover:underline'>pindel list</a> for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
 
-      # 3) Lymphoid malignancies
       Lymphoid:
         catalog_id: "tumwgs-hema-lymphoid"
         label: "Lymphoid malignancies"
@@ -73,12 +70,10 @@ modalities:
           A WGS analysis for lymphoid malignancies.
         gene_lists:
           - key: "hematology_lymphoid"   # ISGL _id
-            label: "Lymphoid malignancies WGS-Paired"
+            label: "Lymphoid"
             description: |
               The assay is designed for the tumor-normal paired whole genome sequencing for lymphoid malignancies. The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the GMS lymphoid gene list shown below and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_PINDEL/view' target='blank' class='text-blue-800 hover:underline'>pindel list</a> for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
 
-
-      # 4) Pediatric solid cancer
       solid_tumors:
         catalog_id: "tumwgs-solid"
         label: "Pediatric solid cancer"
@@ -97,17 +92,6 @@ modalities:
             label: "Pediatric Solid Cancer"
             description:  |
               The assay is designed for the tumor-normal paired whole genome sequencing for solid cancer malignancies for pediatric cancer . The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the curated gene for pediatric cancer patient shown below and for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-BARN_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-BARN_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
-          # - key: "WGS_GMS-BARN_CNV"
-          #   label: "GMS BARN Cancer (CNV)"
-          #   analysis: ["CNV"]
-          #   description:  |
-          #     A gene list used for filtering CNV in WGS GMS Barn Cancer.
-          # - key: "WGS_GMS-BARN_FUSION"
-            # label: "GMS BARN Cancer (FUSION)"
-            # analysis: ["TRANSLOCATION", "FUSIONS"]
-            # description:  |
-            #   A fusion gene list used to prioritize fusion events in WGS GMS Barn Cancer
-
 
       drug_addon:
         catalog_id: "drug-addon"
@@ -168,17 +152,17 @@ modalities:
         subheading: ""
         gene_lists:
           - key: "hema_GMSv1"               # (ISGL) Key must match ISGL _id
-            label: "GMS-HEM"
+            label: "GMS hematology"
             description: "Gene panel for hematological malignancies"
             analysis: ["SNV"]  # Optional: list available analysis types for this gene list
             sample_modes: ["Tumor-normal"]  # Optional: override sample modes if needed
           - key: "hematology_myeloid"             # (ISGL)
-            label: "GMS-HEM (myeloid)"
+            label: "GMS myeloid"
             description: "Gene list for myeloid malignancies" # Text above the table
             analysis: ["SNV"]
             sample_modes: ["Tumor-normal"]  # Override sample modes if needed
           - key: "hematology_lymphoid"
-            label: "GMS-HEM (lymphoid)"
+            label: "GMS lymphoid"
             description: "Gene list for lymphoid malignancies"
             analysis: ["SNV"]
             sample_modes: ["Tumor-normal"]
