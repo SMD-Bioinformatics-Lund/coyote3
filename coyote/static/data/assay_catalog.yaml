@@ -16,85 +16,97 @@ modalities:
     description: "Whole Genome Sequencing (WGS) analysis for hematology and solid tumors. Please click the area of interest to view the available WGS-assays."
 
     categories:
-      hematology:
+
+      Hematology:
         catalog_id: "tumwgs-hema"
-        label: "Hematology"
-        # WGS heme is an assay *family*; leave ASP links empty or point to the family anchor if you have one.
-        asp_id: "tumwgs-hema"                 # (ASP) if a specific WGS-HEMA ASP exists, set it here.
+        label: "Hematological malignancies"
+        asp_id: "tumwgs-hema"                 # (ASP)
         aspc_ids:
-          production: "tumwgs-hema:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
-        input_material: ["DNA", "Fresh", "Fresh Frozen", 'Blood', 'Bone marrow', "Other Neoplastic Tissue"]
+          production: "tumwgs-hema:production"                 # (ASPC)
+        input_material: ["DNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
         tat: "21 days"
         sample_modes: ["Tumor-normal"]
-        subheading: "Myeloid and lymphoid malignancies"
+        subheading: "Hematological malignancies"
+        analysis: ["SNV", "INDEL", "CNV", "Structural variants", "Translocations / Fusion genes"]
         description: |
-          A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM, GMS-HEM-myeloid, or GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the GMS-HEM (CNV) for CNV, and  GMS-HEM (Fusion) the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes derived .
+          A WGS analysis for hematological malignancies.
         gene_lists:
-          - key: ""
-            label: ""
-          - key: "hema_GMSv1"    # ISGL _id # (ISGL) fetch by _id
-            label: "GMS-HEM (COMBINED)"
-            analysis: ["SNV/INDEL"]
-            description:  |
-              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+          - key: "hema_GMSv1"    # ISGL _id
+            label: "Hematological WGS-Paired"
+            description: |
+              The assay is designed for the tumor-normal paired whole genome sequencing for hematological malignancies. The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the GMS hematology gene list shown below and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_PINDEL/view' target='blank' class='text-blue-800 hover:underline'>pindel list</a> for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
+
+      # 2) Myeloid malignancies
+      Myeloid:
+        catalog_id: "tumwgs-hema-myeloid"
+        label: "Myeloid malignancies"
+        asp_id: "tumwgs-hema"                 # (ASP) same WGS heme assay
+        aspc_ids:
+          production: "tumwgs-hema:production"                 # (ASPC)
+        input_material: ["DNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
+        tat: "21 days"
+        sample_modes: ["Tumor-normal"]
+        subheading: "Myeloid malignancies"
+        analysis: ["SNV", "INDEL", "CNV", "Structural variants", "Translocations / Fusion genes"]
+        description: |
+          A WGS analysis for myeloid malignancies.
+        gene_lists:
           - key: "hematology_myeloid"   # ISGL _id
-            label: "GMS-HEM (myeloid)"
+            label: "Myeloid malignancies WGS-Paired"
             analysis: ["SNV/INDEL"]
-            description:  |
-              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-myeloid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
-          - key: "hematology_lymphoid"
-            label: "GMS-HEM (lymphoid)"
-            analysis: ["SNV/INDEL"]
-            description:  |
-              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
-          - key: "WGS_GMS-HEM_PINDEL"
-            label: "GMS-HEM (PINDEL)"
-            analysis: ["SNV/INDEL"]
-            description:  |
-              A complement gene list used for filtering INDELS in WGS hematology using PINDEL.
-          - key: "WGS_GMS-HEM_CNV"
-            label: "GMS-HEM (CNV)"
-            analysis: ["CNV"]
-            description:  |
-              A complement gene list used for filtering CNV in WGS hematology.
-          - key: "WGS_GMS-HEM_FUSION"
-            label: "GMS-HEM (FUSION)"
-            analysis: ["TRANSLOCATION", "FUSIONS"]
-            description:  |
-              A fusion gene list used to prioritize fusion events in WGS hematology
+            description: |
+              The assay is designed for the tumor-normal paired whole genome sequencing for myeloid malignancies. The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the GMS myeloid gene list shown below and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_PINDEL/view' target='blank' class='text-blue-800 hover:underline'>pindel list</a> for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
+
+      # 3) Lymphoid malignancies
+      Lymphoid:
+        catalog_id: "tumwgs-hema-lymphoid"
+        label: "Lymphoid malignancies"
+        asp_id: "tumwgs-hema"                 # (ASP) same WGS heme assay
+        aspc_ids:
+          production: "tumwgs-hema:production"                 # (ASPC)
+        input_material: ["DNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
+        tat: "21 days"
+        sample_modes: ["Tumor-normal"]
+        subheading: "Lymphoid malignancies"
+        analysis: ["SNV", "INDEL", "CNV", "Structural variants", "Translocations / Fusion genes"]
+        description: |
+          A WGS analysis for lymphoid malignancies.
+        gene_lists:
+          - key: "hematology_lymphoid"   # ISGL _id
+            label: "Lymphoid malignancies WGS-Paired"
+            description: |
+              The assay is designed for the tumor-normal paired whole genome sequencing for lymphoid malignancies. The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the GMS lymphoid gene list shown below and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_PINDEL/view' target='blank' class='text-blue-800 hover:underline'>pindel list</a> for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-HEM_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
 
 
-
+      # 4) Pediatric solid cancer
       solid_tumors:
         catalog_id: "tumwgs-solid"
-        label: "Solid tumors"
+        label: "Pediatric solid cancer"
         asp_id: "tumwgs-solid"                 # (ASP) if a specific WGS-SOLID ASP exists, set it here.
         aspc_ids:
           production: "tumwgs-solid:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
         input_material: ["DNA", "Fresh", "Fresh Frozen", "Neoplastic Tissue"]
         tat: "14-21 days"
         sample_modes: ["Tumor-normal"]
+        analysis: ["SNV", "INDEL", "CNV", "Structural variants", "Translocations / Fusion genes"]
         description: |
-          A WGS analysis for solid tumors in pediatric cancer. The results are filtered against the GMS_BarnCancer_V1.0 gene list gene list for SNV/INDEL and CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/gms-barncancer-fusion/view' target='blank' class='text-blue-800 hover:underline'>GMS-BarnCancer-Fusion</a> for fusion genes.
+          A WGS analysis for solid tumors in pediatric cancer.
         subheading: "Solid tumors in pediatric cancer"
         gene_lists:
-          - key: "" # Empty intentionally
-            label: ""
           - key: "GMS_BarnCancer_V1.0" # ISGL _id
-            label: "GMS Barn Cancer (SNV/INDELS)"
-            analysis: ["SNV","INDEL"]
+            label: "Pediatric Solid Cancer"
             description:  |
-              A gene list used for filtering SNV/INDELS in WGS GMS Barn Cancer.
-          - key: "WGS_GMS-BARN_CNV"
-            label: "GMS BARN Cancer (CNV)"
-            analysis: ["CNV"]
-            description:  |
-              A gene list used for filtering CNV in WGS GMS Barn Cancer.
-          - key: "WGS_GMS-BARN_FUSION"
-            label: "GMS BARN Cancer (FUSION)"
-            analysis: ["TRANSLOCATION", "FUSIONS"]
-            description:  |
-              A fusion gene list used to prioritize fusion events in WGS GMS Barn Cancer
+              The assay is designed for the tumor-normal paired whole genome sequencing for solid cancer malignancies for pediatric cancer . The analysis gives an unbiased, genome-wide view of somatic single nucleotide variants, small insertions/deletions, copy number alterations and structural variants, including translocations and gene fusions. Additionally, the results are filtered aganist the curated gene for pediatric cancer patient shown below and for SNVs/INDELs, <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-BARN_CNV/view' target='blank' class='text-blue-800 hover:underline'>curated cnvs genes</a> list for CNVs and <a href='http://mtlucmds1.lund.skane.se:8811/public/assay-catalog/genes/WGS_GMS-BARN_FUSION/view' target='blank' class='text-blue-800 hover:underline'>curated fusion genes</a> for fusion genes.
+          # - key: "WGS_GMS-BARN_CNV"
+          #   label: "GMS BARN Cancer (CNV)"
+          #   analysis: ["CNV"]
+          #   description:  |
+          #     A gene list used for filtering CNV in WGS GMS Barn Cancer.
+          # - key: "WGS_GMS-BARN_FUSION"
+            # label: "GMS BARN Cancer (FUSION)"
+            # analysis: ["TRANSLOCATION", "FUSIONS"]
+            # description:  |
+            #   A fusion gene list used to prioritize fusion events in WGS GMS Barn Cancer
 
 
       drug_addon:
