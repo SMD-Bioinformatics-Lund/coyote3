@@ -7,11 +7,13 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
-from api.contracts.schemas.reference import VepConsequenceDiagramDoc
+from api.contracts.schemas.variant_annotations import (
+    VepConsequenceDiagramDoc,
+)
+from api.infra.seed.diagrams import load_seed_diagrams
 from scripts.knowledgebase.migrate_vep_diagram_storage import embedded_diagrams, migrate_seed
 from scripts.knowledgebase.update_vep_metadata import diagram_document
 from scripts.knowledgebase.vep_diagram_storage import (
-    load_seed_diagrams,
     split_diagram,
     store_diagram,
 )

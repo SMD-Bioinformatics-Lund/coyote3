@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.application.common.finding_access import require_sample_finding
+
 
 class ResourceAnnotationService:
     """Provide resource annotation workflows."""
@@ -35,6 +37,26 @@ class ResourceAnnotationService:
         self.copy_number_variant_repository = copy_number_variant_repository
         self.variant_repository = variant_repository
 
+    def require_resource_for_sample(
+        self,
+        *,
+        sample: dict[str, Any],
+        nomenclature: str,
+        target_id: str,
+    ) -> dict[str, Any]:
+        """Require that the annotated finding belongs to the authorized sample."""
+        if nomenclature == "f":
+            return require_sample_finding(sample, target_id, self.fusion_repository.get_fusion)
+        if nomenclature == "t":
+            return require_sample_finding(
+                sample, target_id, self.translocation_repository.get_transloc
+            )
+        if nomenclature == "cn":
+            return require_sample_finding(
+                sample, target_id, self.copy_number_variant_repository.get_cnv
+            )
+        return require_sample_finding(sample, target_id, self.variant_repository.get_variant)
+
     def create_annotation(
         self,
         *,
@@ -42,6 +64,7 @@ class ResourceAnnotationService:
         target_id: str,
         get_variant_nomenclature_fn,
         create_comment_doc_fn,
+        sample: dict[str, Any],
     ) -> str:
         """Create and persist an annotation for a classified resource.
 
@@ -50,11 +73,17 @@ class ResourceAnnotationService:
             target_id: Resource identifier to annotate.
             get_variant_nomenclature_fn: Helper that resolves nomenclature and variant label.
             create_comment_doc_fn: Helper that builds the annotation document.
+            sample: Authorized sample whose identity must own the target finding.
 
         Returns:
             str: Annotation event label for downstream callers.
         """
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
+        self.require_resource_for_sample(
+            sample=sample,
+            nomenclature=nomenclature,
+            target_id=target_id,
+        )
         doc = create_comment_doc_fn(form_data, nomenclature=nomenclature, variant=variant)
         comment_scope = form_data.get("global")
         if comment_scope == "global":

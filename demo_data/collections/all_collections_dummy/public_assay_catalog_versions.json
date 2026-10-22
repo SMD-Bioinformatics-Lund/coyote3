@@ -2,6 +2,7 @@
   {
     "_id": "507f1f77bcf86cd799439099",
     "catalog_key": "default",
+    "system_installed": false,
     "schema_version": 1,
     "content_version": null,
     "base_version": 0,
@@ -28,6 +29,15 @@
           "label": "DNA",
           "title": "DNA assays",
           "description": "Synthetic DNA catalog.",
+          "subheading": null,
+          "input_material": [],
+          "sample_modes": [],
+          "analysis": [],
+          "report_sections": [],
+          "clinical_indications": [],
+          "tat": "",
+          "limitations": null,
+          "public_notes": null,
           "categories": {
             "assay_1_base": {
               "label": null,
@@ -42,14 +52,19 @@
               "tat": "",
               "limitations": null,
               "public_notes": null,
+              "parent_key": null,
+              "node_kind": "entry",
+              "clear_fields": [],
               "catalog_id": "assay_1_base",
               "asp_id": "assay_1",
               "aspc_id": "assay_1_base_testing",
               "subpanel_id": null,
               "aspc_ids": {},
-              "gene_lists": []
+              "gene_lists": [],
+              "no_gene_list": []
             }
-          }
+          },
+          "omics": null
         }
       },
       "created_at": "2026-01-01T10:00:00+00:00",

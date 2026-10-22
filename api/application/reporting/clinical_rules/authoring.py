@@ -88,7 +88,7 @@ class ClinicalRuleAuthoringService:
             assay_subpanel_repository=store.assay_subpanel_repository,
             assay_setup_repository=getattr(store, "assay_setup_repository", None),
             user_repository=getattr(store, "user_repository", None),
-            role_repository=getattr(store, "role_repository", None),
+            role_repository=getattr(store, "roles_repository", None),
         )
 
     def __init__(

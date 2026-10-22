@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from api.contracts.managed_resources import ManagedResourceSpec
 from api.contracts.managed_ui_schemas import build_form_spec
 
 
@@ -41,7 +42,7 @@ def normalize_field_value(value: Any, field_type: str | None) -> Any:
     return value
 
 
-def normalize_form_payload(form: dict, schema: dict) -> dict:
+def normalize_form_payload(form: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
     """Normalize flat form payload into the schema-shaped config payload."""
     config: dict[str, Any] = {}
     for key, field in schema.get("fields", {}).items():
@@ -63,7 +64,9 @@ def normalize_form_payload(form: dict, schema: dict) -> dict:
     return config
 
 
-def normalize_managed_form_payload(spec, form_data: dict[str, Any]) -> dict[str, Any]:
+def normalize_managed_form_payload(
+    spec: ManagedResourceSpec, form_data: dict[str, Any]
+) -> dict[str, Any]:
     """Normalize submitted form data using the managed resource form spec."""
     config = normalize_form_payload(form_data, build_form_spec(spec))
     for key, value in form_data.items():

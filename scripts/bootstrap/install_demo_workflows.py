@@ -20,7 +20,7 @@ from pymongo import MongoClient
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
-from api.application.demo_installation import DemoInstallationService  # noqa: E402
+from api.application.provisioning.demo_installation import DemoInstallationService  # noqa: E402
 from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository  # noqa: E402
 
 

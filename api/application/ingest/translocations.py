@@ -85,7 +85,7 @@ def _combine(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
 
 
 def parse_translocations(
-    path: str, *, hgnc_by_id: dict, hgnc_by_symbol: dict, warnings: list[str]
+    path: str, *, hgnc_by_id: dict[str, Any], hgnc_by_symbol: dict[str, Any], warnings: list[str]
 ) -> list[dict[str, Any]]:
     """Read PASS BND/DEL/DUP findings, pairing eligible custom breakends safely.
 

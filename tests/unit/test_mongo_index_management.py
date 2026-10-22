@@ -59,6 +59,7 @@ def adapter_for(repository: FakeRepository):
         "api_sessions": FakeCollection("api_sessions", []),
         "audit_events": FakeCollection("audit_events", []),
         "app_controls": FakeCollection("app_controls", []),
+        "report_artifact_erasure": FakeCollection("report_artifact_erasure", []),
     }
     primary_database = type(
         "FakeDatabase", (), {"__getitem__": lambda self, key: security_collections[key]}

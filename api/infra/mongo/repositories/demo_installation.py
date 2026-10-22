@@ -56,10 +56,108 @@ class DemoInstallationRepository:
         return True
 
     def sample(self, name: str) -> dict | None:
-        """Return identity fields for an existing named sample, or None."""
-        return self.database[self.mapping["samples_collection"]].find_one(
-            {"name": name}, {"_id": 1, "name": 1, "asp_id": 1, "environment": 1, "subpanel_id": 1}
-        )
+        """Return a named sample's identity and provenance, or None."""
+        return self.database[self.mapping["samples_collection"]].find_one({"name": name})
+
+    def sample_reinstallable(self, sample: dict) -> bool:
+        """Allow raw-data refresh only for system-owned demos without clinical review artifacts.
+
+        Args:
+            sample: Stored starter sample after the service validates its fixed assay and scope.
+
+        Returns:
+            False for non-system provenance, completed review, reports or comments.
+        """
+        if (
+            sample.get("ingested_by") != "system"
+            or sample.get("reported")
+            or sample.get("latest_report_id")
+        ):
+            return False
+        identity = {
+            "$or": [
+                {"sample_oid": {"$in": [sample["_id"], str(sample["_id"])]}},
+                {"SAMPLE_ID": str(sample["_id"])},
+            ]
+        }
+        for key in (
+            "reports_collection",
+            "reported_variants_collection",
+            "sample_comments_collection",
+            "finding_comments_collection",
+            "rna_classification_collection",
+        ):
+            if self.database[self.mapping[key]].find_one(identity) is not None:
+                return False
+        return True
+
+    def repair_configuration(self, documents: dict, actor: str) -> None:
+        """Restore missing packaged identities without replacing existing configuration/history.
+
+        Args:
+            documents: Validated server-owned starter configuration.
+            actor: Authenticated administrator recorded in the repair audit.
+
+        Raises:
+            AppError: A packaged identity belongs to center-owned configuration.
+        """
+        documents = deepcopy(documents)
+
+        def repair(session: Any) -> None:
+            """Insert missing identities and capture baselines within the owning transaction."""
+            self._require_baseline(documents, session)
+            for name, rows in documents.items():
+                attribute, key = IDENTITIES[name]
+                target = self.database[self.mapping[attribute]]
+                for row in rows:
+                    selector = {key: row[key]}
+                    if name == "subpanel_associations":
+                        selector["asp_id"] = row["asp_id"]
+                    existing = target.find_one(selector, session=session)
+                    if existing is not None:
+                        if not existing.get("system_installed"):
+                            raise api_error(409, "Demo identity belongs to center configuration")
+                        continue
+                    target.insert_one(row, session=session)
+                    if name == "clinical_rule_sets":
+                        self.database[
+                            self.mapping["clinical_rule_revisions_collection"]
+                        ].insert_one(
+                            build_revision_snapshot(
+                                row,
+                                action="baseline_captured",
+                                actor=actor,
+                                occurred_at=datetime.now(timezone.utc),
+                                reason="Missing packaged demonstration baseline restored",
+                                previous_revision_hash=None,
+                            ),
+                            session=session,
+                        )
+                    elif name == "query_rule_sets":
+                        self.database[self.mapping["query_rule_revisions_collection"]].insert_one(
+                            build_query_revision(row, "system_installed"), session=session
+                        )
+                    elif name == "public_assay_catalog_versions":
+                        self.database[
+                            self.mapping["public_assay_catalog_revisions_collection"]
+                        ].insert_one(
+                            {
+                                "version_id": str(row["_id"]),
+                                "revision": row["revision"],
+                                "document": row,
+                            },
+                            session=session,
+                        )
+            enqueue_audit(
+                self.database,
+                session,
+                event_type="demo.configuration.repaired",
+                resource_type="demo_configuration",
+                resource_id="clinical_workflows",
+                actor=actor,
+            )
+
+        run_transaction(self.database.client, repair)
 
     def install(self, documents: dict, actor: str) -> None:
         """Insert the entire configuration and report revisions, rejecting any existing identity.
@@ -141,6 +239,24 @@ class DemoInstallationRepository:
         Raises:
             AppError: Required groups are absent or a fixture identity already exists.
         """
+        self._require_baseline(documents, session)
+        for name, rows in documents.items():
+            collection, key = IDENTITIES[name]
+            if self.database[self.mapping[collection]].find_one(
+                {key: {"$in": [row[key] for row in rows]}}, session=session
+            ):
+                raise api_error(409, "Demo configuration already exists; no records replaced")
+
+    def _require_baseline(self, documents: dict, session: Any = None) -> None:
+        """Require registered active groups and query policies before adding demo identities.
+
+        Args:
+            documents: Bundled configuration containing assay group references.
+            session: Owning application transaction, or None for read-only validation.
+
+        Raises:
+            AppError: An assay group or the application query baseline is missing.
+        """
         groups = {row["asp_group"] for row in documents["assay_specific_panels"]}
         registered = {
             row["group_id"]
@@ -152,9 +268,3 @@ class DemoInstallationRepository:
             self.mapping["query_rule_sets_collection"]
         ].find_one({}, session=session):
             raise api_error(409, "Install the application group and query-rule baseline first")
-        for name, rows in documents.items():
-            collection, key = IDENTITIES[name]
-            if self.database[self.mapping[collection]].find_one(
-                {key: {"$in": [row[key] for row in rows]}}, session=session
-            ):
-                raise api_error(409, "Demo configuration already exists; no records replaced")

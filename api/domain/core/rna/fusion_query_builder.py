@@ -13,7 +13,7 @@ from api.domain.core.workflows.filter_normalization import coerce_nonnegative_in
 
 
 def _fusion_exception_clause(
-    exception: FindingQueryException, filter_values: dict | None = None
+    exception: FindingQueryException, filter_values: dict[str, Any] | None = None
 ) -> Dict[str, Any]:
     """Translate a validated RNA-fusion rule into stored fusion fields.
 

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.app.container import util
 from api.app.deps.services import get_common_query_service
@@ -21,7 +22,7 @@ from api.contracts.common import (
     KnowledgebaseVariantPayload,
 )
 from api.interfaces.http.tags import TAG_KNOWLEDGEBASE
-from api.security.access import ApiUser, require_access
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 router = APIRouter(tags=[TAG_KNOWLEDGEBASE])
 
@@ -406,10 +407,25 @@ def common_tiered_variant_context_read(
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
-    """Return reported-variant context for a specific tiered variant."""
-    _ = user
+    """Return reported-variant context restricted to the caller's visible samples."""
+
+    @lru_cache(maxsize=256)
+    def sample_is_visible(sample_id: str) -> bool:
+        """Check each source sample once without exposing denied sample metadata."""
+        if not sample_id:
+            return False
+        try:
+            _get_sample_for_api(sample_id, user)
+        except HTTPException as exc:
+            if exc.status_code in {403, 404}:
+                return False
+            raise
+        return True
+
     return util.common.convert_to_serializable(
-        service.tiered_variant_context_payload(variant_id=variant_id, tier=tier)
+        service.tiered_variant_context_payload(
+            variant_id=variant_id, tier=tier, sample_is_visible=sample_is_visible
+        )
     )
 
 

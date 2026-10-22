@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.contracts.schemas.public_catalog import PublicAssayCatalogDoc, PublicCatalogRevisionDoc
-from api.contracts.schemas.reference import (
+from api.contracts.schemas.variant_annotations import (
     VepConsequenceDiagramDoc,
     VepConsequenceDoc,
     VepDbInfoDoc,

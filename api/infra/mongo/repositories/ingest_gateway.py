@@ -1,9 +1,10 @@
-"""Mongo collection gateway for internal ingest workflows."""
+"""Repository operations for transactional ingest workflows."""
 
 from __future__ import annotations
 
 from typing import Any
 
+from api.domain.core.internal.results import ReplaceDocumentResult
 from api.infra.mongo.persistence import insert_many_transaction
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.transactions import run_transaction
@@ -77,6 +78,143 @@ class IngestCollectionGateway:
     def collection_names(self) -> set[str]:
         """Return the collections actually configured for this ingest gateway."""
         return set(self._collections)
+
+    def find_document(
+        self, name: str, selector: dict[str, Any], *, session: Any = None
+    ) -> dict[str, Any] | None:
+        """Read a configured ingest document on its owning client's transaction.
+
+        Args:
+            name: Registered logical ingest collection name.
+            selector: Exact MongoDB predicate prepared by the workflow.
+            session: Session from the destination client; None reads outside a transaction.
+
+        Returns:
+            The matching document, or None when it does not exist.
+
+        Raises:
+            ValueError: The logical collection is not configured for ingestion.
+        """
+        return self.collection(name).find_one(selector, session=session)
+
+    def hgnc_documents(self, projection: dict[str, int]) -> list[dict[str, Any]]:
+        """Read reference gene metadata used to normalize transcript annotations.
+
+        Args:
+            projection: HGNC fields required for symbol/transcript resolution.
+
+        Returns:
+            Projected reference documents from the configured knowledgebase collection.
+        """
+        return list(self.collection("hgnc_genes").find({}, projection))
+
+    def sample_names(self, selector: dict[str, Any]) -> list[dict[str, Any]]:
+        """Read existing sample names for collision detection before ingest.
+
+        Args:
+            selector: Exact-name or escaped-name-pattern predicate.
+
+        Returns:
+            Matching sample identifiers and names without other clinical metadata.
+        """
+        return list(self.sample_collection().find(selector, {"name": 1}))
+
+    def insert_dependent(self, name: str, document: dict[str, Any], *, session: Any) -> None:
+        """Insert one validated measurement in the active bundle transaction.
+
+        Args:
+            name: Registered destination for the measurement.
+            document: Validated measurement with canonical sample ownership.
+            session: Owning bundle session; None is reserved for direct test/import callers.
+        """
+        kwargs = {"session": session} if session is not None else {}
+        self.collection(name).insert_one(dict(document), **kwargs)
+
+    def insert_dependents(
+        self, name: str, documents: list[dict[str, Any]], *, session: Any
+    ) -> None:
+        """Insert validated finding rows without starting another transaction.
+
+        Args:
+            name: Registered destination for the finding type.
+            documents: Validated rows containing canonical sample ownership.
+            session: Active bundle session passed through to the bulk writer.
+        """
+        from api.infra.mongo.persistence import insert_many_documents
+
+        insert_many_documents(self.collection(name), documents, session=session)
+
+    def delete_dependents(self, name: str, sample_id: str, *, session: Any) -> None:
+        """Remove evidence owned by one sample before transactional replacement.
+
+        Args:
+            name: Registered destination for the evidence type.
+            sample_id: Canonical serialized sample identifier matched against SAMPLE_ID.
+            session: Active bundle session containing replacement writes.
+        """
+        self.collection(name).delete_many({"SAMPLE_ID": sample_id}, session=session)
+
+    def document_count(self, name: str) -> int:
+        """Return estimated occupancy without scanning all ingest records.
+
+        Args:
+            name: Registered logical ingest collection name.
+
+        Returns:
+            Estimated document count; zero for an empty collection.
+        """
+        return int(self.collection(name).estimated_document_count() or 0)
+
+    def create_sample(self, document: dict[str, Any], *, session: Any) -> None:
+        """Insert validated sample metadata inside the bundle transaction.
+
+        Args:
+            document: Current-schema sample anchor with its preallocated provider ID.
+            session: Application-database transaction shared with dependent writes.
+        """
+        self.sample_collection().insert_one(dict(document), session=session)
+
+    def set_sample_fields(
+        self, selector: dict[str, Any], fields: dict[str, Any], *, session: Any
+    ) -> None:
+        """Set prepared sample state fields inside the owning bundle transaction.
+
+        Args:
+            selector: Sample identity predicate already checked by the workflow.
+            fields: Validated metadata/state values to set; no upsert is performed.
+            session: Owning application-database transaction.
+        """
+        self.sample_collection().update_one(selector, {"$set": fields}, session=session)
+
+    def replace_document(
+        self,
+        name: str,
+        selector: dict[str, Any],
+        document: dict[str, Any],
+        *,
+        upsert: bool,
+        session: Any,
+    ) -> ReplaceDocumentResult:
+        """Replace a validated ingest document and return portable write counts.
+
+        Args:
+            name: Registered logical ingest collection name.
+            selector: Nonempty identity predicate validated by the application.
+            document: Complete validated replacement, including preserved provenance.
+            upsert: Permit insertion when the selector has no match.
+            session: Destination-client transaction, never a different database client's session.
+
+        Returns:
+            Matched/modified counts and the serialized inserted ID when upserted.
+        """
+        result = self.collection(name).replace_one(
+            filter=selector, replacement=document, upsert=upsert, session=session
+        )
+        return ReplaceDocumentResult(
+            matched_count=int(result.matched_count or 0),
+            modified_count=int(result.modified_count or 0),
+            upserted_id=str(result.upserted_id) if result.upserted_id else None,
+        )
 
     def sample_collection(self) -> Any:
         """Return the samples collection."""

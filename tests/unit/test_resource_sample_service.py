@@ -14,6 +14,7 @@ from api.domain.core.exceptions import AppError
 
 class SampleRepository:
     def __init__(self) -> None:
+        self.app = SimpleNamespace(config={"REPORTS_BASE_PATH": "/synthetic/reports"})
         self.samples = {
             "sample-oid": {
                 "_id": "sample-oid",
@@ -302,6 +303,7 @@ def test_delete_delegates_all_repositories_and_returns_summary(
         finding_comment_repository=dependencies[11],
         report_repository=dependencies[12],
         reported_variant_repository=dependencies[13],
+        reports_root="/synthetic/reports",
     )
     assert result["meta"]["sample_name"] == "synthetic-sample"
     assert result["meta"]["sample_oid"] == "sample-oid"

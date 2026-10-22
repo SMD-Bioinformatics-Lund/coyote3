@@ -4,17 +4,17 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
 
+from api.application.notifications.access import SampleNotificationAccess
 from api.application.notifications.service import NotificationService
 from api.config.security import get_runtime_environment
 from api.infra.mongo.repositories.notification_activity import NotificationActivityRepository
-from api.security.policy import build_access_policy
 
 
 class ActivityNotificationService:
     """Deliver committed events once; retries preserve recipients' existing read state."""
 
     @classmethod
-    def from_store(cls, store: Any, *, config: dict) -> "ActivityNotificationService":
+    def from_store(cls, store: Any, *, config: dict[str, Any]) -> "ActivityNotificationService":
         """Bind activity sources to their configured database endpoints.
 
         Args:
@@ -32,6 +32,7 @@ class ActivityNotificationService:
             users=store.user_repository,
             samples=store.sample_repository,
             environment=get_runtime_environment(config),
+            sample_access=SampleNotificationAccess.from_store(store),
         )
 
     def __init__(
@@ -42,6 +43,7 @@ class ActivityNotificationService:
         users: Any,
         samples: Any,
         environment: str,
+        sample_access: SampleNotificationAccess,
     ):
         """Configure source readers, recipient resolution and notification persistence.
 
@@ -51,12 +53,14 @@ class ActivityNotificationService:
             users: Active account repository, including assigned scope attributes.
             samples: Sample repository for resolving report ownership.
             environment: Deployment environment used to select source events.
+            sample_access: Current clinical read policy used before addressing a report notice.
         """
         self.activity = activity_repository
         self.notifications = notifications
         self.users = users
         self.samples = samples
         self.environment = environment
+        self.sample_access = sample_access
 
     def deliver(self) -> int:
         """Publish a bounded batch after business commits and audit-outbox delivery.
@@ -100,7 +104,7 @@ class ActivityNotificationService:
                     "subpanel": "Subpanel",
                     "assay_subpanel": "Assay subpanel",
                     "assay_setup": "Assay setup",
-                }.get(resource.get("type"), "Shared configuration")
+                }.get(str(resource.get("type") or ""), "Shared configuration")
                 title = f"{label} {action}"
                 message = (
                     f"{label} {resource.get('name') or resource.get('id') or ''} was {action}."
@@ -120,9 +124,10 @@ class ActivityNotificationService:
                 event_id=event["_id"],
                 created_at=event.get("occurred_at"),
             )
+        self.activity.acknowledge()
         return len(events)
 
-    def _report_recipients(self, sample: dict) -> list[str]:
+    def _report_recipients(self, sample: dict[str, Any]) -> list[str]:
         """Select active assay-group members whose sample scope permits access.
 
         Args:
@@ -140,6 +145,6 @@ class ActivityNotificationService:
             if group not in groups and "*" not in groups:
                 continue
             user = SimpleNamespace(**document)
-            if build_access_policy(user=user).scope_allowed(user, sample):
+            if self.sample_access.sample_predicate(user)(sample):
                 recipients.add(str(document["username"]).strip().lower())
         return sorted(recipients)

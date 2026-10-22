@@ -36,8 +36,6 @@ from api.contracts.schemas.public_catalog import (
 )
 from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleRevisionDoc
 from api.contracts.schemas.reference import (
-    AnnotationDoc,
-    AnnoVepDoc,
     BrcaExchangeDoc,
     CivicGenesDoc,
     CivicVariantsDoc,
@@ -54,8 +52,6 @@ from api.contracts.schemas.reference import (
     OncoKbGenesDoc,
     OncoKbGenesPublicDoc,
     OncoKbPublicDoc,
-    VepDiagramAssetDoc,
-    VepMetadataDoc,
 )
 from api.contracts.schemas.rna import FusionsDoc, RnaClassificationDoc, RnaExpressionDoc, RnaQcDoc
 from api.contracts.schemas.samples import (
@@ -67,6 +63,12 @@ from api.contracts.schemas.samples import (
 from api.contracts.schemas.subpanels import (
     SubpanelAssociationDoc,
     SubpanelDefinitionDoc,
+)
+from api.contracts.schemas.variant_annotations import (
+    AnnotationDoc,
+    AnnoVepDoc,
+    VepDiagramAssetDoc,
+    VepMetadataDoc,
 )
 
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {

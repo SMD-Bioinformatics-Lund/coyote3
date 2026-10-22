@@ -13,6 +13,7 @@ from api.app.container import util
 from api.app.deps.services import get_common_query_service, get_sample_catalog_service
 from api.app.http import api_error, get_formatted_assay_config
 from api.application.common.change_payload import change_payload
+from api.application.common.file_access import resolve_sample_file_path
 from api.application.common.query_service import CommonQueryService
 from api.application.interpretation.report_summary import create_comment_doc
 from api.application.sample.catalog import SampleCatalogService
@@ -73,7 +74,7 @@ def list_samples_read(
     assay_group: str | None = None,
     added_from: datetime | None = None,
     added_until: datetime | None = None,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return the sample catalog for the current user."""
@@ -113,7 +114,7 @@ def list_samples_read(
 @router.get("/api/v1/samples/navigation-counts", response_model=SampleNavigationCountsPayload)
 def sample_navigation_counts_read(
     profile_scope: str = Query(default=DEFAULT_ENVIRONMENT),
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return live sample counts for the current user's assay navigation menu."""
@@ -126,7 +127,7 @@ def sample_navigation_counts_read(
 def sample_genelists_read(
     sample_id: str,
     target: str | None = Query(default=None),
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return selectable genelists for a sample."""
@@ -140,7 +141,7 @@ def sample_genelists_read(
 def sample_effective_genes_read(
     sample_id: str,
     target: str | None = Query(default=None),
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return the effective genes for a sample."""
@@ -297,7 +298,7 @@ def sample_plot_read(
     sample_id: str,
     filename: str,
     rotated: bool = Query(default=False),
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
 ):
     """Serve only the registered CNV profile belonging to the authorized sample.
 
@@ -320,8 +321,8 @@ def sample_plot_read(
     cnv_profile = sample_files.get(primary_analysis_file_key("dna", "CNV_PROFILE"))
     if not isinstance(cnv_profile, dict) or not cnv_profile.get("path"):
         raise api_error(404, "No CNV profile is registered for this sample")
-    path = Path(str(cnv_profile["path"])).expanduser()
-    if path.name != filename or not path.is_file():
+    path = resolve_sample_file_path(str(cnv_profile["path"]))
+    if path.name != filename:
         raise api_error(404, "Registered CNV profile image file is not available")
     media_type = mimetypes.guess_type(path.name)[0]
     if media_type not in {"image/png", "image/jpeg", "image/gif", "image/webp", "image/tiff"}:

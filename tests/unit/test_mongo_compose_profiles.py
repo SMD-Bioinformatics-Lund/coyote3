@@ -92,7 +92,7 @@ def test_split_profile_has_independent_replica_sets_and_one_dbpath_per_instance(
     assert sources[0] != sources[1]
     for name in ("mongo_init", "mongo_kb_init"):
         assert services[name]["user"] == "12345:23456"
-    for name in ("api", "worker", "beat"):
+    for name in ("api", "worker", "maintenance-worker", "beat"):
         env = services[name]["environment"]
         assert "mongo-app:27017" in env["COYOTE3_MONGO_URI"]
         assert "mongo-kb:27017" in env["KNOWLEDGEBASE_MONGO_URI"]

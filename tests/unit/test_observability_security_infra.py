@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from api.application.audit.service import AuditService
+from api.infra.mongo.repositories.audit import AuditRepository
 from api.infra.observability.logging import (
     JsonFormatter,
     RequestContext,
@@ -89,7 +90,7 @@ def test_mongo_session_repository_stores_only_token_hash():
 
 def test_audit_service_redacts_sensitive_metadata_and_sets_expiry():
     collection = _Collection()
-    service = AuditService(collection, retention_days=90, environment="test")
+    service = AuditService(AuditRepository(collection), retention_days=90, environment="test")
 
     event_id = service.record(
         "auth.login.failed",
@@ -110,9 +111,16 @@ def test_audit_service_redacts_sensitive_metadata_and_sets_expiry():
     assert stored["expires_at"] > datetime.now(timezone.utc) + timedelta(days=89)
 
 
-def test_traceability_audit_events_do_not_expire():
-    collection = _Collection()
-    service = AuditService(collection, retention_days=90, environment="test")
+def test_traceability_audit_events_do_not_expire(monkeypatch):
+    import mongomock
+
+    from api.infra.mongo.repositories import audit_integrity
+
+    monkeypatch.setattr(
+        audit_integrity, "run_transaction", lambda client, operation: operation(None)
+    )
+    collection = mongomock.MongoClient().identity.audit_events
+    service = AuditService(AuditRepository(collection), retention_days=90, environment="test")
 
     service.record(
         "clinical.configuration.updated",
@@ -124,7 +132,7 @@ def test_traceability_audit_events_do_not_expire():
         retention_class="traceability",
     )
 
-    stored = collection.docs[0]
+    stored = collection.find_one()
     assert stored["retention_class"] == "traceability"
     assert stored["immutable"] is True
     assert "expires_at" not in stored

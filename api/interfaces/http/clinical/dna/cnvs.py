@@ -5,16 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request
 
 from api.app import http
-from api.app.container import store, util
+from api.app.container import util
 from api.app.deps.services import get_dna_service, get_dna_structural_service
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
-from api.application.interpretation import annotation_enrichment
-from api.config.database_versions import require_sample_vep_version
 from api.contracts.dna import DnaCnvContextPayload, DnaCnvListPayload, DnaCsvExportContextPayload
 from api.contracts.samples import SampleChangePayload
-from api.domain.core.dna import dna_filters
-from api.domain.core.dna.varqueries import build_query
 from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
 from api.interfaces.http.tags import TAG_DNA_CNV
 from api.security.access import ApiUser, _get_sample_for_api, require_access
@@ -22,35 +18,11 @@ from api.security.access import ApiUser, _get_sample_for_api, require_access
 router = APIRouter(tags=[TAG_DNA_CNV])
 
 
-def _get_filter_conseq_terms(checked: list[str], vep_version: str | int | None = None) -> list[str]:
-    """Resolve filter consequence terms using grouped VEP metadata from Mongo."""
-    return dna_filters.get_filter_conseq_terms(
-        checked,
-        store.vep_metadata_repository.get_consequence_group_map(
-            None if vep_version is None else str(vep_version)
-        ),
-    )
-
-
-def _add_global_annotations(
-    variants: list[dict],
-    assay_group: str,
-    subpanel: str | None,
-) -> tuple[list[dict], list[dict]]:
-    """Apply shared annotation enrichment for export-context construction."""
-    return annotation_enrichment.add_global_annotations(
-        variants,
-        assay_group,
-        subpanel,
-        annotation_repository=store.annotation_repository,
-    )
-
-
 @router.get("/api/v1/samples/{sample_id}/cnvs", response_model=DnaCnvListPayload)
 def list_dna_cnvs(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Return CNVs for a sample."""
@@ -73,17 +45,11 @@ def export_cnv_csv_context(
 ):
     """Build CNV export payload from the sample's active CNV filters."""
     sample = _get_sample_for_api(sample_id, user)
-    payload = service.list_variants_payload(
+    payload = service.export_source_payload(
         request=request,
         sample=sample,
         util_module=util,
-        add_global_annotations_fn=_add_global_annotations,
-        build_query_fn=build_query,
-        get_filter_conseq_terms_fn=lambda values: _get_filter_conseq_terms(
-            values, require_sample_vep_version(sample)
-        ),
         assay_config_getter=http.get_formatted_assay_config,
-        paginate=False,
     )
     cnvs = payload.get("display_sections_data", {}).get("cnvs", [])
     assay_group = payload.get("assay_group", "unknown")
@@ -99,7 +65,7 @@ def export_cnv_csv_context(
 def show_dna_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Return CNV detail payload."""
@@ -128,7 +94,9 @@ def unmark_interesting_cnv(
         service,
         resource="cnv",
         action="unmark_interesting",
-        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=False, flag="interesting"),
+        mutate=lambda sample: service.set_cnv_flag(
+            sample=sample, cnv_id=cnv_id, apply=False, flag="interesting"
+        ),
     )
 
 
@@ -151,7 +119,9 @@ def mark_interesting_cnv(
         service,
         resource="cnv",
         action="mark_interesting",
-        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=True, flag="interesting"),
+        mutate=lambda sample: service.set_cnv_flag(
+            sample=sample, cnv_id=cnv_id, apply=True, flag="interesting"
+        ),
     )
 
 
@@ -174,7 +144,9 @@ def mark_false_positive_cnv(
         service,
         resource="cnv",
         action="mark_false_positive",
-        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=True, flag="false_positive"),
+        mutate=lambda sample: service.set_cnv_flag(
+            sample=sample, cnv_id=cnv_id, apply=True, flag="false_positive"
+        ),
     )
 
 
@@ -197,7 +169,9 @@ def unmark_false_positive_cnv(
         service,
         resource="cnv",
         action="unmark_false_positive",
-        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=False, flag="false_positive"),
+        mutate=lambda sample: service.set_cnv_flag(
+            sample=sample, cnv_id=cnv_id, apply=False, flag="false_positive"
+        ),
     )
 
 
@@ -220,7 +194,9 @@ def mark_noteworthy_cnv(
         service,
         resource="cnv",
         action="mark_noteworthy",
-        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=True, flag="noteworthy"),
+        mutate=lambda sample: service.set_cnv_flag(
+            sample=sample, cnv_id=cnv_id, apply=True, flag="noteworthy"
+        ),
     )
 
 
@@ -243,7 +219,9 @@ def unmark_noteworthy_cnv(
         service,
         resource="cnv",
         action="unmark_noteworthy",
-        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=False, flag="noteworthy"),
+        mutate=lambda sample: service.set_cnv_flag(
+            sample=sample, cnv_id=cnv_id, apply=False, flag="noteworthy"
+        ),
     )
 
 

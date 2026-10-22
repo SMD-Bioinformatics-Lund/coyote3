@@ -11,7 +11,6 @@ from api.contracts.schemas.registry import (
 )
 from api.domain.common.biomarkers import BIOMARKER_FIELDS, biomarker_counts
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
-from api.infra.mongo.persistence import insert_many_documents
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +50,7 @@ def write_dependents(
             if key == "cov":
                 doc["sample"] = sample_name
             normalized_doc = service._normalize_collection_docs(col_name, [doc])[0]
-            kwargs = {"session": session} if session is not None else {}
-            service._collection(col_name).insert_one(dict(normalized_doc), **kwargs)
+            service.collection_gateway.insert_dependent(col_name, normalized_doc, session=session)
             written[key] = 1
             logger.info("Wrote %s: documents=1 (transaction pending)", col_name)
             continue
@@ -70,7 +68,7 @@ def write_dependents(
             docs.append(doc)
         normalized_docs = service._normalize_collection_docs(col_name, docs)
         if normalized_docs:
-            insert_many_documents(service._collection(col_name), normalized_docs, session=session)
+            service.collection_gateway.insert_dependents(col_name, normalized_docs, session=session)
         written[key] = len(normalized_docs)
         logger.info("Wrote %s: documents=%s (transaction pending)", col_name, written[key])
     return written
@@ -147,7 +145,7 @@ def replace_dependents(
     keys_to_replace = set(preload.keys()) & set(INGEST_DEPENDENT_COLLECTIONS)
     for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
         if key in keys_to_replace:
-            service._collection(col_name).delete_many({"SAMPLE_ID": sid}, session=session)
+            service.collection_gateway.delete_dependents(col_name, sid, session=session)
     return service._write_dependents(
         preload=preload,
         sample_id=sample_id,

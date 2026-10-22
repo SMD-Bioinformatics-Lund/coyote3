@@ -83,19 +83,12 @@ def test_public_contact_read_uses_runtime_config(monkeypatch):
     assert payload["contacts"][0]["label"] == "Clinical"
 
 
-def test_public_assay_catalog_context_missing_catalog_raises_404(monkeypatch):
-    """Test public assay catalog context missing catalog raises 404.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
+def test_public_assay_catalog_context_empty_installation_has_landing_page(monkeypatch):
+    """An unconfigured installation keeps its landing page but rejects missing entries."""
     monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda self, **kwargs: {})
-
+    assert public.public_assay_catalog_context_read()["order"] == []
     with pytest.raises(AppError) as exc:
-        public.public_assay_catalog_context_read()
+        public.public_assay_catalog_context_read(mod="dna")
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Catalog not found"

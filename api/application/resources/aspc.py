@@ -47,8 +47,6 @@ class AspcService:
     def from_store(
         cls,
         store: Any,
-        *,
-        common_util: Any,
     ) -> "AspcService":
         """Build the service from the runtime store."""
         return cls(
@@ -58,7 +56,6 @@ class AspcService:
             gene_list_repository=store.gene_list_repository,
             vep_metadata_repository=store.vep_metadata_repository,
             clinical_rule_set_repository=store.clinical_rule_set_repository,
-            common_util=common_util,
         )
 
     def __init__(
@@ -69,7 +66,6 @@ class AspcService:
         gene_list_repository: Any,
         vep_metadata_repository: Any,
         clinical_rule_set_repository: Any,
-        common_util: Any,
         assay_subpanel_repository: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
@@ -79,7 +75,6 @@ class AspcService:
         self.gene_list_repository = gene_list_repository
         self.vep_metadata_repository = vep_metadata_repository
         self.clinical_rule_set_repository = clinical_rule_set_repository
-        self.common_util = common_util
 
     @staticmethod
     def _set_group_field_options(

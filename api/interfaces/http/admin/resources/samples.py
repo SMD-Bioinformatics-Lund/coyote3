@@ -137,7 +137,9 @@ def delete_sample_change(
     user: ApiUser = Depends(require_access(permission="sample:delete:global")),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
-    """Delete an admin sample.
+    """Delete owned sample records and queue generated report files for permanent erasure.
+
+    Requires sample:delete:global. Shared annotations and audit history are retained.
 
     \u000c
 

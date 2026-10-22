@@ -197,7 +197,20 @@ services:
       LOG_SERVICE_NAME: worker
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: *app-volumes
-    command: python3 -m api.infra.observability.run_service worker celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    command: python3 -m api.infra.observability.run_service worker celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    depends_on:
+      redis: {condition: service_healthy}
+
+  maintenance-worker:
+    cpus: ${COYOTE3_MAINTENANCE_CPU_LIMIT:-1.0}
+    mem_limit: ${COYOTE3_MAINTENANCE_MEM_LIMIT:-1g}
+    <<: [*runtime-defaults, *api-image]
+    environment:
+      <<: *app-environment
+      LOG_SERVICE_NAME: worker
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: *app-volumes
+    command: python3 -m api.infra.observability.run_service worker celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=default --concurrency=${CELERY_MAINTENANCE_CONCURRENCY:-2}
     depends_on:
       redis: {condition: service_healthy}
 

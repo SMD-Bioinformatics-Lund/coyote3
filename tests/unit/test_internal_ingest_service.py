@@ -17,7 +17,7 @@ from api.domain.core.dna.transcript_payloads import (
     compact_selected_csq,
     feature_without_version,
 )
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 
 
 class _Col:
@@ -598,8 +598,7 @@ def test_select_csq_uses_vep_canonical_after_mane_candidates_are_exhausted():
 
 def test_hgnc_metadata_maps_include_case_insensitive_aliases():
     class _Gateway:
-        def collection(self, name):
-            assert name == "hgnc_genes"
+        def hgnc_documents(self, projection):
             return _Col(
                 [
                     {
@@ -610,7 +609,7 @@ def test_hgnc_metadata_maps_include_case_insensitive_aliases():
                         "alias_symbol": ["Alias3"],
                     }
                 ]
-            )
+            ).find({}, projection)
 
         def sample_collection(self):
             return _Col()
@@ -854,7 +853,7 @@ def test_ingest_proceeds_with_missing_expected_files(monkeypatch, tmp_path, capl
     result = service.ingest_sample_bundle(payload)
     assert result["status"] == "ok"
     assert result["missing_expected_files"] == ["transloc"]
-    saved = service._sample_collection().inserted_one[-1]
+    saved = service.collection_gateway.sample_collection().inserted_one[-1]
     assert saved["missing_expected_files"] == ["transloc"]
     assert ("transloc" in saved["files"]) == declared
     assert "transloc" not in parser_inputs[0].get("files", {})
@@ -878,7 +877,7 @@ def test_ingest_proceeds_with_missing_expected_files(monkeypatch, tmp_path, capl
     assert len(notifications) == 1
     assert any(
         update["$set"].get("missing_expected_files") == []
-        for _, update, _ in service._sample_collection().updated
+        for _, update, _ in service.collection_gateway.sample_collection().updated
     )
 
 
@@ -1041,7 +1040,7 @@ def test_upload_preflight_runs_before_archive_and_file_policy(tmp_path):
 
     from fastapi import UploadFile
 
-    from api.interfaces.http.operations.internal import _prepare_uploaded_bundle
+    from api.application.ingest.upload_bundle import prepare_uploaded_bundle
 
     def reject(payload):
         assert payload["name"] == "CASE"
@@ -1053,7 +1052,7 @@ def test_upload_preflight_runs_before_archive_and_file_policy(tmp_path):
     )
     archive = BytesIO(b"unread archive")
     with pytest.raises(ValueError, match="increment=true"):
-        _prepare_uploaded_bundle(
+        prepare_uploaded_bundle(
             yaml_file=UploadFile(filename="sample.yaml", file=BytesIO(b"name: CASE")),
             data_archive=UploadFile(filename="data.zip", file=archive),
             staging_dir=tmp_path,

@@ -477,7 +477,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna.http, "get_formatted_assay_config", lambda _sample: assay_config)
-    monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
     monkeypatch.setattr(
         store.assay_panel_repository, "get_asp", lambda asp_name: {"asp_name": asp_name}
     )
@@ -542,6 +541,12 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
     captured: dict = {}
 
     monkeypatch.setattr(
+        store.variant_repository,
+        "get_variant",
+        lambda identity: {"_id": identity, "SAMPLE_ID": str(fx.sample_doc()["_id"])},
+    )
+
+    monkeypatch.setattr(
         classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc()
     )
     monkeypatch.setattr(
@@ -591,13 +596,13 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         store.variant_repository,
-        "mark_false_positive_var_bulk",
-        lambda ids: calls.__setitem__("mark", ids),
+        "get_variant",
+        lambda var_id: {"_id": var_id, "SAMPLE_ID": str(fx.sample_doc()["_id"])},
     )
     monkeypatch.setattr(
         store.variant_repository,
-        "unmark_false_positive_var_bulk",
-        lambda ids: calls.__setitem__("unmark", ids),
+        "set_sample_finding_flag",
+        lambda **kwargs: calls.update(kwargs),
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -611,7 +616,10 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
     )
 
     assert payload["status"] == "ok"
-    assert calls["mark"] == ["V1", "V2"]
+    assert calls["resource_ids"] == ["V1", "V2"]
+    assert calls["sample_id"] == str(fx.sample_doc()["_id"])
+    assert calls["flag"] == "fp"
+    assert calls["value"] is True
     assert calls["unmark"] is None
 
 
@@ -628,13 +636,13 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         store.variant_repository,
-        "mark_irrelevant_var_bulk",
-        lambda ids: calls.__setitem__("mark", ids),
+        "get_variant",
+        lambda var_id: {"_id": var_id, "SAMPLE_ID": str(fx.sample_doc()["_id"])},
     )
     monkeypatch.setattr(
         store.variant_repository,
-        "unmark_irrelevant_var_bulk",
-        lambda ids: calls.__setitem__("unmark", ids),
+        "set_sample_finding_flag",
+        lambda **kwargs: calls.update(kwargs),
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -649,7 +657,10 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
 
     assert payload["status"] == "ok"
     assert calls["mark"] is None
-    assert calls["unmark"] == ["V9"]
+    assert calls["resource_ids"] == ["V9"]
+    assert calls["sample_id"] == str(fx.sample_doc()["_id"])
+    assert calls["flag"] == "irrelevant"
+    assert calls["value"] is False
 
 
 def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch):
@@ -867,7 +878,7 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
     monkeypatch.setattr(
         service,
         "set_variant_bulk_flag",
-        lambda *, resource_ids, apply, flag: captured.update(
+        lambda *, sample, resource_ids, apply, flag: captured.update(
             {"resource_ids": resource_ids, "apply": apply, "flag": flag}
         ),
     )
@@ -899,7 +910,7 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
     monkeypatch.setattr(
         service,
         "set_variant_bulk_flag",
-        lambda *, resource_ids, apply, flag: captured.update(
+        lambda *, sample, resource_ids, apply, flag: captured.update(
             {"resource_ids": resource_ids, "apply": apply, "flag": flag}
         ),
     )
@@ -1055,6 +1066,9 @@ def test_override_variant_blacklist_updates_variant(monkeypatch):
     """Override blacklist should update the per-sample variant flag."""
     calls: dict[str, object] = {}
     service = _dna_service()
+    monkeypatch.setattr(
+        "api.security.access._get_sample_for_api", lambda sample_id, user: fx.sample_doc()
+    )
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
@@ -1065,7 +1079,7 @@ def test_override_variant_blacklist_updates_variant(monkeypatch):
     monkeypatch.setattr(
         service,
         "set_variant_override_blacklist",
-        lambda *, var_id, override: calls.update({"var_id": var_id, "override": override}),
+        lambda *, sample, var_id, override: calls.update({"var_id": var_id, "override": override}),
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -1079,6 +1093,9 @@ def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
     """Removing a blacklist override should restore the default blacklist behavior."""
     calls: dict[str, object] = {}
     service = _dna_service()
+    monkeypatch.setattr(
+        "api.security.access._get_sample_for_api", lambda sample_id, user: fx.sample_doc()
+    )
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
@@ -1089,7 +1106,7 @@ def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
     monkeypatch.setattr(
         service,
         "set_variant_override_blacklist",
-        lambda *, var_id, override: calls.update({"var_id": var_id, "override": override}),
+        lambda *, sample, var_id, override: calls.update({"var_id": var_id, "override": override}),
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 

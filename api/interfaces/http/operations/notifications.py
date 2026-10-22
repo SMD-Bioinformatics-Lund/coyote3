@@ -31,7 +31,7 @@ def notification_inbox(
     service: NotificationService = Depends(get_notification_service),
 ):
     """Return only notifications visible to the authenticated user."""
-    return service.inbox(username=user.username, limit=limit, offset=offset)
+    return service.inbox(user=user, limit=limit, offset=offset)
 
 
 @router.patch(

@@ -3,6 +3,8 @@
     "SAMPLE_ID": "sample_oid_seed",
     "CHROM": "2",
     "POS": 29443600,
+    "END": null,
+    "source_records": [],
     "REF": "N",
     "ALT": "<BND>",
     "FILTER": [
@@ -62,7 +64,8 @@
           "INFO": null
         }
       ],
-      "MANE_ANN": null
+      "MANE_ANN": null,
+      "ANN_selection_source": null
     },
     "fp": "",
     "irrelevant": "",

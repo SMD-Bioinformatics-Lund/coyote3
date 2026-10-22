@@ -1000,7 +1000,6 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
         gene_list_repository=store.gene_list_repository,
         vep_metadata_repository=store.vep_metadata_repository,
         clinical_rule_set_repository=store.clinical_rule_set_repository,
-        common_util=shared_util.common,
     )
 
 

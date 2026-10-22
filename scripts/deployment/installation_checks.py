@@ -34,8 +34,8 @@ def installation_state(primary, identity) -> str:
         identity: Selected identity database, never inferred from a database name.
 
     Returns:
-        fresh if both databases contain no documents; existing when application data
-        and the governance baseline are present. Existing does not certify an upgrade.
+        fresh if both databases contain no documents; existing when the identity
+        baseline is complete, including before authenticated application seeding.
 
     Raises:
         ValueError: Only part of the required baseline exists; automatic bootstrap is unsafe.
@@ -46,7 +46,7 @@ def installation_state(primary, identity) -> str:
     mapping = load_collection_section("identity")
     users = identity[mapping["users_collection"]]
     complete = (
-        all(populated)
+        populated[1]
         and users.find_one({"roles": "superuser"}, {"_id": 1}) is not None
         and users.find_one({"roles": "sys_admin"}, {"_id": 1}) is not None
         and identity[mapping["roles_collection"]].find_one({}, {"_id": 1}) is not None

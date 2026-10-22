@@ -15,6 +15,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Hema GMS v1",
     "description": "Demo ASP config for first-run DNA sample workflows",
@@ -25,6 +26,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -65,15 +67,26 @@
       "germline": null
     },
     "reporting": {
-      "reportable_tiers": { "SNV": [1, 2, 3], "FUSION": [1, 2, 3] },
       "report_sections": [
         "SNV",
         "CNV"
       ],
+      "reportable_tiers": {
+        "SNV": [
+          1,
+          2,
+          3
+        ],
+        "FUSION": [
+          1,
+          2,
+          3
+        ]
+      },
+      "language": "sv",
       "report_header": "Demo report header",
       "report_method": "Demo method",
       "report_description": "DNA panel summary report for assay_1",
-      "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
@@ -106,6 +119,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Hema GMS v1",
     "description": "Demo ASP config for test profile",
@@ -116,6 +130,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -156,15 +171,26 @@
       "germline": null
     },
     "reporting": {
-      "reportable_tiers": { "SNV": [1, 2, 3], "FUSION": [1, 2, 3] },
       "report_sections": [
         "SNV",
         "CNV"
       ],
+      "reportable_tiers": {
+        "SNV": [
+          1,
+          2,
+          3
+        ],
+        "FUSION": [
+          1,
+          2,
+          3
+        ]
+      },
+      "language": "sv",
       "report_header": "Demo report header",
       "report_method": "Demo method",
       "report_description": "DNA panel summary report for assay_1",
-      "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
@@ -198,6 +224,7 @@
       "somatic"
     ],
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "display_name": "Demo RNA WTS",
     "description": "Demo ASP configuration for first-run RNA WTS workflows",
@@ -219,17 +246,28 @@
       }
     },
     "reporting": {
-      "reportable_tiers": { "SNV": [1, 2, 3], "FUSION": [1, 2, 3] },
       "report_sections": [
         "FUSION",
         "EXPRESSION",
         "CLASSIFICATION",
         "QC"
       ],
+      "reportable_tiers": {
+        "SNV": [
+          1,
+          2,
+          3
+        ],
+        "FUSION": [
+          1,
+          2,
+          3
+        ]
+      },
+      "language": "sv",
       "report_header": "Demo RNA report header",
       "report_method": "Demo RNA method",
       "report_description": "RNA WTS summary report for assay_rna_1",
-      "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo-rna"
     },

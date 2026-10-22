@@ -90,7 +90,7 @@ def _consequence_terms_clause(terms: list[str]) -> dict[str, Any]:
 
 
 def _exception_clause(
-    exception: SnvQueryException, filter_values: dict | None = None
+    exception: SnvQueryException, filter_values: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """Translate a validated exception into its restricted MongoDB predicate.
 
@@ -143,7 +143,7 @@ def _consequence_admission_clause(
     subpanel_id: str,
     intent: str,
     terms: list[str],
-    filter_values: dict | None = None,
+    filter_values: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Allow aggregated terms or a configured clinically validated extension."""
     clauses = [_consequence_terms_clause(terms)]
@@ -167,7 +167,7 @@ def _admission_clause(
     asp_id: str,
     subpanel_id: str,
     intent: str,
-    filter_values: dict | None = None,
+    filter_values: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return explicit admission paths, or a predicate that can never match."""
     clauses = [
@@ -192,7 +192,7 @@ def _exclusion_clause(
     asp_id: str,
     subpanel_id: str,
     intent: str,
-    filter_values: dict | None = None,
+    filter_values: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Exclude typed clinical matches after the selected baseline is applied."""
     clauses = [

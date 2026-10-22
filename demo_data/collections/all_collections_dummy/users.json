@@ -38,7 +38,8 @@
       "sample_list_layout": "classic",
       "analysis_modern_view_tried": false,
       "sample_list_modern_view_tried": false,
-      "table_page_size": 50
+      "table_page_size": 50,
+      "theme": "auto"
     },
     "system_managed": false,
     "is_active": true,

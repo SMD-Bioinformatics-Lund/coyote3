@@ -137,6 +137,44 @@ class BaseRepository:
             self.invalidate_dashboard_metrics()
         return result
 
+    def set_sample_finding_flag(
+        self, *, sample_id: str, resource_ids: list[str], flag: str, value: bool
+    ) -> OperationResult:
+        """Update an allowed finding flag within one authorized sample.
+
+        Args:
+            sample_id: Canonical owning sample identifier, never a display name.
+            resource_ids: Finding identifiers whose ownership was checked by the caller.
+            flag: Persisted boolean flag field.
+            value: Whether the flag is enabled.
+
+        Returns:
+            Matched and modified counts for the scoped write.
+
+        Raises:
+            ValueError: If the sample or flag is invalid.
+            InvalidId: If any finding identifier is malformed; nothing is written.
+        """
+        if not sample_id or flag not in {
+            "fp",
+            "interesting",
+            "irrelevant",
+            "blacklisted",
+            "noteworthy",
+            "override_blacklist",
+        }:
+            raise ValueError("A sample and supported finding flag are required")
+        object_ids = [ObjectId(identifier) for identifier in resource_ids]
+        if not object_ids:
+            return OperationResult.empty()
+        result = self.update_many_atomic(
+            {"_id": {"$in": object_ids}, "SAMPLE_ID": sample_id},
+            {"$set": {flag: value}},
+        )
+        return self._invalidate_dashboard_on_change(
+            OperationResult.from_update(result, requested_count=len(object_ids))
+        )
+
     def mark_false_positive(self, var_id: str, fp: bool) -> Any:
         """
         Mark / Unmark a variant as false positive.

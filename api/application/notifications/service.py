@@ -6,8 +6,10 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from api.application.notifications.access import SampleNotificationAccess
 from api.config.contracts.application import NOTIFICATIONS
 from api.domain.common.errors import api_error
+from api.domain.notifications import NotificationRepository
 
 
 class NotificationService:
@@ -42,17 +44,19 @@ class NotificationService:
             audit_service=audit_service,
             email_sender=email_sender,
             inbox_url=inbox_url,
+            sample_access=SampleNotificationAccess.from_store(store),
         )
 
     def __init__(
         self,
         *,
-        notification_repository: Any,
+        notification_repository: NotificationRepository,
         user_repository: Any,
         retention_days: int,
         audit_service: Any | None = None,
         email_sender: Callable[..., bool] | None = None,
         inbox_url: str = "",
+        sample_access: SampleNotificationAccess | None = None,
     ) -> None:
         """Configure notification persistence, recipient lookup, and expiry.
 
@@ -63,6 +67,7 @@ class NotificationService:
             audit_service: Optional event recorder; None disables audit recording here.
             email_sender: Configured SMTP sender, or None to disable broadcast email.
             inbox_url: Absolute URL included in broadcast emails.
+            sample_access: Current clinical access resolver; None hides all sample-linked messages.
         """
         self.notification_repository = notification_repository
         self.user_repository = user_repository
@@ -70,22 +75,42 @@ class NotificationService:
         self.audit_service = audit_service
         self.email_sender = email_sender
         self.inbox_url = inbox_url
+        self.sample_access = sample_access
 
-    def inbox(self, *, username: str, limit: int = 200, offset: int = 0) -> dict[str, Any]:
+    def inbox(self, *, user: Any, limit: int = 200, offset: int = 0) -> dict[str, Any]:
         """List notifications visible to a recipient with per-recipient read state.
 
         Args:
-            username: Recipient login, stripped and lowercased before lookup.
+            user: Current authenticated principal, including current roles and scopes.
             limit: Maximum rows requested from the repository, defaulting to 200.
             offset: Number of newest messages to skip for older pages.
 
         Returns:
             Serialized notifications and the unread count within those rows.
         """
-        normalized = self._username(username)
-        rows = self.notification_repository.list_for_user(
-            normalized, limit=limit, **({"offset": offset} if offset else {})
+        normalized = self._username(user.username)
+        visible = (
+            self.sample_access.inbox_predicate(user)
+            if self.sample_access is not None
+            else lambda row: (row.get("resource") or {}).get("type") != "sample"
         )
+        limit, offset = max(1, min(limit, 500)), max(0, offset)
+        rows: list[dict[str, Any]] = []
+        scanned = accepted = 0
+        while len(rows) < limit:
+            batch = self.notification_repository.list_for_user(
+                normalized, limit=500, offset=scanned
+            )
+            for row in batch:
+                if visible(row):
+                    if accepted >= offset:
+                        rows.append(row)
+                    accepted += 1
+                    if len(rows) == limit:
+                        break
+            scanned += len(batch)
+            if len(batch) < 500:
+                break
         notifications = [self._serialize(item, username=normalized) for item in rows]
         return {
             "notifications": notifications,
@@ -571,7 +596,7 @@ class NotificationService:
             "is_broadcast": bool(document.get("is_broadcast")),
             "severity": document.get("severity")
             or {"error": "critical", "warning": "warning", "success": "success"}.get(
-                document.get("tone"), "info"
+                str(document.get("tone") or ""), "info"
             ),
             "can_clear": not document.get("is_broadcast") or document.get("created_by") == username,
             "expires_at": NotificationService._timestamp(document.get("expires_on")),

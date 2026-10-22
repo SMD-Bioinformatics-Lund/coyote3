@@ -12,6 +12,7 @@ x-runtime-defaults: &runtime-defaults
   networks: [app]
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
+  COYOTE3_CENTER_CONFIG_DIR: /app/center-config
   COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}
   IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
   KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
@@ -103,8 +104,8 @@ x-app-environment: &app-environment
   MONGO_READ_CONCERN_LEVEL: ${MONGO_READ_CONCERN_LEVEL:-majority}
   MONGO_WRITE_CONCERN_W: ${MONGO_WRITE_CONCERN_W:-majority}
   MONGO_WRITE_CONCERN_JOURNAL: ${MONGO_WRITE_CONCERN_JOURNAL:-1}
-  PYTHONDONTWRITEBYTECODE: '1'
-  PYTHONUNBUFFERED: '1'
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
   GIT_COMMIT: ${GIT_COMMIT:-unknown}
   BUILD_TIME: ${BUILD_TIME:-unknown}
 services:
@@ -124,19 +125,19 @@ services:
       IGV_URI: ${IGV_URI:-}
       IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
       COYOTE3_API_INTERNAL_URL: http://api:8001
-      CHOKIDAR_USEPOLLING: 'true'
-      WATCHPACK_POLLING: 'true'
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
     volumes:
-    - ../../frontend:/app
-    - ../../api/version.py:/api/version.py:ro
-    - frontend_node_modules:/app/node_modules
+      - ../../frontend:/app
+      - ../../api/version.py:/api/version.py:ro
+      - frontend_node_modules:/app/node_modules
     depends_on:
       api:
         condition: service_healthy
       monitor:
         condition: service_started
     networks:
-    - app
+      - app
   docs:
     <<: *runtime-defaults
     image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
@@ -147,9 +148,10 @@ services:
       args:
         PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
+        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
     volumes:
-    - ../../site:/usr/share/nginx/html:ro
-    - ../../docker/nginx/docs.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../../site:/usr/share/nginx/html:ro
+      - ../../docker/nginx/docs.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       monitor:
         condition: service_started
@@ -171,20 +173,21 @@ services:
         COYOTE3_GID: ${COYOTE3_GID:-10001}
     environment: *app-environment
     volumes: &dev-app-volumes
-    - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
-    - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
-    - ../../.git:/app/.git:ro
-    - ../../api:/app/api
-    - ../../docs:/app/docs
-    - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
-    - ../../README.md:/app/README.md:ro
-    - ../../LICENSE.txt:/app/LICENSE.txt:ro
-    - ../../NOTICE.txt:/app/NOTICE.txt:ro
+      - ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}:/app/center-config:ro
+      - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
+      - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
+      - ../../.git:/app/.git:ro
+      - ../../api:/app/api
+      - ../../docs:/app/docs
+      - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
+      - ../../README.md:/app/README.md:ro
+      - ../../LICENSE.txt:/app/LICENSE.txt:ro
+      - ../../NOTICE.txt:/app/NOTICE.txt:ro
     command: python3 -m api.infra.observability.run_service api python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
     healthcheck:
       test:
-      - CMD-SHELL
-      - python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()"
+        - CMD-SHELL
+        - python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()"
       interval: 5s
       timeout: 3s
       retries: 20
@@ -233,21 +236,21 @@ services:
     <<: *runtime-defaults
     image: redis:7.4.3
     security_opt:
-    - seccomp=unconfined
+      - seccomp=unconfined
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     command:
-    - sh
-    - -c
-    - exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes --appendfsync always --maxmemory-policy noeviction
+      - sh
+      - -c
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes --appendfsync always --maxmemory-policy noeviction
     volumes:
-    - redis-data:/data
+      - redis-data:/data
     healthcheck:
       test:
-      - CMD
-      - redis-cli
-      - ping
+        - CMD
+        - redis-cli
+        - ping
       interval: 5s
       timeout: 3s
       retries: 10
@@ -255,11 +258,11 @@ services:
     <<: *runtime-defaults
     image: nginx:1.27-alpine
     ports:
-    - ${COYOTE3_PORT:-6801}:8088
+      - ${COYOTE3_PORT:-6801}:8088
     command:
-    - sh
-    - -c
-    - sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'
+      - sh
+      - -c
+      - sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'
     environment:
       SCRIPT_NAME: ${SCRIPT_NAME:-}
       COYOTE3_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
@@ -267,7 +270,7 @@ services:
       COYOTE3_NGINX_DOCS_UPSTREAM: http://docs:8080
       COYOTE3_NGINX_PUBLIC_SCHEME: ${COYOTE3_NGINX_PUBLIC_SCHEME:-http}
     volumes:
-    - ../compose/nginx/render-config.sh:/etc/nginx/render-config.sh:ro
+      - ../compose/nginx/render-config.sh:/etc/nginx/render-config.sh:ro
     depends_on:
       frontend:
         condition: service_started

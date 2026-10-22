@@ -61,7 +61,7 @@ def current_actor(default_username: str) -> str:
     Returns:
         str: Resolved actor username.
     """
-    return current_username(default=default_username)
+    return str(current_username(default=default_username))
 
 
 def utc_now() -> datetime:
@@ -79,7 +79,7 @@ def build_managed_form(
     actor_username: str | None = None,
 ) -> dict[str, Any]:
     """Build a managed form payload with optional actor defaults."""
-    form = deepcopy(build_form_spec(spec))
+    form: dict[str, Any] = deepcopy(build_form_spec(spec))
     if actor_username:
         actor = current_actor(actor_username)
         now = utc_now()

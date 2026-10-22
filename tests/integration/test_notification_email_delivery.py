@@ -137,7 +137,7 @@ def test_all_audience_is_a_snapshot_not_future_accounts(delivery):
         actor=SimpleNamespace(username="operator"),
     )
     users["future"] = {"username": "future", "is_active": True}
-    assert service.inbox(username="future")["notifications"] == []
+    assert service.inbox(user=SimpleNamespace(username="future"))["notifications"] == []
     assert service.deliver_emails()["sent"] == 2
 
 
@@ -145,16 +145,16 @@ def test_read_does_not_dismiss_notification(delivery):
     service, repo, collection, users, sender = delivery
     result = publish(service)
     service.mark_read(notification_id=result["notification_id"], username="recipient")
-    inbox = service.inbox(username="recipient")
+    inbox = service.inbox(user=SimpleNamespace(username="recipient"))
     assert len(inbox["notifications"]) == 1
     assert inbox["notifications"][0]["read"] is True
     assert inbox["unread_count"] == 0
     with pytest.raises(AppError):
         service.dismiss(notification_id=result["notification_id"], username="recipient")
     assert service.dismiss_all(username="recipient")["changed"] == 0
-    assert service.inbox(username="recipient")["notifications"]
+    assert service.inbox(user=SimpleNamespace(username="recipient"))["notifications"]
     service.dismiss(notification_id=result["notification_id"], username="operator")
-    assert service.inbox(username="recipient")["notifications"] == []
+    assert service.inbox(user=SimpleNamespace(username="recipient"))["notifications"] == []
     assert collection.count_documents({}) == 1
 
 
@@ -164,7 +164,7 @@ def test_expiry_hides_broadcast_without_deletion_or_email(delivery):
     collection.update_one(
         {}, {"$set": {"expires_on": datetime.now(timezone.utc) - timedelta(seconds=1)}}
     )
-    assert service.inbox(username="recipient")["notifications"] == []
+    assert service.inbox(user=SimpleNamespace(username="recipient"))["notifications"] == []
     assert service.deliver_emails()["sent"] == 0
     assert len(service.sent(username="operator")["notifications"]) == 1
     assert service.sent(username="other")["notifications"] == []

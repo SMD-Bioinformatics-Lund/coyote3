@@ -34,7 +34,7 @@ from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicClient
 from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
 from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
 from api.interfaces.http.tags import TAG_DNA_VARIANTS
-from api.security.access import ApiUser, _get_sample_for_api, require_access
+from api.security.access import ApiUser, _enforce_access, _get_sample_for_api, require_access
 
 router = APIRouter(tags=[TAG_DNA_VARIANTS])
 
@@ -85,7 +85,7 @@ def add_alt_class(
 def list_dna_variants(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Retrieve SNVs and small indels for an accessible sample.
@@ -118,7 +118,7 @@ def list_dna_variants(
 def dna_sample_comment_suggestion(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Return the established DNA summary text for the current sample filters."""
@@ -150,7 +150,7 @@ def dna_sample_comment_suggestion(
 )
 def dna_plot_context(
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Return plot context for DNA variant visualizations.
@@ -179,7 +179,7 @@ def dna_plot_context(
 def show_dna_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Return a small variant's detail context within an accessible sample.
@@ -215,7 +215,7 @@ def show_dna_variant(
 def show_dna_variant_public_oncokb(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Return an on-demand public OncoKB API annotation for a small variant."""
@@ -258,7 +258,7 @@ def show_dna_variant_public_oncokb(
 def show_dna_variant_public_clinpgx(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Return an on-demand public ClinPGx API gene lookup for a small variant."""
@@ -411,7 +411,9 @@ def unmark_false_variant(
         service,
         resource="variant",
         action="unmark_false_positive",
-        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="false_positive"),
+        mutate=lambda sample: service.set_variant_flag(
+            sample=sample, var_id=var_id, apply=False, flag="false_positive"
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -435,7 +437,9 @@ def mark_false_variant(
         service,
         resource="variant",
         action="mark_false_positive",
-        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="false_positive"),
+        mutate=lambda sample: service.set_variant_flag(
+            sample=sample, var_id=var_id, apply=True, flag="false_positive"
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -459,7 +463,9 @@ def unmark_interesting_variant(
         service,
         resource="variant",
         action="unmark_interesting",
-        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="interesting"),
+        mutate=lambda sample: service.set_variant_flag(
+            sample=sample, var_id=var_id, apply=False, flag="interesting"
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -483,7 +489,9 @@ def mark_interesting_variant(
         service,
         resource="variant",
         action="mark_interesting",
-        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="interesting"),
+        mutate=lambda sample: service.set_variant_flag(
+            sample=sample, var_id=var_id, apply=True, flag="interesting"
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -507,7 +515,9 @@ def unmark_irrelevant_variant(
         service,
         resource="variant",
         action="unmark_irrelevant",
-        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="irrelevant"),
+        mutate=lambda sample: service.set_variant_flag(
+            sample=sample, var_id=var_id, apply=False, flag="irrelevant"
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -531,7 +541,9 @@ def mark_irrelevant_variant(
         service,
         resource="variant",
         action="mark_irrelevant",
-        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="irrelevant"),
+        mutate=lambda sample: service.set_variant_flag(
+            sample=sample, var_id=var_id, apply=True, flag="irrelevant"
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -584,7 +596,9 @@ def override_variant_blacklist(
         service,
         resource="variant",
         action="override_blacklist",
-        mutate=lambda: service.set_variant_override_blacklist(var_id=var_id, override=True),
+        mutate=lambda sample: service.set_variant_override_blacklist(
+            sample=sample, var_id=var_id, override=True
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -608,7 +622,9 @@ def clear_variant_blacklist_override(
         service,
         resource="variant",
         action="clear_override_blacklist",
-        mutate=lambda: service.set_variant_override_blacklist(var_id=var_id, override=False),
+        mutate=lambda sample: service.set_variant_override_blacklist(
+            sample=sample, var_id=var_id, override=False
+        ),
         validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
@@ -697,7 +713,7 @@ def set_variant_false_positive_bulk(
     Returns:
         SampleChangePayload-compatible data describing the bulk flag operation.
     """
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
     payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
     if isinstance(payload_resource_ids, list):
@@ -708,7 +724,7 @@ def set_variant_false_positive_bulk(
         payload.get("apply") if isinstance(payload, dict) else None, default=apply
     )
     operation = service.set_variant_bulk_flag(
-        resource_ids=resource_ids, apply=apply, flag="false_positive"
+        sample=sample, resource_ids=resource_ids, apply=apply, flag="false_positive"
     )
     return util.common.convert_to_serializable(
         change_payload(
@@ -749,7 +765,7 @@ def set_variant_irrelevant_bulk(
     Returns:
         SampleChangePayload-compatible data describing the bulk flag operation.
     """
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
     payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
     if isinstance(payload_resource_ids, list):
@@ -760,7 +776,7 @@ def set_variant_irrelevant_bulk(
         payload.get("apply") if isinstance(payload, dict) else None, default=apply
     )
     operation = service.set_variant_bulk_flag(
-        resource_ids=resource_ids, apply=apply, flag="irrelevant"
+        sample=sample, resource_ids=resource_ids, apply=apply, flag="irrelevant"
     )
     return util.common.convert_to_serializable(
         change_payload(
@@ -792,20 +808,24 @@ def add_variant_comment_change(
     Args:
         sample_id: Sample identifier used for access checks and the change response.
         payload: Annotation target in id and comment fields in form_data.
-        user: Authenticated user with variant.comment:add:own permission.
+        user: Authenticated user with variant.comment:add:own permission; global annotations
+            additionally require variant.comment:add:global.
         service: Injected service responsible for creating the annotation.
 
     Returns:
         SampleChangePayload-compatible data identifying the annotated resource.
     """
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     target_id = str(payload.get("id", "unknown"))
     form_data = payload.get("form_data", {})
+    if form_data.get("global") == "global":
+        _enforce_access(user, permission="variant.comment:add:global")
     resource = service.create_annotation(
         form_data=form_data,
         target_id=target_id,
         get_variant_nomenclature_fn=get_variant_nomenclature,
         create_comment_doc_fn=create_comment_doc,
+        sample=sample,
     )
     return util.common.convert_to_serializable(
         change_payload(

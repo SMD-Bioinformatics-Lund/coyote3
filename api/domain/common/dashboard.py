@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
+from typing import Any
 
 from api.config.constants import TARGETED_PANEL_ASP_FAMILY_OPTIONS
 
 
-def _asp_gene_stats_rows(data: dict | list | None) -> list[dict]:
+def _asp_gene_stats_rows(
+    data: dict[str, dict[str, Any]] | list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
     """Normalize repository results into dashboard-ready ASP rows."""
+    iterable: Iterable[dict[str, Any]]
     if isinstance(data, dict):
         iterable = data.values()
     else:
@@ -16,15 +21,17 @@ def _asp_gene_stats_rows(data: dict | list | None) -> list[dict]:
     return [dict(doc) for doc in iterable]
 
 
-def is_panel_asp(details: dict) -> bool:
+def is_panel_asp(details: dict[str, Any]) -> bool:
     """Return whether an ASP belongs to a targeted panel family."""
     family = str(details.get("asp_family") or "").strip().lower()
     return family in TARGETED_PANEL_ASP_FAMILY_OPTIONS
 
 
-def format_asp_gene_stats(data: dict | list | None) -> dict:
+def format_asp_gene_stats(
+    data: dict[str, dict[str, Any]] | list[dict[str, Any]] | None,
+) -> dict[str, list[dict[str, Any]]]:
     """Group assay-panel gene counts by assay group."""
-    result = {}
+    result: dict[Any, dict[str, Any]] = {}
     for doc_dict in _asp_gene_stats_rows(data):
         key = doc_dict.pop("_id", None)
         result[key or len(result)] = doc_dict
@@ -36,12 +43,14 @@ def format_asp_gene_stats(data: dict | list | None) -> dict:
     return dict(grouped)
 
 
-def format_panel_gene_stats(data: dict | list | None) -> dict:
+def format_panel_gene_stats(
+    data: dict[str, dict[str, Any]] | list[dict[str, Any]] | None,
+) -> dict[str, list[dict[str, Any]]]:
     """Group active targeted-panel gene counts while excluding WGS and WTS ASPs."""
     return format_asp_gene_stats([row for row in _asp_gene_stats_rows(data) if is_panel_asp(row)])
 
 
-def panel_asp_ids(data: dict | list | None) -> list[str]:
+def panel_asp_ids(data: dict[str, dict[str, Any]] | list[dict[str, Any]] | None) -> list[str]:
     """Return normalized active targeted-panel identifiers."""
     return sorted(
         {
@@ -52,7 +61,9 @@ def panel_asp_ids(data: dict | list | None) -> list[str]:
     )
 
 
-def summarize_panel_gene_stats(data: dict | list | None) -> dict[str, int]:
+def summarize_panel_gene_stats(
+    data: dict[str, dict[str, Any]] | list[dict[str, Any]] | None,
+) -> dict[str, int]:
     """Summarize the active targeted-panel portfolio for dashboard cards."""
     rows = [row for row in _asp_gene_stats_rows(data) if is_panel_asp(row)]
     return {

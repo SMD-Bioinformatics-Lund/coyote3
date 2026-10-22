@@ -5,11 +5,9 @@ from __future__ import annotations
 import gzip
 import json
 import logging
-import os
 import shutil
 import tempfile
 from functools import partial
-from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -27,9 +25,8 @@ from api.app.deps.repositories import (
 )
 from api.app.deps.services import get_audit_service, get_internal_ingest_service
 from api.application.ingest.jobs import job_status_payload, submit_ingest_job
-from api.application.ingest.parsers import runtime_file_path
 from api.application.ingest.service import InternalIngestService
-from api.application.ingest.upload_archive import UploadedFileIndex, extract_uploaded_archive
+from api.application.ingest.upload_bundle import prepare_uploaded_bundle
 from api.config.paths import INGEST_STAGING_DIR
 from api.config.runtime_settings import DefaultConfig
 from api.contracts.internal import (
@@ -49,7 +46,6 @@ from api.contracts.internal import (
     IsglMetaPayload,
     RoleLevelsPayload,
 )
-from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 from api.infra.observability.prometheus_metrics import render_prometheus_metrics
 from api.interfaces.http.operations.ingest_stream import stream_ingest
 from api.interfaces.http.tags import TAG_INTERNAL
@@ -373,34 +369,6 @@ def ingest_sample_bundle_internal(
     return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
 
 
-def _save_upload(upload: UploadFile, destination: Path) -> str:
-    """Copy the remaining upload bytes to disk and compute their SHA-256 digest.
-
-    Args:
-        upload: Upload read from its current file position in one-mebibyte chunks.
-        destination: File to create or truncate; its parent directory must exist.
-
-    Returns:
-        Hexadecimal SHA-256 digest of the bytes copied.
-
-    Raises:
-        OSError: If opening, reading, writing, or closing a file fails.
-
-    Notes:
-        Consumes the upload stream without closing it. A failed copy may leave
-        a truncated or partially written destination file.
-    """
-    digest = sha256()
-    with destination.open("wb") as handle:
-        while True:
-            chunk = upload.file.read(1024 * 1024)
-            if not chunk:
-                break
-            handle.write(chunk)
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _ingest_acknowledgement(
     *,
     result: dict | None = None,
@@ -429,104 +397,6 @@ def _preflight_sample_upload(user, service, payload, update_existing, increment)
     """Authorize the manifest scope before checking its name for an early conflict."""
     _enforce_sample_ingest_permission(user, payload)
     service.preflight_sample_name(payload, allow_update=update_existing, increment=increment)
-
-
-def _prepare_uploaded_bundle(
-    *,
-    yaml_file: UploadFile,
-    data_archive: UploadFile | None,
-    staging_dir: Path,
-    ingest_service: InternalIngestService,
-    preflight=None,
-) -> dict:
-    """Parse a manifest and resolve declared paths against one uploaded ZIP archive."""
-    logger = logging.getLogger(__name__)
-    logger.info("Parsing YAML manifest: %s", yaml_file.filename)
-    yaml_content = yaml_file.file.read().decode("utf-8")
-    source_payload = ingest_service.parse_yaml_payload(yaml_content)
-    if preflight is not None:
-        logger.info("Checking sample permissions and duplicate-name policy")
-        preflight(source_payload)
-    logger.info("Resolving ASP expected and required files")
-    expected_keys, required_keys = ingest_service._assay_file_policy(
-        assay_name=source_payload.get("asp_id"),
-        omics_layer=source_payload.get("omics_layer"),
-    )
-
-    archive_index = UploadedFileIndex(exact={}, basename={}, checksums={})
-    if data_archive is not None:
-        if not data_archive.filename:
-            raise ValueError("data_archive must include a filename")
-        archive_path = staging_dir / Path(str(data_archive.filename)).name
-        logger.info("Staging and extracting archive: %s", data_archive.filename)
-        _save_upload(data_archive, archive_path)
-        archive_index = extract_uploaded_archive(
-            archive_path=archive_path,
-            destination=staging_dir / "files",
-        )
-
-    runtime_files: dict[str, str] = {}
-    checksums: dict[str, str] = {}
-    missing: list[str] = []
-    ambiguous: list[str] = []
-    warnings: list[str] = []
-    for key in SAMPLE_SOURCE_PATH_KEYS:
-        raw_value = runtime_file_path(source_payload, key)
-        if not raw_value or not raw_value.strip():
-            continue
-        path_value = raw_value.strip()
-        if key not in expected_keys:
-            warnings.append(
-                f"Ignored '{key}': ASP '{source_payload.get('asp_id')}' does not accept this file."
-            )
-            source_payload.pop(key, None)
-            for container in ("files", "_runtime_files", "_uploaded_file_checksums"):
-                if isinstance(source_payload.get(container), dict):
-                    source_payload[container].pop(key, None)
-            continue
-        resolved = archive_index.exact.get(path_value)
-        if not resolved:
-            basename = Path(path_value).name
-            if basename in archive_index.basename and archive_index.basename[basename] is None:
-                ambiguous.append(f"{key}:{path_value}")
-                continue
-            resolved = archive_index.basename.get(basename)
-        if resolved:
-            runtime_files[key] = resolved
-            checksum = archive_index.checksums.get(resolved)
-            if checksum:
-                checksums[key] = checksum
-            continue
-        if os.path.exists(path_value):
-            runtime_files[key] = path_value
-            continue
-        missing.append(f"{key}:{path_value}")
-
-    if ambiguous:
-        raise ValueError(
-            "Ambiguous archive filenames for YAML references: "
-            + ", ".join(sorted(ambiguous))
-            + ". Use unique basenames or archive paths matching the YAML values."
-        )
-    required_missing = [entry for entry in missing if entry.split(":", 1)[0] in required_keys]
-    if required_missing:
-        raise ValueError(
-            "Missing required files for YAML references: "
-            + ", ".join(sorted(required_missing))
-            + ". Provide one ZIP containing matching files or make the manifest paths readable."
-        )
-    if runtime_files:
-        source_payload["_runtime_files"] = runtime_files
-    if checksums:
-        source_payload["_uploaded_file_checksums"] = checksums
-    if warnings:
-        source_payload["_ingest_warnings"] = warnings
-        for warning in warnings:
-            logger.warning("%s", warning)
-    logger.info(
-        "File resolution complete: readable=%s, missing optional=%s", sorted(runtime_files), missing
-    )
-    return source_payload
 
 
 @router.post(
@@ -587,7 +457,7 @@ def _execute_sample_bundle_upload(
     upload_refs: list[UploadFile] = [yaml_file, *([data_archive] if data_archive else [])]
     try:
         _enforce_sample_ingest_permission(user)
-        source_payload = _prepare_uploaded_bundle(
+        source_payload = prepare_uploaded_bundle(
             yaml_file=yaml_file,
             data_archive=data_archive,
             staging_dir=staging_dir,
@@ -699,7 +569,7 @@ def enqueue_ingest_sample_bundle_upload_internal(
     task_enqueued = False
     try:
         _enforce_sample_ingest_permission(user)
-        source_payload = _prepare_uploaded_bundle(
+        source_payload = prepare_uploaded_bundle(
             yaml_file=yaml_file,
             data_archive=data_archive,
             staging_dir=staging_dir,

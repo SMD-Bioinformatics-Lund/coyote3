@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
+from api.application.common.finding_access import require_sample_finding
 from api.application.interpretation.report_summary import create_annotation_text_from_gene
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.domain.common.errors import api_error
@@ -105,6 +106,33 @@ class ResourceClassificationService:
             "translocation": "translocation",
         }
         return aliases.get(value, value)
+
+    def require_resource_for_sample(
+        self,
+        *,
+        sample: dict[str, Any],
+        resource_type: str,
+        resource_id: str,
+    ) -> dict[str, Any]:
+        """Require that the target finding belongs to the authorized sample."""
+        normalized_type = self.normalize_resource_type(resource_type)
+        if normalized_type == "small_variant":
+            return require_sample_finding(sample, resource_id, self.variant_repository.get_variant)
+        if normalized_type == "fusion":
+            return require_sample_finding(sample, resource_id, self.fusion_repository.get_fusion)
+        if normalized_type == "cnv":
+            return require_sample_finding(
+                sample,
+                resource_id,
+                self.copy_number_variant_repository.get_cnv,
+            )
+        if normalized_type == "translocation":
+            return require_sample_finding(
+                sample,
+                resource_id,
+                self.translocation_repository.get_transloc,
+            )
+        raise api_error(400, f"Unsupported resource_type: {resource_type}")
 
     def _load_resource_identity(
         self,

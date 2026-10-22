@@ -6,9 +6,9 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.demo_installation import BUNDLE, DemoInstallationService
 from api.application.ingest.collection_writes import parse_yaml_payload
 from api.application.ingest.service import InternalIngestService
+from api.application.provisioning.demo_installation import BUNDLE, DemoInstallationService
 from api.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories import demo_installation
@@ -184,7 +184,7 @@ def test_starter_first_sample_uses_real_ingest(installer):
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
     )
-    service.install_starter("demo.admin")
+    service.install_starter("system", created_by="system")
     sample = db.samples.find_one({"name": "DEMO_STARTER_DNA"})
     assert sample["current_aspc_key"] == "demo_starter_dna_focus_testing"
     assert sample["subpanel_id"] == "demo_starter_focus"
@@ -205,6 +205,14 @@ def test_starter_first_sample_uses_real_ingest(installer):
     for rule in db.clinical_rule_sets.find():
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(rule), require_tests=True)
         assert result.valid, result.errors
+    assert sample["ingested_by"] == rna["ingested_by"] == "system"
+    assert (
+        service.install_starter("maintenance.admin", force=True, created_by="system")["status"]
+        == "installed"
+    )
+    assert db.samples.find_one({"name": "DEMO_STARTER_DNA"})["_id"] == sample["_id"]
+    assert db.samples.find_one({"name": "DEMO_STARTER_RNA"})["_id"] == rna["_id"]
+    assert db.samples.count_documents({}) == 2
 
 
 def test_starter_collision_never_replaces_center_content(installer):
@@ -223,7 +231,11 @@ def test_demo_samples_use_normal_ingest_and_never_update_existing(installer):
     service.install_configuration("demo.admin")
     service.install_sample("demo_group_dna", "demo.admin")
     call = ingest.ingest_sample_bundle.call_args
-    assert call.kwargs == {"ingested_by": "demo.admin", "ingest_source": "api"}
+    assert call.kwargs == {
+        "ingested_by": "demo.admin",
+        "ingest_source": "api",
+        "allow_update": False,
+    }
     assert call.args[0]["vcf_files"] == str(BUNDLE / "raw/dna.vcf")
     database.samples.insert_one({"name": "DEMO_GROUP_DNA", "asp_id": "demo_e2e_demo_dna"})
     assert service.install_sample("demo_group_dna", "demo.admin")["status"] == "already_installed"
@@ -258,3 +270,50 @@ def test_published_demo_rules_cannot_target_other_assays(installer, tmp_path):
     with pytest.raises(AppError, match="packaged assay"):
         service.install_configuration("admin")
     assert database.clinical_rule_sets.count_documents({}) == 0
+
+
+@pytest.mark.parametrize("protection", ["human", "report", "comment", "rna_classification"])
+def test_force_demo_preserves_human_provenance_and_review_artifacts(installer, protection):
+    service, database, ingest = installer
+    service.install_starter("system", created_by="system")
+    sample = {
+        "name": "DEMO_STARTER_DNA",
+        "asp_id": "demo_starter_dna",
+        "subpanel_id": "demo_starter_focus",
+        "environment": "testing",
+        "ingested_by": "system",
+    }
+    if protection == "human":
+        sample["ingested_by"] = "center.operator"
+    elif protection == "report":
+        sample["reported"] = True
+    database.samples.insert_one(sample)
+    if protection == "comment":
+        database.sample_comments.insert_one({"sample_oid": sample["_id"], "comment": "Keep"})
+    elif protection == "rna_classification":
+        database.rna_classification.insert_one({"SAMPLE_ID": str(sample["_id"]), "tier": "I"})
+    ingest.ingest_sample_bundle.reset_mock()
+    before = database.samples.find_one()
+    result = service.install_sample("first_sample", "maintenance.admin", force=True)
+    assert result["status"] == "already_installed"
+    ingest.ingest_sample_bundle.assert_not_called()
+    assert database.samples.find_one() == before
+
+
+def test_force_demo_restores_missing_setup_without_replacing_rule_history(installer):
+    service, database, _ = installer
+    service.install_starter("system", created_by="system")
+    history = list(database.clinical_rule_revisions.find())
+    database.subpanel_associations.delete_one({"asp_id": "demo_starter_dna"})
+    service.install_starter("maintenance.admin", force=True, created_by="system")
+    assert database.subpanel_associations.find_one({"asp_id": "demo_starter_dna"}) is not None
+    assert list(database.clinical_rule_revisions.find()) == history
+
+
+def test_force_demo_still_requires_application_baseline(installer):
+    service, database, ingest = installer
+    database.assay_groups.delete_many({})
+    with pytest.raises(AppError, match="baseline"):
+        service.install_starter("maintenance.admin", force=True, created_by="system")
+    assert database.asp_configs.count_documents({}) == 0
+    ingest.ingest_sample_bundle.assert_not_called()

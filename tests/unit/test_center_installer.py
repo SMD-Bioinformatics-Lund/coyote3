@@ -72,6 +72,15 @@ def test_target_detection_preserves_existing_and_rejects_partial_installations()
     assert list(client.identity.users.find()) == before
 
 
+def test_complete_initial_accounts_allow_start_before_authenticated_catalog_installation():
+    client = mongomock.MongoClient()
+    client.identity.users.insert_many([{"roles": ["superuser"]}, {"roles": ["sys_admin"]}])
+    client.identity.roles.insert_one({"role_id": "superuser"})
+    client.identity.permissions.insert_one({"permission_id": "synthetic"})
+    assert installation_state(client.application, client.identity) == "existing"
+    assert client.application.list_collection_names() == []
+
+
 def test_maintenance_credentials_cannot_redirect_knowledgebase(monkeypatch):
     for key, value in {
         "COYOTE3_MONGO_URI": "mongodb://reader@synthetic.invalid/?replicaSet=example",
@@ -102,7 +111,14 @@ def fake_installation(tmp_path):
     shutil.copy(ROOT / "scripts/deployment/compose-with-version.sh", deployment)
     (deployment / "prepare_host_directories.py").write_text("import sys\nsys.stdin.read()\n")
     docker_stub = """#!/bin/bash
-if [[ "$*" == "compose version" || "$*" == network* ]]; then exit 0; fi
+if [[ "$*" == "compose version" ]]; then exit 0; fi
+if [[ "$1" == network ]]; then
+  printf '%s\\n' "$*" >> "$INSTALL_TEST_LOG"
+  if [[ "$2" != inspect ]]; then echo "Network mutation forbidden" >&2; exit 99; fi
+  if [[ "${INSTALL_TEST_NETWORK_MISSING:-0}" == 1 ]]; then exit 1; fi
+  echo "${INSTALL_TEST_NETWORK_DRIVER:-bridge}"
+  exit 0
+fi
 if [[ "${COYOTE3_IMAGE_TAG:-}" != "$INSTALL_TEST_EXPECTED_TAG" ]]; then
   echo "Missing or incorrect environment image tag" >&2; exit 1
 fi
@@ -120,7 +136,7 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
     binaries = tmp_path / "bin"
     binaries.mkdir()
     rendered = {
-        "networks": {"app": {"name": "synthetic-network"}},
+        "networks": {"app": {"name": "synthetic-network", "external": True}},
         "services": {
             "proxy": {"ports": [{"target": 8088, "published": "5815", "protocol": "tcp"}]},
             "api": {
@@ -183,6 +199,65 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
         "emergency@example.test",
     ]
     return command, env, log
+
+
+@pytest.mark.parametrize("stage", [None, "network", "validate", "bootstrap", "indexes", "start"])
+@pytest.mark.parametrize("failure", ["missing", "host"])
+def test_network_failure_stops_before_build_or_container_operations(
+    fake_installation, stage, failure
+):
+    """Missing or unsuitable infrastructure cannot trigger implicit network provisioning."""
+    command, env, log = fake_installation
+    if stage:
+        command += ["--steps", stage]
+    env.update(INSTALL_TEST_NETWORK_MISSING="1" if failure == "missing" else "0")
+    env["INSTALL_TEST_NETWORK_DRIVER"] = failure
+    result = subprocess.run(command, env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "No host networking changes were attempted" in result.stderr
+    calls = log.read_text().splitlines()
+    assert calls[-1] == "network inspect synthetic-network --format {{.Driver}}"
+    assert not any(" build" in call or " run " in call or " up " in call for call in calls)
+
+
+def test_compose_managed_network_is_rejected_before_network_or_container_operations(
+    fake_installation,
+):
+    """An overlay cannot let Compose create the application network implicitly."""
+    command, env, log = fake_installation
+    config_path = Path(env["INSTALL_TEST_CONFIG"])
+    config = json.loads(config_path.read_text())
+    config["networks"]["app"]["external"] = False
+    config_path.write_text(json.dumps(config))
+    result = subprocess.run(command, env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "Application network must be external" in result.stderr
+    calls = log.read_text()
+    assert "network inspect" not in calls
+    assert " run " not in calls
+    assert " up " not in calls
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [["--with-knowledgebase-indexes"], ["--knowledgebase-maintenance-uri-file"]],
+)
+def test_maintenance_container_operations_also_require_existing_network(fake_installation, flags):
+    """Independent maintenance checks cannot bypass the external network gate."""
+    command, env, log = fake_installation
+    if flags == ["--knowledgebase-maintenance-uri-file"]:
+        flags = [*flags, str(log.parent / "maintenance-uri")]
+    result = subprocess.run(
+        command + ["--steps", "build", *flags],
+        env={**env, "INSTALL_TEST_NETWORK_MISSING": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "No host networking changes were attempted" in result.stderr
+    calls = log.read_text()
+    assert " build" not in calls
+    assert " run " not in calls
 
 
 @pytest.mark.parametrize("state", ["fresh", "existing", "partial"])
@@ -295,30 +370,9 @@ def test_installer_help_and_unknown_options_do_not_run_docker():
     assert subprocess.run(["bash", str(path), "--unknown"], capture_output=True).returncode == 2
 
 
-@pytest.mark.parametrize("state", ["fresh", "existing"])
-def test_demo_option_installs_complete_package_before_start(fake_installation, state):
-    """Use the repeatable starter installer on fresh and established deployments."""
-    command, env, log = fake_installation
-    result = subprocess.run(
-        command + ["--with-demo-center"],
-        env={**env, "INSTALL_TEST_STATE": state},
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-    calls = log.read_text()
-    assert "scripts.bootstrap.install_demo_starter" in calls
-    assert calls.index("manage_mongo_indexes.py apply") < calls.index(
-        "scripts.bootstrap.install_demo_starter"
-    )
-    assert calls.index("scripts.bootstrap.install_demo_starter") < calls.index(
-        "up -d --no-build --wait"
-    )
-
-
 @pytest.mark.parametrize("state", ["fresh", "existing", "partial"])
-def test_setup_center_installs_references_without_external_maintenance(fake_installation, state):
-    """Full setup seeds fresh targets and preserves existing application baselines."""
+def test_setup_center_defaults_to_complete_bootstrap_only_when_fresh(fake_installation, state):
+    """All default seed modules run inside initial bootstrap, never during redeployment."""
     command, env, log = fake_installation
     result = subprocess.run(
         command + ["--setup-center"],
@@ -329,12 +383,49 @@ def test_setup_center_installs_references_without_external_maintenance(fake_inst
     calls = log.read_text()
     assert result.returncode == (1 if state == "partial" else 0), result.stderr
     assert ("bootstrap_database.py" in calls) == (state == "fresh")
-    assert ("install_reference_data.py" in calls) == (state != "partial")
     assert ("up -d --no-build --wait" in calls) == (state != "partial")
-    assert "--scope knowledgebase" not in calls
-    assert "--with-demo-center" not in calls
-    if state != "partial":
-        assert calls.index("install_reference_data.py") < calls.index("up -d --no-build --wait")
+    assert "install_reference_data.py" not in calls
+    assert "install_demo_starter" not in calls
+    assert "manage_data.py --" not in calls
+    assert "--skip-demo" not in calls
+    assert "--skip-knowledgebase" not in calls
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--skip-demo"],
+        ["--skip-knowledgebase"],
+        ["--skip-application", "--skip-demo"],
+        ["--skip-users", "--skip-application", "--skip-knowledgebase", "--skip-demo"],
+    ],
+)
+def test_fresh_module_skip_flags_are_passed_to_bootstrap(fake_installation, flags):
+    command, env, log = fake_installation
+    result = subprocess.run(
+        command + flags, env={**env, "INSTALL_TEST_STATE": "fresh"}, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    invocation = next(row for row in log.read_text().splitlines() if "bootstrap_database.py" in row)
+    for flag in flags:
+        assert flag in invocation
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--skip-users"],
+        ["--skip-application"],
+        ["--force"],
+        ["--with-demo-center"],
+        ["--with-knowledgebase-seeds"],
+    ],
+)
+def test_unsafe_or_retired_installation_options_stop_before_docker(fake_installation, flags):
+    command, env, log = fake_installation
+    result = subprocess.run(command + flags, env=env, capture_output=True, text=True)
+    assert result.returncode == 2
+    assert not log.exists()
 
 
 @pytest.mark.parametrize(
@@ -366,30 +457,27 @@ def test_each_stage_can_run_independently(fake_installation, stage):
     assert ("up -d" in calls) == (stage == "start")
     assert ("manage_mongo_indexes.py apply" in calls) == (stage == "indexes")
     assert ("curl " in calls) == (stage == "health")
-    assert "install_reference_data.py" not in calls
+    assert ("network inspect" in calls) == (
+        stage in {"network", "validate", "bootstrap", "indexes", "start"}
+    )
+    assert "manage_data.py" not in calls
     assert "--scope knowledgebase" not in calls
 
 
-@pytest.mark.parametrize(
-    "option, seeds, indexes",
-    [("--with-knowledgebase-seeds", True, False), ("--with-knowledgebase-indexes", False, True)],
-)
-def test_knowledgebase_operations_are_independent_opt_ins(
-    fake_installation, option, seeds, indexes
-):
+def test_knowledgebase_indexes_remain_an_independent_maintenance_operation(fake_installation):
     command, env, log = fake_installation
     result = subprocess.run(
-        command + ["--steps", "validate", option],
+        command + ["--steps", "validate", "--with-knowledgebase-indexes"],
         env={**env, "INSTALL_TEST_STATE": "existing"},
         capture_output=True,
         text=True,
     )
     assert result.returncode == 0, result.stderr
     calls = log.read_text()
-    assert ("install_reference_data.py" in calls) == seeds
-    assert ("--scope knowledgebase" in calls) == indexes
+    assert "manage_mongo_indexes.py apply --scope knowledgebase" in calls
     assert "bootstrap_database.py" not in calls
     assert "up -d --no-build --wait" not in calls
+    assert "manage_data.py --" not in calls
 
 
 def test_start_cannot_bypass_missing_baseline(fake_installation):
@@ -401,7 +489,7 @@ def test_start_cannot_bypass_missing_baseline(fake_installation):
         text=True,
     )
     assert result.returncode == 1
-    assert "baseline is missing" in result.stderr
+    assert "Initial accounts are missing" in result.stderr
     assert "up -d --no-build --wait" not in log.read_text()
 
 

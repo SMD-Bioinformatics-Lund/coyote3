@@ -462,7 +462,7 @@ def test_fusion_repository_selection_annotations_matching_and_mutations(monkeypa
     assert other[0]["sample_name"] == "B" and other[0]["spanning_pairs"] == 6
     assert repository.get_fusion_in_other_samples({"SAMPLE_ID": str(sample_a), "calls": []}) == []
 
-    repository.pick_fusion(str(fusion_a), 2, 2)
+    repository.pick_fusion(str(fusion_a), 2, 2, sample_id=str(sample_a))
     assert repository.get_fusion(str(fusion_a))["calls"][1]["selected"] == 1
     repository.mark_false_positive_fusion(str(fusion_a))
     repository.unmark_false_positive_fusion(str(fusion_a))

@@ -524,7 +524,7 @@ def test_upload_ignores_excluded_file_without_resolving_it(tmp_path):
         },
         _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
     )
-    result = internal_router._prepare_uploaded_bundle(
+    result = internal_router.prepare_uploaded_bundle(
         yaml_file=_Upload(filename="sample.yaml", content=b"synthetic"),
         data_archive=None,
         staging_dir=tmp_path,

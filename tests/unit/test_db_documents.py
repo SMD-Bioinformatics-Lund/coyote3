@@ -16,13 +16,15 @@ from api.contracts.schemas.app_controls import AppControlsDoc
 from api.contracts.schemas.assay import InsilicoGenelistsDoc
 from api.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
 from api.contracts.schemas.governance import RolesDoc, UsersDoc
-from api.contracts.schemas.reference import VepAnnoTranscriptDoc
 from api.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
     validate_collection_document,
 )
 from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
+from api.contracts.schemas.variant_annotations import (
+    VepAnnoTranscriptDoc,
+)
 
 
 def test_isgl_diagnosis_is_the_canonical_multi_subpanel_scope():

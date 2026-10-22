@@ -24,7 +24,7 @@ from api.contracts.schemas.dna import BiomarkersDoc
 from api.contracts.schemas.samples import SamplesDoc
 from api.domain.common.biomarkers import project_biomarkers
 from api.domain.core.exceptions import AppError
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from scripts.upgrade_from_v3.migrate_biomarker_analyses import (
     migrate,
     requires_rule_review,

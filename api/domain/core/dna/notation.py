@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 
 from api.config.contracts.notation import CLINICAL_NOTATION
 
@@ -42,7 +43,8 @@ def three_letter_p(value: str | None) -> str:
             The configured three-letter code for the captured residue.
         """
         residue = match.group("source") or match.group("target")
-        return CLINICAL_NOTATION.amino_acid_one_to_three[residue]
+        mapping: Mapping[str, str] = CLINICAL_NOTATION.amino_acid_one_to_three
+        return mapping[residue]
 
     return _HGVS_ONE_LETTER_PROTEIN_PATTERN.sub(replace, value)
 

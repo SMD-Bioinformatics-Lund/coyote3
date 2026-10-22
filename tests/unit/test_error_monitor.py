@@ -21,7 +21,10 @@ def test_logs_change_date_at_local_midnight_and_keep_services_separate(tmp_path)
         assert (tmp_path / f"2026/09/10/{service}_2026-09-10.log").exists()
 
 
-def test_monitor_retries_with_snapshot_and_does_not_repeat_successful_recipients(tmp_path):
+def test_monitor_retries_with_snapshot_and_does_not_repeat_successful_recipients(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr("api.infra.observability.error_monitor.time.time", lambda: 1000)
     source = tmp_path / "2026/09/09/api_2026-09-09.log"
     source.parent.mkdir(parents=True)
     content = json.dumps({"severity": "error", "message": "database unavailable"}) + "\n"
@@ -42,6 +45,7 @@ def test_monitor_retries_with_snapshot_and_does_not_repeat_successful_recipients
     assert "database unavailable" in calls[0]["text_body"]
     source.unlink()  # Delivery still works after source retention.
     restarted = DiskErrorMonitor(tmp_path)
+    monkeypatch.setattr("api.infra.observability.error_monitor.time.time", lambda: 1031)
     remaining = []
     assert (
         restarted.deliver(
@@ -52,6 +56,70 @@ def test_monitor_retries_with_snapshot_and_does_not_repeat_successful_recipients
     )
     assert [message["to_email"] for message in remaining] == ["second@example.test"]
     assert restarted.deliver(["first@example.test"], sender) == 0
+
+
+def test_failed_batches_do_not_starve_later_jobs_and_corrupt_jobs_are_quarantined(tmp_path):
+    monitor = DiskErrorMonitor(tmp_path)
+    for index in range(12):
+        path = monitor.spool / f"{index:03}.json"
+        path.write_text(
+            json.dumps({"source": "api.log", "errors": [], "sent": [], "snapshot_format": "plain"})
+        )
+        path.with_suffix(".excerpt").write_bytes(b"context")
+    (monitor.spool / "broken.json").write_text("invalid")
+    assert monitor.deliver(["ops@example.test"], lambda **kw: False) == 0
+    assert monitor.deliver(["ops@example.test"], lambda **kw: True) == 2
+    status = json.loads((monitor.spool / "status.json").read_text())
+    assert status["pending"] == 10
+    assert status["quarantined"] == 1
+
+
+def test_oversized_log_line_does_not_block_later_errors(tmp_path):
+    from api.infra.observability.error_monitor import MAX_BATCH_BYTES
+
+    source = tmp_path / "2026/09/09/api.log"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"x" * (MAX_BATCH_BYTES * 3) + b'\n{"severity":"error","message":"later"}\n')
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    monitor.scan()
+    sent = []
+    assert monitor.deliver(["ops@example.test"], lambda **kw: sent.append(kw) or True) == 2
+    assert any("later" in message["text_body"] for message in sent)
+    assert all(len(message["attachments"][0][1]) <= MAX_BATCH_BYTES for message in sent)
+
+
+def test_capacity_backpressure_preserves_unread_source_offsets(tmp_path, monkeypatch):
+    source = tmp_path / "2026/09/09/api.log"
+    source.parent.mkdir(parents=True)
+    source.write_text('{"severity":"error","message":"retained"}\n')
+    monitor = DiskErrorMonitor(tmp_path)
+    monkeypatch.setattr("api.infra.observability.error_monitor.MAX_SPOOL_BYTES", 1)
+    monitor.scan()
+    assert not monitor.offsets
+    monkeypatch.setattr("api.infra.observability.error_monitor.MAX_SPOOL_BYTES", 256 * 1024 * 1024)
+    monitor.scan()
+    assert monitor.deliver(["ops@example.test"], lambda **kw: True) == 1
+
+
+def test_exhausted_delivery_is_quarantined_with_recipient_history(tmp_path, monkeypatch):
+    source = tmp_path / "2026/09/09/api.log"
+    source.parent.mkdir(parents=True)
+    source.write_text('{"severity":"error","message":"retained"}\n')
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    for attempt in range(20):
+        monkeypatch.setattr(
+            "api.infra.observability.error_monitor.time.time", lambda: 1000 + attempt * 3601
+        )
+        monitor.deliver(
+            ["ok@example.test", "blocked@example.test"],
+            lambda **kw: kw["to_email"] == "ok@example.test",
+        )
+    retained = json.loads(next(monitor.spool.glob("*.quarantined")).read_text())
+    assert retained["attempts"] == 20
+    assert retained["sent"] == ["ok@example.test"]
+    assert next(monitor.spool.glob("*.excerpt")).exists()
 
 
 def test_monitor_reads_compressed_logs_and_waits_for_complete_lines(tmp_path):

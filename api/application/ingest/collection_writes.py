@@ -14,7 +14,6 @@ from api.application.ingest.helpers import (
 from api.application.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
 from api.config.contracts.application import PIPELINE_MANIFEST
 from api.contracts.schemas.registry import normalize_collection_document, supported_collections
-from api.domain.core.internal.results import ReplaceDocumentResult
 
 
 def _normalize_pipeline_manifest_fields(payload: dict[str, Any]) -> dict[str, Any]:
@@ -103,34 +102,24 @@ def upsert_collection_document(
     if not isinstance(match, dict) or not match:
         raise ValueError("match must be a non-empty object")
     if collection in {"users", "roles", "permissions"}:
-        existing = service._collection(collection).find_one(match, session=session)
+        existing = service.collection_gateway.find_document(collection, match, session=session)
         if isinstance(existing, dict):
             reject_system_managed_change(existing, resource=collection)
     if collection == "samples":
-        existing = service._collection(collection).find_one(match, session=session)
+        existing = service.collection_gateway.find_document(collection, match, session=session)
         document = attribute_sample_import(collection, document, ingested_by)
         if existing is not None:
             for field in ("ingested_by", "ingest_source"):
                 document[field] = existing.get(field)
     normalized_doc = normalize_collection_document(collection, document)
-    result = service._collection(collection).replace_one(
-        filter=match,
-        replacement=dict(normalized_doc),
+    result = service.collection_gateway.replace_document(
+        collection,
+        match,
+        dict(normalized_doc),
         upsert=bool(upsert),
         session=session,
     )
-    replace_result = ReplaceDocumentResult(
-        matched_count=int(result.matched_count or 0),
-        modified_count=int(result.modified_count or 0),
-        upserted_id=str(result.upserted_id) if result.upserted_id else None,
-    )
-    return {
-        "status": "ok",
-        "collection": collection,
-        "matched_count": replace_result.matched_count,
-        "modified_count": replace_result.modified_count,
-        "upserted_id": replace_result.upserted_id,
-    }
+    return {"status": "ok", "collection": collection, **result.model_dump()}
 
 
 def attribute_sample_import(

@@ -2,6 +2,7 @@
 
 import secrets
 import time
+from typing import Any, cast
 
 from itsdangerous import BadData, URLSafeSerializer
 
@@ -31,18 +32,20 @@ def issue_token(secret: str, environment: str, hours: int = 24, *, issued_by: st
     """
     if not secret or not environment or not 1 <= hours <= 720:
         raise ValueError("A signing secret, environment, and lifetime of 1–720 hours are required")
-    return URLSafeSerializer(secret, salt="coyote3-sample-ingest-v1").dumps(
-        {
-            "scope": "sample-ingest",
-            "environment": environment_name(environment),
-            "expires": int(time.time()) + hours * 3600,
-            "id": secrets.token_hex(12),
-            "issued_by": issued_by,
-        }
+    return str(
+        URLSafeSerializer(secret, salt="coyote3-sample-ingest-v1").dumps(
+            {
+                "scope": "sample-ingest",
+                "environment": environment_name(environment),
+                "expires": int(time.time()) + hours * 3600,
+                "id": secrets.token_hex(12),
+                "issued_by": issued_by,
+            }
+        )
     )
 
 
-def verify_token(token: str, secret: str, environment: str) -> dict:
+def verify_token(token: str, secret: str, environment: str) -> dict[str, Any]:
     """Validate signature, expiry, purpose, and deployment audience.
 
     Returns:
@@ -64,6 +67,6 @@ def verify_token(token: str, secret: str, environment: str) -> dict:
             or not claims.get("id")
         ):
             raise ValueError("Invalid claims")
-        return claims
+        return cast(dict[str, Any], claims)
     except (BadData, ValueError, TypeError) as exc:
         raise ValueError("Invalid or expired ingestion token") from exc

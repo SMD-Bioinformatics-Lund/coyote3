@@ -232,7 +232,7 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         self.mark_false_positive(fusion_id, fp)
 
-    def pick_fusion(self, id, callidx, num_calls) -> Any:
+    def pick_fusion(self, id, callidx, num_calls, *, sample_id: str) -> Any:
         """
         Pick a specific fusion call and mark it as selected.
 
@@ -243,6 +243,7 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
             id (str): The ObjectId of the fusion record to update.
             callidx (int): The index of the call to mark as selected (1-based index).
             num_calls (int): The total number of calls in the fusion record.
+            sample_id: Canonical identifier of the authorized owning sample.
 
         Returns:
             None
@@ -252,7 +253,7 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
             updates[f"calls.{i}.selected"] = 0
         updates[f"calls.{int(callidx) - 1}.selected"] = 1
         result = self.get_collection().update_one(
-            {"_id": ObjectId(id)},
+            {"_id": ObjectId(id), "SAMPLE_ID": sample_id},
             {"$set": updates},
         )
         if result.modified_count:

@@ -41,7 +41,7 @@ to authoring and review; granting both roles does not waive the independence che
 | [`query_rule_reviewer`](#query-rule-reviewer) | Query Rule Reviewer | Independently approves saved query-rule drafts without editing or publishing them. | 2 |
 | [`query_rule_tester`](#query-rule-tester) | Query Rule Tester | Tests query policies against samples within assigned assay and environment scopes without editing or publishing rules. | 2 |
 | [`query_rule_viewer`](#query-rule-viewer) | Query Rule Viewer | Inspects query-rule versions and previews effective inherited policies. | 1 |
-| [`superuser`](#superuser) | Superuser | Emergency platform access for initial setup and controlled recovery, not routine administration. | 100 |
+| [`superuser`](#superuser) | Superuser | Emergency platform access for initial setup and controlled recovery, not routine administration. | 102 |
 | [`sys_admin`](#sys-admin) | System administrator | Manages accounts, access assignments, application controls and operational health. Clinical access requires separate roles. | 37 |
 | [`tester`](#tester) | Tester | Can test full features except user, schema, or config-level access. | 46 |
 | [`user`](#user) | Standard User | Can view and interact with samples assigned to their group. No admin or config access. | 35 |
@@ -472,6 +472,7 @@ Role: `superuser`. Emergency platform access for initial setup and controlled re
 - `coverage.blacklist:manage`
 - `coverage.low:download`
 - `dashboard.admin:view`
+- `demo:install`
 - `fusion:download`
 - `fusion:manage`
 - `gene.annotation:view`
@@ -496,6 +497,7 @@ Role: `superuser`. Emergency platform access for initial setup and controlled re
 - `query_rules:publish`
 - `query_rules:retire`
 - `query_rules:review`
+- `query_rules:test`
 - `query_rules:view`
 - `report:create`
 - `report:preview`

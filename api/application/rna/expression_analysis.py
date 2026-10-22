@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
+from itertools import batched
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
-from api.application.common.pagination import paginate_items, request_pagination
+from api.application.common.pagination import request_pagination
 from api.application.common.table_state import (
     numeric_value,
     parse_sort_specs,
-    search_items,
-    sort_items,
+    select_table_rows,
     sort_spec_to_query_value,
     sortable_text,
 )
@@ -342,36 +343,34 @@ class RnaService:
             asp_id=str(sample.get("asp_id") or ""),
             subpanel_id=str(sample.get("subpanel_id") or "base"),
         )
-        fusions = self.fusion_repository.hydrate_finding_comments_many(
-            list(self.fusion_repository.get_sample_fusions(query))
-        )
-        fusions, tiered_fusions = add_global_annotations(
-            fusions,
-            assay_group,
-            subpanel,
-            annotation_repository=self.annotation_repository,
-        )
+        tiered_fusions: list[dict[str, Any]] = []
+
+        def fusion_rows() -> Iterable[dict[str, Any]]:
+            """Enrich cursor batches while retaining the existing full tiered context."""
+            for batch in batched(self.fusion_repository.get_sample_fusions(query), 100):
+                hydrated = self.fusion_repository.hydrate_finding_comments_many(list(batch))
+                enriched, tiered = add_global_annotations(
+                    hydrated,
+                    assay_group,
+                    subpanel,
+                    annotation_repository=self.annotation_repository,
+                )
+                tiered_fusions.extend(tiered)
+                yield from enriched
+
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
-        if search_query:
-            fusions = search_items(
-                fusions, search_query=search_query, text_builder=_fusion_search_text
-            )
         sort_specs = parse_sort_specs(query_params)
-        fusions = sort_items(fusions, specs=sort_specs, value_getter=_fusion_sort_value)
-        page_fusions = fusions
-        pagination_meta: dict[str, Any] = {
-            "total": len(fusions),
-            "count": len(fusions),
-            "page_count": len(fusions),
-            "page": 1,
-            "per_page": len(fusions) or 50,
-            "has_previous": False,
-            "has_next": False,
-        }
-        if paginate:
-            page, per_page = request_pagination(request)
-            page_fusions, pagination_meta = paginate_items(fusions, page=page, per_page=per_page)
+        page, per_page = request_pagination(request)
+        page_fusions, pagination_meta = select_table_rows(
+            fusion_rows(),
+            search_query=search_query,
+            text_builder=_fusion_search_text,
+            specs=sort_specs,
+            value_getter=_fusion_sort_value,
+            page=page if paginate else None,
+            per_page=per_page,
+        )
         page_genes = [gene for fusion in page_fusions for gene in _fusion_genes(fusion)]
         sample = self.workflow.attach_rna_analysis_sections(sample)
         ai_text = ""
@@ -576,28 +575,37 @@ class RnaService:
             return [part.strip() for part in fusion_name.split("--") if part.strip()]
         return []
 
-    def set_fusion_flag(self, *, fusion_id: str, apply: bool, flag: str) -> None:
-        """Apply or remove a boolean flag on a single fusion."""
-        if flag == "false_positive":
-            if apply:
-                self.fusion_repository.mark_false_positive_fusion(fusion_id)
-            else:
-                self.fusion_repository.unmark_false_positive_fusion(fusion_id)
-            return
-        if flag == "interesting":
-            self.fusion_repository.mark_interesting(fusion_id, apply)
-            return
-        if flag == "irrelevant":
-            self.fusion_repository.mark_irrelevant(fusion_id, apply)
-            return
-        if flag == "blacklisted":
-            self.fusion_repository.mark_blacklisted(fusion_id, apply)
-            return
-        raise ValueError(f"Unsupported flag: {flag}")
+    def require_resource_for_sample(self, *, sample: dict, resource: str, resource_id: str) -> dict:
+        """Require the fusion to belong to the authorized sample before mutation."""
+        from api.application.common.finding_access import require_sample_finding
 
-    def select_fusion_call(self, *, fusion_id: str, callidx: str, num_calls: str) -> None:
+        if resource != "fusion":
+            raise ValueError("Unsupported RNA resource")
+        return require_sample_finding(sample, resource_id, self.fusion_repository.get_fusion)
+
+    def set_fusion_flag(
+        self, *, sample: dict, fusion_id: str, apply: bool, flag: str
+    ) -> OperationResult:
+        """Set an allowed flag using the authorized sample in the write predicate."""
+        fields = {
+            "interesting": "interesting",
+            "false_positive": "fp",
+            "irrelevant": "irrelevant",
+            "blacklisted": "blacklisted",
+        }
+        if flag not in fields:
+            raise ValueError(f"Unsupported flag: {flag}")
+        return self.fusion_repository.set_sample_finding_flag(
+            sample_id=str(sample["_id"]), resource_ids=[fusion_id], flag=fields[flag], value=apply
+        )
+
+    def select_fusion_call(
+        self, *, sample: dict, fusion_id: str, callidx: str, num_calls: str
+    ) -> None:
         """Persist the selected call index for a fusion."""
-        self.fusion_repository.pick_fusion(fusion_id, callidx, num_calls)
+        self.fusion_repository.pick_fusion(
+            fusion_id, callidx, num_calls, sample_id=str(sample["_id"])
+        )
 
     def set_fusion_comment_hidden(self, *, fusion_id: str, comment_id: str, hidden: bool) -> None:
         """Hide or unhide a fusion comment."""
@@ -607,18 +615,19 @@ class RnaService:
         self.fusion_repository.unhide_fus_comment(fusion_id, comment_id)
 
     def set_fusion_bulk_flag(
-        self, *, fusion_ids: list[str], apply: bool, flag: str
+        self, *, sample: dict, fusion_ids: list[str], apply: bool, flag: str
     ) -> OperationResult:
-        """Apply or remove a bulk boolean flag on fusions."""
-        if not fusion_ids:
-            return OperationResult.empty()
-        if flag == "false_positive":
-            return self.fusion_repository.mark_false_positive_bulk(fusion_ids, apply)
-        if flag == "irrelevant":
-            return self.fusion_repository.mark_irrelevant_bulk(fusion_ids, apply)
-        if flag == "blacklisted":
-            return self.fusion_repository.mark_blacklisted_bulk(fusion_ids, apply)
-        raise ValueError(f"Unsupported flag: {flag}")
+        """Validate ownership of every fusion before applying any bulk flag change."""
+        for fusion_id in fusion_ids:
+            self.require_resource_for_sample(
+                sample=sample, resource="fusion", resource_id=fusion_id
+            )
+        fields = {"false_positive": "fp", "irrelevant": "irrelevant", "blacklisted": "blacklisted"}
+        if flag not in fields:
+            raise ValueError(f"Unsupported flag: {flag}")
+        return self.fusion_repository.set_sample_finding_flag(
+            sample_id=str(sample["_id"]), resource_ids=fusion_ids, flag=fields[flag], value=apply
+        )
 
     def rna_analysis_payload(self, *, sample: dict[str, Any]) -> dict[str, Any]:
         """Return independently stored RNA analysis records for one sample."""

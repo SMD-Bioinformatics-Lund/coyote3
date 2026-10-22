@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.interpretation.annotation_enrichment import add_alt_class
-from api.application.query_rules import QueryRuleService, effective_policy
+from api.application.query_rules.service import QueryRuleService, effective_policy
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.reporting.eligibility import reportable_tiers

@@ -15,3 +15,5 @@ services:
     volumes: *center-inputs
   beat:
     volumes: *center-inputs
+  maintenance-worker:
+    volumes: *center-inputs

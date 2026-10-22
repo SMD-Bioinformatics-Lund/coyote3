@@ -10,6 +10,7 @@ from api.application.ingest.collection_writes import (
     upsert_collection_document,
 )
 from api.application.ingest.jobs import sample_entry_source
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from scripts.upgrade_from_v3.backfill_sample_ingest_provenance import plan_backfill
 
 
@@ -48,7 +49,9 @@ def test_sample_replacement_preserves_initial_attribution(monkeypatch, existing)
         lambda name, document: document,
     )
     upsert_collection_document(
-        SimpleNamespace(_collection=lambda name: collection),
+        SimpleNamespace(
+            collection_gateway=IngestCollectionGateway(collections={"samples": collection})
+        ),
         collection="samples",
         match={"name": "synthetic"},
         document={"ingested_by": "forged"},

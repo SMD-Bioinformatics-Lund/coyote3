@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from api.app.utilities.common import CommonUtility
-from api.app.utilities.dashboard import DashBoardUtility
 from api.domain.core.repository_protocols import (
     AssayConfigurationRepositoryProtocol,
     SampleRepositoryProtocol,
@@ -24,7 +23,6 @@ class Utility:
         if self._initialized:
             return
         self.common = CommonUtility()
-        self.dashboard = DashBoardUtility()
         self._initialized = True
 
     def __getattr__(self, name: str) -> Any:
@@ -131,6 +129,7 @@ class MongoStore:
     vep_metadata_repository: Any
 
     _repository_names: tuple[str, ...] = (
+        "ingest_jobs_repository",
         "annotation_repository",
         "assay_configuration_repository",
         "assay_panel_repository",
@@ -194,52 +193,8 @@ class MongoStore:
         self.identity_db = None
         self.knowledgebase_db = None
         self.bam_db = None
-        self.annotation_repository = _LazyRepositoryProxy()
-        self.assay_configuration_repository = _LazyRepositoryProxy()
-        self.assay_panel_repository = _LazyRepositoryProxy()
-        self.assay_subpanel_repository = _LazyRepositoryProxy()
-        self.assay_setup_repository = _LazyRepositoryProxy()
-        self.assay_group_repository = _LazyRepositoryProxy()
-        self.assay_setup_revision_repository = _LazyRepositoryProxy()
-        self.bam_record_repository = _LazyRepositoryProxy()
-        self.biomarker_repository = _LazyRepositoryProxy()
-        self.pgx_repository = _LazyRepositoryProxy()
-        self.public_assay_catalog_repository = _LazyRepositoryProxy()
-        self.public_assay_catalog_version_repository = _LazyRepositoryProxy()
-        self.public_assay_catalog_revision_repository = _LazyRepositoryProxy()
-        self.blacklist_repository = _LazyRepositoryProxy()
-        self.brca_repository = _LazyRepositoryProxy()
-        self.clinpgx_public_repository = _LazyRepositoryProxy()
-        self.clinical_rule_revision_repository = _LazyRepositoryProxy()
-        self.clinical_rule_set_repository = _LazyRepositoryProxy()
-        self.query_rule_repository = _LazyRepositoryProxy()
-        self.civic_repository = _LazyRepositoryProxy()
-        self.copy_number_variant_repository = _LazyRepositoryProxy()
-        self.cosmic_repository = _LazyRepositoryProxy()
-        self.knowledgebase_version_repository = _LazyRepositoryProxy()
-        self.d4_coverage_repository = _LazyRepositoryProxy()
-        self.expression_repository = _LazyRepositoryProxy()
-        self.fusion_repository = _LazyRepositoryProxy()
-        self.d4_coverage_blacklist_repository = _LazyRepositoryProxy()
-        self.hgnc_repository = _LazyRepositoryProxy()
-        self.iarc_tp53_repository = _LazyRepositoryProxy()
-        self.gene_list_repository = _LazyRepositoryProxy()
-        self.oncokb_repository = _LazyRepositoryProxy()
-        self.permissions_repository = _LazyRepositoryProxy()
-        self.notification_repository = _LazyRepositoryProxy()
-        self.reported_variant_repository = _LazyRepositoryProxy()
-        self.report_repository = _LazyRepositoryProxy()
-        self.rna_classification_repository = _LazyRepositoryProxy()
-        self.rna_expression_repository = _LazyRepositoryProxy()
-        self.rna_quality_repository = _LazyRepositoryProxy()
-        self.roles_repository = _LazyRepositoryProxy()
-        self.sample_repository = _LazyRepositoryProxy()
-        self.sample_comment_repository = _LazyRepositoryProxy()
-        self.finding_comment_repository = _LazyRepositoryProxy()
-        self.translocation_repository = _LazyRepositoryProxy()
-        self.user_repository = _LazyRepositoryProxy()
-        self.variant_repository = _LazyRepositoryProxy()
-        self.vep_metadata_repository = _LazyRepositoryProxy()
+        for name in self._repository_names:
+            setattr(self, name, _LazyRepositoryProxy())
 
     def init_from_app(self, runtime: Any) -> None:
         """Initialize and ping a Mongo adapter before exposing its public attributes.

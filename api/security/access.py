@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import secrets
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from hashlib import sha256
+from typing import Any, cast
 
 from fastapi import HTTPException, Request
 
 from api.app.deps.repositories import (
+    get_assay_panel_repository,
     get_permissions_repository,
     get_roles_repository,
     get_sample_repository,
@@ -35,6 +37,7 @@ from api.config.security import (
     get_runtime_environment,
 )
 from api.domain.core.models.user import UserModel
+from api.infra.security.sessions import ApiSession
 from api.security.audit_events import emit_access_event
 from api.security.auth_service import _load_user_access_context
 from api.security.policy import build_access_policy
@@ -79,7 +82,7 @@ class ApiUser:
     asp_ids: list[str]
     asp_groups: list[str]
     envs: list[str]
-    asp_map: dict
+    asp_map: dict[str, Any]
     auth_type: list[str]
     must_change_password: bool = False
     credential_version: str | None = field(default=None, repr=False)
@@ -189,7 +192,7 @@ def _audit_access_event(
     user: ApiUser | None = None,
     permission: str | None = None,
     sample_id: str | None = None,
-    extra: dict | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> None:
     """Emit an access-control audit event.
 
@@ -221,7 +224,7 @@ def get_api_session_cookie_name() -> str:
     Returns:
         str: Cookie name used for API sessions.
     """
-    return settings_session_cookie_name(runtime_app.config)
+    return str(settings_session_cookie_name(runtime_app.config))
 
 
 def get_api_session_ttl_seconds() -> int:
@@ -230,7 +233,7 @@ def get_api_session_ttl_seconds() -> int:
     Returns:
         int: Session lifetime in seconds.
     """
-    return settings_session_ttl_seconds(runtime_app.config)
+    return int(settings_session_ttl_seconds(runtime_app.config))
 
 
 def get_api_session_cookie_secure(*, request_scheme: str | None = None) -> bool:
@@ -239,15 +242,15 @@ def get_api_session_cookie_secure(*, request_scheme: str | None = None) -> bool:
     Returns:
         bool: ``True`` when the cookie must only be sent over HTTPS.
     """
-    return settings_session_cookie_secure(runtime_app.config, request_scheme=request_scheme)
+    return bool(settings_session_cookie_secure(runtime_app.config, request_scheme=request_scheme))
 
 
 def get_api_session_cookie_samesite() -> str:
     """Return the API session cookie SameSite policy."""
-    return settings_session_cookie_samesite(runtime_app.config)
+    return str(settings_session_cookie_samesite(runtime_app.config))
 
 
-def create_api_session(user_doc: dict, *, provider: str | None = None):
+def create_api_session(user_doc: dict[str, Any], *, provider: str | None = None) -> ApiSession:
     """Create and return a Mongo-backed API session for a user.
 
     Args:
@@ -265,7 +268,7 @@ def create_api_session(user_doc: dict, *, provider: str | None = None):
     user = api_user_from_user_doc(user_doc)
     session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
     session = get_api_session_repository().create(user, provider=session_provider)
-    return session
+    return cast(ApiSession, session)
 
 
 def delete_api_session_token(token: str | None) -> None:
@@ -274,7 +277,7 @@ def delete_api_session_token(token: str | None) -> None:
         get_api_session_repository().delete(token)
 
 
-def api_user_from_user_doc(user_doc: dict) -> ApiUser:
+def api_user_from_user_doc(user_doc: dict[str, Any]) -> ApiUser:
     """Build an ``ApiUser`` from the stored user document.
 
     Args:
@@ -318,7 +321,7 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
     )
 
 
-def serialize_api_user(user: ApiUser) -> dict:
+def serialize_api_user(user: ApiUser) -> dict[str, Any]:
     """Serialize an ``ApiUser`` into a response-safe payload.
 
     Args:
@@ -363,20 +366,20 @@ def _extract_api_session_token(request: Request) -> str | None:
         token = auth_header.split(" ", 1)[1].strip()
         if token:
             return token
-    return request.cookies.get(get_api_session_cookie_name())
+    return cast(str | None, request.cookies.get(get_api_session_cookie_name()))
 
 
-def _get_cached_api_session(request: Request, token: str | None):
+def _get_cached_api_session(request: Request, token: str | None) -> ApiSession | None:
     """Load an API session once and reuse it for the current request."""
     if not token:
         return None
     cached_token = getattr(request.state, "api_session_token", None)
     if cached_token == token and hasattr(request.state, "api_session"):
-        return request.state.api_session
+        return cast(ApiSession | None, request.state.api_session)
     session = get_api_session_repository().get(token)
     request.state.api_session_token = token
     request.state.api_session = session
-    return session
+    return cast(ApiSession, session)
 
 
 def _decode_session_user(request: Request) -> ApiUser:
@@ -393,14 +396,14 @@ def _decode_session_user(request: Request) -> ApiUser:
         session = _get_cached_api_session(request, api_token)
         if session is None:
             raise _api_error(401, "Login required")
-        return session.user
+        return cast(ApiUser, session.user)
     raise _api_error(401, "Login required")
 
 
 def _enforce_access(
     user: ApiUser,
     permission: str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> None:
     """Enforce permission and optional resource-scope requirements for a user.
 
@@ -512,16 +515,18 @@ def validate_request_csrf(request: Request) -> bool:
     return bool(session and supplied and secrets.compare_digest(session.csrf_token, supplied))
 
 
-def get_request_api_session(request: Request):
+def get_request_api_session(request: Request) -> ApiSession:
     """Resolve the server-side session associated with the request cookie."""
     token = request.cookies.get(get_api_session_cookie_name())
     session = _get_cached_api_session(request, token)
     if session is None:
         raise _api_error(401, "Login required")
-    return session
+    return cast(ApiSession, session)
 
 
-def require_access(permission: str | None = None):
+def require_access(
+    permission: str | None = None,
+) -> Callable[[Request], Generator[ApiUser, None, None]]:
     """Build a dependency that enforces route-level access requirements.
 
     Args:
@@ -625,7 +630,9 @@ def require_sample_ingest_access(request: Request) -> Generator[ApiUser, None, N
         reset_current_user(token)
 
 
-def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
+def _get_sample_for_api(
+    sample_id: str, user: ApiUser, request: Request | None = None
+) -> dict[str, Any]:
     """Return a sample after enforcing sample-assay access rules.
 
     Args:
@@ -658,12 +665,19 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             roles_repository=get_roles_repository(),
             permissions_repository=get_permissions_repository(),
         )
+        assay_group = None
+        group_restricted = bool(user.asp_groups) and "*" not in user.asp_groups
+        if group_restricted:
+            assay = get_assay_panel_repository().get_asp(sample_assay)
+            assay_group = assay.get("asp_group") if assay else None
         sample_scope = {
             "asp_id": sample_assay,
             "environment": sample.get("environment"),
-            "asp_group": sample.get("asp_group"),
+            "asp_group": assay_group,
         }
-        scope_allowed = policy.scope_allowed(user, sample_scope)
+        scope_allowed = (not group_restricted or bool(assay_group)) and policy.scope_allowed(
+            user, sample_scope
+        )
     else:
         scope_allowed = True
 
@@ -706,7 +720,7 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             category="scope",
             hint="Ask an administrator to update your sample access scope.",
         )
-    return sample
+    return cast(dict[str, Any], sample)
 
 
 def _require_internal_token(request: Request) -> None:

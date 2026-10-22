@@ -30,7 +30,7 @@ jobs:
       MONGO_APP_PASSWORD: ci-app-password
       COYOTE3_MONGO_NETWORK: coyote3-ci-mongo-net
       COYOTE3_MONGO_URI: "mongodb://coyote3_app:ci-app-password@host.docker.internal:27017/coyote3_ci?authSource=admin&replicaSet=coyote3-rs"
-      MONGO_BACKUP_URI: "mongodb://coyote3_root:ci-root-password@mongo-app:27017/admin?authSource=admin&replicaSet=coyote3-rs"
+      MONGO_BACKUP_URI: "mongodb://coyote3_root:ci-root-password@mongo-app:27017/admin?authSource=admin&replicaSet=coyote3-rs&directConnection=true"
       COYOTE3_PORT: "8005"
       SCRIPT_NAME: /coyote3_ci
       ADMIN_USERNAME: coyote3.admin
@@ -62,17 +62,23 @@ jobs:
           BAM_DB=${BAM_DB}
           ORGANIZATION_NAME=Coyote3 CI
           LOCAL_TIME_ZONE=UTC
-          SECRET_KEY=ci-test-secret-key
-          INTERNAL_API_TOKEN=ci-test-internal-token
-          PASSWORD_TOKEN_SALT=ci-stage-password-token-salt
+          SECRET_KEY=$(openssl rand -hex 32)
+          INTERNAL_API_TOKEN=$(openssl rand -hex 32)
+          PASSWORD_TOKEN_SALT=$(openssl rand -hex 32)
+          REDIS_PASSWORD=$(openssl rand -hex 32)
+          MONGO_UID=999
+          MONGO_GID=999
           COYOTE3_PORT=${COYOTE3_PORT}
           SCRIPT_NAME=${SCRIPT_NAME}
-          PUBLIC_BASE_URL=http://localhost:${COYOTE3_PORT}
+          PUBLIC_BASE_URL=http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}
           MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
           MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
           MONGO_APP_USER=${MONGO_APP_USER}
           MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
           COYOTE3_MONGO_URI=${COYOTE3_MONGO_URI}
+          IDENTITY_MONGO_URI=${COYOTE3_MONGO_URI}
+          KNOWLEDGEBASE_MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@host.docker.internal:27017/admin?authSource=admin&replicaSet=coyote3-rs
+          BAM_MONGO_URI=${COYOTE3_MONGO_URI}
           COYOTE3_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/data
           COYOTE3_LOGS_HOST_ROOT=${RUNNER_TEMP}/coyote3/logs
           COYOTE3_MONGO_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-data
@@ -95,12 +101,12 @@ jobs:
       - name: Start disposable MongoDB replica set
         run: |
           docker network create "${COYOTE3_MONGO_NETWORK}"
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
             --profile mongo -p coyote3_mongodb_ci \
             up -d mongo
-          docker compose --env-file .coyote3_stage_env \
+          ./scripts/deployment/compose-with-version.sh --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
             --profile mongo -p coyote3_mongodb_ci run --rm mongo_init
 
@@ -108,11 +114,15 @@ jobs:
         run: |
           SYS_ADMIN_PASSWORD="$(openssl rand -base64 32)"
           echo "::add-mask::$SYS_ADMIN_PASSWORD"
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             build api
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            up -d --wait redis
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             run --rm --no-deps api \
@@ -126,20 +136,11 @@ jobs:
               --sys-admin-password "$SYS_ADMIN_PASSWORD" \
               --email "${ADMIN_EMAIL}" \
               --password "${ADMIN_PASSWORD}" \
-              --role-id superuser \
-              --with-demo-center
-
-      - name: Install bundled references with disposable maintenance credentials
-        run: |
-          docker compose --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
-            run --rm --no-deps \
-            -e KNOWLEDGEBASE_MONGO_URI="${MONGO_BACKUP_URI}" \
-            api python scripts/bootstrap/install_reference_data.py --actor ci.system.admin
+              --role-id superuser --require-empty-target
 
       - name: Apply indexes with disposable maintenance credentials
         run: |
-          docker compose --env-file .coyote3_stage_env \
+          ./scripts/deployment/compose-with-version.sh --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             run --rm --no-deps \
             -e KNOWLEDGEBASE_MONGO_URI="${MONGO_BACKUP_URI}" \
@@ -165,17 +166,24 @@ jobs:
           echo "API did not become healthy in time: $health_url" >&2
           exit 1
 
-      - name: Run sample ingest check
+      - name: Complete required initial password change through the API
         run: |
-          docker compose \
-            --env-file .coyote3_stage_env \
+          ./scripts/deployment/compose-with-version.sh --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
-            exec -T api \
-            bash scripts/deployment/center_check.sh \
-              --api-base-url http://127.0.0.1:8001 \
-              --username "${ADMIN_USERNAME}" \
-              --password "${ADMIN_PASSWORD}" \
-              --yaml-file demo_data/ingest/generic_case_control.yaml
+            exec -T -e CI_USERNAME="${ADMIN_USERNAME}" -e CI_PASSWORD="${ADMIN_PASSWORD}" api python3 - <<'PYCODE'
+          import os
+          import httpx
+          from api.client.auth import login_with_password
+          password = os.environ["CI_PASSWORD"]
+          session = login_with_password(base_url="http://127.0.0.1:8001",
+              username=os.environ["CI_USERNAME"], password=password, provider="local")
+          assert session.user["must_change_password"]
+          response = httpx.post("http://127.0.0.1:8001/api/v1/auth/password/change",
+              headers=session.bearer_headers, json={"current_password": password,
+                  "new_password": password + "-Changed9!", "confirm_password": password + "-Changed9!"})
+          response.raise_for_status()
+          PYCODE
+          echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}-Changed9!" >> "$GITHUB_ENV"
 
       - name: Verify composed sample workflow
         run: |-
@@ -189,10 +197,10 @@ jobs:
             'import json,sys; d=json.load(sys.stdin); \
              rows=d if isinstance(d,list) else d.get("items",d.get("samples",[])); \
              print(sum(1 for x in rows \
-               if str(x.get("name","")).startswith("seed_case") \
+               if str(x.get("name","")).startswith("DEMO_STARTER_DNA") \
                and x.get("ingest_status","").lower()=="ready"))')"
-          test "$ready" -gt 0 || { echo "ERROR: no ready seed_case sample found" >&2; exit 1; }
-          echo "Composed workflow verified: seed_case is ready (${ready} match)."
+          test "$ready" -gt 0 || { echo "ERROR: no ready DEMO_STARTER_DNA sample found" >&2; exit 1; }
+          echo "Composed workflow verified: DEMO_STARTER_DNA is ready (${ready} match)."
 
       - name: Rehearse disposable database backup and restore
         run: |
@@ -204,6 +212,9 @@ jobs:
             --label ci-rehearsal \
             --docker-network "${COYOTE3_MONGO_NETWORK}"
 
+          ./scripts/deployment/compose-with-version.sh --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            stop api worker maintenance-worker beat monitor
           archive="$(find "$backup_dir" -maxdepth 1 -name '*.archive.gz' -print -quit)"
           test -n "$archive"
           ./scripts/database/mongo_restore_archive.sh \
@@ -215,6 +226,10 @@ jobs:
 
       - name: Verify sample workflow after restore
         run: |-
+          ./scripts/deployment/compose-with-version.sh --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            up -d --wait
+
           api_url="http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1"
           curl -fsS -c /tmp/coyote3-ci-cookies -X POST "${api_url}/auth/sessions" \
             -H 'Content-Type: application/json' \
@@ -225,28 +240,28 @@ jobs:
             'import json,sys; d=json.load(sys.stdin); \
              rows=d if isinstance(d,list) else d.get("items",d.get("samples",[])); \
              print(sum(1 for x in rows \
-               if str(x.get("name","")).startswith("seed_case") \
+               if str(x.get("name","")).startswith("DEMO_STARTER_DNA") \
                and x.get("ingest_status","").lower()=="ready"))')"
-          test "$ready" -gt 0 || { echo "ERROR: no ready seed_case sample found after restore" >&2; exit 1; }
-          echo "Post-restore workflow verified: seed_case is ready (${ready} match)."
+          test "$ready" -gt 0 || { echo "ERROR: no ready DEMO_STARTER_DNA sample found after restore" >&2; exit 1; }
+          echo "Post-restore workflow verified: DEMO_STARTER_DNA is ready (${ready} match)."
 
       - name: Capture logs and stop stack
         if: always()
         run: |
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             logs --no-color > bootstrap_and_ingest_logs.txt 2>&1 || true
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
             --profile mongo -p coyote3_mongodb_ci \
             logs --no-color >> bootstrap_and_ingest_logs.txt 2>&1 || true
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             down || true
-          docker compose \
+          ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.mongo.yml \
             --profile mongo -p coyote3_mongodb_ci \

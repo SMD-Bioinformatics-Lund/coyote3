@@ -47,7 +47,6 @@ dependencies = [
     "click==8.3.3",
     "cssselect2==0.9.0",
     "dnspython==2.8.0",
-    "email_validator==2.3.0",
     "filelock==3.25.2",
     "fonttools==4.62.1",
     "json5==0.14.0",
@@ -56,7 +55,7 @@ dependencies = [
     "Jinja2==3.1.6",
     "Markdown==3.10.2",
     "MarkupSafe==3.0.3",
-    "pillow==12.3.0",
+    "pillow==13.0.0",
     "pydantic==2.13.5",
     "pydantic_core==2.46.5",
     "casbin==1.36.1",
@@ -68,7 +67,7 @@ dependencies = [
     "uvicorn==0.44.0",
     "httpx==0.28.1",
     "pydyf==0.12.1",
-    "pymongo==4.17.0",
+    "pymongo==4.18.2",
     "pysam==0.24.1",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.2",
@@ -82,7 +81,7 @@ dependencies = [
     "typing_extensions==4.15.0",
     "weasyprint==70.0",
     "webencodings==0.5.1",
-    "Werkzeug==3.1.8",
+    "Werkzeug==3.1.9",
 ]
 
 [project.urls]
@@ -194,20 +193,49 @@ strict = true
 follow_imports = "skip"
 ignore_missing_imports = true
 files = [
-    "api/security/auth_service.py",
-    "api/security/password_flows.py",
-    "api/infra/notifications/email.py",
+    "api/application/accounts/common.py",
+    "api/application/ingest/translocations.py",
+    "api/domain",
+    "api/application/accounts/permissions.py",
+    "api/application/accounts/roles.py",
     "api/application/accounts/users.py",
+    "api/application/audit/service.py",
+    "api/infra/mongo/repositories/audit.py",
+    "api/application/notifications/access.py",
+    "api/application/notifications/service.py",
+    "api/application/notifications/activity.py",
+    "api/application/provisioning/deployment_data.py",
+    "api/application/provisioning/demo_installation.py",
+    "api/application/common/alignment_files.py",
+    "api/application/common/change_payload.py",
+    "api/application/common/file_access.py",
+    "api/application/common/finding_access.py",
+    "api/application/common/pagination.py",
+    "api/application/common/protected_records.py",
+    "api/application/common/table_state.py",
+    "api/application/ingest/analysis_parsers.py",
+    "api/application/ingest/helpers.py",
+    "api/application/ingest/json_resources.py",
+    "api/application/ingest/sample_updates.py",
+    "api/application/knowledgebase/gene_markers.py",
+    "api/application/knowledgebase/oncokb_refresh.py",
+    "api/infra/observability/client_errors.py",
+    "api/application/reporting/clinical_rules/renderers.py",
+    "api/application/reporting/clinical_rules/resolution.py",
+    "api/application/reporting/clinical_rules/terminology_defaults.py",
+    "api/application/reporting/clinical_rules/testing.py",
+    "api/application/reporting/report_library.py",
+    "api/application/resources/asp.py",
     "api/config/application_modules.py",
-    "api/domain/core/annotation_identity.py",
-    "api/domain/core/dna/variant_identity.py",
-    "api/domain/core/filter_capabilities.py",
-    "api/domain/core/workflows/contracts.py",
-    "api/domain/core/workflows/filter_normalization.py",
+    "api/infra/notifications/email.py",
     "api/infra/observability/operations.py",
     "api/infra/observability/prometheus_metrics.py",
-    "api/domain/core/repository_protocols.py",
+    "api/security",
 ]
+
+[[tool.mypy.overrides]]
+module = ["pydantic", "pydantic.*"]
+follow_imports = "normal"
 
 [tool.setuptools]
 include-package-data = true

@@ -592,6 +592,7 @@ def test_conflict_groups_do_not_conflict_across_findings_or_excluded_analyses():
     "mode,strategy", [("once", "first_match"), ("each_finding", "at_most_one")]
 )
 def test_conflict_group_validation_rejects_unsafe_configuration(mode, strategy):
+    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
     from api.application.reporting.clinical_rules.validation import validate_rule_set
 
     blocks = [
@@ -606,6 +607,28 @@ def test_conflict_group_validation_rejects_unsafe_configuration(mode, strategy):
     ]
     document = _document(blocks)
     assert not validate_rule_set(document).valid
+    with pytest.raises(
+        ValueError, match="Conflict group.*(strict matching|mixes evaluation scopes)"
+    ):
+        ClinicalRuleEvaluator().evaluate(_context(), document, reporting_analyses={"SNV"})
+
+
+def test_strict_alternatives_warn_when_conditions_overlap():
+    from api.application.reporting.clinical_rules.validation import validate_rule_set
+
+    document = _document(
+        [
+            _block(
+                strategy="exactly_one",
+                rules=[_rule("first", "First"), {**_rule("second", "Second"), "order": 20}],
+            )
+        ]
+    )
+    result = validate_rule_set(document)
+    assert any(
+        "potentially overlapping rules 'first' and 'second'" in warning
+        for warning in result.warnings
+    )
 
 
 def test_evaluator_rejects_mixed_heading_modes_at_runtime() -> None:

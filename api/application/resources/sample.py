@@ -14,6 +14,7 @@ from api.application.accounts.common import (
     utc_now,
 )
 from api.application.resources.helpers import _validated_doc
+from api.config.paths import REPORTS_BASE_PATH
 from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.sample_deletion import delete_all_sample_traces
 from api.infra.observability.operations import measured_operation
@@ -208,7 +209,7 @@ class ResourceSampleService:
         return payload
 
     def delete(self, *, sample_id: str) -> dict[str, Any]:
-        """Delete a sample and return a change-status payload."""
+        """Delete owned database records and queue generated report files for erasure."""
         sample_name = self.sample_repository.get_sample_name(sample_id)
         if not sample_name:
             raise api_error(404, "Sample not found")
@@ -229,11 +230,17 @@ class ResourceSampleService:
             finding_comment_repository=self.finding_comment_repository,
             report_repository=self.report_repository,
             reported_variant_repository=self.reported_variant_repository,
+            reports_root=self.sample_repository.app.config.get(
+                "REPORTS_BASE_PATH", REPORTS_BASE_PATH
+            ),
         )
         payload = change_payload(resource="sample", resource_id=sample_id, action="delete")
         payload["meta"]["sample_name"] = deletion_summary.get("sample_name") or sample_name
         payload["meta"]["sample_oid"] = sample_id
         payload["meta"]["results"] = deletion_summary.get("results", [])
+        payload["meta"]["report_artifacts_queued"] = deletion_summary.get(
+            "report_artifacts_queued", 0
+        )
         return payload
 
 

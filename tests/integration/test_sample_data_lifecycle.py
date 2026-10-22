@@ -11,8 +11,8 @@ from pymongo import MongoClient
 
 from api.application.ingest.service import InternalIngestService
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 from api.infra.mongo.repositories.sample_deletion import delete_all_sample_traces
@@ -248,13 +248,15 @@ def test_revision_rotation_failure_keeps_original_active(database, monkeypatch):
 
 
 @pytest.mark.parametrize("fail", [False, True])
-def test_sample_deletion_is_atomic_and_preserves_other_owners(database, monkeypatch, fail):
+def test_sample_deletion_is_atomic_and_preserves_other_owners(
+    database, monkeypatch, fail, tmp_path
+):
     oid = ObjectId()
     database.samples.insert_one({"_id": oid, "name": "SYNTHETIC_DELETE"})
     specs = {
         "variant": "variants",
         "copy_number_variant": "cnvs",
-        "coverage": "d4_coverage",
+        "d4_coverage": "d4_coverage",
         "translocation": "translocations",
         "fusion": "fusions",
         "biomarker": "biomarkers",
@@ -281,6 +283,9 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(database, monkeypa
             get_collection=lambda collection=database[name]: collection,
             invalidate_dashboard_metrics=lambda: None,
         )
+    artifact = tmp_path / "synthetic.html"
+    artifact.write_text("synthetic report")
+    database.reports.update_one({"sample_oid": oid}, {"$set": {"filepath": str(artifact)}})
     samples = SimpleNamespace(
         adapter=SimpleNamespace(client=database.client),
         get_collection=lambda: database.samples,
@@ -299,14 +304,18 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(database, monkeypa
             ),
         )
         with pytest.raises(RuntimeError, match="deletion failure"):
-            delete_all_sample_traces(str(oid), sample_repository=samples, **repositories)
+            delete_all_sample_traces(
+                str(oid), sample_repository=samples, reports_root=tmp_path, **repositories
+            )
     else:
         assert (
-            delete_all_sample_traces(str(oid), sample_repository=samples, **repositories)[
-                "sample_name"
-            ]
+            delete_all_sample_traces(
+                str(oid), sample_repository=samples, reports_root=tmp_path, **repositories
+            )["sample_name"]
             == "SYNTHETIC_DELETE"
         )
     assert database.samples.count_documents({}) == (1 if fail else 0)
+    assert database.report_artifact_erasure.count_documents({}) == (0 if fail else 1)
+    assert artifact.exists()
     for name in specs.values():
         assert database[name].count_documents({}) == (2 if fail else 1)

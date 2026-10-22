@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends
 
 from api.app.deps.services import get_query_rule_service, get_query_rule_testing_service
-from api.application.query_rule_testing import QueryRuleTestingService
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
+from api.application.query_rules.testing import QueryRuleTestingService
 from api.contracts.schemas.query_rules import (
     QueryConditionTest,
     QueryConditionTestResult,

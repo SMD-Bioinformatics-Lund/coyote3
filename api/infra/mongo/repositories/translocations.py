@@ -11,6 +11,10 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from collections.abc import Iterable
+from itertools import batched
+from typing import Any
+
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
@@ -106,22 +110,34 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
             normalized["INFO"] = {}
         return normalized
 
-    def get_sample_translocations(self, sample_id: str | dict) -> list:
+    def get_sample_translocations(
+        self,
+        sample_id: str | dict,
+        *,
+        stream: bool = False,
+    ) -> list[dict[str, Any]] | Iterable[dict[str, Any]]:
         """
         Retrieve all translocations for a given sample.
 
         Args:
             sample_id (str | dict): Sample id or full Mongo query.
+            stream: Return a lazy, normalized and comment-hydrated stream when true.
 
         Returns:
-            list: A list of translocations matching the sample ID.
+            Matching translocations in source order, as a stream or a list.
         """
-        if isinstance(sample_id, dict):
-            rows = list(self.get_collection().find(sample_id))
-        else:
-            rows = list(self.get_collection().find({"SAMPLE_ID": sample_id}))
-        normalized = [self._normalize_info_shape(row) for row in rows]
-        return self.hydrate_finding_comments_many(normalized)
+
+        def rows() -> Iterable[dict[str, Any]]:
+            """Hydrate comments in bounded cursor batches while preserving source order."""
+            cursor = self.get_collection().find(
+                sample_id if isinstance(sample_id, dict) else {"SAMPLE_ID": sample_id}
+            )
+            for batch in batched(cursor, 100):
+                yield from self.hydrate_finding_comments_many(
+                    [self._normalize_info_shape(row) for row in batch]
+                )
+
+        return rows() if stream else list(rows())
 
     def get_interesting_sample_translocations(
         self, sample_id: str, interesting: bool = True

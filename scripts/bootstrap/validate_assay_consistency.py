@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import gzip
-import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -19,12 +17,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from api.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
 from api.contracts.schemas.registry import (  # noqa: E402
     supported_collections,
     validate_collection_document,
 )
+from api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
 
-VALID_ENVIRONMENTS = {"production", "development", "testing", "validation"}
+VALID_ENVIRONMENTS = set(ENVIRONMENT_OPTIONS)
 ENV_ALIASES = {
     "prod": "production",
     "production": "production",
@@ -94,120 +94,21 @@ def _norm(value: Any) -> str:
 
 
 def _load_seed(path: str) -> dict[str, Any]:
-    """Read immediate JSON seed arrays from an existing directory.
-
-    Args:
-        path: Directory containing collection-named ``.json`` files.
-
-    Returns:
-        File stems mapped to decoded arrays, read in sorted filename order.
-        An empty directory produces an empty mapping.
-
-    Raises:
-        SystemExit: The directory is missing or a file does not contain a JSON array.
-        json.JSONDecodeError: A seed file contains malformed JSON.
-        OSError: A seed file cannot be read.
-    """
-    seed_path = Path(path)
-    if not seed_path.is_dir():
-        raise SystemExit(f"Seed directory not found: {seed_path}")
-    payload: dict[str, Any] = {}
-    for file in sorted(seed_path.glob("*.json")):
-        value = json.loads(file.read_text(encoding="utf-8"))
-        if not isinstance(value, list):
-            raise SystemExit(f"Collection seed file must contain a JSON list: {file}")
-        payload[file.stem] = value
-    return payload
+    """Validate the selected seed directory and read its canonical JSON arrays."""
+    directory = Path(path)
+    if not directory.is_dir():
+        raise SystemExit(f"Seed directory not found: {directory}")
+    return load_seed(directory)
 
 
 def _load_reference_seed_pack(path: str) -> dict[str, Any]:
-    """Read supported RBAC, HGNC, and VEP NDJSON files from a reference directory.
-
-    Args:
-        path: Existing directory with at least one supported plain or gzip reference file.
-
-    Returns:
-        Present collections mapped to ordered object lists; plain files take precedence
-        over gzip versions and absent collections are omitted.
-
-    Raises:
-        SystemExit: The directory is missing, no supported files exist, or a line
-            contains a JSON value other than an object.
-        json.JSONDecodeError: A reference line contains malformed JSON.
-        OSError: Reading or decompressing a reference file fails.
-    """
-    reference_path = Path(path)
-    if not reference_path.is_dir():
-        raise SystemExit(f"Reference seed data directory not found: {reference_path}")
-
-    required_pack = {
-        "hgnc_genes": "hgnc_genes.seed.ndjson",
-        "permissions": "permissions.seed.ndjson",
-        "roles": "roles.seed.ndjson",
-        "vep_metadata": "vep_metadata.seed.ndjson",
-    }
-
-    def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path | None:
-        """Select an existing plain reference file before trying its gzip variant.
-
-        Args:
-            base_dir: Reference pack directory.
-            stem_name: Complete uncompressed filename including the NDJSON suffix.
-
-        Returns:
-            Plain or gzip file path, or None when neither exists.
-        """
-        plain_path = base_dir / stem_name
-        if plain_path.exists():
-            return plain_path
-        gzip_path = base_dir / f"{stem_name}.gz"
-        if gzip_path.exists():
-            return gzip_path
-        return None
-
-    def _load_ndjson(file_path: Path) -> list[dict[str, Any]]:
-        """Decode nonblank reference lines as objects, supporting gzip compression.
-
-        Args:
-            file_path: UTF-8 NDJSON file; a ``.gz`` suffix selects decompression.
-
-        Returns:
-            JSON objects in source order, or an empty list for a blank file.
-
-        Raises:
-            SystemExit: A nonblank line decodes to a non-object value.
-            json.JSONDecodeError: A nonblank line is malformed JSON.
-            OSError: Reading or decompressing the file fails.
-        """
-        docs: list[dict[str, Any]] = []
-        opener = gzip.open if file_path.suffix == ".gz" else open
-        with opener(file_path, "rt", encoding="utf-8") as handle:
-            for line in handle:
-                text = line.strip()
-                if not text:
-                    continue
-                value = json.loads(text)
-                if not isinstance(value, dict):
-                    raise SystemExit(
-                        f"Reference seed file must contain JSON objects per line: {file_path}"
-                    )
-                docs.append(value)
-        return docs
-
-    payload: dict[str, Any] = {}
-    for collection, filename in required_pack.items():
-        file_path = _resolve_reference_file(reference_path, filename)
-        if file_path is None:
-            continue
-        payload[collection] = _load_ndjson(file_path)
-
+    """Read a nonempty reference pack using the shared installation loader."""
+    directory = Path(path)
+    if not directory.is_dir():
+        raise SystemExit(f"Reference seed data directory not found: {directory}")
+    payload = load_reference_seed_pack(directory)
     if not payload:
-        expected = ", ".join(required_pack.values())
-        raise SystemExit(
-            f"Reference seed data directory contains no supported files: {reference_path}. "
-            f"Expected one or more of: {expected} (optionally gzip-compressed)."
-        )
-
+        raise SystemExit(f"Reference seed data directory contains no supported files: {directory}")
     return payload
 
 

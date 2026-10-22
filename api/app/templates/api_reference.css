@@ -1,12 +1,12 @@
 :root {
   color-scheme: light;
   /* Mirrored from the application light theme; parity is checked in tests. */
-  --background: oklch(0.925 0.003 255);
+  --background: #dfe3e8;
   --foreground: oklch(0.235 0.006 255);
-  --card: oklch(0.965 0.003 255);
+  --card: #eff2f6;
   --primary: oklch(0.45 0.105 302);
   --muted-foreground: oklch(0.405 0.007 255);
-  --border: oklch(0.79 0.007 255);
+  --border: #bdc5d0;
   --brand-start: oklch(0.5 0.115 302);
   --brand-end: oklch(0.66 0.13 58);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));

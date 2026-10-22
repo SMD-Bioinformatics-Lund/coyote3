@@ -8,6 +8,21 @@
 
 This is the canonical collection-key reference used by ingestion validation.
 
+## Operational collections
+
+These internal queues are not public collection-ingest targets. Names are owned by
+`api/config/contracts/application.py`; database maintenance uses the index registry.
+
+| Collection | Database | Purpose |
+| --- | --- | --- |
+| `audit_outbox` | Owning business database | Transaction-owned receipts awaiting central audit delivery. |
+| `audit_chain_heads` | Identity | Serialized append positions for audit integrity chains. |
+| `report_artifact_erasure` | Application | Committed artifact deletion jobs, retry reasons and attempt history. |
+| `notification_activity_progress` | Application | Environment-scoped forward and reconciliation cursors. |
+
+See [background delivery and recovery](../operations/background-delivery.md) for
+queue ownership, indexes, retention boundaries and failure recovery.
+
 ## Cross-collection relations
 
 - `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
@@ -31,7 +46,7 @@ Required keys:
 
 Optional keys:
 - `variant_class` (str | None)
-- `CSQ` (list[api.contracts.schemas.reference.VepAnnoTranscriptDoc])
+- `CSQ` (list[api.contracts.schemas.variant_annotations.VepAnnoTranscriptDoc])
 
 ## `annotation`
 
@@ -1398,13 +1413,13 @@ Required keys:
 - `source` (str)
 - `vc_translation_source` (str)
 - `conseq_translation_source` (str)
-- `db_info` (Dict[str, api.contracts.schemas.reference.VepDbInfoDoc])
-- `variant_class_translations` (Dict[str, api.contracts.schemas.reference.VepVariantClassDoc])
-- `conseq_translations` (Dict[str, api.contracts.schemas.reference.VepConsequenceDoc])
+- `db_info` (Dict[str, api.contracts.schemas.variant_annotations.VepDbInfoDoc])
+- `variant_class_translations` (Dict[str, api.contracts.schemas.variant_annotations.VepVariantClassDoc])
+- `conseq_translations` (Dict[str, api.contracts.schemas.variant_annotations.VepConsequenceDoc])
 - `consequence_groups` (Dict[str, list[str]])
 
 Optional keys:
-- `consequence_diagram` (api.contracts.schemas.reference.VepConsequenceDiagramDoc | None)
+- `consequence_diagram` (api.contracts.schemas.variant_annotations.VepConsequenceDiagramDoc | None)
 
 ## `versions`
 

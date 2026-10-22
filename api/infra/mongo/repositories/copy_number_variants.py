@@ -11,6 +11,10 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from collections.abc import Iterable
+from itertools import batched
+from typing import Any
+
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
@@ -62,17 +66,30 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
             background=True,
         )
 
-    def get_sample_cnvs(self, query: dict) -> list[dict | None]:
+    def get_sample_cnvs(
+        self,
+        query: dict,
+        *,
+        stream: bool = False,
+    ) -> list[dict[str, Any]] | Iterable[dict[str, Any]]:
         """
         Retrieve CNVs for a specific sample based on the provided query.
 
         Args:
             query (dict): A dictionary containing the query parameters to filter CNVs.
+            stream: Return a lazy, comment-hydrated stream when true; otherwise a list.
 
         Returns:
-            list[dict | None]: A list of CNVs matching the query, or an empty list if none are found.
+            Matching CNV documents in source order, as a stream or a list.
         """
-        return self.hydrate_finding_comments_many(list(self.get_collection().find(query)))
+
+        def rows() -> Iterable[dict[str, Any]]:
+            """Hydrate comments in bounded cursor batches while preserving source order."""
+            cursor = self.get_collection().find(query)
+            for batch in batched(cursor, 100):
+                yield from self.hydrate_finding_comments_many(list(batch))
+
+        return rows() if stream else list(rows())
 
     def get_cnv(self, cnv_id: str) -> dict | None:
         """

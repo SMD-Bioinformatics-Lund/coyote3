@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 from uuid import uuid4
 
 from api.domain.common.reporting import utc_now
@@ -16,8 +16,8 @@ def get_report_timestamp() -> str:
 
 def build_report_file_location(
     *,
-    sample: dict,
-    assay_config: dict,
+    sample: dict[str, Any],
+    assay_config: dict[str, Any],
     default_assay_group: str,
     reports_base_path: str,
 ) -> Tuple[str, str, str]:

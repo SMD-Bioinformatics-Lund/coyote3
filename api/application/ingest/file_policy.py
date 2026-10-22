@@ -15,11 +15,11 @@ from api.config.constants import (
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 from api.domain.common.biomarkers import BIOMARKER_ANALYSES
 
-CollectionResolver = Callable[[str], Any]
+DocumentReader = Callable[[str, dict[str, Any]], dict[str, Any] | None]
 
 
 def assay_file_policy(
-    collection: CollectionResolver,
+    collection: DocumentReader,
     *,
     assay_name: str | None,
     omics_layer: str | None,
@@ -30,17 +30,15 @@ def assay_file_policy(
     if not assay_name:
         raise ValueError("assay is required for sample ingest")
     asp_id = normalize_clinical_identifier(assay_name, label="asp_id")
-    panel_collection = collection("assay_specific_panels")
-    if not hasattr(panel_collection, "find_one"):
-        raise ValueError("assay_specific_panels collection is not available for sample ingest")
-    panel = panel_collection.find_one({"asp_id": asp_id, "is_active": True})
+    panel = collection("assay_specific_panels", {"asp_id": asp_id, "is_active": True})
     if not isinstance(panel, dict):
         raise ValueError(f"No active ASP is configured for assay '{asp_id}'")
-    group = collection("assay_groups").find_one(
+    group = collection(
+        "assay_groups",
         {
             "group_id": panel.get("asp_group"),
             "is_active": True,
-        }
+        },
     )
     if not isinstance(group, dict):
         raise ValueError("Assay group is inactive or unregistered; sample ingest is unavailable")
@@ -61,7 +59,7 @@ def assay_file_policy(
 
 
 def validate_payload_file_keys(
-    collection: CollectionResolver, payload: dict[str, Any]
+    collection: DocumentReader, payload: dict[str, Any]
 ) -> dict[str, Any]:
     """Reject declared file resources outside the active ASP contract."""
     validated = dict(payload)
@@ -99,7 +97,7 @@ def validate_payload_file_keys(
 
 
 def validate_declared_file_resources(
-    collection: CollectionResolver, payload: dict[str, Any]
+    collection: DocumentReader, payload: dict[str, Any]
 ) -> set[str]:
     """Require readable required files and return the readable expected resources.
 

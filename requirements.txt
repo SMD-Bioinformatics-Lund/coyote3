@@ -9,7 +9,6 @@ cffi==2.0.0
 click==8.3.3
 cssselect2==0.9.0
 dnspython==2.8.0
-email_validator==2.3.0
 filelock==3.25.2
 fonttools==4.62.1
 json5==0.14.0
@@ -18,7 +17,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 Markdown==3.10.2
 MarkupSafe==3.0.3
-pillow==12.3.0
+pillow==13.0.0
 pydantic==2.13.5
 pydantic_core==2.46.5
 fastapi==0.141.1
@@ -29,7 +28,7 @@ python-multipart==0.0.31
 uvicorn==0.44.0
 httpx==0.28.1
 pydyf==0.12.1
-pymongo==4.17.0
+pymongo==4.18.2
 pysam==0.24.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
@@ -43,5 +42,5 @@ toml==0.10.2
 typing_extensions==4.15.0
 weasyprint==70.0
 webencodings==0.5.1
-Werkzeug==3.1.8
+Werkzeug==3.1.9
 casbin==1.36.1

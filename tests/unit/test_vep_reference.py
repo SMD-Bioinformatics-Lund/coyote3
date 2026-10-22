@@ -15,10 +15,10 @@ from api.application.public.catalog import PublicCatalogService
 from api.contracts.public import PublicVepReferencePayload
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
+from api.infra.seed.diagrams import load_seed_diagrams
 from api.interfaces.http.public import routes
 from scripts.knowledgebase import update_vep_diagrams
 from scripts.knowledgebase.update_vep_metadata import SEED, diagram_document
-from scripts.knowledgebase.vep_diagram_storage import load_seed_diagrams
 
 
 def test_public_reference_projects_only_reference_fields(monkeypatch):

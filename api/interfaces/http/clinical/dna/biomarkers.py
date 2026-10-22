@@ -17,7 +17,7 @@ router = APIRouter()
 @router.get("/api/v1/samples/{sample_id}/hrd", response_model=DnaHrdPayload, tags=[TAG_HRD])
 def list_dna_hrd(
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: BiomarkerService = Depends(get_biomarker_service),
 ):
     r"""Return HRD measurements enabled in the sample's stored ASPC.
@@ -42,7 +42,7 @@ def list_dna_hrd(
 @router.get("/api/v1/samples/{sample_id}/msi", response_model=DnaMsiPayload, tags=[TAG_MSI])
 def list_dna_msi(
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: BiomarkerService = Depends(get_biomarker_service),
 ):
     r"""Return MSI measurements enabled in the sample's stored ASPC.
@@ -67,7 +67,7 @@ def list_dna_msi(
 @router.get("/api/v1/samples/{sample_id}/tmb", response_model=DnaTmbPayload, tags=[TAG_TMB])
 def list_dna_tmb(
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: BiomarkerService = Depends(get_biomarker_service),
 ):
     r"""Return TMB measurements enabled in the sample's stored ASPC.

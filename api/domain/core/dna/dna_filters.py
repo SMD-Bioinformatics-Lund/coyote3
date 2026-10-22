@@ -3,7 +3,7 @@
 from typing import Any
 
 
-def get_filter_conseq_terms(checked: list, conseq_terms_mapper: dict[str, Any]) -> list:
+def get_filter_conseq_terms(checked: list[str], conseq_terms_mapper: dict[str, Any]) -> list[str]:
     """Return mapped consequence terms from checked form fields.
 
     Args:
@@ -14,7 +14,7 @@ def get_filter_conseq_terms(checked: list, conseq_terms_mapper: dict[str, Any]) 
         list: Flattened consequence terms for query construction.
     """
     mapper = conseq_terms_mapper or {}
-    filter_conseq = []
+    filter_conseq: list[str] = []
     try:
         for fieldname in checked:
             normalized = str(fieldname or "").strip()
@@ -31,7 +31,7 @@ def get_filter_conseq_terms(checked: list, conseq_terms_mapper: dict[str, Any]) 
     return list(dict.fromkeys(filter_conseq))
 
 
-def create_cnveffectlist(cnvtype: list) -> list:
+def create_cnveffectlist(cnvtype: list[str]) -> list[str]:
     """
     Translate CNV effect filters from UI values to annotation codes.
     """
@@ -44,7 +44,7 @@ def create_cnveffectlist(cnvtype: list) -> list:
     return types
 
 
-def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
+def cnvtype_variant(cnvs: list[dict[str, Any]], checked_effects: list[str]) -> list[dict[str, Any]]:
     """
     Filter CNV rows by inferred effect (AMP/DEL).
     """
@@ -75,7 +75,7 @@ def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
     return filtered_cnvs
 
 
-def cnv_organizegenes(cnvs: list) -> list:
+def cnv_organizegenes(cnvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Split CNV genes into panel genes and other genes.
     """

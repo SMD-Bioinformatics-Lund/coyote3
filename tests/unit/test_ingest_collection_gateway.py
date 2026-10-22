@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 
 
 class _Repository:

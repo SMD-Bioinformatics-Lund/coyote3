@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 
@@ -306,10 +307,24 @@ class CommonQueryService:
             "bam_files": self.bam_record_repository.get_bams(lookup) or {},
         }
 
-    def tiered_variant_context_payload(self, *, variant_id: str, tier: int) -> dict[str, Any]:
-        """Return reported-variant context for a tiered variant."""
+    def tiered_variant_context_payload(
+        self, *, variant_id: str, tier: int, sample_is_visible: Callable[[str], bool]
+    ) -> dict[str, Any]:
+        """Return identity-matched history only from samples the caller may access.
+
+        Args:
+            variant_id: Finding whose sample must be visible before returning its identity.
+            tier: Requested display tier.
+            sample_is_visible: Request-scoped authorization callback for canonical sample IDs.
+
+        Returns:
+            Finding context with inaccessible historical records omitted before enrichment.
+
+        Raises:
+            AppError: The source finding is absent or its sample is inaccessible.
+        """
         variant = self.variant_repository.get_variant(variant_id)
-        if not variant:
+        if not variant or not sample_is_visible(str(variant.get("SAMPLE_ID") or "")):
             raise api_error(404, "Variant not found")
 
         csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
@@ -341,6 +356,11 @@ class CommonQueryService:
 
         query = {"gene": gene, "$or": or_conditions}
         docs = list(self.reported_variant_repository.list_reported_variants(query) or [])
+        docs = [
+            document
+            for document in docs
+            if document.get("sample_oid") and sample_is_visible(str(document["sample_oid"]))
+        ]
         docs = enrich_reported_variant_docs(
             deepcopy(docs),
             sample_repository=self.sample_repository,

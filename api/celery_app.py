@@ -57,6 +57,10 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    "coyote3-deleted-sample-report-erasure": {
+        "task": "api.tasks.maintenance.erase_deleted_sample_reports",
+        "schedule": 30.0,
+    },
     "coyote3-audit-event-replay": {
         "task": "api.tasks.maintenance.replay_audit_events",
         "schedule": 30.0,

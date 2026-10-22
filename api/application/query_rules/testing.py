@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
 from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.config.clinical_query_policy import resolved_query_policy
 from api.config.database_versions import require_sample_vep_version

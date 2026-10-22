@@ -33,7 +33,7 @@ def _gene_token_clause(gene: str) -> dict[str, Any]:
 
 
 def _translocation_exception_clause(
-    exception: FindingQueryException, filter_values: dict | None = None
+    exception: FindingQueryException, filter_values: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """Translate translocation exception criteria into stored-field predicates.
 

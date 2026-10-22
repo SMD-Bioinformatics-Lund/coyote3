@@ -7,7 +7,7 @@ import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
 from api.application.reporting.clinical_rules.evaluator import _predicate_matches
 from api.application.reporting.clinical_rules.facts import PreparedFindingFacts
 from api.application.reporting.clinical_rules.preparation import _snv_fact

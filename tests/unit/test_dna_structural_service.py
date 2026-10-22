@@ -19,7 +19,7 @@ class _CnvHandlerStub:
         self.sample_cnvs_payload = [{"_id": "cnv1", "SAMPLE_ID": "S1"}]
         self.cnv_doc: dict | None = {"_id": "cnv1", "SAMPLE_ID": "S1", "genes": []}
 
-    def get_sample_cnvs(self, _query):
+    def get_sample_cnvs(self, _query, *, stream=False):
         return self.sample_cnvs_payload
 
     def get_cnv(self, _cnv_id: str):
@@ -538,7 +538,7 @@ def test_translocation_list_search_sort_and_pagination(monkeypatch):
     assert payload["meta"]["sort"] == "gene1:asc"
 
 
-def test_cnv_detail_handles_missing_records_and_legacy_membership(monkeypatch):
+def test_cnv_detail_rejects_missing_owner_even_when_listed_for_sample(monkeypatch):
     repo = _RepoStub()
     service = _service_from_repo(repo)
     repo.copy_number_variant_repository.cnv_doc = None
@@ -551,9 +551,8 @@ def test_cnv_detail_handles_missing_records_and_legacy_membership(monkeypatch):
         service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
 
     repo.copy_number_variant_repository.sample_cnvs_payload = [{"_id": "legacy"}]
-    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda _sample: {})
-    payload = service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
-    assert payload["assay_group"] == "unknown"
+    with pytest.raises(AppError, match="CNV not found for sample"):
+        service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
 
 
 @pytest.mark.parametrize("flag", ["interesting", "false_positive", "noteworthy"])
@@ -561,20 +560,18 @@ def test_cnv_detail_handles_missing_records_and_legacy_membership(monkeypatch):
 def test_cnv_flag_commands_dispatch_to_repository(flag, apply):
     repo = _RepoStub()
     handler = repo.copy_number_variant_repository
-    methods = {
-        ("interesting", True): "mark_interesting_cnv",
-        ("interesting", False): "unmark_interesting_cnv",
-        ("false_positive", True): "mark_false_positive_cnv",
-        ("false_positive", False): "unmark_false_positive_cnv",
-        ("noteworthy", True): "noteworthy_cnv",
-        ("noteworthy", False): "unnoteworthy_cnv",
-    }
-    for method_name in methods.values():
-        setattr(handler, method_name, Mock())
+    handler.set_sample_finding_flag = Mock()
 
-    _service_from_repo(repo).set_cnv_flag(cnv_id="cnv1", apply=apply, flag=flag)
+    _service_from_repo(repo).set_cnv_flag(
+        sample={"_id": "sample-1"}, cnv_id="cnv1", apply=apply, flag=flag
+    )
 
-    getattr(handler, methods[(flag, apply)]).assert_called_once_with("cnv1")
+    handler.set_sample_finding_flag.assert_called_once_with(
+        sample_id="sample-1",
+        resource_ids=["cnv1"],
+        flag="fp" if flag == "false_positive" else flag,
+        value=apply,
+    )
 
 
 def test_cnv_flag_and_comment_validation_and_dispatch():
@@ -585,7 +582,7 @@ def test_cnv_flag_and_comment_validation_and_dispatch():
     service = _service_from_repo(repo)
 
     with pytest.raises(ValueError, match="Unsupported flag"):
-        service.set_cnv_flag(cnv_id="cnv1", apply=True, flag="unknown")
+        service.set_cnv_flag(sample={"_id": "sample-1"}, cnv_id="cnv1", apply=True, flag="unknown")
     service.set_cnv_comment_hidden(cnv_id="cnv1", comment_id="comment1", hidden=True)
     service.set_cnv_comment_hidden(cnv_id="cnv1", comment_id="comment1", hidden=False)
 
@@ -593,7 +590,7 @@ def test_cnv_flag_and_comment_validation_and_dispatch():
     handler.unhide_cnvs_comment.assert_called_once_with("cnv1", "comment1")
 
 
-def test_translocation_detail_handles_missing_records_and_legacy_membership(monkeypatch):
+def test_translocation_detail_rejects_missing_owner_even_when_listed_for_sample(monkeypatch):
     repo = _RepoStub()
     service = _service_from_repo(repo)
     repo.translocation_repository.doc = None
@@ -610,11 +607,10 @@ def test_translocation_detail_handles_missing_records_and_legacy_membership(monk
         )
 
     repo.translocation_repository.sample_translocations_payload = [{"_id": "legacy"}]
-    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda _sample: {})
-    payload = service.show_translocation_payload(
-        sample=_sample(), transloc_id="legacy", util_module=_UtilModule
-    )
-    assert payload["assay_group"] == "unknown"
+    with pytest.raises(AppError, match="Translocation not found for sample"):
+        service.show_translocation_payload(
+            sample=_sample(), transloc_id="legacy", util_module=_UtilModule
+        )
 
 
 @pytest.mark.parametrize("flag", ["interesting", "false_positive"])
@@ -622,37 +618,46 @@ def test_translocation_detail_handles_missing_records_and_legacy_membership(monk
 def test_translocation_boolean_flag_commands_dispatch_to_repository(flag, apply):
     repo = _RepoStub()
     handler = repo.translocation_repository
-    methods = {
-        ("interesting", True): "mark_interesting_transloc",
-        ("interesting", False): "unmark_interesting_transloc",
-        ("false_positive", True): "mark_false_positive_transloc",
-        ("false_positive", False): "unmark_false_positive_transloc",
-    }
-    for method_name in methods.values():
-        setattr(handler, method_name, Mock())
+    handler.set_sample_finding_flag = Mock()
 
-    _service_from_repo(repo).set_translocation_flag(transloc_id="t1", apply=apply, flag=flag)
+    _service_from_repo(repo).set_translocation_flag(
+        sample={"_id": "sample-1"}, transloc_id="t1", apply=apply, flag=flag
+    )
 
-    getattr(handler, methods[(flag, apply)]).assert_called_once_with("t1")
+    handler.set_sample_finding_flag.assert_called_once_with(
+        sample_id="sample-1",
+        resource_ids=["t1"],
+        flag="fp" if flag == "false_positive" else flag,
+        value=apply,
+    )
 
 
 def test_translocation_flags_comments_and_validation_dispatch():
     repo = _RepoStub()
     handler = repo.translocation_repository
-    handler.mark_irrelevant = Mock()
-    handler.mark_blacklisted = Mock()
+    handler.set_sample_finding_flag = Mock()
     handler.hide_transloc_comment = Mock()
     handler.unhide_transloc_comment = Mock()
     service = _service_from_repo(repo)
 
-    service.set_translocation_flag(transloc_id="t1", apply=True, flag="irrelevant")
-    service.set_translocation_flag(transloc_id="t1", apply=False, flag="blacklisted")
+    service.set_translocation_flag(
+        sample={"_id": "sample-1"}, transloc_id="t1", apply=True, flag="irrelevant"
+    )
+    service.set_translocation_flag(
+        sample={"_id": "sample-1"}, transloc_id="t1", apply=False, flag="blacklisted"
+    )
     with pytest.raises(ValueError, match="Unsupported flag"):
-        service.set_translocation_flag(transloc_id="t1", apply=True, flag="unknown")
+        service.set_translocation_flag(
+            sample={"_id": "sample-1"}, transloc_id="t1", apply=True, flag="unknown"
+        )
     service.set_translocation_comment_hidden(transloc_id="t1", comment_id="comment1", hidden=True)
     service.set_translocation_comment_hidden(transloc_id="t1", comment_id="comment1", hidden=False)
 
-    handler.mark_irrelevant.assert_called_once_with("t1", True)
-    handler.mark_blacklisted.assert_called_once_with("t1", False)
+    handler.set_sample_finding_flag.assert_any_call(
+        sample_id="sample-1", resource_ids=["t1"], flag="irrelevant", value=True
+    )
+    handler.set_sample_finding_flag.assert_any_call(
+        sample_id="sample-1", resource_ids=["t1"], flag="blacklisted", value=False
+    )
     handler.hide_transloc_comment.assert_called_once_with("t1", "comment1")
     handler.unhide_transloc_comment.assert_called_once_with("t1", "comment1")

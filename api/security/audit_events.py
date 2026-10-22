@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import Request
 
@@ -37,8 +38,8 @@ def request_id(request: Request | None) -> str:
     if request is not None:
         rid = getattr(request.state, "request_id", None)
         if rid:
-            return rid
-    return current_request_id()
+            return str(rid)
+    return str(current_request_id())
 
 
 def emit_access_event(
@@ -51,7 +52,7 @@ def emit_access_event(
     role: str | None = None,
     permission: str | None = None,
     sample_id: str | None = None,
-    extra: dict | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> None:
     """Emit an audit event for an access-control decision.
 
@@ -118,7 +119,7 @@ def emit_mutation_event(
     status_code: int,
     action: str,
     target: str,
-    extra: dict | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> None:
     """Emit an audit event for a mutating API request.
 
@@ -180,7 +181,7 @@ def emit_request_event(
     username: str,
     status_code: int,
     duration_ms: float,
-    extra: dict | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> None:
     """Emit an audit event for a completed API request.
 

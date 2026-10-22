@@ -33,6 +33,24 @@ def security_index_contracts(config: dict[str, Any]) -> tuple[SecurityIndexContr
     audit = get_audit_events_collection_name(config)
     return (
         SecurityIndexContract(
+            OPERATIONAL_COLLECTIONS.report_artifact_erasure,
+            "primary",
+            (("route", ASCENDING), ("last_attempt", ASCENDING)),
+            "idx_report_erasure_route_attempt",
+        ),
+        SecurityIndexContract(
+            OPERATIONAL_COLLECTIONS.report_artifact_erasure,
+            "primary",
+            (("route", ASCENDING), ("created_at", ASCENDING)),
+            "idx_report_erasure_route_age",
+        ),
+        SecurityIndexContract(
+            audit,
+            "identity",
+            (("source.environment", ASCENDING), ("occurred_at", ASCENDING), ("_id", ASCENDING)),
+            "idx_audit_notification_cursor",
+        ),
+        SecurityIndexContract(
             sessions,
             "identity",
             (("expires_at", ASCENDING),),
@@ -54,6 +72,13 @@ def security_index_contracts(config: dict[str, Any]) -> tuple[SecurityIndexContr
         ),
         SecurityIndexContract(
             audit, "identity", (("occurred_at", DESCENDING),), "idx_audit_occurred_at"
+        ),
+        SecurityIndexContract(
+            audit,
+            "identity",
+            (("integrity.chain_id", ASCENDING), ("integrity.sequence", ASCENDING)),
+            "uniq_audit_chain_sequence",
+            {"unique": True, "partialFilterExpression": {"integrity.version": 1}},
         ),
         SecurityIndexContract(
             audit,

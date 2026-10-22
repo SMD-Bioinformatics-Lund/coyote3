@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from api.application.ingest.helpers import assay_default_filters_from_aspc_collection
+from api.application.ingest.helpers import assay_default_filters
 from api.config.constants import normalize_clinical_identifier
 
 
@@ -46,8 +46,8 @@ def test_base_aspc_is_explicitly_recorded_when_subpanel_configuration_is_absent(
         ]
     )
 
-    resolved = assay_default_filters_from_aspc_collection(
-        collection,
+    resolved = assay_default_filters(
+        collection.find_one,
         {
             "asp_id": "hema_GMSv1",
             "subpanel_id": "Hem-Snabb",

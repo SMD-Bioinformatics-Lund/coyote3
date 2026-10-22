@@ -63,7 +63,9 @@ def _fusion_flag_change(
         service,
         resource="fusion",
         action=action,
-        mutate=lambda: service.set_fusion_flag(fusion_id=fusion_id, apply=apply, flag=flag),
+        mutate=lambda sample: service.set_fusion_flag(
+            sample=sample, fusion_id=fusion_id, apply=apply, flag=flag
+        ),
     )
 
 
@@ -71,7 +73,7 @@ def _fusion_flag_change(
 def list_rna_fusions(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Return fusions for a sample."""
@@ -89,7 +91,7 @@ def list_rna_fusions(
 )
 def read_rna_analysis(
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Return the ingested non-fusion RNA analysis records for a sample."""
@@ -106,7 +108,7 @@ def read_rna_analysis(
 def rna_sample_comment_suggestion(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Return the established RNA summary text for the current sample filters."""
@@ -136,7 +138,7 @@ def rna_sample_comment_suggestion(
 def export_rna_fusions_context(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Return backend-generated CSV content for the current filtered fusion set."""
@@ -161,7 +163,7 @@ def export_rna_fusions_context(
 def show_rna_fusion(
     sample_id: str,
     fusion_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Return fusion detail payload."""
@@ -190,8 +192,8 @@ def mark_false_positive_fusion(
         service,
         resource="fusion",
         action="mark_false_positive",
-        mutate=lambda: service.set_fusion_flag(
-            fusion_id=fusion_id, apply=True, flag="false_positive"
+        mutate=lambda sample: service.set_fusion_flag(
+            sample=sample, fusion_id=fusion_id, apply=True, flag="false_positive"
         ),
     )
 
@@ -215,8 +217,8 @@ def unmark_false_positive_fusion(
         service,
         resource="fusion",
         action="unmark_false_positive",
-        mutate=lambda: service.set_fusion_flag(
-            fusion_id=fusion_id, apply=False, flag="false_positive"
+        mutate=lambda sample: service.set_fusion_flag(
+            sample=sample, fusion_id=fusion_id, apply=False, flag="false_positive"
         ),
     )
 
@@ -363,7 +365,7 @@ def pick_fusion_call(
     fusion_id: str,
     callidx: str,
     num_calls: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="fusion:manage")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Persist selected fusion call index."""
@@ -374,8 +376,8 @@ def pick_fusion_call(
         service,
         resource="fusion",
         action="pick_fusion_call",
-        mutate=lambda: service.select_fusion_call(
-            fusion_id=fusion_id, callidx=callidx, num_calls=num_calls
+        mutate=lambda sample: service.select_fusion_call(
+            sample=sample, fusion_id=fusion_id, callidx=callidx, num_calls=num_calls
         ),
     )
 
@@ -389,7 +391,7 @@ def hide_fusion_comment(
     sample_id: str,
     fusion_id: str,
     comment_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="variant.comment:hide")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Hide a fusion comment."""
@@ -416,7 +418,7 @@ def unhide_fusion_comment(
     sample_id: str,
     fusion_id: str,
     comment_id: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="variant.comment:unhide")),
     service: RnaService = Depends(get_rna_service),
 ):
     """Unhide a fusion comment."""
@@ -447,9 +449,9 @@ def set_fusion_false_positive_bulk(
     service: RnaService = Depends(get_rna_service),
 ):
     """Apply bulk false-positive flag updates for fusions."""
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     operation = service.set_fusion_bulk_flag(
-        fusion_ids=fusion_ids, apply=apply, flag="false_positive"
+        sample=sample, fusion_ids=fusion_ids, apply=apply, flag="false_positive"
     )
     return util.common.convert_to_serializable(
         change_payload(
@@ -475,8 +477,10 @@ def set_fusion_irrelevant_bulk(
     service: RnaService = Depends(get_rna_service),
 ):
     """Apply bulk irrelevant flag updates for fusions."""
-    _get_sample_for_api(sample_id, user)
-    operation = service.set_fusion_bulk_flag(fusion_ids=fusion_ids, apply=apply, flag="irrelevant")
+    sample = _get_sample_for_api(sample_id, user)
+    operation = service.set_fusion_bulk_flag(
+        sample=sample, fusion_ids=fusion_ids, apply=apply, flag="irrelevant"
+    )
     return util.common.convert_to_serializable(
         change_payload(
             sample_id=sample_id,
@@ -501,8 +505,10 @@ def set_fusion_blacklisted_bulk(
     service: RnaService = Depends(get_rna_service),
 ):
     """Apply or remove sample-specific blacklist state for selected fusions."""
-    _get_sample_for_api(sample_id, user)
-    operation = service.set_fusion_bulk_flag(fusion_ids=fusion_ids, apply=apply, flag="blacklisted")
+    sample = _get_sample_for_api(sample_id, user)
+    operation = service.set_fusion_bulk_flag(
+        sample=sample, fusion_ids=fusion_ids, apply=apply, flag="blacklisted"
+    )
     return util.common.convert_to_serializable(
         change_payload(
             sample_id=sample_id,

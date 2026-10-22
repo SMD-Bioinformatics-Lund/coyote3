@@ -11,6 +11,7 @@ from api.app.deps.services import get_admin_assay_group_service
 from api.application.resources.assay_groups import AssayGroupService
 from api.interfaces.http.admin.resources.asp import router
 from api.security.access import ApiUser
+from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
 @pytest.fixture
@@ -33,7 +34,7 @@ def client(monkeypatch):
     )
     monkeypatch.setattr("api.security.access._decode_session_user", lambda _: user)
     monkeypatch.setattr("api.security.access._audit_access_event", lambda **_: None)
-    monkeypatch.setattr("api.security.access.get_permissions_repository", lambda: None)
+    monkeypatch.setattr("api.security.access.get_permissions_repository", PermissionCatalog)
     monkeypatch.setattr(
         "api.security.access.get_roles_repository",
         lambda: SimpleNamespace(

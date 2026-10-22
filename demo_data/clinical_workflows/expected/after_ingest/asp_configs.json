@@ -32,6 +32,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -153,6 +154,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -274,6 +276,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -395,6 +398,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -516,6 +520,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -797,6 +802,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
@@ -918,6 +924,7 @@
     "filters": {
       "somatic": {
         "snv": {
+          "exclude_flags": [],
           "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,

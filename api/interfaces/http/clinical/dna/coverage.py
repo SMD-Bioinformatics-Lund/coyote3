@@ -18,7 +18,7 @@ router = APIRouter(tags=[TAG_COVERAGE])
 def coverage_sample_read(
     sample_id: str,
     cov_cutoff: int = Query(default=500, ge=1),
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: CoverageService = Depends(get_coverage_service),
 ):
     """Return coverage data for a sample.
@@ -46,7 +46,7 @@ def coverage_sample_read(
 @router.get("/api/v1/coverage/blacklisted/{group}", response_model=CoverageBlacklistedPayload)
 def coverage_blacklisted_read(
     group: str,
-    user: ApiUser = Depends(require_access()),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: CoverageService = Depends(get_coverage_service),
 ):
     """Return blacklisted coverage regions for an assay group.

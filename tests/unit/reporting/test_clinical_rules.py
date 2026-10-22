@@ -47,6 +47,21 @@ def test_annotation_terminology_is_scoped_published_and_integrity_checked():
         service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="en")
 
 
+def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
+    document = _document(status="published", active=True)
+    document.scope.language = "en"
+    document.rule_set_id = "assay_1__base__en"
+    document.terminology = {"automatic_annotation_tumor_type": "hematologiska"}
+    document.content_hash = content_hash(document)
+    service = ClinicalRuleService(
+        SimpleNamespace(
+            list_active_for_assay=lambda *args, **kwargs: [document.model_dump(by_alias=True)]
+        )
+    )
+    with pytest.raises(ValueError, match="requires Swedish"):
+        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="en")
+
+
 @pytest.mark.parametrize("value", ["", " padded ", 7, "x" * 121])
 def test_automatic_annotation_term_rejects_invalid_values(value):
     """The optional phrase must be usable as a bounded piece of clinical text."""

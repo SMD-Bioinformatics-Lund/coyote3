@@ -10,6 +10,7 @@ from starlette.requests import Request
 from api.app.main import app
 from api.security import access
 from api.security.access import ApiUser
+from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
 def _user(*, level: int, permissions: list[str] | None = None) -> ApiUser:
@@ -77,7 +78,7 @@ def test_high_risk_endpoints_auth_matrix(
     required_permission: str | None,
 ):
     """Verify high-risk route access dependency behavior across auth scenarios."""
-    monkeypatch.setattr(access, "get_permissions_repository", lambda: None)
+    monkeypatch.setattr(access, "get_permissions_repository", PermissionCatalog)
     dep = _resolve_access_dependency(method=method, path=path)
     request = _request_for(path=path, method=method)
 

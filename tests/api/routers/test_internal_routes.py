@@ -217,12 +217,7 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
             "vcf_files": "/tmp/s2.vcf",
             "from_yaml": text,
         },
-        ingest_sample_bundle=lambda payload,
-        *,
-        allow_update=False,
-        increment=False,
-        ingested_by,
-        ingest_source: {
+        ingest_sample_bundle=lambda payload, *, allow_update=False, increment=False, ingested_by, ingest_source: {
             "status": "ok",
             "sample_id": "def",
             "sample_name": payload["name"],
@@ -345,11 +340,7 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
         raising=False,
     )
     ingest_service = _ingest_service_stub(
-        insert_collection_document=lambda *,
-        collection,
-        document,
-        ignore_duplicate=False,
-        ingested_by: {
+        insert_collection_document=lambda *, collection, document, ignore_duplicate=False, ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
@@ -379,11 +370,7 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
         raising=False,
     )
     ingest_service = _ingest_service_stub(
-        insert_collection_documents=lambda *,
-        collection,
-        documents,
-        ignore_duplicates=False,
-        ingested_by: {
+        insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False, ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),
@@ -436,12 +423,7 @@ def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
-        upsert_collection_document=lambda *,
-        collection,
-        match,
-        document,
-        upsert=False,
-        ingested_by: {
+        upsert_collection_document=lambda *, collection, match, document, upsert=False, ingested_by: {
             "status": "ok",
             "collection": collection,
             "matched_count": 1,
@@ -557,8 +539,12 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
     assert calls["allow_update"] is False
 
 
-def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
+@pytest.mark.parametrize("host_file_exists", [False, True])
+def test_ingest_sample_bundle_upload_internal_rejects_missing_file(tmp_path, host_file_exists):
     """Multipart upload route should fail when YAML references non-uploaded files."""
+    host_file = tmp_path / "required.vcf"
+    if host_file_exists:
+        host_file.write_text("##fileformat=VCFv4.2\n")
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
@@ -572,7 +558,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
             "omics_layer": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
-            "vcf_files": "/unavailable/required.vcf",
+            "vcf_files": str(host_file),
         },
         _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
     )
@@ -593,7 +579,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
 
 
 def test_ingest_sample_bundle_upload_internal_allows_missing_declared_optional_file(monkeypatch):
-    """Every YAML-declared file must resolve, even when the ASP marks it optional."""
+    """Absent optional inputs are omitted instead of falling back to host paths."""
     calls: dict[str, object] = {}
 
     monkeypatch.setattr(
@@ -649,7 +635,7 @@ def test_ingest_sample_bundle_upload_internal_allows_missing_declared_optional_f
         ingest_service=ingest_service,
     )
     assert result["status"] == "ok"
-    assert calls["payload"]["transloc"] == "/unavailable/optional.vcf"
+    assert "transloc" not in calls["payload"]
     assert "transloc" not in calls["payload"]["_runtime_files"]
 
 
@@ -681,7 +667,7 @@ def test_ingest_sample_bundle_upload_internal_acknowledges_failures(monkeypatch)
         "sample_name": None,
         "sample_id": None,
         "message": "Missing required files for YAML references: vcf_files:required.vcf. "
-        "Provide one ZIP containing matching files or make the manifest paths readable.",
+        "Provide one ZIP containing matching files.",
         "result": None,
     }
 
@@ -696,11 +682,7 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
-        insert_collection_document=lambda *,
-        collection,
-        document,
-        ignore_duplicate=False,
-        ingested_by: {
+        insert_collection_document=lambda *, collection, document, ignore_duplicate=False, ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
@@ -735,11 +717,7 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
-        insert_collection_documents=lambda *,
-        collection,
-        documents,
-        ignore_duplicates=False,
-        ingested_by: {
+        insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False, ingested_by: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),

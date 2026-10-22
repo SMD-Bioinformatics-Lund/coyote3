@@ -11,6 +11,8 @@ from bson import json_util
 from bson.errors import BSONError
 from pymongo.errors import PyMongoError
 
+from api.infra.mongo.repositories.audit_integrity import append_event
+
 
 class AuditSpool:
     """Store pending events on a persistent volume shared by API and worker processes."""
@@ -84,11 +86,7 @@ class AuditSpool:
                 )
                 continue
             try:
-                result = collection.update_one(
-                    {"_id": document["_id"]}, {"$setOnInsert": document}, upsert=True
-                )
-                if not result.acknowledged:
-                    break
+                append_event(collection, document)
             except PyMongoError:
                 break
             path.unlink(missing_ok=True)

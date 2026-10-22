@@ -20,7 +20,7 @@ def catch_left_right(case_id: str, name: str) -> tuple[str, str, str]:
 
 def next_unique_name(service: Any, case_id: str, increment: bool) -> str:
     """Return a unique sample name, optionally auto-suffixing on collision."""
-    existing_exact = list(service._sample_collection().find({"name": case_id}))
+    existing_exact = service.collection_gateway.sample_names({"name": case_id})
     if not existing_exact:
         return case_id
     if not increment:
@@ -30,7 +30,7 @@ def next_unique_name(service: Any, case_id: str, increment: bool) -> str:
 
     suffixes: list[str] = []
     true_matches = 0
-    for doc in service._sample_collection().find({"name": {"$regex": case_id}}):
+    for doc in service.collection_gateway.sample_names({"name": {"$regex": re.escape(case_id)}}):
         left, right, true = catch_left_right(case_id, doc["name"])
         if right and not left and true:
             suffixes.append(right)
@@ -88,8 +88,8 @@ def update_meta_fields(
 ) -> None:
     """Update sample metadata fields while rejecting blocked changes."""
     current = (
-        service._sample_collection().find_one(
-            {"_id": service._provider_sample_id(sample_id)}, session=session
+        service.collection_gateway.find_document(
+            "samples", {"_id": service._provider_sample_id(sample_id)}, session=session
         )
         or {}
     )
@@ -104,9 +104,8 @@ def update_meta_fields(
         elif key not in current:
             update_fields[key] = value
     if update_fields:
-        service._sample_collection().update_one(
+        service.collection_gateway.set_sample_fields(
             {"_id": service._provider_sample_id(sample_id)},
-            {"$set": update_fields},
-            upsert=False,
+            update_fields,
             session=session,
         )

@@ -1,9 +1,11 @@
 """Transactional deletion of sample-owned data, retaining shared clinical knowledge."""
 
+from api.config.paths import REPORTS_BASE_PATH
 from api.contracts.operations import OperationResult
 from api.domain.core.exceptions import AppError
 from api.infra.mongo.persistence import to_provider_id
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
+from api.infra.mongo.repositories.report_artifact_erasure import enqueue_report_erasure
 from api.infra.mongo.transactions import run_transaction
 from api.infra.samples_cache import invalidate_samples_cache
 
@@ -26,10 +28,12 @@ def delete_all_sample_traces(
     finding_comment_repository,
     report_repository,
     reported_variant_repository,
+    reports_root=REPORTS_BASE_PATH,
 ) -> dict[str, object]:
     """Delete the sample anchor and every owned collection in a single commit.
 
-    Shared annotation, reference data, audit records, and report artifacts are retained.
+    Shared annotation, reference data and audit records are retained. Generated report
+    file erasure jobs commit with the deletion and are processed by the worker.
     ``sample_oid`` contracts permit provider IDs and their serialized representation.
     """
     oid = to_provider_id(sample_id)
@@ -69,6 +73,13 @@ def delete_all_sample_traces(
         )
         if sample is None:
             raise AppError(404, "Sample no longer exists.")
+        artifact_count = enqueue_report_erasure(
+            report_repository.get_collection(),
+            reference_key,
+            root=reports_root,
+            sample_id=str(sample_id),
+            session=session,
+        )
         results = []
         for name, repository, selector in owned:
             result = repository.get_collection().delete_many(selector, session=session)
@@ -81,13 +92,18 @@ def delete_all_sample_traces(
             resource_type="sample",
             resource_id=oid,
             metadata={
+                "report_artifacts_queued": artifact_count,
                 "deleted_counts": [
                     {"collection": row["collection"], "deleted_count": row.get("deleted_count", 0)}
                     for row in results
-                ]
+                ],
             },
         )
-        return {"sample_name": sample.get("name"), "results": results}
+        return {
+            "sample_name": sample.get("name"),
+            "results": results,
+            "report_artifacts_queued": artifact_count,
+        }
 
     result = run_transaction(sample_repository.adapter.client, delete)
     try:

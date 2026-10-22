@@ -1,6 +1,6 @@
 """Common DNA workflow orchestration for reporting routes."""
 
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.reporting.dna_report_payload import build_dna_report_payload
 from api.application.reporting.persistence import (

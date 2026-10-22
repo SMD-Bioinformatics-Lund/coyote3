@@ -1,7 +1,7 @@
 """User model and auth/session shaping helpers."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.security import check_password_hash
@@ -55,7 +55,7 @@ class UserModel(BaseModel):
     role: str = ""
     asp_groups: List[str] = Field(default_factory=list)
     asp_ids: List[str] = Field(default_factory=list)
-    asp_map: dict = Field(default_factory=dict)
+    asp_map: dict[str, Any] = Field(default_factory=dict)
     environments: List[str] = Field(default_factory=list)
     permissions: List[str] = Field(default_factory=list)
     access_level: int = 0
@@ -66,7 +66,7 @@ class UserModel(BaseModel):
 
     @field_validator("id", mode="before")
     @classmethod
-    def _coerce_id_to_str(cls, value):
+    def _coerce_id_to_str(cls, value: Any) -> str | None:
         """Normalize provider-backed id values into canonical string ids."""
         if value is None:
             return value
@@ -74,7 +74,7 @@ class UserModel(BaseModel):
 
     @field_validator("email", mode="before")
     @classmethod
-    def _normalize_email(cls, value):
+    def _normalize_email(cls, value: Any) -> str:
         """Accept center-local addresses while enforcing basic email structure."""
         email = str(value or "").strip().lower()
         if not email or "@" not in email:
@@ -86,9 +86,9 @@ class UserModel(BaseModel):
 
     @field_validator("auth_type", mode="before")
     @classmethod
-    def _normalize_auth_type(cls, value):
+    def _normalize_auth_type(cls, value: Any) -> list[str]:
         """Normalize scalar or list auth-provider values from persistence."""
-        return normalize_auth_types(value)
+        return cast(list[str], normalize_auth_types(value))
 
     # -------------------- STATIC METHODS --------------------
     @staticmethod
@@ -103,14 +103,14 @@ class UserModel(BaseModel):
         Returns:
             bool: True if the password matches the hash, False otherwise.
         """
-        return check_password_hash(stored_hash, plain_password)
+        return bool(check_password_hash(stored_hash, plain_password))
 
     @classmethod
     def from_auth_payload(
         cls,
-        user_doc: dict,
-        role_docs: Optional[List[dict]] = None,
-        asp_docs: Optional[List[dict]] = None,
+        user_doc: dict[str, Any],
+        role_docs: Optional[List[dict[str, Any]]] = None,
+        asp_docs: Optional[List[dict[str, Any]]] = None,
     ) -> "UserModel":
         """
         Construct a user model from auth-related data payloads.
@@ -127,7 +127,7 @@ class UserModel(BaseModel):
         role_docs = [dict(item) for item in (role_docs or []) if isinstance(item, dict)]
         asp_docs = asp_docs or []
 
-        asp_map = {}
+        asp_map: dict[str, dict[str, dict[str, list[Any]]]] = {}
         for asp in asp_docs:
             asp_category = asp.get("asp_category", "NA")
             asp_group = asp.get("asp_group", "unassigned")
@@ -188,7 +188,7 @@ class UserModel(BaseModel):
             asp_map=asp_map,
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """
         Returns a dictionary representation of the UserModel instance, excluding sensitive fields
         such as updated, created, last_login, and password. Uses field aliases and omits

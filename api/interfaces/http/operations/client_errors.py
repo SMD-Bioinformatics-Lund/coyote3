@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, Depends
 
-from api.application.notifications.client_errors import record_client_error
 from api.contracts.client_errors import ClientErrorRequest, ClientErrorResponse
+from api.infra.observability.client_errors import record_client_error
 from api.interfaces.http.tags import TAG_SYSTEM
 from api.security.access import ApiUser, require_access
 

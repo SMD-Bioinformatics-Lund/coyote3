@@ -7,7 +7,7 @@ from typing import Any
 from werkzeug.security import generate_password_hash
 
 from api.app.runtime_state import current_username
-from api.app.utilities import assay_filters, serialization
+from api.app.utilities import serialization
 from api.application.interpretation.report_summary import get_tier_classification
 from api.domain.common import assay_filters as domain_assay_filters
 from api.domain.common.reporting import utc_now
@@ -35,22 +35,6 @@ class CommonUtility:
             Werkzeug selects its default iteration count and generates the salt.
         """
         return generate_password_hash(password, method="pbkdf2:sha256")
-
-    @staticmethod
-    def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config: dict) -> dict:
-        """Replace a sample's filters in place with copied settings or defaults.
-
-        Args:
-            sample_doc: Sample to mutate. Truthy filters are retained as a deep
-                copy; missing, null, or empty filters select assay defaults.
-            assay_config: Default filters source. Missing filters means an empty
-                dictionary; explicit null filters remain None.
-
-        Returns:
-            The same sample dictionary, with filters replaced and
-            use_diagnosis_genelist removed. Individual fields are not merged.
-        """
-        return assay_filters.merge_sample_settings_with_assay_config(sample_doc, assay_config)
 
     @staticmethod
     def get_assay_genelist_names(genelists: dict) -> list:
@@ -116,7 +100,7 @@ class CommonUtility:
             A new dictionary with case/control entries; absent, null, and other
             falsy identifiers are omitted.
         """
-        return assay_filters.get_case_and_control_sample_ids(sample_doc)
+        return domain_assay_filters.get_case_and_control_sample_ids(sample_doc)
 
     @staticmethod
     def create_classified_variant_doc(

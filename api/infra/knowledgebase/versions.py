@@ -24,6 +24,9 @@ class KnowledgebaseVersionRepository(BaseRepository):
         self.get_collection().create_index(
             [("source", 1), ("status", 1)], name="source_status", background=True
         )
+        self.get_collection().create_index(
+            [("published_at", 1), ("_id", 1)], name="publication_notification_cursor"
+        )
 
     def list_active_releases(self) -> list[dict[str, Any]]:
         """Return active versions and aggregate per-release collection counts."""

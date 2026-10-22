@@ -63,6 +63,9 @@ services:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     volumes: *dev-app-volumes
 
+  maintenance-worker:
+    volumes: *dev-app-volumes
+
   monitor:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     volumes: *dev-app-volumes

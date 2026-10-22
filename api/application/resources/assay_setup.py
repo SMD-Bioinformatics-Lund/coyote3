@@ -133,7 +133,6 @@ class SetupWorkspace:
             gene_list_repository=self,
             vep_metadata_repository=self.store.vep_metadata_repository,
             clinical_rule_set_repository=self.store.clinical_rule_set_repository,
-            common_util=common_util,
         )
 
 

@@ -98,7 +98,6 @@ def test_aspc_form_lists_reporting_languages_for_selected_assay() -> None:
         gene_list_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
     form = build_managed_form(aspc_spec_for_category("DNA"))
 
@@ -154,7 +153,6 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda *a, **k: []),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
 
     monkeypatch.setattr(aspc_module, "current_actor", lambda username="admin-ui": username)
@@ -212,7 +210,6 @@ def test_aspc_service_requires_compatible_published_rule_binding() -> None:
         gene_list_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
     service._validate_clinical_rule_scope(
         {
@@ -245,7 +242,6 @@ def test_aspc_service_rejects_rule_binding_from_another_assay() -> None:
         gene_list_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
 
     with pytest.raises(AppError, match="No active published"):
@@ -296,7 +292,6 @@ def test_aspc_service_allows_empty_gene_list_selection(monkeypatch) -> None:
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
     monkeypatch.setattr(aspc_module, "current_actor", lambda username="admin-ui": username)
     monkeypatch.setattr(aspc_module, "utc_now", lambda: "now")
@@ -353,7 +348,6 @@ def test_aspc_service_materializes_translocation_filters_when_enabled(monkeypatc
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
         clinical_rule_set_repository=_clinical_rule_repository(rule_set_id="solid_gmsv3__base__sv"),
-        common_util=SimpleNamespace(),
     )
     monkeypatch.setattr(aspc_module, "current_actor", lambda username="admin-ui": username)
     monkeypatch.setattr(aspc_module, "utc_now", lambda: "now")
@@ -409,7 +403,6 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
         gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
 
     payload = service.create_context_payload(category="DNA", actor_username="actor")
@@ -445,7 +438,6 @@ def test_aspc_service_rejects_gene_lists_outside_asp_scope() -> None:
         ),
         vep_metadata_repository=SimpleNamespace(),
         clinical_rule_set_repository=_clinical_rule_repository(),
-        common_util=SimpleNamespace(),
     )
 
     with pytest.raises(AppError, match="not active for ASP"):

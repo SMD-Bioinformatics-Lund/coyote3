@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from api.app.utilities.assay_filters import merge_sample_settings_with_assay_config
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.dna import DnaFiltersDoc
@@ -13,53 +12,6 @@ from api.domain.common.assay_filters import (
     has_sample_gene_restriction,
 )
 from api.domain.common.sample_filters import normalize_sample_filters
-
-
-def test_merge_sample_settings_only_uses_assay_defaults_when_filters_missing() -> None:
-    """Stored sample filters should remain authoritative once present."""
-    sample = {
-        "filters": {
-            "vep_consequences": [],
-            "cnveffects": None,
-            "min_depth": None,
-            "snvlists": [],
-        }
-    }
-    assay_config = {
-        "filters": {
-            "vep_consequences": ["splicing", "missense"],
-            "cnveffects": ["gain", "loss"],
-            "min_depth": 100,
-            "snvlists": ["hematology_myeloid"],
-        }
-    }
-
-    merged = merge_sample_settings_with_assay_config(sample, assay_config)
-
-    assert merged["filters"]["vep_consequences"] == []
-    assert merged["filters"]["cnveffects"] is None
-    assert merged["filters"]["min_depth"] is None
-    assert merged["filters"]["snvlists"] == []
-
-
-def test_merge_sample_settings_uses_assay_defaults_when_filters_missing() -> None:
-    """Missing sample filters should be initialized from assay defaults."""
-    sample = {}
-    assay_config = {
-        "filters": {
-            "vep_consequences": ["splicing", "missense"],
-            "cnveffects": ["gain", "loss"],
-            "min_depth": 100,
-            "snvlists": ["hematology_myeloid"],
-        }
-    }
-
-    merged = merge_sample_settings_with_assay_config(sample, assay_config)
-
-    assert merged["filters"]["vep_consequences"] == ["splicing", "missense"]
-    assert merged["filters"]["cnveffects"] == ["gain", "loss"]
-    assert merged["filters"]["min_depth"] == 100
-    assert merged["filters"]["snvlists"] == ["hematology_myeloid"]
 
 
 def test_format_assay_config_excludes_meta_keys_from_filters_section() -> None:

@@ -2,40 +2,8 @@
 
 from __future__ import annotations
 
-from api.application.query_rules import effective_policy
 from api.contracts.operations import OperationResult
 from api.domain.common.errors import api_error
-from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
-from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
-
-
-def load_cnvs_for_sample(
-    service,
-    *,
-    sample: dict,
-    sample_filters: dict,
-    filter_genes: list[str],
-    assay_group: str | None = None,
-) -> list[dict]:
-    """Load CNVs for a sample using the active filters."""
-    cnv_query = build_cnv_query(
-        str(sample["_id"]),
-        filters={
-            **sample_filters,
-            "filter_genes": filter_genes,
-            "assay_group": assay_group or sample.get("asp_group"),
-            "asp_id": sample.get("asp_id"),
-            "subpanel_id": sample.get("subpanel_id"),
-            "intent": "somatic",
-        },
-        include_normal=include_normal_cnvs(sample),
-        policy=effective_policy(service.query_rule_service, "cnv", sample, assay_group=assay_group),
-    )
-    cnvs = list(service.copy_number_variant_repository.get_sample_cnvs(cnv_query))
-    filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
-    if filter_cnveffects:
-        cnvs = cnvtype_variant(cnvs, filter_cnveffects)
-    return cnv_organizegenes(cnvs)
 
 
 def require_variant_for_sample(service, *, sample: dict, var_id: str) -> dict:
@@ -47,53 +15,20 @@ def require_variant_for_sample(service, *, sample: dict, var_id: str) -> dict:
 
 
 def set_variant_bulk_flag(
-    service, *, resource_ids: list[str], apply: bool, flag: str
+    service, *, sample: dict, resource_ids: list[str], apply: bool, flag: str
 ) -> OperationResult:
-    """Apply or remove a bulk boolean flag on variants."""
-    if not resource_ids:
-        return OperationResult.empty()
-    if flag == "false_positive":
-        if apply:
-            return service.variant_repository.mark_false_positive_var_bulk(resource_ids)
-        return service.variant_repository.unmark_false_positive_var_bulk(resource_ids)
-    if flag == "irrelevant":
-        if apply:
-            return service.variant_repository.mark_irrelevant_var_bulk(resource_ids)
-        return service.variant_repository.unmark_irrelevant_var_bulk(resource_ids)
-    raise ValueError(f"Unsupported flag: {flag}")
-
-
-def set_variant_flag(service, *, var_id: str, apply: bool, flag: str) -> None:
-    """Apply or remove a boolean flag on a single variant."""
-    if flag == "false_positive":
-        if apply:
-            service.variant_repository.mark_false_positive_var(var_id)
-        else:
-            service.variant_repository.unmark_false_positive_var(var_id)
-        return
-    if flag == "interesting":
-        if apply:
-            service.variant_repository.mark_interesting_var(var_id)
-        else:
-            service.variant_repository.unmark_interesting_var(var_id)
-        return
-    if flag == "irrelevant":
-        if apply:
-            service.variant_repository.mark_irrelevant_var(var_id)
-        else:
-            service.variant_repository.unmark_irrelevant_var(var_id)
-        return
-    raise ValueError(f"Unsupported flag: {flag}")
+    """Apply a bulk flag with the authorized sample in the database predicate."""
+    fields = {"false_positive": "fp", "irrelevant": "irrelevant"}
+    if flag not in fields:
+        raise ValueError(f"Unsupported flag: {flag}")
+    return service.variant_repository.set_sample_finding_flag(
+        sample_id=str(sample["_id"]), resource_ids=resource_ids, flag=fields[flag], value=apply
+    )
 
 
 def blacklist_variant(service, *, variant: dict[str, str], assay_group: str) -> None:
     """Create a blacklist entry for a variant in an assay group."""
     return service.blacklist_repository.blacklist_variant(variant, assay_group)
-
-
-def set_variant_override_blacklist(service, *, var_id: str, override: bool) -> None:
-    """Apply or remove the blacklist-override flag on a variant."""
-    service.variant_repository.set_override_blacklist(var_id, override)
 
 
 def set_variant_comment_hidden(service, *, var_id: str, comment_id: str, hidden: bool) -> None:

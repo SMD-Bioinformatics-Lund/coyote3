@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import shutil
+from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -183,6 +184,7 @@ class AppControlsService:
         config: dict[str, Any],
         audit_service: Any | None = None,
         index_conflicts_provider: Any | None = None,
+        erasure_status_provider: Callable[[], dict[str, int]] | None = None,
     ) -> None:
         """Bind runtime controls and audit inspection to their separate databases.
 
@@ -192,12 +194,14 @@ class AppControlsService:
             config: Runtime defaults and collection/inspection configuration.
             audit_service: Optional recorder for administrative control changes.
             index_conflicts_provider: Optional callable supplying index-conflict details.
+            erasure_status_provider: Optional reader for deployment-scoped artifact erasure backlog.
         """
         self.collection = db[OPERATIONAL_COLLECTIONS.app_controls]
         self.audit_collection = identity_db[get_audit_events_collection_name(config)]
         self.config = config
         self.audit_service = audit_service
         self.index_conflicts_provider = index_conflicts_provider
+        self.erasure_status_provider = erasure_status_provider
 
     def get_controls(self) -> AppControlsDoc:
         """Return effective controls with stored overrides applied."""
@@ -280,6 +284,12 @@ class AppControlsService:
                     status["index_setup_conflicts"] = conflicts
             except Exception:
                 status["index_setup_conflicts"] = []
+
+        if self.erasure_status_provider is not None:
+            try:
+                status["report_erasure"] = {"status": "available", **self.erasure_status_provider()}
+            except Exception:
+                status["report_erasure"] = {"status": "unavailable"}
 
         try:
             from api.celery_app import celery_app

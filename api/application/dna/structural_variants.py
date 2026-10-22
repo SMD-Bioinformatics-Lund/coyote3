@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from copy import deepcopy
+from itertools import batched
 from typing import Any
 
 from api.application.common.alignment_files import alignment_files_payload
 from api.application.common.assay_config import get_formatted_assay_config
-from api.application.common.pagination import paginate_items, request_pagination
+from api.application.common.pagination import request_pagination
 from api.application.common.table_state import (
     numeric_value,
     parse_sort_specs,
-    search_items,
-    sort_items,
+    select_table_rows,
     sort_spec_to_query_value,
     sortable_text,
 )
 from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
-from api.application.query_rules import QueryRuleService, effective_policy
+from api.application.query_rules.service import QueryRuleService, effective_policy
 from api.contracts.operations import OperationResult
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
@@ -309,13 +310,15 @@ class DnaStructuralService:
         filter_genes: list[str],
         assay_panel: dict | None = None,
         assay_group: str | None = None,
-    ) -> list[dict]:
+        stream: bool = False,
+    ) -> list[dict] | Iterable[dict]:
         """Load CNVs for a sample using the active filters.
 
         Args:
             sample: Sample payload to inspect.
             sample_filters: Active sample filters.
             filter_genes: Effective genes selected for the sample.
+            stream: Yield batches lazily for table pagination; false preserves list callers.
 
         Returns:
             list[dict]: Filtered CNV documents for the sample.
@@ -340,11 +343,19 @@ class DnaStructuralService:
                 assay_group=assay_group or (assay_panel or {}).get("asp_group"),
             ),
         )
-        cnvs = list(self.copy_number_variant_repository.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
-        if filter_cnveffects:
-            cnvs = cnvtype_variant(cnvs, filter_cnveffects)
-        return cnv_organizegenes(cnvs)
+
+        def rows() -> Iterable[dict]:
+            """Normalize filtered CNVs in bounded batches without changing source order."""
+            for batch in batched(
+                self.copy_number_variant_repository.get_sample_cnvs(cnv_query, stream=True), 100
+            ):
+                cnvs = list(batch)
+                if filter_cnveffects:
+                    cnvs = cnvtype_variant(cnvs, filter_cnveffects)
+                yield from cnv_organizegenes(cnvs)
+
+        return rows() if stream else list(rows())
 
     def list_cnvs_payload(
         self, *, request, sample: dict, util_module, paginate: bool = True
@@ -394,26 +405,21 @@ class DnaStructuralService:
             filter_genes=filter_genes,
             assay_panel=assay_panel_doc,
             assay_group=assay_config.get("asp_group"),
+            stream=True,
         )
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
-        if search_query:
-            cnvs = search_items(cnvs, search_query=search_query, text_builder=_cnv_search_text)
         sort_specs = parse_sort_specs(query_params)
-        cnvs = sort_items(cnvs, specs=sort_specs, value_getter=_cnv_sort_value)
-        page_cnvs = cnvs
-        pagination_meta: dict[str, Any] = {
-            "total": len(cnvs),
-            "count": len(cnvs),
-            "page_count": len(cnvs),
-            "page": 1,
-            "per_page": len(cnvs) or 50,
-            "has_previous": False,
-            "has_next": False,
-        }
-        if paginate:
-            page, per_page = request_pagination(request)
-            page_cnvs, pagination_meta = paginate_items(cnvs, page=page, per_page=per_page)
+        page, per_page = request_pagination(request)
+        page_cnvs, pagination_meta = select_table_rows(
+            cnvs,
+            search_query=search_query,
+            text_builder=_cnv_search_text,
+            specs=sort_specs,
+            value_getter=_cnv_sort_value,
+            page=page if paginate else None,
+            per_page=per_page,
+        )
         page_genes = [
             str(gene.get("gene") or gene.get("name"))
             for cnv in page_cnvs
@@ -454,18 +460,9 @@ class DnaStructuralService:
         cnv = self.copy_number_variant_repository.get_cnv(cnv_id)
         if not cnv:
             raise api_error(404, "CNV not found")
-        cnv_sample_id = cnv.get("SAMPLE_ID") or cnv.get("sample_id")
-        if cnv_sample_id and str(cnv_sample_id) != str(sample.get("_id")):
+        owner = cnv.get("SAMPLE_ID")
+        if not owner or not sample.get("_id") or str(owner) != str(sample["_id"]):
             raise api_error(404, "CNV not found for sample")
-        if not cnv_sample_id:
-            sample_cnvs = list(
-                self.copy_number_variant_repository.get_sample_cnvs(
-                    {"SAMPLE_ID": str(sample.get("_id"))}
-                )
-            )
-            sample_cnv_ids = {str(doc.get("_id")) for doc in sample_cnvs}
-            if str(cnv.get("_id")) not in sample_cnv_ids:
-                raise api_error(404, "CNV not found for sample")
 
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
@@ -496,27 +493,24 @@ class DnaStructuralService:
             "cosmic": cosmic,
         }
 
-    def set_cnv_flag(self, *, cnv_id: str, apply: bool, flag: str) -> None:
-        """Apply or remove a boolean flag on a single CNV."""
-        if flag == "interesting":
-            if apply:
-                self.copy_number_variant_repository.mark_interesting_cnv(cnv_id)
-            else:
-                self.copy_number_variant_repository.unmark_interesting_cnv(cnv_id)
-            return
-        if flag == "false_positive":
-            if apply:
-                self.copy_number_variant_repository.mark_false_positive_cnv(cnv_id)
-            else:
-                self.copy_number_variant_repository.unmark_false_positive_cnv(cnv_id)
-            return
-        if flag == "noteworthy":
-            if apply:
-                self.copy_number_variant_repository.noteworthy_cnv(cnv_id)
-            else:
-                self.copy_number_variant_repository.unnoteworthy_cnv(cnv_id)
-            return
-        raise ValueError(f"Unsupported flag: {flag}")
+    def require_resource_for_sample(self, *, sample: dict, resource: str, resource_id: str) -> dict:
+        """Require a CNV or translocation to belong to the authorized sample."""
+        from api.application.common.finding_access import require_sample_finding
+
+        loaders = {
+            "cnv": self.copy_number_variant_repository.get_cnv,
+            "translocation": self.translocation_repository.get_transloc,
+        }
+        return require_sample_finding(sample, resource_id, loaders[resource])
+
+    def set_cnv_flag(self, *, sample: dict, cnv_id: str, apply: bool, flag: str) -> OperationResult:
+        """Set an allowed flag using the authorized sample in the write predicate."""
+        fields = {"interesting": "interesting", "false_positive": "fp", "noteworthy": "noteworthy"}
+        if flag not in fields:
+            raise ValueError(f"Unsupported flag: {flag}")
+        return self.copy_number_variant_repository.set_sample_finding_flag(
+            sample_id=str(sample["_id"]), resource_ids=[cnv_id], flag=fields[flag], value=apply
+        )
 
     def set_cnv_comment_hidden(self, *, cnv_id: str, comment_id: str, hidden: bool) -> None:
         """Hide or unhide a CNV comment."""
@@ -585,51 +579,37 @@ class DnaStructuralService:
             sample,
             assay_group=assay_config.get("asp_group"),
         )
-        translocs = list(
-            self.translocation_repository.get_sample_translocations(
+
+        def translocation_rows() -> Iterable[dict[str, Any]]:
+            """Apply the established gene and policy filters to cursor batches."""
+            cursor = self.translocation_repository.get_sample_translocations(
                 build_transloc_query(
-                    str(sample["_id"]),
-                    policy_settings,
+                    str(sample["_id"]), policy_settings, policy=translocation_policy
+                ),
+                stream=True,
+            )
+            for batch in batched(cursor, 100):
+                yield from filter_translocations_by_genes(
+                    list(batch),
+                    filter_genes=filter_genes,
+                    restricted=restricted,
+                    settings=policy_settings,
                     policy=translocation_policy,
                 )
-            )
-        )
-        translocs = filter_translocations_by_genes(
-            translocs,
-            filter_genes=filter_genes,
-            restricted=restricted,
-            settings=policy_settings,
-            policy=translocation_policy,
-        )
+
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
-        if search_query:
-            translocs = search_items(
-                translocs,
-                search_query=search_query,
-                text_builder=_translocation_search_text,
-            )
         sort_specs = parse_sort_specs(query_params)
-        translocs = sort_items(
-            translocs,
+        page, per_page = request_pagination(request)
+        page_translocs, pagination_meta = select_table_rows(
+            translocation_rows(),
+            search_query=search_query,
+            text_builder=_translocation_search_text,
             specs=sort_specs,
             value_getter=_translocation_sort_value,
+            page=page if paginate else None,
+            per_page=per_page,
         )
-        page_translocs = translocs
-        pagination_meta: dict[str, Any] = {
-            "total": len(translocs),
-            "count": len(translocs),
-            "page_count": len(translocs),
-            "page": 1,
-            "per_page": len(translocs) or 50,
-            "has_previous": False,
-            "has_next": False,
-        }
-        if paginate:
-            page, per_page = request_pagination(request)
-            page_translocs, pagination_meta = paginate_items(
-                translocs, page=page, per_page=per_page
-            )
         page_genes = [gene for transloc in page_translocs for gene in translocation_genes(transloc)]
         return {
             "sample": {
@@ -667,18 +647,9 @@ class DnaStructuralService:
         transloc = self.translocation_repository.get_transloc(transloc_id)
         if not transloc:
             raise api_error(404, "Translocation not found")
-        transloc_sample_id = transloc.get("SAMPLE_ID") or transloc.get("sample_id")
-        if transloc_sample_id and str(transloc_sample_id) != str(sample.get("_id")):
+        owner = transloc.get("SAMPLE_ID")
+        if not owner or not sample.get("_id") or str(owner) != str(sample["_id"]):
             raise api_error(404, "Translocation not found for sample")
-        if not transloc_sample_id:
-            sample_translocs = list(
-                self.translocation_repository.get_sample_translocations(
-                    sample_id=str(sample.get("_id"))
-                )
-            )
-            sample_transloc_ids = {str(doc.get("_id")) for doc in sample_translocs}
-            if str(transloc.get("_id")) not in sample_transloc_ids:
-                raise api_error(404, "Translocation not found for sample")
 
         assay_config = self._get_formatted_assay_config(sample)
         assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
@@ -721,27 +692,21 @@ class DnaStructuralService:
             "cosmic": cosmic,
         }
 
-    def set_translocation_flag(self, *, transloc_id: str, apply: bool, flag: str) -> None:
-        """Apply or remove a boolean flag on a single translocation."""
-        if flag == "interesting":
-            if apply:
-                self.translocation_repository.mark_interesting_transloc(transloc_id)
-            else:
-                self.translocation_repository.unmark_interesting_transloc(transloc_id)
-            return
-        if flag == "false_positive":
-            if apply:
-                self.translocation_repository.mark_false_positive_transloc(transloc_id)
-            else:
-                self.translocation_repository.unmark_false_positive_transloc(transloc_id)
-            return
-        if flag == "irrelevant":
-            self.translocation_repository.mark_irrelevant(transloc_id, apply)
-            return
-        if flag == "blacklisted":
-            self.translocation_repository.mark_blacklisted(transloc_id, apply)
-            return
-        raise ValueError(f"Unsupported flag: {flag}")
+    def set_translocation_flag(
+        self, *, sample: dict, transloc_id: str, apply: bool, flag: str
+    ) -> OperationResult:
+        """Set an allowed flag using the authorized sample in the write predicate."""
+        fields = {
+            "interesting": "interesting",
+            "false_positive": "fp",
+            "irrelevant": "irrelevant",
+            "blacklisted": "blacklisted",
+        }
+        if flag not in fields:
+            raise ValueError(f"Unsupported flag: {flag}")
+        return self.translocation_repository.set_sample_finding_flag(
+            sample_id=str(sample["_id"]), resource_ids=[transloc_id], flag=fields[flag], value=apply
+        )
 
     def set_translocation_comment_hidden(
         self, *, transloc_id: str, comment_id: str, hidden: bool

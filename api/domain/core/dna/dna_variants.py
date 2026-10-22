@@ -1,15 +1,16 @@
 """Common DNA variant helper utilities."""
 
 from collections import defaultdict
+from typing import Any
 
 from api.domain.core.annotation_identity import NOMENCLATURE_FIELDS
 
 
-def format_pon(variant: dict) -> defaultdict:
+def format_pon(variant: dict[str, Any]) -> defaultdict[str, dict[str, Any]]:
     """
     Format PON keys from variant INFO into nested map by class and numeric type.
     """
-    pon = defaultdict(dict)
+    pon: defaultdict[str, dict[str, Any]] = defaultdict(dict)
     for i in variant["INFO"]:
         if "PON_" in i:
             part = i.split("_")
@@ -20,7 +21,7 @@ def format_pon(variant: dict) -> defaultdict:
     return pon
 
 
-def get_variant_nomenclature(data: dict) -> tuple[str, str]:
+def get_variant_nomenclature(data: dict[str, Any]) -> tuple[str, str]:
     """Return the explicit canonical annotation identity from an API payload."""
     nomenclature = str(data.get("nomenclature") or "").strip().lower()
     variant = str(data.get("variant") or "").strip()

@@ -6,12 +6,13 @@ import pytest
 from fastapi import HTTPException
 
 from api.security.access import ApiUser, _enforce_access, _get_sample_for_api, is_public_api_path
+from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
 @pytest.fixture(autouse=True)
 def _isolate_policy_repositories(monkeypatch: pytest.MonkeyPatch):
     """Keep access-control unit tests independent from runtime repositories."""
-    monkeypatch.setattr("api.security.access.get_permissions_repository", lambda: None)
+    monkeypatch.setattr("api.security.access.get_permissions_repository", PermissionCatalog)
     monkeypatch.setattr(
         "api.security.access.get_roles_repository",
         lambda: type(
@@ -23,7 +24,7 @@ def _isolate_policy_repositories(monkeypatch: pytest.MonkeyPatch):
                         {
                             "role_id": "user",
                             "is_active": True,
-                            "permissions": ["report:preview", "sample:view:own"],
+                            "permissions": ["report:preview", "sample:view"],
                         },
                         {
                             "role_id": "manager",
@@ -85,14 +86,14 @@ def test_login_provider_discovery_is_a_public_bootstrap_endpoint():
 
 def test_enforce_access_allows_permission_inside_resource_scope():
     """Permission grants should be constrained by assigned resource attributes."""
-    user = _u(permissions=["sample:view:own"])
+    user = _u(permissions=["sample:view"])
     user.asp_ids = ["hema_gmsv1"]
     user.envs = ["production"]
     user.asp_groups = ["hematology"]
 
     _enforce_access(
         user,
-        permission="sample:view:own",
+        permission="sample:view",
         context={
             "asp_id": "HEMA_GMSV1",
             "environment": "production",
@@ -103,7 +104,7 @@ def test_enforce_access_allows_permission_inside_resource_scope():
 
 def test_enforce_access_does_not_expand_environment_aliases():
     """Access scopes use the stored environment vocabulary verbatim."""
-    user = _u(permissions=["sample:view:own"])
+    user = _u(permissions=["sample:view"])
     user.asp_ids = ["hema_gmsv1"]
     user.envs = ["production"]
     user.asp_groups = ["hematology"]
@@ -111,7 +112,7 @@ def test_enforce_access_does_not_expand_environment_aliases():
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
             user,
-            permission="sample:view:own",
+            permission="sample:view",
             context={
                 "asp_id": "HEMA_GMSV1",
                 "environment": "prod",
@@ -124,7 +125,7 @@ def test_enforce_access_does_not_expand_environment_aliases():
 
 def test_enforce_access_denies_permission_outside_resource_scope():
     """Permission grants should not bypass assay, profile, or assay-group scope."""
-    user = _u(permissions=["sample:view:own"])
+    user = _u(permissions=["sample:view"])
     user.asp_ids = ["hema_gmsv1"]
     user.envs = ["production"]
     user.asp_groups = ["hematology"]
@@ -132,7 +133,7 @@ def test_enforce_access_denies_permission_outside_resource_scope():
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
             user,
-            permission="sample:view:own",
+            permission="sample:view",
             context={
                 "asp_id": "solid_panel",
                 "environment": "production",
@@ -165,7 +166,7 @@ def test_enforce_access_superuser_bypasses_all_checks():
 
 def test_get_sample_for_api_returns_specific_scope_error(monkeypatch):
     """Sample lookup should explain assay-scope denials clearly."""
-    user = _u(role="user", level=9, permissions=["sample:view:own"])
+    user = _u(role="user", level=9, permissions=["sample:view"])
     user.asp_ids = ["wgs"]
     sample = {"_id": "s1", "name": "S1", "asp_id": "hema_gmsv1"}
 
@@ -187,3 +188,25 @@ def test_get_sample_for_api_returns_specific_scope_error(monkeypatch):
     assert exc.value.status_code == 403
     assert exc.value.detail["error"] == "Sample 'S1' is outside your assay scope"
     assert exc.value.detail["category"] == "scope"
+
+
+@pytest.mark.parametrize("group", ["solid", None])
+def test_sample_access_resolves_assay_group_and_denies_unknown_or_foreign(monkeypatch, group):
+    """Group-only grants cannot bypass an absent or different assay group."""
+    from types import SimpleNamespace
+
+    user = _u(role="user", level=9, permissions=["sample:view"])
+    user.asp_ids = []
+    user.asp_groups = ["hematology"]
+    sample = {"_id": "s1", "asp_id": "synthetic", "environment": "production"}
+    monkeypatch.setattr(
+        "api.security.access.get_sample_repository",
+        lambda: SimpleNamespace(get_sample=lambda _: sample),
+    )
+    monkeypatch.setattr(
+        "api.security.access.get_assay_panel_repository",
+        lambda: SimpleNamespace(get_asp=lambda _: {"asp_group": group} if group else None),
+    )
+    with pytest.raises(HTTPException) as error:
+        _get_sample_for_api("s1", user)
+    assert error.value.status_code == 403

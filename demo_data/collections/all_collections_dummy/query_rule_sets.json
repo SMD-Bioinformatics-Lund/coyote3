@@ -1,20 +1,31 @@
 [
   {
-    "scope": {"assay_group": "example", "asp_id": null, "subpanel_id": null, "analysis": "snv", "intent": "somatic"},
-    "scope_key": "example:*:*:snv:somatic",
-    "name": "Synthetic inherited query policy",
+    "scope": {
+      "assay_group": "example",
+      "asp_id": null,
+      "subpanel_id": null,
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "name": "example__all__base__somatic_snvs",
+    "content": {
+      "evidence_mode": null,
+      "exceptions": null,
+      "exception_mode": "replace"
+    },
     "reason": "Contract validation example",
-    "content": {"evidence_mode": null, "exceptions": null},
+    "scope_key": "example__all__base__somatic_snvs",
+    "query_id": "example__all__base__somatic_snvs",
     "version": 1,
     "revision": 1,
     "status": "draft",
-    "system_installed": false,
     "created_by": "synthetic-author",
-    "updated_by": "synthetic-author",
     "created_on": "2026-01-01T00:00:00+00:00",
+    "updated_by": "synthetic-author",
     "updated_on": "2026-01-01T00:00:00+00:00",
     "approved_by": null,
     "published_by": null,
-    "published_on": null
+    "published_on": null,
+    "system_installed": false
   }
 ]

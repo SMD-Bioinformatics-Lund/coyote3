@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import shlex
-from typing import Any
+from typing import Any, Callable
 
 from api.config.constants import (
     DEFAULT_ENVIRONMENT,
@@ -265,12 +265,11 @@ def normalize_uploaded_checksums(payload: Any) -> dict[str, str]:
     return normalized
 
 
-def assay_default_filters_from_aspc_collection(
-    aspc_collection: Any, sample_doc: dict[str, Any]
+def assay_default_filters(
+    read_configuration: Callable[[dict[str, Any]], dict[str, Any] | None],
+    sample_doc: dict[str, Any],
 ) -> dict[str, Any] | None:
     """Resolve formatted ASPC default filters and metadata for a sample payload."""
-    if aspc_collection is None or not hasattr(aspc_collection, "find_one"):
-        return None
     assay_name = normalize_clinical_identifier(sample_doc.get("asp_id"), label="asp_id")
     requested_subpanel_id = normalize_clinical_identifier(
         sample_doc.get("subpanel_id") or SUBPANEL_BASE_ID,
@@ -282,10 +281,10 @@ def assay_default_filters_from_aspc_collection(
         "environment": profile,
         "is_active": True,
     }
-    raw_config = aspc_collection.find_one({**query_base, "subpanel_id": requested_subpanel_id})
+    raw_config = read_configuration({**query_base, "subpanel_id": requested_subpanel_id})
     used_base_configuration = False
     if not isinstance(raw_config, dict) and requested_subpanel_id != SUBPANEL_BASE_ID:
-        raw_config = aspc_collection.find_one({**query_base, "subpanel_id": SUBPANEL_BASE_ID})
+        raw_config = read_configuration({**query_base, "subpanel_id": SUBPANEL_BASE_ID})
         used_base_configuration = isinstance(raw_config, dict)
     if not isinstance(raw_config, dict):
         return None

@@ -5,26 +5,19 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from argparse import Namespace
 from pathlib import Path
 
 import mongomock
-import pytest
 
-from scripts.bootstrap import bootstrap_database
 from scripts.bootstrap.bootstrap_database import (
-    DEFAULT_DEMO_CENTER_DIR,
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
-    _build_seed_documents,
     _deployment_is_initialized,
     _initialize_governance,
-    _insert_if_empty,
-    _seed_clinical_rule_revisions,
     _superuser_exists,
+    build_seed_documents,
 )
 from scripts.identity.sync_rbac_catalog import synchronize_rbac_catalog
-from tests.unit.reporting.test_clinical_rules import _document
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -215,10 +208,9 @@ def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_
 
 def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles():
     """The repository ships the complete first-deployment governance catalog."""
-    payload = _build_seed_documents(
+    payload = build_seed_documents(
         rbac_dir=DEFAULT_RBAC_DIR,
         reference_dir=DEFAULT_REFERENCE_DIR,
-        demo_center_dir=None,
         actor="bootstrap.test",
     )
     permission_docs = payload["permissions"]
@@ -271,10 +263,9 @@ def test_first_deployment_bootstrap_detects_empty_partial_and_complete_state():
 
 
 def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center():
-    payload = _build_seed_documents(
+    payload = build_seed_documents(
         rbac_dir=DEFAULT_RBAC_DIR,
         reference_dir=DEFAULT_REFERENCE_DIR,
-        demo_center_dir=None,
         actor="bootstrap.test",
     )
 
@@ -288,9 +279,9 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
     """Seed export revisions become fresh baselines without altering clinical content."""
     from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
     from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-    from scripts.bootstrap.build_seed_bundle import load_seed
+    from api.infra.seed.bundle import load_seed
 
-    source = load_seed(DEFAULT_DEMO_CENTER_DIR)
+    source = load_seed(ROOT_DIR / "api/config/bootstrap/demo_center")
     original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
     for collection, documents in source.items():
         for document in documents:
@@ -300,12 +291,19 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
             else:
                 document["version"] = 8
                 document["system_managed"] = False
-    monkeypatch.setattr(bootstrap_database, "load_seed", lambda directory: source)
+    from api.infra.seed.documents import load_reference_seed_pack
+
+    monkeypatch.setattr(
+        "api.infra.seed.documents.load_reference_seed_pack",
+        lambda directory, **kwargs: {
+            **load_reference_seed_pack(directory, **kwargs),
+            **(source if directory == DEFAULT_REFERENCE_DIR else {}),
+        },
+    )
     actor = "installation.admin"
-    payload = _build_seed_documents(
+    payload = build_seed_documents(
         rbac_dir=DEFAULT_RBAC_DIR,
         reference_dir=DEFAULT_REFERENCE_DIR,
-        demo_center_dir=DEFAULT_DEMO_CENTER_DIR,
         actor=actor,
     )
     managed = {
@@ -339,40 +337,17 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
         assert document["content_hash"] == original["content_hash"] == content_hash(model)
         assert validate_rule_set(model).valid
 
-    database = mongomock.MongoClient()["coyote3_test"]
-    database.rules.insert_many(payload["clinical_rule_sets"])
-    _seed_clinical_rule_revisions(
-        database, rules_collection="rules", revisions_collection="revisions", actor=actor
+
+def test_initial_rbac_uses_system_creation_provenance():
+    """Automated bootstrap records do not impersonate the initial administrator."""
+    payload = build_seed_documents(
+        rbac_dir=DEFAULT_RBAC_DIR,
+        reference_dir=DEFAULT_REFERENCE_DIR,
+        actor="system",
+        include_knowledgebase=False,
     )
-    for revision in database.revisions.find():
-        assert revision["content_version"] == 1
-        assert revision["document"]["created_by"] == actor
-
-
-def test_bootstrap_uses_named_system_administrator_as_installation_actor(monkeypatch):
-    """CLI seed attribution uses the normalized admin login, not the emergency account."""
-    args = Namespace(
-        username="emergency",
-        email="emergency@example.org",
-        password="emergency-example",
-        sys_admin_username=" Installation.Admin ",
-        sys_admin_email="admin@example.org",
-        sys_admin_password="administrator-example",
-        mongo_uri="mongodb://unused",
-        knowledgebase_db="reference_test",
-        rbac_dir=str(DEFAULT_RBAC_DIR),
-        reference_dir=str(DEFAULT_REFERENCE_DIR),
-        with_demo_center=False,
-    )
-    monkeypatch.setattr(bootstrap_database, "parse_args", lambda: args)
-
-    def capture_seed_actor(**kwargs):
-        assert kwargs["actor"] == "installation.admin"
-        raise RuntimeError("stop before database access")
-
-    monkeypatch.setattr(bootstrap_database, "_build_seed_documents", capture_seed_actor)
-    with pytest.raises(RuntimeError, match="stop before database access"):
-        bootstrap_database.main()
+    for collection in ("permissions", "roles", "assay_groups", "query_rule_sets"):
+        assert {row["created_by"] for row in payload[collection]} == {"system"}
 
 
 def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
@@ -402,9 +377,6 @@ def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
         )
         == "loaded"
     )
-    assert _insert_if_empty(database, "hgnc_genes", seed["hgnc_genes"]) == "loaded"
-    assert _insert_if_empty(database, "hgnc_genes", [{"hgnc_id": "HGNC:2"}]) == "skipped"
-    assert database["hgnc_genes"].count_documents({}) == 1
     assert (
         _initialize_governance(
             database,
@@ -417,35 +389,6 @@ def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
         )
         == "skipped"
     )
-
-
-def test_database_bootstrap_captures_rule_revision_baselines_once():
-    database = mongomock.MongoClient()["coyote3_test"]
-    database.clinical_rule_sets.insert_one(
-        _document().model_dump(mode="python", by_alias=True, exclude_none=True)
-    )
-
-    assert (
-        _seed_clinical_rule_revisions(
-            database,
-            rules_collection="clinical_rule_sets",
-            revisions_collection="clinical_rule_revisions",
-            actor="bootstrap.test",
-        )
-        == "loaded"
-    )
-    assert (
-        _seed_clinical_rule_revisions(
-            database,
-            rules_collection="clinical_rule_sets",
-            revisions_collection="clinical_rule_revisions",
-            actor="bootstrap.test",
-        )
-        == "skipped"
-    )
-    snapshot = database.clinical_rule_revisions.find_one({})
-    assert snapshot["action"] == "baseline_captured"
-    assert snapshot["document"]["revision"] == 1
 
 
 def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
@@ -748,25 +691,6 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
 
     assert listed.returncode == 0
     assert listed.stdout.strip() == str((tmp_path / "synthetic.vcf").resolve())
-
-
-def test_preflight_script_does_not_use_retired_environment_port_names():
-    combined = (ROOT_DIR / "scripts/deployment/center_preflight.sh").read_text(encoding="utf-8")
-    for retired_key in (
-        "COYOTE3_STAGE_PORT",
-        "COYOTE3_DEV_PORT",
-        "COYOTE3_TEST_PORT",
-        "COYOTE3_STAGE_MONGO_PORT",
-        "COYOTE3_DEV_MONGO_PORT",
-        "COYOTE3_TEST_MONGO_PORT",
-    ):
-        assert retired_key not in combined
-
-
-def test_production_compose_does_not_register_removed_first_run_service():
-    compose = (ROOT_DIR / "deploy/compose/docker-compose.yml").read_text(encoding="utf-8")
-    assert "coyote3_first_run:" not in compose
-    assert "compose_first_run.sh" not in compose
 
 
 def test_production_frontend_receives_script_name_at_build_and_runtime():

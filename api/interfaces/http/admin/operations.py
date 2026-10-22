@@ -10,8 +10,8 @@ from api.app.container import util
 from api.app.deps.services import get_audit_service, get_demo_installation_service
 from api.app.runtime_state import app as runtime_app
 from api.application.audit.service import AuditService
-from api.application.demo_installation import DemoInstallationService
 from api.application.ingest.tokens import issue_audited_ingest_token
+from api.application.provisioning.demo_installation import DemoInstallationService
 from api.config.security import get_internal_api_token, get_runtime_environment
 from api.contracts.admin import (
     AdminAuditPayload,

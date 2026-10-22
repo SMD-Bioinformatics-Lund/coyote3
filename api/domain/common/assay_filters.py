@@ -11,7 +11,9 @@ from api.domain.common.sample_filters import (
 )
 
 
-def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config_doc: dict) -> dict:
+def merge_sample_settings_with_assay_config(
+    sample_doc: dict[str, Any], assay_config_doc: dict[str, Any]
+) -> dict[str, Any]:
     """Merge assay filter defaults into a sample document when no sample filters exist."""
     sample_doc = deepcopy(sample_doc)
     filters_config = assay_config_doc.get("filters", {})
@@ -35,16 +37,18 @@ def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config_doc: 
     return sample_doc
 
 
-def create_filter_genelist(genelist_dict: dict) -> list:
+def create_filter_genelist(genelist_dict: dict[str, Any]) -> list[str]:
     """Return active genes from selected genelist documents."""
-    filter_genes = []
+    filter_genes: list[str] = []
     for _genelist_id, genelist_values in genelist_dict.items():
         if genelist_values.get("is_active", False):
             filter_genes.extend(genelist_values["covered"])
     return list(set(filter_genes))
 
 
-def get_genes_covered_in_panel(genelists: dict, assay_panel_doc: dict) -> dict:
+def get_genes_covered_in_panel(
+    genelists: dict[str, Any], assay_panel_doc: dict[str, Any]
+) -> dict[str, Any]:
     """Annotate each genelist with covered and uncovered genes for the assay panel."""
     covered_genes_set = set(assay_panel_doc.get("covered_genes", []))
     updated_genelists = {}
@@ -66,12 +70,14 @@ def get_genes_covered_in_panel(genelists: dict, assay_panel_doc: dict) -> dict:
     return updated_genelists
 
 
-def get_assay_genelist_names(genelists: list[dict]) -> list[str]:
+def get_assay_genelist_names(genelists: list[dict[str, Any]]) -> list[str]:
     """Return genelist identifiers from configured genelist docs."""
     return [genelist["_id"] for genelist in genelists]
 
 
-def format_assay_config(config: dict | None, schema: dict | None) -> dict:
+def format_assay_config(
+    config: dict[str, Any] | None, schema: dict[str, Any] | None
+) -> dict[str, Any]:
     """Format flat ASPC values into filters/reporting sections using a form schema."""
     if config is None:
         config = {}
@@ -82,7 +88,7 @@ def format_assay_config(config: dict | None, schema: dict | None) -> dict:
     filter_section = sections.get("filters", {})
     report_section = sections.get("reporting", {})
 
-    def section_keys_and_defaults(section_obj):
+    def section_keys_and_defaults(section_obj: Any) -> tuple[list[str], dict[str, Any]]:
         """Extract configurable field names and defaults from a section definition.
 
         Args:
@@ -171,7 +177,7 @@ def format_assay_config(config: dict | None, schema: dict | None) -> dict:
     return config
 
 
-def format_filters_from_form(form_data: Any, assay_config_schema: dict) -> dict:
+def format_filters_from_form(form_data: Any, assay_config_schema: dict[str, Any]) -> dict[str, Any]:
     """Normalize submitted assay-filter form data using the ASPC schema sections."""
     if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
         form_data = {field.name: field.data for field in form_data}
@@ -190,14 +196,12 @@ def format_filters_from_form(form_data: Any, assay_config_schema: dict) -> dict:
                     fields.append(str(key))
 
     filters = {}
-    vep_consequences, snvlists, fusionlists, fusion_callers, fusion_effects, cnveffects = (
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-    )
+    vep_consequences: list[str] = []
+    snvlists: list[str] = []
+    fusionlists: list[str] = []
+    fusion_callers: list[str] = []
+    fusion_effects: list[str] = []
+    cnveffects: list[str] = []
     prefix_map = {
         "vep_": vep_consequences,
         "snvlist_": snvlists,
@@ -232,9 +236,11 @@ def format_filters_from_form(form_data: Any, assay_config_schema: dict) -> dict:
     return filters
 
 
-def create_assay_group_map(assay_groups_panels: list) -> dict:
+def create_assay_group_map(
+    assay_groups_panels: list[dict[str, Any]],
+) -> dict[str | None, list[dict[str, Any]]]:
     """Build the admin UI assay-group map from assay panel docs."""
-    assay_group_map = {}
+    assay_group_map: dict[str | None, list[dict[str, Any]]] = {}
     for assay in assay_groups_panels:
         group = assay.get("asp_group")
         if group not in assay_group_map:
@@ -250,12 +256,12 @@ def create_assay_group_map(assay_groups_panels: list) -> dict:
 
 
 def get_sample_effective_genes(
-    sample: dict,
-    asp_doc: dict,
-    checked_gl_dict: dict,
+    sample: dict[str, Any],
+    asp_doc: dict[str, Any],
+    checked_gl_dict: dict[str, Any],
     target: str = "snv",
     intent: str = "somatic",
-) -> tuple:
+) -> tuple[dict[str, Any], list[str]]:
     """Return selected-list details and the effective genes for one analysis target.
 
     ``checked_gl_dict`` must contain only IDs selected in the target-specific
@@ -344,8 +350,8 @@ def get_sample_effective_genes(
 
 
 def has_sample_gene_restriction(
-    sample: dict,
-    asp_doc: dict,
+    sample: dict[str, Any],
+    asp_doc: dict[str, Any],
     *,
     target: str,
     intent: str = "somatic",
@@ -375,3 +381,23 @@ def has_sample_gene_restriction(
     adhoc = target_filters.get("adhoc_genes") or {}
     has_adhoc = isinstance(adhoc, dict) and bool(adhoc.get("genes"))
     return bool(selected_ids or has_adhoc or (asp_doc.get("covered_genes") or []))
+
+
+def get_case_and_control_sample_ids(sample_doc: dict[str, Any]) -> dict[str, str]:
+    """Extract populated case and control identifiers from a sample.
+
+    Args:
+        sample_doc: Document with optional case_id and control_id values.
+
+    Returns:
+        A new dictionary with case and/or control keys for truthy identifiers.
+        Missing, null, and other falsy identifiers are omitted.
+    """
+    sample_ids = {}
+    case = sample_doc.get("case_id")
+    control = sample_doc.get("control_id")
+    if case:
+        sample_ids["case"] = case
+    if control:
+        sample_ids["control"] = control
+    return sample_ids

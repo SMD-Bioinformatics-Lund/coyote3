@@ -9,6 +9,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.errors import AutoReconnect, OperationFailure
 
+from api.infra.mongo.repositories.audit_integrity import append_event, verify_chain
 from api.infra.mongo.repositories.audit_outbox import (
     AuditOutboxRepository,
     enqueue_audit,
@@ -67,6 +68,47 @@ def test_abort_leaves_neither_business_change_nor_success_audit(databases):
         commit_change(source, fail=True)
     assert source.business.count_documents({}) == 0
     assert source.audit_outbox.count_documents({}) == 0
+
+
+def test_concurrent_audit_appends_have_one_complete_chain(databases):
+    """Multiple writers serialize their heads without gaps or lost events."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from bson import ObjectId
+
+    _, target = databases
+    documents = [
+        {
+            "_id": ObjectId(),
+            "retention_class": "traceability",
+            "source": {"environment": "test"},
+            "message": "Synthetic",
+        }
+        for _ in range(12)
+    ]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda document: append_event(target.audit_events, document), documents))
+    result = verify_chain(target.audit_events)
+    assert result["valid"]
+    assert result["chains"][0]["sequence"] == len(documents)
+
+
+def test_audit_event_and_head_roll_back_together(databases, monkeypatch):
+    """A failed head write cannot leave an unanchored clinical event."""
+    from bson import ObjectId
+
+    _, target = databases
+    original = Collection.replace_one
+
+    def fail_head(collection, *args, **kwargs):
+        if collection.name == "audit_chain_heads":
+            raise RuntimeError("Synthetic head failure")
+        return original(collection, *args, **kwargs)
+
+    monkeypatch.setattr(Collection, "replace_one", fail_head)
+    with pytest.raises(RuntimeError, match="Synthetic head failure"):
+        append_event(target.audit_events, {"_id": ObjectId(), "retention_class": "traceability"})
+    assert target.audit_events.count_documents({}) == 0
 
 
 def test_configuration_receipts_are_only_written_for_committed_changes(databases):
@@ -155,14 +197,14 @@ def test_worker_cannot_consume_another_environment_or_destination(databases, mon
 def test_destination_outage_keeps_committed_receipt(databases, monkeypatch):
     source, target = databases
     commit_change(source)
-    original_update = Collection.update_one
+    original_insert = Collection.insert_one
 
     def fail(collection, *args, **kwargs):
         if collection.database.name == target.name:
             raise AutoReconnect("Synthetic identity outage")
-        return original_update(collection, *args, **kwargs)
+        return original_insert(collection, *args, **kwargs)
 
-    monkeypatch.setattr(Collection, "update_one", fail)
+    monkeypatch.setattr(Collection, "insert_one", fail)
     with pytest.raises(AutoReconnect):
         AuditOutboxRepository(source).deliver(target.audit_events, environment="test")
     assert source.business.count_documents({}) == 1

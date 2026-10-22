@@ -298,7 +298,14 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
     Returns:
         The function result.
     """
-    variant = {"_id": "v1", "INFO": {"selected_CSQ": {}}, "simple_id": None, "simple_id_hash": None}
+    monkeypatch.setattr(common, "_get_sample_for_api", lambda *_: fx.sample_doc())
+    variant = {
+        "_id": "v1",
+        "SAMPLE_ID": "s1",
+        "INFO": {"selected_CSQ": {}},
+        "simple_id": None,
+        "simple_id_hash": None,
+    }
     service = common.get_common_query_service()
     monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
@@ -316,8 +323,10 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
 
 def test_common_tiered_variant_context_uses_master_style_identity_lookup(monkeypatch):
     """Exact identity lookup should match historical reported-variant behavior."""
+    monkeypatch.setattr(common, "_get_sample_for_api", lambda *_: fx.sample_doc())
     variant = {
         "_id": "v1",
+        "SAMPLE_ID": "s1",
         "simple_id": " chr17_7579472_c_t ",
         "simple_id_hash": None,
         "INFO": {"selected_CSQ": {"SYMBOL": "TP53"}},

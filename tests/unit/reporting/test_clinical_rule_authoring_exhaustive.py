@@ -332,8 +332,14 @@ def test_from_store_list_versions_and_get() -> None:
         ),
         assay_panel_repository=SimpleNamespace(get_all_asps=lambda is_active: []),
         assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
+        roles_repository=RoleRepository(),
+        user_repository=UserRepository(),
     )
     service = ClinicalRuleAuthoringService.from_store(store)
+    assert service.reviewer_options() == {
+        "clinical_reviewers": [{"username": "reviewer", "name": "Reviewer"}],
+        "publishers": [{"username": "publisher", "name": "Publisher"}],
+    }
 
     result = service.list(status="published", search="assay", page=2, per_page=5)
 

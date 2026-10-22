@@ -23,7 +23,7 @@ from api.infra.mongo.repositories.query_rule_revisions import (  # noqa: E402
 )
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from scripts.bootstrap.query_rule_seed import prepare_query_rule_seeds  # noqa: E402
+from api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
 
 
 def install(db, *, actor: str, apply: bool = False) -> dict:

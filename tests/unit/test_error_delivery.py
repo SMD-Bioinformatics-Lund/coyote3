@@ -12,6 +12,7 @@ from starlette.requests import Request
 
 from api.application.admin.app_controls import effective_audit_retention_days
 from api.application.audit.service import AuditService
+from api.infra.mongo.repositories.audit import AuditRepository
 from api.infra.mongo.repositories.audit_outbox import audit_route
 from api.infra.observability.audit_spool import AuditSpool
 from api.infra.observability.logging import JsonFormatter, request_context_from_request
@@ -83,7 +84,7 @@ def test_audit_outage_spools_sanitized_event_then_replays(tmp_path):
     collection = Mock()
     collection.insert_one.side_effect = AutoReconnect("synthetic outage")
     service = AuditService(
-        collection, retention_days=90, environment="test", spool_directory=tmp_path
+        AuditRepository(collection, spool_directory=tmp_path), retention_days=90, environment="test"
     )
     identity = service.record("example.changed", "password=synthetic-secret", category="test")
     paths = list(tmp_path.glob("*.json"))
@@ -128,7 +129,7 @@ def test_unacknowledged_writes_remain_pending(tmp_path):
     collection.insert_one.return_value.acknowledged = False
     collection.update_one.return_value.acknowledged = False
     service = AuditService(
-        collection, retention_days=90, environment="test", spool_directory=tmp_path
+        AuditRepository(collection, spool_directory=tmp_path), retention_days=90, environment="test"
     )
     identity = service.record("example.changed", "Synthetic event", category="test")
     assert (tmp_path / f"{identity}.json").exists()
@@ -140,9 +141,9 @@ def test_dual_storage_failure_is_not_silently_ignored(tmp_path, monkeypatch):
     collection = Mock()
     collection.insert_one.side_effect = AutoReconnect("synthetic outage")
     service = AuditService(
-        collection, retention_days=90, environment="test", spool_directory=tmp_path
+        AuditRepository(collection, spool_directory=tmp_path), retention_days=90, environment="test"
     )
-    monkeypatch.setattr(service.spool, "persist", Mock(side_effect=OSError("disk full")))
+    monkeypatch.setattr(service.repository.spool, "persist", Mock(side_effect=OSError("disk full")))
     with pytest.raises(OSError, match="disk full"):
         service.record("example.changed", "Synthetic event", category="test")
 

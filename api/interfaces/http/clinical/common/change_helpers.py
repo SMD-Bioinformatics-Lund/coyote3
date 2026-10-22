@@ -19,21 +19,26 @@ def resource_change(
     *,
     resource: str,
     action: str,
-    mutate: Callable[[], Any],
+    mutate: Callable[[dict[str, Any]], Any],
     validate: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     """Generic resource mutation: validate, mutate, return canonical payload.
 
-    Works for CNVs, fusions, translocations, and similar resources where the
-    validate step is ``_get_sample_for_api(sample_id, user)``.
+    Always checks sample access, followed by finding ownership, before mutation.
     """
     from api.security.access import _get_sample_for_api
+
+    sample = _get_sample_for_api(sample_id, user)
+    if validate is None:
+        service.require_resource_for_sample(
+            sample=sample, resource=resource, resource_id=resource_id
+        )
 
     return run_serialized_change(
         sample_id=sample_id,
         user=user,
-        validate=validate or (lambda: _get_sample_for_api(sample_id, user)),
-        mutate=mutate,
+        validate=validate or (lambda: None),
+        mutate=lambda: mutate(sample),
         payload=lambda: change_payload(
             sample_id=sample_id,
             resource=resource,
@@ -59,10 +64,16 @@ def comment_change(
     """Generic comment visibility mutation for any resource type."""
     from api.security.access import _get_sample_for_api
 
+    sample = _get_sample_for_api(sample_id, user)
+    if validate is None:
+        service.require_resource_for_sample(
+            sample=sample, resource=resource.removesuffix("_comment"), resource_id=resource_id
+        )
+
     return run_serialized_change(
         sample_id=sample_id,
         user=user,
-        validate=validate or (lambda: _get_sample_for_api(sample_id, user)),
+        validate=validate or (lambda: None),
         mutate=mutate,
         payload=lambda: change_payload(
             sample_id=sample_id,

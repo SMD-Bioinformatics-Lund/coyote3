@@ -1,12 +1,12 @@
 [
   {
     "asp_id": "assay_1",
-    "igv": null,
     "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "Hema GMS v1",
     "description": "Demo DNA assay panel for first-run validation",
+    "igv": null,
     "expected_files": [
       "vcf_files",
       "cnv",
@@ -44,6 +44,7 @@
     "capture_method": null,
     "target_region_size": null,
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "version": 1,
     "created_by": null,
@@ -57,12 +58,12 @@
   },
   {
     "asp_id": "assay_rna_1",
-    "igv": null,
     "asp_group": "wts",
     "asp_family": "wts",
     "asp_category": "rna",
     "display_name": "Demo RNA WTS",
     "description": "Demo RNA WTS assay panel for first-run validation",
+    "igv": null,
     "expected_files": [
       "fusion_files",
       "expression_path",
@@ -90,6 +91,7 @@
     "capture_method": null,
     "target_region_size": null,
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "version": 1,
     "created_by": null,

@@ -8,7 +8,6 @@ from api.app.deps.repositories import get_store
 from api.app.runtime_state import app as runtime_app
 from api.application.accounts.permissions import PermissionManagementService
 from api.application.accounts.roles import RoleManagementService
-from api.application.accounts.user_profile import UserService
 from api.application.accounts.users import UserManagementService
 from api.application.admin.app_controls import AppControlsService, effective_audit_retention_days
 from api.application.audit.service import AuditService
@@ -17,20 +16,20 @@ from api.application.classification.tiering import ResourceClassificationService
 from api.application.classification.variant_annotation import ResourceAnnotationService
 from api.application.common.query_service import CommonQueryService
 from api.application.dashboard.analytics import DashboardService
-from api.application.demo_installation import DemoInstallationService
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.ingest.service import InternalIngestService
 from api.application.knowledgebase.oncokb_refresh import PublicOncoKbRefreshService
 from api.application.notifications.activity import ActivityNotificationService
 from api.application.notifications.service import NotificationService
+from api.application.provisioning.demo_installation import DemoInstallationService
+from api.application.provisioning.deployment_data import DeploymentDataService
 from api.application.public.catalog import PublicCatalogService
-from api.application.query_rule_testing import QueryRuleTestingService
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
+from api.application.query_rules.testing import QueryRuleTestingService
 from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from api.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
 from api.application.reporting.dna_workflow import DNAWorkflowService
-from api.application.reporting.report_builder import ReportService
 from api.application.reporting.report_library import ReportLibraryService
 from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.application.resources.asp import AspService
@@ -44,13 +43,13 @@ from api.application.resources.subpanels import SubpanelService
 from api.application.rna.expression_analysis import RnaService
 from api.application.sample.catalog import SampleCatalogService
 from api.application.sample.coverage import CoverageService
-from api.application.sample.sample_lookup import SampleService
 from api.config.security import (
     get_api_session_ttl_seconds,
     get_api_sessions_collection_name,
     get_audit_events_collection_name,
     get_runtime_environment,
 )
+from api.contracts.deployment_data import DeploymentDataScope
 from api.infra.dashboard_metric_cache import invalidate_dashboard_metrics
 from api.infra.notifications.email import send_email, smtp_configured
 from api.infra.security.sessions import MongoApiSessionRepository
@@ -104,7 +103,7 @@ def get_admin_genelist_service() -> IsglService:
 @lru_cache
 def get_admin_aspc_service() -> AspcService:
     """Return the assay-configuration management service."""
-    return AspcService.from_store(get_store(), common_util=util.common)
+    return AspcService.from_store(get_store())
 
 
 @lru_cache
@@ -175,12 +174,6 @@ def get_dna_structural_service() -> DnaStructuralService:
     return DnaStructuralService.from_store(get_store())
 
 
-@lru_cache
-def get_report_service() -> ReportService:
-    """Return the report service."""
-    return ReportService()
-
-
 def get_report_library_service() -> ReportLibraryService:
     """Return the read-only saved report library service."""
     return ReportLibraryService.from_store(get_store())
@@ -208,19 +201,9 @@ def get_clinical_rule_testing_service() -> ClinicalRuleTestingService:
     return ClinicalRuleTestingService.from_store(get_store())
 
 
-def get_user_service() -> UserService:
-    """Return the user service."""
-    return UserService.from_store(get_store())
-
-
 def get_common_query_service() -> CommonQueryService:
     """Return the common query service."""
     return CommonQueryService.from_store(get_store())
-
-
-def get_sample_service() -> SampleService:
-    """Return the sample service."""
-    return SampleService.from_store(get_store())
 
 
 @lru_cache
@@ -297,29 +280,64 @@ def get_audit_service() -> AuditService | None:
 
     from pymongo.write_concern import WriteConcern
 
+    from api.infra.mongo.repositories.audit import AuditRepository
     from api.infra.mongo.repositories.audit_outbox import AuditOutboxRepository, audit_route
 
     environment = get_runtime_environment(runtime_app.config)
     namespace = audit_route(runtime_app.config)
     return AuditService(
-        store.identity_db[get_audit_events_collection_name(runtime_app.config)].with_options(
-            write_concern=WriteConcern("majority", j=True)
+        AuditRepository(
+            store.identity_db[get_audit_events_collection_name(runtime_app.config)].with_options(
+                write_concern=WriteConcern("majority", j=True)
+            ),
+            outbox_route=namespace,
+            outboxes=tuple(
+                AuditOutboxRepository(db)
+                for db in (
+                    store.coyote_db,
+                    store.identity_db,
+                    store.knowledgebase_db,
+                )
+                if db is not None
+            ),
+            spool_directory=Path(runtime_app.config.get("LOG_ROOT") or "logs")
+            / "audit-spool"
+            / namespace,
         ),
         retention_days=effective_audit_retention_days(store.coyote_db, runtime_app.config),
         environment=environment,
-        outbox_route=namespace,
-        outboxes=tuple(
-            AuditOutboxRepository(db)
-            for db in (
-                store.coyote_db,
-                store.identity_db,
-                store.knowledgebase_db,
+    )
+
+
+def get_deployment_data_service() -> DeploymentDataService:
+    """Build the authenticated deployment-data service using the existing packaged seed loaders."""
+    from api.infra.mongo.repositories.deployment_data import DeploymentDataRepository
+    from api.infra.seed.diagrams import load_seed_diagrams
+    from api.infra.seed.documents import (
+        DEFAULT_RBAC_DIR,
+        DEFAULT_REFERENCE_DIR,
+        build_seed_documents,
+    )
+
+    def load(actor: str, scope: DeploymentDataScope) -> dict[str, list[dict]]:
+        """Validate packaged catalogs and stamp them with the authenticated installer identity."""
+        documents = build_seed_documents(
+            rbac_dir=DEFAULT_RBAC_DIR,
+            reference_dir=DEFAULT_REFERENCE_DIR,
+            actor=actor,
+            include_knowledgebase=scope != "application",
+        )
+        if scope != "application":
+            documents["vep_diagrams"] = load_seed_diagrams(
+                documents["vep_metadata"], DEFAULT_REFERENCE_DIR
             )
-            if db is not None
-        ),
-        spool_directory=Path(runtime_app.config.get("LOG_ROOT") or "logs")
-        / "audit-spool"
-        / namespace,
+        return documents
+
+    store = get_store()
+    return DeploymentDataService(
+        DeploymentDataRepository(store.coyote_db, store.knowledgebase_db, store.identity_db),
+        load,
+        get_demo_installation_service(),
     )
 
 
@@ -355,6 +373,8 @@ def get_notification_service() -> NotificationService:
 def get_app_controls_service() -> AppControlsService:
     """Return the DB-backed application controls service."""
     store = get_store()
+    from api.infra.mongo.repositories.report_artifact_erasure import report_erasure_backlog
+
     return AppControlsService(
         store.coyote_db,
         identity_db=store.identity_db,
@@ -363,6 +383,7 @@ def get_app_controls_service() -> AppControlsService:
         index_conflicts_provider=lambda: getattr(
             getattr(store, "_adapter", None), "index_setup_conflicts", []
         ),
+        erasure_status_provider=lambda: report_erasure_backlog(store.coyote_db),
     )
 
 

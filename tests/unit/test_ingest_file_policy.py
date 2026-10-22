@@ -33,7 +33,7 @@ def resolver(*, panels: list[dict], configurations: list[dict]):
         "assay_specific_panels": FakeCollection(panels),
         "asp_configs": FakeCollection(configurations),
     }
-    return collections.__getitem__
+    return lambda name, query: collections[name].find_one(query)
 
 
 def dna_panel(**overrides):
@@ -67,7 +67,11 @@ def test_inactive_group_blocks_ingest_without_modifying_assay():
         "assay_groups": FakeCollection([{"group_id": "demo", "is_active": False}]),
     }
     with pytest.raises(ValueError, match="Assay group is inactive"):
-        assay_file_policy(collections.__getitem__, assay_name="panel_a", omics_layer="dna")
+        assay_file_policy(
+            lambda name, query: collections[name].find_one(query),
+            assay_name="panel_a",
+            omics_layer="dna",
+        )
     assert panel["is_active"] is True
 
 

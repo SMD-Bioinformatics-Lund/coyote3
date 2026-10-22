@@ -11,6 +11,7 @@ from pymongo.write_concern import WriteConcern
 from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 from api.config.mongo import MongoEndpoint, mongo_uri
 from api.config.security import get_runtime_environment
+from api.infra.mongo.repositories.audit_integrity import append_event
 from api.infra.mongo.transactions import run_transaction
 from api.infra.observability.audit import safe_audit_metadata
 from api.infra.observability.logging import current_request_context
@@ -220,7 +221,7 @@ class AuditOutboxRepository:
             self.collection.find(selector).sort("_id", 1).limit(max(1, min(limit, 1000)))
         ):
             event = pending["event"]
-            target.update_one({"_id": event["_id"]}, {"$setOnInsert": event}, upsert=True)
+            append_event(target, event)
             self.collection.delete_one({"_id": pending["_id"]})
             delivered += 1
         return delivered

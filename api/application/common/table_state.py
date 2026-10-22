@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from functools import cmp_to_key
+from heapq import nsmallest
 from typing import Any, Callable, Iterable, Mapping, Sequence
+
+from api.infra.external_sort import SORT_CHUNK_ROWS, sorted_page
 
 SortSpec = tuple[str, str]
 
@@ -60,6 +63,16 @@ def sort_items(
     if not specs:
         return list(items)
 
+    return sorted(items, key=table_sort_key(specs=specs, value_getter=value_getter))
+
+
+def table_sort_key(
+    *,
+    specs: Sequence[SortSpec],
+    value_getter: Callable[[dict[str, Any], str], Any],
+) -> Callable[[dict[str, Any]], Any]:
+    """Build a comparator key preserving missing-last and mixed-direction ordering."""
+
     def compare(left: dict[str, Any], right: dict[str, Any]) -> int:
         """Compare rows using the enclosing sort specifications and value getter.
 
@@ -90,7 +103,70 @@ def sort_items(
             return -result if direction == "desc" else result
         return 0
 
-    return sorted(items, key=cmp_to_key(compare))
+    return cmp_to_key(compare)
+
+
+def select_table_rows(
+    items: Iterable[dict[str, Any]],
+    *,
+    search_query: str,
+    text_builder: Callable[[dict[str, Any]], str],
+    specs: Sequence[SortSpec],
+    value_getter: Callable[[dict[str, Any], str], Any],
+    page: int | None,
+    per_page: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Search streamed rows and select a page with bounded sorting memory.
+
+    Args:
+        items: Single-pass, already clinically filtered and enriched finding stream.
+        search_query: Whitespace-separated terms, all required case-insensitively.
+        text_builder: Existing table-specific searchable text projection.
+        specs: Stable multi-column order; no specs preserves source order.
+        value_getter: Existing table-specific sort projection, with missing values last.
+        page: Positive page number, or None for a complete export.
+        per_page: Validated page size from request_pagination.
+
+    Returns:
+        Selected rows and unchanged table pagination metadata. Unsorted pages retain
+        only their rows; deep sorted pages use a private temporary spool. Full exports
+        retain their complete output. Every match is counted.
+    """
+    terms = search_query.lower().split()
+    total = 0
+
+    def matches() -> Iterable[dict[str, Any]]:
+        """Count matching rows while yielding them once to the page selector."""
+        nonlocal total
+        for item in items:
+            if terms:
+                text = text_builder(item).lower()
+                if not all(term in text for term in terms):
+                    continue
+            total += 1
+            yield item
+
+    start = ((page or 1) - 1) * per_page
+    end = start + per_page
+    if page is None:
+        selected = sort_items(list(matches()), specs=specs, value_getter=value_getter)
+    elif specs:
+        key = table_sort_key(specs=specs, value_getter=value_getter)
+        if end > SORT_CHUNK_ROWS:
+            selected = sorted_page(matches(), key=key, start=start, end=end)
+        else:
+            selected = nsmallest(end, matches(), key=key)[start:end]
+    else:
+        selected = [row for index, row in enumerate(matches()) if start <= index < end]
+    return selected, {
+        "total": total,
+        "count": total,
+        "page_count": len(selected),
+        "page": page or 1,
+        "per_page": per_page if page is not None else (total or 50),
+        "has_previous": page is not None and page > 1,
+        "has_next": page is not None and end < total,
+    }
 
 
 def search_items(

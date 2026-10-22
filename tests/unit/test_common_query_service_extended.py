@@ -277,9 +277,44 @@ def test_tiered_context_uses_supported_identity_fallbacks(
     result = _service(
         variant_repository=SimpleNamespace(get_variant=lambda variant_id: variant),
         reported_variant_repository=Reported(),
-    ).tiered_variant_context_payload(variant_id="variant-1", tier=2)
+    ).tiered_variant_context_payload(
+        variant_id="variant-1", tier=2, sample_is_visible=lambda _: True
+    )
     assert captured["$or"][0].get(expected_key)
     assert result["docs"][0]["sample_id"] == "sample-1"
+
+
+def test_tiered_context_excludes_foreign_samples_before_enrichment(monkeypatch):
+    """Historical findings outside the caller's scope never reach annotation enrichment."""
+    variant = {
+        "SAMPLE_ID": "own",
+        "simple_id": "1_1_A_T",
+        "INFO": {"selected_CSQ": {"SYMBOL": "TP53"}},
+    }
+    own = {"sample_oid": "own"}
+    foreign = {"sample_oid": "foreign", "private_text": "must not be returned"}
+    service = _service(
+        variant_repository=SimpleNamespace(get_variant=lambda _: variant),
+        reported_variant_repository=SimpleNamespace(
+            list_reported_variants=lambda _: [own, foreign]
+        ),
+    )
+    seen = []
+
+    def enrich(documents, **kwargs):
+        seen.extend(dict(document) for document in documents)
+        return documents
+
+    monkeypatch.setattr(query_service, "enrich_reported_variant_docs", enrich)
+    result = service.tiered_variant_context_payload(
+        variant_id="v1", tier=2, sample_is_visible=lambda identity: identity == "own"
+    )
+    assert seen == [own]
+    assert len(result["docs"]) == 1
+    with pytest.raises(AppError):
+        service.tiered_variant_context_payload(
+            variant_id="v1", tier=2, sample_is_visible=lambda _: False
+        )
 
 
 def test_tiered_search_merges_sources_deduplicates_and_preserves_sample_names() -> None:

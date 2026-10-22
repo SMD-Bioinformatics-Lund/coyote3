@@ -38,9 +38,7 @@ def clear_provider_caches() -> None:
         ("get_sample_catalog_service", "SampleCatalogService"),
         ("get_rna_service", "RnaService"),
         ("get_dna_structural_service", "DnaStructuralService"),
-        ("get_user_service", "UserService"),
         ("get_common_query_service", "CommonQueryService"),
-        ("get_sample_service", "SampleService"),
         ("get_public_catalog_service", "PublicCatalogService"),
         ("get_rna_workflow_service", "RNAWorkflowService"),
         ("get_dna_workflow_service", "DNAWorkflowService"),
@@ -64,16 +62,6 @@ def test_store_backed_provider_builds_expected_service(
     assert getattr(services, provider_name)() is marker
     assert factory.call_count == 1
     assert factory.call_args.args[0] is store
-
-
-def test_report_service_provider_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
-    marker = object()
-    constructor = Mock(return_value=marker)
-    monkeypatch.setattr(services, "ReportService", constructor)
-
-    assert services.get_report_service() is marker
-    assert services.get_report_service() is marker
-    constructor.assert_called_once_with()
 
 
 def test_api_session_repository_loads_only_active_users(
@@ -136,13 +124,14 @@ def test_audit_service_requires_database_and_uses_runtime_settings(
 
     assert services.get_audit_service() == "audit-service"
     constructor.assert_called_once_with(
-        store.identity_db["audit"].with_options.return_value,
+        ANY,
         retention_days=90,
         environment="testing",
-        spool_directory=ANY,
-        outboxes=ANY,
-        outbox_route=ANY,
     )
+    repository = constructor.call_args.args[0]
+    assert repository.collection is store.identity_db["audit"].with_options.return_value
+    assert repository.spool is not None
+    assert len(repository.outboxes) == 2
 
 
 def test_notification_and_controls_providers_include_runtime_dependencies(

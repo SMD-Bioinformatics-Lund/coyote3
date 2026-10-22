@@ -130,6 +130,7 @@ def test_missing_saved_report_files_return_not_found(monkeypatch, tmp_path, miss
 
 @pytest.mark.parametrize("requested", ["other.png", "../registered.png", "absent.png"])
 def test_plot_download_rejects_unregistered_names(monkeypatch, tmp_path, requested):
+    monkeypatch.setattr("api.application.common.file_access.DATA_CONTAINER_ROOT", tmp_path)
     registered = tmp_path / "registered.png"
     registered.write_bytes(b"synthetic")
     (tmp_path / "other.png").write_bytes(b"other sample")
@@ -154,6 +155,7 @@ def test_plot_download_requires_registered_artifact(monkeypatch):
 def test_plot_download_allows_only_registered_raster_images(
     monkeypatch, tmp_path, suffix, expected
 ):
+    monkeypatch.setattr("api.application.common.file_access.DATA_CONTAINER_ROOT", tmp_path)
     registered = tmp_path / f"registered.{suffix}"
     registered.write_bytes(b"synthetic")
     monkeypatch.setattr(

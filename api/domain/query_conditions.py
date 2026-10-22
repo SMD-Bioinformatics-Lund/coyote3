@@ -73,11 +73,11 @@ def has_filter_references(condition: Any) -> bool:
 
 
 def _filter_value(
-    value: dict,
+    value: dict[str, Any],
     analysis: str,
     field: str,
     operator: str,
-    filter_values: dict | None,
+    filter_values: dict[str, Any] | None,
     allow_references: bool,
 ) -> Any:
     """Validate a reference and resolve it from the analysis's prepared filter settings.
@@ -343,7 +343,7 @@ def compile_condition(
     condition: Any,
     analysis: str,
     *,
-    filter_values: dict | None = None,
+    filter_values: dict[str, Any] | None = None,
     allow_references: bool = False,
 ) -> dict[str, Any]:
     """Validate a condition tree and compile only approved MongoDB match predicates.
@@ -470,7 +470,7 @@ def matches_condition(
     analysis: str,
     document: dict[str, Any],
     *,
-    filter_values: dict | None = None,
+    filter_values: dict[str, Any] | None = None,
 ) -> bool:
     """Evaluate supported predicates for in-memory report filtering and synthetic examples.
 
@@ -521,7 +521,7 @@ def matches_condition(
             return expected is None
         if isinstance(actual, bool) != isinstance(expected, bool):
             return False
-        return actual == expected
+        return bool(actual == expected)
 
     def bson_type(value: Any, requested: str) -> bool:
         """Recognize BSON-compatible value types in stored records or JSON examples.
@@ -562,7 +562,7 @@ def matches_condition(
             else actual == requested
         )
 
-    def visit(node: dict, record: dict, prefix: str = "") -> bool:
+    def visit(node: dict[str, Any], record: dict[str, Any], prefix: str = "") -> bool:
         """Evaluate a node against a whole finding or one selected object-array element.
 
         Args:
@@ -599,7 +599,7 @@ def matches_condition(
             entry for item in actual for entry in (item if isinstance(item, list) else [item])
         ]
         if operator == "exists":
-            return any(item is not missing for item in actual) == expected
+            return bool(any(item is not missing for item in actual) == expected)
         if operator == "type":
             return any(
                 bson_type(item, expected) for item in [*actual, *flattened] if item is not missing

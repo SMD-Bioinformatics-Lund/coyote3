@@ -1,9 +1,11 @@
 """Common RNA helper functions for fusion filter/call normalization."""
 
+from typing import Any, cast
+
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 
 
-def create_fusioneffectlist(eff_names: list) -> list:
+def create_fusioneffectlist(eff_names: list[str | None]) -> list[str]:
     """Normalize fusion effect labels into canonical values.
 
     Args:
@@ -30,7 +32,7 @@ def create_fusioneffectlist(eff_names: list) -> list:
     return list(dict.fromkeys(effects))
 
 
-def create_fusioncallers(fuscallers: list) -> list:
+def create_fusioncallers(fuscallers: list[str]) -> list[str]:
     """Normalize fusion caller names into canonical values.
 
     Args:
@@ -39,25 +41,28 @@ def create_fusioncallers(fuscallers: list) -> list:
     Returns:
         list: Deduplicated canonical caller names.
     """
-    return CLINICAL_VOCABULARY.normalize_fusion_callers(fuscallers or [], reject_unknown=False)
+    return cast(
+        list[str],
+        CLINICAL_VOCABULARY.normalize_fusion_callers(fuscallers or [], reject_unknown=False),
+    )
 
 
-def get_selected_fusioncall(fusion: list) -> dict:
+def get_selected_fusioncall(fusion: dict[str, Any]) -> dict[str, Any] | None:
     """Return the selected fusion call from a fusion payload.
 
     Args:
         fusion: Fusion payload containing a ``calls`` collection.
 
     Returns:
-        dict: Selected call payload when one is marked active.
+        Selected call payload when one is marked active; None when no call is selected.
     """
     for call in fusion.get("calls", []):
         if call.get("selected") == 1:
-            return call
-    return None  # type: ignore
+            return cast(dict[str, Any], call)
+    return None
 
 
-def get_fusion_callers(fusion: list) -> list:
+def get_fusion_callers(fusion: dict[str, Any]) -> list[str]:
     """Return unique caller names from a fusion payload.
 
     Args:
@@ -66,7 +71,7 @@ def get_fusion_callers(fusion: list) -> list:
     Returns:
         list: Caller names discovered in the payload.
     """
-    callers = []
+    callers: list[str] = []
     for call in fusion.get("calls", []):
         caller_name = call.get("caller")
         if caller_name:

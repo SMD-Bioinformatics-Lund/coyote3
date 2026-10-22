@@ -2,27 +2,73 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import Any
 
 from api.application.dna import (
     export,
     payloads,
-    variant_classification,
-    variant_comments,
     variant_state,
 )
-from api.application.query_rules import QueryRuleService, effective_policy
+from api.application.interpretation.annotation_enrichment import add_global_annotations
+from api.application.query_rules.service import QueryRuleService, effective_policy
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
-from api.config.database_versions import sample_vep_version
+from api.config.database_versions import require_sample_vep_version, sample_vep_version
 from api.contracts.operations import OperationResult
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
-from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
+from api.domain.core.dna.dna_filters import (
+    cnv_organizegenes,
+    cnvtype_variant,
+    create_cnveffectlist,
+    get_filter_conseq_terms,
+)
 from api.domain.core.dna.transcript_payloads import compact_selected_csq
+from api.domain.core.dna.varqueries import build_query
 from api.infra.observability.operations import measured_operation
 
 
 class DnaService:
     """Own common DNA, CNV, and small-variant support workflows."""
+
+    def export_source_payload(
+        self,
+        *,
+        request: Any,
+        sample: dict[str, Any],
+        util_module: Any,
+        assay_config_getter: Any,
+    ) -> dict[str, Any]:
+        """Build the shared unpaginated DNA export context with injected repositories.
+
+        Args:
+            request: Export request supplying active search and sorting parameters.
+            sample: Authorized sample whose current filters apply.
+            util_module: Existing serialization and clinical utility dependencies.
+            assay_config_getter: Resolver for the sample's effective assay configuration.
+
+        Returns:
+            The established DNA context including structural finding sections.
+        """
+
+        def consequence_terms(values: list[str]) -> list[str]:
+            """Resolve consequence metadata only when the export query requests it."""
+            metadata = self.vep_metadata_repository.get_consequence_group_map(
+                str(require_sample_vep_version(sample))
+            )
+            return get_filter_conseq_terms(values, metadata)
+
+        return self.list_variants_payload(
+            request=request,
+            sample=sample,
+            util_module=util_module,
+            add_global_annotations_fn=partial(
+                add_global_annotations, annotation_repository=self.annotation_repository
+            ),
+            build_query_fn=build_query,
+            get_filter_conseq_terms_fn=consequence_terms,
+            assay_config_getter=assay_config_getter,
+            paginate=False,
+        )
 
     @classmethod
     def from_store(cls, store: Any) -> "DnaService":
@@ -179,22 +225,32 @@ class DnaService:
         return variant_state.require_variant_for_sample(self, sample=sample, var_id=var_id)
 
     def set_variant_bulk_flag(
-        self, *, resource_ids: list[str], apply: bool, flag: str
+        self, *, sample: dict, resource_ids: list[str], apply: bool, flag: str
     ) -> OperationResult:
         """Apply or remove a bulk boolean flag on variants.
 
         Args:
+            sample: Authorized sample that must own every selected variant.
             resource_ids: Variant identifiers to update.
             apply: Whether to add or remove the flag.
             flag: Flag name to apply.
         """
+        for resource_id in resource_ids:
+            self.require_variant_for_sample(sample=sample, var_id=resource_id)
         return variant_state.set_variant_bulk_flag(
-            self, resource_ids=resource_ids, apply=apply, flag=flag
+            self, sample=sample, resource_ids=resource_ids, apply=apply, flag=flag
         )
 
-    def set_variant_flag(self, *, var_id: str, apply: bool, flag: str) -> None:
-        """Apply or remove a boolean flag on a single variant."""
-        variant_state.set_variant_flag(self, var_id=var_id, apply=apply, flag=flag)
+    def set_variant_flag(
+        self, *, sample: dict, var_id: str, apply: bool, flag: str
+    ) -> OperationResult:
+        """Set an allowed flag using the authorized sample in the write predicate."""
+        fields = {"interesting": "interesting", "false_positive": "fp", "irrelevant": "irrelevant"}
+        if flag not in fields:
+            raise ValueError(f"Unsupported flag: {flag}")
+        return self.variant_repository.set_sample_finding_flag(
+            sample_id=str(sample["_id"]), resource_ids=[var_id], flag=fields[flag], value=apply
+        )
 
     def select_variant_transcript(
         self,
@@ -241,88 +297,21 @@ class DnaService:
         """Create a blacklist entry for a variant in an assay group."""
         return variant_state.blacklist_variant(self, variant=variant, assay_group=assay_group)
 
-    def set_variant_override_blacklist(self, *, var_id: str, override: bool) -> None:
-        """Apply or remove the blacklist-override flag on a small variant."""
-        variant_state.set_variant_override_blacklist(self, var_id=var_id, override=override)
+    def set_variant_override_blacklist(
+        self, *, sample: dict, var_id: str, override: bool
+    ) -> OperationResult:
+        """Set blacklist override only within the authorized sample."""
+        return self.variant_repository.set_sample_finding_flag(
+            sample_id=str(sample["_id"]),
+            resource_ids=[var_id],
+            flag="override_blacklist",
+            value=override,
+        )
 
     def set_variant_comment_hidden(self, *, var_id: str, comment_id: str, hidden: bool) -> None:
         """Hide or unhide a variant comment."""
         variant_state.set_variant_comment_hidden(
             self, var_id=var_id, comment_id=comment_id, hidden=hidden
-        )
-
-    def set_variant_tier_bulk(
-        self,
-        *,
-        sample: dict,
-        resource_ids: list[str],
-        assay_group: str | None,
-        subpanel: str | None,
-        apply: bool,
-        class_num: int,
-        create_classified_variant_doc_fn,
-    ) -> None:
-        """Apply or remove variant classifications in bulk.
-
-        Args:
-            sample: Sample payload containing ownership context.
-            resource_ids: Variant identifiers to update.
-            assay_group: Assay-group context for the classification identity.
-            subpanel: Optional subpanel context.
-            apply: Whether to add or remove the classification.
-            class_num: Target tier/class number.
-            create_classified_variant_doc_fn: Helper used to build classification documents.
-        """
-        variant_classification.set_variant_tier_bulk(
-            self,
-            sample=sample,
-            resource_ids=resource_ids,
-            assay_group=assay_group,
-            subpanel=subpanel,
-            apply=apply,
-            class_num=class_num,
-            create_classified_variant_doc_fn=create_classified_variant_doc_fn,
-        )
-
-    def classify_variant(
-        self, *, form_data: dict, get_tier_classification_fn, get_variant_nomenclature_fn
-    ) -> None:
-        """Classify a variant and persist classification documents."""
-        variant_classification.classify_variant(
-            self,
-            form_data=form_data,
-            get_tier_classification_fn=get_tier_classification_fn,
-            get_variant_nomenclature_fn=get_variant_nomenclature_fn,
-        )
-
-    def remove_classified_variant(self, *, form_data: dict, get_variant_nomenclature_fn) -> None:
-        """Remove a classified variant document."""
-        variant_classification.remove_classified_variant(
-            self,
-            form_data=form_data,
-            get_variant_nomenclature_fn=get_variant_nomenclature_fn,
-        )
-
-    def add_variant_comment(
-        self, *, form_data: dict, target_id: str, get_variant_nomenclature_fn, create_comment_doc_fn
-    ) -> str:
-        """Create a variant/fusion/translocation/CNV comment and return its resource type.
-
-        Args:
-            form_data: Submitted comment form payload.
-            target_id: Resource identifier to comment on.
-            get_variant_nomenclature_fn: Helper that resolves nomenclature and variant label.
-            create_comment_doc_fn: Helper that builds the comment document.
-
-        Returns:
-            str: Comment resource type used in the change payload.
-        """
-        return variant_comments.add_variant_comment(
-            self,
-            form_data=form_data,
-            target_id=target_id,
-            get_variant_nomenclature_fn=get_variant_nomenclature_fn,
-            create_comment_doc_fn=create_comment_doc_fn,
         )
 
     @measured_operation("query.variants")

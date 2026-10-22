@@ -81,6 +81,7 @@ def test_common_tiered_variant_context_read_with_fake_store(monkeypatch):
     Returns:
         The function result.
     """
+    monkeypatch.setattr(common, "_get_sample_for_api", lambda *_: fx.sample_doc())
     fake_store = build_fake_store()
     service = CommonQueryService(
         variant_repository=SimpleNamespace(

@@ -1,0 +1,61 @@
+# Production-only opt-in TLS. Do not include this overlay for development or staging.
+# Certificate creation and setup: docs/operations/redis-tls.md.
+# Certificates must already exist on the host.
+# The server certificate must include DNS:redis in its subject alternative names.
+x-redis-tls-environment: &redis-tls-environment
+  CACHE_REDIS_URL: rediss://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true
+  CELERY_BROKER_URL: rediss://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/1?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true
+  CELERY_RESULT_BACKEND: rediss://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/2?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true
+
+x-redis-ca: &redis-ca
+  type: bind
+  source: ${COYOTE3_REDIS_TLS_DIR:?Set the absolute Redis certificate directory}/ca.crt
+  target: /run/redis-tls/ca.crt
+  read_only: true
+  bind:
+    create_host_path: false
+
+services:
+  api:
+    environment: *redis-tls-environment
+    volumes: [*redis-ca]
+  worker:
+    environment: *redis-tls-environment
+    volumes: [*redis-ca]
+  beat:
+    environment: *redis-tls-environment
+    volumes: [*redis-ca]
+  maintenance-worker:
+    environment: *redis-tls-environment
+    volumes: [*redis-ca]
+  monitor:
+    environment: *redis-tls-environment
+    volumes: [*redis-ca]
+  redis:
+    command:
+      - sh
+      - -ec
+      - >-
+        exec redis-server --requirepass "$$REDIS_PASSWORD"
+        --appendonly yes --appendfsync always --maxmemory-policy noeviction
+        --port 0 --tls-port 6379
+        --tls-cert-file /run/redis-tls/server.crt
+        --tls-key-file /run/redis-tls/server.key
+        --tls-ca-cert-file /run/redis-tls/ca.crt
+        --tls-auth-clients no
+    volumes:
+      - *redis-ca
+      - type: bind
+        source: ${COYOTE3_REDIS_TLS_DIR:?Set the absolute Redis certificate directory}/server.crt
+        target: /run/redis-tls/server.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COYOTE3_REDIS_TLS_DIR:?Set the absolute Redis certificate directory}/server.key
+        target: /run/redis-tls/server.key
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD-SHELL, 'redis-cli --tls --cacert /run/redis-tls/ca.crt --sni redis -h redis ping | grep -q PONG']

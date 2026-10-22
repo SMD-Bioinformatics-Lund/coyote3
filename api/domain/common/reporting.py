@@ -93,7 +93,7 @@ def nl_num(i: int, gender: str) -> Any | str:
     return str(i)
 
 
-def nl_join(arr: list, joiner: str) -> str:
+def nl_join(arr: list[str], joiner: str) -> str:
     """Join text fragments with a natural-language conjunction."""
     if len(arr) == 1:
         return arr[0]

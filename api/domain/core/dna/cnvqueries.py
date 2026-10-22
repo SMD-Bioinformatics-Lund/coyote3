@@ -12,7 +12,7 @@ from api.config.clinical_query_policy import (
 
 
 def _cnv_exception_clause(
-    exception: FindingQueryException, filter_values: dict | None = None
+    exception: FindingQueryException, filter_values: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """Translate a validated CNV rule into the fixed CNV document vocabulary.
 
@@ -51,7 +51,7 @@ def _cnv_exception_clause(
     return clauses[0] if len(clauses) == 1 else {"$and": clauses}
 
 
-def include_normal_cnvs(sample: dict, assay_panel: dict | None = None) -> bool:
+def include_normal_cnvs(sample: dict[str, Any], assay_panel: dict[str, Any] | None = None) -> bool:
     """Return whether the sample scope includes normal/control CNV records.
 
     Targeted panels review tumour calls separately from records marked as
@@ -70,13 +70,13 @@ def include_normal_cnvs(sample: dict, assay_panel: dict | None = None) -> bool:
 
 def build_cnv_query(
     sample_id: str,
-    filters: dict,
+    filters: dict[str, Any],
     *,
     include_normal: bool = False,
     policy: FindingQueryPolicy = CLINICAL_QUERY_POLICY.cnv,
-) -> dict:
+) -> dict[str, Any]:
     """Build a CNV query for a sample based on configured filter criteria."""
-    clauses: list[dict] = []
+    clauses: list[dict[str, Any]] = []
 
     if not include_normal:
         clauses.append(

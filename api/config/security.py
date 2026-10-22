@@ -44,13 +44,13 @@ def to_bool(value: Any, default: bool = False) -> bool:
 
 
 def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
-    """Is non production.
+    """Identify development and test environments allowed to use local defaults.
 
     Args:
-            config: Config. Optional argument.
+        config: Runtime settings; None reads the process environment.
 
     Returns:
-            The  is non production result.
+        True for development or testing only. Staging uses production safeguards.
     """
     if config is None:
         env_name = str(os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT).strip().lower()
@@ -60,7 +60,7 @@ def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
             .strip()
             .lower()
         )
-    return env_name in {"dev", "development", "test", "testing", "stage", "staging"}
+    return env_name in {"dev", "development", "test", "testing"}
 
 
 def _require_setting(config: Mapping[str, Any], key: str) -> str:

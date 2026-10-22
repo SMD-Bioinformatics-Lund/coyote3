@@ -14,7 +14,7 @@ from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
 
-BUNDLE = Path(__file__).resolve().parents[2] / "demo_data/clinical_workflows"
+BUNDLE = Path(__file__).resolve().parents[3] / "demo_data/clinical_workflows"
 STARTER_SAMPLES = {
     "first_sample": ("DEMO_STARTER_DNA", "demo_starter_dna", "demo_starter_focus"),
     "rna_fusion": ("DEMO_STARTER_RNA", "demo_starter_rna", "demo_starter_fusion"),
@@ -31,7 +31,9 @@ class DemoInstallationService:
         self.ingest = ingest
         self.bundle = bundle
 
-    def configuration(self, actor: str, *, starter: bool = False) -> dict[str, list[dict]]:
+    def configuration(
+        self, actor: str, *, starter: bool = False
+    ) -> dict[str, list[dict[str, Any]]]:
         """Validate packaged configuration and attach installer identity and current timestamps.
 
         Args:
@@ -107,11 +109,15 @@ class DemoInstallationService:
         """Return allowlisted positive manifests; negative fixtures cannot be installed."""
         return {path.stem: path for path in sorted((self.bundle / "manifests").glob("*.yaml"))}
 
-    def install_starter(self, actor: str) -> dict:
+    def install_starter(
+        self, actor: str, *, force: bool = False, created_by: str | None = None
+    ) -> dict[str, Any]:
         """Install connected starter configuration and ingest DNA and RNA samples.
 
         Args:
             actor: Authenticated operator recorded in installation and ingest audits.
+            force: Repair missing packaged configuration and refresh unreviewed system samples.
+            created_by: Creation identity for automated deployment data; None uses actor.
 
         Returns:
             Sample installation status. A retry resumes ingest after committed configuration.
@@ -119,10 +125,17 @@ class DemoInstallationService:
         Raises:
             AppError: A configuration identity conflicts or normal ingest fails.
         """
-        documents = self.configuration(actor, starter=True)
+        creator = created_by or actor
+        documents = self.configuration(creator, starter=True)
         if not self.repository.configuration_installed(documents, require_packaged=True):
-            self.repository.install(documents, actor)
-        results = [self.install_sample(key, actor) for key in STARTER_SAMPLES]
+            if force:
+                self.repository.repair_configuration(documents, actor)
+            else:
+                self.repository.install(documents, actor)
+        results = [
+            self.install_sample(key, actor, force=force, created_by=creator)
+            for key in STARTER_SAMPLES
+        ]
         return {
             "status": "already_installed"
             if all(row["status"] == "already_installed" for row in results)
@@ -169,17 +182,21 @@ class DemoInstallationService:
             ),
         )
 
-    def install_configuration(self, actor: str) -> dict:
+    def install_configuration(self, actor: str) -> dict[str, Any]:
         """Install all bundled configuration atomically without replacing existing records."""
         self.repository.install(self.configuration(actor), actor)
         return {"status": "installed"}
 
-    def install_sample(self, key: str, actor: str) -> dict:
+    def install_sample(
+        self, key: str, actor: str, *, force: bool = False, created_by: str | None = None
+    ) -> dict[str, Any]:
         """Ingest one allowlisted synthetic sample through the normal transactional parser.
 
         Args:
             key: Manifest key from the installation plan, never a filesystem path.
             actor: Authenticated installer username for ingest provenance.
+            force: Reingest an unreviewed system-owned starter sample; preserve all other samples.
+            created_by: Initial submitter for automated deployment data; None uses actor.
 
         Returns:
             Installed or already_installed; existing samples are never updated.
@@ -211,12 +228,18 @@ class DemoInstallationService:
                 "environment"
             ) not in {None, "testing"}:
                 raise api_error(409, "Sample name belongs to another assay; nothing replaced")
-            return {"status": "already_installed"}
+            if not force or not starter or not self.repository.sample_reinstallable(existing):
+                return {"status": "already_installed"}
         for field in ALL_SAMPLE_FILE_KEYS:
             if payload.get(field):
                 resource = (path.parent / payload[field]).resolve()
                 if not resource.is_relative_to(self.bundle.resolve()):
                     raise api_error(422, "Demo resource is outside the packaged bundle")
                 payload[field] = str(resource)
-        self.ingest.ingest_sample_bundle(payload, ingested_by=actor, ingest_source="api")
+        self.ingest.ingest_sample_bundle(
+            payload,
+            allow_update=bool(existing),
+            ingested_by=created_by or actor,
+            ingest_source="api",
+        )
         return {"status": "installed"}

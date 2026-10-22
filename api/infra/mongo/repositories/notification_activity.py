@@ -2,11 +2,11 @@
 
 from datetime import datetime
 from hashlib import sha256
-from itertools import islice
 from typing import Any
 
 from bson import ObjectId
 
+from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 from api.config.loaders.collections import load_collection_section
 from api.config.security import get_audit_events_collection_name
 
@@ -44,6 +44,10 @@ class NotificationActivityRepository:
         self.audit = audit_collection
         self.versions = versions_collection
         self.notifications = notifications
+        self.progress = notifications.database[
+            OPERATIONAL_COLLECTIONS.notification_activity_progress
+        ]
+        self._pending_progress: dict[str, Any] | None = None
 
     def pending(self, *, since: datetime, environment: str, limit: int = 100) -> list[dict]:
         """Find undelivered committed events, including late audit-outbox arrivals.
@@ -51,7 +55,8 @@ class NotificationActivityRepository:
         Args:
             since: Oldest event within the notification retention interval.
             environment: Deployment environment; excludes other deployments' audit events.
-            limit: Maximum pending deliveries, not the number of source records scanned.
+            limit: Scan budget, split between forward and reconciliation readers for each source.
+                At least four records are scanned per call.
 
         Returns:
             Events without a notification bearing the same stable identifier.
@@ -60,70 +65,31 @@ class NotificationActivityRepository:
             Separate reads support independent MongoDB servers. No cross-client session
             or cross-database lookup is used. Insert-only destination writes handle races.
         """
-        query = {
-            "occurred_at": {"$gte": since},
-            "source.environment": environment,
-            "outcome": "success",
-            "$or": [
-                {"event_type": "report.saved"},
-                {"event_type": "knowledgebase.oncokb_public.refresh.completed"},
-                {
-                    "event_type": "api.mutation.succeeded",
-                    "resource.type": {
-                        "$in": [
-                            "asp",
-                            "aspc",
-                            "assay_group",
-                            "subpanel",
-                            "assay_subpanel",
-                            "assay_setup",
-                            "genelist",
-                        ]
-                    },
-                },
-            ],
-        }
+        query = {"occurred_at": {"$gte": since}, "source.environment": environment}
+        state = self.progress.find_one({"_id": environment}) or {"_id": environment}
         result = []
-        cursor = iter(
-            self.audit.find(
-                query,
-                {
-                    "occurred_at": 1,
-                    "event_type": 1,
-                    "resource": 1,
-                    "actor.username": 1,
-                    "metadata.action": 1,
-                    "metadata.sample_oid": 1,
-                    "metadata.report_num": 1,
-                },
-            ).sort("occurred_at", 1)
-        )
-        while batch := list(islice(cursor, 256)):
-            delivered = {
-                row["_id"]
-                for row in self.notifications.find(
-                    {"_id": {"$in": [event["_id"] for event in batch]}}, {"_id": 1}
-                )
-            }
-            for event in batch:
-                if event["_id"] not in delivered:
-                    result.append(event)
-                    if len(result) >= limit:
-                        return result
-        for release in self.versions.find(
+        budget = max(1, limit // 4)
+        events = self._scan_source(self.audit, query, "occurred_at", "audit", state, budget)
+        releases = self._scan_source(
+            self.versions,
             {
                 "published_at": {"$gte": since},
-                "status": {"$in": ["active", "retired"]},
-            }
-        ).sort("published_at", 1):
+            },
+            "published_at",
+            "knowledgebase",
+            state,
+            budget,
+        )
+        events = [event for event in events if self._notifiable(event)]
+        for release in releases:
+            if release.get("status") not in {"active", "retired"}:
+                continue
             identity = ObjectId(
                 sha256(
                     f"knowledgebase:{release['_id']}:{release['published_at'].isoformat()}".encode()
                 ).hexdigest()[:24]
             )
-            if self.notifications.find_one({"_id": identity}, {"_id": 1}):
-                continue
-            result.append(
+            events.append(
                 {
                     "_id": identity,
                     "event_type": "knowledgebase.release.published",
@@ -136,6 +102,105 @@ class NotificationActivityRepository:
                     "metadata": {"release": str(release.get("release") or "")},
                 }
             )
-            if len(result) >= limit:
-                break
+        delivered = {
+            row["_id"]
+            for row in self.notifications.find(
+                {"_id": {"$in": [event["_id"] for event in events]}}, {"_id": 1}
+            )
+        }
+        seen = set(delivered)
+        for event in events:
+            if event["_id"] not in seen:
+                result.append(event)
+                seen.add(event["_id"])
+        self._pending_progress = state
         return result
+
+    @staticmethod
+    def _notifiable(event: dict[str, Any]) -> bool:
+        """Select supported successful activity from a bounded source page.
+
+        Args:
+            event: Committed audit document, including outcome, operation and resource type.
+
+        Returns:
+            Whether the operation belongs to a supported activity-notification category.
+        """
+        if event.get("outcome") != "success":
+            return False
+        kind = event.get("event_type")
+        return kind in {"report.saved", "knowledgebase.oncokb_public.refresh.completed"} or (
+            kind == "api.mutation.succeeded"
+            and (event.get("resource") or {}).get("type")
+            in {
+                "asp",
+                "aspc",
+                "assay_group",
+                "subpanel",
+                "assay_subpanel",
+                "assay_setup",
+                "genelist",
+            }
+        )
+
+    def _scan_source(
+        self, collection: Any, query: dict, timestamp: str, name: str, state: dict, budget: int
+    ) -> list[dict]:
+        """Read bounded forward and cyclic reconciliation pages using stable compound cursors.
+
+        Reconciliation catches delayed outbox events older than the forward watermark.
+        It advances a page each poll and restarts at the retention boundary after EOF.
+        Source documents remain immutable; cursors are acknowledged only after delivery.
+
+        Args:
+            collection: Source collection on its owning MongoDB client.
+            query: Deployment/retention predicate applied before cursor positions.
+            timestamp: Stored BSON datetime field used for primary ordering.
+            name: Source key separating its two cursor lanes in progress state.
+            state: Pending environment-scoped cursor document, updated only in memory here.
+            budget: Maximum records per lane; both lanes may read the same records.
+
+        Returns:
+            At most twice the budget in source rows, in lane/page order.
+        """
+        rows = []
+        for lane in ("forward", "reconcile"):
+            key = f"{name}_{lane}"
+            position = state.get(key)
+            selector = query
+            if position:
+                selector = {
+                    "$and": [
+                        query,
+                        {
+                            "$or": [
+                                {timestamp: {"$gt": position["time"]}},
+                                {
+                                    timestamp: position["time"],
+                                    "$expr": {
+                                        "$gt": ["$_id", {"$literal": position["id"]}],
+                                    },
+                                },
+                            ]
+                        },
+                    ]
+                }
+            batch = list(collection.find(selector).sort([(timestamp, 1), ("_id", 1)]).limit(budget))
+            rows.extend(batch)
+            if batch:
+                state[key] = {"time": batch[-1][timestamp], "id": batch[-1]["_id"]}
+            if len(batch) < budget and lane == "reconcile":
+                state[key] = None
+        return rows
+
+    def acknowledge(self) -> None:
+        """Persist scan positions only after all returned events have been written.
+
+        Retrying a failed write replays the page using stable notification identifiers.
+        Concurrent deliveries may move a cursor backwards, causing harmless replay;
+        no cursor advances past an unprocessed event.
+        """
+        if self._pending_progress is not None:
+            state = self._pending_progress
+            self.progress.replace_one({"_id": state["_id"]}, state, upsert=True)
+            self._pending_progress = None

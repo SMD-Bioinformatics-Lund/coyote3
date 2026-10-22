@@ -111,7 +111,7 @@ def test_upload_accepts_internal_token_but_collection_routes_do_not(token_policy
     app.dependency_overrides[internal.get_internal_ingest_service] = lambda: service
     monkeypatch.setattr(
         internal,
-        "_prepare_uploaded_bundle",
+        "prepare_uploaded_bundle",
         lambda **kw: {"asp_id": "synthetic", "environment": "production"},
     )
     monkeypatch.setattr(

@@ -219,13 +219,11 @@ class AccessPolicy:
             permission: Permission identifier to normalize and look up.
 
         Returns:
-            False for a blank identifier; otherwise True when the catalog is
-            empty or contains the identifier. This does not grant access.
+            True only for an identifier in the active catalog. An unavailable
+            or empty catalog denies all permission checks.
         """
         normalized = _norm(permission)
-        return bool(normalized) and (
-            not self.active_permissions or normalized in self.active_permissions
-        )
+        return bool(normalized) and normalized in self.active_permissions
 
     def permission_allowed(
         self,

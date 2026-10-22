@@ -8,7 +8,7 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application import query_rule_testing as testing
+from api.application.query_rules import testing
 from api.contracts.schemas.query_rules import (
     QueryRuleDoc,
     QueryRulePreview,

@@ -21,7 +21,7 @@ def _extract_oncokb_gene_symbol(record: dict[str, Any]) -> str:
 
 def _hgnc_doc_for_symbol(
     symbol: str,
-    hgnc_collection: Any | None,
+    hgnc_repository: Any | None,
     *,
     symbol_index: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
@@ -29,31 +29,14 @@ def _hgnc_doc_for_symbol(
     normalized = str(symbol or "").strip().upper()
     if symbol_index is not None:
         return symbol_index.get(normalized)
-    if hgnc_collection is not None and hasattr(hgnc_collection, "get_metadata_by_symbol_or_alias"):
-        return hgnc_collection.get_metadata_by_symbol_or_alias(symbol)
-    if hgnc_collection is None or not hasattr(hgnc_collection, "find_one"):
+    if hgnc_repository is None:
         return None
-    return hgnc_collection.find_one(
-        {
-            "$or": [
-                {"hgnc_symbol": symbol},
-                {"prev_symbol": symbol},
-                {"alias_symbol": symbol},
-            ]
-        },
-        {
-            "_id": 1,
-            "hgnc_id": 1,
-            "hgnc_symbol": 1,
-            "prev_symbol": 1,
-            "alias_symbol": 1,
-        },
-    )
+    return hgnc_repository.get_metadata_by_symbol_or_alias(symbol)
 
 
 def _hgnc_doc_for_record(
     record: dict[str, Any],
-    hgnc_collection: Any | None,
+    hgnc_repository: Any | None,
     *,
     symbol_index: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
@@ -61,7 +44,7 @@ def _hgnc_doc_for_record(
     for symbol in sorted(_record_symbols(record)):
         if hgnc_doc := _hgnc_doc_for_symbol(
             symbol,
-            hgnc_collection,
+            hgnc_repository,
             symbol_index=symbol_index,
         ):
             return hgnc_doc
@@ -90,7 +73,7 @@ def _record_symbols(record: dict[str, Any]) -> set[str]:
 
 def _hgnc_symbol_index(hgnc_repository: Any | None) -> tuple[dict[str, dict[str, Any]], int]:
     """Index the local HGNC catalogue by every supported gene symbol."""
-    if hgnc_repository is None or not hasattr(hgnc_repository, "iter_gene_metadata"):
+    if hgnc_repository is None:
         return {}, 0
     records = list(hgnc_repository.iter_gene_metadata() or [])
     index: dict[str, dict[str, Any]] = {}
@@ -156,7 +139,7 @@ def refresh_public_oncokb_gene_cache(
         if (
             document := _public_gene_marker_from_cancer_gene(
                 record=record,
-                hgnc_collection=hgnc_repository,
+                hgnc_repository=hgnc_repository,
                 hgnc_symbol_index=hgnc_index,
                 source=source,
             )
@@ -172,7 +155,7 @@ def refresh_public_oncokb_gene_cache(
         if (
             document := _public_gene_summary_from_curated_gene(
                 record=record,
-                hgnc_collection=hgnc_repository,
+                hgnc_repository=hgnc_repository,
                 hgnc_symbol_index=hgnc_index,
                 source=source,
             )
@@ -187,7 +170,7 @@ def refresh_public_oncokb_gene_cache(
 def _public_gene_marker_from_cancer_gene(
     *,
     record: dict[str, Any],
-    hgnc_collection: Any | None,
+    hgnc_repository: Any | None,
     hgnc_symbol_index: dict[str, dict[str, Any]] | None = None,
     source: str,
 ) -> dict[str, Any] | None:
@@ -197,7 +180,7 @@ def _public_gene_marker_from_cancer_gene(
         return None
     hgnc_doc = _hgnc_doc_for_record(
         record,
-        hgnc_collection,
+        hgnc_repository,
         symbol_index=hgnc_symbol_index,
     )
     approved_symbol = str((hgnc_doc or {}).get("hgnc_symbol") or symbol).strip()
@@ -230,7 +213,7 @@ def _public_gene_marker_from_cancer_gene(
 def _public_gene_summary_from_curated_gene(
     *,
     record: dict[str, Any],
-    hgnc_collection: Any | None,
+    hgnc_repository: Any | None,
     hgnc_symbol_index: dict[str, dict[str, Any]] | None = None,
     source: str,
 ) -> dict[str, Any] | None:
@@ -240,7 +223,7 @@ def _public_gene_summary_from_curated_gene(
         return None
     hgnc_doc = _hgnc_doc_for_record(
         record,
-        hgnc_collection,
+        hgnc_repository,
         symbol_index=hgnc_symbol_index,
     )
     approved_symbol = str((hgnc_doc or {}).get("hgnc_symbol") or symbol).strip()

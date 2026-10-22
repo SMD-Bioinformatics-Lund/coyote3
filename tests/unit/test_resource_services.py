@@ -316,15 +316,8 @@ def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
     )
 
 
-def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_repository(
-    monkeypatch,
-):
-    """Test resource annotation service routes cnv comment to copy-number-variant handler.
-
-    Returns:
-        The function result.
-    """
-    _ = monkeypatch
+def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_repository():
+    """An owned CNV receives its local annotation through the CNV repository."""
     repo = _RepoStub()
     service = ResourceAnnotationService(
         annotation_repository=repo.annotation_repository,
@@ -337,6 +330,7 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_r
     resource = service.create_annotation(
         form_data={"text": "note", "nomenclature": "cn", "variant": "7:10-20"},
         target_id="cnv-1",
+        sample={"_id": "S1"},
         get_variant_nomenclature_fn=_nomenclature,
         create_comment_doc_fn=_comment_doc,
     )
@@ -347,15 +341,8 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_r
     ]
 
 
-def test_resource_annotation_service_routes_translocation_comment_to_translocation_repository(
-    monkeypatch,
-):
-    """Test resource annotation service routes translocation comment to translocation handler.
-
-    Returns:
-        The function result.
-    """
-    _ = monkeypatch
+def test_resource_annotation_service_routes_translocation_comment_to_translocation_repository():
+    """An owned translocation receives its local annotation through its repository."""
     repo = _RepoStub()
     service = ResourceAnnotationService(
         annotation_repository=repo.annotation_repository,
@@ -368,6 +355,7 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     resource = service.create_annotation(
         form_data={"text": "note", "nomenclature": "t", "variant": "1:100^2:200"},
         target_id="tl-1",
+        sample={"_id": "S1"},
         get_variant_nomenclature_fn=_nomenclature,
         create_comment_doc_fn=_comment_doc,
     )

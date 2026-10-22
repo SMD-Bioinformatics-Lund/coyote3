@@ -9,7 +9,7 @@ from pymongo import MongoClient
 from api.config.loaders.collections import load_collection_mapping
 from api.config.mongo import mongo_endpoints, mongo_uri
 from api.infra.mongo.connections import MongoConnections
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.runtime_adapter import MongoAdapter
 
 
@@ -182,14 +182,14 @@ def test_target_specific_transaction_uses_target_client(connections, monkeypatch
         }
     )
     execute = Mock(return_value="committed")
-    monkeypatch.setattr("api.infra.mongo.ingest_gateway.run_transaction", execute)
+    monkeypatch.setattr("api.infra.mongo.repositories.ingest_gateway.run_transaction", execute)
     operation = Mock()
     assert gateway.run_collection_transaction("users", operation) == "committed"
     assert execute.call_count == 1
     assert execute.call_args.args[0] is pool.databases["identity"].client
     session = Mock()
     stage = Mock()
-    monkeypatch.setattr("api.infra.mongo.ingest_gateway.enqueue_audit", stage)
+    monkeypatch.setattr("api.infra.mongo.repositories.ingest_gateway.enqueue_audit", stage)
     execute.call_args.args[1](session)
     operation.assert_called_once_with(session)
     assert stage.call_args.args[0] == pool.databases["identity"]

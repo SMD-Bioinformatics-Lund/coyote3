@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
 from api.config.clinical_query_policy import resolved_query_policy
 from api.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleScope
 from api.domain.core.dna.cnvqueries import build_cnv_query

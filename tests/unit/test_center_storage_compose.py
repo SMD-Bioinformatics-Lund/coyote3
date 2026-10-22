@@ -61,8 +61,19 @@ def test_center_input_mounts_are_optional_and_shared(development, storage, tmp_p
             "COYOTE3_DATA_HOST_ROOT": "/synthetic/app-data",
         },
     )
-    services = json.loads(result.stdout)["services"]
-    for name in ("api", "worker", "beat"):
+    rendered = json.loads(result.stdout)
+    assert rendered["networks"]["app"]["external"] is True
+    services = rendered["services"]
+    for name, service in services.items():
+        # Image build networking is separate from runtime host-network access.
+        assert service.get("network_mode") != "host", name
+        assert not service.get("privileged", False), name
+        assert not {"NET_ADMIN", "SYS_ADMIN", "ALL"}.intersection(
+            capability.removeprefix("CAP_") for capability in service.get("cap_add", [])
+        ), name
+        for mount in service.get("volumes", []):
+            assert not mount["source"].endswith("docker.sock"), name
+    for name in ("api", "worker", "maintenance-worker", "beat"):
         mounts = {mount["target"]: mount for mount in services[name]["volumes"]}
         assert not {"/access", "/media", "/fs1"}.intersection(mounts)
         assert "/data" in mounts and "/app/logs" in mounts

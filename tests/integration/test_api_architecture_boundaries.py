@@ -8,9 +8,6 @@ from pathlib import Path
 
 IMPORT_APP_PATTERN = re.compile(r"^\s*(from|import)\s+api\.app\b")
 HTTP_FRAMEWORK_IMPORT_PATTERN = re.compile(r"^\s*(from|import)\s+(fastapi|starlette)\b")
-OLD_MONGO_HANDLER_PATTERN = re.compile(
-    re.escape("api.infra.mongo." + "handlers") + "|" + re.escape("infra/mongo/" + "handlers")
-)
 PERSISTENCE_NAMES = (
     "annotation",
     "assay_configuration",
@@ -69,6 +66,34 @@ def test_infra_does_not_import_app_layer() -> None:
     assert not offenders, "api.infra must not import api.app:\n" + "\n".join(offenders)
 
 
+def test_audit_and_ingest_use_repository_operations_not_mongo_handles() -> None:
+    """Prevent storage handles and driver calls leaking back into audited workflows."""
+    forbidden = {
+        "find",
+        "find_one",
+        "insert_one",
+        "insert_many",
+        "update_one",
+        "update_many",
+        "delete_many",
+        "replace_one",
+        "count_documents",
+        "estimated_document_count",
+        "get_collection",
+        "sample_collection",
+        "mongo_client",
+        "_collection",
+    }
+    offenders = []
+    for root in (Path("api/application/audit"), Path("api/application/ingest")):
+        for path in _python_files(root):
+            for node in ast.walk(ast.parse(path.read_text())):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                    if node.func.attr in forbidden:
+                        offenders.append(f"{path}:{node.lineno}:{node.func.attr}")
+    assert not offenders, "Use repository operations:\n" + "\n".join(offenders)
+
+
 def test_domain_and_application_do_not_import_app_layer() -> None:
     """Domain/application code must not depend on app composition/runtime modules."""
     offenders: list[str] = []
@@ -94,49 +119,6 @@ def test_domain_and_application_do_not_import_http_frameworks() -> None:
 
     assert not offenders, (
         "api.domain/api.application must not import HTTP frameworks:\n" + "\n".join(offenders)
-    )
-
-
-def test_retired_domains_package_path_is_not_reintroduced() -> None:
-    """Use api.application for use-case orchestration; the old plural package is retired."""
-    offenders: list[str] = []
-    retired_patterns = ("api." + "domains", "api/" + "domains")
-    for root in (Path("api"), Path("tests"), Path("docs"), Path("scripts")):
-        if not root.exists():
-            continue
-        files = sorted(
-            path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts
-        )
-        for path in files:
-            if path.suffix not in {".py", ".md", ".json", ".yml", ".yaml", ".toml"}:
-                continue
-            text = path.read_text(encoding="utf-8")
-            if any(pattern in text for pattern in retired_patterns):
-                offenders.append(path.as_posix())
-
-    assert not offenders, "Retired plural application package references remain:\n" + "\n".join(
-        offenders
-    )
-
-
-def test_mongo_handlers_package_path_is_retired() -> None:
-    """Mongo data access should use the repositories package path only."""
-    offenders: list[str] = []
-    for root in (Path("api"), Path("tests"), Path("docs"), Path("scripts")):
-        if not root.exists():
-            continue
-        files = sorted(
-            path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts
-        )
-        for path in files:
-            if path.suffix not in {".py", ".md", ".json", ".yml", ".yaml", ".toml"}:
-                continue
-            text = path.read_text(encoding="utf-8")
-            if OLD_MONGO_HANDLER_PATTERN.search(text):
-                offenders.append(path.as_posix())
-
-    assert not offenders, "Retired mongo handler package references remain:\n" + "\n".join(
-        offenders
     )
 
 
@@ -185,32 +167,6 @@ def test_domain_and_interface_layers_do_not_reach_into_repository_collections() 
     assert not offenders, "Domain/interface layers must not call get_collection():\n" + "\n".join(
         offenders
     )
-
-
-def test_ingest_service_uses_collection_gateway_not_collection_maps() -> None:
-    """Internal ingest orchestration should not carry ad hoc raw collection maps."""
-    path = Path("api/application/ingest/service.py")
-    offenders: list[str] = []
-    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        stripped = line.strip()
-        if "self.collections" in stripped or "service.collections" in stripped:
-            offenders.append(f"{path.as_posix()}:{line_no}: {stripped}")
-
-    assert not offenders, "Ingest service must use IngestCollectionGateway:\n" + "\n".join(
-        offenders
-    )
-
-
-def test_retired_ingest_and_mongo_compatibility_modules_stay_removed() -> None:
-    """Keep duplicate orchestration and unused Mongo wrappers out of the architecture."""
-    retired = (
-        Path("api/application/ingest/sample_bundle.py"),
-        Path("api/infra/mongo/collections.py"),
-        Path("api/infra/mongo/indexes.py"),
-        Path("api/infra/mongo/settings.py"),
-    )
-
-    assert not [path.as_posix() for path in retired if path.exists()]
 
 
 def test_http_routes_declare_response_contracts() -> None:

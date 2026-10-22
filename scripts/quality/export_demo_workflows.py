@@ -33,9 +33,9 @@ from api.contracts.schemas.registry import (  # noqa: E402
     INGEST_DEPENDENT_COLLECTIONS,
     normalize_collection_document,
 )
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway  # noqa: E402
-from scripts.bootstrap.build_seed_bundle import load_reference_seed_pack  # noqa: E402
-from scripts.bootstrap.query_rule_seed import prepare_query_rule_seeds  # noqa: E402
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway  # noqa: E402
+from api.infra.seed.bundle import load_reference_seed_pack  # noqa: E402
+from api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
 
 
 class MemoryGateway(IngestCollectionGateway):

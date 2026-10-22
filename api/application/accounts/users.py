@@ -151,12 +151,12 @@ class UserManagementService:
             ),
         }
 
-    def _configure_assay_choices(self, form: dict[str, Any]) -> dict[str, Any]:
+    def _configure_assay_choices(
+        self, form: dict[str, Any]
+    ) -> dict[str | None, list[dict[str, Any]]]:
         """Offer active assay checkboxes only within the selected assay groups."""
         form["fields"]["asp_groups"]["options"] = self.assay_panel_repository.group_options()
-        groups: dict[str, Any] = dict(
-            create_assay_group_map(available_panels(self.assay_panel_repository))
-        )
+        groups = dict(create_assay_group_map(available_panels(self.assay_panel_repository)))
         form["fields"]["asp_ids"].update(
             {
                 "display_type": "checkbox-group",

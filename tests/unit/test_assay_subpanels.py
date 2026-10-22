@@ -262,7 +262,6 @@ def test_new_aspc_requires_registry_not_gene_list():
         gene_list_repository=Mock(),
         vep_metadata_repository=Mock(),
         clinical_rule_set_repository=Mock(),
-        common_util=Mock(),
         assay_subpanel_repository=SimpleNamespace(
             list_for_assay=lambda *_a, **_k: [{"subpanel_id": "registered"}]
         ),

@@ -84,7 +84,7 @@ def test_invalid_draft_preview_returns_422_without_service_call(boundary):
 
 
 def test_synthetic_condition_testing_uses_no_repository(boundary):
-    from api.application.query_rules import QueryRuleService
+    from api.application.query_rules.service import QueryRuleService
 
     client, user, service = boundary
     user.permissions = ["query_rules:view"]

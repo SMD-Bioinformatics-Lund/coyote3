@@ -7,6 +7,7 @@ from typing import Any
 from celery.utils.log import get_task_logger
 from filelock import FileLock, Timeout
 
+from api.app.container import store
 from api.app.deps.services import (
     get_activity_notification_service,
     get_app_controls_service,
@@ -16,13 +17,26 @@ from api.app.deps.services import (
     get_public_oncokb_refresh_service,
 )
 from api.celery_app import celery_app
+from api.config.paths import REPORTS_BASE_PATH
 from api.infra.dashboard_metric_cache import DASHBOARD_METRICS
+from api.infra.mongo.repositories.report_artifact_erasure import erase_pending_reports
 from api.security.access import api_user_from_user_doc
 from api.tasks.controls import disabled_result, task_family_enabled
 from api.tasks.ingest import _ensure_worker_runtime, _serializable
 
 logger = get_task_logger(__name__)
 DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote3-dashboard-metrics-refresh.lock"
+
+
+@celery_app.task(name="api.tasks.maintenance.erase_deleted_sample_reports")
+def erase_deleted_sample_reports() -> dict[str, int]:
+    """Complete up to 100 report-file erasures authorized by committed sample deletions."""
+    _ensure_worker_runtime()
+    repository = store.report_repository
+    return erase_pending_reports(
+        repository.get_collection(),
+        root=repository.app.config.get("REPORTS_BASE_PATH", REPORTS_BASE_PATH),
+    )
 
 
 @celery_app.task(name="api.tasks.maintenance.replay_audit_events")

@@ -16,7 +16,7 @@ from api.application.ingest.file_policy import (
     validate_payload_file_keys,
 )
 from api.application.ingest.helpers import (
-    assay_default_filters_from_aspc_collection,
+    assay_default_filters,
     build_sample_meta_dict,
     normalize_sample_version_metadata,
 )
@@ -35,11 +35,11 @@ from api.contracts.schemas.samples import (
     SamplesDoc,
 )
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
-from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.persistence import (
     new_object_id_str,
     to_provider_id,
 )
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 
 logger = logging.getLogger(__name__)
 
@@ -190,18 +190,6 @@ class InternalIngestService:
             except Exception:
                 logger.exception("Could not notify missing expected ingest files")
 
-    def _sample_collection(self):
-        """Return the sample collection used by internal ingest workflows."""
-        return self.collection_gateway.sample_collection()
-
-    def _mongo_client(self) -> Any | None:
-        """Return the underlying Mongo client when available."""
-        return self.collection_gateway.mongo_client()
-
-    def _collection(self, name: str):
-        """Return the collection backing an ingest-dependent document type."""
-        return self.collection_gateway.collection(name)
-
     def _invalidate_dashboard_metrics_after_ingest(self) -> None:
         """Invalidate dashboard metrics after a completed ingest write."""
         try:
@@ -265,10 +253,10 @@ class InternalIngestService:
             "ensembl_mane_plus_clinical": 1,
         }
         try:
-            hgnc_collection = self._collection("hgnc_genes")
+            hgnc_documents = self.collection_gateway.hgnc_documents(projection)
         except KeyError:
             return by_id, by_symbol
-        for doc in hgnc_collection.find({}, projection):
+        for doc in hgnc_documents:
             hgnc_id = str(doc.get("hgnc_id") or doc.get("_id") or "").strip()
             if hgnc_id and not hgnc_id.startswith("HGNC:"):
                 hgnc_id = f"HGNC:{hgnc_id}"
@@ -323,11 +311,13 @@ class InternalIngestService:
         omics_layer: str | None,
     ) -> tuple[set[str], set[str]]:
         """Return ASP-controlled expected and required file keys for an assay."""
-        return assay_file_policy(self._collection, assay_name=assay_name, omics_layer=omics_layer)
+        return assay_file_policy(
+            self.collection_gateway.find_document, assay_name=assay_name, omics_layer=omics_layer
+        )
 
     def _validate_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Reject declared file resources outside the active ASP contract."""
-        return validate_payload_file_keys(self._collection, payload)
+        return validate_payload_file_keys(self.collection_gateway.find_document, payload)
 
     def _validate_declared_file_resources(self, payload: dict[str, Any]) -> set[str]:
         """Validate assay file policy and declared file paths before parsing.
@@ -336,7 +326,7 @@ class InternalIngestService:
         optional expected files are recorded as unavailable, whether or not a
         path was declared. Readable inputs must parse and write successfully.
         """
-        return validate_declared_file_resources(self._collection, payload)
+        return validate_declared_file_resources(self.collection_gateway.find_document, payload)
 
     def _apply_resolved_aspc_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Attach the exact active ASPC policy snapshot required for a new sample.
@@ -345,8 +335,8 @@ class InternalIngestService:
         Their initial intent profiles and ASPC lineage come from the resolved
         ASPC for the exact ASP, subpanel, and environment scope.
         """
-        resolved = assay_default_filters_from_aspc_collection(
-            self._collection("asp_configs"), payload
+        resolved = assay_default_filters(
+            lambda query: self.collection_gateway.find_document("asp_configs", query), payload
         )
         if resolved is None:
             raise ValueError(
@@ -530,7 +520,7 @@ class InternalIngestService:
         if not payload.get("name"):
             raise ValueError("name is required for update")
 
-        current_doc = self._sample_collection().find_one({"name": payload["name"]})
+        current_doc = self.collection_gateway.find_document("samples", {"name": payload["name"]})
         if not current_doc:
             raise ValueError("Sample not found for update")
 
@@ -612,11 +602,11 @@ class InternalIngestService:
                 callback runs in the same session before returning to the transaction runner.
             """
             selector = {"_id": self._provider_sample_id(sample_id)}
-            current = self._sample_collection().find_one(selector, session=session)
+            current = self.collection_gateway.find_document("samples", selector, session=session)
             if current != current_doc:
                 raise ValueError("Sample changed while the update was prepared; retry the update")
-            self._sample_collection().update_one(
-                selector, {"$set": {"ingest_status": "loading"}}, session=session
+            self.collection_gateway.set_sample_fields(
+                selector, {"ingest_status": "loading"}, session=session
             )
             self._update_meta_fields(
                 sample_id=sample_id,
@@ -630,9 +620,9 @@ class InternalIngestService:
                 sample_name=str(current_doc["name"]),
                 session=session,
             )
-            self._sample_collection().update_one(
+            self.collection_gateway.set_sample_fields(
                 selector,
-                {"$set": {"ingest_status": "ready", "data_counts": counts}},
+                {"ingest_status": "ready", "data_counts": counts},
                 session=session,
             )
             result = {
@@ -762,13 +752,13 @@ class InternalIngestService:
                 Marks the sample ready after dependent writes, then invokes the optional
                 completion callback in the same session. Write/callback failures propagate.
             """
-            self._sample_collection().insert_one(dict(document), session=session)
+            self.collection_gateway.create_sample(document, session=session)
             written = self._write_dependents(
                 preload=preload, sample_id=sample_id, sample_name=sample_name, session=session
             )
-            self._sample_collection().update_one(
+            self.collection_gateway.set_sample_fields(
                 {"_id": document["_id"]},
-                {"$set": {"ingest_status": "ready", "data_counts": counts}},
+                {"ingest_status": "ready", "data_counts": counts},
                 session=session,
             )
             result = {
@@ -829,7 +819,7 @@ class InternalIngestService:
         """Return the current document count for a supported collection."""
         if collection not in self.list_supported_collections():
             raise ValueError(f"Unsupported collection: {collection}")
-        return int(self._collection(collection).estimated_document_count() or 0)
+        return self.collection_gateway.document_count(collection)
 
     def insert_collection_documents(
         self,

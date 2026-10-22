@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from api.app.deps.services import get_assay_setup_service
 from api.interfaces.http.admin.resources.assay_setup import router
 from api.security.access import ApiUser
+from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ def client(monkeypatch):
     )
     monkeypatch.setattr("api.security.access._decode_session_user", lambda _: user)
     monkeypatch.setattr("api.security.access._audit_access_event", lambda **_: None)
-    monkeypatch.setattr("api.security.access.get_permissions_repository", lambda: None)
+    monkeypatch.setattr("api.security.access.get_permissions_repository", PermissionCatalog)
     monkeypatch.setattr(
         "api.security.access.get_roles_repository",
         lambda: SimpleNamespace(

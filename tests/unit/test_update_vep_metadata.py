@@ -10,7 +10,9 @@ import mongomock
 import pytest
 from bson import decode_all
 
-from api.contracts.schemas.reference import VepMetadataDoc
+from api.contracts.schemas.variant_annotations import (
+    VepMetadataDoc,
+)
 from scripts.knowledgebase import update_vep_metadata as importer
 
 

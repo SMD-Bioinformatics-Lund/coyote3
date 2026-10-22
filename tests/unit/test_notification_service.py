@@ -31,13 +31,13 @@ class _NotificationRepository:
     def get_notification(self, notification_id):
         return next((row for row in self.documents if row["_id"] == notification_id), None)
 
-    def list_for_user(self, username, *, limit):
+    def list_for_user(self, username, *, limit, offset=0):
         return [
             row
             for row in self.documents
             if username not in row.get("dismissed_by", [])
             and (row.get("audience") == "all" or username in row.get("recipients", []))
-        ][:limit]
+        ][offset : offset + limit]
 
     def mark_read(self, notification_id, username):
         for row in self.list_for_user(username, limit=500):
@@ -98,8 +98,8 @@ def test_selected_broadcast_is_visible_only_to_selected_active_accounts():
     )
 
     assert result["recipient_count"] == 1
-    assert len(service.inbox(username="user.one")["notifications"]) == 1
-    assert service.inbox(username="user.two")["notifications"] == []
+    assert len(service.inbox(user=SimpleNamespace(username="user.one"))["notifications"]) == 1
+    assert service.inbox(user=SimpleNamespace(username="user.two"))["notifications"] == []
     assert repository.documents[0]["created_by"] == "admin"
 
 
@@ -136,8 +136,8 @@ def test_role_broadcast_materializes_active_users_in_selected_roles():
     assert result["recipient_count"] == 2
     assert repository.documents[0]["audience"] == "users"
     assert repository.documents[0]["recipients"] == ["user.one", "user.two"]
-    assert service.inbox(username="admin")["notifications"] == []
-    assert len(service.inbox(username="user.one")["notifications"]) == 1
+    assert service.inbox(user=SimpleNamespace(username="admin"))["notifications"] == []
+    assert len(service.inbox(user=SimpleNamespace(username="user.one"))["notifications"]) == 1
 
 
 def test_recipient_options_include_active_role_counts():
@@ -158,8 +158,11 @@ def test_password_reset_alert_targets_active_admin_accounts_only():
 
     assert notification_id == "notification-1"
     assert repository.documents[0]["recipients"] == ["admin"]
-    assert service.inbox(username="admin")["notifications"][0]["category"] == "security"
-    assert service.inbox(username="user.one")["notifications"] == []
+    assert (
+        service.inbox(user=SimpleNamespace(username="admin"))["notifications"][0]["category"]
+        == "security"
+    )
+    assert service.inbox(user=SimpleNamespace(username="user.one"))["notifications"] == []
 
 
 def test_read_and_dismissal_state_is_scoped_to_each_user():
@@ -176,9 +179,14 @@ def test_read_and_dismissal_state_is_scoped_to_each_user():
     )
 
     service.mark_read(notification_id=notification_id, username="user.one")
-    assert service.inbox(username="user.one")["notifications"][0]["read"] is True
-    assert service.inbox(username="user.two")["notifications"][0]["read"] is False
+    assert (
+        service.inbox(user=SimpleNamespace(username="user.one"))["notifications"][0]["read"] is True
+    )
+    assert (
+        service.inbox(user=SimpleNamespace(username="user.two"))["notifications"][0]["read"]
+        is False
+    )
 
     service.dismiss(notification_id=notification_id, username="user.one")
-    assert service.inbox(username="user.one")["notifications"] == []
-    assert len(service.inbox(username="user.two")["notifications"]) == 1
+    assert service.inbox(user=SimpleNamespace(username="user.one"))["notifications"] == []
+    assert len(service.inbox(user=SimpleNamespace(username="user.two"))["notifications"]) == 1

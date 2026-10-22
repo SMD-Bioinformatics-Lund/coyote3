@@ -10,6 +10,7 @@ from api.application.accounts.roles import RoleManagementService
 from api.application.accounts.users import UserManagementService
 from api.application.ingest.collection_writes import upsert_collection_document
 from api.domain.core.exceptions import AppError
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from api.interfaces.http.admin import users as routes
 
 
@@ -93,7 +94,9 @@ def test_profile_only_edit_does_not_require_assignment_permissions(monkeypatch):
 def test_ingest_cannot_replace_installed_identity(collection):
     repository = Mock()
     repository.find_one.return_value = {"system_managed": True}
-    service = SimpleNamespace(_collection=Mock(return_value=repository))
+    service = SimpleNamespace(
+        collection_gateway=IngestCollectionGateway(collections={collection: repository})
+    )
     with pytest.raises(AppError):
         upsert_collection_document(
             service,

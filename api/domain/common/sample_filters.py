@@ -77,7 +77,7 @@ def normalize_sample_filters(
     intents = normalize_analysis_intents(inferred_intents, omics_layer=layer)
 
     model = DnaFilterProfilesDoc if layer == "dna" else RnaFilterProfilesDoc
-    validated = model.model_validate(source).model_dump(exclude_none=True)
+    validated: dict[str, Any] = model.model_validate(source).model_dump(exclude_none=True)
     _validate_profile_availability(validated, layer=layer, intents=intents)
     if canonical:
         return validated

@@ -14,7 +14,7 @@ from api.application.common.table_state import (
 )
 from api.application.dna.export import consequence_terms
 from api.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
-from api.application.query_rules import effective_policy
+from api.application.query_rules.service import effective_policy
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.clinical_rules.service import rendered_summary
 from api.application.reporting.dna_report_payload import hotspot_variant

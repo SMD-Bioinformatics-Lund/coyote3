@@ -6,7 +6,7 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
 from api.contracts.schemas.query_rules import (
     QueryRuleContent,
     QueryRuleDoc,

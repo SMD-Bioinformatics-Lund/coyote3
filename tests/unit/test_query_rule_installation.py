@@ -10,12 +10,12 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.application.query_rules import QueryRuleService
+from api.application.query_rules.service import QueryRuleService
 from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
 from api.domain.core.dna.varqueries import _exception_clause
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from api.infra.seed.query_rules import prepare_query_rule_seeds
 from scripts.bootstrap import install_query_rules
-from scripts.bootstrap.query_rule_seed import prepare_query_rule_seeds
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -83,21 +83,18 @@ def test_installed_germline_rules_are_group_scoped():
         assert all(set(e) == {"id", "mode", "condition"} for e in row["content"]["exceptions"])
 
 
-@pytest.mark.parametrize("with_demo", [False, True])
-def test_fresh_bootstrap_loads_complete_query_catalog(with_demo):
+def test_fresh_bootstrap_loads_complete_query_catalog():
     """First installation includes catalog-only rules as well as TOML criteria."""
     from api.contracts.schemas.query_rules import QueryRuleContent
     from scripts.bootstrap.bootstrap_database import (
-        DEFAULT_DEMO_CENTER_DIR,
         DEFAULT_RBAC_DIR,
         DEFAULT_REFERENCE_DIR,
-        _build_seed_documents,
+        build_seed_documents,
     )
 
-    seed = _build_seed_documents(
+    seed = build_seed_documents(
         rbac_dir=DEFAULT_RBAC_DIR,
         reference_dir=DEFAULT_REFERENCE_DIR,
-        demo_center_dir=DEFAULT_DEMO_CENTER_DIR if with_demo else None,
         actor="installer",
         include_knowledgebase=False,
     )
@@ -112,7 +109,7 @@ def test_fresh_bootstrap_loads_complete_query_catalog(with_demo):
     }
     assert len(seed["roles"]) == 32
     assert len(seed["assay_groups"]) == 11
-    assert len(seed.get("subpanels", [])) == (1 if with_demo else 0)
+    assert not seed.get("subpanels", [])
     assert "hgnc_genes" not in seed
 
 

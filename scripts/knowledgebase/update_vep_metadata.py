@@ -33,7 +33,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.reference import VepMetadataDoc  # noqa: E402
+from api.contracts.schemas.variant_annotations import (  # noqa: E402
+    VepMetadataDoc,
+)
 from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
 )

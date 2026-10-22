@@ -15,6 +15,7 @@
     "adhoc": false,
     "is_public": true,
     "system_managed": false,
+    "system_installed": false,
     "is_active": true,
     "asp_groups": [
       "hematology"

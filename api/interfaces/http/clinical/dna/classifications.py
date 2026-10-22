@@ -76,6 +76,9 @@ def classify_resource_change(
     sample = _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
+    service.require_resource_for_sample(
+        sample=sample, resource_type=resource_type, resource_id=target_id
+    )
     form_data = {**(payload.get("form_data", {}) or {}), **service.classification_context(sample)}
     service.classify_resource(
         resource_type=resource_type,
@@ -108,6 +111,9 @@ def remove_classified_resource_change(
     sample = _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
+    service.require_resource_for_sample(
+        sample=sample, resource_type=resource_type, resource_id=target_id
+    )
     form_data = {**(payload.get("form_data", {}) or {}), **service.classification_context(sample)}
     service.remove_resource(
         resource_type=resource_type,

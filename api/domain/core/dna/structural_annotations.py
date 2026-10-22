@@ -44,7 +44,9 @@ def annotation_key(annotation: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(annotation, sort_keys=True).encode()).hexdigest()
 
 
-def structural_transcript_rows(annotations: list[dict], by_id: dict, by_symbol: dict) -> list[dict]:
+def structural_transcript_rows(
+    annotations: list[dict[str, Any]], by_id: dict[str, Any], by_symbol: dict[str, Any]
+) -> list[dict[str, Any]]:
     """Expose separate partners and HGNC MANE matches without changing stored annotations.
 
     Args:
@@ -100,7 +102,9 @@ def eligible_annotation(annotation: dict[str, Any]) -> bool:
     )
 
 
-def _matches_mane(annotation: dict[str, Any], selector: str, by_id: dict, by_symbol: dict) -> bool:
+def _matches_mane(
+    annotation: dict[str, Any], selector: str, by_id: dict[str, Any], by_symbol: dict[str, Any]
+) -> bool:
     """Require an HGNC MANE accession for every annotated gene partner.
 
     Args:
@@ -139,7 +143,7 @@ def _matches_mane(annotation: dict[str, Any], selector: str, by_id: dict, by_sym
 
 
 def select_structural_annotation(
-    annotations: list[dict[str, Any]], by_id: dict, by_symbol: dict
+    annotations: list[dict[str, Any]], by_id: dict[str, Any], by_symbol: dict[str, Any]
 ) -> tuple[dict[str, Any], str]:
     """Select embedded SnpEff evidence using the application transcript hierarchy.
 
@@ -156,7 +160,9 @@ def select_structural_annotation(
     Raises:
         ValueError: No eligible annotations were supplied.
     """
-    impacts = {name: index for index, name in enumerate(("HIGH", "MODERATE", "LOW", "MODIFIER"))}
+    impacts: dict[str | None, int] = {
+        name: index for index, name in enumerate(("HIGH", "MODERATE", "LOW", "MODIFIER"))
+    }
     ordered = sorted(annotations, key=lambda row: impacts.get(row.get("Annotation_Impact"), 4))
     for selector in TRANSCRIPT_SELECTION_ORDER:
         for annotation in ordered:

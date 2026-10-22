@@ -106,6 +106,25 @@ def main() -> int:
     lines.append("")
     lines.append("This is the canonical collection-key reference used by ingestion validation.")
     lines.append("")
+    lines.extend(
+        [
+            "## Operational collections",
+            "",
+            "These internal queues are not public collection-ingest targets. Names are owned by",
+            "`api/config/contracts/application.py`; database maintenance uses the index registry.",
+            "",
+            "| Collection | Database | Purpose |",
+            "| --- | --- | --- |",
+            "| `audit_outbox` | Owning business database | Transaction-owned receipts awaiting central audit delivery. |",
+            "| `audit_chain_heads` | Identity | Serialized append positions for audit integrity chains. |",
+            "| `report_artifact_erasure` | Application | Committed artifact deletion jobs, retry reasons and attempt history. |",
+            "| `notification_activity_progress` | Application | Environment-scoped forward and reconciliation cursors. |",
+            "",
+            "See [background delivery and recovery](../operations/background-delivery.md) for",
+            "queue ownership, indexes, retention boundaries and failure recovery.",
+            "",
+        ]
+    )
     lines.append("## Cross-collection relations")
     lines.append("")
     lines.append(

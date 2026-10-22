@@ -74,6 +74,7 @@ def test_only_installation_roles_receive_demo_permission():
         "demo_installer",
         "admin",
         "sys_admin",
+        "superuser",
     }
     demo = next(role for role in roles if role["role_id"] == "demo_installer")
     assert demo["permissions"] == ["demo:install"]
