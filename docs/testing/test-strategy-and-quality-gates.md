@@ -1,9 +1,14 @@
 # Test strategy and quality gates
 
 Repository Markdown is validated from the repository root with
-`npm run docs:lint`. The root `.markdownlint-cli2.yaml` and root Node package
-are intentionally repository-level tooling because their scope includes
-`README.md`, `docs/`, and `.github/`; they do not belong to the frontend build.
+`npm run docs:lint`. The root `.markdownlint.json` defines spacing and final-newline
+rules. `scripts/docs/lint_markdown.mjs` runs markdownlint over `README.md`, `docs/`
+and `.github/`, excluding issue/PR templates and the generated collection reference.
+`npm run docs:test` checks file selection, lint failures and math rendering. Both
+commands use the root Node package and require Node.js 22 or later.
+
+The root manifest constrains the math extension's KaTeX renderer to 0.19.0. Its
+inline/display rendering interface is covered by the lint-runner checks.
 
 ## Testing Boundary Diagram
 

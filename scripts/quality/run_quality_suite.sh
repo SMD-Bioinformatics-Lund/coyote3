@@ -42,6 +42,10 @@ npm --prefix frontend run build
 echo "[quality] Frontend browser tests"
 npm --prefix frontend run test:e2e
 
+echo "[quality] Documentation lint and runner tests"
+npm run docs:lint
+npm run docs:test
+
 echo "[quality] Strict documentation build"
 "$PYTHON_BIN" -m mkdocs build --strict --site-dir /tmp/coyote3-docs-quality-build
 

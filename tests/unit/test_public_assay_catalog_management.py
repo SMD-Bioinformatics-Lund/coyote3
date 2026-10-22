@@ -8,6 +8,8 @@ import pytest
 from bson import ObjectId
 
 from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
+from api.config.constants import DNA_ANALYSIS_TYPE_OPTIONS, RNA_ANALYSIS_TYPE_OPTIONS
+from api.contracts.public import PublicAssayCatalogAdminPayload
 from api.domain.core.exceptions import AppError as ApiError
 
 
@@ -142,6 +144,16 @@ def approved(service):
         publisher="publisher",
         reason="Verified public wording",
     )
+
+
+def test_workspace_response_preserves_omics_specific_analysis_choices(service):
+    """Validate the actual workspace against its HTTP response contract."""
+    payload = PublicAssayCatalogAdminPayload.model_validate(service.workspace())
+    assert payload.presets.analysis_by_omics == {
+        "dna": list(DNA_ANALYSIS_TYPE_OPTIONS),
+        "rna": list(RNA_ANALYSIS_TYPE_OPTIONS),
+    }
+    assert payload.model_dump(mode="json")["presets"]["input_material"]
 
 
 def test_full_workflow_isolates_draft_and_records_every_revision(service):

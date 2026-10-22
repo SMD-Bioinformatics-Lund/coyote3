@@ -24,7 +24,7 @@ function mount() {
 }
 it("creates one definition with multiple selected assays", async () => {
   mount()
-  fireEvent.click(screen.getByRole("button", { name: "Create subpanel" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Create subpanel" }))
   fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "New scope" } })
   expect(screen.getByLabelText("Subpanel identifier")).toHaveValue("new_scope")
   fireEvent.click(await screen.findByRole("checkbox", { name: /Panel A/ }))

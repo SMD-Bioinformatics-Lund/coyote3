@@ -2,14 +2,23 @@
   "name": "coyote3",
   "private": true,
   "version": "4.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "sync:version": "node ./scripts/release/sync-package-version.js",
     "postinstall": "npm run sync:version",
-    "docs:lint": "markdownlint-cli2 \"README.md\" \"docs/**/*.md\" \".github/**/*.md\"",
+    "docs:lint": "node scripts/docs/lint_markdown.mjs",
+    "docs:test": "node --test tests/docs/lint_markdown.test.mjs",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:lint": "npm --prefix frontend run lint"
   },
   "devDependencies": {
-    "markdownlint-cli2": "^0.20.0"
+    "markdownlint": "^0.42.0"
+  },
+  "overrides": {
+    "micromark-extension-math": {
+      "katex": "0.19.0"
+    }
   }
 }

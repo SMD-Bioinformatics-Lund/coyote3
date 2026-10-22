@@ -60,6 +60,15 @@ class PublicAssayCatalogTransitionRequest(BaseModel):
     reason: str = ""
 
 
+class PublicAssayCatalogPresets(BaseModel):
+    """Authoring choices shared across the catalog and scoped to each omics layer."""
+
+    analysis: list[str]
+    analysis_by_omics: dict[str, list[str]]
+    input_material: list[str]
+    sample_modes: list[str]
+
+
 class PublicAssayCatalogAdminPayload(BaseModel):
     """Admin response containing the canonical catalog document."""
 
@@ -69,7 +78,7 @@ class PublicAssayCatalogAdminPayload(BaseModel):
     items: list[dict[str, Any]]
     reviewers: list[dict[str, str]]
     publishers: list[dict[str, str]]
-    presets: dict[str, list[str]]
+    presets: PublicAssayCatalogPresets
 
 
 class PublicAssayCatalogRevisionsPayload(BaseModel):

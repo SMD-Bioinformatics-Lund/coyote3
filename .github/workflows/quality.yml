@@ -195,13 +195,17 @@ jobs:
                   frontend=true
                   docs=true
                   ;;
+                scripts/docs/*|tests/docs/*|.markdownlint.json)
+                  backend=true
+                  docs=true
+                  ;;
                 api/*|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|requirements*.txt|.coveragerc)
                   backend=true
                   ;;
                 frontend/*)
                   frontend=true
                   ;;
-                *.md|docs/*|mkdocs.yml|package.json|package-lock.json|.markdownlint-cli2.yaml)
+                *.md|docs/*|mkdocs.yml|package.json|package-lock.json)
                   docs=true
                   ;;
               esac
@@ -308,6 +312,10 @@ jobs:
       - name: Lint repository Markdown
         if: steps.scope.outputs.docs == 'true'
         run: npm run docs:lint
+
+      - name: Check Markdown lint runner and math rendering
+        if: steps.scope.outputs.docs == 'true'
+        run: npm run docs:test
 
       - name: Validate documentation links
         if: steps.scope.outputs.docs == 'true' && steps.scope.outputs.backend != 'true'

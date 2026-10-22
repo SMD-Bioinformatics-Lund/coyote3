@@ -365,6 +365,11 @@ in-browser editing surface.
 
 All routes below use the `/api/v1/admin/assay-catalog` prefix.
 
+The workspace response's `presets` object contains `analysis`, `input_material`,
+and `sample_modes` lists. `analysis_by_omics` maps `dna` and `rna` to their
+supported analysis lists. The builder uses the selected section's omics layer
+to choose its analysis options.
+
 | Method and path | Permission | Purpose |
 | --- | --- | --- |
 | `GET /` | `catalog:view` | Published content, versions, source choices, eligible users, presets |

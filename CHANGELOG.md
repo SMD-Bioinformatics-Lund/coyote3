@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Update Black to 26.10.1 and remove the documentation linter's vulnerable globbing
+  dependencies. Run the existing Markdown rules through a repository runner with
+  a patched math renderer and CI checks for file selection and lint failures.
 - Make fresh installation create identity, application catalogs, bundled references
   and synthetic starter data by default, with module skip flags and preservation of
   existing data. Later additions/repairs use API authentication, role checks and

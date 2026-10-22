@@ -62,6 +62,23 @@ beforeEach(() => {
 })
 
 describe("Public assay catalog governance", () => {
+  it.each(["", "draft-one"])("retries only the selected catalog requests (version: %s)", async (id) => {
+    const user = userEvent.setup()
+    let failed = true
+    mocks.get.mockImplementation((path: string) => failed
+      ? Promise.reject(new Error("Catalog temporarily unavailable"))
+      : Promise.resolve({ data: path.endsWith("/versions/draft-one") ? version : workspace }))
+    renderPage(id ? `/admin/assay-catalog?version=${id}` : "/admin/assay-catalog")
+    expect(await screen.findByRole("alert")).toHaveTextContent("The catalog could not be loaded")
+    mocks.get.mockClear()
+    failed = false
+    await user.click(screen.getByRole("button", { name: "Retry" }))
+    await screen.findByRole("button", { name: id ? "Save draft" : "Edit published catalog" })
+    expect(mocks.get).toHaveBeenCalledWith("/admin/assay-catalog")
+    expect(mocks.get.mock.calls.some(([path]) => path === "/admin/assay-catalog/versions/")).toBe(false)
+    if (id) expect(mocks.get).toHaveBeenCalledWith(`/admin/assay-catalog/versions/${id}`, expect.anything())
+  })
+
   it.each([false, true])("does not reload a deleted version (history open: %s)", async (historyOpen) => {
     const user = userEvent.setup()
     let deleted = false

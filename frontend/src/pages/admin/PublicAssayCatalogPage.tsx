@@ -122,7 +122,7 @@ export function PublicAssayCatalogPage() {
   useEffect(() => { setSnapshot(null) }, [id, version?.revision])
   if (access.isLoading) return <PageShell title="Assay Catalog"><AppLoader label="Loading permissions" /></PageShell>
   if (!allowed("catalog:view")) return <PageShell title="Assay Catalog"><p>Catalog access is required.</p></PageShell>
-  if (workspace.isError || versionQuery.isError) return <PageShell title="Assay Catalog"><p role="alert">The catalog could not be loaded.</p><Button onClick={() => { void workspace.refetch(); void versionQuery.refetch() }}>Retry</Button></PageShell>
+  if (workspace.isError || (id && versionQuery.isError)) return <PageShell title="Assay Catalog"><p role="alert">The catalog could not be loaded.</p><Button onClick={() => { void workspace.refetch(); if (id) void versionQuery.refetch() }}>Retry</Button></PageShell>
   if (!draft || !workspace.data || (id && !version)) return <PageShell title="Assay Catalog"><AppLoader label="Loading catalog" /></PageShell>
   const data = workspace.data
   const displayedCatalog = snapshot?.catalog || draft

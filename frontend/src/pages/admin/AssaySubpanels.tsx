@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { RecordProvenance } from "./RecordProvenance"
 import type { RecordProvenanceData } from "./record-provenance"
 import { StatusBadge } from "./resource-list"
-import { Input } from "@/components/ui/input"
+import { DataTable } from "@/components/data-table/DataTable"
+import { TableBadge } from "@/components/ui/table-badge"
+import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
@@ -42,26 +44,29 @@ export function AssaySubpanels({ aspId, canEdit }: { aspId: string; canEdit: boo
   const error = associations.error
   const rows = (associations.data ?? []).filter((row) => `${row.subpanel_id} ${row.display_name}`.toLowerCase().includes(search.toLowerCase()))
   return <section className="min-w-0 space-y-3" aria-label="Assay subpanel associations">
-    <div className="flex flex-wrap items-center justify-between gap-3"><Input className="sm:max-w-md" aria-label="Search subpanels" placeholder="Search subpanels" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="type-meta text-muted-foreground">{rows.length} associated subpanels</span></div>
     {loading && <p role="status">Loading associations...</p>}
     {error && <p role="alert" className="text-destructive">Unable to load subpanel associations.</p>}
     {mutation.error && <p role="alert" className="text-destructive">{mutation.error.message}</p>}
-    {!loading && !error && <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full text-left text-sm">
-      <thead className="bg-muted"><tr><th className="p-3">Subpanel</th><th className="p-3">Shared status</th><th className="p-3">Assay status</th><th className="p-3">Installed by</th><th className="p-3">Actions</th></tr></thead>
-      <tbody>{rows.map((association) => {
-        const active = association.is_active
-        return <tr key={association.subpanel_id} className="border-b border-border">
-          <td className="max-w-80 break-words p-3"><div className="font-medium">{association.display_name}</div><span className="type-meta text-muted-foreground">{association.subpanel_id}</span></td>
-          <td className="p-3">{association.definition_is_active ? "Available" : "Globally retired"}</td>
-          <td className="p-3"><StatusBadge value={active} /></td>
-          <td className="max-w-64 p-3"><RecordProvenance record={association} /></td>
-          <td className="p-3">
-            <button type="button" className="rounded-md p-1.5 text-validation hover:bg-validation/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={active ? "Deactivate association" : "Activate association"} aria-label={`${active ? "Deactivate" : "Activate"} ${association.display_name} for ${aspId}`} disabled={!canEdit || mutation.isPending || (!association.definition_is_active && !active)} onClick={() => mutation.mutate(association)}>
-              <Power className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </td>
-        </tr>
-      })}</tbody>
-    </table>{!rows.length && <p className="p-3 text-muted-foreground">{search ? "No associated subpanels match your search." : "No subpanels are associated with this assay."}</p>}</div>}
+    {!loading && !error && <DataTable
+      data={rows}
+      stateKey={`assay-subpanels-${aspId}`}
+      rowLabel="associated subpanels"
+      hideExport
+      emptyMessage={search ? "No associated subpanels match your search." : "No subpanels are associated with this assay."}
+      searchPlaceholder="Search subpanels"
+      searchValue={search}
+      onSearchChange={setSearch}
+      columns={[
+        { accessorKey: "display_name", header: "Subpanel", cell: ({ row }) => <div className="max-w-80 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.subpanel_id}</span></div> },
+        { accessorKey: "definition_is_active", header: "Shared status", cell: ({ row }) => <TableBadge className={row.original.definition_is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.definition_is_active ? "Available" : "Globally retired"}</TableBadge> },
+        { accessorKey: "is_active", header: "Assay status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
+        { id: "record_provenance", header: "Installed by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+        { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
+          const association = row.original
+          const active = association.is_active
+          return <Button variant="ghost" size="icon" className="text-validation" title={active ? "Deactivate association" : "Activate association"} aria-label={`${active ? "Deactivate" : "Activate"} ${association.display_name} for ${aspId}`} disabled={!canEdit || mutation.isPending || (!association.definition_is_active && !active)} onClick={() => mutation.mutate(association)}><Power className="h-4 w-4" aria-hidden="true" /></Button>
+        } },
+      ]}
+    />}
   </section>
 }

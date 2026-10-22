@@ -2,6 +2,8 @@ import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Edit, Plus, Save, X } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
+import { DataTable } from "@/components/data-table/DataTable"
+import { TableBadge } from "@/components/ui/table-badge"
 import { SubpanelNavigation } from "./SubpanelNavigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -68,22 +70,26 @@ export function SubpanelDefinitionsPage() {
     <section aria-label="Subpanel registry" className="glass-card min-w-0 space-y-3 p-3">
     <SubpanelNavigation active="definitions" />
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay list and view permissions are required.</p> : <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <Input className="sm:max-w-md" aria-label="Search subpanel definitions" placeholder="Search subpanels" value={search} onChange={(event) => setSearch(event.target.value)} />
-        {canEdit && !editing && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><Plus className="h-4 w-4" />Create subpanel</Button>}
-      </header>
       {definitions.isLoading && <p role="status">Loading subpanels...</p>}
       {definitions.error && <p role="alert" className="text-destructive">Unable to load shared subpanels.</p>}
-      {!editing && !definitions.isLoading && !definitions.error && <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full text-left text-sm">
-        <thead className="bg-muted"><tr><th className="p-3">Subpanel</th><th className="p-3">Description</th><th className="p-3">Global status</th><th className="p-3">Installed by</th><th className="p-3">Actions</th></tr></thead>
-        <tbody>{rows.map((row) => <tr className="border-b border-border" key={row.subpanel_id}>
-          <td className="max-w-64 break-words p-3"><div className="font-medium">{row.display_name}</div><span className="type-meta text-muted-foreground">{row.subpanel_id}</span></td>
-          <td className="max-w-96 whitespace-pre-wrap break-words p-3">{row.description || "-"}</td>
-          <td className="p-3">{row.is_active ? "Available" : "Retired"}</td>
-          <td className="max-w-64 p-3"><RecordProvenance record={row} /></td>
-          <td className="p-3">{canEdit && <Button variant="outline" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><Edit className="h-4 w-4" /></Button>}</td>
-        </tr>)}</tbody>
-      </table>{!rows.length && <p className="p-3 text-muted-foreground">No subpanels found.</p>}</div>}
+      {!editing && !definitions.isLoading && !definitions.error && <DataTable
+        data={rows}
+        stateKey="subpanel-definitions"
+        rowLabel="subpanels"
+        hideExport
+        emptyMessage="No subpanels found."
+        searchPlaceholder="Search subpanel definitions"
+        searchValue={search}
+        onSearchChange={setSearch}
+        renderToolbar={() => canEdit && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><Plus className="h-4 w-4" />Create subpanel</Button>}
+        columns={[
+          { accessorKey: "display_name", header: "Subpanel", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.subpanel_id}</span></div> },
+          { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
+          { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
+          { id: "record_provenance", header: "Installed by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+          { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => canEdit && <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><Edit className="h-4 w-4" /></Button> },
+        ]}
+      />}
       {canEdit && editing && <form className="grid gap-4 border-t border-border py-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (validId && values.display_name.trim()) mutation.mutate() }}>
         <h2 className="text-lg font-semibold md:col-span-2">{editing === "new" ? "New subpanel" : "Edit shared definition"}</h2>
         {editing !== "new" && <p className="type-body md:col-span-2" role="status">Changes apply to every associated assay.</p>}

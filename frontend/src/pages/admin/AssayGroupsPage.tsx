@@ -2,6 +2,7 @@ import { useId, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, Power, Save, X } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
+import { DataTable } from "@/components/data-table/DataTable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
@@ -81,10 +82,6 @@ export function AssayGroupsPage() {
       </div>} />
     <section aria-label="Assay group registry" className="glass-card min-w-0 space-y-3 p-3">
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay view permission is required.</p> : <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <Input className="max-w-md" aria-label="Search assay groups" placeholder="Search assay groups" value={search} onChange={(event) => setSearch(event.target.value)} />
-        {canCreate && !creating && <Button disabled={save.isPending} onClick={() => { setCreating(true); setValues(empty); setIdEdited(false); save.reset() }}><Plus className="h-4 w-4" />Create group</Button>}
-      </header>
       {groups.isLoading && <p role="status">Loading assay groups...</p>}
       {groups.error && <p role="alert" className="text-destructive">Unable to load assay groups.</p>}
       {creating && canCreate && <form className="grid gap-4 border-t border-border py-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (validId && values.display_name.trim()) save.mutate() }}>
@@ -98,18 +95,27 @@ export function AssayGroupsPage() {
         {save.error && <p role="alert" className="text-destructive md:col-span-2">{save.error.message}</p>}
         <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={save.isPending || !validId || !values.display_name.trim()}><Save className="h-4 w-4" />Save group</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setCreating(false)}><X className="h-4 w-4" />Cancel</Button></div>
       </form>}
-      {!groups.isLoading && !groups.error && <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-left type-body">
-          <thead className="bg-muted"><tr><th className="p-3">Group</th><th className="p-3">Description</th><th className="p-3">Status</th><th className="p-3">Installed by</th><th className="p-3">Actions</th></tr></thead>
-          <tbody>{rows.map((group) => <tr key={group.group_id} className="border-b border-border">
-            <td className="max-w-64 break-words p-3"><div className="font-medium">{group.display_name}</div><div className="type-meta text-muted-foreground">{group.group_id}</div></td>
-            <td className="max-w-96 whitespace-pre-wrap break-words p-3">{group.description || "-"}</td>
-            <td className="p-3"><StatusBadge value={group.is_active} /></td>
-            <td className="max-w-64 p-3"><RecordProvenance record={group} /></td>
-            <td className="p-3">{canCreate && <button type="button" className="rounded-md p-1.5 text-validation hover:bg-validation/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={group.is_active ? "Deactivate group" : "Activate group"} aria-label={`${group.is_active ? "Deactivate" : "Activate"} ${group.display_name}`} disabled={status.isPending} onClick={() => { setTarget(group); setReason(""); setReasonError(false); status.reset() }}><Power className="h-4 w-4" aria-hidden="true" /></button>}</td>
-          </tr>)}</tbody>
-        </table>{!rows.length && <p className="p-3 text-muted-foreground">No assay groups found.</p>}
-      </div>}
+      {!groups.isLoading && !groups.error && <DataTable
+        data={rows}
+        stateKey="assay-groups"
+        rowLabel="groups"
+        hideExport
+        emptyMessage="No assay groups found."
+        searchPlaceholder="Search assay groups"
+        searchValue={search}
+        onSearchChange={setSearch}
+        renderToolbar={() => canCreate && !creating && <Button disabled={save.isPending} onClick={() => { setCreating(true); setValues(empty); setIdEdited(false); save.reset() }}><Plus className="h-4 w-4" />Create group</Button>}
+        columns={[
+          { accessorKey: "display_name", header: "Group", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><div className="type-meta text-muted-foreground">{row.original.group_id}</div></div> },
+          { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
+          { accessorKey: "is_active", header: "Status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
+          { id: "record_provenance", header: "Installed by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+          { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
+            const group = row.original
+            return canCreate && <Button variant="ghost" size="icon" className="text-validation" title={group.is_active ? "Deactivate group" : "Activate group"} aria-label={`${group.is_active ? "Deactivate" : "Activate"} ${group.display_name}`} disabled={status.isPending} onClick={() => { setTarget(group); setReason(""); setReasonError(false); status.reset() }}><Power className="h-4 w-4" aria-hidden="true" /></Button>
+          } },
+        ]}
+      />}
     </>}
     </section>
   </PageShell>

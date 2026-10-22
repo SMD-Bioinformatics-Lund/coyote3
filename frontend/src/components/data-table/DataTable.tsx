@@ -55,6 +55,7 @@ interface DataTableProps<TData, TValue> {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  emptyMessage?: string;
   getRowClassName?: (row: TData) => string;
   sortingState?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
@@ -83,6 +84,7 @@ export function DataTable<TData, TValue>({
   searchValue,
   onSearchChange,
   searchPlaceholder = "Search all columns...",
+  emptyMessage = "No results found.",
   getRowClassName,
   sortingState,
   onSortingChange,
@@ -275,6 +277,7 @@ export function DataTable<TData, TValue>({
             <div className="search-field relative w-56 rounded-xl sm:w-64">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
               <input
+                aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={displayedSearchValue}
                 onChange={(event) => {
@@ -427,7 +430,7 @@ export function DataTable<TData, TValue>({
                     colSpan={columns.length}
                     className="h-24 text-center text-muted-foreground font-medium"
                   >
-                    No results found.
+                    {emptyMessage}
                   </td>
                 </tr>
               )}

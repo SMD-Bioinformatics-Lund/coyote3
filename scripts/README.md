@@ -16,7 +16,7 @@ commands, their callers, and operational prerequisites.
 | `identity/` | Identity database migration and permission/role maintenance |
 | `knowledgebase/` | External reference imports, storage migrations, and repairs |
 | `maintenance/` | Operational data maintenance |
-| `docs/` | Reproducible schema/permission reference generators and link validation |
+| `docs/` | Reproducible schema/permission reference generators, Markdown lint and link validation |
 | `quality/` | Repository checks, secret scanning, and test orchestration |
 | `release/` | Package-version synchronization |
 
