@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter } from "recharts"
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter } from "recharts"
 import { Link } from "react-router-dom"
 import { useState } from "react"
 import { ChartPanel } from "@/components/plots/ChartPanel"
@@ -65,11 +65,15 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
   const total = rows.reduce((sum, row) => sum + row.value, 0)
 
   return (
-    <figure className="min-w-0 border-b border-border/60 pb-3 last:border-b-0 md:border-b-0 md:border-r md:pr-3 md:last:border-r-0">
-      <figcaption className="type-label mb-1.5 text-muted-foreground">{group.name}</figcaption>
+    <figure className="dashboard-subcard min-w-0 p-3">
+      <figcaption className="type-body-sm mb-3 font-semibold text-foreground">{group.name}</figcaption>
       {rows.length ? (
-        <div className="grid min-w-0 grid-cols-[8rem_minmax(0,1fr)] items-center gap-3">
-          <div className="relative h-32 w-32">
+        <div className="grid min-w-0 grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3">
+          <div
+            className="relative h-26 w-26"
+            role="img"
+            aria-label={`${group.name}: ${rows.map((row) => `${row.name} ${row.value} of ${total}`).join(", ")}`}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -81,11 +85,11 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
                   startAngle={90}
                   endAngle={-270}
                   innerRadius={36}
-                  outerRadius={58}
-                  paddingAngle={4}
-                  cornerRadius={3}
+                  outerRadius={47}
+                  paddingAngle={rows.length > 1 ? 3 : 0}
+                  cornerRadius={2}
                   stroke="none"
-                  {...donutMotion}
+                  isAnimationActive={false}
                 >
                   {rows.map((row, index) => (
                     <Cell key={row.name} fill={colors[(colorOffset + index) % colors.length]} />
@@ -99,22 +103,23 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <strong className="text-sm font-semibold text-foreground">{shortCount(total)}</strong>
-              <span className="type-label uppercase text-muted-foreground">samples</span>
+              <strong className="type-section-title tabular-nums text-foreground">{shortCount(total)}</strong>
+              <span className="type-meta text-muted-foreground">{total === 1 ? "sample" : "samples"}</span>
             </div>
           </div>
           <ul className="min-w-0 space-y-1.5">
             {rows.map((row, index) => (
-              <li key={row.name} className="flex min-w-0 items-center gap-1.5 type-meta">
-                <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: colors[(colorOffset + index) % colors.length] }} />
-                <span className="min-w-0 flex-1 truncate capitalize text-muted-foreground">{row.name || "unknown"}</span>
-                <strong className="shrink-0 font-semibold text-foreground">{shortCount(row.value)}</strong>
+              <li key={row.name} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 type-body-sm">
+                <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ background: colors[(colorOffset + index) % colors.length] }} />
+                <span className="min-w-0 capitalize text-foreground">{/^(dna|rna)$/i.test(row.name) ? row.name.toUpperCase() : row.name || "Unknown"}</span>
+                <strong className="font-semibold tabular-nums text-foreground">{shortCount(row.value)}</strong>
+                <span className="col-start-2 col-span-2 type-meta tabular-nums text-muted-foreground">{Math.round(row.value / total * 100)}%</span>
               </li>
             ))}
           </ul>
         </div>
       ) : (
-        <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">No data</div>
+        <div className="flex h-26 items-center justify-center type-body-sm text-muted-foreground">No data</div>
       )}
     </figure>
   )
@@ -155,10 +160,11 @@ export function SampleCompositionCharts({
   const pipelineSummary = visiblePipelines
     .map((pipeline) => `${pipeline.label}: ${pipeline.Analysed} analysed, ${pipeline["Awaiting review"]} awaiting review`)
     .join("; ")
+  const maximumPipelineCount = Math.max(1, ...visiblePipelines.map((pipeline) => pipeline.Total))
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="sample-composition space-y-4">
+      <div className="sample-composition-grid">
         {groups.map((group, index) => (
           <CompositionDonut key={group.name} group={group} colors={colors} colorOffset={index * 2} />
         ))}
@@ -167,10 +173,10 @@ export function SampleCompositionCharts({
       <div className="border-t border-border/70 pt-3">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h3 className="type-label text-foreground">Pipeline throughput</h3>
-            <p className="type-meta mt-0.5 text-muted-foreground">Analysis completion by pipeline and version.</p>
+            <h3 className="type-section-title text-foreground">Pipeline throughput</h3>
+            <p className="type-body-sm mt-0.5 text-muted-foreground">Analysis completion by pipeline and version.</p>
           </div>
-          <div className="flex items-center gap-3 type-label text-muted-foreground">
+          <div className="flex items-center gap-3 type-meta text-muted-foreground">
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm bg-pass" />Analysed</span>
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm bg-warning" />Awaiting review</span>
           </div>
@@ -179,25 +185,28 @@ export function SampleCompositionCharts({
           <div
             role="img"
             aria-label={`Pipeline throughput. ${pipelineSummary}`}
-            style={{ height: Math.max(190, visiblePipelines.length * 34 + 42) }}
+            className="space-y-4 pt-2"
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={visiblePipelines} layout="vertical" margin={{ top: 4, right: 30, bottom: 4, left: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.18} horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} />
-                <YAxis type="category" dataKey="label" width={148} tick={{ fontSize: 10 }} tickLine={false} />
-                <Tooltip
-                  formatter={(value, name) => [shortCount(value), String(name)]}
-                  contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", fontSize: 11 }}
-                  cursor={{ fill: "var(--chart-tooltip-cursor)" }}
-                />
-                <Bar dataKey="Analysed" stackId="pipeline" fill="var(--color-pass)" radius={[4, 0, 0, 4]} isAnimationActive={false} />
-                <Bar dataKey="Awaiting review" stackId="pipeline" fill="var(--status-warning)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
-              </BarChart>
-            </ResponsiveContainer>
+            {visiblePipelines.map((pipeline) => (
+              <div key={pipeline.label} className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-3 type-body-sm">
+                  <span className="min-w-0 font-medium text-foreground">{pipeline.label}</span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">{shortCount(pipeline.Total)} {pipeline.Total === 1 ? "sample" : "samples"}</span>
+                </div>
+                <div className="flex h-2.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                  <span className="bg-pass" style={{ width: `${pipeline.Analysed / maximumPipelineCount * 100}%` }} />
+                  <span className="bg-warning" style={{ width: `${pipeline["Awaiting review"] / maximumPipelineCount * 100}%` }} />
+                </div>
+                <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 type-meta tabular-nums text-muted-foreground">
+                  <span>{shortCount(pipeline.Analysed)} analysed · {shortCount(pipeline["Awaiting review"])} awaiting review</span>
+                  <span>{pipeline.Total ? Math.round(pipeline.Analysed / pipeline.Total * 100) : 0}% complete</span>
+                </div>
+              </div>
+            ))}
+            <p className="type-meta text-muted-foreground">Shared count scale: 0–{shortCount(maximumPipelineCount)} samples</p>
           </div>
         ) : (
-          <div className="flex h-36 items-center justify-center text-xs text-muted-foreground">No pipeline data available.</div>
+          <p className="py-4 type-body-sm text-muted-foreground">No pipeline data available.</p>
         )}
       </div>
     </div>

@@ -3,6 +3,18 @@ import {
 } from "@/components/detail/VariantKnowledgebase"
 import { displayValue } from "@/lib/detail-formatters"
 
+export function maximumVaf(genotypes: unknown): string {
+  if (!Array.isArray(genotypes)) return "-"
+  const frequencies = genotypes.flatMap((genotype: unknown) => {
+    if (!genotype || typeof genotype !== "object" || !("AF" in genotype)) return []
+    const value = genotype.AF
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1
+      ? [value]
+      : []
+  })
+  return frequencies.length ? `${(Math.max(...frequencies) * 100).toFixed(1)}%` : "-"
+}
+
 
 export function variantLocation(variant: any) {
   if (!variant) return "-"

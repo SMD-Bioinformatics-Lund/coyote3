@@ -10,7 +10,7 @@ describe("session boundaries", () => {
     const pending = client.fetchQuery({
       queryKey: ["late"], queryFn: () => new Promise<string>(done => { resolve = done }),
     }).catch(() => undefined)
-    localStorage.setItem("coyote3.notifications:synthetic", "private")
+    localStorage.setItem("coyote3:notification-tray:synthetic", "private")
     sessionStorage.setItem("coyote3.table.synthetic.search", "private")
     localStorage.setItem("theme", "dark")
     const listener = vi.fn()
@@ -19,7 +19,7 @@ describe("session boundaries", () => {
     resolve("private")
     await pending
     expect(client.getQueryCache().getAll()).toEqual([])
-    expect(localStorage.getItem("coyote3.notifications:synthetic")).toBeNull()
+    expect(localStorage.getItem("coyote3:notification-tray:synthetic")).toBeNull()
     expect(sessionStorage.getItem("coyote3.table.synthetic.search")).toBeNull()
     expect(localStorage.getItem("theme")).toBe("dark")
     expect(listener).toHaveBeenCalledOnce()

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { AlertTriangle } from "lucide-react";
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
+import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge";
 import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
 import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
@@ -122,9 +123,7 @@ export function TranslocationsTab({
       header: "Gene 1",
       accessorFn: (row) => translocationGenes(row)[0] || "-",
       cell: ({ row }) => (
-        <span className="font-medium text-primary hover:underline cursor-pointer">
-          {translocationGenes(row.original)[0] || "-"}
-        </span>
+        <GeneWithOncoKbBadge gene={translocationGenes(row.original)[0]} />
       ),
     },
     {
@@ -132,9 +131,7 @@ export function TranslocationsTab({
       header: "Gene 2",
       accessorFn: (row) => translocationGenes(row)[1] || "-",
       cell: ({ row }) => (
-        <span className="font-medium text-primary hover:underline cursor-pointer">
-          {translocationGenes(row.original)[1] || "-"}
-        </span>
+        <GeneWithOncoKbBadge gene={translocationGenes(row.original)[1]} />
       ),
     },
     {

@@ -8,6 +8,7 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { CommentCard } from "@/components/comments/CommentCard"
+import { DetailCard } from "@/components/detail/FindingDetailLayout"
 
 const tierButtonClasses: Record<number, string> = {
   1: "bg-tier1",
@@ -16,32 +17,10 @@ const tierButtonClasses: Record<number, string> = {
   4: "bg-tier4",
 }
 
-export function DetailCard({
-  title,
-  icon: Icon,
-  tone: _tone = "border-t-panel",
-  children,
-}: {
-  title: string
-  icon: any
-  tone?: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="glass-card p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>
-        {title}
-      </h3>
-      {children}
-    </section>
-  )
-}
-
 export function CommentsCard({ comments = [], title = "Sample Comments" }: { comments?: any[]; title?: string }) {
   const visibleComments = comments.filter((comment) => !comment?.hidden)
   return (
-    <DetailCard title={title} icon={MessageSquare} tone="border-t-tier2">
+    <DetailCard title={title} icon={MessageSquare}>
       {visibleComments.length ? (
         <div className="space-y-2">
           {visibleComments.map((comment, index) => (
@@ -107,7 +86,7 @@ export function ClassificationsCard({
       && tieringIsEnabled(controlsQuery.data, resourceType),
   )
   return (
-    <DetailCard title="Classifications" icon={Tags} tone="border-t-tier1">
+    <DetailCard title="Classifications" icon={Tags}>
       <div className="space-y-3">
         {canMutate && (
           <div className="rounded-lg border border-border bg-background/70 p-2">

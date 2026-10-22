@@ -112,7 +112,7 @@ export function AdminControlsPage() {
     queryFn: () => api.get("/admin/controls").then((res) => res.data),
     retry: false,
     refetchInterval: 5_000,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   })
   const controls = (draft || controlsQuery.data?.controls || null) as AppControls | null

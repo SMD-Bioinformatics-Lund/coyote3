@@ -117,6 +117,7 @@ function invalidateSampleQueries(queryClient: QueryClient, sampleId: string) {
 function activeTableQueryKey(activeTab: string, sampleId: string) {
   const tableKeys: Record<string, string> = {
     snvs: "sample-variants",
+    "germline-snvs": "sample-variants",
     cnvs: "sample-cnvs",
     fusions: "sample-fusions",
     translocations: "sample-translocations",
@@ -422,7 +423,7 @@ export function FiltersSidebar({
             </button>
           </section>
         )}
-        {activeTab === "snvs" && (
+        {(activeTab === "snvs" || activeTab === "germline-snvs") && (
           <>
             <Section title="Small Variant Thresholds">
               <FilterInput label="Min depth" value={filters.min_depth} onChange={(value) => setValue("min_depth", value)} />

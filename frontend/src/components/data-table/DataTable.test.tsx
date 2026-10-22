@@ -68,6 +68,22 @@ describe("DataTable", () => {
     expect(screen.getAllByText(/[12]/).length).toBeGreaterThan(1)
   })
 
+  it("sorts with Enter and Space and exposes the sort direction to assistive technology", async () => {
+    const user = userEvent.setup()
+    render(<DataTable columns={columns} data={data} />)
+    const header = screen.getByRole("columnheader", { name: /Gene/ })
+    const control = within(header).getByRole("button")
+    control.focus()
+    await user.keyboard("{Enter}")
+    expect(header).toHaveAttribute("aria-sort", "ascending")
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("ABL1")
+    await user.keyboard(" ")
+    expect(header).toHaveAttribute("aria-sort", "descending")
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("TP53")
+    expect(within(screen.getByRole("columnheader", { name: "Note" })).queryByRole("button"))
+      .not.toBeInTheDocument()
+  })
+
   it("uses controlled search and server pagination callbacks", async () => {
     const user = userEvent.setup()
     const onSearchChange = vi.fn()

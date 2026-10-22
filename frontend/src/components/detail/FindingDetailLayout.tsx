@@ -1,4 +1,4 @@
-import { type ReactNode } from "react"
+import { type ComponentType, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, Fingerprint } from "lucide-react"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -243,11 +243,13 @@ export function DetailCard({
   children,
   tone = "accent",
   className,
+  icon: Icon,
 }: {
   title: ReactNode
   children: ReactNode
   tone?: "accent" | "success" | "info"
   className?: string
+  icon?: ComponentType<{ className?: string }>
 }) {
   const toneClass = {
     accent: "detail-card-accent",
@@ -256,10 +258,13 @@ export function DetailCard({
   }[tone]
 
   return (
-    <div className={cn(toneClass, className)}>
-      <h3 className="detail-section-title">{title}</h3>
+    <section className={cn(Icon ? "glass-card p-4" : toneClass, className)}>
+      <h3 className={Icon ? "mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground" : "detail-section-title"}>
+        {Icon && <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>}
+        {title}
+      </h3>
       {children}
-    </div>
+    </section>
   )
 }
 

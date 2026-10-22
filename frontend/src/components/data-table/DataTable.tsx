@@ -335,10 +335,12 @@ export function DataTable<TData, TValue>({
                         <ArrowUpDown className="h-2 w-2 shrink-0 opacity-70" />
                       ) : null);
                     const sortIndex = sorting.findIndex((item) => item.id === header.column.id);
+                    const HeaderControl = header.column.getCanSort() ? "button" : "div";
                     return (
                       <th
                         key={header.id}
                         data-column-id={header.column.id}
+                        aria-sort={header.column.getIsSorted() === "asc" ? "ascending" : header.column.getIsSorted() === "desc" ? "descending" : header.column.getCanSort() ? "none" : undefined}
                         className={cn(
                           "whitespace-normal border-b-2 border-border py-1 align-middle text-center leading-tight",
                           tableDensity === "compact" ? "px-1.5" : "responsive-table-cell-x",
@@ -348,7 +350,8 @@ export function DataTable<TData, TValue>({
                         )}
                       >
                         {header.isPlaceholder ? null : (
-                          <div
+                          <HeaderControl
+                            type={header.column.getCanSort() ? "button" : undefined}
                             className={cn(
                               "flex min-h-7 items-end gap-0.5",
                               align === "center" ? "justify-center" : "justify-start",
@@ -377,7 +380,7 @@ export function DataTable<TData, TValue>({
                                 {sortIndex + 1}
                               </span>
                             )}
-                          </div>
+                          </HeaderControl>
                         )}
                       </th>
                     );

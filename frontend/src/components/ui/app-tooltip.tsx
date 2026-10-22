@@ -119,9 +119,6 @@ export function AppTooltip({
       data-tooltip-context={context}
       data-tooltip-tone={tone}
       onMouseEnter={place}
-      onMouseMove={(event) => {
-        if (!pinned) place(event)
-      }}
       onMouseLeave={() => {
         if (!pinned) setPosition(null)
       }}

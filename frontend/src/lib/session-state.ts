@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query"
 
 export const SESSION_CHANGED_EVENT = "coyote3:session-changed"
+export const NOTIFICATION_STORAGE_PREFIX = "coyote3:notification-tray:"
 
 export async function clearSessionState(client: QueryClient) {
   await client.cancelQueries()
@@ -9,7 +10,7 @@ export async function clearSessionState(client: QueryClient) {
     try {
       const storage = window[storageName]
       for (const key of Object.keys(storage)) {
-        if (key.startsWith("coyote3.notifications:") || key.startsWith("coyote3.table.")) {
+        if (key.startsWith(NOTIFICATION_STORAGE_PREFIX) || key.startsWith("coyote3.table.")) {
           storage.removeItem(key)
         }
       }

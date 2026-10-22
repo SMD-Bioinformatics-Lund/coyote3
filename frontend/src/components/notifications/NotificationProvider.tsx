@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { api } from "@/lib/api"
 import { NotificationSeverityBadge } from "./NotificationSeverityBadge"
-import { SESSION_CHANGED_EVENT } from "@/lib/session-state"
+import { NOTIFICATION_STORAGE_PREFIX, SESSION_CHANGED_EVENT } from "@/lib/session-state"
 import { NotificationContext, type NotificationContextValue } from "./notification-context"
 import {
   type AppNotification,
@@ -26,7 +26,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const initializedServerInbox = useRef(false)
   const seenServerIds = useRef(new Set<string>())
   const hiddenIds = useRef(new Set<string>())
-  const sessionKey = () => `coyote3:notification-tray:${usernameRef.current}`
+  const sessionKey = () => `${NOTIFICATION_STORAGE_PREFIX}${usernameRef.current}`
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [visibleToasts, setVisibleToasts] = useState<AppNotification[]>([])
 

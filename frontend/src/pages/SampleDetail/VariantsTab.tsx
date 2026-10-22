@@ -511,8 +511,8 @@ export function VariantsTab({
         }
         renderExportButton={() => (
           <ServerCsvButton
-            endpoint={`/samples/${sampleId}/small-variants/exports/snvs/context${
-              debouncedSearchText ? `?q=${encodeURIComponent(debouncedSearchText)}` : ""
+            endpoint={`/samples/${sampleId}/small-variants/exports/snvs/context?intent=${intent}${
+              debouncedSearchText ? `&q=${encodeURIComponent(debouncedSearchText)}` : ""
             }`}
             fallbackFilename={`${sampleId}.filtered.snvs.csv`}
             label="Export to CSV"

@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   chartPanel: vi.fn(),
   cells: vi.fn(),
-  bars: vi.fn(),
   pie: vi.fn(),
   tooltips: vi.fn(),
   legend: vi.fn(),
@@ -23,8 +22,6 @@ vi.mock("recharts", () => ({
   PieChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Pie: ({ children, ...props }: { children: React.ReactNode }) => { mocks.pie(props); return <div>{children}</div> },
   Cell: (props: Record<string, unknown>) => { mocks.cells(props); return <span /> },
-  BarChart: ({ children, ...props }: { children: React.ReactNode }) => { mocks.bars(props); return <div>{children}</div> },
-  Bar: ({ dataKey }: { dataKey: string }) => <span>{dataKey}</span>,
   ScatterChart: ({ children, ...props }: { children: React.ReactNode }) => { mocks.scatterChart(props); return <div>{children}</div> },
   Scatter: (props: Record<string, unknown>) => { mocks.scatters(props); return <span>{String(props.name)}</span> },
   XAxis: () => null,
@@ -159,7 +156,7 @@ describe("dashboard charts", () => {
     expect(screen.getByText("0/8")).toBeVisible()
   })
 
-  it("renders composition donuts and stacked pipeline throughput", () => {
+  it("shows composition counts and percentages with an accessible pipeline summary", () => {
     render(
       <SampleCompositionCharts
         groups={[
@@ -185,12 +182,29 @@ describe("dashboard charts", () => {
       startAngle: 90,
       endAngle: -270,
       innerRadius: 36,
-      outerRadius: 58,
-      isAnimationActive: true,
-      animationDuration: 700,
+      outerRadius: 47,
+      isAnimationActive: false,
     }))
     expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
-    expect(mocks.bars).toHaveBeenCalledWith(expect.objectContaining({ layout: "vertical" }))
+    expect(screen.getByRole("img", { name: "Omics: dna 8 of 10, rna 2 of 10" })).toBeVisible()
+    expect(screen.getByText("80%")).toBeVisible()
+    expect(screen.getByText("20%")).toBeVisible()
+    expect(screen.getByText("6 analysed · 2 awaiting review")).toBeVisible()
+    expect(screen.getByText("75% complete")).toBeVisible()
+    expect(screen.getByText("Shared count scale: 0–8 samples")).toBeVisible()
+  })
+
+  it("bounds completion to the sample count and retains every pipeline in the grouped total", () => {
+    render(<SampleCompositionCharts groups={[]} colors={["red"]} pipelines={[
+      { name: "Complete pipeline", count: 12, analysed: 20 },
+      ...Array.from({ length: 9 }, (_, index) => ({ name: `Pipeline ${index}`, count: 1, analysed: -1 })),
+    ]} />)
+
+    expect(screen.getByRole("img", { name: /Complete pipeline \(unversioned\): 12 analysed, 0 awaiting review/ })).toBeVisible()
+    expect(screen.getByText("2 other versions")).toBeVisible()
+    expect(screen.getByText("0 analysed · 2 awaiting review")).toBeVisible()
+    expect(screen.getByText("100% complete")).toBeVisible()
+    expect(screen.getByText("Shared count scale: 0–12 samples")).toBeVisible()
   })
 
   it("renders top tiered genes as ranked proportional tier graphics", () => {

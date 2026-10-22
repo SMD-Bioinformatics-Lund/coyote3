@@ -139,7 +139,9 @@ export function AdminActionDialog({ state, spec }: { state: AdminListState; spec
       <ConfirmationDialog open title={`Confirm ${pendingAction.action}`}
         variant={pendingAction.action === "delete" ? "destructive" : "default"}
         description={pendingAction.action === "delete"
-          ? `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`
+          ? spec.key === "samples"
+            ? `Delete sample ${pendingAction.name}? Its findings, comments, saved reports and report snapshots will be removed. Generated report HTML and PDF files will also be permanently erased. Shared annotations and audit history are retained.`
+            : `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`
           : `Apply ${pendingAction.action} to ${spec.title.toLowerCase()} ${pendingAction.name}?`}
         isPending={mutate.isPending}
         onCancel={() => setPendingAction(null)}

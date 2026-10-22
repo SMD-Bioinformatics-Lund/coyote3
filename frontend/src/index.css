@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "./styles/tailwind-theme.css";
 @import "./styles/charts.css";
 
@@ -90,12 +89,12 @@
   .paper-surface {
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-sm);
   }
   .paper-raised-control {
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-sm);
     transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
   }
   .paper-raised-control:hover {
@@ -108,7 +107,7 @@
   .paper-inset {
     border: 1px solid color-mix(in srgb, var(--paper-edge) 86%, transparent);
     background: var(--paper-inset);
-    box-shadow: none;
+    box-shadow: var(--inset-shadow);
   }
   .segmented-control {
     position: relative;
@@ -121,7 +120,7 @@
     border: 1px solid color-mix(in srgb, var(--paper-edge) 88%, transparent);
     border-radius: 0.9rem;
     background: var(--control-surface);
-    box-shadow: none;
+    box-shadow: var(--inset-shadow);
   }
   .segmented-control-indicator {
     position: absolute;
@@ -214,7 +213,7 @@
   .search-field {
     border: 1px solid color-mix(in srgb, var(--paper-edge) 92%, transparent);
     background: var(--paper-inset);
-    box-shadow: none;
+    box-shadow: var(--inset-shadow);
   }
   .search-field:focus-within {
     border-color: var(--ring);
@@ -271,18 +270,18 @@
   .glass-panel {
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
-    box-shadow: 0 1px 3px var(--paper-shadow);
+    box-shadow: var(--shadow-md);
   }
   .glass-card {
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-md);
   }
   .surface-panel {
     @apply relative overflow-hidden;
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
-    box-shadow: 0 1px 3px var(--paper-shadow);
+    box-shadow: var(--shadow-md);
   }
   .surface-panel-title-marker {
     background: var(--panel-accent, var(--primary));
@@ -292,7 +291,7 @@
     padding: 1rem !important;
     background: var(--paper-surface);
     border-color: var(--paper-edge);
-    box-shadow: 0 1px 3px var(--paper-shadow);
+    box-shadow: var(--shadow-md);
   }
   .dashboard-panel--teal {
     --panel-accent: var(--color-wgs);
@@ -312,10 +311,28 @@
     background: var(--surface-nested);
     box-shadow: 0 1px 2px var(--paper-shadow);
   }
+  .sample-composition {
+    container-type: inline-size;
+  }
+  .sample-composition-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+  }
+  @container (min-width: 34rem) {
+    .sample-composition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @container (min-width: 48rem) {
+    .sample-composition-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @container (min-width: 80rem) {
+    .sample-composition-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
   .chart-panel {
     border: 1px solid var(--paper-edge);
-    background: var(--card);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    background: var(--paper-raised);
+    box-shadow: var(--shadow-sm);
   }
   .surface-panel,
   .dashboard-panel,
@@ -369,7 +386,7 @@
     border: 1px solid var(--paper-edge);
     border-radius: 0.9rem;
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-md);
   }
   .content-item {
     border: 1px solid var(--surface-nested-border);
@@ -400,7 +417,7 @@
     border: 1px solid color-mix(in srgb, var(--static-accent) 30%, var(--paper-edge));
     border-radius: 0.5rem;
     background: var(--paper-raised);
-    box-shadow: 0 2px 5px color-mix(in srgb, var(--static-accent) 10%, var(--paper-shadow));
+    box-shadow: var(--shadow-md);
   }
   .static-page-section-header {
     background: color-mix(in srgb, var(--static-soft) 58%, var(--paper-raised));
@@ -431,7 +448,7 @@
     border: 1px solid color-mix(in srgb, var(--static-accent) 24%, var(--paper-edge));
     border-radius: 0.5rem;
     background: color-mix(in srgb, var(--static-soft) 20%, var(--card));
-    box-shadow: 0 1px 3px var(--paper-shadow);
+    box-shadow: var(--shadow-sm);
   }
   a.static-info-card:hover {
     border-color: color-mix(in srgb, var(--static-accent) 48%, var(--paper-edge));
@@ -565,10 +582,6 @@
     background: var(--paper-raised);
     box-shadow: 0 1px 2px var(--paper-shadow);
   }
-  .dark .dashboard-panel {
-    background: var(--paper-raised);
-    border-color: var(--paper-edge);
-  }
   .dark .surface-panel,
   .dark .content-section {
     background: var(--paper-surface);
@@ -580,7 +593,7 @@
     @apply relative overflow-hidden p-3;
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
-    box-shadow: 0 1px 3px var(--paper-shadow);
+    box-shadow: var(--shadow-md);
   }
   .detail-hero-subtitle {
     @apply text-lg font-medium leading-snug text-muted-foreground;
@@ -601,19 +614,19 @@
     @apply p-3;
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-sm);
   }
   .detail-card-success {
     @apply p-3;
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-sm);
   }
   .detail-card-info {
     @apply p-3;
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--shadow-sm);
   }
   .glass-panel,
   .glass-card,
@@ -1264,10 +1277,7 @@
     border-radius: 1.1rem;
     background: color-mix(in srgb, var(--card) 97%, var(--paper-raised));
     backdrop-filter: blur(10px) saturate(1.02);
-    box-shadow:
-      inset 0 1px 0 var(--paper-highlight),
-      0 2px 5px color-mix(in srgb, var(--paper-shadow) 44%, transparent),
-      0 14px 30px color-mix(in srgb, var(--paper-shadow-deep) 52%, transparent);
+    box-shadow: var(--shadow-lg);
   }
 
   .login-card::before {

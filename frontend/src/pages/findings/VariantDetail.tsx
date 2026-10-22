@@ -35,7 +35,7 @@ import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, Predict
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
-import { clinicalSig, ponRows, variantLocation } from "./variant-detail-presentation"
+import { clinicalSig, maximumVaf, ponRows, variantLocation } from "./variant-detail-presentation"
 import { VariantEvidencePanel } from "./VariantEvidencePanel"
 
 export function VariantDetail() {
@@ -130,7 +130,7 @@ export function VariantDetail() {
           />
         }
         statLabel="Max VAF"
-        statValue={`${variant?.GT ? Math.max(...variant.GT.map((g: any) => g.AF * 100)).toFixed(1) : 0}%`}
+        statValue={maximumVaf(variant?.GT)}
       />
 
       <FindingMainGrid

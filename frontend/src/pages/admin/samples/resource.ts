@@ -4,7 +4,7 @@ import type { AdminResourceSpec } from "../resource-specs"
 export const resource: AdminResourceSpec = {
   key: "samples",
   title: "Admin Samples",
-  description: "Developer-level sample resource management and deletion workflows.",
+  description: "Sample administration with permission-controlled editing and permanent deletion.",
   endpoint: "/resources/samples",
   listKey: "samples",
   idKeys: ["_id", "name", "sample_id"],

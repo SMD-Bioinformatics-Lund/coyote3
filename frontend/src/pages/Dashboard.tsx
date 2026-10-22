@@ -374,8 +374,8 @@ export function Dashboard() {
         </SurfacePanel>
       </div>
 
-      <div className="grid items-stretch gap-3 2xl:grid-cols-[0.9fr_1.1fr]">
-        <SurfacePanel className="dashboard-panel dashboard-panel--amber h-full" title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
+      <div className="grid items-start gap-3 2xl:grid-cols-[0.9fr_1.1fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--amber" title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
           {isUnavailable("samples") ? <MetricUnavailable label="Sample composition" /> : (
           <Suspense fallback={<ChartFallback />}>
             <SampleCompositionCharts groups={compositionGroups} pipelines={pipelineData} colors={chartColors} />

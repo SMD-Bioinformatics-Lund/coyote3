@@ -76,7 +76,7 @@ export function DetailMetricTable({
               <th className={cn("w-36 px-3 font-medium uppercase tracking-wide text-muted-foreground", dense ? "py-0.5" : "py-1")}>
                 {metric.label}
               </th>
-              <td className={cn("px-3 font-semibold text-foreground", dense ? "py-0.5" : "py-1", metric.monospace && "")}>
+              <td className={cn("px-3 font-semibold text-foreground", dense ? "py-0.5" : "py-1", metric.monospace && "font-mono")}>
                 {metric.href ? (
                   <a
                     className="link-text inline-flex min-w-0 items-center gap-1"

@@ -44,7 +44,6 @@ export function VariantTooltipBadge({
   )
   const handlers = {
     onMouseEnter: (event: MouseEvent<HTMLElement>) => setPosition(verticalTooltipPosition(event)),
-    onMouseMove: (event: MouseEvent<HTMLElement>) => setPosition(verticalTooltipPosition(event)),
     onMouseLeave: () => setPosition(null),
     onFocus: (event: FocusEvent<HTMLElement>) => setPosition(verticalTooltipPosition(event)),
     onBlur: () => setPosition(null),

@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
-import { ClassificationsCard, CommentsCard, DetailCard } from "./FindingDetailCards"
+import { ClassificationsCard, CommentsCard } from "./FindingDetailCards"
+import { DetailCard } from "./FindingDetailLayout"
 
 const { patch, notifySuccess } = vi.hoisted(() => ({ patch: vi.fn(), notifySuccess: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: { patch } }))

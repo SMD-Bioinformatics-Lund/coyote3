@@ -156,7 +156,7 @@ describe("FiltersSidebar", () => {
 
   it("isolates germline filters and omits the somatic control-frequency field", async () => {
     const user = userEvent.setup()
-    renderSidebar({ intent: "germline" })
+    renderSidebar({ intent: "germline", activeTab: "germline-snvs" })
     await expand(user)
 
     expect(screen.getByLabelText("Min depth")).toHaveValue(30)

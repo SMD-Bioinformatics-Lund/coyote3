@@ -72,7 +72,6 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
       className="inline-flex"
       data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
-      onMouseMove={(event) => setPosition(verticalTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(verticalTooltipPosition(event))}
       onBlur={() => setPosition(null)}
@@ -561,7 +560,6 @@ function FilterFlagBadge({
       className="relative inline-flex"
       data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(inlineTooltipPosition(event))}
-      onMouseMove={(event) => setPosition(inlineTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(inlineTooltipPosition(event))}
       onBlur={() => setPosition(null)}
@@ -656,7 +654,6 @@ export function ImpactBadge({ value }: { value: unknown }) {
       className="inline-flex"
       data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
-      onMouseMove={(event) => setPosition(verticalTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(verticalTooltipPosition(event))}
       onBlur={() => setPosition(null)}
@@ -751,7 +748,6 @@ export function PredictionBadge({ value }: { value: unknown }) {
       className="inline-flex min-w-0 max-w-full"
       data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
-      onMouseMove={(event) => setPosition(verticalTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(verticalTooltipPosition(event))}
       onBlur={() => setPosition(null)}
@@ -821,7 +817,6 @@ function ConsequenceBadge({
       className="inline-flex"
       data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
-      onMouseMove={(event) => setPosition(verticalTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(verticalTooltipPosition(event))}
       onBlur={() => setPosition(null)}
