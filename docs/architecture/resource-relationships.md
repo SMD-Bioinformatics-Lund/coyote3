@@ -13,8 +13,8 @@ see the [database resource map](mongodb-topology.md).
 ## Relationship Legend
 
 Solid arrows identify required lookups, dependencies, or data contributions.
-Dashed arrows identify optional selections or integrations. Resource boxes name
-persisted records; workflow boxes describe validation, resolution, or review steps.
+Dashed arrows identify optional selections or integrations. Symbols identify
+persisted resources or validation, resolution and review stages.
 Refer to each figure's labels for its specific relationship semantics.
 
 ## 1. Configuration Relationships
@@ -28,8 +28,6 @@ See [assay setup](../administration/assay-setup.md) for the creation procedure.
 ### 1.1 Core configuration model
 
 ![Assay configuration and governed publication](../assets/diagrams/assay-configuration-relationships.svg)
-
-What this means in practice:
 
 - ASP is the physical assay anchor.
 - ASPC is a required assay-plus-subpanel-plus-environment configuration. The

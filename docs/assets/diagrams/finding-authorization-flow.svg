@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="593" viewBox="0 0 1480 593" role="img" aria-labelledby="figure-title figure-description">
+  <title id="figure-title">Sample-scoped finding mutation authorization</title>
+  <desc id="figure-description">A mutation must pass authentication, permission and sample scope checks, then finding ownership validation. Every bulk identifier is checked before the first write. Failure at any gate rejects the operation.</desc>
+  <defs>
+    <style>
+:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}
+</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-database" viewBox="0 0 24 24">
+      <path d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0" class="glyph" />
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6Z" class="glyph" />
+      <path d="m8 12 3 3 5-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <path d="M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 22v-3c0-8 18-8 18 0v3" class="glyph" />
+    </symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24">
+      <path d="M14 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM2 22v-3c0-7 16-7 16 0v3M17 3c6 0 6 8 0 8M19 15c3 1 3 4 3 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-browser" viewBox="0 0 24 24">
+      <path d="M2 3h20v17H2ZM2 8h20M5 5.5h.01M8 5.5h.01M6 12l-2 2 2 2M18 12l2 2-2 2M10 17l4-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-server" viewBox="0 0 24 24">
+      <path d="M3 2h18v6H3ZM3 10h18v6H3ZM3 18h18v4H3ZM6 5h.01M6 13h.01M10 5h8M10 13h8M6 20h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-branch" viewBox="0 0 24 24">
+      <path d="M6 4v11a4 4 0 0 0 4 4h8M6 9h8a4 4 0 0 0 4-4V3M3 3h6M15 3h6M15 16l3 3-3 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-activity" viewBox="0 0 24 24">
+      <path d="M1 12h5l4-9 4 18 4-9h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m7 12 3 3 7-7" class="glyph" />
+    </symbol>
+    <symbol id="icon-reject" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m8 8 8 8M16 8l-8 8" class="glyph" />
+    </symbol>
+    <symbol id="icon-alert" viewBox="0 0 24 24">
+      <path d="M12 2 1 22h22ZM12 8v6M12 18h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
+    </symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24">
+      <path d="M3 15v7h18v-7M12 17V2M6 8l6-6 6 6" class="glyph" />
+    </symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24">
+      <path d="M3 16v6h18v-6M12 2v15M6 11l6 6 6-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <path d="M17 9a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM15 15l7 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-dna" viewBox="0 0 24 24">
+      <path d="M6 2c0 10 12 10 12 20M18 2C18 12 6 12 6 22M7 4h10M8 8h8M8 16h8M7 20h10" class="glyph" />
+    </symbol>
+    <symbol id="icon-sample" viewBox="0 0 24 24">
+      <path d="M8 2h8M9 2v7l-5 10c-1 2 0 3 2 3h12c2 0 3-1 2-3L15 9V2M7 15h10M9 18h.01M14 19h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-microscope" viewBox="0 0 24 24">
+      <path d="m7 2 7 3-3 7-7-3ZM13 9c10 2 7 12-1 12H3M7 21v-4h8M2 14h10M11 3l2-2 4 2-2 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-pen" viewBox="0 0 24 24">
+      <path d="m3 17 13-13 4 4L7 21l-5 1ZM13 7l4 4M3 17l4 4M15 3l2-2 4 4-2 2" class="glyph" />
+    </symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <path d="M13 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0ZM12 12l10 10M17 17l3-3M20 20l3-3M6 6h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-scope" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM2 12h20M12 2c-6 6-6 14 0 20 6-6 6-14 0-20Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-queue" viewBox="0 0 24 24">
+      <path d="M2 5h16M2 11h13M2 17h10M17 13l6 4-6 4ZM4 3v4M4 9v4M4 15v4" class="glyph" />
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM12 6v6l4 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-mail" viewBox="0 0 24 24">
+      <path d="M2 4h20v16H2ZM2 4l10 9L22 4M2 20l7-8M22 20l-7-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24">
+      <path d="M2 5h7l3 3h10v13H2ZM2 8V3h7l3 3h8v2" class="glyph" />
+    </symbol>
+    <symbol id="icon-graph" viewBox="0 0 24 24">
+      <path d="M3 2v20h19M7 17v-5M12 17V6M17 17V9" class="glyph" />
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24">
+      <path d="m9 15-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M15 9l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0M8 16l8-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="34" text-anchor="start" class="figure-title">Finding mutation · authorization gates</text>
+  <text x="40" y="68" text-anchor="start" class="figure-subtitle">Access to sample A does not grant access to a finding belonging to sample B.</text>
+  <g class="connections">
+    <path d="M175 154C290 142 290 166 405 154" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-purple)" class="connection purple" />
+    <path d="M475 154C590 142 590 166 705 154" data-source="1" data-target="2" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M775 154C890 142 890 166 1005 154" data-source="2" data-target="3" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M1075 154C1190 142 1190 166 1305 154" data-source="3" data-target="4" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M140 119 L140 106.5Q140 94 152.5 94 L1168 94Q1190 94 1190 116 L1190 408Q1190 430 1212 430 L1305 430" data-source="0" data-target="5" data-optional="false" marker-end="url(#arrow-rose)" class="connection rose" />
+    <path d="M440 119 L440 106.5Q440 94 452.5 94 L1168 94Q1190 94 1190 116 L1190 408Q1190 430 1212 430 L1305 430" data-source="1" data-target="5" data-optional="false" marker-end="url(#arrow-rose)" class="connection rose" />
+    <path d="M740 119 L740 106.5Q740 94 752.5 94 L1168 94Q1190 94 1190 116 L1190 408Q1190 430 1212 430 L1305 430" data-source="2" data-target="5" data-optional="false" marker-end="url(#arrow-rose)" class="connection rose" />
+    <path d="M1040 119 L1040 106.5Q1040 94 1052.5 94 L1168 94Q1190 94 1190 116 L1190 408Q1190 430 1212 430 L1305 430" data-source="3" data-target="5" data-optional="false" marker-end="url(#arrow-rose)" class="connection rose" />
+  </g>
+  <g data-node="0" data-left="25" data-top="120" data-right="255" data-bottom="310" class="entity blue">
+    <title>1 · Authenticate the request</title>
+    <use href="#icon-user" x="111" y="125" width="58" height="58" aria-hidden="true" />
+    <circle cx="172" cy="119" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="172" y="122.5" text-anchor="middle" class="step-number">1</text>
+    <text x="140" y="210" text-anchor="middle" class="entity-title">Authenticate the request</text>
+    <text x="140" y="235" text-anchor="middle" class="entity-detail">Resolve the session and</text>
+    <text x="140" y="253" text-anchor="middle" class="entity-detail">enforce CSRF for</text>
+    <text x="140" y="271" text-anchor="middle" class="entity-detail">cookie-authenticated writes.</text>
+  </g>
+  <g data-node="1" data-left="325" data-top="120" data-right="555" data-bottom="310" class="entity purple">
+    <title>2 · Require the action permission</title>
+    <use href="#icon-key" x="411" y="125" width="58" height="58" aria-hidden="true" />
+    <circle cx="472" cy="119" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="472" y="122.5" text-anchor="middle" class="step-number">2</text>
+    <text x="440" y="210" text-anchor="middle" class="entity-title">Require the action</text>
+    <text x="440" y="229" text-anchor="middle" class="entity-title">permission</text>
+    <text x="440" y="254" text-anchor="middle" class="entity-detail">The permission must be active</text>
+    <text x="440" y="272" text-anchor="middle" class="entity-detail">and granted to the</text>
+    <text x="440" y="290" text-anchor="middle" class="entity-detail">authenticated principal.</text>
+  </g>
+  <g data-node="2" data-left="625" data-top="120" data-right="855" data-bottom="291" class="entity teal">
+    <title>3 · Authorize the sample</title>
+    <use href="#icon-scope" x="711" y="125" width="58" height="58" aria-hidden="true" />
+    <circle cx="772" cy="119" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="772" y="122.5" text-anchor="middle" class="step-number">3</text>
+    <text x="740" y="210" text-anchor="middle" class="entity-title">Authorize the sample</text>
+    <text x="740" y="235" text-anchor="middle" class="entity-detail">Resolve its canonical ID;</text>
+    <text x="740" y="253" text-anchor="middle" class="entity-detail">check assay, environment and</text>
+    <text x="740" y="271" text-anchor="middle" class="entity-detail">assay-group scope.</text>
+  </g>
+  <g data-node="3" data-left="925" data-top="120" data-right="1155" data-bottom="364" class="entity blue">
+    <title>4 · Verify every finding belongs to that sample</title>
+    <use href="#icon-shield" x="1011" y="125" width="58" height="58" aria-hidden="true" />
+    <circle cx="1072" cy="119" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="1072" y="122.5" text-anchor="middle" class="step-number">4</text>
+    <text x="1040" y="210" text-anchor="middle" class="entity-title">Verify every finding</text>
+    <text x="1040" y="229" text-anchor="middle" class="entity-title">belongs to that sample</text>
+    <text x="1040" y="254" text-anchor="middle" class="entity-detail">Finding SAMPLE_ID must equal</text>
+    <text x="1040" y="272" text-anchor="middle" class="entity-detail">the authorized sample's</text>
+    <text x="1040" y="290" text-anchor="middle" class="entity-detail">canonical ID.</text>
+    <text x="1040" y="308" text-anchor="middle" class="entity-detail">Bulk selection: validate the</text>
+    <text x="1040" y="326" text-anchor="middle" class="entity-detail">complete selection before the</text>
+    <text x="1040" y="344" text-anchor="middle" class="entity-detail">first mutation.</text>
+  </g>
+  <g data-node="4" data-left="1225" data-top="120" data-right="1455" data-bottom="364" class="entity teal">
+    <title>5 · Apply the authorized change</title>
+    <use href="#icon-check" x="1311" y="125" width="58" height="58" aria-hidden="true" />
+    <circle cx="1372" cy="119" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="1372" y="122.5" text-anchor="middle" class="step-number">5</text>
+    <text x="1340" y="210" text-anchor="middle" class="entity-title">Apply the authorized</text>
+    <text x="1340" y="229" text-anchor="middle" class="entity-title">change</text>
+    <text x="1340" y="254" text-anchor="middle" class="entity-detail">Persist the finding change;</text>
+    <text x="1340" y="272" text-anchor="middle" class="entity-detail">comments remain scoped to</text>
+    <text x="1340" y="290" text-anchor="middle" class="entity-detail">their finding owner.</text>
+    <text x="1340" y="308" text-anchor="middle" class="entity-detail">Return the operation result</text>
+    <text x="1340" y="326" text-anchor="middle" class="entity-detail">only after the mutation</text>
+    <text x="1340" y="344" text-anchor="middle" class="entity-detail">completes.</text>
+  </g>
+  <g data-node="5" data-left="1225" data-top="396" data-right="1455" data-bottom="531" class="entity rose">
+    <title>Reject</title>
+    <use href="#icon-reject" x="1311" y="401" width="58" height="58" aria-hidden="true" />
+    <text x="1340" y="486" text-anchor="middle" class="entity-title">Reject</text>
+    <text x="1340" y="511" text-anchor="middle" class="entity-detail">No mutation callback runs.</text>
+  </g>
+  <g data-edge="4" class="relationship rose">
+    <text x="1115" y="84" text-anchor="middle" class="edge-label">Any failed gate</text>
+  </g>
+  <text x="40" y="565" text-anchor="start" class="figure-note">Missing or foreign findings return not-found without disclosing another sample's clinical data.</text>
+</svg>

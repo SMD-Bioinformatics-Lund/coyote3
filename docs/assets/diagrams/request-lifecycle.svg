@@ -1,99 +1,277 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1564" viewBox="0 0 1360 1564" role="img" aria-labelledby="title desc">
-<title id="title">Coyote3 request lifecycle</title>
-<desc id="desc">A supported request passes through proxy routing, frontend API helpers, FastAPI middleware, authentication, module and permission checks, typed routes and services, repositories, MongoDB, response validation, audit, and React Query rendering.</desc>
-<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
-.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
-.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
-.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
-.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
-<rect width="1360" height="1564" rx="12" fill="#faf9fc"/>
-<text x="40" y="44" class="heading">Coyote3 request lifecycle</text>
-<text x="40" y="84" class="subtitle">A supported request passes through proxy routing, frontend API helpers, FastAPI middleware, authentication, module and permission checks,</text>
-<text x="40" y="108" class="subtitle">typed routes and services, repositories, MongoDB, response validation, audit, and React Query rendering.</text>
-<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
-<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
-<path d="M1120 340 L1120 400 L240 400 L240 480" class="edge" data-source="2" data-target="3"/>
-<path d="M400 540 L520 540" class="edge" data-source="3" data-target="4"/>
-<path d="M840 540 L960 540" class="edge" data-source="4" data-target="5"/>
-<path d="M1120 620 L1120 680 L240 680 L240 760" class="edge" data-source="5" data-target="6"/>
-<path d="M680 600 L680 760" class="edge optional" data-source="4" data-target="7"/>
-<path d="M1120 620 L1120 700 L680 700 L680 760" class="edge optional" data-source="5" data-target="7"/>
-<path d="M400 820 L460 820 L460 720 L900 720 L900 820 L960 820" class="edge" data-source="6" data-target="8"/>
-<path d="M1120 880 L1120 940 L240 940 L240 1040" class="edge" data-source="8" data-target="9"/>
-<path d="M400 1100 L520 1100" class="edge" data-source="9" data-target="10"/>
-<path d="M840 1100 L960 1100" class="edge" data-source="10" data-target="11"/>
-<path d="M680 1160 L680 1220 L240 1220 L240 1300" class="edge" data-source="10" data-target="12"/>
-<path d="M400 1360 L520 1360" class="edge" data-source="12" data-target="13"/>
-<path d="M840 1360 L960 1360" class="edge" data-source="13" data-target="14"/>
-<g class="card" data-node="0"><rect x="80" y="220" width="320" height="120" rx="10"/>
-<text x="100" y="254" class="name">1 · User action</text>
-
-</g>
-<g class="card" data-node="1"><rect x="520" y="220" width="320" height="120" rx="10"/>
-<text x="540" y="254" class="name">2 · React API helper</text>
-<text x="540" y="299" class="detail">typed payload + query key</text>
-</g>
-<g class="card" data-node="2"><rect x="960" y="220" width="320" height="120" rx="10"/>
-<text x="980" y="254" class="name">3 · Reverse proxies</text>
-<text x="980" y="299" class="detail">prefix + /api/v1 routing</text>
-</g>
-<g class="card" data-node="3"><rect x="80" y="480" width="320" height="120" rx="10"/>
-<text x="100" y="514" class="name">4 · Middleware</text>
-<text x="100" y="559" class="detail">request ID · CSRF</text>
-<text x="100" y="582" class="detail">session/bearer principal</text>
-</g>
-<g class="card" data-node="4"><rect x="520" y="480" width="320" height="120" rx="10"/>
-<text x="540" y="514" class="name">5 · Module gate</text>
-<text x="540" y="559" class="detail">feature enabled?</text>
-<text x="540" y="582" class="detail">disabled → 503</text>
-</g>
-<g class="card" data-node="5"><rect x="960" y="480" width="320" height="140" rx="10"/>
-<text x="980" y="514" class="name">6 · Access policy</text>
-<text x="980" y="559" class="detail">active DB permission</text>
-<text x="980" y="582" class="detail">role assignment + scope</text>
-<text x="980" y="605" class="detail">assay · group · environment</text>
-</g>
-<g class="card" data-node="6"><rect x="80" y="760" width="320" height="140" rx="10"/>
-<text x="100" y="794" class="name">7 · Typed route</text>
-<text x="100" y="839" class="detail">path/query/body validation</text>
-<text x="100" y="862" class="detail">dependency injection</text>
-<text x="100" y="885" class="detail">application service call</text>
-</g>
-<g class="card" data-node="7"><rect x="520" y="760" width="320" height="120" rx="10"/>
-<text x="540" y="794" class="name">Denied</text>
-<text x="540" y="839" class="detail">401 · 403 · 404</text>
-<text x="540" y="862" class="detail">422 · 503</text>
-</g>
-<g class="card" data-node="8"><rect x="960" y="760" width="320" height="120" rx="10"/>
-<text x="980" y="794" class="name">8 · Domain workflow</text>
-<text x="980" y="839" class="detail">query, mutation, reporting</text>
-</g>
-<g class="card" data-node="9"><rect x="80" y="1040" width="320" height="120" rx="10"/>
-<text x="100" y="1074" class="name">9 · Repository</text>
-<text x="100" y="1119" class="detail">collection-specific access</text>
-</g>
-<g class="card" data-node="10"><rect x="520" y="1040" width="320" height="120" rx="10"/>
-<text x="540" y="1074" class="name">10 · MongoDB</text>
-<text x="540" y="1119" class="detail">validated documents</text>
-</g>
-<g class="card" data-node="11"><rect x="960" y="1040" width="320" height="120" rx="10"/>
-<text x="980" y="1074" class="name">Audit + cache effects</text>
-<text x="980" y="1119" class="detail">critical event · invalidation</text>
-</g>
-<g class="card" data-node="12"><rect x="80" y="1300" width="320" height="120" rx="10"/>
-<text x="100" y="1334" class="name">11 · Response-model</text>
-<text x="100" y="1359" class="name">serialization</text>
-
-</g>
-<g class="card" data-node="13"><rect x="520" y="1300" width="320" height="120" rx="10"/>
-<text x="540" y="1334" class="name">12 · React Query cache</text>
-<text x="540" y="1359" class="name">update</text>
-
-</g>
-<g class="card" data-node="14"><rect x="960" y="1300" width="320" height="120" rx="10"/>
-<text x="980" y="1334" class="name">13 · UI renders state</text>
-
-</g>
-
-<text x="40" y="1524" class="note">Request boundaries: client and edge; FastAPI policy; application and data; response and interface update.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1322" viewBox="0 0 1360 1322" role="img" aria-labelledby="figure-title figure-description">
+  <title id="figure-title">Coyote3 request lifecycle</title>
+  <desc id="figure-description">A supported request passes through proxy routing, frontend API helpers, FastAPI middleware, authentication, module and permission checks, typed routes and services, repositories, MongoDB, response validation, audit, and React Query rendering.</desc>
+  <defs>
+    <style>
+:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}
+</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-database" viewBox="0 0 24 24">
+      <path d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0" class="glyph" />
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6Z" class="glyph" />
+      <path d="m8 12 3 3 5-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <path d="M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 22v-3c0-8 18-8 18 0v3" class="glyph" />
+    </symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24">
+      <path d="M14 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM2 22v-3c0-7 16-7 16 0v3M17 3c6 0 6 8 0 8M19 15c3 1 3 4 3 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-browser" viewBox="0 0 24 24">
+      <path d="M2 3h20v17H2ZM2 8h20M5 5.5h.01M8 5.5h.01M6 12l-2 2 2 2M18 12l2 2-2 2M10 17l4-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-server" viewBox="0 0 24 24">
+      <path d="M3 2h18v6H3ZM3 10h18v6H3ZM3 18h18v4H3ZM6 5h.01M6 13h.01M10 5h8M10 13h8M6 20h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-branch" viewBox="0 0 24 24">
+      <path d="M6 4v11a4 4 0 0 0 4 4h8M6 9h8a4 4 0 0 0 4-4V3M3 3h6M15 3h6M15 16l3 3-3 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-activity" viewBox="0 0 24 24">
+      <path d="M1 12h5l4-9 4 18 4-9h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m7 12 3 3 7-7" class="glyph" />
+    </symbol>
+    <symbol id="icon-reject" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m8 8 8 8M16 8l-8 8" class="glyph" />
+    </symbol>
+    <symbol id="icon-alert" viewBox="0 0 24 24">
+      <path d="M12 2 1 22h22ZM12 8v6M12 18h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
+    </symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24">
+      <path d="M3 15v7h18v-7M12 17V2M6 8l6-6 6 6" class="glyph" />
+    </symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24">
+      <path d="M3 16v6h18v-6M12 2v15M6 11l6 6 6-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <path d="M17 9a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM15 15l7 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-dna" viewBox="0 0 24 24">
+      <path d="M6 2c0 10 12 10 12 20M18 2C18 12 6 12 6 22M7 4h10M8 8h8M8 16h8M7 20h10" class="glyph" />
+    </symbol>
+    <symbol id="icon-sample" viewBox="0 0 24 24">
+      <path d="M8 2h8M9 2v7l-5 10c-1 2 0 3 2 3h12c2 0 3-1 2-3L15 9V2M7 15h10M9 18h.01M14 19h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-microscope" viewBox="0 0 24 24">
+      <path d="m7 2 7 3-3 7-7-3ZM13 9c10 2 7 12-1 12H3M7 21v-4h8M2 14h10M11 3l2-2 4 2-2 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-pen" viewBox="0 0 24 24">
+      <path d="m3 17 13-13 4 4L7 21l-5 1ZM13 7l4 4M3 17l4 4M15 3l2-2 4 4-2 2" class="glyph" />
+    </symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <path d="M13 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0ZM12 12l10 10M17 17l3-3M20 20l3-3M6 6h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-scope" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM2 12h20M12 2c-6 6-6 14 0 20 6-6 6-14 0-20Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-queue" viewBox="0 0 24 24">
+      <path d="M2 5h16M2 11h13M2 17h10M17 13l6 4-6 4ZM4 3v4M4 9v4M4 15v4" class="glyph" />
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM12 6v6l4 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-mail" viewBox="0 0 24 24">
+      <path d="M2 4h20v16H2ZM2 4l10 9L22 4M2 20l7-8M22 20l-7-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24">
+      <path d="M2 5h7l3 3h10v13H2ZM2 8V3h7l3 3h8v2" class="glyph" />
+    </symbol>
+    <symbol id="icon-graph" viewBox="0 0 24 24">
+      <path d="M3 2v20h19M7 17v-5M12 17V6M17 17V9" class="glyph" />
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24">
+      <path d="m9 15-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M15 9l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0M8 16l8-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="34" text-anchor="start" class="figure-title">Coyote3 request lifecycle</text>
+  <text x="40" y="68" text-anchor="start" class="figure-subtitle">A supported request passes through proxy routing, frontend API helpers, FastAPI middleware, authentication, module and permission checks, typed routes and services,</text>
+  <text x="40" y="87" text-anchor="start" class="figure-subtitle">repositories, MongoDB, response validation, audit, and React Query rendering.</text>
+  <g class="connections">
+    <path d="M275 173C460 161 460 185 645 173" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 173C900 161 900 185 1085 173" data-source="1" data-target="2" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M1155 173 L1288 173Q1310 173 1310 195 L1310 316Q1310 338 1288 338 L249.5 338Q240 338 240 347.5 L240 357" data-source="2" data-target="3" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M275 392C460 380 460 404 645 392" data-source="3" data-target="4" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 392C900 380 900 404 1085 392" data-source="4" data-target="5" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M1155 392 L1288 392Q1310 392 1310 414 L1310 627Q1310 649 1288 649 L249.5 649Q240 649 240 658.5 L240 668" data-source="5" data-target="6" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 392 L848 392Q870 392 870 414 L870 599Q870 621 848 621 L702 621Q680 621 680 643 L680 668" data-source="4" data-target="7" data-optional="true" marker-end="url(#arrow-blue)" class="connection blue conditional" />
+    <path d="M1155 392 L1288 392Q1310 392 1310 414 L1310 571Q1310 593 1288 593 L702 593Q680 593 680 615 L680 668" data-source="5" data-target="7" data-optional="true" marker-end="url(#arrow-blue)" class="connection blue conditional" />
+    <path d="M240 669 L240 587Q240 565 262 565 L1098 565Q1120 565 1120 587 L1120 669" data-source="6" data-target="8" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M1155 703 L1288 703Q1310 703 1310 725 L1310 882Q1310 904 1288 904 L249.5 904Q240 904 240 913.5 L240 923" data-source="8" data-target="9" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M275 958C460 946 460 970 645 958" data-source="9" data-target="10" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M715 958C900 946 900 970 1085 958" data-source="10" data-target="11" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 958 L848 958Q870 958 870 980 L870 1101Q870 1123 848 1123 L249.5 1123Q240 1123 240 1132.5 L240 1142" data-source="10" data-target="12" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M275 1177C460 1165 460 1189 645 1177" data-source="12" data-target="13" data-optional="false" marker-end="url(#arrow-purple)" class="connection purple" />
+    <path d="M715 1177C900 1165 900 1189 1085 1177" data-source="13" data-target="14" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+  </g>
+  <g data-node="0" data-left="80" data-top="139" data-right="400" data-bottom="256" class="entity blue">
+    <title>1 · User action</title>
+    <use href="#icon-user" x="211" y="144" width="58" height="58" aria-hidden="true" />
+    <circle cx="272.0" cy="138" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="272.0" y="141.5" text-anchor="middle" class="step-number">1</text>
+    <text x="240" y="229" text-anchor="middle" class="entity-title">User action</text>
+  </g>
+  <g data-node="1" data-left="520" data-top="139" data-right="840" data-bottom="274" class="entity blue">
+    <title>2 · React API helper</title>
+    <use href="#icon-browser" x="651" y="144" width="58" height="58" aria-hidden="true" />
+    <circle cx="712.0" cy="138" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="712.0" y="141.5" text-anchor="middle" class="step-number">2</text>
+    <text x="680" y="229" text-anchor="middle" class="entity-title">React API helper</text>
+    <text x="680" y="254" text-anchor="middle" class="entity-detail">typed payload + query key</text>
+  </g>
+  <g data-node="2" data-left="960" data-top="139" data-right="1280" data-bottom="274" class="entity blue">
+    <title>3 · Reverse proxies</title>
+    <use href="#icon-layers" x="1091" y="144" width="58" height="58" aria-hidden="true" />
+    <circle cx="1152.0" cy="138" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="1152.0" y="141.5" text-anchor="middle" class="step-number">3</text>
+    <text x="1120" y="229" text-anchor="middle" class="entity-title">Reverse proxies</text>
+    <text x="1120" y="254" text-anchor="middle" class="entity-detail">prefix + /api/v1 routing</text>
+  </g>
+  <g data-node="3" data-left="80" data-top="358" data-right="400" data-bottom="511" class="entity blue">
+    <title>4 · Middleware</title>
+    <use href="#icon-layers" x="211" y="363" width="58" height="58" aria-hidden="true" />
+    <circle cx="272.0" cy="357" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="272.0" y="360.5" text-anchor="middle" class="step-number">4</text>
+    <text x="240" y="448" text-anchor="middle" class="entity-title">Middleware</text>
+    <text x="240" y="473" text-anchor="middle" class="entity-detail">request ID · CSRF</text>
+    <text x="240" y="491" text-anchor="middle" class="entity-detail">session/bearer principal</text>
+  </g>
+  <g data-node="4" data-left="520" data-top="358" data-right="840" data-bottom="511" class="entity blue">
+    <title>5 · Module gate</title>
+    <use href="#icon-shield" x="651" y="363" width="58" height="58" aria-hidden="true" />
+    <circle cx="712.0" cy="357" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="712.0" y="360.5" text-anchor="middle" class="step-number">5</text>
+    <text x="680" y="448" text-anchor="middle" class="entity-title">Module gate</text>
+    <text x="680" y="473" text-anchor="middle" class="entity-detail">feature enabled?</text>
+    <text x="680" y="491" text-anchor="middle" class="entity-detail">disabled → 503</text>
+  </g>
+  <g data-node="5" data-left="960" data-top="358" data-right="1280" data-bottom="529" class="entity blue">
+    <title>6 · Access policy</title>
+    <use href="#icon-shield" x="1091" y="363" width="58" height="58" aria-hidden="true" />
+    <circle cx="1152.0" cy="357" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="1152.0" y="360.5" text-anchor="middle" class="step-number">6</text>
+    <text x="1120" y="448" text-anchor="middle" class="entity-title">Access policy</text>
+    <text x="1120" y="473" text-anchor="middle" class="entity-detail">active DB permission</text>
+    <text x="1120" y="491" text-anchor="middle" class="entity-detail">role assignment + scope</text>
+    <text x="1120" y="509" text-anchor="middle" class="entity-detail">assay · group · environment</text>
+  </g>
+  <g data-node="6" data-left="80" data-top="669" data-right="400" data-bottom="840" class="entity blue">
+    <title>7 · Typed route</title>
+    <use href="#icon-layers" x="211" y="674" width="58" height="58" aria-hidden="true" />
+    <circle cx="272.0" cy="668" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="272.0" y="671.5" text-anchor="middle" class="step-number">7</text>
+    <text x="240" y="759" text-anchor="middle" class="entity-title">Typed route</text>
+    <text x="240" y="784" text-anchor="middle" class="entity-detail">path/query/body validation</text>
+    <text x="240" y="802" text-anchor="middle" class="entity-detail">dependency injection</text>
+    <text x="240" y="820" text-anchor="middle" class="entity-detail">application service call</text>
+  </g>
+  <g data-node="7" data-left="520" data-top="669" data-right="840" data-bottom="822" class="entity blue">
+    <title>Denied</title>
+    <use href="#icon-layers" x="651" y="674" width="58" height="58" aria-hidden="true" />
+    <text x="680" y="759" text-anchor="middle" class="entity-title">Denied</text>
+    <text x="680" y="784" text-anchor="middle" class="entity-detail">401 · 403 · 404</text>
+    <text x="680" y="802" text-anchor="middle" class="entity-detail">422 · 503</text>
+  </g>
+  <g data-node="8" data-left="960" data-top="669" data-right="1280" data-bottom="804" class="entity blue">
+    <title>8 · Domain workflow</title>
+    <use href="#icon-layers" x="1091" y="674" width="58" height="58" aria-hidden="true" />
+    <circle cx="1152.0" cy="668" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="1152.0" y="671.5" text-anchor="middle" class="step-number">8</text>
+    <text x="1120" y="759" text-anchor="middle" class="entity-title">Domain workflow</text>
+    <text x="1120" y="784" text-anchor="middle" class="entity-detail">query, mutation, reporting</text>
+  </g>
+  <g data-node="9" data-left="80" data-top="924" data-right="400" data-bottom="1059" class="entity blue">
+    <title>9 · Repository</title>
+    <use href="#icon-layers" x="211" y="929" width="58" height="58" aria-hidden="true" />
+    <circle cx="272.0" cy="923" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="272.0" y="926.5" text-anchor="middle" class="step-number">9</text>
+    <text x="240" y="1014" text-anchor="middle" class="entity-title">Repository</text>
+    <text x="240" y="1039" text-anchor="middle" class="entity-detail">collection-specific access</text>
+  </g>
+  <g data-node="10" data-left="520" data-top="924" data-right="840" data-bottom="1059" class="entity teal">
+    <title>10 · MongoDB</title>
+    <use href="#icon-database" x="651" y="929" width="58" height="58" aria-hidden="true" />
+    <circle cx="712.0" cy="923" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="712.0" y="926.5" text-anchor="middle" class="step-number">10</text>
+    <text x="680" y="1014" text-anchor="middle" class="entity-title">MongoDB</text>
+    <text x="680" y="1039" text-anchor="middle" class="entity-detail">validated documents</text>
+  </g>
+  <g data-node="11" data-left="960" data-top="924" data-right="1280" data-bottom="1059" class="entity blue">
+    <title>Audit + cache effects</title>
+    <use href="#icon-layers" x="1091" y="929" width="58" height="58" aria-hidden="true" />
+    <text x="1120" y="1014" text-anchor="middle" class="entity-title">Audit + cache effects</text>
+    <text x="1120" y="1039" text-anchor="middle" class="entity-detail">critical event · invalidation</text>
+  </g>
+  <g data-node="12" data-left="80" data-top="1143" data-right="400" data-bottom="1260" class="entity blue">
+    <title>11 · Response-model serialization</title>
+    <use href="#icon-layers" x="211" y="1148" width="58" height="58" aria-hidden="true" />
+    <circle cx="272.0" cy="1142" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="272.0" y="1145.5" text-anchor="middle" class="step-number">11</text>
+    <text x="240" y="1233" text-anchor="middle" class="entity-title">Response-model serialization</text>
+  </g>
+  <g data-node="13" data-left="520" data-top="1143" data-right="840" data-bottom="1260" class="entity purple">
+    <title>12 · React Query cache update</title>
+    <use href="#icon-branch" x="651" y="1148" width="58" height="58" aria-hidden="true" />
+    <circle cx="712.0" cy="1142" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="712.0" y="1145.5" text-anchor="middle" class="step-number">12</text>
+    <text x="680" y="1233" text-anchor="middle" class="entity-title">React Query cache update</text>
+  </g>
+  <g data-node="14" data-left="960" data-top="1143" data-right="1280" data-bottom="1260" class="entity blue">
+    <title>13 · UI renders state</title>
+    <use href="#icon-layers" x="1091" y="1148" width="58" height="58" aria-hidden="true" />
+    <circle cx="1152.0" cy="1142" r="8" fill="currentColor" aria-hidden="true" />
+    <text x="1152.0" y="1145.5" text-anchor="middle" class="step-number">13</text>
+    <text x="1120" y="1233" text-anchor="middle" class="entity-title">UI renders state</text>
+  </g>
+  <text x="40" y="1294" text-anchor="start" class="figure-note">Request boundaries: client and edge; FastAPI policy; application and data; response and interface update.</text>
 </svg>

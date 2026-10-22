@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="813" viewBox="0 0 1480 813" role="img" aria-labelledby="figure-title figure-description">
+  <title id="figure-title">Coyote3 application architecture</title>
+  <desc id="figure-description">Browser requests pass through HTTP authentication and scope checks to application workflows, domain rules and infrastructure repositories. The API and installation commands share seed loaders. Application, identity and knowledgebase data use separate database connections.</desc>
+  <defs>
+    <style>
+:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}
+</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-database" viewBox="0 0 24 24">
+      <path d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0" class="glyph" />
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6Z" class="glyph" />
+      <path d="m8 12 3 3 5-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <path d="M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 22v-3c0-8 18-8 18 0v3" class="glyph" />
+    </symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24">
+      <path d="M14 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM2 22v-3c0-7 16-7 16 0v3M17 3c6 0 6 8 0 8M19 15c3 1 3 4 3 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-browser" viewBox="0 0 24 24">
+      <path d="M2 3h20v17H2ZM2 8h20M5 5.5h.01M8 5.5h.01M6 12l-2 2 2 2M18 12l2 2-2 2M10 17l4-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-server" viewBox="0 0 24 24">
+      <path d="M3 2h18v6H3ZM3 10h18v6H3ZM3 18h18v4H3ZM6 5h.01M6 13h.01M10 5h8M10 13h8M6 20h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-branch" viewBox="0 0 24 24">
+      <path d="M6 4v11a4 4 0 0 0 4 4h8M6 9h8a4 4 0 0 0 4-4V3M3 3h6M15 3h6M15 16l3 3-3 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-activity" viewBox="0 0 24 24">
+      <path d="M1 12h5l4-9 4 18 4-9h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m7 12 3 3 7-7" class="glyph" />
+    </symbol>
+    <symbol id="icon-reject" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m8 8 8 8M16 8l-8 8" class="glyph" />
+    </symbol>
+    <symbol id="icon-alert" viewBox="0 0 24 24">
+      <path d="M12 2 1 22h22ZM12 8v6M12 18h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
+    </symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24">
+      <path d="M3 15v7h18v-7M12 17V2M6 8l6-6 6 6" class="glyph" />
+    </symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24">
+      <path d="M3 16v6h18v-6M12 2v15M6 11l6 6 6-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <path d="M17 9a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM15 15l7 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-dna" viewBox="0 0 24 24">
+      <path d="M6 2c0 10 12 10 12 20M18 2C18 12 6 12 6 22M7 4h10M8 8h8M8 16h8M7 20h10" class="glyph" />
+    </symbol>
+    <symbol id="icon-sample" viewBox="0 0 24 24">
+      <path d="M8 2h8M9 2v7l-5 10c-1 2 0 3 2 3h12c2 0 3-1 2-3L15 9V2M7 15h10M9 18h.01M14 19h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-microscope" viewBox="0 0 24 24">
+      <path d="m7 2 7 3-3 7-7-3ZM13 9c10 2 7 12-1 12H3M7 21v-4h8M2 14h10M11 3l2-2 4 2-2 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-pen" viewBox="0 0 24 24">
+      <path d="m3 17 13-13 4 4L7 21l-5 1ZM13 7l4 4M3 17l4 4M15 3l2-2 4 4-2 2" class="glyph" />
+    </symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <path d="M13 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0ZM12 12l10 10M17 17l3-3M20 20l3-3M6 6h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-scope" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM2 12h20M12 2c-6 6-6 14 0 20 6-6 6-14 0-20Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-queue" viewBox="0 0 24 24">
+      <path d="M2 5h16M2 11h13M2 17h10M17 13l6 4-6 4ZM4 3v4M4 9v4M4 15v4" class="glyph" />
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM12 6v6l4 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-mail" viewBox="0 0 24 24">
+      <path d="M2 4h20v16H2ZM2 4l10 9L22 4M2 20l7-8M22 20l-7-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24">
+      <path d="M2 5h7l3 3h10v13H2ZM2 8V3h7l3 3h8v2" class="glyph" />
+    </symbol>
+    <symbol id="icon-graph" viewBox="0 0 24 24">
+      <path d="M3 2v20h19M7 17v-5M12 17V6M17 17V9" class="glyph" />
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24">
+      <path d="m9 15-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M15 9l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0M8 16l8-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="34" text-anchor="start" class="figure-title">Coyote3 · request and data flow</text>
+  <text x="40" y="68" text-anchor="start" class="figure-subtitle">Boundaries separate presentation, authorization, clinical decisions and persistence.</text>
+  <g class="connections">
+    <path d="M175 375C290 363 290 387 405 375" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M475 375C590 363 590 387 705 375" data-source="1" data-target="2" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M775 375 L868 375Q890 375 890 353 L890 176Q890 154 912 154 L1005 154" data-source="2" data-target="3" data-optional="false" marker-end="url(#arrow-purple)" class="connection purple" />
+    <path d="M775 375C890 363 890 387 1005 375" data-source="2" data-target="4" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M1075 375 L1168 375Q1190 375 1190 353 L1190 176Q1190 154 1212 154 L1305 154" data-source="4" data-target="5" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M1075 375C1190 363 1190 387 1305 375" data-source="4" data-target="6" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M1075 375 L1168 375Q1190 375 1190 397 L1190 592Q1190 614 1212 614 L1305 614" data-source="4" data-target="7" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M175 154C290 142 290 166 405 154" data-source="8" data-target="9" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M705 375 L612 375Q590 375 590 353 L590 176Q590 154 568 154 L475 154" data-source="2" data-target="9" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+  </g>
+  <g data-node="0" data-left="25" data-top="341" data-right="255" data-bottom="531" class="entity blue">
+    <title>Frontend · React / TypeScript</title>
+    <use href="#icon-browser" x="111" y="346" width="58" height="58" aria-hidden="true" />
+    <text x="140" y="431" text-anchor="middle" class="entity-title">Frontend · React /</text>
+    <text x="140" y="450" text-anchor="middle" class="entity-title">TypeScript</text>
+    <text x="140" y="475" text-anchor="middle" class="entity-detail">Pages → shared components →</text>
+    <text x="140" y="493" text-anchor="middle" class="entity-detail">typed API client and query</text>
+    <text x="140" y="511" text-anchor="middle" class="entity-detail">cache</text>
+  </g>
+  <g data-node="1" data-left="325" data-top="341" data-right="555" data-bottom="548" class="entity blue">
+    <title>HTTP boundary · FastAPI</title>
+    <use href="#icon-browser" x="411" y="346" width="58" height="58" aria-hidden="true" />
+    <text x="440" y="431" text-anchor="middle" class="entity-title">HTTP boundary · FastAPI</text>
+    <text x="440" y="456" text-anchor="middle" class="entity-detail">Session / CSRF or dedicated</text>
+    <text x="440" y="474" text-anchor="middle" class="entity-detail">ingest authentication</text>
+    <text x="440" y="492" text-anchor="middle" class="entity-detail">Active permission catalog →</text>
+    <text x="440" y="510" text-anchor="middle" class="entity-detail">role grants → assay and</text>
+    <text x="440" y="528" text-anchor="middle" class="entity-detail">environment scope</text>
+  </g>
+  <g data-node="2" data-left="625" data-top="341" data-right="855" data-bottom="512" class="entity blue">
+    <title>Application workflows</title>
+    <use href="#icon-processor" x="711" y="346" width="58" height="58" aria-hidden="true" />
+    <text x="740" y="431" text-anchor="middle" class="entity-title">Application workflows</text>
+    <text x="740" y="456" text-anchor="middle" class="entity-detail">Ingestion · finding review ·</text>
+    <text x="740" y="474" text-anchor="middle" class="entity-detail">classification · reporting ·</text>
+    <text x="740" y="492" text-anchor="middle" class="entity-detail">administration</text>
+  </g>
+  <g data-node="3" data-left="925" data-top="120" data-right="1155" data-bottom="309" class="entity purple">
+    <title>Domain and contracts</title>
+    <use href="#icon-dna" x="1011" y="125" width="58" height="58" aria-hidden="true" />
+    <text x="1040" y="210" text-anchor="middle" class="entity-title">Domain and contracts</text>
+    <text x="1040" y="235" text-anchor="middle" class="entity-detail">Clinical rules, identity and</text>
+    <text x="1040" y="253" text-anchor="middle" class="entity-detail">filter semantics</text>
+    <text x="1040" y="271" text-anchor="middle" class="entity-detail">Validated transport and</text>
+    <text x="1040" y="289" text-anchor="middle" class="entity-detail">collection documents</text>
+  </g>
+  <g data-node="4" data-left="925" data-top="341" data-right="1155" data-bottom="512" class="entity teal">
+    <title>Infrastructure</title>
+    <use href="#icon-server" x="1011" y="346" width="58" height="58" aria-hidden="true" />
+    <text x="1040" y="431" text-anchor="middle" class="entity-title">Infrastructure</text>
+    <text x="1040" y="456" text-anchor="middle" class="entity-detail">MongoDB repositories</text>
+    <text x="1040" y="474" text-anchor="middle" class="entity-detail">Transactions and durable</text>
+    <text x="1040" y="492" text-anchor="middle" class="entity-detail">audit outbox</text>
+  </g>
+  <g data-node="5" data-left="1225" data-top="120" data-right="1455" data-bottom="273" class="entity teal">
+    <title>Application database</title>
+    <use href="#icon-database" x="1311" y="125" width="58" height="58" aria-hidden="true" />
+    <text x="1340" y="210" text-anchor="middle" class="entity-title">Application database</text>
+    <text x="1340" y="235" text-anchor="middle" class="entity-detail">Samples, findings, reports</text>
+    <text x="1340" y="253" text-anchor="middle" class="entity-detail">and rules</text>
+  </g>
+  <g data-node="6" data-left="1225" data-top="341" data-right="1455" data-bottom="513" class="entity teal">
+    <title>Identity / security database</title>
+    <use href="#icon-database" x="1311" y="346" width="58" height="58" aria-hidden="true" />
+    <text x="1340" y="431" text-anchor="middle" class="entity-title">Identity / security</text>
+    <text x="1340" y="450" text-anchor="middle" class="entity-title">database</text>
+    <text x="1340" y="475" text-anchor="middle" class="entity-detail">Accounts, roles, sessions and</text>
+    <text x="1340" y="493" text-anchor="middle" class="entity-detail">audit</text>
+  </g>
+  <g data-node="7" data-left="1225" data-top="580" data-right="1455" data-bottom="733" class="entity teal">
+    <title>Knowledgebase database</title>
+    <use href="#icon-database" x="1311" y="585" width="58" height="58" aria-hidden="true" />
+    <text x="1340" y="670" text-anchor="middle" class="entity-title">Knowledgebase database</text>
+    <text x="1340" y="695" text-anchor="middle" class="entity-detail">Reference releases and</text>
+    <text x="1340" y="713" text-anchor="middle" class="entity-detail">annotations</text>
+  </g>
+  <g data-node="8" data-left="25" data-top="120" data-right="255" data-bottom="309" class="entity blue">
+    <title>Installation commands</title>
+    <use href="#icon-upload" x="111" y="125" width="58" height="58" aria-hidden="true" />
+    <text x="140" y="210" text-anchor="middle" class="entity-title">Installation commands</text>
+    <text x="140" y="235" text-anchor="middle" class="entity-detail">Initial bootstrap /</text>
+    <text x="140" y="253" text-anchor="middle" class="entity-detail">maintenance</text>
+    <text x="140" y="271" text-anchor="middle" class="entity-detail">CLI orchestration stays</text>
+    <text x="140" y="289" text-anchor="middle" class="entity-detail">outside the API</text>
+  </g>
+  <g data-node="9" data-left="325" data-top="120" data-right="555" data-bottom="291" class="entity teal">
+    <title>Shared seed loaders</title>
+    <use href="#icon-folder" x="411" y="125" width="58" height="58" aria-hidden="true" />
+    <text x="440" y="210" text-anchor="middle" class="entity-title">Shared seed loaders</text>
+    <text x="440" y="235" text-anchor="middle" class="entity-detail">api/infra/seed</text>
+    <text x="440" y="253" text-anchor="middle" class="entity-detail">Catalogs, query rules and</text>
+    <text x="440" y="271" text-anchor="middle" class="entity-detail">diagram assets</text>
+  </g>
+  <text x="40" y="767" text-anchor="start" class="figure-note">Arrows show request or dependency direction. Each database uses its configured connection.</text>
+  <text x="40" y="785" text-anchor="start" class="figure-note">A transaction must never share a session between independent MongoDB clients.</text>
+</svg>

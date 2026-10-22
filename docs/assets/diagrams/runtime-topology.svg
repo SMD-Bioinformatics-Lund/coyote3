@@ -1,108 +1,254 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1120" viewBox="0 0 1360 1120" role="img" aria-labelledby="title desc">
-<title id="title">Coyote3 runtime and service boundaries</title>
-<desc id="desc">The proxy exposes one application origin. Database URIs and database names are configured independently. Logical databases may share a MongoDB deployment; they retain separate namespaces and configuration.</desc>
-<defs><style>text{font-family:Arial,Helvetica,sans-serif;fill:#302b38}
-.heading{font-size:26px;font-weight:700}.subtitle,.note{font-size:16px;fill:#625a6b}
-.card rect{fill:#fff;stroke:#cfc6da;stroke-width:1.5}.name{font-size:19px;font-weight:700;fill:#52366d}
-.detail{font-size:16px}.edge{fill:none;stroke:#78638d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;marker-end:url(#arrow)}
-.optional{stroke-dasharray:6 5}.edge-label rect{fill:#faf9fc;stroke:#e7e1ec}.label{font-size:14px;fill:#52366d}</style><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#78638d"/></marker></defs>
-<rect width="1360" height="1120" rx="12" fill="#faf9fc"/>
-<text x="40" y="44" class="heading">Coyote3 runtime and service boundaries</text>
-<text x="40" y="84" class="subtitle">The proxy exposes one application origin. Database URIs and database names are configured independently. Logical databases may share a</text>
-<text x="40" y="108" class="subtitle">MongoDB deployment; they retain separate namespaces and configuration.</text>
-<path d="M400 280 L520 280" class="edge" data-source="0" data-target="1"/>
-<path d="M840 280 L960 280" class="edge" data-source="1" data-target="2"/>
-<path d="M680 360 L680 500" class="edge" data-source="1" data-target="4"/>
-<path d="M840 580 L900 580 L900 600 L960 600" class="edge" data-source="4" data-target="5"/>
-<path d="M240 640 L240 860" class="edge" data-source="3" data-target="6"/>
-<path d="M400 920 L520 920" class="edge" data-source="6" data-target="7"/>
-<path d="M680 680 L680 860" class="edge" data-source="4" data-target="7"/>
-<path d="M840 920 L960 920" class="edge optional" data-source="7" data-target="8"/>
-<path d="M680 860 L680 800 L1120 800 L1120 720" class="edge" data-source="7" data-target="5"/>
-<g class="card" data-node="0"><rect x="80" y="220" width="320" height="140" rx="10"/>
-<text x="100" y="254" class="name">Browser / API client</text>
-<text x="100" y="299" class="detail">Application UI or pipeline client</text>
-<text x="100" y="322" class="detail">Deployment prefix: SCRIPT_NAME</text>
-<text x="100" y="345" class="detail">HTTPS through the site ingress</text>
-</g>
-<g class="card" data-node="1"><rect x="520" y="220" width="320" height="140" rx="10"/>
-<text x="540" y="254" class="name">Reverse proxy</text>
-<text x="540" y="299" class="detail">Coyote3 Nginx routing</text>
-<text x="540" y="322" class="detail">UI · /api/v1 · /docs-site</text>
-<text x="540" y="345" class="detail">One published application port</text>
-</g>
-<g class="card" data-node="2"><rect x="960" y="220" width="320" height="140" rx="10"/>
-<text x="980" y="254" class="name">Frontend + documentation</text>
-<text x="980" y="299" class="detail">React application</text>
-<text x="980" y="322" class="detail">MkDocs static documentation</text>
-<text x="980" y="345" class="detail">Development frontend uses Vite</text>
-</g>
-<g class="card" data-node="3"><rect x="80" y="500" width="320" height="140" rx="10"/>
-<text x="100" y="534" class="name">Celery beat</text>
-<text x="100" y="579" class="detail">Scheduled ingest scans</text>
-<text x="100" y="602" class="detail">Maintenance and refresh tasks</text>
-<text x="100" y="625" class="detail">Dispatches work through Redis</text>
-</g>
-<g class="card" data-node="4"><rect x="520" y="500" width="320" height="180" rx="10"/>
-<text x="540" y="534" class="name">FastAPI application</text>
-<text x="540" y="579" class="detail">Routes → services → repositories</text>
-<text x="540" y="602" class="detail">Contracts, authorization,</text>
-<text x="540" y="625" class="detail">reporting</text>
-<text x="540" y="648" class="detail">Session state stored in MongoDB</text>
-</g>
-<g class="card" data-node="5"><rect x="960" y="500" width="320" height="220" rx="10"/>
-<text x="980" y="534" class="name">Logical MongoDB services</text>
-<text x="980" y="579" class="detail">Primary · clinical and</text>
-<text x="980" y="602" class="detail">configuration</text>
-<text x="980" y="625" class="detail">Identity · accounts, sessions,</text>
-<text x="980" y="648" class="detail">audit</text>
-<text x="980" y="671" class="detail">Knowledgebase · references /</text>
-<text x="980" y="694" class="detail">BAM</text>
-</g>
-<g class="card" data-node="6"><rect x="80" y="860" width="320" height="140" rx="10"/>
-<text x="100" y="894" class="name">Redis</text>
-<text x="100" y="939" class="detail">Task broker and result backend</text>
-<text x="100" y="962" class="detail">Caches and request quotas</text>
-<text x="100" y="985" class="detail">Not the clinical source of truth</text>
-</g>
-<g class="card" data-node="7"><rect x="520" y="860" width="320" height="140" rx="10"/>
-<text x="540" y="894" class="name">Celery workers</text>
-<text x="540" y="939" class="detail">Ingestion and background jobs</text>
-<text x="540" y="962" class="detail">MongoDB transactions</text>
-<text x="540" y="985" class="detail">Mounted input / artifact storage</text>
-</g>
-<g class="card" data-node="8"><rect x="960" y="860" width="320" height="140" rx="10"/>
-<text x="980" y="894" class="name">Configured integrations</text>
-<text x="980" y="939" class="detail">LDAP · SMTP · BAM service</text>
-<text x="980" y="962" class="detail">OncoKB / ClinPGx endpoints</text>
-<text x="980" y="985" class="detail">Shared files and monitoring</text>
-</g>
-<g class="edge-label"><rect x="424" y="266" width="71" height="28" rx="5"/>
-<text x="432" y="284" class="label">request</text>
-</g>
-<g class="edge-label"><rect x="868" y="266" width="64" height="28" rx="5"/>
-<text x="876" y="284" class="label">serves</text>
-</g>
-<g class="edge-label"><rect x="634" y="416" width="91" height="28" rx="5"/>
-<text x="642" y="434" class="label">API routes</text>
-</g>
-<g class="edge-label"><rect x="850" y="566" width="76" height="28" rx="5"/>
-<text x="858" y="584" class="label">persists</text>
-</g>
-<g class="edge-label"><rect x="194" y="736" width="91" height="28" rx="5"/>
-<text x="202" y="754" class="label">dispatches</text>
-</g>
-<g class="edge-label"><rect x="424" y="906" width="72" height="28" rx="5"/>
-<text x="432" y="924" class="label">delivers</text>
-</g>
-<g class="edge-label"><rect x="615" y="756" width="129" height="28" rx="5"/>
-<text x="623" y="774" class="label">queues via Redis</text>
-</g>
-<g class="edge-label"><rect x="876" y="906" width="48" height="28" rx="5"/>
-<text x="884" y="924" class="label">uses</text>
-</g>
-<g class="edge-label"><rect x="822" y="786" width="155" height="28" rx="5"/>
-<text x="830" y="804" class="label">worker persistence</text>
-</g>
-
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="974" viewBox="0 0 1360 974" role="img" aria-labelledby="figure-title figure-description">
+  <title id="figure-title">Coyote3 runtime and service boundaries</title>
+  <desc id="figure-description">The proxy exposes one application origin. Database URIs and database names are configured independently. Logical databases may share a MongoDB deployment; they retain separate namespaces and configuration.</desc>
+  <defs>
+    <style>
+:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}
+</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-database" viewBox="0 0 24 24">
+      <path d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0" class="glyph" />
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6Z" class="glyph" />
+      <path d="m8 12 3 3 5-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <path d="M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 22v-3c0-8 18-8 18 0v3" class="glyph" />
+    </symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24">
+      <path d="M14 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM2 22v-3c0-7 16-7 16 0v3M17 3c6 0 6 8 0 8M19 15c3 1 3 4 3 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-browser" viewBox="0 0 24 24">
+      <path d="M2 3h20v17H2ZM2 8h20M5 5.5h.01M8 5.5h.01M6 12l-2 2 2 2M18 12l2 2-2 2M10 17l4-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-server" viewBox="0 0 24 24">
+      <path d="M3 2h18v6H3ZM3 10h18v6H3ZM3 18h18v4H3ZM6 5h.01M6 13h.01M10 5h8M10 13h8M6 20h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-branch" viewBox="0 0 24 24">
+      <path d="M6 4v11a4 4 0 0 0 4 4h8M6 9h8a4 4 0 0 0 4-4V3M3 3h6M15 3h6M15 16l3 3-3 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-activity" viewBox="0 0 24 24">
+      <path d="M1 12h5l4-9 4 18 4-9h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m7 12 3 3 7-7" class="glyph" />
+    </symbol>
+    <symbol id="icon-reject" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
+      <path d="m8 8 8 8M16 8l-8 8" class="glyph" />
+    </symbol>
+    <symbol id="icon-alert" viewBox="0 0 24 24">
+      <path d="M12 2 1 22h22ZM12 8v6M12 18h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
+    </symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24">
+      <path d="M3 15v7h18v-7M12 17V2M6 8l6-6 6 6" class="glyph" />
+    </symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24">
+      <path d="M3 16v6h18v-6M12 2v15M6 11l6 6 6-6" class="glyph" />
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <path d="M17 9a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM15 15l7 7" class="glyph" />
+    </symbol>
+    <symbol id="icon-dna" viewBox="0 0 24 24">
+      <path d="M6 2c0 10 12 10 12 20M18 2C18 12 6 12 6 22M7 4h10M8 8h8M8 16h8M7 20h10" class="glyph" />
+    </symbol>
+    <symbol id="icon-sample" viewBox="0 0 24 24">
+      <path d="M8 2h8M9 2v7l-5 10c-1 2 0 3 2 3h12c2 0 3-1 2-3L15 9V2M7 15h10M9 18h.01M14 19h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-microscope" viewBox="0 0 24 24">
+      <path d="m7 2 7 3-3 7-7-3ZM13 9c10 2 7 12-1 12H3M7 21v-4h8M2 14h10M11 3l2-2 4 2-2 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-pen" viewBox="0 0 24 24">
+      <path d="m3 17 13-13 4 4L7 21l-5 1ZM13 7l4 4M3 17l4 4M15 3l2-2 4 4-2 2" class="glyph" />
+    </symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <path d="M13 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0ZM12 12l10 10M17 17l3-3M20 20l3-3M6 6h.01" class="glyph" />
+    </symbol>
+    <symbol id="icon-scope" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM2 12h20M12 2c-6 6-6 14 0 20 6-6 6-14 0-20Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-queue" viewBox="0 0 24 24">
+      <path d="M2 5h16M2 11h13M2 17h10M17 13l6 4-6 4ZM4 3v4M4 9v4M4 15v4" class="glyph" />
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24">
+      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM12 6v6l4 3" class="glyph" />
+    </symbol>
+    <symbol id="icon-mail" viewBox="0 0 24 24">
+      <path d="M2 4h20v16H2ZM2 4l10 9L22 4M2 20l7-8M22 20l-7-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24">
+      <path d="M2 5h7l3 3h10v13H2ZM2 8V3h7l3 3h8v2" class="glyph" />
+    </symbol>
+    <symbol id="icon-graph" viewBox="0 0 24 24">
+      <path d="M3 2v20h19M7 17v-5M12 17V6M17 17V9" class="glyph" />
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24">
+      <path d="m9 15-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M15 9l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0M8 16l8-8" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="34" text-anchor="start" class="figure-title">Coyote3 runtime and service boundaries</text>
+  <text x="40" y="68" text-anchor="start" class="figure-subtitle">The proxy exposes one application origin. Database URIs and database names are configured independently. Logical databases may share a MongoDB deployment; they retain</text>
+  <text x="40" y="87" text-anchor="start" class="figure-subtitle">separate namespaces and configuration.</text>
+  <g class="connections">
+    <path d="M275 173C460 161 460 185 645 173" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 173C900 161 900 185 1085 173" data-source="1" data-target="2" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 173 L848 173Q870 173 870 195 L870 380Q870 402 848 402 L689.5 402Q680 402 680 411.5 L680 421" data-source="1" data-target="4" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
+    <path d="M715 456C900 444 900 468 1085 456" data-source="4" data-target="5" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M275 456 L408 456Q430 456 430 478 L430 717Q430 739 408 739 L249.5 739Q240 739 240 748.5 L240 758" data-source="3" data-target="6" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M275 793C460 781 460 805 645 793" data-source="6" data-target="7" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M715 456 L848 456Q870 456 870 478 L870 689Q870 711 848 711 L702 711Q680 711 680 733 L680 758" data-source="4" data-target="7" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+    <path d="M715 793C900 781 900 805 1085 793" data-source="7" data-target="8" data-optional="true" marker-end="url(#arrow-purple)" class="connection purple conditional" />
+    <path d="M680 759 L680 751Q680 743 688 743 L1313 743Q1335 743 1335 721 L1335 396Q1335 374 1313 374 L1142 374Q1120 374 1120 396 L1120 421" data-source="7" data-target="5" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
+  </g>
+  <g data-node="0" data-left="80" data-top="139" data-right="400" data-bottom="310" class="entity blue">
+    <title>Browser / API client</title>
+    <use href="#icon-browser" x="211" y="144" width="58" height="58" aria-hidden="true" />
+    <text x="240" y="229" text-anchor="middle" class="entity-title">Browser / API client</text>
+    <text x="240" y="254" text-anchor="middle" class="entity-detail">Application UI or pipeline client</text>
+    <text x="240" y="272" text-anchor="middle" class="entity-detail">Deployment prefix: SCRIPT_NAME</text>
+    <text x="240" y="290" text-anchor="middle" class="entity-detail">HTTPS through the site ingress</text>
+  </g>
+  <g data-node="1" data-left="520" data-top="139" data-right="840" data-bottom="310" class="entity blue">
+    <title>Reverse proxy</title>
+    <use href="#icon-browser" x="651" y="144" width="58" height="58" aria-hidden="true" />
+    <text x="680" y="229" text-anchor="middle" class="entity-title">Reverse proxy</text>
+    <text x="680" y="254" text-anchor="middle" class="entity-detail">Coyote3 Nginx routing</text>
+    <text x="680" y="272" text-anchor="middle" class="entity-detail">UI · /api/v1 · /docs-site</text>
+    <text x="680" y="290" text-anchor="middle" class="entity-detail">One published application port</text>
+  </g>
+  <g data-node="2" data-left="960" data-top="139" data-right="1280" data-bottom="310" class="entity blue">
+    <title>Frontend + documentation</title>
+    <use href="#icon-browser" x="1091" y="144" width="58" height="58" aria-hidden="true" />
+    <text x="1120" y="229" text-anchor="middle" class="entity-title">Frontend + documentation</text>
+    <text x="1120" y="254" text-anchor="middle" class="entity-detail">React application</text>
+    <text x="1120" y="272" text-anchor="middle" class="entity-detail">MkDocs static documentation</text>
+    <text x="1120" y="290" text-anchor="middle" class="entity-detail">Development frontend uses Vite</text>
+  </g>
+  <g data-node="3" data-left="80" data-top="422" data-right="400" data-bottom="593" class="entity teal">
+    <title>Celery beat</title>
+    <use href="#icon-server" x="211" y="427" width="58" height="58" aria-hidden="true" />
+    <text x="240" y="512" text-anchor="middle" class="entity-title">Celery beat</text>
+    <text x="240" y="537" text-anchor="middle" class="entity-detail">Scheduled ingest scans</text>
+    <text x="240" y="555" text-anchor="middle" class="entity-detail">Maintenance and refresh tasks</text>
+    <text x="240" y="573" text-anchor="middle" class="entity-detail">Dispatches work through Redis</text>
+  </g>
+  <g data-node="4" data-left="520" data-top="422" data-right="840" data-bottom="611" class="entity blue">
+    <title>FastAPI application</title>
+    <use href="#icon-processor" x="651" y="427" width="58" height="58" aria-hidden="true" />
+    <text x="680" y="512" text-anchor="middle" class="entity-title">FastAPI application</text>
+    <text x="680" y="537" text-anchor="middle" class="entity-detail">Routes → services → repositories</text>
+    <text x="680" y="555" text-anchor="middle" class="entity-detail">Contracts, authorization,</text>
+    <text x="680" y="573" text-anchor="middle" class="entity-detail">reporting</text>
+    <text x="680" y="591" text-anchor="middle" class="entity-detail">Session state stored in MongoDB</text>
+  </g>
+  <g data-node="5" data-left="960" data-top="422" data-right="1280" data-bottom="647" class="entity teal">
+    <title>Logical MongoDB services</title>
+    <use href="#icon-database" x="1091" y="427" width="58" height="58" aria-hidden="true" />
+    <text x="1120" y="512" text-anchor="middle" class="entity-title">Logical MongoDB services</text>
+    <text x="1120" y="537" text-anchor="middle" class="entity-detail">Primary · clinical and</text>
+    <text x="1120" y="555" text-anchor="middle" class="entity-detail">configuration</text>
+    <text x="1120" y="573" text-anchor="middle" class="entity-detail">Identity · accounts, sessions,</text>
+    <text x="1120" y="591" text-anchor="middle" class="entity-detail">audit</text>
+    <text x="1120" y="609" text-anchor="middle" class="entity-detail">Knowledgebase · references /</text>
+    <text x="1120" y="627" text-anchor="middle" class="entity-detail">BAM</text>
+  </g>
+  <g data-node="6" data-left="80" data-top="759" data-right="400" data-bottom="930" class="entity teal">
+    <title>Redis</title>
+    <use href="#icon-server" x="211" y="764" width="58" height="58" aria-hidden="true" />
+    <text x="240" y="849" text-anchor="middle" class="entity-title">Redis</text>
+    <text x="240" y="874" text-anchor="middle" class="entity-detail">Task broker and result backend</text>
+    <text x="240" y="892" text-anchor="middle" class="entity-detail">Caches and request quotas</text>
+    <text x="240" y="910" text-anchor="middle" class="entity-detail">Not the clinical source of truth</text>
+  </g>
+  <g data-node="7" data-left="520" data-top="759" data-right="840" data-bottom="930" class="entity teal">
+    <title>Celery workers</title>
+    <use href="#icon-server" x="651" y="764" width="58" height="58" aria-hidden="true" />
+    <text x="680" y="849" text-anchor="middle" class="entity-title">Celery workers</text>
+    <text x="680" y="874" text-anchor="middle" class="entity-detail">Ingestion and background jobs</text>
+    <text x="680" y="892" text-anchor="middle" class="entity-detail">MongoDB transactions</text>
+    <text x="680" y="910" text-anchor="middle" class="entity-detail">Mounted input / artifact storage</text>
+  </g>
+  <g data-node="8" data-left="960" data-top="759" data-right="1280" data-bottom="930" class="entity purple">
+    <title>Configured integrations</title>
+    <use href="#icon-settings" x="1091" y="764" width="58" height="58" aria-hidden="true" />
+    <text x="1120" y="849" text-anchor="middle" class="entity-title">Configured integrations</text>
+    <text x="1120" y="874" text-anchor="middle" class="entity-detail">LDAP · SMTP · BAM service</text>
+    <text x="1120" y="892" text-anchor="middle" class="entity-detail">OncoKB / ClinPGx endpoints</text>
+    <text x="1120" y="910" text-anchor="middle" class="entity-detail">Shared files and monitoring</text>
+  </g>
+  <g data-edge="0" class="relationship blue">
+    <text x="460" y="156" text-anchor="middle" class="edge-label">request</text>
+  </g>
+  <g data-edge="1" class="relationship blue">
+    <text x="900" y="156" text-anchor="middle" class="edge-label">serves</text>
+  </g>
+  <g data-edge="2" class="relationship blue">
+    <text x="775" y="394" text-anchor="middle" class="edge-label">API routes</text>
+  </g>
+  <g data-edge="3" class="relationship teal">
+    <text x="900" y="439" text-anchor="middle" class="edge-label">persists</text>
+  </g>
+  <g data-edge="4" class="relationship teal">
+    <text x="335" y="731" text-anchor="middle" class="edge-label">dispatches</text>
+  </g>
+  <g data-edge="5" class="relationship teal">
+    <text x="460" y="776" text-anchor="middle" class="edge-label">delivers</text>
+  </g>
+  <g data-edge="6" class="relationship teal">
+    <text x="775" y="703" text-anchor="middle" class="edge-label">queues via Redis</text>
+  </g>
+  <g data-edge="7" class="relationship purple">
+    <text x="900" y="776" text-anchor="middle" class="edge-label">uses</text>
+  </g>
+  <g data-edge="8" class="relationship teal">
+    <text x="1227.5" y="366" text-anchor="middle" class="edge-label">worker persistence</text>
+  </g>
 </svg>

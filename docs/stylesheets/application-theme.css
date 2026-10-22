@@ -239,6 +239,8 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   width: 100%;
   height: auto;
   margin: 1.5rem 0;
+  color-scheme: light;
+  background: transparent;
 }
 /* Preserve word widths in short columns; let prose take the remaining space. */
 .rst-content table.docutils {
@@ -323,8 +325,7 @@ html[data-theme="dark"] .hljs-number { color: #d7b5fa; }
 html[data-theme="dark"] .hljs-string,
 html[data-theme="dark"] .hljs-attr { color: #9cdbc4; }
 html[data-theme="dark"] .rst-content img[src$=".svg"] {
-  background: #fff;
-  border-radius: 8px;
+  color-scheme: dark;
 }
 @media print {
   .docs-theme-control { display: none; }
