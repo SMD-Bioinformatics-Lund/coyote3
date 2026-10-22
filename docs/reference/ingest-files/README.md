@@ -4,6 +4,9 @@ Sample ingestion accepts a YAML manifest and the analysis files declared by that
 manifest. These are pipeline outputs, not MongoDB exports. The manifest identifies
 the sample and assay; each file supplies one analysis domain's evidence.
 
+The [demo data bundle](../../testing/demo-data-bundle.md) contains shared raw-file
+examples used by installation and in-memory regression tests.
+
 For file syntax and the distinction between required, optional, null and default,
 see [file-format conventions](../file-format-conventions.md). The per-file tables
 below describe the raw producer boundary; service-generated fields and database
@@ -23,6 +26,7 @@ example, normalization behavior, and constraints to check before submission.
 | [HRD JSON](hrd-json.md) | `biomarkers` | JSON object with sample label and HRD measurements |
 | [MSI JSON](msi-json.md) | `biomarkers` | JSON object with sample label and MSI measurements |
 | [TMB JSON](tmb-json.md) | `biomarkers` | JSON object with sample label and TMB measurements |
+| [Shared measurement storage](biomarkers-json.md) | `biomarkers` | One JSON file combining HRD, MSI and/or TMB measurements |
 | [RNA fusions: caller evidence JSON](fusions-json.md) | `fusion_files` | JSON array of fusions with caller observations |
 | [RNA expression: sample and reference JSON](expression-json.md) | `expression_path` | JSON object with sample and reference arrays |
 | [RNA classification: score JSON](classification-json.md) | `classification_path` | JSON object with classifier result array |

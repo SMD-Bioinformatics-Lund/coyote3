@@ -314,19 +314,9 @@ uploads retain their existing role and sample-scope checks.
 
 ### Built-in directory watcher
 
-The Celery beat schedule dispatches the ingestion watcher when
-`COYOTE3_INGEST_WATCH_ENABLED=1`. A worker scans the mounted ingest watch directory
-for `COYOTE3_INGEST_WATCH_FILENAME` (default `coyote3.yaml`), registers durable jobs,
-with scans scheduled by `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` (default 30 seconds),
-and invokes ingestion directly. It does not call the upload API and uses no HTTP
-token. Its audit identity is `ingest-watcher`. Successful jobs rename the manifest
-with the done suffix; nonretryable failures use the failed suffix. Retryable or
-busy jobs remain available for a later scan. The worker needs filesystem access
-to the manifest and data, plus directory write permission for acknowledgement.
-Use the deployment-server SCP helper when files are only available remotely.
-For development the container watch path is
-`/data/coyote3_dev/copied_sample_files/yaml`; with `/data/coyote3:/data`, its host
-path is `/data/coyote3/coyote3_dev/copied_sample_files/yaml`.
+For watcher paths, acknowledgement, retry and scheduler settings, use
+[folder watcher ingest](#folder-watcher-ingest). The watcher reads the mounted files
+directly rather than using an unattended HTTP credential.
 
 ### Deployment-server helper
 
@@ -562,7 +552,8 @@ See [MongoDB service topology](../architecture/mongodb-topology.md).
 Set runtime variables once:
 
 ```bash
-export BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}"
+BASE_URL="${PUBLIC_BASE_URL:?Load the deployment public URL including its prefix}"
+export BASE_URL="${BASE_URL%/}"
 # Option A: existing bearer token
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
@@ -593,12 +584,13 @@ application services:
 
 Behavior:
 
-- It creates the first local superuser and loads `permissions`, `roles`,
-  `hgnc_genes`, and `vep_metadata` only into empty collections.
+- It creates the first local superuser and system administrator with `permissions`
+  and `roles`, then installs application catalogs, knowledgebase references and the
+  connected starter demonstrations by default, attributed to `system`.
 - It rejects a partially initialized identity database rather than merging
   uncertain state.
-- Add `--with-demo-center` only to load the repository's synthetic ASP, ASPC,
-  and ISGL demonstration documents in a nonclinical environment.
+- Use module skip flags to disable unwanted initial data. Once accounts exist,
+  additions and forced repairs require API login through the maintenance command.
 
 Seed source policy for a new deployment:
 
@@ -609,8 +601,9 @@ Seed source policy for a new deployment:
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
 - HGNC and VEP metadata are bundled release snapshots. The optional
-  `scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME` command
-  loads them only when the target collection is empty; it never takes data from
+  `scripts/deployment/manage_data.py --api-url API_URL --modules knowledgebase` command
+  uses API login and a server-side administrator-role check for later additions;
+  it never takes data from
   test fixtures.
 - Keep center seed changes deterministic and version-controlled in the center's
   private deployment configuration.
@@ -618,8 +611,7 @@ Seed source policy for a new deployment:
   `analysis_types`, and `reporting` objects. Query behavior is derived from those
   typed sections and the domain query builders; arbitrary top-level Mongo query
   overrides are not part of the supported ingest contract.
-  CNV behavior is configured with `filters.cnv_*` keys.
-  Fusion behavior is configured with `filters.fusion_*` keys.
+  Review the intent-aware paths in the [filter field reference](../reference/filter-profile-fields.md).
 
 Validate assay consistency before ingesting sample bundles:
 
@@ -628,6 +620,17 @@ ${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
   --seed-file api/config/bootstrap/demo_center \
   --yaml demo_data/ingest/generic_case_control.yaml
 ```
+
+This validator checks:
+
+- assay references across `samples`, `blacklist`, `insilico_genelists`
+- seed document contract shape (`*.json` arrays of objects only)
+- metadata field typing (`created_on`/`updated_on` ISO-8601 strings, numeric `version`)
+- rejection of Mongo Extended JSON wrappers (`$date`, `$oid`) in seed files
+- required baseline governance/config presence (`roles`, `permissions`)
+- `asp_configs` (`aspc_id` format, assay/environment consistency)
+- `insilico_genelists` (`asp_ids` and `asp_groups` consistency)
+- bootstrap dependencies (`roles -> permissions`, `users -> roles`)
 
 The DNA demo YAML intentionally omits `database_versions`. DNA VCF ingest
 captures the curated `database_versions` snapshot from the `##VEP=` header.
@@ -683,8 +686,6 @@ outputs, so they are versioned with the transcript consequence row in
 document stores the source-version snapshot under `samples.database_versions`
 for `sift`, `polyphen`, `vep`, and the other configured reference databases.
 
-Manual transcript selection is exposed through:
-
 Automatic selected-transcript priority is deterministic:
 
 1. NCBI/RefSeq MANE Plus Clinical
@@ -698,6 +699,8 @@ Automatic selected-transcript priority is deterministic:
 Within each priority, consequences are considered in `HIGH`, `MODERATE`, `LOW`,
 then `MODIFIER` impact order. HGNC ID is the primary gene identity; approved,
 previous, and alias symbols are lookup paths to the same HGNC record.
+
+Manual transcript selection is exposed through:
 
 ```http
 PATCH /api/v1/samples/{sample_id}/small-variants/{var_id}/selected-transcript
@@ -714,209 +717,11 @@ Request body:
 The endpoint requires small-variant management permission and returns the
 standard sample-change payload used by the UI to refresh the detail view.
 
-This validator checks:
+Collection discovery, single/bulk inserts, updates and upload examples are owned by
+[collection imports](collection-imports.md), including the extra collection-specific
+permissions. Use the sample-bundle endpoints below for a complete sample transaction.
 
-- assay references across `samples`, `blacklist`, `insilico_genelists`
-- seed document contract shape (`*.json` arrays of objects only)
-- metadata field typing (`created_on`/`updated_on` ISO-8601 strings, numeric `version`)
-- rejection of Mongo Extended JSON wrappers (`$date`, `$oid`) in seed files
-- required baseline governance/config presence (`roles`, `permissions`)
-- `asp_configs` (`aspc_id` format, assay/environment consistency)
-- `insilico_genelists` (`asp_ids` and `asp_groups` consistency)
-- bootstrap dependencies (`roles -> permissions`, `users -> roles`)
-
-Discover supported collection-ingest contracts:
-
-```bash
-curl -sS "${BASE_URL}/api/v1/internal/ingest/collections" \
-  -H "Authorization: Bearer ${API_BEARER_TOKEN}"
-```
-
-### 1) Seed one collection document
-
-Route:
-
-- `POST /api/v1/internal/ingest/collection`
-
-Command:
-
-```bash
-curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  --data @- <<'JSON'
-{
-  "collection": "asp_configs",
-  "document": {
-    "aspc_id": "assay_1_base_production",
-    "asp_id": "assay_1",
-    "subpanel_id": "base",
-    "environment": "production",
-    "asp_group": "hematology",
-    "asp_category": "dna",
-    "analysis_types": ["SNV", "CNV"],
-    "display_name": "assay_1 production",
-    "filters": {
-      "somatic": {
-        "snv": {
-          "min_freq": 0.05,
-          "max_freq": 1.0,
-          "max_control_freq": 0.05,
-          "max_popfreq": 0.01,
-          "min_depth": 100,
-          "min_alt_reads": 5,
-          "vep_consequences": [],
-          "snvlists": []
-        },
-        "cnv": {
-          "min_cnv_size": 100,
-          "max_cnv_size": 50000000,
-          "cnv_loss_cutoff": -0.3,
-          "cnv_gain_cutoff": 0.3,
-          "cnveffects": ["gain", "loss"],
-          "cnvlists": []
-        }
-      }
-    },
-    "reporting": {
-      "report_sections": ["SNV", "CNV"],
-      "report_header": "assay_1 Report",
-      "report_method": "Standard analysis",
-      "report_description": "Validated reporting profile",
-      "language": "sv",
-      "plots_path": "reports/plots",
-      "report_folder": "reports/output"
-    },
-    "is_active": true
-  }
-}
-JSON
-```
-
-For a DNA ASPC, `filters.somatic` contains only the enabled DNA analysis
-profiles. `filters.germline.snv` is required only when `analysis_intents`
-includes `germline`. RNA ASPCs instead use `filters.somatic.fusion`. Each
-enabled `SNV`, `CNV`, `TRANSLOCATION`, `COVERAGE`, or `FUSION` analysis type
-requires its matching filter profile.
-
-### 2) Seed many documents (bulk)
-
-Route:
-
-- `POST /api/v1/internal/ingest/collection/bulk`
-
-Command:
-
-```bash
-curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/bulk" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  --data @- <<'JSON'
-{
-  "collection": "permissions",
-  "documents": [
-    {
-      "permission_id": "sample:view",
-      "label": "View samples",
-      "category": "Sample Management",
-      "description": "View samples available within the user's access scope.",
-      "is_active": true
-    }
-  ]
-}
-JSON
-```
-
-### 2b) Update or upsert one document
-
-Route:
-
-- `PUT /api/v1/internal/ingest/collection`
-
-Command:
-
-```bash
-curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  --data @- <<'JSON'
-{
-  "collection": "asp_configs",
-  "match": {"aspc_id": "assay_1_base_production"},
-  "document": {
-    "aspc_id": "assay_1_base_production",
-    "asp_id": "assay_1",
-    "subpanel_id": "base",
-    "environment": "production",
-    "asp_group": "hematology",
-    "asp_category": "dna",
-    "analysis_types": ["SNV", "CNV"],
-    "display_name": "assay_1 production",
-    "filters": {
-      "somatic": {
-        "snv": {
-          "min_freq": 0.05,
-          "max_freq": 1.0,
-          "max_control_freq": 0.05,
-          "max_popfreq": 0.01,
-          "min_depth": 100,
-          "min_alt_reads": 5,
-          "vep_consequences": [],
-          "snvlists": []
-        },
-        "cnv": {
-          "min_cnv_size": 100,
-          "max_cnv_size": 50000000,
-          "cnv_loss_cutoff": -0.3,
-          "cnv_gain_cutoff": 0.3,
-          "cnveffects": ["gain", "loss"],
-          "cnvlists": []
-        }
-      }
-    },
-    "reporting": {
-      "report_sections": ["SNV", "CNV"],
-      "report_header": "assay_1 Report",
-      "report_method": "Standard analysis",
-      "report_description": "Validated reporting profile",
-      "language": "sv",
-      "plots_path": "reports/plots",
-      "report_folder": "reports/output"
-    },
-    "is_active": true
-  },
-  "upsert": true
-}
-JSON
-```
-
-### 2c) Upload collection JSON file (multipart)
-
-Route:
-
-- `POST /api/v1/internal/ingest/collection/upload`
-
-Notes:
-
-- This route validates uploaded JSON via the same collection Pydantic contracts used by
-  `/collection`, `/collection/bulk`, and `/collection` upsert.
-- For governance/config uploads in admin workflows, supported collections are:
-  `users`, `roles`, `permissions`, `asp_configs`, `assay_specific_panels`, `insilico_genelists`.
-- `mode=insert` expects a JSON object.
-- `mode=bulk` expects a JSON array.
-- `mode=upsert` expects a JSON object plus `match_json` form field.
-
-Command:
-
-```bash
-curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/upload" \
-  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  -F "collection=users" \
-  -F "mode=insert" \
-  -F "documents_file=@/path/to/users.json;type=application/json"
-```
-
-### 3) Ingest fresh sample + analysis bundle (YAML string mode)
+### Ingest a sample bundle from YAML text
 
 Route:
 
@@ -941,7 +746,7 @@ PY
 JSON
 ```
 
-### 4) Ingest fresh sample + analysis bundle (upload YAML + ZIP archive)
+### Ingest a sample bundle with an uploaded archive
 
 Route:
 
@@ -977,7 +782,7 @@ Rules:
   are used only for the ingest worker.
 - Uploaded runtime files are hashed (`sha256`) and persisted on the sample as `uploaded_file_checksums`.
 
-### 4b) Internal metrics endpoint (Prometheus text format)
+### Internal metrics endpoint
 
 Route:
 
@@ -987,7 +792,7 @@ Command:
 
 ```bash
 curl -sS "${BASE_URL}/api/v1/internal/metrics" \
-  -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
+  -H "X-Coyote-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
 ### Dependent analysis writes
@@ -1025,11 +830,11 @@ Use this order for a clean deployment at a new center.
 
 1. Provision the MongoDB application user outside Coyote3.
 2. Run `scripts/bootstrap/bootstrap_database.py` against the empty application and identity databases.
-   - It creates the first superuser and loads `permissions` and `roles` into
-     `IDENTITY_DB`, and `hgnc_genes` and `vep_metadata` into `KNOWLEDGEBASE_DB`.
-   - Add `--with-demo-center` only for the synthetic ASP, ASPC, and ISGL
-     demonstration configuration.
-3. Start Coyote3 services.
+   - It creates the first superuser and system administrator and loads `permissions`
+     and `roles` into `IDENTITY_DB`, then installs the selected default data modules.
+3. Start Coyote3 services. Later data additions use
+   `scripts/deployment/manage_data.py --api-url API_URL --modules application knowledgebase`.
+   Sign in with an administrator account and complete any required password change.
 4. Import approved center ASP, ASPC, and ISGL configuration.
 5. Optionally import filtering and annotation knowledgebase collections. The
    collection gateway resolves these destinations in `KNOWLEDGEBASE_DB`, not
@@ -1057,7 +862,7 @@ database. Create additional users through the administrative UI/API.
 
 Use this as the minimum deployment contract:
 
-| Collection | Minimum required keys | Why required |
+| Collection | Minimum required keys | Validation purpose |
 | --- | --- | --- |
 | `permissions` | `permission_id` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
@@ -1165,9 +970,7 @@ Archive safety checks remain in force for the complete ZIP. File paths remain th
 manifest's declared paths in MongoDB. Archive members are matched by their declared
 path first, then by an unambiguous basename while the request is processed.
 
-## Collection insert examples
-
-### Diagnosing ingestion failures
+## Diagnosing ingestion failures
 
 Upload validation failures include their reason in the HTTP response and audit.
 For queued jobs, the job status, submitter's notification, and audit include the
@@ -1176,62 +979,9 @@ JSON errors identify the analysis type, filename, and line/column; empty files
 are reported as empty. Schema errors identify the collection, record number,
 and invalid field. Fix the reported input or configuration before retrying.
 
-### Admin assay configuration
-
-The ASP creation form includes the required ASP ID. It remains visible and
-read-only when editing because existing samples and configurations reference
-that identifier. User create/edit forms show assay IDs as checkboxes, filtered
-by selected assay groups. Removing a group clears its assay selections when
-editing the form; normal permission checks still govern saving access changes.
-
-### Single document
-
-```json
-{
-  "collection": "permissions",
-  "document": {
-    "permission_id": "sample:view",
-    "label": "View samples",
-    "category": "Sample Management",
-    "description": "View samples available within the user's access scope.",
-    "is_active": true
-  }
-}
-```
-
-### Bulk document
-
-```json
-{
-  "collection": "permissions",
-  "documents": [
-    {
-      "permission_id": "sample:view",
-      "label": "View samples",
-      "category": "Sample Management",
-      "description": "View samples available within the user's access scope.",
-      "is_active": true
-    },
-    {
-      "permission_id": "sample:manage",
-      "label": "Manage samples",
-      "category": "Sample Management",
-      "description": "Create, update, and manage samples within the user's access scope.",
-      "is_active": true
-    }
-  ]
-}
-```
-
-Core collections typically seeded first:
-
-- `permissions`
-- `roles`
-- first local superuser via `scripts/bootstrap/bootstrap_database.py`
-- `asp_configs`
-- `assay_specific_panels`
-- `insilico_genelists`
-- `hgnc_genes`
+Collection-import request examples and authorization are documented in
+[collection imports](collection-imports.md). Assay creation and access assignment
+belong to [administration](../administration/administration-guide.md).
 
 ## Test fixtures for ingestion
 
@@ -1241,11 +991,12 @@ Core collections typically seeded first:
 ## Client example (Python)
 
 ```python
+import os
 from pathlib import Path
 
 import httpx
 
-base = "http://localhost:6801"
+base = os.environ["PUBLIC_BASE_URL"].rstrip("/")
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {

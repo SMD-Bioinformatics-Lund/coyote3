@@ -1,172 +1,108 @@
-# Quickstart: Run Coyote3 Locally
+# Run Coyote3 locally
 
-This guide starts a local Coyote3 stack and loads the demo data.
+This procedure starts the container-based development stack with the connected
+synthetic DNA and RNA starter samples. It uses the same installer as a normal
+first installation, with the development overlay. For host-run API development,
+use the [developer environment](developer-environment.md).
 
----
+## 1. Prepare tools and the checkout
 
-## Step 1: Check prerequisites
-
-Make sure the required tools are installed.
-
-```bash
-# Check required tools
-git --version
-docker --version
-docker compose version
-python3 --version
-```
-
-Coyote3 Compose deployments use MongoDB 7.0.41. App, identity, knowledgebase, and BAM databases have
-independent URI settings. They may share one instance or use separate services.
-The optional `mongo` and `mongo-kb` Docker profiles are described in
-[MongoDB service topology](../architecture/mongodb-topology.md).
-
----
-
-## Step 2: Clone the repository
-
-Clone the repository and create a local environment file.
+Install Docker Engine/Compose v2, Git, Bash, curl and OpenSSL using the
+[prerequisite links](../deployment/first-installation.md#1-check-prerequisites).
+Check access to the existing Docker daemon before continuing.
 
 ```bash
 git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
 cd coyote3
-
-# Create your local environment file
 cp deploy/env/example.env .coyote3_dev_env
+chmod 600 .coyote3_dev_env
 ```
 
-> **Note: Review the environment file**
->
->
-> The example values are suitable as a starting point for the development
-> Compose profile. Before starting the stack, review `COYOTE3_MONGO_URI`, mounted data
-> paths, and every secret value. Production deployments must provide their own
-> generated secrets.
->
+Copy the example only for a new environment; retain existing secrets and settings
+when resuming a local installation.
 
----
+## 2. Configure infrastructure and storage
 
-## Step 3: Initialize the database
+Edit `.coyote3_dev_env`: replace every applicable placeholder secret, select four
+distinct database names and configure each URI to a writable replica set with its
+intended grants. Compose pins MongoDB 7.0.41 when the optional database services
+are used. Database infrastructure has its own lifecycle; follow
+[first-time provisioning](../deployment/mongodb-first-setup.md) for a new server.
 
-Start or select a MongoDB instance first. Set `COYOTE3_MONGO_URI` to an endpoint that
-will be reachable from the API and worker containers. On Linux, the supplied
-Compose files resolve `host.docker.internal` to the Docker host, so a
-host-installed MongoDB can use that hostname. The supplied MongoDB Compose
-definition is also an independent infrastructure deployment.
+For the URLs below, set:
 
-Run the database bootstrap from the repository checkout. It connects directly
-to MongoDB; it does not start Coyote3 services, call the API, or ingest a
-sample.
+```dotenv
+ENV_NAME=development
+COYOTE3_PORT=6801
+SCRIPT_NAME=/coyote3_dev
+PUBLIC_BASE_URL=http://localhost:6801/coyote3_dev
+COYOTE3_APP_NETWORK=coyote3-dev-app-net
+```
+
+Choose data/log roots writable by the container identity. Prepare the external
+center directory with its three reviewed files following
+[center configuration preparation](../deployment/first-installation.md#4-prepare-the-center-configuration-directory).
+An existing center directory is not replaced with bundled examples.
+
+A host administrator must provision the selected external application network
+before running the installer. Follow the [network procedure](../deployment/first-installation.md#6-create-the-application-network)
+and use an approved non-overlapping subnet; retain an existing healthy network.
+The installer does not create networks or repair host firewall/Docker settings.
+Development excludes the production Redis TLS overlay and needs no Redis certificates.
+
+## 3. Install and start
+
+Run from the checkout after those prerequisites are ready:
 
 ```bash
-.venv/bin/python scripts/bootstrap/bootstrap_database.py \
-  --mongo-uri "$COYOTE3_MONGO_URI" \
-  --identity-mongo-uri "$IDENTITY_MONGO_URI" \
-  --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
-  --identity-db "${IDENTITY_DB:?IDENTITY_DB must be set}" \
-  --sys-admin-username "center.operator" \
-  --sys-admin-email "operator@example.org" \
-  --username "<first-superuser-username>" \
-  --email "<first-superuser-email>" \
-  --password "<generate-a-unique-password>"
+bash scripts/deployment/install_center.sh \
+  --env-file .coyote3_dev_env \
+  --project coyote3-dev \
+  --compose-file deploy/compose/docker-compose.yml \
+  --compose-file deploy/compose/docker-compose.dev.yml
 ```
 
-This creates one local superuser and one named system administrator, and initializes `permissions` and `roles`
-in `IDENTITY_DB`, plus `hgnc_genes` and `vep_metadata` in `KNOWLEDGEBASE_DB`. It stops
-rather than mixing data into a partially initialized identity database. To
-install the synthetic ASP, ASPC, and ISGL demonstration catalog for a
-nonclinical local environment, add `--with-demo-center`.
+The installer builds images, validates mounted configuration and database/Redis
+connectivity, installs a fresh baseline and starts the stack. It creates a distinct
+superuser and system administrator with hidden temporary-password prompts, then
+installs application catalogs, bundled references and `DEMO_STARTER_DNA` /
+`DEMO_STARTER_RNA` by default. Creations use `system` provenance.
 
-For a new knowledgebase, install bundled references separately with
-`python3 scripts/bootstrap/install_reference_data.py --actor YOUR_ADMIN_USERNAME`
-using the same deployment environment. Reference loading and knowledgebase indexes
-are optional operations; see [installation operations](../deployment/installation-operations.md).
+Use `--skip-demo` or `--skip-knowledgebase` when appropriate. Existing initialized
+deployments preserve their data. A partial baseline stops for investigation rather
+than being dropped. See [module defaults and authenticated repairs](../deployment/installation-operations.md).
+A host `.venv` is not needed for this container-based bootstrap.
 
-The omitted system-administrator password is requested through a hidden prompt;
-omit `--password` to prompt for the emergency account too. Both accounts must
-replace their temporary password on first sign-in before opening the workspace.
-See [first installation](../deployment/first-installation.md) for password requirements and
-administrative responsibilities.
+## 4. Open and verify
 
-For a clinical deployment, import reviewed center-owned ASP, ASPC, and ISGL
-definitions after startup through the managed admin interfaces or approved
-collection-import procedure.
+For the settings above:
 
----
+- [Application](http://localhost:6801/coyote3_dev/)
+- [API health](http://localhost:6801/coyote3_dev/api/v1/health)
+- [API reference](http://localhost:6801/coyote3_dev/api/v1/docs)
+- [Documentation](http://localhost:6801/coyote3_dev/docs-site/)
 
-## Step 4: Start the stack
+Sign in with an account created during bootstrap and complete its required password
+change. Open both starter samples if demonstration installation was selected.
+The stack includes API/frontend/docs/proxy, Redis, an ingest worker, a maintenance
+worker, beat and the log/error monitor. A healthy Redis alone is not proof of API
+or worker connectivity; retain the installer's checks and inspect service logs on failure.
 
-The application stack brings up:
+Later data installation uses the authenticated maintenance command, rather than
+repeating bootstrap. See [installation operations](../deployment/installation-operations.md).
+For programmatic login, follow [API authentication](../api/authentication.md).
 
-- frontend;
-- documentation;
-- API;
-- Celery worker;
-- Celery beat scheduler;
-- Redis; and
-- reverse proxy.
+## Stop the local application
 
-Create the external application network named in the environment file before
-starting the services:
-
-```bash
-set -a
-. ./.coyote3_dev_env
-set +a
-docker network create \
-  --driver bridge \
-  --subnet 172.29.110.32/28 \
-  --ip-range 172.29.110.32/28 \
-  --gateway 172.29.110.33 \
-  "$COYOTE3_APP_NETWORK"
-```
-
-Select another non-overlapping private subnet when this range is already routed
-on the host. Compose uses the existing network and does not create or own it.
+Retain the environment, project and both files:
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
-  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
-  up -d --build
+  --env-file .coyote3_dev_env -p coyote3-dev \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.dev.yml down
 ```
 
----
-
-## Step 5: Open the application
-
-Open:
-
-- UI: [http://localhost:6801/coyote3_dev/](http://localhost:6801/coyote3_dev/)
-- API health: [http://localhost:6801/coyote3_dev/api/v1/health](http://localhost:6801/coyote3_dev/api/v1/health)
-- Swagger UI: [http://localhost:6801/coyote3_dev/api/v1/docs](http://localhost:6801/coyote3_dev/api/v1/docs)
-- Documentation site: [http://localhost:6801/coyote3_dev/docs-site/](http://localhost:6801/coyote3_dev/docs-site/)
-
-Sign in with the username and password supplied to the bootstrap command. The
-command deliberately requires these values at deployment time; no account
-credentials are stored in the repository.
-
-The application does not load a sample automatically. Use the ingest workspace
-or a validated sample manifest when you are ready to load data.
-
-For direct API usage, create a session with
-`POST /api/v1/auth/sessions`. The API session token is returned as the
-configured session cookie and may also be sent as
-`Authorization: Bearer <token>` by API-only clients. See
-[API Authentication](../api/authentication.md) for exact examples.
-
----
-
-## Cleaning up
-
-When the development session is complete, stop the environment:
-
-```bash
-./scripts/deployment/compose-with-version.sh -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml down
-```
-
-### Next steps
-
-- Developers: [Local Development](developer-environment.md)
-- Operations: [Deployment Guide](../deployment/containers-and-reverse-proxy.md)
-- New installations: [First installation](../deployment/first-installation.md)
+The separately operated MongoDB service and persistent bind mounts retain their
+own lifecycle. Follow [development setup](developer-environment.md) for source tools
+or [first installation](../deployment/first-installation.md) for the full operator procedure.

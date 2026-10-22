@@ -1,27 +1,5 @@
 # Deployment configuration reference
 
-## Assays And Subpanels
-
-Use **Admin > Assay setup** for a new assay. Base is selected by default; named
-scopes are optional. The [setup workflow](../administration/assay-setup.md) stages
-the ASP, gene lists and configurations for independent review before activation.
-
-Create shared scopes under **Admin > Subpanel definitions**, then manage each
-assay's availability under **Admin > Assay subpanel associations**. See
-[Assay Subpanels](../administration/assay-subpanels.md) for creation order,
-permissions, retirement, persistence and existing-installation setup.
-
-## Annotation vocabulary and sample profiles
-
-`terminology.automatic_annotation_tumor_type` in the published clinical reporting
-rule set supplies tumor-type wording for automatic Tier III annotations. Configure
-it through the reporting-rule editor and publish a reviewed version; no restart
-is required. See [annotation terminology](../reference/clinical-reporting-rules.md#automatic-tier-iii-annotation-terminology).
-
-Sample catalog requests default to the deployed environment. The frontend explicitly
-sends `profile_scope`; `all` selects all authorized profiles, never bypassing user
-scope. The unused `sample_view` query parameter is not part of the request contract.
-
 ## Environment Files
 
 Coyote3 uses one copied environment file per deployment environment. It contains
@@ -61,7 +39,7 @@ contain the actual credentials and reachable member addresses.
 Most environment variables have supported application or Compose defaults.
 Every center must review and set only this core deployment contract:
 
-| Variable | Why it must be supplied |
+| Variable | Required setting |
 | --- | --- |
 | `COYOTE3_MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
 | `COYOTE3_DB` | Selects the primary application database explicitly. |
@@ -300,6 +278,8 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `COYOTE3_API_MEM_LIMIT` | No | Compose memory value | `2g` | API container memory limit. |
 | `COYOTE3_WORKER_CPU_LIMIT` | No | CPU cores | `2.0` | CPU limit per worker container, shared by its child processes. |
 | `COYOTE3_WORKER_MEM_LIMIT` | No | Compose memory value | `2g` | Memory limit per worker container. |
+| `COYOTE3_MAINTENANCE_CPU_LIMIT` | No | CPU cores | `1.0` | CPU limit for the default-queue maintenance worker. |
+| `COYOTE3_MAINTENANCE_MEM_LIMIT` | No | Compose memory value | `1g` | Memory limit for the maintenance worker. |
 | `COYOTE3_BEAT_CPU_LIMIT` | No | CPU cores | `0.25` | Beat scheduler CPU limit. |
 | `COYOTE3_BEAT_MEM_LIMIT` | No | Compose memory value | `256m` | Beat scheduler memory limit. |
 | `COYOTE3_MONITOR_CPU_LIMIT` | No | CPU cores | `0.5` | Log and error-email monitor CPU limit. |
@@ -341,6 +321,7 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | `1.0` | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | `1.0` | Redis socket timeout. |
 | `REDIS_PASSWORD` | Required by Compose | Unique URL-safe secret; generate with `openssl rand -hex 32` | None; a nonempty value is required | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
+| `COYOTE3_REDIS_TLS_DIR` | Only with the production Redis TLS overlay | Absolute directory containing `ca.crt`, `server.crt`, `server.key` | None | Host certificate source for `docker-compose.redis-tls.yml`; see [certificate setup](../operations/redis-tls.md). Exclude from development/staging. |
 | `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds | `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
 | `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds | `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |
 | `API_WORKERS` | No | Positive integer | `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |
@@ -364,6 +345,7 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `COYOTE3_CENTER_CONFIG_DIR` | Host-run tools only | Directory path | Host process: bundled `api/config/center`; Compose: fixed `/app/center-config` | Selects external center files outside Compose. Compose sets this to `/app/center-config`; it is not a database or secrets directory. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Wrapper: selected `LOG_LEVEL` | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer | `2` | Celery worker process concurrency. |
+| `CELERY_MAINTENANCE_CONCURRENCY` | No | Positive integer | `2` | Maintenance worker process concurrency, independent of ingestion. |
 | `CELERY_TASK_TIME_LIMIT` | No | Seconds | `7200` | Hard Celery task timeout. |
 | `CELERY_TASK_SOFT_TIME_LIMIT` | No | Seconds | `6900` | Soft Celery task timeout. |
 | `CELERY_RESULT_EXPIRES` | No | Seconds | `86400` | Celery result expiry. |
@@ -608,3 +590,27 @@ UI-owned configuration stays under `frontend/`:
 Clinical rules and collection contracts belong in backend Pydantic contracts and
 domain services. The frontend consumes those contracts rather than duplicating
 clinical logic.
+
+## Related clinical settings
+
+### Assays and subpanels
+
+Use **Admin > Assay setup** for a new assay. Base is selected by default; named
+scopes are optional. The [setup workflow](../administration/assay-setup.md) stages
+the ASP, gene lists and configurations for independent review before activation.
+
+Create shared scopes under **Admin > Subpanel definitions**, then manage each
+assay's availability under **Admin > Assay subpanel associations**. See
+[Assay Subpanels](../administration/assay-subpanels.md) for creation order,
+permissions, retirement, persistence and existing-installation setup.
+
+### Annotation vocabulary and sample profiles
+
+`terminology.automatic_annotation_tumor_type` in the published clinical reporting
+rule set supplies tumor-type wording for automatic Tier III annotations. Configure
+it through the reporting-rule editor and publish a reviewed version; no restart
+is required. See [annotation terminology](../reference/clinical-reporting-rules.md#automatic-tier-iii-annotation-terminology).
+
+Sample catalog requests default to the deployed environment. The frontend explicitly
+sends `profile_scope`; `all` selects all authorized profiles, never bypassing user
+scope. The unused `sample_view` query parameter is not part of the request contract.

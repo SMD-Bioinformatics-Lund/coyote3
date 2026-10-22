@@ -11,7 +11,7 @@ bound to different databases.
 | --- | --- |
 | Single-document updates and job lease claims | MongoDB atomic conditional writes. |
 | Sample creation and update | Sample metadata, declared dependent evidence, readiness, and async completion receipt commit together. |
-| Sample deletion | Sample anchor, findings, quality data, comments, report metadata, and reported finding snapshots are removed together. Shared annotations, references, audit records, and report files are retained. |
+| Sample deletion | Sample anchor, findings, quality data, comments, report metadata, and reported finding snapshots are removed together with durable report-file erasure jobs. Shared annotations, references and audit records are retained. Files are removed after commit. |
 | Report save | Sample report state, report metadata, and finding snapshots commit together. Files remain outside MongoDB. |
 | Configuration revision rotation | Retiring the active revision and inserting its successor commit together. |
 | Clinical rules and public catalog governance | Related lifecycle records and revision/history changes share the existing repository transaction. |
@@ -134,7 +134,39 @@ Use the same report root mount/path representation as the report-writing service
 | --- | --- |
 | `missing` | Investigate inaccessible mounts or absent referenced HTML/PDF files; restore verified artifacts through the center's recovery procedure. |
 | `outside_root` | Investigate an invalid persisted path; the script does not read the external file. |
-| `unreferenced` | Review against retention policy and uncertain commits before any manual cleanup. Sample deletion deliberately retains report files, so this is not proof of an orphan that may be deleted. |
+| `unreferenced` | Review pending report-erasure jobs, earlier deletions and uncertain commits before manual cleanup. An absent report record alone does not authorize deletion. |
+
+### Report erasure after sample deletion
+
+The admin sample DELETE endpoint requires `sample:delete:global`. Built-in Clinical
+administrator (`admin`) and Superuser roles grant this permission. Other users cannot
+delete samples unless the center explicitly grants it through its permission policy.
+The confirmation names the database records and generated HTML/PDF files being removed.
+
+The primary database's internal `report_artifact_erasure` collection stores one pending
+job per distinct generated report path. Jobs commit with sample deletion, so a database
+rollback never authorizes file removal. The worker checks this queue every 30 seconds,
+attempting up to 100 files per run independently of routine retention-maintenance controls.
+The response's `meta.report_artifacts_queued` is a queued count, not a claim that filesystem
+erasure has already finished. Successful erasure removes the pending path and emits a
+`sample.report_artifact_erased` audit receipt.
+
+Paths must remain inside configured report storage, and reports shared with another sample
+block deletion. Cleanup does not traverse symlinked directories. Failed jobs remain queued
+with `status: retry_required`, `last_attempt`, an attempt count and a bounded reason
+code; failed jobs rotate behind untouched jobs. Runtime inspection reports backlog
+count and age. See [erasure diagnosis](../operations/background-delivery.md#report-file-erasure).
+An unavailable or changed report-storage root requires operator reconciliation. The API and
+worker must use the same persistent report directory and filesystem identity. Jobs are scoped
+to the deployment's audit routing identity; do not relabel them to move work between environments.
+
+Inspect pending jobs using restricted database administration access. Restore the expected
+mount or permissions before retrying; do not rewrite queued paths to bypass containment checks.
+Missing individual files complete idempotently, including after a crash between unlink and
+acknowledgement. Ordinary retries also run after worker restarts. Backups, external pipeline/BAM
+files, shared annotations and audit history retain their separate retention policies. Existing
+orphan files from deletions before this workflow require the reconciliation procedure above;
+the worker does not infer ownership or erase arbitrary unreferenced files.
 
 Unreferenced files newer than 24 hours are excluded by default; adjust with
 `--minimum-age-hours`. Exit status is 1 for missing/outside-root references and 0

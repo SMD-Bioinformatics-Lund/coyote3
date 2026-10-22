@@ -19,7 +19,7 @@ table. An existing saved control is not replaced by editing the environment file
 | `celery.collection_writes_enabled` | Boolean | `true` | Collection-write task-family switch. |
 | `celery.maintenance_enabled` | Boolean | `true` | Maintenance task-family switch. |
 | `retention.audit_events_days` | Integer, 30–3650 days | `AUDIT_RETENTION_DAYS`, otherwise 730 | Operational audit-event retention; not a blanket clinical-record deletion policy. |
-| `retention.notification_days` | Integer, 7–3650 days | `NOTIFICATION_RETENTION_DAYS`, otherwise 180 | Notification retention. |
+| `retention.notification_days` | Integer, 7–3650 days | `NOTIFICATION_RETENTION_DAYS`, otherwise 180 | Visibility duration for non-broadcast workflow messages; records remain retained. |
 | `retention.disk_log_days` | Integer, 1–3650 days | `LOG_RETENTION_DAYS`, otherwise 30 | Disk-log retention. |
 | `retention.gzip_disk_logs_after_days` | Integer, 1–3650 days, no greater than disk-log retention | `LOG_GZIP_AFTER_DAYS`, otherwise 7 | Age at which eligible logs are compressed. |
 | `modules.dna_analysis_enabled` | Boolean | `true` | DNA module availability. |
@@ -56,3 +56,26 @@ collections. See [audit and logging](../operations/audit-and-logging.md) and
 For example, `email.enabled = false` describes the stored boolean setting, not
 an environment assignment. Use the application form to change it. SMTP host,
 credentials and sender addresses remain [deployment settings](../deployment/configuration-reference.md#environment-variable-reference).
+
+## Application-module boundaries
+
+| Module | Governed capability |
+| --- | --- |
+| DNA analysis | Small variants, CNVs, translocations, biomarkers, and coverage. |
+| RNA analysis | Fusion and expression analysis. |
+| Clinical reporting | Preview, rendering, saving, and retrieval of reports. |
+| Tiered variant search | Cross-sample tier and annotation search. |
+| Knowledgebases | Gene context and local or external evidence lookups. |
+| Ingest workspace | Manual bundle upload, validation, and queue submission. |
+| Assay catalog | Public catalog, matrix, ASP gene, and gene-list views. |
+
+Authentication, health, samples, profiles, notifications, application controls,
+and audit are not switchable modules. They are core access, recovery, or
+oversight surfaces. In particular, audit visibility is controlled by RBAC and
+cannot be disabled through application controls.
+
+The public `GET /api/v1/public/modules` endpoint exposes only module labels,
+descriptions, and effective availability. The frontend uses that endpoint to
+remove disabled navigation before a user opens it. API middleware independently
+checks every governed request, so a stale browser, bookmarked route, or direct
+API caller cannot bypass a disabled module.

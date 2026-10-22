@@ -133,7 +133,7 @@ the requested global order, so the API resolves that context before sorting.
 Other ordinary table sorts retain page-only display enrichment.
 
 SNV consequence filtering queries `variants.consequence_terms`, never
-`INFO.selected_CSQ.Consequence` and never `INFO.CSQ`. This means a clinically
+`INFO.selected_CSQ.Consequence` and never `INFO.CSQ`. A clinically
 relevant term on an alternate transcript remains queryable while the selected
 transcript remains stable for display. The compound index on
 `SAMPLE_ID, consequence_terms` supports that query shape.
@@ -267,7 +267,10 @@ An update ingest replaces the evidence supplied by readable inputs and updates s
 transaction. A failed transaction leaves the prior data unchanged. Administrative
 sample deletion removes the sample anchor and its owned findings, quality data,
 PGx results, comments, report metadata, and reported-variant snapshots in one
-transaction. Shared annotations, audit records, and report files are retained.
+transaction. Generated report HTML/PDF erasure jobs commit in that same transaction;
+the worker removes the files after commit and retries failures. Shared annotations and
+audit records are retained. Deletion requires `sample:delete:global`, granted to the
+built-in Clinical administrator and Superuser roles, not ordinary clinical users.
 The deletion audit event keeps sample name and internal identifier as traceability
 metadata. See [transaction boundaries and recovery](transactions-and-ingest-recovery.md)
 for async receipts and artifact reconciliation.

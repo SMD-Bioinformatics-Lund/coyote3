@@ -4,6 +4,8 @@ Coyote3 combines sample review, finding classification, reporting, and administr
 controls. Available pages and actions depend on user permissions and the center's
 configuration. Procedures are documented in the [application guide](application-guide.md)
 and [administration guide](../administration/administration-guide.md).
+This page is a capability index. For component and data flow, use the
+[system overview](../reference/application-overview.md).
 
 ## Shared review features
 

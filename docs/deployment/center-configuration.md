@@ -321,7 +321,7 @@ requirements, omission behavior, examples and validation.
 The following values are intentionally not configurable by a center. They are
 application behavior and changing them requires a software change.
 
-| Item | Defined in | Why it is software-owned |
+| Item | Defined in | Software contract |
 | --- | --- | --- |
 | Permission identifiers and permission categories | `api/config/constants.py` and authorization contracts | Centers assign existing permissions to roles; they do not define new authorization semantics. |
 | Authentication implementation | `api/config/security.py` and authentication services | `AUTHENTICATION_PROVIDERS` selects supported providers; center vocabulary cannot add a protocol. |

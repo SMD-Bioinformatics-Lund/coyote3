@@ -228,15 +228,9 @@ for seven days to keep storage use bounded. The backend XML is the
 repository-wide observation report; family gates remain the release controls
 for clinically important boundaries.
 
-> **Note: Why the repository-wide percentage is not the clinical gate**
->
->
-> A repository-wide percentage mixes clinical decisions with generated
-> adapters, deployment helpers, administrative forms, and rarely used error
-> paths. The quality gate therefore measures the clinical query policy as its
-> own accountable unit. Broader family gates remain in place for application
-> and HTTP code.
->
+Clinical query policy has a separate coverage threshold. Repository-wide
+coverage also includes adapters, deployment helpers and administrative code;
+it does not replace the clinical, application or HTTP family gates.
 
 ## Python docstrings
 

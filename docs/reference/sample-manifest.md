@@ -475,7 +475,7 @@ written.
 - load VEP consequence translations
 - load variant-class translations for sample views and reports
 
-This means the sample keeps an explicit record of which VEP metadata version should be used when reopening or reporting the sample later.
+The sample retains the VEP metadata version used when reopening or reporting it.
 
 DNA report generation and all sample-bound DNA table/filter operations require
 `sample.database_versions.vep` during consequence resolution. They do not fall

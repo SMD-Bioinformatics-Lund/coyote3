@@ -96,15 +96,15 @@ The current combined SNV workflow also applies germline exceptions during somati
 retrieval, as described below. Policies for other analyses remain independent. A subpanel policy always includes its assay;
 sharing a subpanel identifier across assays does not share a query policy.
 
-!!! warning "Somatic queries can return germline variants"
-
-    Intent scopes select query policies, not confirmed variant origin. Current
-    somatic SNV queries can include germline variants that meet their criteria.
-    The dedicated germline SNV pathway is not yet fully implemented. Published
-    germline exceptions are therefore evaluated within somatic SNV retrieval for
-    the same group, assay and subpanel. The somatic evidence mode remains active;
-    the germline evidence mode does not replace it. Germline policy options do not
-    imply a complete germline workflow or biological separation of the results.
+> **Warning: Somatic queries can return germline variants**
+>
+> Intent scopes select query policies, not confirmed variant origin. Current
+> somatic SNV queries can include germline variants that meet their criteria.
+> The dedicated germline SNV pathway is not yet fully implemented. Published
+> germline exceptions are therefore evaluated within somatic SNV retrieval for
+> the same group, assay and subpanel. The somatic evidence mode remains active;
+> the germline evidence mode does not replace it. Germline policy options do not
+> imply a complete germline workflow or biological separation of the results.
 
 The resolver composes each intent's hierarchy independently, then adds the effective
 germline exceptions to the somatic exceptions. Effective germline identifiers use a
@@ -432,14 +432,14 @@ The API does not silently convert numeric strings. Integer fields reject fractio
 and booleans. Comparison values cannot contain dictionaries or MongoDB expressions.
 The field catalog excludes sample identity and access-control fields.
 
-!!! important "Missing fields, nulls and arrays"
-
-    Equality with null matches null or absent fields. Inequality with null selects
-    present, non-null values. Negative predicates such as `$nin` or NOT can match
-    absent fields; combine them with `$exists: true` when presence is required.
-    Separate dotted-field predicates can match different array elements. Use
-    **Match the same array element** when genotype or caller evidence must belong
-    to the same entry.
+> **Important: Missing fields, nulls and arrays**
+>
+> Equality with null matches null or absent fields. Inequality with null selects
+> present, non-null values. Negative predicates such as `$nin` or NOT can match
+> absent fields; combine them with `$exists: true` when presence is required.
+> Separate dotted-field predicates can match different array elements. Use
+> **Match the same array element** when genotype or caller evidence must belong
+> to the same entry.
 
 For example, one RNA `calls` element can require a particular `calls.caller` and
 minimum `calls.spanreads`. Another caller's read count cannot satisfy that block.
@@ -572,7 +572,8 @@ every shipped set ID, its group scope, exact predicates and effect on retrieval.
 
 The first-installation index-management step creates indexes for `query_rule_sets`.
 Application startup verifies the index contract; it does not create missing indexes.
-Bootstrap installs published version-one policies attributed to the initial administrator.
+Fresh bootstrap adds published version-one policies attributed to `system`. Later
+bundled maintenance requires administrator API login and preserves immutable history.
 Their `system_installed` flag records origin; successors use the normal draft, review
 and publication workflow. Installation is not evidence of clinical validation.
 

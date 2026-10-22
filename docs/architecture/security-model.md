@@ -1,5 +1,7 @@
 # Security Model
 
+![Sample-scoped finding mutation gates](../assets/diagrams/finding-authorization-flow.svg)
+
 ## Security Flow Diagram
 
 ![Identity, access, and traceability](../assets/diagrams/identity-access-relationships.svg)
@@ -129,11 +131,11 @@ of authorization. It is rendered as a visual accent only; readable foreground
 text is controlled by the UI theme so role badges stay accessible in both light
 and dark mode.
 
-Clinical configuration resources use the same in-place model: ASP, ASPC, and
-ISGL retain one active first-version document per business key. Their mutation
-events are captured in the audit stream. Report reproducibility comes from the
-saved report's resolved ASPC reference and filter snapshot, not from inactive
-duplicate configuration documents.
+Clinical configuration uses revision rotation: ASP, ASPC and ISGL revisions retain
+their stable business identifier and incrementing version, with a single active
+revision selected according to the resource contract. Mutation events are captured
+in the audit stream. Reports retain resolved configuration references and filter
+snapshots. See [configuration identity and audit](configuration-identity-and-audit.md).
 
 ### Canonical role levels
 

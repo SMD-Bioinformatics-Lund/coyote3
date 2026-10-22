@@ -1,5 +1,8 @@
 # Synthetic clinical workflow exercises
 
+For the directory layout, sample manifest, analysis formats and offline mongomock
+replay, see the [demo data bundle reference](demo-data-bundle.md).
+
 The `demo_data/clinical_workflows/` bundle provides
 raw pipeline files and matching database examples for ingest, query policies,
 filters, classification, comments and reporting. Use an isolated demonstration
@@ -243,12 +246,13 @@ genes, short ALT, low-evidence FLT3 and positions just outside the admitted inte
 provide negative controls. Germline admissions can bypass ordinary evidence in the
 current somatic view; see the [SNV workflow warning](../administration/query-rules.md).
 
-!!! important "VCF float boundary behavior"
-    The parser reads VCF floating-point values with limited precision. The nominal
-    `0.03` case fraction is slightly below the minimum after parsing; nominal `0.05`
-    control fraction is slightly above the maximum. Therefore `af_boundary` and
-    `control_boundary` are excluded by the current queries. These fixtures record
-    actual behavior rather than treating decimal source strings as exact values.
+> **Important: VCF float boundary behavior**
+>
+> The parser reads VCF floating-point values with limited precision. The nominal
+> `0.03` case fraction is slightly below the minimum after parsing; nominal `0.05`
+> control fraction is slightly above the maximum. Therefore `af_boundary` and
+> `control_boundary` are excluded by the current queries. These fixtures record
+> actual behavior rather than treating decimal source strings as exact values.
 
 The unpaired myeloid sample additionally selects `control_high` and
 `control_boundary`, because there is no control genotype. Selecting only FLT3

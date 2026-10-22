@@ -392,27 +392,18 @@ bash scripts/deployment/compose-with-version.sh \
     --username coyote3.admin \
     --email admin@validation.invalid \
     --password "$VALIDATION_ADMIN_PASSWORD" \
-    --role-id superuser \
-    --with-demo-center
+    --role-id superuser
 ```
 
 Bootstrap loads:
 
 - system-managed permissions and roles;
-- the first local superuser;
-- synthetic ASP, ASPC, and ISGL records required by the DNA fixture.
+- the first local superuser and named system administrator;
+- application groups/query policies, bundled HGNC/VEP references, and both connected
+  starter demonstrations, with system creation provenance.
 
-Bootstrap is intentionally explicit and refuses to initialize an already
-governed database. A second successful bootstrap is not expected.
-
-Install bundled reference snapshots separately when required by the rehearsal:
-
-```bash
-bash scripts/deployment/compose-with-version.sh \
-  -p "$VALIDATION_APP_PROJECT" --env-file "$VALIDATION_ENV_FILE" \
-  -f deploy/compose/docker-compose.yml run --rm --no-deps -T api \
-  python scripts/bootstrap/install_reference_data.py --actor center.operator
-```
+Existing deployments skip bootstrap, including missing modules. Partial targets
+are rejected. Later additions or repairs use authenticated API maintenance.
 
 Use `manage_mongo_indexes.py apply --scope all` during this disposable rehearsal
 to provision both application and knowledgebase indexes explicitly.
@@ -451,6 +442,21 @@ for attempt in $(seq 1 60); do
 done
 ```
 
+Exercise authenticated maintenance after startup with explicitly selected modules:
+
+```bash
+bash scripts/deployment/compose-with-version.sh \
+  -p "$VALIDATION_APP_PROJECT" --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.yml run --rm --no-deps -it api \
+  python scripts/deployment/manage_data.py \
+    --api-url http://api:8001 --modules application --force --username center.operator
+```
+
+Enter the initial administrator password, then complete the new-password and
+confirmation prompts. The command signs in again before maintenance.
+Default starter content is described in the
+[demo installation workflow](clinical-workflow-demo.md).
+
 Verify the public application surfaces:
 
 ```bash
@@ -460,6 +466,11 @@ curl -fsS "$VALIDATION_PUBLIC_URL/api/v1/docs" >/dev/null
 ```
 
 ## 8. Submit a live watch-folder ingest
+
+The generic fixture below targets legacy `assay_1` configuration rather than the
+default starter assays. Provision its ASP, ASPC and ISGL definitions from
+`api/config/bootstrap/demo_center` through managed administration before submitting it;
+see the [bundled configuration examples](../administration/installed-defaults.md#low-level-bootstrap-configuration-examples).
 
 Create one sample bundle through the running worker, which owns the mounted
 watch directory. Copy every declared resource first and copy the manifest last

@@ -118,7 +118,7 @@ mongosh "<admin-mongo-uri>" --eval '
   var roles = [
     {role: "readWrite", db: "'"${COYOTE3_DB:?COYOTE3_DB must be set}"'"},
     {role: "readWrite", db: "'"${IDENTITY_DB:?IDENTITY_DB must be set}"'"},
-    {role: "readWrite", db: "'"${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB must be set}"'"},
+    {role: "read", db: "'"${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB must be set}"'"},
     {role: "readWrite", db: "'"${BAM_DB:?BAM_DB must be set}"'"}
   ];
   var info = db.getUser(user);
@@ -158,20 +158,26 @@ application secrets, including `REDIS_PASSWORD`, remain deployment requirements.
 
 ## SMTP relay strategy
 
-Preferred center-safe baseline is external SMTP relay (no host Postfix coupling):
+Configure a center-operated relay using its approved TLS mode and sender addresses.
+For a relay offering STARTTLS, use:
 
 ```env
 SMTP_HOST='smtp.example.org'
-SMTP_PORT='25'
-SMTP_USE_TLS='0'
+SMTP_PORT='587'
+SMTP_USE_TLS='1'
 SMTP_USE_SSL='0'
 SMTP_USERNAME=''
 SMTP_PASSWORD=''
 SMTP_FROM_EMAIL='CHANGE_ME_FROM_EMAIL'
 ```
 
-Behavior guarantees:
+Use implicit TLS instead when the relay requires it; do not enable both modes.
+A port-25 relay with both TLS settings off sends messages without transport
+encryption. Use that configuration only as an explicitly accepted center transport
+exception, rather than as the production default. Keep the unencrypted Mailpit
+example confined to local synthetic testing. See
+[email channels and controls](../operations/email-and-notifications.md).
 
-- User create/invite/reset flows do not hard-fail if mail cannot be delivered.
-- API/UI return warning + manual setup URL metadata when email send fails.
-- This keeps admin workflows functional even when SMTP is temporarily unavailable.
+Account workflows report mail failures through their operation response; verify the
+account or reset action and its delivery result separately. SMTP acceptance is not
+proof that the receiving mailbox delivered the message.

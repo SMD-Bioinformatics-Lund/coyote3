@@ -117,8 +117,8 @@ review file alongside the operator and review date:
 }
 ```
 
-`unprofiled_files` must account for every file listed in the audit manifest,
-not just the example above. Keep field-disposition decisions, reconciliation
+`unprofiled_files` must account for every file listed in the audit manifest.
+Keep field-disposition decisions, reconciliation
 evidence, and synthetic test results with the migration review records.
 
 Configuration, annotation, blacklist, and sample commands require

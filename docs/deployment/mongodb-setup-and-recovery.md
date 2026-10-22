@@ -20,7 +20,7 @@ data directory into two running mongod processes.
 ## Docker deployment model
 
 For Compose 1.29.2 deployments, use the separate
-[legacy deployment definitions and commands](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/deploy/legacy/README.md).
+[legacy Compose definitions](https://github.com/SMD-Bioinformatics-Lund/coyote3/tree/api/deploy/legacy).
 They do not change the modern Compose files or certify current images on an old runtime.
 
 The base Compose stack starts no MongoDB. The optional
@@ -32,8 +32,8 @@ and keep its lifecycle separate from application updates.
 
 ## First-time setup
 
-Follow [first installation, step 6](first-installation.md#choose-and-prepare-mongodb)
-before application bootstrap. It includes software installation links, the private
+Follow [first-time MongoDB provisioning](mongodb-first-setup.md)
+before application bootstrap. It includes the private
 Docker server environment, network/storage/keyfile preparation, initialization,
 and host-installed MongoDB replica-set conversion. It also separates runtime
 knowledgebase readers from the maintenance credentials required to install reference data.

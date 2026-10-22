@@ -8,12 +8,6 @@ This section defines the project standards all contributors are expected to foll
 - [Contributing](contributing.md)
 - [License](license.md)
 
-## Why this matters
-
-- Keeps collaboration respectful and predictable across teams.
-- Makes contribution expectations clear for new developers.
-- Clarifies legal usage and redistribution terms.
-
 ## Source of truth
 
 Canonical repository files:

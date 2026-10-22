@@ -1,12 +1,14 @@
 # Application domains and services
 
-This document maps the main platform domains, UI identifiers, API keys, and stored backend fields.
+This reference maps capabilities to their owning packages and resources. Use the
+[application guide](../user-guide/application-guide.md) for clinical tasks and the
+[architecture guide](../architecture/application-architecture.md) for dependency boundaries.
 
-## 1. Primary Sample Domain
+## 1. Primary sample domain
 
 The `samples` document is the main record for a case. Most findings collections link back to the sample through `SAMPLE_ID`.
 
-### Operational Component Mapping
+### Operational component mapping
 
 | Identifier | Collection | Primary Key | Operational Scoping |
 |---|---|---|---|
@@ -14,25 +16,30 @@ The `samples` document is the main record for a case. Most findings collections 
 | **ASPC** | `asp_configs` | `aspc_id` | Enforces assay/subpanel/environment filtering and reporting strategies. |
 | **ISGL** | `insilico_genelists` | `isgl_id` | Provides curated clinical gene cohorts for interpretation. |
 
-### Resource Identification and Uniqueness
+### Resource identification and uniqueness
 
 Administrative resources use stable business IDs for routing and lookup.
 
 | Resource Type | ID Attribute | Specification | Constraint |
 |---|---|---|---|
-| **User** | `username` | Lowercase alphanumeric login identifier. | Global Uniqueness |
-| **Role** | `role_id` | Lowercase functional slug (e.g., `viewer`, `admin`). | Global Uniqueness |
-| **Permission** | `permission_id` | Standardized `resource:action[:scope]` key (for example, `sample:edit:global`). | Global Uniqueness |
-| **ASP** | `asp_id` | Assay identifier mapped to `sample.asp_id`. | Global Uniqueness |
-| **ASPC** | `aspc_id` | Stable identifier for one ASP, subpanel, and environment configuration. | Global Uniqueness |
-| **ISGL** | `isgl_id` | Organizational genelist identifier. | Global Uniqueness |
+| **User** | `username` | Login identifier. | Unique within the configured identity database. |
+| **Role** | `role_id` | Functional slug, such as `viewer` or `admin`. | Unique within the configured identity database. |
+| **Permission** | `permission_id` | `resource:action[:scope]` key, such as `sample:edit:global`. | Unique within the configured identity database. |
+| **ASP** | `asp_id` | Assay identifier mapped to `sample.asp_id`. | Identifier plus `version` identifies a stored revision. |
+| **ASPC** | `aspc_id` | Identifier for an ASP, subpanel and environment configuration. | Identifier plus `version` identifies a stored revision. |
+| **ISGL** | `isgl_id` | Gene-list identifier. | Identifier plus `version` identifies a stored revision. |
+
+A stable business ID is not a globally unique revision. Samples retain resolved
+configuration references; repositories select revisions according to their contracts.
+See [clinical identities](clinical-concepts.md) and the generated
+[collection reference](mongodb-collections.md).
 
 Creation operations check resource uniqueness. Conflict handling depends on the
 endpoint. FastAPI request-model validation returns `422 Unprocessable Entity` for
 missing or invalid required fields; application validation can also return `400`.
 The endpoint response contract defines the applicable errors.
 
-## 2. Findings and Interpretation Domains
+## 2. Findings and interpretation domains
 
 The platform separates findings into these genomic domains, each linked to the sample by `SAMPLE_ID`.
 
@@ -61,39 +68,33 @@ Classification and report narration are independent workflows. A bulk Tier
 III classification can optionally create an accompanying text annotation for
 a small variant by calling `create_annotation_text_from_gene`. Its inputs are
 the selected transcript consequence, gene, sample assay group, and locally
-stored OncoKB gene status. Tier I, II, and IV classifications are stored
-without generated text. This workflow does not evaluate ASPC report wording or
-the static clinical reporting rule files.
+stored OncoKB gene status. Its tumor-type terminology is resolved from the published
+DNA clinical-rule release for the sample's assay, subpanel and language. The existing
+automatic sentence requires Swedish terminology. Tier I, II and IV classifications
+are stored without generated text. Classification does not execute the report's
+section-narrative evaluation.
 
-## 3. Filter and Logic Domains
+## 3. Filter and logic domains
 
-### Persistent DNA Filter Specifications
+### Saved filter profiles
 
-Sample-level filters are persisted within the domain sections
-`samples.filters.snv`, `samples.filters.cnv`, `samples.filters.coverage`, or
-`samples.filters.fusion`. These values override ASPC defaults until reset.
+ASPC defaults and sample snapshots use intent-aware profiles:
 
-| Attribute Key | Type | Functional Definition | Implementation |
-|---|---|---|---|
-| `snv.min_alt_reads` | Integer | Minimum supporting alternate reads for SNV calls. | Query Gate |
-| `snv.min_depth` | Integer | Absolute minimum sequencing depth at position. | Query Gate |
-| `snv.min_freq` | Float | Minimum Allele Frequency (VAF) in target sample. | Query Gate |
-| `snv.max_popfreq` | Float | Upper-bound population frequency threshold. | Logic & UI |
-| `cnv.min_cnv_size` | Integer | Minimum structural size for CNV consideration. | Query Gate |
-| `cnv.cnv_loss_cutoff` | Float | Segment ratio threshold for designated loss events. | Query Gate |
-| `snv.vep_consequences`| List | UI consequence groups resolved through versioned VEP metadata. | Query Gate |
-| `snv.snvlists` / `cnv.cnvlists` / `fusion.fusionlists` | List | Active typed ISGL identifiers restricting analysis scope. | Logic Gate |
+- DNA: `filters.somatic.snv`, `filters.germline.snv`, `filters.somatic.cnv`,
+  `filters.somatic.coverage` and `filters.somatic.translocation`.
+- RNA: `filters.somatic.fusion`.
 
-### Persistent RNA Filter Specifications
+The [filter field reference](filter-profile-fields.md) owns keys, units, defaults
+and bounds. [Assay filtering](assay-filtering.md) defines precedence and query-rule
+exceptions. A saved selection is not automatically replaced by a later ASPC revision,
+and updating filters does not rewrite a saved report.
 
-| Attribute Key | Type | Functional Definition | Implementation |
-|---|---|---|---|
-| `fusion.min_spanning_reads` | Integer | Minimum supporting split/span read counts. | Query Gate |
-| `fusion.fusion_callers` | List | Array of authorized or selected fusion callers. | Query Gate |
-| `fusion.fusion_effects` | List | Functional effect classifications (e.g., in-frame). | Query Gate |
-| `fusion.fusion_descriptions` | List | Exact comma-delimited caller evidence terms. Terms within the list are alternatives; this group is cumulative with caller, effect, and support filters. | Query Gate |
+Both SNV intents support `exclude_flags`. Options come from the center's
+`filter_flag_metadata.yaml`; exclusions match raw flags exactly. Metadata labels,
+badge colors and prefix descriptions do not change query semantics. See the
+[flag metadata contract](../configuration/filter-flag-metadata-file.md).
 
-### Query Operators
+### Query operators
 
 The backend uses standard MongoDB operators to enforce analysis thresholds:
 
@@ -102,11 +103,11 @@ The backend uses standard MongoDB operators to enforce analysis thresholds:
 - **Complex Objects**: `$elemMatch` for traversing nested array structures (Genotypes, VEP consequences).
 - **Logical Unions**: `$or` / `$and` for multi-dimensional criteria consolidation.
 
-## 4. Workload Pagination Strategy
+## 4. Workload pagination strategy
 
 The platform uses two pagination patterns:
 
-### Server-Side Pagination
+### Server-side pagination
 
 Primary sample listings use independent server-side pagination for live and
 reported cohorts.
@@ -116,23 +117,29 @@ reported cohorts.
 - **Stable Ordering**: Multi-column sorting is applied before pagination so each page belongs to one deterministic result order.
 - **Metadata**: Response payloads provide exact totals and `has_next` flags to control pagination and result counts.
 
-### Finding Table Pagination
+### Finding table pagination
 
 Finding tables send paging, search, filter, and multi-column sort state to the
 API. The backend applies those operations to the complete matching result set
 before returning one page. The frontend query cache reuses an unchanged result
 and invalidates affected entries after finding or filter mutations.
 
-## 5. Temporal Standards
+Finding hydration is batched. Deep sorted pages use private temporary merge runs;
+complete exports still retain their output. See the measured fixture and temporary
+storage requirements in [background delivery](../operations/background-delivery.md#deep-finding-pages).
 
-- **Durable Storage**: All timestamps are stored in UTC (ISO-8601).
+## 5. Temporal standards
+
+- **Durable storage**: Audit, notification and other typed contracts use UTC BSON
+  datetime values where declared. API serializers commonly expose ISO-8601 strings;
+  this does not mean every MongoDB timestamp is stored as a string.
 - **Client Visualization**: The UI renders absolute timestamps in the
   deployment's configured `LOCAL_TIME_ZONE`. Relative labels are calculated from
   the same UTC instant.
 
-## 6. Center-Configurable UI Metadata
+## 6. Center-configurable UI metadata
 
-### VCF Filter Flag Metadata
+### VCF filter flag metadata
 
 VCF caller/filter badges are described in `api/config/center/filter_flag_metadata.yaml`.
 The UI reads this metadata through:
@@ -166,3 +173,19 @@ terms:
 
 This lets a center adapt filter descriptions to its caller stack, local validation rules,
 and naming conventions while retaining the same API and UI contract.
+
+## 7. Capability ownership
+
+| Capability | Owning package | Execution and persistence |
+| --- | --- | --- |
+| Sample ingestion | `api/application/ingest/` | Validated samples and dependent evidence commit through repository transactions on the ingest worker. |
+| Clinical classification | `api/application/classification/` | Shared annotation identity and classification history; independent from report narration. |
+| Report wording | `api/application/reporting/clinical_rules/` | Published scoped releases evaluate prepared facts; reports retain snapshots. |
+| In-app and broadcast notices | `api/application/notifications/` | Application-database messages and recipient state; maintenance workers deliver committed activity and email. |
+| Audit events | `api/application/audit/` | Event construction delegates persistence, outboxes and disk recovery to infrastructure repositories. |
+| Diagnostic logging and error mail | `api/infra/observability/` | Daily service logs and an independent monitor. |
+| Bundled installation data | `api/application/provisioning/deployment_data.py`, `api/application/provisioning/demo_installation.py` | Fresh bootstrap installs selected modules; later maintenance uses administrator authentication through the API. |
+
+These are packages in one application, with worker processes providing execution
+isolation. See [background delivery and recovery](../operations/background-delivery.md)
+for queue ownership, retry limits and operational inspection.

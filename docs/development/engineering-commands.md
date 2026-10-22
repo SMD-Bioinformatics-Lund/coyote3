@@ -22,7 +22,9 @@ active.
 | Markdown lint | `npm run docs:lint` |
 | Documentation build | `.venv/bin/python -m mkdocs build --strict` |
 
-The strict mypy boundary is configured in `pyproject.toml`. Add a module only
+The strict mypy boundary covers the complete domain and security packages plus the
+application and infrastructure modules listed in `pyproject.toml`. New domain modules
+are included automatically. Add other modules only
 after it passes the existing strict settings. Do not weaken a type rule to make
 new code pass.
 

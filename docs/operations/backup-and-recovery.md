@@ -84,4 +84,6 @@ Snapshots are useful for multi-terabyte databases because they can finish quickl
 - With only one member, a crash-consistent snapshot may need recovery work. A fully consistent snapshot requires a controlled maintenance procedure such as `fsyncLock`, a snapshot, and `fsyncUnlock`; writes are paused for that interval.
 - Snapshot retention, encryption, off-host replication, and restore testing are infrastructure responsibilities. They cannot be made portable or safe by a generic repository script.
 
-For the initial one-member deployment, nightly logical archives plus off-host retention are the clean default. Add storage snapshots when archive duration or restore-time objectives require them.
+For the initial one-member deployment, schedule nightly logical archives with
+off-host retention. Add storage snapshots when archive duration or restore-time
+objectives require them.

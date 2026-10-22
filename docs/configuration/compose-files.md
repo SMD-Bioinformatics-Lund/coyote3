@@ -12,6 +12,7 @@ assay, patient, sample or clinical reporting rule.
 | `deploy/compose/docker-compose.yml` | Production application services using independently configured MongoDB endpoints. | Required base for application deployment. |
 | `docker-compose.dev.yml` | Development source mounts and development services. | Development overlay only; not a production file. |
 | `docker-compose.stage.yml`, `docker-compose.test.yml` | Stage/test overrides. | Only for the corresponding environment. |
+| `docker-compose.redis-tls.yml` | Verified internal Redis TLS with a mounted CA and server certificate/key. | Optional for production only; complete [certificate setup](../operations/redis-tls.md) first. Exclude from development/staging. |
 | Private `storage.yml` copied from `docker-compose.storage.example.yml` | Additional read-only pipeline input mounts. | Optional; configure its source and target first. |
 | `docker-compose.mongo.yml` | Independently operated MongoDB deployment. | Not used when MongoDB is already provided. Its own environment/initialization rules apply. |
 | `docker-compose.mongo-backup.yml` | Optional backup-directory mount for the separate MongoDB stack. | Use only with that stack and a configured backup directory. |
@@ -66,7 +67,7 @@ The host source must exist and be readable by the configured container identity.
 Manifests refer to the container path, such as `/inputs/run/example.vcf`.
 The standard data-root mount does not also mount the same absolute host path inside
 the container. Mount the input in every service that needs to read it; the shipped
-storage example includes API, worker and beat.
+storage example includes API, both workers and beat.
 
 Pass the base file first and the private override afterward:
 

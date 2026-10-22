@@ -7,9 +7,6 @@ response are covered in [Operations](../operations/README.md).
 
 ## Guides
 
-Use [Finding query rules](query-rules.md) to manage inherited finding-selection policies
-for groups, assays and subpanels.
-
 | Guide | Use it to |
 | --- | --- |
 | [Installed defaults and demonstration configuration](installed-defaults.md) | Review bundled groups, exact query conditions, optional demo resources and default roles. |
@@ -22,6 +19,7 @@ for groups, assays and subpanels.
 | [Assay Groups](assay-groups.md) | Register and manage assay-group scope and availability. |
 | [Assay Subpanels](assay-subpanels.md) | Manage shared subpanel definitions and assay associations. |
 | [Assay Setup](assay-setup.md) | Prepare and review an assay's configuration resources. |
+| [Finding query rules](query-rules.md) | Manage inherited finding-selection policies for groups, assays and subpanels. |
 | [Assay analysis and reporting availability](assay-analysis-availability.md) | Understand how assay files and configuration enable analyses and reporting. |
 | [Clinical resource fields](clinical-resource-fields.md) | Look up ASP, ASPC and ISGL field requirements and defaults. |
 | [Center Vocabulary Configuration](clinical-vocabulary.md) | Configure center-owned terms and annotation choices. |

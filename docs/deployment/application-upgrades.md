@@ -10,6 +10,9 @@ configuration, incomplete backup or missing migration procedure stops deployment
 There is no universal migration command: releases that change stored contracts
 must supply their own reviewed migration and recovery instructions.
 
+The pending release's required actions and rollback limits are listed in
+[release maintenance](release-maintenance.md).
+
 ## 1. Select the installation and maintenance record
 
 Run from the current deployed checkout, in one Bash shell. Select the existing
@@ -28,10 +31,18 @@ set -a
 . "$COYOTE_ENV_FILE"
 set +a
 
+COYOTE_COMPOSE_OVERLAYS=()
+# Populate this array with the installation's existing ordered overlays.
+# For production with Redis TLS, include deploy/compose/docker-compose.redis-tls.yml.
+COYOTE_COMPOSE_ARGS=(-f deploy/compose/docker-compose.yml)
+for compose_overlay in "${COYOTE_COMPOSE_OVERLAYS[@]}"; do
+  COYOTE_COMPOSE_ARGS+=(-f "$compose_overlay")
+done
+
 coyote_compose() {
   bash scripts/deployment/compose-with-version.sh \
     -p "$COYOTE_PROJECT" --env-file "$COYOTE_ENV_FILE" \
-    -f deploy/compose/docker-compose.yml "$@"
+    "${COYOTE_COMPOSE_ARGS[@]}" "$@"
 }
 
 read -r -p "New private absolute directory for this deployment record: " COYOTE_RELEASE_RECORD
@@ -52,6 +63,12 @@ base query settings, follow the [application-owned definitions upgrade](center-c
 before validating the new configuration release.
 For configuration-only changes, retain the current reviewed commit throughout.
 
+Use the installation's recorded file list, including private storage overrides and
+the optional production Redis TLS overlay. An empty array is correct only for a
+base-only deployment. Retain that decision through backup, startup and rollback.
+Development and staging exclude the production TLS overlay. For certificate
+creation, renewal and verification use [Redis TLS](../operations/redis-tls.md).
+
 ## 2. Preserve the current release and configuration
 
 Record the current code and running images before any build changes their tags:
@@ -63,6 +80,12 @@ coyote_compose ps --all > "$COYOTE_RELEASE_RECORD/previous-services.txt"
 coyote_compose images > "$COYOTE_RELEASE_RECORD/previous-images.txt"
 cp -p "$COYOTE_ENV_FILE" "$COYOTE_RELEASE_RECORD/previous.env"
 cp -a "$COYOTE3_CENTER_CONFIG_HOST_DIR" "$COYOTE_RELEASE_RECORD/previous-center"
+declare -p COYOTE_COMPOSE_OVERLAYS > "$COYOTE_RELEASE_RECORD/previous-overlays.bash"
+overlay_index=0
+for compose_overlay in "${COYOTE_COMPOSE_OVERLAYS[@]}"; do
+  cp -p -- "$compose_overlay" "$COYOTE_RELEASE_RECORD/overlay-${overlay_index}.yml"
+  overlay_index=$((overlay_index + 1))
+done
 
 docker ps -aq --filter "label=com.docker.compose.project=$COYOTE_PROJECT" \
   > "$COYOTE_RELEASE_RECORD/container-ids.txt"
@@ -159,7 +182,7 @@ purge Redis to obtain an empty queue. Check that direct API clients and other
 writers have stopped, then stop remaining application writers:
 
 ```bash
-coyote_compose stop -t 300 api worker monitor
+coyote_compose stop -t 300 api worker maintenance-worker monitor
 ```
 
 Redis and MongoDB remain available. A stop timeout may kill work: investigate any
@@ -278,7 +301,7 @@ Use the built images without rebuilding or fetching another version:
 ```bash
 coyote_compose up -d --no-build --pull never --force-recreate --wait --wait-timeout 180
 coyote_compose ps
-coyote_compose logs --tail=100 api worker beat proxy
+coyote_compose logs --tail=100 api worker maintenance-worker beat proxy
 COYOTE_BROWSER_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME%/}"
 curl --fail --show-error "$COYOTE_BROWSER_URL/api/v1/health"
 curl --fail --show-error --output /dev/null "$COYOTE_BROWSER_URL/"
@@ -304,6 +327,9 @@ with the current database, queued work and generated files.
 **Application-only rollback is allowed only when that compatibility is established.**
 Restore the previous environment file, center configuration and private overrides
 from the protected record, then source the restored environment. This includes
+restoring the recorded overlay order and Redis certificates/CA when TLS was selected.
+The record's `previous-overlays.bash` identifies the prior shell array; restore its
+referenced files before defining the Compose helper again. This also includes
 removing newly exported shell overrides that are absent from the previous file;
 using a fresh Bash shell avoids retaining target-release values.
 

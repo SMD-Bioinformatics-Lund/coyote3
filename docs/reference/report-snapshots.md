@@ -619,7 +619,7 @@ Fields updated:
 The sample is not used as the canonical report-history store. It only carries
 the latest report pointer and status flags for list views and dashboards.
 
-## Why Store `reported_variants`
+## Reported finding history
 
 The `reported_variants` collection gives the application a clinical report
 history index without repeatedly scanning raw variants or parsing report files.
@@ -636,9 +636,8 @@ documents represent all report finding types. It answers questions such as:
 - How often has this gene/protein/cDNA event appeared in reports?
 - What is the tier distribution across reported clinical outputs?
 
-This is important because variant interpretations change over time. The source
-variant, global annotation, or tier may change later, but the report snapshot
-must preserve what was actually signed out at the time.
+Later changes to a source finding, global annotation or tier do not alter the
+saved report snapshot.
 
 ## Cross-Sample Search And Mapping
 

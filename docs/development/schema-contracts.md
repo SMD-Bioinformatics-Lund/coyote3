@@ -137,8 +137,8 @@ Operational access resources update in place and increment `version`:
 - Roles (`roles`)
 - Permissions (`permissions`)
 
-These resources must remain easy to migrate, hydrate into RBAC policy, and query
-by their unique identity. A role or permission edit does not create another
+RBAC policy and database lookups use each resource's unique identity.
+A role or permission edit does not create another
 document with the same business key. Instead, the existing document is updated
 with:
 

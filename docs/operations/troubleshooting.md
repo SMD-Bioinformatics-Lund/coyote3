@@ -1,6 +1,7 @@
-# Operational Troubleshooting & Remediation
+# Operational troubleshooting
 
-This section outlines standard diagnostic signatures and remediation protocols for known operational deployment states and container lifecycle initialization faults.
+Use the symptom below to identify the failing component and its recovery procedure.
+Keep the deployment's actual environment file and complete Compose overlay list in each command.
 
 ## Authentication Failures During Index Inspection or Maintenance
 
@@ -9,14 +10,14 @@ This section outlines standard diagnostic signatures and remediation protocols f
 - API startup reports an authorization failure while listing index metadata, or
   the maintenance command reports `createIndexes requires authentication`.
 
-**Diagnostic Cause:**
+**Cause:**
 
 - The API requires read access to inspect index definitions. The explicit
   maintenance command additionally requires index-management privileges.
 
-**Remediation Protocol:**
+**Resolution:**
 
-1. Validate the local `.coyote3_env` file to ensure the configured `COYOTE3_MONGO_URI` connection string contains the correct authentication payload (username and password).
+1. Validate the selected private environment file to ensure the configured `COYOTE3_MONGO_URI` connection string contains the correct authentication credentials.
 2. Confirm the runtime account can list collection indexes. Run `apply` with a
    separately controlled maintenance identity that can create indexes.
 3. If connecting to a historical volume bootstrapped before authentication was
@@ -28,25 +29,27 @@ This section outlines standard diagnostic signatures and remediation protocols f
 
 **Signature:**
 
-- The Docker Compose execution faults sequentially with the output: `.coyote3_env not found`.
+- Compose reports that the selected environment file does not exist.
 
-**Remediation Protocol:**
+**Resolution:**
 
-Initialize the environment file from the canonical template in the repository:
+For a new development environment, copy the template; for production use the
+installation's private environment path. Retain existing files and secrets:
 
 ```bash
-cp deploy/env/example.env .coyote3_env
+test -f .coyote3_dev_env || cp deploy/env/example.env .coyote3_dev_env
 ```
 
-Ensure all explicit cryptographic secrets and API token parameters are manually populated within the file before re-initiating the compose commands.
+Review required secrets, database URIs and storage paths, then pass this exact file
+with `--env-file` on every command.
 
-## Sub-Process Interpreter Faults
+## Python interpreter errors
 
 **Signature:**
 
 - Security or gate-checking bash scripts terminate reporting: `No module named pytest`.
 
-**Remediation Protocol:**
+**Resolution:**
 
 Explicitly bind the execution command to the activated Python interpreter environment:
 
@@ -54,20 +57,23 @@ Explicitly bind the execution command to the activated Python interpreter enviro
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 ```
 
-## Pre-Commit Framework Isolation Faults
+## Pre-commit environment errors
 
 **Signature:**
 
 - Automated Git pre-commit hooks fail silently or explicitly broadcast `pytest not found`.
 
-**Remediation Protocol:**
+**Resolution:**
 
-- Configure all local hook execution blocks to point strictly to the active `venv` environment executable explicitly, rather than relying on global system `PATH` resolution.
-- Force a complete framework re-execution manually:
+Use the tracked hook and the repository environment:
 
 ```bash
-python -m pre_commit run --all-files
+git config core.hooksPath .githooks
+.venv/bin/python -m pre_commit run --all-files
 ```
+
+See [engineering commands](../development/engineering-commands.md). Do not install a
+second generated hook over the tracked one.
 
 ## API startup fails while connecting to Redis
 
@@ -78,6 +84,19 @@ distinguish authentication, DNS, TCP, and timeout failures.
 Check the connection from the API container, not only the Redis health check.
 Redis's container health check uses a local connection and can pass while traffic
 between containers is blocked.
+
+Source edits and repository quality checks do not deploy services or manage Docker
+networks. Development source reloads run inside existing containers. Deployment
+commands such as `compose up`, `run` and `down` change containers and can cause
+Docker to update its own host networking rules, even with an external network.
+Keep those operations separate from code verification on a shared host.
+See Docker's [packet filtering and firewall documentation](https://docs.docker.com/engine/network/packet-filtering-firewalls/)
+for the bridge networking rules managed by the daemon.
+
+The installer requires a pre-provisioned external bridge and never creates or repairs
+networks. Its diagnostics do not change host firewall rules, forwarding settings or
+Docker daemon configuration. Host networking repairs require a separate administrator
+operation after identifying the fault; restarting Docker affects other deployments.
 
 The center installer starts Redis and checks all three configured Redis connections
 from a temporary API container whenever the `start` stage is selected. This gate runs
@@ -149,7 +168,7 @@ execution rather than assuming a restart clears the cache.
 - API startup continues, but logs include `Mongo index conflict for repository=<name> was tolerated at startup`.
 - MongoDB reports `IndexOptionsConflict` (`85`) or `IndexKeySpecsConflict` (`86`) during repository index creation.
 
-**Diagnostic Cause:**
+**Cause:**
 
 - The collection already contains an index with the same name and different options, or the same key pattern under a different name.
 - This usually happens after a schema/index contract change against an existing database volume.
@@ -170,7 +189,7 @@ conflicts. A conflict means the name exists with a different key order or a
 behavior-changing option such as uniqueness, sparsity, TTL expiry, or a partial
 filter.
 
-**Remediation Protocol:**
+**Resolution:**
 
 1. Preserve the `status` output as operational evidence and confirm the
    conflicting index is not required by the deployed release.

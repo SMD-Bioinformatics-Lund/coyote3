@@ -37,7 +37,9 @@ upstream systems.
 | --- | --- |
 | React frontend | Clinical, public, and administrative screens. |
 | FastAPI API | Validation, authorization, workflows, reporting, and public contracts. |
-| Celery worker | Ingest, maintenance, and explicitly queued background work. |
+| Ingest worker | Sample and collection writes on the `ingest` queue. |
+| Maintenance worker | Audit/notification delivery and scheduled maintenance on `default`. |
+| Standalone monitor | Disk-log scanning, internal syslog collection and system-error email. |
 | Celery beat | Periodic task scheduling. |
 | MongoDB | Separate application, identity/security, knowledgebase, and BAM-service databases. |
 | Redis | Celery task delivery, task results, and non-clinical cache data. |
@@ -112,8 +114,9 @@ arbitrary data from report text. The report service:
 5. renders the preview; and
 6. saves immutable report context and typed reported-finding rows when asked.
 
-Report-rule files are part of the application release. Changing approved text
-requires a reviewed rule change and application version change.
+Clinical rule releases are stored in MongoDB and published through their governed
+review workflow. Approved wording can change without rebuilding the application;
+saved reports retain their recorded release/context and are not rewritten.
 
 See [clinical reporting rules](clinical-reporting-rules.md) for rule syntax,
 available facts, templates, filters, priorities, and complete examples.

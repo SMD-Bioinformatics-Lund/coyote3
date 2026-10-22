@@ -25,6 +25,8 @@ are needed only for the corresponding browser tracks, not for parsing these find
 
 Follow the [workflow guide](../../docs/testing/clinical-workflow-demo.md) for setup,
 ingest, expected selections, review actions and reporting checks.
+The [bundle reference](../../docs/testing/demo-data-bundle.md) documents sample
+manifest syntax, each raw file format and the shared mongomock replay.
 
 | Directory | Contents |
 | --- | --- |

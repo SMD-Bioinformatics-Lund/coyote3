@@ -14,6 +14,7 @@ Prepare the following before starting:
 | --- | --- |
 | Release | Exact application version and image digest proposed for production |
 | Environment | Validation env file, Compose profile, public HTTPS URL, and `SCRIPT_NAME` |
+| Redis transport | Record production TLS selected/not selected; retain the ordered overlay list and certificate-expiry evidence when selected. Development/staging use the base transport. |
 | Accounts | Local administrator, restricted clinical reviewer, and LDAP test account when LDAP is enabled |
 | DNA case | Approved synthetic or de-identified manifest with the DNA analyses used by the center |
 | RNA case | Approved synthetic or de-identified manifest with the RNA analyses used by the center |
@@ -34,6 +35,11 @@ PYTHON_BIN=.venv/bin/python scripts/deployment/center_preflight.sh \
 The command must validate secrets, render Compose, confirm database-name
 consistency, and verify that the container UID/GID can write to the configured
 data and log roots. Record the complete output.
+
+For a production TLS rehearsal, validate the exact production file list including
+`deploy/compose/docker-compose.redis-tls.yml`, rather than adding it to a staging
+stack. Follow [Redis certificate verification](../operations/redis-tls.md#verify-and-renew)
+and verify a task from both workers; Redis's own `PONG` is insufficient client evidence.
 
 ## 2. Validate reverse-proxy routing
 
@@ -133,6 +139,12 @@ ISGL, sample, annotation, report, notification, and audit records. Start a
 temporary application instance against the recovery URI and repeat login,
 sample opening, and report-preview checks. Never rehearse restoration against
 the source database.
+
+Verify the restored audit chain against the independently retained
+[checkpoint](../operations/audit-and-logging.md), then reconcile the report storage
+mount identity before resuming [artifact erasure](../operations/background-delivery.md#report-file-erasure).
+Restore the original Compose overlay list and Redis CA/server files when production
+TLS was selected. Preserve source evidence until recovery acceptance is recorded.
 
 ## 6. Record the decision
 

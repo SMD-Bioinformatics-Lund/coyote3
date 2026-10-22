@@ -9,6 +9,8 @@ For an existing installation, use the upgrade or redeployment procedure instead.
 - [ ] Reviewed release commit and container image identifiers recorded.
 - [ ] Private environment file and center configuration location recorded and backed up.
 - [ ] Compose project name and external application network recorded.
+- [ ] Ordered Compose overlay list recorded, including the production Redis TLS decision.
+- [ ] If Redis TLS is selected, certificate hostname, CA trust, permissions and client connectivity verified.
 - [ ] MongoDB endpoints, replica-set readiness and four distinct database names verified.
 - [ ] Existing knowledgebase data retained and reference versions reviewed.
 - [ ] Data/log roots and container UID/GID verified; required runtime directories present.

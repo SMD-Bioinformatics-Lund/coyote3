@@ -3,6 +3,9 @@
 Coyote3 provides clinical reviewers, laboratory staff, managers, and administrators
 with workspaces for sample review, classification, reporting, and resource management.
 Each workspace exposes the data and actions available to the signed-in account.
+This guide owns the clinical task sequence. Use the
+[page map](pages-and-workflows.md) to find a workspace and the
+[table reference](pages-and-table-columns.md) for column and badge definitions.
 Development and deployment procedures are covered in the
 [developer guide](../development/developer-guide.md) and
 [deployment guides](../deployment/first-installation.md).
@@ -162,7 +165,7 @@ The analysis layout is stored in the user's `ui_settings.analysis_layout`.
 The first-use banner disappears after the user has tried the Modern layout.
 Changing the layout does not change filters, classifications, or report data.
 
-### Why a tab may be absent
+### Analysis tab availability
 
 An analysis is shown only when it is valid for the sample's omics layer,
 enabled by the sample's ASPC, and supported by the corresponding data contract.

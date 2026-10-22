@@ -20,6 +20,7 @@ covered in the [clinical user guide](../user-guide/README.md),
 | [HRD, MSI, and TMB](measurement-analyses.md) | Configure measurement availability, rules, reports, and exports. |
 | [Assay configuration and query filtering](assay-filtering.md) | Trace assay configuration into analysis availability and query filters. |
 | [Review filter fields and defaults](filter-profile-fields.md) | Look up every supported filter key, unit, bound and default. |
+| [Query condition fields and operators](query-condition-fields.md) | Look up the generated catalog of fields and operators accepted in finding query rules. |
 | [Clinical Reporting Rules](clinical-reporting-rules.md) | Look up clinical rule syntax, selection, validation, and governance. |
 | [Reporting workflow and finding snapshots](report-snapshots.md) | Understand report identity, finding snapshots, and saved reporting context. |
 | [MongoDB collection contracts](mongodb-collections.md) | Look up generated collection fields and validation contracts. |

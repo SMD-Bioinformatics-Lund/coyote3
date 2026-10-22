@@ -16,7 +16,7 @@ copy these application-owned files into the external center directory.
 | `rbac/` | `permissions`, `roles` | Coyote3 application release | Installed before the first local superuser is created. Bundled records cannot be deleted through the UI. Roles may be deactivated or revised through their normal managed workflow. |
 | `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote3 application release | Eleven groups and twelve group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
 | `reference/` knowledgebase snapshots | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Bundled reference snapshot in `KNOWLEDGEBASE_DB` | Separate optional reference installation imports only into empty destination collections. Existing reference collections are never merged or replaced. |
-| `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic demonstration configuration | Optional first-run configuration; bootstrap also derives named subpanels/associations and report-rule revision baselines. Add center-approved definitions before clinical use. |
+| `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic demonstration configuration | Installed through the separate demo workflow, including named subpanels/associations and report-rule revision baselines. Add center-approved definitions before clinical use. |
 
 See [Installed defaults and demonstration configuration](../../../docs/administration/installed-defaults.md)
 for the complete inventory, query conditions, demo filters and role responsibilities.
@@ -29,12 +29,19 @@ MongoDB document shape.
 
 `scripts/bootstrap/bootstrap_database.py` is the explicit first-deployment command. It
 connects directly to the configured MongoDB URI before API, worker, or UI
-services are started. It creates a named system administrator and an emergency
-superuser together with the RBAC catalog and application policy definitions.
-`scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME` separately
-installs bundled HGNC and VEP references into empty knowledgebase collections.
-The optional `--with-demo-center` flag additionally loads the synthetic ASP,
-ASPC, ISGL and report-rule catalogs. A collection with one or more documents is skipped.
+services are started. On fresh application/identity targets it creates a named system
+administrator and an emergency superuser with RBAC, then installs application
+catalogs, bundled HGNC/VEP references and both connected starter demonstrations by
+default. Use `--skip-users`, `--skip-application`, `--skip-knowledgebase` and
+`--skip-demo` to disable modules subject to their documented dependencies.
+Populated reference collections are preserved.
+
+Only the invocation that creates the initial accounts may add data without API login.
+Existing deployments skip bootstrap completely, including missing modules. Later
+additions and repairs use `scripts/deployment/manage_data.py --api-url API_URL
+--modules application knowledgebase`; add `--force` for selected bundled repairs.
+The API service requires `admin`, `sys_admin` or `superuser`. The maintenance client
+completes a required password change and signs in again before adding any data.
 This prevents reference installation from silently mixing different HGNC/VEP snapshots
 or replacing center-managed clinical configuration.
 
@@ -42,8 +49,9 @@ The operator supplies distinct usernames, email addresses, and temporary passwor
 for the two accounts. No default credential is stored in this repository. Both
 accounts are marked `system_managed` and must change their passwords at first sign-in.
 
-Bootstrap attributes installed records to the normalized `--sys-admin-username`
-account. Supported catalogs are marked `system_managed`, and document versions start
+Automated creations use `created_by: "system"`; starter samples record the system
+submitter. Authenticated maintenance updates and audit events identify the operator.
+Supported catalogs are marked `system_managed`, and document versions start
 at `1`. Clinical rule content versions and revisions also start at `1`; their
 synthetic review, publication, and lifecycle metadata use the administrator and
 installation time. This metadata does not establish clinical approval. Generated

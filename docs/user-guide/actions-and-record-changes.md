@@ -4,25 +4,25 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 
 ## Core Sample Actions
 
-| UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
+| Action | Workspace | API endpoint | Stored change | Result |
 |---|---|---|---|---|
 | **Apply selected** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/genelists/selection?target={snv,cnv,fusion}` | `samples.filters.somatic.snv.snvlists`, `samples.filters.somatic.cnv.cnvlists`, or `samples.filters.somatic.fusion.fusionlists` | Update of the selected analysis scope, its table query, report preview snapshots, and sample summaries. Lists never cross analysis boundaries. |
-| **Save Ad-Hoc** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | `samples.filters.<target>.adhoc_genes` | Insertion of targeted gene inclusions for the selected analysis domain. |
-| **Clear Ad-Hoc** | Sample Overview Gene Settings | `DELETE /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | Removes `samples.filters.<target>.adhoc_genes` | Reversion of the selected target to ISGL/ASPC-defined gene scope. |
+| **Save Ad-Hoc** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | the selected intent/analysis profile’s `adhoc_genes` | Insertion of targeted gene inclusions for the selected analysis domain. |
+| **Clear Ad-Hoc** | Sample Overview Gene Settings | `DELETE /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | Removes the selected intent/analysis profile’s `adhoc_genes` | Reversion of the selected target to ISGL/ASPC-defined gene scope. |
 | **Download** | Report Catalog | Service file stream | (Read-only) | Local archival retrieval of report PDF/JSON. |
 
 ## DNA Interpretation Actions
 
-| UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
+| Action | Workspace | API endpoint | Stored change | Result |
 |---|---|---|---|---|
-| **Apply (Filters)** | Discovery Sidebar | `PUT /samples/{id}/filters` | `samples.filters` (DNA) | Recalculation of findings within active review tables. |
-| **Reset** | Discovery Sidebar | `DELETE /samples/{id}/filters` | `samples.filters` (Defaults) | Re-initialization of assay-original thresholds. |
+| **Apply (Filters)** | Discovery Sidebar | `PUT /api/v1/samples/{id}/filters` | `samples.filters` (DNA) | Recalculation of findings within active review tables. |
+| **Reset** | Discovery Sidebar | `DELETE /api/v1/samples/{id}/filters` | `samples.filters` (Defaults) | Re-initialization of assay-original thresholds. |
 | **Apply (Bulk)** | Bulk Action Panel | `PATCH /api/v1/samples/{id}/classifications/tier` | Classification annotations and, when requested for Tier III small variants, a generated text annotation | Update the selected findings without changing report-rule configuration. |
 | **Finalize Report** | Report Preview | Report creation endpoint | `reported_variants` snapshots | Generation of immutable clinical report record. |
 
 ## Finding-Level Clinical Interactions (SNV, CNV, SV)
 
-| UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
+| Action | Workspace | API endpoint | Stored change | Result |
 |---|---|---|---|---|
 | **Mark False Positive** | Detail Views | `PATCH .../flags/false-positive` | `fp` flag status | finding removal from prioritized review streams. |
 | **Classify (Tier)** | Classification Panel | `POST .../classifications` | `annotations.class` | Formal clinical tier assignment applied. |
@@ -68,15 +68,15 @@ fields and published clinical report rules are not inputs to this annotation gen
 
 ## RNA Interpretation Actions
 
-| UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
+| Action | Workspace | API endpoint | Stored change | Result |
 |---|---|---|---|---|
-| **Apply (Filters)** | Fusion Sidebar | `PUT /samples/{id}/filters` | `samples.filters` (RNA) | Dynamic recalculation of fusion visibility. |
+| **Apply (Filters)** | Fusion Sidebar | `PUT /api/v1/samples/{id}/filters` | `samples.filters` (RNA) | Dynamic recalculation of fusion visibility. |
 | **Pick Call** | Fusion Detail | `PATCH .../selection/{idx}` | `fusions.selected_call` mutation | Designation of primary diagnostic evidence source. |
 | **Classify Fusion** | Fusion Detail | Classification endpoint | `annotations` tier context | Tier assignment for targeted fusion event. |
 
 ## Administrative and Governance Actions
 
-| UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
+| Action | Workspace | API endpoint | Stored change | Result |
 |---|---|---|---|---|
 | **Save User** | Identity Management | `POST/PUT /admin/users` | `users` collection record | Mutated organizational user identity. |
 | **Toggle Status** | Administrator Lists | `PATCH .../status` | `is_active` boolean | Modification of resource accessibility. |
@@ -128,11 +128,11 @@ Supported tiered-variant search modes:
 - **Annotation text**: searches free-text annotation/comment records.
 - **All fields**: searches identity, context, author, subpanel, and annotation text fields together.
 
-## Quality Assurance Execution Protocol
+## Verify an action
 
-Analytical verification of UI actions must confirm:
+When validating a change, check:
 
-1. **Interactive Trigger**: Successful UI invocation of the targeted control.
-2. **Transactional Acknowledgement**: Verification of successful API response headers.
-3. **Persistence Verification**: Refresh-based confirmation of server-side state commitment.
-4. **Contextual Propagation**: Validation that related summaries (e.g., report totals) acknowledge the mutation.
+1. **Action**: The expected control is available to the authorized user.
+2. **Request result**: The API reports success or a useful failure.
+3. **Stored state**: Refreshing confirms the expected saved result.
+4. **Related views**: Affected tables, counts and previews refresh consistently.

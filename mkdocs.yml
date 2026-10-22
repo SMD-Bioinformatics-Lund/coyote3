@@ -56,26 +56,30 @@ nav:
           - "Choose a procedure": deployment/production-deployment.md
           - "Production requirements": deployment/production-requirements.md
           - "First installation": deployment/first-installation.md
+          - "Pending release maintenance": deployment/release-maintenance.md
           - "Installation operations": deployment/installation-operations.md
           - "Installation checklist": deployment/installation-checklist.md
           - "Deployment acceptance": deployment/acceptance-checklist.md
           - "Upgrade an existing installation": deployment/application-upgrades.md
           - "Restart or redeploy": deployment/application-redeployment.md
           - "MongoDB setup and recovery": deployment/mongodb-setup-and-recovery.md
+          - "First-time MongoDB provisioning": deployment/mongodb-first-setup.md
           - "Containers and reverse proxy": deployment/containers-and-reverse-proxy.md
           - "Bootstrap and installed data": deployment/bootstrap-data-flow.md
           - "Required clinical data": deployment/required-data.md
       - Configuration reference:
           - Section guide: configuration/README.md
-          - "Environment file explained": configuration/environment-file.md
-          - "Environment variables and defaults": deployment/configuration-reference.md
-          - "Environments and secrets": deployment/environments-and-secrets.md
-          - "Compose files and storage mounts": configuration/compose-files.md
-          - "Center configuration directory": deployment/center-configuration.md
-          - "Contact file": configuration/contact-file.md
-          - "Clinical query policy file": configuration/clinical-query-policy-file.md
-          - "Filter flag metadata file": configuration/filter-flag-metadata-file.md
-          - "Collection mapping file": configuration/collection-mapping-file.md
+          - Deployment settings:
+              - "Environment file explained": configuration/environment-file.md
+              - "Environment variables and defaults": deployment/configuration-reference.md
+              - "Environments and secrets": deployment/environments-and-secrets.md
+              - "Compose files and storage mounts": configuration/compose-files.md
+          - Clinical and application files:
+              - "Center configuration directory": deployment/center-configuration.md
+              - "Contact file": configuration/contact-file.md
+              - "Clinical query policy file": configuration/clinical-query-policy-file.md
+              - "Filter flag metadata file": configuration/filter-flag-metadata-file.md
+              - "Collection mapping file": configuration/collection-mapping-file.md
   - Use Coyote3:
       - Section guide: user-guide/README.md
       - "Application user guide": user-guide/application-guide.md
@@ -155,8 +159,10 @@ nav:
       - "Operational Maintenance and Quality Verification": operations/maintenance-and-verification.md
       - "Observability SLOs and Alerts": operations/monitoring-and-alerts.md
       - "Audit Events And JSON Logging": operations/audit-and-logging.md
+      - "Redis Transport Encryption": operations/redis-tls.md
       - "Backup and recovery": operations/backup-and-recovery.md
       - "Email and notifications": operations/email-and-notifications.md
+      - "Background delivery and recovery": operations/background-delivery.md
       - "Knowledgebase Snapshot Updates": operations/knowledgebase-updates.md
       - "VEP metadata updates": operations/vep-metadata-updates.md
       - "Ingest job recovery": operations/ingest-job-recovery.md
@@ -219,6 +225,7 @@ nav:
       - "Test strategy and quality gates": testing/test-strategy-and-quality-gates.md
       - "Validation Datasets and Test Fixtures": testing/test-data-and-fixtures.md
       - "Synthetic clinical workflow exercises": testing/clinical-workflow-demo.md
+      - "Demo data bundle": testing/demo-data-bundle.md
       - "Local disposable full-stack validation": testing/disposable-stack-validation.md
       - "Browser And Release Validation": testing/browser-and-release-validation.md
       - "Load and capacity testing": testing/load-and-capacity-testing.md

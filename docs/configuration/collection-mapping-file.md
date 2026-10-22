@@ -8,10 +8,7 @@ deployment settings and do not need matching TOML table names.
 
 ## Ownership, syntax and defaults
 
-This application-owned TOML file maps logical repository names to physical
-MongoDB collection names. `[primary]`, `[identity]`, `[knowledgebase]` and `[bam]`
-are groups of mappings, not server connection settings. The external center
-folder cannot override this file. Centers choose database names and URIs in the
+The external center folder cannot override this application-owned file. Centers choose database names and URIs in the
 [environment file](environment-file.md), not by renaming these collections.
 
 The shipped file is the source of mapping values. Missing required mappings fail
@@ -22,8 +19,7 @@ release and any required data migration.
 
 ## Mapping Contract
 
-`api/config/collections.toml` is application-owned and maps typed repositories to physical MongoDB collections. It
-does not define a document schema and it does not move data.
+`api/config/collections.toml` does not define a document schema or move data.
 
 | TOML element | Required | Allowed value | Meaning |
 | --- | --- | --- | --- |

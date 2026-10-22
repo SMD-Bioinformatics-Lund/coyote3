@@ -42,15 +42,15 @@ analytical workflows are enabled. A tab is rendered only when all of the followi
 
 | Workspace tab | ASPC analysis type | Sample modality and data requirement | Additional condition | Endpoint requested only after opening the tab |
 | --- | --- | --- | --- | --- |
-| Somatic SNVs | `SNV` | DNA sample with `files.vcf_files` or an SNV count | `analysis_intents` contains `somatic` | `GET /samples/{sample_name}/small-variants?intent=somatic` |
-| Germline SNVs | `SNV` | DNA sample with `files.vcf_files` or an SNV count | `analysis_intents` contains `germline` | `GET /samples/{sample_name}/small-variants?intent=germline` |
-| CNVs | `CNV` | DNA sample with `files.cnv` or a CNV count | Somatic CNV is the currently supported intent | `GET /samples/{sample_name}/cnvs` |
-| Translocations | `TRANSLOCATION` | DNA sample with `files.transloc` or a translocation count | DNA structural-variant workflow | `GET /samples/{sample_name}/translocations` |
-| Coverage | `COVERAGE` | DNA sample with `files.cov` or coverage state | Quality workflow, not a variant intent | `GET /samples/{sample_name}/coverage` |
-| Fusions | `FUSION` | RNA sample with `files.fusion_files` or a fusion count | RNA fusion workflow | `GET /samples/{sample_name}/fusions` |
-| Expression | `EXPRESSION` | RNA sample with `files.expression_path` or expression state | Appears in the shared **Expression & Classification** tab | `GET /samples/{sample_name}/rna-analysis` |
-| Classification | `CLASSIFICATION` | RNA sample with `files.classification_path` or classification state | Appears in the shared **Expression & Classification** tab | `GET /samples/{sample_name}/rna-analysis` |
-| RNA quality | `QC` | RNA sample with an RNA quality resource or quality state | Returned with the shared RNA-analysis payload; it has no separate workspace tab | `GET /samples/{sample_name}/rna-analysis` when the shared tab is available |
+| Somatic SNVs | `SNV` | DNA sample with `files.vcf_files` or an SNV count | `analysis_intents` contains `somatic` | `GET /api/v1/samples/{sample_name}/small-variants?intent=somatic` |
+| Germline SNVs | `SNV` | DNA sample with `files.vcf_files` or an SNV count | `analysis_intents` contains `germline` | `GET /api/v1/samples/{sample_name}/small-variants?intent=germline` |
+| CNVs | `CNV` | DNA sample with `files.cnv` or a CNV count | Somatic CNV is the currently supported intent | `GET /api/v1/samples/{sample_name}/cnvs` |
+| Translocations | `TRANSLOCATION` | DNA sample with `files.transloc` or a translocation count | DNA structural-variant workflow | `GET /api/v1/samples/{sample_name}/translocations` |
+| Coverage | `COVERAGE` | DNA sample with `files.cov` or coverage state | Quality workflow, not a variant intent | `GET /api/v1/samples/{sample_name}/coverage` |
+| Fusions | `FUSION` | RNA sample with `files.fusion_files` or a fusion count | RNA fusion workflow | `GET /api/v1/samples/{sample_name}/fusions` |
+| Expression | `EXPRESSION` | RNA sample with `files.expression_path` or expression state | Appears in the shared **Expression & Classification** tab | `GET /api/v1/samples/{sample_name}/rna-analysis` |
+| Classification | `CLASSIFICATION` | RNA sample with `files.classification_path` or classification state | Appears in the shared **Expression & Classification** tab | `GET /api/v1/samples/{sample_name}/rna-analysis` |
+| RNA quality | `QC` | RNA sample with an RNA quality resource or quality state | Returned with the shared RNA-analysis payload; it has no separate workspace tab | `GET /api/v1/samples/{sample_name}/rna-analysis` when the shared tab is available |
 | PGX | `PGX` | Not applicable to the current sample-review workspace | PGX configuration can be recorded, but a PGX review tab, query workflow, and report section are not implemented | No sample-workspace endpoint is requested |
 
 HRD, MSI, and TMB are independent analyses displayed in the sample header and
@@ -93,18 +93,18 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 
 ### Intent-specific SNV review
 
-!!! warning "Query intent does not establish variant origin"
-
-    Somatic SNV results can include germline variants under the current queries.
-    Somatic and germline query intents do not partition the stored findings into
-    mutually exclusive biological categories. The dedicated germline SNV pathway
-    is not yet fully implemented; the configuration and routing described below
-    do not constitute a complete germline analysis workflow. Enabling germline
-    intent does not remove germline variants from somatic results.
-    Published germline query exceptions also contribute to somatic SNV selection
-    for the same scope, even when the sample has only somatic intent enabled.
-    Somatic evidence settings remain active; germline admissions and exclusions
-    are evaluated alongside the somatic rules. See [query-rule composition](../administration/query-rules.md#scope-and-inheritance).
+> **Warning: Query intent does not establish variant origin**
+>
+> Somatic SNV results can include germline variants under the current queries.
+> Somatic and germline query intents do not partition the stored findings into
+> mutually exclusive biological categories. The dedicated germline SNV pathway
+> is not yet fully implemented; the configuration and routing described below
+> do not constitute a complete germline analysis workflow. Enabling germline
+> intent does not remove germline variants from somatic results.
+> Published germline query exceptions also contribute to somatic SNV selection
+> for the same scope, even when the sample has only somatic intent enabled.
+> Somatic evidence settings remain active; germline admissions and exclusions
+> are evaluated alongside the somatic rules. See [query-rule composition](../administration/query-rules.md#scope-and-inheritance).
 
 Somatic and germline SNVs use the same underlying VCF-derived collection but
 have separately configured analytical views. Their filter profiles, result queries, table
@@ -373,7 +373,7 @@ namespace cannot affect another analysis.
 TOML block punctuation is part of the contract. `[snv]` and
 `[snv.assay_group_policies]` are single named tables. Each
 `[[snv.exceptions]]` declaration appends one independent exception to an
-array, which is why it uses double brackets. A following
+array. A following
 `[snv.exceptions.info_equals]` table is a single nested mapping attached to
 that exception; it must appear before the next `[[snv.exceptions]]` entry.
 

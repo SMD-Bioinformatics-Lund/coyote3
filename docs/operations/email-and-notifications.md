@@ -10,6 +10,7 @@
 | Profile or account-status change | Account notification | Workflow feedback |
 | Administrative broadcast | Generic notice linking to the inbox, when configured | Durable recipient-scoped message |
 | Clinical-rule or catalog approval request/outcome | Not currently emailed | Durable workflow notification with a target link |
+| System errors and missing expected ingest files | Independent monitor sends diagnostic excerpts to the configured role | Separate from application email and clinical inbox visibility |
 
 Authentication and account email uses the shared SMTP helper. Broadcast email is
 delivered by Celery, not during the HTTP request. Its subject and body do not copy
@@ -48,7 +49,7 @@ Use relay-authorized addresses on a center-owned domain in production. The
 not a public mail domain. Authorize all three senders with the relay and configure
 the center's SPF, DKIM, and DMARC policy as appropriate.
 
-The worker and Celery beat must be running for broadcast email. Beat requests
+The maintenance worker and Celery beat must be running for broadcast email. Beat requests
 delivery every 30 seconds; each execution processes up to ten recipients. The
 broadcast response reports `email_state: pending` when email was queued, or
 `not_configured` when SMTP or the public URL was unavailable. Neither status
@@ -209,3 +210,24 @@ email delivery. In-app notifications and audits continue. Queued broadcast email
 waits until delivery is enabled again; disabling the switch cannot recall an
 SMTP operation already underway. SMTP configuration is still required when the
 switch is enabled. No container restart is required after saving this control.
+
+The independent `monitor` does not read this database switch. It loads SMTP settings
+and `ERROR_EMAIL_GROUP` at startup, resolves current active recipients in that role,
+and delivers disk-log excerpts without the API or Celery. Changing the application
+email switch does not pause system-error mail.
+
+| Channel | Effective control | Pending/in-flight behavior |
+| --- | --- | --- |
+| Account, password and security email | Application `email.enabled` and runtime SMTP settings | Subsequent sends are disabled; accepted mail cannot be recalled. |
+| Broadcast email | Application switch, SMTP/public URL configuration, maintenance worker and beat | Queued recipients wait while application delivery is disabled. |
+| In-app workflow and broadcast messages | Authenticated audiences, current clinical access, expiry and withdrawal | Continue when SMTP is disabled; access checks still apply. |
+| System-error mail | Monitor process, startup SMTP settings and `ERROR_EMAIL_GROUP` recipients | Independent disk queue; accepted mail cannot be recalled. |
+
+To pause system-error mail immediately, use the deployment's existing complete
+Compose command with `stop monitor`. This also stops its UDP syslog receiver;
+retain producer/container logs during the pause. `start monitor` resumes the retained
+queue. To change its SMTP settings, edit the private environment/override and recreate
+the monitor; a restart alone does not replace container environment values.
+Do not clear the disk queue to suppress delivery. Monitor attachments are diagnostic
+excerpts and can contain operational identifiers; grant its recipient role and log
+access accordingly. See [bounded retries and recovery](background-delivery.md#system-error-mail).

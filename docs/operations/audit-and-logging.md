@@ -105,7 +105,7 @@ the user to check connectivity and operation status. Mutations are not automatic
 
 The envelope remains Coyote3's existing JSON contract, extended with diagnostic fields.
 It is not an RFC 9457 `application/problem+json` response. Changing to that format would
-require an explicit API contract change, not just renaming the content type.
+require an API contract change, including response fields and content type.
 
 ## Transactional audit delivery
 
@@ -342,106 +342,16 @@ not generate notifications. No database migration is required for this delivery 
 
 ## Application Controls
 
-![Application controls and observed runtime state](../assets/screenshots/app_controls.png)
-
-Runtime operational controls are stored in the `app_controls` MongoDB collection. The API starts
-from typed defaults derived from environment configuration and overlays the single active document
-with `control_id: default`.
-
-Use Admin -> Application Controls to manage:
-
-- Celery task family gates:
-  - global Celery execution
-  - complete sample ingestion
-  - validated collection writes
-  - retention maintenance
-- application-module availability enforced by the UI and API
-- retention policy values for audit events, notifications, and on-disk logs
-
-| Control | Enabled behavior | Disabled behavior |
-| --- | --- | --- |
-| Allow background task execution | Controlled task families may perform work when their individual gates also allow it. | Controlled tasks return before doing application work; worker processes remain running. |
-| Complete sample ingestion | Watch-folder discovery and manually submitted bundles use the same validation, parsing, dependent-write, readiness, audit, and rollback workflow. | Watch scans and manual sample-ingest tasks return before changing clinical sample collections. An ingest already executing is not cancelled. |
-| Validated collection writes | Registered generic collection insert and upsert tasks may persist validated documents. | These generic Celery write tasks return before persistence. |
-| Retention maintenance | Scheduled and manual maintenance may apply audit and disk-log cleanup. | Maintenance tasks return without cleanup; MongoDB TTL behavior remains independent. |
-| Application modules | Governed navigation, pages, and APIs are available. | Governed navigation is hidden, direct UI routes show an unavailable state, and governed APIs return HTTP `503` with `category: module_disabled`. Stored data is retained. |
-
-The complete sample-ingestion gate controls one bundle workflow. Watch-folder
-scanning and manual submission are two entry points, not different persistence
-models. Every declared resource is parsed before its evidence and sample readiness
-commit together in a required transaction. Async completion receipts join that
-transaction; disabled task families retain accepted work for later execution.
-Audit delivery and filesystem acknowledgements occur after commit and cannot undo
-it. See [transactions and ingest recovery](../architecture/transactions-and-ingest-recovery.md).
-
-Generic collection writes remain separate because they are administrative,
-schema-registered inserts or upserts and do not implement sample-bundle
-readiness. Retention maintenance remains separate because it deletes expired
-operational records and logs rather than creating clinical data.
-
-Application controls are for runtime behavior. Deployment secrets and infrastructure endpoints stay
-in environment configuration, including MongoDB, Redis, LDAP, token secrets, SMTP credentials, and
-mounted filesystem roots.
-
-Disabling a Celery task family prevents new task executions from doing work. It does not kill tasks
-that are already running, and it does not resize the worker process pool. Capacity is effectively
-returned when disabled tasks stop being scheduled or return early.
-
-The Application Controls page includes an observed runtime-state panel. It uses the API runtime to
-inspect Celery and reports worker availability, active tasks, reserved tasks, scheduled tasks,
-registered task names, queues, and startup index conflicts. If workers or Redis are unavailable, the
-panel reports an offline or unavailable state instead of failing the whole page.
-
-Each editable control includes contextual operational guidance. Hover over or select its information
-icon to review the control's scope, enabled behavior, disabled behavior, and important dependencies.
-The master background-task switch is an application execution gate: it does not start or stop Celery
-processes, resize the worker pool, cancel running tasks, or release worker processes. Task-family
-switches are evaluated when controlled tasks begin application work.
-
-The observed runtime panel refreshes every 30 seconds and can also be refreshed manually. It reports:
-
-| Runtime area | Meaning |
-| --- | --- |
-| Execution state | Relationship between the stored master task gate and workers that respond to live inspection. |
-| Task-family gates | Effective complete-ingest, collection-write, and maintenance switches evaluated when controlled tasks start. |
-| Application modules | Effective module states enforced by navigation, route boundaries, and API middleware. |
-| Worker details | Node name, process identifier, uptime, pool concurrency, processed count, current task counts, registered count, and consumed queues. |
-| Queue consumers | Queue names reported by workers and the workers currently consuming each queue. |
-| Periodic schedules | Beat entries configured in the application image, including task name and schedule. Presence does not prove that the separate Beat process is running. |
-| Task activity | Safe identity and state for active, reserved, and scheduled tasks. Arguments and keyword arguments are intentionally excluded. |
-| Registered capabilities | Distinct task names registered by responding workers. |
-| Repository state | MongoDB index-definition conflicts tolerated during startup and requiring operational review. |
+Use [application control settings](../administration/application-controls.md) for
+editable defaults, permissions and module boundaries. Configured switches express
+allowed work; observed runtime state reports which workers and queues respond.
+Container orchestration owns process count, memory and CPU allocation.
 
 ### Application-module boundaries
 
-| Module | Governed capability |
-| --- | --- |
-| DNA analysis | Small variants, CNVs, translocations, biomarkers, and coverage. |
-| RNA analysis | Fusion and expression analysis. |
-| Clinical reporting | Preview, rendering, saving, and retrieval of reports. |
-| Tiered variant search | Cross-sample tier and annotation search. |
-| Knowledgebases | Gene context and local or external evidence lookups. |
-| Ingest workspace | Manual bundle upload, validation, and queue submission. |
-| Assay catalog | Public catalog, matrix, ASP gene, and gene-list views. |
-
-Authentication, health, samples, profiles, notifications, application controls,
-and audit are not switchable modules. They are core access, recovery, or
-oversight surfaces. In particular, audit visibility is controlled by RBAC and
-cannot be disabled through application controls.
-
-The public `GET /api/v1/public/modules` endpoint exposes only module labels,
-descriptions, and effective availability. The frontend uses that endpoint to
-remove disabled navigation before a user opens it. API middleware independently
-checks every governed request, so a stale browser, bookmarked route, or direct
-API caller cannot bypass a disabled module.
-
-> **Tip: Operational interpretation**
->
->
-> Use the editable switches to control whether work is allowed. Use the observed runtime state to
-> confirm whether workers are actually connected and doing work. Use container orchestration,
-> systemd, or Docker Compose settings to change process count, memory, and CPU allocation.
->
+The [module boundary reference](../administration/application-controls.md#application-module-boundaries)
+defines governed clinical capabilities and the core access/recovery surfaces that
+remain available. Audit access is governed by RBAC rather than a module switch.
 
 ## Retention Maintenance
 
@@ -465,6 +375,32 @@ protects them from routine retention changes, but it cannot prevent a
 privileged database administrator from deleting collection data directly.
 Production deployments must therefore restrict database write access and
 include `audit_events` in protected backup and restore procedures.
+
+### Traceability integrity verification
+
+New traceability events include a SHA-256 chain proof. The event and its head in
+`audit_chain_heads` commit in one identity-database transaction. Sequence numbers describe
+delivery order; delayed outbox events retain their original event timestamps. The identity database
+must therefore support transactions (a replica set or sharded deployment). Delivery
+failures remain in the existing durable outbox or spool for retry; they do not fall back
+to unchained writes. Operational events remain outside the chain because they expire.
+Existing traceability events are retained without rewriting their historical contents.
+
+Run the read-only verifier with the deployment's identity database configuration:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/database/verify_audit_chain.py > audit-checkpoint.json
+PYTHONPATH=. .venv/bin/python scripts/database/verify_audit_chain.py \
+  --checkpoint /protected/checkpoints/previous-audit-checkpoint.json
+```
+
+Exit status zero means the chained history and supplied checkpoint agree. The output
+reports `unchained_legacy_events` separately; it does not certify those older events.
+Export successful checkpoints regularly to independently controlled, append-only storage.
+Keep the last trusted checkpoint when a verification fails. Back up both `audit_events`
+and `audit_chain_heads` together. A chain alone cannot detect a privileged attacker
+rewriting all events and heads; an independent checkpoint supplies the trusted anchor.
+Checkpoint files contain hashes and positions, not event payloads or credentials.
 
 Traceability audit events are event records, not automatic resource snapshots. Clinical
 rule-set events contain the rule-set identity, content version, revision, status, actor, and

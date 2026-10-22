@@ -35,12 +35,22 @@ All listed keys have defaults and may be omitted within a supplied profile.
 | `min_depth` | Nonnegative integer reads | `100` | Minimum total depth. Must accommodate `min_alt_reads`. |
 | `min_alt_reads` | Nonnegative integer reads | `5` | Minimum alternative-allele support. |
 | `vep_consequences` | Array of consequence identifiers | `[]` | Selected consequence terms; query policy determines applicable admission exceptions. |
+| `exclude_flags` | Array of at most 100 literal flag names, each 1–200 characters after trimming | `[]` | Exclude findings carrying any selected exact VCF `FILTER` value, including findings admitted by a query-rule exception. |
 | `snvlists` | Array of ISGL IDs | `[]` | Selected eligible SNV gene lists. |
 | `adhoc_genes` | Object | `{}` | Explicit ad-hoc gene selections maintained through the gene-selection workflow. |
 
 These numbers are software defaults, not a center's clinically approved thresholds.
 The actual sample may use different saved values. Fractions such as `0.05` are
 5%, not 0.05%, even when the UI presents percentage controls.
+
+`exclude_flags` applies separately to `somatic.snv` and `germline.snv`. Values are
+trimmed and deduplicated without changing case; blank or oversized names are
+rejected. Matching is case-sensitive and uses raw stored flags, rather than badge
+labels, severity, prefixes or regular expressions. Missing/empty flags are retained.
+Choices come from the configured global and SNV caller-specific `exact`/`terms`
+definitions in `filter_flag_metadata.yaml`. A saved literal absent from current
+metadata remains valid; metadata updates do not rewrite saved filters. See
+[flag options and rule conditions](../configuration/filter-flag-metadata-file.md#snv-flag-filtering-and-rule-conditions).
 
 ## CNV fields
 

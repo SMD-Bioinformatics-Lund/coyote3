@@ -61,8 +61,8 @@ If a command is missing or Docker cannot contact its daemon, complete the linked
 installation and account-access steps before proceeding. Check `mongod --version`
 and `mongosh --version` as well when choosing host-installed MongoDB.
 
-MongoDB has an independent lifecycle. **Step 6** provides Docker and host-installed
-paths before the database bootstrap in **step 8**. An existing healthy replica set
+MongoDB has an independent lifecycle. **Step 6** links to its separate Docker and
+host provisioning procedure before the database bootstrap in **step 8**. An existing healthy replica set
 needs verification, not reinitialization. Never substitute `localhost` in a
 container URI for a database on the host: it identifies the container itself.
 
@@ -97,6 +97,26 @@ chmod 600 "$COYOTE_ENV_FILE"
 
 Edit this file before continuing. If a deployment file already exists, review its
 settings and retain its secrets rather than overwriting it with the template.
+
+Record the ordered application overlays in this shell. Leave the array empty only
+when the base file is the complete deployment definition:
+
+```bash
+COYOTE_COMPOSE_OVERLAYS=()
+```
+
+Production Redis TLS is optional. If selected, complete the
+[certificate procedure](../operations/redis-tls.md), set `COYOTE3_REDIS_TLS_DIR` in
+the production environment file, and add its overlay:
+
+```bash
+COYOTE_COMPOSE_OVERLAYS+=(deploy/compose/docker-compose.redis-tls.yml)
+```
+
+Keep this overlay out of development and staging. Append any approved private
+storage overrides in their intended precedence order. The command helpers below
+reuse this file list for bootstrap, validation and startup; record it for upgrades
+and recovery. The base configuration uses authenticated plaintext Redis internally.
 
 ## 3. Review environment and URL settings
 
@@ -176,10 +196,17 @@ set -a
 . "$COYOTE_ENV_FILE"
 set +a
 
+COYOTE_COMPOSE_ARGS=(-f deploy/compose/docker-compose.yml)
+COYOTE_INSTALL_ARGS=(--compose-file deploy/compose/docker-compose.yml)
+for compose_overlay in "${COYOTE_COMPOSE_OVERLAYS[@]}"; do
+  COYOTE_COMPOSE_ARGS+=(-f "$compose_overlay")
+  COYOTE_INSTALL_ARGS+=(--compose-file "$compose_overlay")
+done
+
 coyote_compose() {
   bash scripts/deployment/compose-with-version.sh \
     -p "$COYOTE_PROJECT" --env-file "$COYOTE_ENV_FILE" \
-    -f deploy/compose/docker-compose.yml "$@"
+    "${COYOTE_COMPOSE_ARGS[@]}" "$@"
 }
 ```
 
@@ -194,8 +221,11 @@ exported shell values take precedence over Compose's environment-file values.
 
 ## 6. Create the application network
 
-The application uses an external Docker network. Create it before bootstrap or
-startup; Compose does not create an external network automatically:
+The application uses an external Docker bridge network. A host administrator
+provisions it before bootstrap or startup; the installer only inspects it.
+Network creation is a separate infrastructure operation and can affect host routes
+and Docker firewall rules. Choose a subnet that does not overlap the host, VPN or
+other application networks. Compose does not create an external network automatically:
 
 ```bash
 if ! docker network inspect "$COYOTE3_APP_NETWORK" >/dev/null 2>&1; then
@@ -211,315 +241,17 @@ are attached.
 
 ### Choose and prepare MongoDB
 
-Complete **one** path below before proceeding to **step 7**. The examples create a
-single-member replica set, which supports transactions but has no failover.
-For a center-managed multi-member or sharded deployment, retain its existing
-configuration and obtain the connection/grant details from its database operator.
+Before application bootstrap, complete [first-time MongoDB provisioning](mongodb-first-setup.md)
+if the center needs a new database service. That guide contains the Docker and
+host-installed branches, replica-set preparation, runtime users and restricted
+knowledgebase maintenance credentials. Return here after its connectivity checks.
 
-| Database location | Follow | Application connection |
-| --- | --- | --- |
-| Dedicated Docker MongoDB | Option A | `mongo-app:27017` on the application network. |
-| MongoDB installed on the Linux/WSL host | Option B | A stable hostname reachable from both the host and API/worker containers. |
-| Already managed and writable replica set | Verify primary and grants, then **step 7** | Operator-provided URI and replica-set name; do not run initialization commands. |
-
-A local service on `27017` and SSH tunnels on `28802`/`28803` are different
-endpoints. Keep their URIs separate. Never initialize a tunnel destination as
-part of local setup, and do not use a local MongoDB data directory for a container.
-
-### Option A: Dedicated Docker MongoDB
-
-**A1. Prepare its private server environment.** This is separate from the
-application file; see [server settings](configuration-reference.md#environment-variable-reference).
-Choose a private filename and a distinct infrastructure project:
-
-```bash
-COYOTE_MONGO_ENV_FILE="$(dirname "$COYOTE_ENV_FILE")/mongo-server.env"
-COYOTE_MONGO_PROJECT="${COYOTE_PROJECT}-mongo"
-if [ ! -f "$COYOTE_MONGO_ENV_FILE" ]; then
-  (umask 077; cp deploy/env/example.mongo-server.env "$COYOTE_MONGO_ENV_FILE")
-fi
-chmod 600 "$COYOTE_MONGO_ENV_FILE"
-```
-
-Edit that file before running the following commands:
-
-| Setting | Required value or decision |
-| --- | --- |
-| `COYOTE3_APP_NETWORK` and the four `*_DB` names | Match the application file exactly for this instance's initial grants. |
-| `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD` | Separate administrative credentials; replace placeholders. |
-| `MONGO_APP_USER`, `MONGO_APP_PASSWORD` | Runtime account credentials; replace placeholders. |
-| `MONGO_UID`, `MONGO_GID` | Numeric IDs owning database storage; select an approved host account, for example the output of `id -u` / `id -g`. |
-| `COYOTE3_MONGO_DATA_HOST_ROOT` | Dedicated persistent data directory, never a running local mongod's dbPath. |
-| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Private file for member authentication; preserve an existing keyfile. |
-| `MONGO_REPLICA_SET_NAME` | `coyote3-rs` for this example. |
-| `MONGO_REPLICA_MEMBER_HOST` | `mongo-app:27017` for application clients on this Docker network. |
-| `COYOTE3_MONGO_BIND_ADDRESS`, `COYOTE3_MONGO_PORT` | `127.0.0.1` and an unused host port. Use `27018`, for example, when local MongoDB already occupies `27017`. Internal clients still use `mongo-app:27017`. |
-
-The single-instance path keeps four distinct logical databases on this server.
-Do not enable `mongo-kb` unless a separately operated knowledgebase instance is
-intended; its additional settings and commands are in the
-[split-instance reference](../architecture/mongodb-topology.md#optional-docker-mongodb).
-
-**A2. Prepare new storage and a keyfile.** Run this for a new deployment's paths.
-If storage already contains data, preserve its owner/keyfile and use the existing
-server's recovery or upgrade procedure instead of repeating first-time setup.
-The subshell keeps server settings out of the application environment:
-
-```bash
-(
-  set -a
-  . "$COYOTE_MONGO_ENV_FILE"
-  set +a
-  sudo install -d -o "$MONGO_UID" -g "$MONGO_GID" -m 0700 "$COYOTE3_MONGO_DATA_HOST_ROOT"
-  sudo install -d -m 0700 "$(dirname "$COYOTE3_MONGO_KEYFILE_HOST_PATH")"
-  if ! sudo test -e "$COYOTE3_MONGO_KEYFILE_HOST_PATH"; then
-    sudo sh -c 'set -C; umask 077; openssl rand -base64 756 > "$1"' sh "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-    sudo chown "$MONGO_UID:$MONGO_GID" "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-    sudo chmod 0400 "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-  fi
-)
-```
-
-**A3. Start only MongoDB and initialize its replica set.** The helper loads the
-server environment inside a subshell so exported application values cannot
-silently override server-file settings:
-
-```bash
-mongo_compose() (
-  set -a
-  . "$COYOTE_MONGO_ENV_FILE"
-  set +a
-  docker compose -p "$COYOTE_MONGO_PROJECT" --env-file "$COYOTE_MONGO_ENV_FILE" \
-    -f deploy/compose/docker-compose.mongo.yml --profile mongo "$@"
-)
-mongo_compose config --quiet
-mongo_compose up -d --wait --wait-timeout 180 mongo
-mongo_compose run --rm --no-deps mongo_init
-mongo_compose ps
-```
-
-Continue only when the initializer reports `[ok] replica set is writable`.
-The container health check confirms responsiveness; the initializer confirms
-primary election. On failure inspect `mongo_compose logs --tail=100 mongo`;
-do not delete storage to retry. The initializer preserves an existing replica
-configuration rather than force-reconfiguring it.
-
-**A4. Set the application URIs and prepare reference-data credentials.** For this
-single instance, all four application URI settings point to:
-
-```text
-mongodb://APP_USER:URI_ENCODED_PASSWORD@mongo-app:27017/?authSource=admin&replicaSet=coyote3-rs
-```
-
-Replace the placeholders with the runtime account from the server file. Percent-encode
-reserved characters in URI credentials. Database names remain the four separate
-`*_DB` settings. Do not put the root account in the application environment.
-
-The supplied runtime account has read/write access to application, identity and
-BAM databases, but read-only knowledgebase access. Bootstrap needs a separate
-knowledgebase maintenance account. Open an administrative shell (password prompted):
-
-```bash
-mongo_compose exec mongo sh -c 'exec gosu "$MONGO_UID:$MONGO_GID" mongosh "mongodb://127.0.0.1:27017/admin?directConnection=true" --username "$MONGO_INITDB_ROOT_USERNAME" --authenticationDatabase admin --password'
-```
-
-Run the maintenance-account block under **Credentials for bootstrap** below,
-then exit `mongosh`. Continue at **step 7** after reloading the application file.
-
-### Option B: Host-installed MongoDB, including WSL
-
-**B1. Inspect the intended local service.** Install the server/shell using the
-links in **step 1** if absent. For the official Ubuntu package, inspect its service:
-
-```bash
-sudo systemctl status mongod --no-pager
-mongosh 'mongodb://127.0.0.1:27017/admin?directConnection=true'
-```
-
-If authentication is already enabled, add `--username YOUR_ADMIN --authenticationDatabase admin --password`.
-In `mongosh`, run:
-
-```javascript
-printjson(db.adminCommand({ hello: 1 }));
-printjson(db.adminCommand({ replSetGetConfig: 1 }));
-```
-
-A healthy existing primary reports `isWritablePrimary: true` **and** a replica-set
-`setName`. A standalone can report writable without a `setName`; it still needs
-conversion. For a healthy configured replica set, skip B2–B4 and retain its name,
-member address and authentication. `NotYetInitialized` means initiation is needed;
-`InvalidReplicaSetConfig` or a node that cannot recognize itself needs recovery,
-not another `rs.initiate()` or deletion of the `local` database.
-Back up existing standalone data and stop its writers before conversion.
-
-**B2. Select a stable member hostname.** The example below uses
-`mongo-host.example.internal`. Replace it with a name resolving to this server
-from the server itself and from application containers. Use a private listener
-reachable by those clients; `127.0.0.1` alone is insufficient for container access.
-
-Check the host's resolution before adding the name to MongoDB configuration:
-
-```bash
-getent hosts mongo-host.example.internal
-```
-
-The result must identify this MongoDB host. **Step 8** checks the same endpoint from
-the application container; both perspectives must work.
-
-For a native Docker Engine inside WSL, `host.docker.internal` is already mapped
-through `host-gateway` in Coyote3's API/worker services. If choosing that name,
-ensure it also resolves on WSL itself to the verified Docker host address; configure
-an appropriate host entry if needed. Do not assume every WSL/Docker Desktop setup
-uses `172.17.0.1`. Keep the hostname/listener stable across restarts. An existing
-working local replica set should be retained, not renamed by this example.
-
-**B3. Prepare authentication and edit the existing mongod configuration.** For a
-new Ubuntu package installation, the service account is normally `mongodb`.
-Confirm it before setting ownership. Create a keyfile only if none exists:
-
-```bash
-sudo install -d -o mongodb -g mongodb -m 0700 /etc/mongodb
-if ! sudo test -e /etc/mongodb/keyfile; then
-  sudo sh -c 'set -C; umask 077; openssl rand -base64 756 > /etc/mongodb/keyfile'
-  sudo chown mongodb:mongodb /etc/mongodb/keyfile
-  sudo chmod 0400 /etc/mongodb/keyfile
-fi
-sudoedit /etc/mongod.conf
-```
-
-Merge these keys into the existing YAML sections; do not duplicate section names
-or replace `storage.dbPath`, logging settings, TLS settings or existing credentials:
-
-```yaml
-net:
-  port: 27017
-  bindIp: 127.0.0.1,mongo-host.example.internal
-replication:
-  replSetName: coyote3-rs
-security:
-  authorization: enabled
-  keyFile: /etc/mongodb/keyfile
-```
-
-| Setting | Meaning |
-| --- | --- |
-| `net.bindIp` | Local interfaces to listen on; the example hostname must resolve to this host. |
-| `replication.replSetName` | Replica-set identity, matched by `rs.initiate` and application URI options. |
-| `security.authorization` | Requires authenticated client permissions. |
-| `security.keyFile` | Private member-authentication secret, readable only by the MongoDB service owner. |
-
-These steps describe single-node preparation using keyfile authentication. Apply
-the center's TLS/member-authentication policy for clinical infrastructure. See
-MongoDB's [standalone conversion](https://www.mongodb.com/docs/v8.0/tutorial/convert-standalone-to-replica-set/)
-and [authenticated replica-set setup](https://www.mongodb.com/docs/manual/tutorial/deploy-replica-set-with-keyfile-access-control/).
-
-```bash
-sudo systemctl restart mongod
-sudo systemctl status mongod --no-pager
-```
-
-If startup fails, inspect `sudo journalctl -u mongod -n 80 --no-pager` and correct
-the reported setting/access problem before proceeding. For WSL without systemd,
-configure its supported service manager first; do not start a second mongod on
-the same data directory.
-
-**B4. Initialize only an unconfigured replica set.** Connect locally as in B1.
-Use an existing administrator if users already exist. With no users, MongoDB's
-localhost exception permits initial replica-set and administrator creation.
-Run once, substituting the hostname chosen in B2:
-
-```javascript
-rs.initiate({
-  _id: "coyote3-rs",
-  members: [{ _id: 0, host: "mongo-host.example.internal:27017" }]
-});
-```
-
-Repeat `db.hello()` until `isWritablePrimary` is `true` and `setName` is
-`coyote3-rs`. Do not repeat initiation while waiting for election. If there are
-no users yet, create the first administrator on this primary with a hidden prompt:
-
-```javascript
-db.getSiblingDB("admin").createUser({
-  user: "coyote3_root",
-  pwd: passwordPrompt(),
-  roles: [{ role: "root", db: "admin" }]
-});
-```
-
-Store that administrative credential privately. Exit and reconnect with
-`--username coyote3_root --authenticationDatabase admin --password` before creating
-other users. Existing deployments retain their administrator; do not recreate it.
-
-**B5. Create the runtime account for a new installation.** In the authenticated
-shell, substitute the **exact four names from the application environment** below.
-These are examples; changing the names later does not transfer grants:
-
-```javascript
-const applicationDb = "coyote3_prod";
-const identityDb = "coyote3_identity_prod";
-const knowledgebaseDb = "coyote3_knowledgebase";
-const bamDb = "bam_prod";
-db.getSiblingDB("admin").createUser({
-  user: "coyote3_app",
-  pwd: passwordPrompt(),
-  roles: [
-    { role: "readWrite", db: applicationDb },
-    { role: "readWrite", db: identityDb },
-    { role: "readWrite", db: bamDb },
-    { role: "read", db: knowledgebaseDb }
-  ]
-});
-```
-
-For an existing account, have its administrator verify grants instead of repeating
-`createUser`. Prepare the maintenance account below, then set all four application
-URIs to the local server using the runtime account:
-
-```text
-mongodb://APP_USER:URI_ENCODED_PASSWORD@mongo-host.example.internal:27017/?authSource=admin&replicaSet=coyote3-rs
-```
-
-Use the existing set name if different. Do not point these local URIs at an SSH
-tunnel. Do not use `directConnection=true` as a substitute for configuring a
-reachable advertised member; normal application connections use replica discovery.
-
-### Credentials for bootstrap
-
-Bundled reference installation (included in `--setup-center`) and optional
-knowledgebase indexing use `KNOWLEDGEBASE_MONGO_URI`. Reference installation
-requires write privileges on `KNOWLEDGEBASE_DB`; indexing also requires index privileges.
-If the configured runtime account is read-only, use an existing approved maintenance
-identity or create a dedicated account while authenticated as its administrator.
-Replace the database name with the selected `KNOWLEDGEBASE_DB`:
-
-```javascript
-db.getSiblingDB("admin").createUser({
-  user: "coyote3_kb_maintenance",
-  pwd: passwordPrompt(),
-  roles: [
-    { role: "readWrite", db: "coyote3_knowledgebase" },
-    { role: "dbAdmin", db: "coyote3_knowledgebase" }
-  ]
-});
-```
-
-This account is for bootstrap/reference maintenance, not routine API connections.
-Keep its URI in a restricted secret file and supply that file through
-`--knowledgebase-maintenance-uri-file` in **step 8**. This override leaves the
-runtime connection unchanged. Application and identity bootstrap use their
-configured read/write accounts.
-
-After editing application endpoints, reload the trusted file in the original shell:
-
-```bash
-set -a
-. "$COYOTE_ENV_FILE"
-set +a
-```
-
-Continue at **step 7**. **Step 8** verifies connectivity from the API container before
-installing any baseline data.
+For an existing managed replica set, retain its configuration. Obtain the four
+URI/database pairs and required runtime/maintenance grants from its operator; verify
+all advertised replica members are reachable from API and both workers. Do not
+reinitialize it or reuse another process's dbPath. Continue at **step 7** once the
+application and identity databases are writable and reference-installation access
+is available.
 
 ## 7. Prepare storage and validate Compose
 
@@ -572,26 +304,27 @@ bash scripts/deployment/install_center.sh \
   --setup-center \
   --env-file "$COYOTE_ENV_FILE" \
   --project "$COYOTE_PROJECT" \
-  --compose-file deploy/compose/docker-compose.yml
+  "${COYOTE_INSTALL_ARGS[@]}"
 ```
 
 The installer executes the following sequence:
 
 1. Validate secrets and render the selected Compose configuration.
-2. Reuse the application network, or create it if absent, and prepare host directories.
+2. Validate the existing external bridge network and prepare host directories.
 3. Build images, start Redis, and verify authenticated cache, task-broker and result-backend
    connections from a temporary API container. Validate mounted center configuration.
 4. Verify all four MongoDB endpoints and inspect application/identity installation state.
-5. On a fresh target only, prompt for initial accounts and invoke database bootstrap.
+5. On a fresh target only, prompt for initial accounts and install users, application
+   catalogs, bundled knowledgebases and both starter demonstrations by default.
 6. Check application, identity and BAM indexes, stop on conflicts, create compatible missing indexes, and
    verify that every required index is present before starting services.
-7. Install bundled HGNC genes, VEP metadata and diagrams into empty knowledgebase collections.
+7. Apply knowledgebase indexes separately when explicitly selected.
 8. Start services with health waiting, display service status, and check the local proxy's
    health and browser routes.
 
 Do not run the individual bootstrap or index commands in addition to this sequence.
 The script does not provision MongoDB, initialize replica sets, create database users,
-or change an existing network. Complete those prerequisites before running it.
+or create or repair Docker networks. Complete those prerequisites before running it.
 
 > [!IMPORTANT]
 > Redis must be reachable between containers on the application network. Its local
@@ -625,10 +358,10 @@ default, prerequisite and standalone command.
 
 | Detected state | Installer behavior |
 | --- | --- |
-| Application and identity databases contain no documents | Bootstrap accounts, RBAC and group/query policies. Empty collections do not count as installed data. |
-| Application data and the initial governance baseline already exist | Skip database bootstrap entirely. Preserve accounts, permissions, roles, query rules, references and clinical data; continue index checks and service startup. |
+| Application and identity databases contain no documents | Create accounts/RBAC, install application, knowledgebase and demo modules by default, then start services. Empty collections do not count as installed data. |
+| The initial governance baseline exists, including before application catalogs are installed | Skip all initial data installation. Preserve existing data and continue index checks/startup. Missing modules require authenticated maintenance. |
 | Only part of application/identity initialization is recognized | Stop before bootstrap or index writes. Inspect the target selection and initialization state; do not drop databases to retry. |
-| `--setup-center` or `--with-knowledgebase-seeds` is selected | Populate empty HGNC/VEP collections only; preserve populated collections, including on repeated runs. |
+| Fresh bootstrap includes knowledgebase data | Populate empty bundled HGNC/VEP collections and preserve populated reference collections. |
 | Conflicting indexes or an earlier step fails | Stop. No index is automatically dropped; completed operations are not rolled back or undone. |
 
 Bootstrap rechecks that both application and identity targets are still empty
@@ -644,32 +377,35 @@ data migrations.
 
 ### Prompts and options
 
-Bundled reference installation uses the configured `KNOWLEDGEBASE_MONGO_URI`
-without prompting for another URI. `--setup-center` requires knowledgebase write access.
-If the runtime account is read-only, supply `--knowledgebase-maintenance-uri-file FILE`
-with the maintenance identity from **step 6**. The override must use the same hosts,
-replica-set selection and logical database as the runtime knowledgebase connection.
-It applies only to maintenance containers; application services retain their
-configured runtime credentials.
+Fresh reference installation uses the configured knowledgebase connection or the
+maintenance URI from **step 6**, targeting the same endpoint and logical database.
+Existing deployments skip initial data operations completely.
 
 On fresh targets, enter the named administrator and emergency superuser details.
 Bootstrap prompts privately for two different temporary passwords, each at least
 12 characters, and requires distinct usernames and email addresses. Existing targets
 do not request new account credentials.
 
+For later additions or forced repairs, run `scripts/deployment/manage_data.py` with
+explicit modules and an existing administrator's API login. It completes a required
+password change and signs in again before adding data. The service checks the
+`admin`, `sys_admin` or `superuser` role and records the authenticated operator.
+
 | Option | Requirement and behavior |
 | --- | --- |
 | `--env-file FILE` | Required private deployment environment file. |
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
-| `--setup-center` | Complete first-center setup: all stages plus bundled HGNC/VEP references. Preserves existing data. Cannot combine with `--steps`. Demo configuration, external imports and knowledgebase-wide indexes are excluded. |
+| `--setup-center` | Complete first-center setup, also the default stage selection. Fresh installation includes users, catalogs, bundled references and demos. Preserves existing deployments. Cannot combine with `--steps`. |
 | `--sys-admin-username NAME`, `--sys-admin-email EMAIL` | Optional initial named-administrator details; prompted on a fresh target when omitted. |
 | `--username NAME`, `--email EMAIL` | Optional initial emergency-superuser details; prompted on a fresh target when omitted. |
-| `--knowledgebase-maintenance-uri-file FILE` | Optional private file containing a separate maintenance URI when the configured knowledgebase connection lacks write/index privileges. Defaults to the configured connection. Protect the file with restricted filesystem permissions. |
-| `--with-demo-center` | Install connected hematology DNA and RNA fusion demos, testing and catalog configurations, analysis-linked catalog, published demo rules and both samples. Publish the demo catalog only when no public catalog exists; otherwise retain it as a draft. Synchronize demo installation-role grants. Existing records are preserved. |
+| `--knowledgebase-maintenance-uri-file FILE` | Optional private URI file for fresh knowledgebase installation or selected knowledgebase indexes. Does not affect later API data maintenance. Protect it with restricted filesystem permissions. |
+| `--skip-demo` | Disable the otherwise included connected DNA/RNA starter configuration and samples. |
+| `--skip-knowledgebase` | Disable bundled reference installation. |
+| `--skip-application` | Disable application catalogs; requires `--skip-demo`. |
+| `--skip-users` | Disable initial accounts/RBAC; requires all three data modules to be skipped. |
 | `--skip-build` | Use already-built images after confirming that they match the selected release and deployment settings. |
 | `--steps LIST` | Comma-separated stages; default `network,directories,build,validate,bootstrap,indexes,start,health`. Executes selected stages in dependency order. |
-| `--with-knowledgebase-seeds` | Install bundled HGNC/VEP references independently of full setup, including on an existing application. Included in `--setup-center`. Requires an administrator username for provenance. |
 | `--with-knowledgebase-indexes` | Opt in to knowledgebase index planning, creation and verification. Large collections can take considerable time. |
 
 For separately prepared HGNC and Ensembl BioMart files, use the
@@ -690,9 +426,8 @@ For a first installation with both demo workflows, use:
 bash scripts/deployment/install_center.sh \
   --env-file "$COYOTE_ENV_FILE" \
   --project "$COYOTE_PROJECT" \
-  --compose-file deploy/compose/docker-compose.yml \
-  --setup-center \
-  --with-demo-center
+  "${COYOTE_INSTALL_ARGS[@]}" \
+  --setup-center
 ```
 
 See [Installed defaults and demonstration configuration](../administration/installed-defaults.md)
@@ -704,9 +439,9 @@ The image packages `clinical_capabilities.toml`, `clinical_query_defaults.toml`,
 application-owned; do not copy them into the editable center directory.
 
 Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one
-emergency `superuser`, assay groups and query-rule publications. `--setup-center`
-also loads HGNC and VEP metadata/diagrams into empty knowledgebase collections. Installed
-records are attributed to the named administrator, and document versions start at
+emergency `superuser`, assay groups, query-rule publications, bundled HGNC/VEP data
+and both connected starter demonstrations unless their skip flags are selected.
+Automated creations are attributed to `system`, and document versions start at
 1; external reference release identifiers retain their original values. Installation
 metadata is not evidence of clinical review. Optional demonstration records are
 synthetic and require separate clinical configuration before real use.
@@ -733,7 +468,7 @@ The installer must complete successfully. API and Redis must be healthy; other
 services must be running. If startup fails or a container restarts, inspect:
 
 ```bash
-coyote_compose logs --tail=100 api redis proxy worker beat monitor
+coyote_compose logs --tail=100 api redis proxy worker maintenance-worker beat monitor
 ```
 
 For a manual check of the public routes, run:
@@ -800,8 +535,8 @@ at least 10 characters, including uppercase, lowercase, a number, and a symbol.
 After the change, sign in again: previous sessions are invalidated.
 
 Until the password changes, the API permits only identity/session inspection,
-password change, and sign-out, including for the superuser. This restriction is
-enforced by the API, not just the redirect.
+password change, and sign-out, including for the superuser. The API enforces
+this restriction on every request.
 
 Use the named system administrator for Application Controls and account operations.
 Assign a clinical administrator for clinical configuration. Keep emergency credentials

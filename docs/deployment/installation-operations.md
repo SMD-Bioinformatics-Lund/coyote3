@@ -1,177 +1,171 @@
-# Installation operations
+# Installation and data maintenance
 
-The center installer runs a selected set of deployment operations. Application
-bootstrap, bundled reference installation and index maintenance are separate
-commands; none requires the web application to be running.
+First installation and later data maintenance are separate operations. The deployment
+installer builds and starts services. The Python maintenance command uses a running API
+and does not build, start or recreate services.
 
-Complete the MongoDB, environment-file and center-configuration prerequisites in
-the [first installation guide](first-installation.md). Run commands from the
-repository root. Use the same environment file and project name throughout:
+## First installation
 
-```bash
-COYOTE_ENV_FILE=/srv/coyote3/config/production.env
-COYOTE_PROJECT=coyote3-prod
-coyote_compose() {
-  bash scripts/deployment/compose-with-version.sh \
-    --env-file "$COYOTE_ENV_FILE" -p "$COYOTE_PROJECT" \
-    -f deploy/compose/docker-compose.yml "$@"
-}
-```
-
-The [environment reference](configuration-reference.md) describes endpoint,
-database, network and directory settings. Secrets remain in the private environment
-file. Do not put passwords or database URIs in command history.
-
-## Stage selection
-
-`--setup-center` selects the full first-install sequence and bundled HGNC/VEP
-reference installation. It preserves an existing application baseline and populated
-reference collections. Use it in the [first installation guide](first-installation.md).
-For individual operations, use `--steps` and the flags below instead;
-`--setup-center` and `--steps` cannot be combined. `--skip-build` remains available
-when the matching release images are already built.
-
-> [!NOTE]
-> The connected DNA/RNA demos and both samples require `--with-demo-center`.
-> Existing installations can use the same option; installed samples are preserved.
-> External knowledgebase imports and knowledgebase-wide indexing are not
-> part of `--setup-center`.
-
-`--steps` accepts a comma-separated selection. Stages execute in the order below,
-regardless of their order in the argument. The default selects all eight stages.
-Secret validation and Compose rendering always run. Selecting bootstrap, indexes
-or startup also validates center configuration and checks database state.
-
-Selecting `start` also starts Redis and checks authenticated cache, broker and
-result-backend connections from a temporary API container before any selected
-bootstrap or index operations. Failure stops the installer. The check does not
-change host firewall rules; see [connection troubleshooting](../operations/troubleshooting.md#api-startup-fails-while-connecting-to-redis).
-
-| Stage | Default | Operation and prerequisites | Standalone command |
-| --- | --- | --- | --- |
-| `network` | On | Create the configured application network only if absent. Docker must be running. | Installer with `--steps network` |
-| `directories` | On | Prepare configured host directories and permissions. | `coyote_compose --prepare-directories config --quiet` |
-| `build` | On | Build selected Compose images. Can take time; omit when the matching images already exist. | `coyote_compose build` |
-| `validate` | On | Validate mounted center configuration and four MongoDB endpoints, then identify fresh/existing application state. Requires API image and network. | Validation commands below |
-| `bootstrap` | On | Install application/identity baseline only on fresh targets; preserve existing installations. Requires initial account details. | Bootstrap command below |
-| `indexes` | On | Inspect, create and verify application, identity and BAM indexes. Existing clinical collections may take time to index. No knowledgebase index inspection or creation in this stage. | Index commands below |
-| `start` | On | Verify baseline and application indexes, then start services and wait for health. Does not build images. | `coyote_compose up -d --no-build --wait --wait-timeout 180` |
-| `health` | On | Check API health and browser routes through the local HTTP proxy using its rendered published port (`COYOTE3_PORT`) and `SCRIPT_NAME`. Services must already be running. | Installer with `--steps health` |
-
-To start an established installation without rebuilding or applying indexes:
+MongoDB endpoints, database users and the application network must be configured
+before installation. Follow [first installation](first-installation.md) for provisioning.
 
 ```bash
 bash scripts/deployment/install_center.sh \
   --env-file "$COYOTE_ENV_FILE" \
   --project "$COYOTE_PROJECT" \
-  --compose-file deploy/compose/docker-compose.yml \
-  --steps validate,start,health
+  --compose-file deploy/compose/docker-compose.yml
 ```
 
-Startup still checks required application indexes. If they are missing, run the
-`indexes` stage explicitly. A stage selection does not disable safety gates.
-Selecting `--skip-build` suppresses `build` even when included in `--steps`.
+All eight stages run by default: network, directories, build, validate, bootstrap,
+indexes, start and health. `--setup-center` explicitly selects the same complete
+sequence; it cannot be combined with `--steps`. `--skip-build` uses existing images.
+`--steps` selects individual stages in their canonical order.
 
-The local health check uses Compose's published proxy port, including overrides and
-host-address bindings. The installer displays this verified address as **Local application**.
-It separately displays **Public application** from `PUBLIC_BASE_URL`; this address
-can point to a separate HTTPS ingress and is not checked by the installer. Verify external DNS,
-TLS and ingress routing separately. For direct localhost access, its port should
-match `COYOTE3_PORT` so application-generated links point to the correct listener.
+Fresh bootstrap creates two distinct local accounts and their RBAC catalog, then
+installs application catalogs, bundled HGNC/VEP references, connected DNA/RNA demo
+configuration and both synthetic starter samples in their configured databases.
+Account identities are prompted when omitted; temporary passwords are hidden and
+confirmed. Both accounts must change their password on first API or browser use.
 
-To perform only application index maintenance:
+Production Redis TLS is optional. When selected, prepare the
+[certificates](../operations/redis-tls.md) and repeat
+`--compose-file deploy/compose/docker-compose.redis-tls.yml` after the base file on
+every installer invocation. Include the same ordered overlays in subsequent Compose,
+upgrade and recovery commands. Development and staging exclude this overlay.
 
-```bash
-bash scripts/deployment/install_center.sh \
-  --env-file "$COYOTE_ENV_FILE" \
-  --project "$COYOTE_PROJECT" \
-  --compose-file deploy/compose/docker-compose.yml \
-  --steps indexes
-```
-
-## Knowledgebase operations
-
-Bundled reference installation is included in `--setup-center`. Without that flag,
-both operations below are **off by default** and independent of `--steps`.
-They run after selected application bootstrap/index stages and before selected startup.
-They also work when the application baseline already exists.
-
-| Option | Operation | Requirements and limits |
+| Module | Default contents | Disable flag |
 | --- | --- | --- |
-| `--with-knowledgebase-seeds` | Install bundled HGNC, VEP metadata and VEP diagrams | Knowledgebase write privileges; `--sys-admin-username` supplies provenance or is prompted. Populated collections are preserved. Does not download external releases or build indexes. |
-| `--with-knowledgebase-indexes` | Plan, apply and verify knowledgebase indexes | Knowledgebase index privileges. Index creation can be expensive on large reference collections. No application, identity or BAM indexes are modified by this operation. |
-| `--knowledgebase-maintenance-uri-file FILE` | Use separate credentials for the selected knowledgebase operations | Optional restricted file containing one URI to the same configured endpoint and database. Rejected when neither knowledgebase operation is selected. Runtime credentials remain unchanged. |
+| Identity | Emergency superuser, named system administrator, permissions and roles | `--skip-users` |
+| Application | Eleven assay groups, twelve group-scoped SNV policies and immutable baseline revisions | `--skip-application` |
+| Knowledgebase | Bundled HGNC genes, VEP metadata and associated binary diagrams | `--skip-knowledgebase` |
+| Demo | Connected DNA/RNA assays, configurations, gene lists, subpanels, rules, catalog and two synthetic samples | `--skip-demo` |
 
-For a new center, use `--setup-center` to include bundled references. Add
-`--with-knowledgebase-indexes` when knowledgebase-wide index maintenance is intended.
-Missing references can limit annotation and interpretation; installation success is
-not a clinical readiness assessment. Review [required data](required-data.md).
+`--skip-application` requires `--skip-demo`. `--skip-users` requires all three
+data modules to be skipped too: unauthenticated data installation is authorized only
+by successful initial account creation in that same invocation. On a deployment with
+existing accounts, use authenticated maintenance to add disabled modules later.
 
-Bundled references can also be installed independently:
+Automated creations use `created_by: "system"`; starter sample provenance uses
+`ingested_by: "system"`. Existing populated reference collections are preserved.
+The demo catalog is published only when no public catalog exists; otherwise its
+version remains a draft. No application data is seeded by ordinary API startup.
 
-```bash
-coyote_compose run --rm --no-deps -T api \
-  python3 scripts/bootstrap/install_reference_data.py --actor center.admin
-```
+Existing deployments skip the entire bootstrap operation, even when a selected
+module is missing. A partially recognized application/identity target is rejected.
+An initial data failure after account creation does not reopen unauthenticated
+seeding. Rerun deployment to finish indexes and startup while preserving existing
+data, then complete missing modules with the maintenance command.
 
-`--actor` is the existing administrator username recorded in installation metadata.
-`--reference-dir` optionally selects a mounted, reviewed reference pack; by default
-the command uses the bundled release. Logical database names and URIs come from the
-environment. Existing collections are not refreshed or replaced by this command.
+Update deployment automation to remove the former `--with-demo-center` and
+`--with-knowledgebase-seeds` opt-in flags; these options are rejected. Use skip
+flags for fresh installation and the separate maintenance command for later work.
 
-Use the source-specific [knowledgebase import procedures](../reference/knowledgebases/README.md)
-for external releases. Those standalone importers retain their own explicit write
-options and may build the indexes needed to publish a release. The center installer's
-flags do not change independently invoked importers.
+### Stages and operational flags
 
-To build a separate gene reference from HGNC and Ensembl BioMart source files, use
-the standalone [HGNC gene installer](../operations/hgnc-gene-installation.md).
-It validates inputs without database access by default; writes require `--apply`
-and a new backup file. It is separate from the bundled-reference seed option.
+| Stage or option | Behavior |
+| --- | --- |
+| `network` | Inspect the pre-provisioned external application network and require the bridge driver. Never create or repair networking. |
+| `directories` | Prepare configured host directories and permissions. |
+| `build` | Build the selected deployment images unless `--skip-build` is set. |
+| `validate` | Validate mounted center configuration, endpoint access and target state. |
+| `bootstrap` | Install the default modules only on a fresh target; preserve existing deployments. |
+| `indexes` | Plan, apply and verify application, identity and BAM indexes. Conflicts stop execution. |
+| `start` | Verify initial accounts and required indexes, start services and wait for health. |
+| `health` | Check API/browser routes through the rendered local proxy address. |
+| `--sys-admin-username NAME --sys-admin-email EMAIL` | Optional initial administrator identity hints. |
+| `--username NAME --email EMAIL` | Optional initial emergency-superuser identity hints. |
+| `--with-knowledgebase-indexes` | Separately plan, apply and verify knowledgebase indexes. |
+| `--knowledgebase-maintenance-uri-file FILE` | Optional restricted URI file for fresh knowledgebase installation and selected knowledgebase indexes. It must target the configured endpoint/database; runtime credentials remain unchanged. |
 
-## Standalone validation and bootstrap
+Selecting startup also checks Redis cache, broker and result-backend connections
+before bootstrap or indexes. Secrets remain in the private environment file.
+Do not enable shell tracing when handling credentials.
 
-```bash
-coyote_compose run --rm --no-deps -T api \
-  python3 -m scripts.deployment.installation_checks configuration
-coyote_compose run --rm --no-deps -T api \
-  python3 -m scripts.deployment.installation_checks state
-```
+Every stage that runs application containers requires the existing external bridge,
+even when `network` is omitted from `--steps`. A failed network inspection stops
+before image builds or container operations. Provision missing infrastructure using
+[first installation](first-installation.md#6-create-the-application-network).
+The installer does not change firewall rules, forwarding settings or Docker daemon
+configuration, and does not restart the Docker daemon.
 
-The state command performs read-only endpoint checks and returns `fresh` or
-`existing`; partial initialization stops with an error. It does not seed data.
+The local health-check URL uses the proxy's rendered published port and
+`SCRIPT_NAME`. The separately displayed public URL uses `PUBLIC_BASE_URL`.
+See [connection troubleshooting](../operations/troubleshooting.md#api-startup-fails-while-connecting-to-redis)
+when containers cannot reach Redis.
 
-For a fresh application and identity database, use the environment's database names:
+### Direct initial bootstrap
+
+The same freshness check applies when invoking Python directly through Compose:
 
 ```bash
 coyote_compose run --rm --no-deps -it api sh -c '
   exec python3 scripts/bootstrap/bootstrap_database.py \
-    --require-empty-target --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB" \
-    --sys-admin-username center.admin --sys-admin-email admin@example.org \
-    --username emergency.admin --email emergency@example.org
+    --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB"
 '
 ```
 
-Passwords are requested privately. This command installs accounts, RBAC and
-application policies; it does not connect to the knowledgebase. `--with-demo-center`
-adds synthetic center configuration on fresh targets. See
-[bootstrap data flow](bootstrap-data-flow.md) for seed files and ownership.
+The Python command supports the same four module skip flags. It has no `--force`
+option and never uses an existing account name as unauthenticated authorization.
+Configured connections need write access to the selected destination databases.
+Knowledgebase installation can use the deployment installer's maintenance URI
+without granting routine API connections write privileges.
 
-## Standalone demo installation
+## Authenticated data maintenance
 
-The complete starter installer is also available independently in an API container
-with the deployment environment configured:
+Use an existing `admin`, `sys_admin` or `superuser` account with the running API.
+Module selection is mandatory; `--force` never implicitly selects every module.
 
 ```bash
-python3 -m scripts.bootstrap.install_demo_starter --actor center.admin
-python3 -m scripts.bootstrap.install_demo_starter --actor center.admin --apply
+.venv/bin/python scripts/deployment/manage_data.py \
+  --api-url https://coyote.example.org/coyote3 \
+  --modules application knowledgebase
 ```
 
-The first command is read-only. `--apply` synchronizes demo installation grants,
-installs the connected configuration and ingests both samples. Run after baseline
-and index installation, before starting the application. Existing accounts and
-role assignments are preserved. The actor must be an existing administrator.
-See the [demo workflow guide](../testing/clinical-workflow-demo.md) for contents.
+Without `--force`, populated catalog collections and existing demo samples are
+skipped. To repair selected bundled modules:
+
+```bash
+.venv/bin/python scripts/deployment/manage_data.py \
+  --api-url https://coyote.example.org/coyote3 \
+  --modules application demo --force
+```
+
+Inside Compose, use `coyote_compose run --rm --no-deps -it api python3
+scripts/deployment/manage_data.py --api-url http://api:8001 --modules knowledgebase --force`.
+The API's configured connection needs write privileges on each selected database.
+
+The command requests a username and hidden password, signs in using
+`POST /api/v1/auth/sessions`, and completes a required first-login password change
+using `POST /api/v1/auth/password/change`. It signs in again with the new password
+because password changes invalidate previous sessions. It then calls
+`POST /api/v1/admin/installation/data` and revokes its session afterward.
+Passwords are never command arguments or stored in credential files.
+
+The write request is `{"modules":["application","demo"],"force":true}`.
+The application service checks the authenticated administrator role and rejects
+temporary-password sessions. Client actors, seed paths and arbitrary documents are
+not accepted. Newly created seed records use the system creator; updates and API
+audit events record the authenticated administrator.
+
+| Module | Forced maintenance boundary |
+| --- | --- |
+| `identity` | Restore missing bundled permissions/roles and union missing grants into system roles. Preserve local grants, activation state, every user, membership and password. Account creation/reset uses the normal account administration workflow. |
+| `application` | Repair bundled group labels/descriptions and add missing identities. Preserve group availability, center-owned scopes and custom records. Changed bundled query content is published as a new version with retained hash-linked history; retired-only scopes stay retired. |
+| `knowledgebase` | Repair system-created bundled reference IDs and content-addressed diagrams. A bundled publication or surviving system provenance identifies recoverable initial batches; active external releases are preserved. Preserve unknown/unattributed records and unrelated gene/release IDs. |
+| `demo` | Restore missing packaged configuration without overwriting existing configuration or rule history. Reingest only system-owned starter samples with their exact testing assay/subpanel, preserving sample IDs. Samples with reports, comments, RNA classifications or human ingest provenance are preserved. |
+
+## Knowledgebase operations
+
+Fresh bootstrap includes bundled references unless `--skip-knowledgebase` is selected.
+Later additions and repairs require API maintenance with `--modules knowledgebase`;
+the API's configured database connection needs write access during that operation.
+Knowledgebase index maintenance remains a separately selected operation.
+
+External releases use their source-specific
+[knowledgebase import procedures](../reference/knowledgebases/README.md).
+The maintenance command does not drop databases or bulk-reset collections.
+For separately prepared HGNC/BioMart files, use the
+[gene installation reference](../operations/hgnc-gene-installation.md).
 
 ## Standalone index maintenance
 

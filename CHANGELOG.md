@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+- Make fresh installation create identity, application catalogs, bundled references
+  and synthetic starter data by default, with module skip flags and preservation of
+  existing data. Later additions/repairs use API authentication, role checks and
+  first-login password change handling.
+- Enforce finding ownership and current clinical access for report notifications;
+  restrict sample deletion to its explicit permission. Add audit integrity chains,
+  durable outboxes/checkpoints and transaction-owned report-file erasure jobs.
+- Separate ingestion and maintenance worker queues, bound activity scans and deep
+  sorted-page memory, and add error-mail backoff/quarantine and erasure diagnostics.
+- Add configured SNV flag exclusions for both intents and tumor WGS groups while
+  retaining the existing `tumwgs` group. Preserve saved report snapshots.
+- Add optional production Redis TLS and certificate procedures. Development and
+  staging keep the base Redis transport. Clarify application versus monitor email controls.
+- Replace obsolete release-validation commands, require real replica-set CI coverage,
+  and remove retired runtime/Compose compatibility tests while retaining supported
+  migration and clinical safety tests. Keep archived Compose definitions.
+
+For deployment prerequisites, index/retention maintenance, coordinated service
+replacement and rollback limits, follow
+[release maintenance](docs/deployment/release-maintenance.md) before the
+[upgrade procedure](docs/deployment/application-upgrades.md).
+
 ## v4.0.0 - 2026-08-10
 
 Version 4 replaces the Flask/Jinja application with a production-oriented

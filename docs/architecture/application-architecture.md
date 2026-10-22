@@ -1,5 +1,7 @@
 # Application Architecture
 
+![Application layers and database boundaries](../assets/diagrams/application-architecture.svg)
+
 ![Application request lifecycle](../assets/diagrams/request-lifecycle.svg)
 
 Coyote3's interface, API, background workers, and database collections support the
@@ -35,7 +37,9 @@ The platform runs as separate services:
 
 - `frontend`: React application served through the web container or reverse proxy
 - `api`: FastAPI application, business services, authorization, and persistence access
-- `worker`: Celery worker for ingest, dependent writes, and maintenance tasks
+- `worker`: Celery worker consuming the `ingest` queue for sample and collection writes
+- `maintenance-worker`: Celery worker consuming `default` for delivery and maintenance;
+  see [background delivery and recovery](../operations/background-delivery.md)
 - `beat`: Celery scheduler for watched-folder ingest and nightly maintenance
 - `redis`: Celery broker, task results, and cache infrastructure
 - `mongo`: clinical, operational, and configuration persistence
@@ -63,7 +67,7 @@ Clinical tables use a single React pattern:
 
 Server-paginated clinical tables send sort state as comma-separated
 `field:direction` entries. The backend applies search and all sort keys to the
-complete filtered result set before pagination. This ensures that sorting by
+complete filtered result set before pagination. Sorting by
 case VAF, control VAF, population frequency, tier, gene, or any other supported
 column ranks all matching rows, not only the visible page.
 
@@ -139,9 +143,9 @@ MongoDB data is divided by ownership and access boundary:
 
 | Database setting | Data owned by the database |
 | --- | --- |
-| `COYOTE3_DB` | Samples, findings, annotations, reports, comments, assay configuration, coverage, RNA results, notifications, application controls, HGNC data, and VEP metadata. |
+| `COYOTE3_DB` | Samples, findings, annotations, reports, comments, assay configuration, coverage, RNA results, notifications and application controls. |
 | `IDENTITY_DB` | User accounts, roles, permissions, API sessions, and durable audit events. |
-| `KNOWLEDGEBASE_DB` | Installed external knowledgebase releases, knowledgebase provenance, and public integration caches. It must not contain sample or patient data. |
+| `KNOWLEDGEBASE_DB` | HGNC genes, VEP metadata/diagrams, external knowledgebase releases, provenance and public integration caches. It must not contain sample or patient data. |
 | `BAM_DB` | BAM-service sample records. |
 
 These databases are required to have distinct names. Separating identity and
@@ -302,7 +306,8 @@ Saving a report persists:
 - ASPC object/context used for the report
 - filter snapshot used for the report
 
-This means later searches can answer which samples reported a gene/variant/tier and which filters/configuration were in force at report time. Report snapshots are not just display data; they are part of the clinical reconstruction model.
+Reported finding searches use the saved gene, variant and tier alongside the
+filters and configuration recorded at report creation.
 
 > **Warning: Report reconstruction**
 >

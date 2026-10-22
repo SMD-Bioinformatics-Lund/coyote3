@@ -176,7 +176,7 @@ demo_data/                   Synthetic demonstration and ingest data
 - Docker with Docker Compose
 - Python 3.12 or later for repository scripts and local quality checks
 - MongoDB 8.2 or later when using an external database; the self-hosted stack
-  uses the pinned `mongo:8.2` image
+  uses the pinned `mongo:7.0.41` server image
 
 Create the development environment file:
 

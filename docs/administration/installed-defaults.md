@@ -9,21 +9,22 @@ create an assay, enable an analysis, or grant users access to samples.
 
 | Installation component | Supplied records | Availability |
 | --- | --- | --- |
-| Assay groups | Eleven registered groups, listed below | Standard bootstrap |
-| Finding query rules | Twelve published SNV sets across six groups, with immutable baseline revisions | Standard bootstrap |
+| Assay groups | Eleven registered groups, listed below | Default first installation; disable with `--skip-application` |
+| Finding query rules | Twelve published SNV sets across six groups, with immutable baseline revisions | Default first installation; disable with `--skip-application` |
 | System roles | 32 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
 | Initial accounts | One named system administrator and one separate emergency superuser | Operator supplies identities and temporary passwords during bootstrap |
-| Starter demonstration | Two assays (hematology DNA and RNA fusion), two testing and two production catalog configurations, two gene lists, two named subpanels with associations, two published query policies, two published report-rule sets, an analysis-linked catalog and two ingested samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | `install_center.sh --with-demo-center` or Administration → Demo installation |
-| Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Included in `--setup-center`; independently available with `--with-knowledgebase-seeds` |
+| Starter demonstration | Two assays (hematology DNA and RNA fusion), two testing and two production catalog configurations, two gene lists, two named subpanels with associations, two published query policies, two published report-rule sets, an analysis-linked catalog and two ingested samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | Default first installation; disable with `--skip-demo`. Later additions use authenticated maintenance or Administration → Demo installation |
+| Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Default first installation; disable with `--skip-knowledgebase` |
 
-Installed versioned catalogs start at version 1 and are attributed to the named
-initial administrator. Query sets start at version 1, revision 1 and carry
+Installed versioned catalogs start at version 1 and are attributed to `system`.
+Maintenance updates identify the authenticated administrator. Query sets start at version 1, revision 1 and carry
 `system_installed`; protected baseline catalogs use `system_managed`. Starter demo
 records carry `system_installed` independently of edit/delete protection. Report-rule
 content versions and revisions also start at 1. Reference release identifiers are
 preserved. Installation provenance does not establish independent clinical approval.
 
-Bootstrap skips populated collections rather than replacing their contents. The
+Existing deployments skip initial bootstrap completely. Populated reference collections
+on fresh deployments are preserved. The
 [installation operations reference](../deployment/installation-operations.md)
 describes stage selection and standalone commands. Existing installations use the
 documented synchronization workflows; rerunning bootstrap does not reset catalogs.
@@ -139,13 +140,14 @@ Explicit exclusion exceptions still apply to admitted findings.
 SNV `exclude_flags` selections also apply after admission.
 Their choices come from the [configured flag metadata](../configuration/filter-flag-metadata-file.md#snv-flag-filtering-and-rule-conditions).
 
-!!! warning "Somatic SNV results can include germline findings"
-    The dedicated germline workflow is not fully implemented. Effective germline
-    admission exceptions also contribute to somatic SNV retrieval for the same
-    scope. The four hematology-related scopes above and the two solid-tumor scopes therefore
-    include their respective germline admissions in somatic results. Germline
-    evidence settings do not replace somatic evidence settings. Inclusion in the
-    somatic table does not establish somatic origin.
+> **Warning: Somatic SNV results can include germline findings**
+>
+> The dedicated germline workflow is not fully implemented. Effective germline
+> admission exceptions also contribute to somatic SNV retrieval for the same
+> scope. The four hematology-related scopes above and the two solid-tumor scopes therefore
+> include their respective germline admissions in somatic results. Germline
+> evidence settings do not replace somatic evidence settings. Inclusion in the
+> somatic table does not establish somatic origin.
 
 Lymphoid, PGX, WTS, fusion, demo and newly registered groups receive none of these group
 exceptions automatically. No CNV, translocation or RNA fusion rule publications
@@ -160,12 +162,11 @@ not a runtime center-editable policy.
 
 ## Low-level bootstrap configuration examples
 
-The following legacy examples are available through the low-level
-`bootstrap_database.py --with-demo-center` option on a fresh target. They contain
-configuration and report-rule test cases only. The center installer uses the
+The following bundled examples in `api/config/bootstrap/demo_center` contain
+configuration and report-rule test cases only. Account bootstrap does not install
+these legacy examples. The center installer uses the
 complete [DNA and RNA starter package](../testing/clinical-workflow-demo.md) instead,
-including ingested samples. Without a demo option, bootstrap creates no ASP,
-ASPC, ISGL, named subpanel or clinical report-rule set.
+including ingested samples, unless `--skip-demo` is selected.
 
 ### Assays and configurations
 

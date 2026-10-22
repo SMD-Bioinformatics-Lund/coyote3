@@ -3,6 +3,7 @@
 Coyote3 organizes DNA review, RNA review, and administration into dedicated application
 areas. Each area connects sample data with the relevant review or management actions.
 Detailed procedures are documented in the [application guide](application-guide.md).
+This page maps navigation to tasks; field meanings belong to the table reference below.
 
 > **Info: Column-level reference**
 >

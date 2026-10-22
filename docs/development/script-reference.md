@@ -55,8 +55,9 @@ the [v2 procedure](../migration_from_v2/migration-guide.md) and
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
-| `bootstrap/bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Initializes application and identity baselines; does not connect to or populate the knowledgebase |
-| `bootstrap/install_reference_data.py` | Explicit opt-in | [Installation operations](../deployment/installation-operations.md) | Loads bundled HGNC/VEP into empty knowledgebase collections, preserving populated references; does not build indexes |
+| `bootstrap/bootstrap_database.py` | First installation | First-deployment runbooks; composed CI verification | Creates initial accounts and installs application, knowledgebase and demo modules by default on fresh targets only; supports explicit module skip flags |
+| `bootstrap/demo_service.py` | Internal helper | First installation | Binds the fixed starter bundle to normal transactional ingestion and configured databases |
+| `deployment/manage_data.py` | Authenticated maintenance | [Installation operations](../deployment/installation-operations.md) | Uses API login and required password setup to add or force-repair explicitly selected modules; never deploys services |
 | `deployment/install_center.sh` | Manual operation | First-installation guide | `--setup-center` installs the application baseline and bundled HGNC/VEP references; `--steps` selects individual stages; external imports and knowledgebase-wide indexing remain separate |
 | `deployment/installation_checks.py` | Standalone command and helper | `install_center.sh` and guarded bootstrap | Read-only configuration, endpoint, installation-state and scoped index-readiness checks |
 | `knowledgebase/migrate_reference_database.py` | Manual maintenance | Existing deployments | Backs up and moves HGNC/VEP to the knowledgebase database; removes the superseded subpanel collection only after checking current replacements |
@@ -112,6 +113,7 @@ the default creates a review artifact without database access.
 | `database/manage_mongo_indexes.py` | Manual operation | Maintenance and troubleshooting runbooks | Inspects repository/security index contracts, applies missing indexes, and retires one explicitly confirmed obsolete index |
 | `database/inspect_mongo_capacity.py` | Manual operation | Maintenance and quality runbook | Emits a read-only collection count, storage/index-size, and index-inventory snapshot without reading clinical documents |
 | `database/inspect_report_artifacts.py` | Manual operation | Report-artifact reconciliation guide | Compares report records with files and identifies missing, outside-root, and unreferenced artifacts without changing them |
+| `database/verify_audit_chain.py` | Scheduled or manual verification | Audit and logging guide | Verifies traceability event hashes and compares independently retained checkpoints without modifying events |
 | `maintenance/migrate_notification_retention.py` | Upgrade operation | Email and notifications guide | Removes destructive notification expiry indexes and marks existing administrative broadcasts; writes require `--apply` |
 
 ## Reference and RBAC maintenance

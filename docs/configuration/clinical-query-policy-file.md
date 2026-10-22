@@ -15,7 +15,7 @@ Editing or restarting with a changed file does not update an installed policy.
 
 | Operation | Role of the file |
 | --- | --- |
-| First installation | `scripts/bootstrap/bootstrap_database.py` combines its typed criteria with the bundled query-rule catalog and installs database publications. |
+| First installation | Fresh bootstrap combines typed criteria with the bundled query-rule catalog and installs system-attributed database publications. Later changes use authenticated maintenance or the governed query-rule workflow. |
 | Existing installation | `scripts/bootstrap/install_query_rules.py` reads it when planning or installing missing scopes. Existing scopes, including retired ones, are preserved. |
 | Routine clinical policy changes | Use **Administration → Query rules** to draft, review and publish database versions. Editing this file does not update existing rules. |
 | Live finding retrieval | Not read. Retrieval uses application-owned defaults, published database policies and sample filters. |
@@ -25,12 +25,12 @@ editable center configuration, cannot be redirected through the center directory
 and has no installer command-line override. Database publications are the supported
 way to change clinical selection criteria after installation.
 
-!!! warning "SNV intent is not a classification of variant origin"
-
-    Current somatic SNV queries can also return germline variants. The dedicated
-    germline SNV pathway is not yet fully implemented. The `somatic` and `germline`
-    settings documented here scope query criteria; they do not guarantee distinct
-    result sets or a complete germline analysis workflow.
+> **Warning: SNV intent is not a classification of variant origin**
+>
+> Current somatic SNV queries can also return germline variants. The dedicated
+> germline SNV pathway is not yet fully implemented. The `somatic` and `germline`
+> settings documented here scope query criteria; they do not guarantee distinct
+> result sets or a complete germline analysis workflow.
 
 ## Policy inputs and runtime boundaries
 

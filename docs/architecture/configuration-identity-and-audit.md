@@ -1,9 +1,8 @@
 # Configuration Identity And Audit
 
 Coyote3 uses stable clinical identifiers, one active configuration record per
-clinical scope, and an operational audit trail. Together, these rules make
-configuration easy to query while preserving the evidence needed to explain
-how a sample was reviewed and reported.
+clinical scope, and an operational audit trail. Sample review and report records
+retain the configuration identity and filter state used at the time.
 
 This page describes the production architecture. It is intended for clinical
 administrators, developers, and operators who maintain ASP, ASPC, and ISGL

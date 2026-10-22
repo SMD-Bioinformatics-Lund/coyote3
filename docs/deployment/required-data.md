@@ -133,9 +133,9 @@ Minimum DNA manifest fields:
 >
 >
 > File paths in manifests must be readable from the API and Celery worker
-> containers. Compose mounts `COYOTE3_DATA_HOST_ROOT` both at `/data` and at
-> the same absolute host path inside API and Celery containers. Pipeline source
-> paths below that root remain valid and are persisted unchanged.
+> containers. Compose mounts `COYOTE3_DATA_HOST_ROOT` at `/data`; it does not also
+> mount the same absolute host path inside containers. Use container-visible paths
+> or an explicit read-only input mount. See [storage overrides](../configuration/compose-files.md).
 >
 
 ## Ingest Flow

@@ -251,6 +251,8 @@ the `samples` row. Coyote3 removes the sample document and all Coyote-owned
 children keyed by its sample identifier: small variants, CNVs, coverage,
 translocations, fusions, biomarkers, RNA expression, RNA classification, RNA
 quality control, sample comments, reports, and reported-finding snapshots.
+The same transaction queues erasure of the sample's generated report HTML/PDF files.
+Only callers granted `sample:delete:global` can initiate deletion.
 
 Shared knowledgebase cache entries are retained because they contain no sample
 identifiers or sample-owned relationships. Global annotations, HGNC/VEP

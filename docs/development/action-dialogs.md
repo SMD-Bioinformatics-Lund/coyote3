@@ -1,118 +1,69 @@
-# UI Action Modal
+# React action confirmations
 
-Use the shared layout action modal for any UI action that needs user
-confirmation. This keeps destructive flows consistent across frontend views and
-avoids mixing browser `confirm()` calls, page-local dialog markup, and
-inconsistent warning styles. API routes should return structured success/error
-payloads; the frontend owns notifications.
+Use `ConfirmationDialog` from `@/components/ui/confirmation-dialog` for reviewed
+state-changing actions. It renders an accessible portal, traps keyboard focus,
+restores focus on close and prevents cancellation while the action is pending.
+See [actions and record changes](../user-guide/actions-and-record-changes.md) for
+user-facing behavior.
 
-## When to use it
+## Component contract
 
-Use the action modal when a page is about to:
+| Prop | Purpose |
+| --- | --- |
+| `open`, `title`, `description` | Controlled visibility and the action/resource/consequence to confirm. Description accepts React content. |
+| `confirmLabel`, `cancelLabel` | Action labels; defaults are Confirm and Cancel. |
+| `isPending` | Disable both actions and cancellation while the request is running. |
+| `confirmDisabled` | Disable confirmation until the form meets its prerequisites. |
+| `variant` | `default` or `destructive`; presentation does not grant permission. |
+| `onConfirm`, `onCancel` | Callbacks owned by the page or reusable workflow. |
 
-- submit a destructive form
-- navigate to a state-changing route
-- run a client-side callback after explicit confirmation
+The component does not call the API, manage mutation errors or automatically close
+after confirmation. The owner uses the existing API/query abstraction, reports the
+result through the notification helpers, and refreshes affected cached data.
 
-Do not create page-local modal markup for these cases.
+## Example
 
-## Supported patterns
+This synthetic component receives an existing mutation callback; it does not invent
+an API endpoint:
 
-### 1. Confirm a URL navigation
+```tsx
+import { useState } from "react"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
-This is the simplest pattern and is still used by the admin list pages.
+type Props = {
+  sampleName: string
+  isPending: boolean
+  deleteSample: () => Promise<boolean>
+}
 
-```html
-<button
-  type="button"
-  onclick="showActionModal({
-    url: `/admin/users/${user.id}/edit`,
-    title: 'Edit user',
-    message: `Open the edit screen for <b>${user.username}</b>?`,
-    confirmText: 'Edit',
-    confirmColor: 'blue'
-  })"
->
-  Edit
-</button>
+export function DeleteSampleConfirmation({ sampleName, isPending, deleteSample }: Props) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>Delete sample</button>
+      <ConfirmationDialog
+        open={open}
+        title={`Delete ${sampleName}?`}
+        description="Remove the sample's owned records and queue its generated report files for erasure."
+        variant="destructive"
+        confirmLabel="Delete sample"
+        isPending={isPending}
+        onCancel={() => setOpen(false)}
+        onConfirm={async () => {
+          if (await deleteSample()) setOpen(false)
+        }}
+      />
+    </>
+  )
+}
 ```
 
-When the user confirms, the helper navigates with `window.location.assign(...)`.
+The supplied callback reports failed requests through the existing notification
+helpers and returns false, retaining the dialog without an unhandled rejection.
+A confirmation does not replace server authorization, sample/finding ownership or
+transaction checks. Sample deletion still requires `sample:delete:global`.
 
-### 2. Confirm a form submission
-
-Preferred for destructive POST actions such as removing a tier or overriding a
-blacklist flag.
-
-```html
-<form
-  action="/api/v1/samples/{sample_id}/small-variants/{variant_id}/blacklist-override"
-  method="post"
-  data-action-modal-form
-  data-action-modal-title="Override Blacklist"
-  data-action-modal-message="This will keep the variant visible for this sample."
-  data-action-modal-confirm-text="Override blacklist"
-  data-action-modal-confirm-color="purple"
->
-  <input type="submit" value="Override Blacklist">
-</form>
-```
-
-The shared JS intercepts the form submission, opens the modal, and on confirm
-calls `form.requestSubmit()`.
-
-### 3. Confirm a client-side callback
-
-Use this for async page actions that do not map directly to a single form or
-navigation target.
-
-```javascript
-showActionModal({
-  title: "Clear Ad-Hoc Genes",
-  message: "This will remove the saved ad-hoc gene list from this sample.",
-  confirmText: "Clear genes",
-  confirmColor: "yellow",
-  onConfirm: async () => {
-    const response = await fetch(clearUrl, { method: "POST" });
-    if (response.ok) {
-      window.location.reload();
-    }
-  },
-});
-```
-
-## API surface
-
-`showActionModal(...)` supports:
-
-- `url`
-- `form`
-- `title`
-- `message`
-- `confirmText`
-- `confirmColor`
-- `onConfirm`
-
-Color variants currently supported:
-
-- `blue`
-- `green`
-- `yellow`
-- `orange`
-- `purple`
-- `red`
-- `gray`
-
-## Behavior notes
-
-- clicking the backdrop closes the modal
-- pressing `Escape` closes the modal
-- the close button and cancel button both dismiss the modal
-- use HTML in `message` only when the content is trusted template output
-
-## Rule of thumb
-
-If a route action already lives in a `<form method="post">`, prefer
-`data-action-modal-form` over inline JavaScript. Reserve direct
-`showActionModal({ onConfirm })` calls for client-side actions that genuinely do
-not map to a form.
+For ordinary reversible edits, use the existing form workflow unless an explicit
+confirmation is required. Do not add a second dialog implementation or a browser
+`confirm()` around the shared dialog. Pending, cancellation, keyboard and focus
+behavior are covered by its component tests.

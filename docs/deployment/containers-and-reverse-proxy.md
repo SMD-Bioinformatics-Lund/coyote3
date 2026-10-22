@@ -391,7 +391,7 @@ curl -f "$APP_URL/api/v1/health"
 
 # Check protected internal metrics through the deployment prefix
 curl -f "$APP_URL/api/v1/internal/metrics" \
-  -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
+  -H "X-Coyote-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
 ## Safety guardrails

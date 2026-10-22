@@ -129,7 +129,7 @@ in it.
 | Permission policy | Every permission understood by the shipped API and UI. | Assign through center-owned roles. | Edit, activation changes, and delete. |
 | Role | Standard clinical, operational, and administrative role baselines. | Assign to authorized accounts; create a separate center-owned role for custom grants. | Edit, activation changes, and delete. |
 | Initial administrators | One named `sys_admin` and one emergency `superuser`, supplied during bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
-| Demo ASP, ASPC, and ISGL | Synthetic configuration installed only with `--with-demo-center`. | Edit and deactivate for disposable validation. | Delete. |
+| Demo ASP, ASPC, and ISGL | Synthetic starter configuration included by default on first installation; disable with `--skip-demo`. | Edit and deactivate for disposable validation. | Delete. |
 
 Center-created users, roles, permission policies, ASPs, ASPCs, and ISGLs do
 not receive this protection. Avoid using the demo configuration for clinical
@@ -328,22 +328,13 @@ requests.
 
 ![Administrative ingest workspace](../assets/screenshots/admin_ingest.png)
 
-## Notification Center
+The **Ingest** workspace queues validated sample bundles and shows the state of
+background ingest jobs. Each job keeps a durable receipt; see
+[ingest job recovery](../operations/ingest-job-recovery.md) for state meanings.
 
-Notifications are recipient-scoped. The history view groups operational,
-clinical, account, and broadcast messages for the authenticated user.
-
-Each collapsed row shows the title and severity. Expand it to read the body;
-opening a message marks it read without clearing it. Personal messages can be
-cleared individually or together. Broadcasts remain until their sender withdraws
-them or their configured expiry is reached; recipients cannot clear them.
-
-![Notification history](../assets/screenshots/notifications.png)
-
-The **Ingest** workspace allows administrators to queue validated sample bundles and monitor background ingest behavior.
-
-*   **Bulk Ingestion**: Monitor the status of high-throughput sequencer data arrivals.
-*   **System Logs**: Accessible via the Admin Home, these logs provide a tamper-proof record of every sign-in and clinical action taken on the platform.
+Sign-in, administrative and clinical change events are written to the audit trail.
+See [audit events and JSON logging](../operations/audit-and-logging.md) for event
+fields, integrity verification and retention.
 
 ## Admin UI Conventions
 
@@ -374,6 +365,18 @@ The page reflects the route registry shipped with the running frontend. The
 repository test suite also compares that registry with `App.tsx` and the
 FastAPI route inventory, preventing unregistered pages and stale endpoint
 references from passing release checks.
+
+## Notification Center
+
+Notifications are recipient-scoped. The history view groups operational,
+clinical, account, and broadcast messages for the authenticated user.
+
+Each collapsed row shows the title and severity. Expand it to read the body;
+opening a message marks it read without clearing it. Personal messages can be
+cleared individually or together. Broadcasts remain until their sender withdraws
+them or their configured expiry is reached; recipients cannot clear them.
+
+![Notification history](../assets/screenshots/notifications.png)
 
 ## Broadcast Notifications
 

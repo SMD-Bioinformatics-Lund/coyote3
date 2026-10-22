@@ -11,7 +11,7 @@ commands, their callers, and operational prerequisites.
 | `migration_common/` | Shared offline indexing, conversion, metadata reconciliation, and isolated target bundle application |
 | `bootstrap/` | Initial database installation, seed preparation, and assay validation |
 | `deployment/` | Center installation orchestrator, version-aware Compose commands and deployment checks |
-| `database/` | Backups, restores, indexes, capacity, and report-artifact inspection |
+| `database/` | Backups, restores, indexes, capacity, report-artifact inspection, and audit-chain verification |
 | `ingest/` | Manifest validation, submission, and API authentication |
 | `identity/` | Identity database migration and permission/role maintenance |
 | `knowledgebase/` | External reference imports, storage migrations, and repairs |
@@ -24,10 +24,11 @@ Migration commands are operator tools, not application startup hooks. Read their
 runbooks and inspect the plan before enabling writes. Keep credentials, database
 exports, migration plans containing identifiers, and backups outside the repository.
 
-The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
-also covers `python3 -m scripts.bootstrap.install_demo_starter --actor NAME --apply`
-for complete DNA/RNA starter configuration and sample installation using configured
-deployment databases. Omit `--apply` for a read-only plan. The guide
+Fresh deployment includes the connected DNA/RNA starter configuration and both samples
+unless `--skip-demo` is selected. Later additions and repairs use
+`python3 scripts/deployment/manage_data.py --api-url API_URL --modules demo`, with
+`--force` for explicit repair. This command authenticates through the API and does not
+deploy services. The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
 documents `bootstrap/install_demo_workflows.py` (plan/apply configuration in an explicit
 local demo database) and `quality/export_demo_workflows.py` (offline ingest replay and
 collection/report snapshot verification). Neither belongs in production startup.

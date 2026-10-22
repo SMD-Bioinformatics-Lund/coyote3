@@ -25,11 +25,13 @@ loads them together with the three editable center files before bootstrap writes
 1. Prepare deployment configuration, storage, MongoDB endpoints and database users.
 2. Run `scripts/deployment/install_center.sh --setup-center` to build images and validate configuration
    and database readiness.
-3. The installer bootstraps empty application/identity targets, preserves existing
-   installations, checks and applies compatible application indexes, installs bundled
-   HGNC/VEP references into empty knowledgebase collections, then starts services.
-4. Verify browser and administrative access and complete initial password changes.
-5. Configure and validate clinical workflows before ingesting clinical data.
+3. On fresh targets, bootstrap creates initial accounts and RBAC, then installs
+   application catalogs, bundled HGNC/VEP references and both starter demonstrations
+   by default, with system creation provenance. Module skip flags disable selected parts.
+4. The installer checks and applies compatible application indexes, starts services
+   and verifies health. Existing deployments skip all initial data installation.
+5. Verify browser and administrative access and complete initial password changes.
+6. Configure and validate clinical workflows before ingesting clinical data.
 
 The installer stops on unrecognized initialization states or index conflicts.
 It does not reset databases, replace populated seed collections or run data migrations.
@@ -57,10 +59,13 @@ Before first sample ingest, ensure these are seeded:
 The explicit database bootstrap installs the application-owned RBAC catalog,
 creates a named system administrator and an emergency superuser. It
 runs only against empty governance collections.
-Bundled HGNC and VEP references are included in `--setup-center`. They can also be
-installed separately with `scripts/bootstrap/install_reference_data.py --actor ADMIN_USERNAME`, or the
-installer's `--with-knowledgebase-seeds` option. Knowledgebase indexing is a separate
-opt-in operation. See [installation operations](installation-operations.md).
+Bundled HGNC/VEP references and connected demonstrations are installed by default;
+use `--skip-knowledgebase` and `--skip-demo` to disable them. Later additions and
+repairs use `scripts/deployment/manage_data.py --api-url API_URL --modules
+application knowledgebase demo`. Add `--force` to repair explicitly selected modules.
+API login, administrator roles and required password changes apply to maintenance.
+Knowledgebase indexing is a separate opt-in operation.
+See [installation operations](installation-operations.md).
 
 ## Seed Source Policy
 
@@ -82,7 +87,8 @@ opt-in operation. See [installation operations](installation-operations.md).
   Both accounts must replace their temporary password at first sign-in.
 - Bootstrap assigns `superuser` and `sys_admin` respectively. The clinical
   administrator role is `admin` and is assigned separately.
-- A complete existing installation is left unchanged. Partial governance data
+- A complete existing installation is left unchanged, even when a data module is missing.
+  Only the invocation that creates accounts can seed without API login. Partial governance data
   without a superuser is rejected for manual review.
 - Additional superusers must be created by an existing authenticated superuser.
 
@@ -129,11 +135,11 @@ that directory appears in a running container, the container was built from an
 older image or an external deployment mount; rebuild and recreate the container
 from the current Compose definition.
 
-The low-level `bootstrap_database.py --with-demo-center` option loads bundled
-configuration examples only. For the complete connected demonstration, use
-`install_center.sh --setup-center --with-demo-center`: after baseline and index
-installation it runs `scripts.bootstrap.install_demo_starter`, which installs
-the hematology DNA and RNA fusion configurations and ingests both starter samples.
+The default fresh installation includes connected hematology DNA and RNA fusion
+configuration and both starter samples. `--skip-demo` disables this module.
+After an installation that skipped demos, use authenticated maintenance with
+`--modules demo` to add them. Forced demo repair preserves existing configuration
+history and reviewed or human-owned samples.
 
 Start Coyote3 after database bootstrap:
 
@@ -153,7 +159,7 @@ Operational defaults:
 
 - Per-service container resource limits are enabled by default (`*_CONTAINER_MEM_LIMIT`, `*_CONTAINER_CPU_LIMIT`).
 - API and web request throttling are enabled by default and configured from env templates.
-- Internal Prometheus-style metrics are exposed at `GET /api/v1/internal/metrics` (requires `X-Internal-Token`).
+- Internal Prometheus-style metrics are exposed at `GET /api/v1/internal/metrics` (requires `X-Coyote-Internal-Token`).
 
 Sample manifest reference:
 
