@@ -34,7 +34,13 @@ from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicClient
 from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
 from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
 from api.interfaces.http.tags import TAG_DNA_VARIANTS
-from api.security.access import ApiUser, _enforce_access, _get_sample_for_api, require_access
+from api.security.access import (
+    ApiUser,
+    _enforce_access,
+    _get_sample_for_api,
+    require_access,
+    require_annotation_publication,
+)
 
 router = APIRouter(tags=[TAG_DNA_VARIANTS])
 
@@ -52,28 +58,34 @@ def get_filter_conseq_terms(checked: list[str], vep_version: str | int | None = 
 def add_global_annotations(
     variants: list[dict],
     assay_group: str,
-    subpanel: str | None,
+    diagnosis: str | None,
+    *,
+    sample_context: dict | None = None,
 ) -> tuple[list[dict], list[dict]]:
     """Apply common annotation enrichment using the router-bound annotation repository."""
     return annotation_enrichment.add_global_annotations(
         variants,
         assay_group,
-        subpanel,
+        diagnosis,
         annotation_repository=store.annotation_repository,
+        sample_context=sample_context,
     )
 
 
 def add_alt_class(
     variant: dict,
     assay_group: str,
-    subpanel: str | None,
+    diagnosis: str | None,
+    *,
+    sample_context: dict | None = None,
 ) -> dict:
     """Apply alternative classification enrichment using the router-bound repository."""
     return annotation_enrichment.add_alt_class(
         variant,
         assay_group,
-        subpanel,
+        diagnosis,
         annotation_repository=store.annotation_repository,
+        sample_context=sample_context,
     )
 
 
@@ -820,6 +832,7 @@ def add_variant_comment_change(
     form_data = payload.get("form_data", {})
     if form_data.get("global") == "global":
         _enforce_access(user, permission="variant.comment:add:global")
+        require_annotation_publication(user, sample)
     resource = service.create_annotation(
         form_data=form_data,
         target_id=target_id,

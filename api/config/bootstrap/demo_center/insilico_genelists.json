@@ -1,11 +1,11 @@
 [
   {
-    "isgl_id": "hematology_myeloid",
+    "isgl_id": "hematology-variants",
     "diagnosis": [
-      "hematology_myeloid"
+      "base"
     ],
-    "name": "List A",
-    "displayname": "List A",
+    "name": "Hematology variants",
+    "displayname": "Hematology variants (synthetic)",
     "list_type": [
       "snv",
       "cnv",

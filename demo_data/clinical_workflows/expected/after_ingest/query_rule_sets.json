@@ -94,9 +94,7 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "b4818984524f3f6f46cfacb7"
-    }
+    "_id": "b4818984524f3f6f46cfacb7"
   },
   {
     "scope": {
@@ -176,9 +174,7 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "46ee243b3b5771624b88fe89"
-    }
+    "_id": "46ee243b3b5771624b88fe89"
   },
   {
     "scope": {
@@ -275,9 +271,7 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "c4ee7e5a3f2f9bb198d02673"
-    }
+    "_id": "c4ee7e5a3f2f9bb198d02673"
   },
   {
     "scope": {
@@ -357,9 +351,7 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "a6881dd89f011184cbd89b8a"
-    }
+    "_id": "a6881dd89f011184cbd89b8a"
   },
   {
     "scope": {
@@ -372,7 +364,6 @@
       "evidence_mode": "exception_only",
       "exceptions": [
         {
-          "id": "solid_germline_filter",
           "mode": "admit",
           "condition": {
             "type": "predicate",
@@ -381,7 +372,8 @@
             "value": [
               "GERMLINE"
             ]
-          }
+          },
+          "id": "solid_germline_filter"
         }
       ],
       "exception_mode": "replace"
@@ -405,9 +397,7 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "ee072827e0a13dd3ca09e9c0"
-    }
+    "_id": "ee072827e0a13dd3ca09e9c0"
   },
   {
     "scope": {
@@ -468,480 +458,84 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "d263e824a464c0e58663b14f"
-    }
+    "_id": "d263e824a464c0e58663b14f"
   },
   {
     "scope": {
-      "assay_group": "tumwgs-hema",
-      "analysis": "snv",
-      "intent": "germline"
-    },
-    "name": "tumwgs-hema__all__base__germline_snvs",
-    "content": {
-      "exceptions": [
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "predicate",
-            "field": "INFO.MYELOID_GERMLINE",
-            "operator": "eq",
-            "value": 1
-          },
-          "id": "germline_myeloid_marker"
-        },
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "CEBPA"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "FILTER",
-                "operator": "in",
-                "value": [
-                  "GERMLINE"
-                ]
-              }
-            ]
-          },
-          "id": "germline_cebpa_filter"
-        },
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "CHROM",
-                "operator": "in",
-                "value": [
-                  "1"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "POS",
-                "operator": "gte",
-                "value": 115256521
-              },
-              {
-                "type": "predicate",
-                "field": "POS",
-                "operator": "lte",
-                "value": 115256537
-              }
-            ]
-          },
-          "id": "germline_chr1_interval"
-        }
-      ],
-      "exception_mode": "replace"
-    },
-    "reason": "Installed query policy; validate before clinical use",
-    "scope_key": "tumwgs-hema__all__base__germline_snvs",
-    "query_id": "tumwgs-hema__all__base__germline_snvs",
-    "version": 1,
-    "revision": 1,
-    "status": "published",
-    "created_by": "demo.installer",
-    "created_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "updated_by": "demo.installer",
-    "updated_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "published_by": "demo.installer",
-    "published_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "system_installed": true,
-    "_id": {
-      "$oid": "78f258fe42bd018b8ded35d8"
-    }
-  },
-  {
-    "scope": {
-      "assay_group": "tumwgs-hema",
+      "assay_group": "hematology",
+      "asp_id": "demo-hematology-training",
+      "diagnosis_id": "myeloid",
+      "modality": null,
+      "family": null,
+      "environment": null,
       "analysis": "snv",
       "intent": "somatic"
     },
-    "name": "tumwgs-hema__all__base__somatic_snvs",
+    "name": "hematology__demo-hematology-training__myeloid__somatic_snvs",
     "content": {
       "evidence_mode": "paired",
-      "exceptions": [
-        {
-          "mode": "extend_consequence",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "FLT3"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "INFO.SVTYPE",
-                "operator": "exists",
-                "value": true
-              }
-            ]
-          },
-          "id": "flt3_svtype"
-        },
-        {
-          "mode": "extend_consequence",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "FLT3"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "ALT",
-                "operator": "regex",
-                "value": "[A-Za-z0-9_]{10,200}"
-              }
-            ]
-          },
-          "id": "flt3_large_insertion"
-        }
-      ],
+      "exceptions": [],
       "exception_mode": "replace"
     },
-    "reason": "Installed query policy; validate before clinical use",
-    "scope_key": "tumwgs-hema__all__base__somatic_snvs",
-    "query_id": "tumwgs-hema__all__base__somatic_snvs",
+    "reason": "Packaged synthetic starter policy",
+    "scope_key": "hematology__demo-hematology-training__myeloid__somatic_snvs",
+    "query_id": "hematology__demo-hematology-training__myeloid__somatic_snvs",
     "version": 1,
     "revision": 1,
     "status": "published",
-    "created_by": "demo.installer",
+    "created_by": "system",
     "created_on": {
       "$date": "2026-01-01T00:00:00Z"
     },
-    "updated_by": "demo.installer",
+    "updated_by": "system",
     "updated_on": {
       "$date": "2026-01-01T00:00:00Z"
     },
-    "published_by": "demo.installer",
+    "approved_by": null,
+    "published_by": "system",
     "published_on": {
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "61b29bc4064ca51055eec425"
-    }
+    "_id": "78f258fe42bd018b8ded35d8"
   },
   {
     "scope": {
-      "assay_group": "tumwgs-solid",
-      "analysis": "snv",
-      "intent": "germline"
-    },
-    "name": "tumwgs-solid__all__base__germline_snvs",
-    "content": {
-      "exceptions": [
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "predicate",
-            "field": "FILTER",
-            "operator": "in",
-            "value": [
-              "GERMLINE"
-            ]
-          },
-          "id": "solid_germline_filter"
-        }
-      ],
-      "exception_mode": "replace"
-    },
-    "reason": "Installed query policy; validate before clinical use",
-    "scope_key": "tumwgs-solid__all__base__germline_snvs",
-    "query_id": "tumwgs-solid__all__base__germline_snvs",
-    "version": 1,
-    "revision": 1,
-    "status": "published",
-    "created_by": "demo.installer",
-    "created_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "updated_by": "demo.installer",
-    "updated_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "published_by": "demo.installer",
-    "published_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "system_installed": true,
-    "_id": {
-      "$oid": "df3104d4883eb3eb88361a10"
-    }
-  },
-  {
-    "scope": {
-      "assay_group": "tumwgs-solid",
-      "analysis": "snv",
+      "assay_group": "hematology",
+      "asp_id": "demo-rna-training",
+      "diagnosis_id": "lymphoid",
+      "modality": null,
+      "family": null,
+      "environment": null,
+      "analysis": "fusion",
       "intent": "somatic"
     },
-    "name": "tumwgs-solid__all__base__somatic_snvs",
+    "name": "hematology__demo-rna-training__lymphoid__somatic_fusions",
     "content": {
-      "evidence_mode": "paired",
-      "exceptions": [
-        {
-          "mode": "extend_consequence",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "TERT",
-                  "NFKBIE"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "consequence_terms",
-                "operator": "in",
-                "value": [
-                  "regulatory_region_variant",
-                  "TF_binding_site_variant"
-                ]
-              }
-            ]
-          },
-          "id": "solid_regulatory_tert_nfkbie"
-        }
-      ],
+      "evidence_mode": null,
+      "exceptions": [],
       "exception_mode": "replace"
     },
-    "reason": "Installed query policy; validate before clinical use",
-    "scope_key": "tumwgs-solid__all__base__somatic_snvs",
-    "query_id": "tumwgs-solid__all__base__somatic_snvs",
+    "reason": "Packaged synthetic starter policy",
+    "scope_key": "hematology__demo-rna-training__lymphoid__somatic_fusions",
+    "query_id": "hematology__demo-rna-training__lymphoid__somatic_fusions",
     "version": 1,
     "revision": 1,
     "status": "published",
-    "created_by": "demo.installer",
+    "created_by": "system",
     "created_on": {
       "$date": "2026-01-01T00:00:00Z"
     },
-    "updated_by": "demo.installer",
+    "updated_by": "system",
     "updated_on": {
       "$date": "2026-01-01T00:00:00Z"
     },
-    "published_by": "demo.installer",
+    "approved_by": null,
+    "published_by": "system",
     "published_on": {
       "$date": "2026-01-01T00:00:00Z"
     },
     "system_installed": true,
-    "_id": {
-      "$oid": "cab70a56a197bffe6a5b4f97"
-    }
-  },
-  {
-    "scope": {
-      "assay_group": "tumwgs",
-      "analysis": "snv",
-      "intent": "germline"
-    },
-    "name": "tumwgs__all__base__germline_snvs",
-    "content": {
-      "exceptions": [
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "predicate",
-            "field": "INFO.MYELOID_GERMLINE",
-            "operator": "eq",
-            "value": 1
-          },
-          "id": "germline_myeloid_marker"
-        },
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "CEBPA"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "FILTER",
-                "operator": "in",
-                "value": [
-                  "GERMLINE"
-                ]
-              }
-            ]
-          },
-          "id": "germline_cebpa_filter"
-        },
-        {
-          "mode": "admit",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "CHROM",
-                "operator": "in",
-                "value": [
-                  "1"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "POS",
-                "operator": "gte",
-                "value": 115256521
-              },
-              {
-                "type": "predicate",
-                "field": "POS",
-                "operator": "lte",
-                "value": 115256537
-              }
-            ]
-          },
-          "id": "germline_chr1_interval"
-        }
-      ],
-      "exception_mode": "replace"
-    },
-    "reason": "Installed query policy; validate before clinical use",
-    "scope_key": "tumwgs__all__base__germline_snvs",
-    "query_id": "tumwgs__all__base__germline_snvs",
-    "version": 1,
-    "revision": 1,
-    "status": "published",
-    "created_by": "demo.installer",
-    "created_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "updated_by": "demo.installer",
-    "updated_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "published_by": "demo.installer",
-    "published_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "system_installed": true,
-    "_id": {
-      "$oid": "ea93c5facef121cb0cd88948"
-    }
-  },
-  {
-    "scope": {
-      "assay_group": "tumwgs",
-      "analysis": "snv",
-      "intent": "somatic"
-    },
-    "name": "tumwgs__all__base__somatic_snvs",
-    "content": {
-      "evidence_mode": "paired",
-      "exceptions": [
-        {
-          "mode": "extend_consequence",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "FLT3"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "INFO.SVTYPE",
-                "operator": "exists",
-                "value": true
-              }
-            ]
-          },
-          "id": "flt3_svtype"
-        },
-        {
-          "mode": "extend_consequence",
-          "condition": {
-            "type": "all",
-            "children": [
-              {
-                "type": "predicate",
-                "field": "genes",
-                "operator": "in",
-                "value": [
-                  "FLT3"
-                ]
-              },
-              {
-                "type": "predicate",
-                "field": "ALT",
-                "operator": "regex",
-                "value": "[A-Za-z0-9_]{10,200}"
-              }
-            ]
-          },
-          "id": "flt3_large_insertion"
-        }
-      ],
-      "exception_mode": "replace"
-    },
-    "reason": "Installed query policy; validate before clinical use",
-    "scope_key": "tumwgs__all__base__somatic_snvs",
-    "query_id": "tumwgs__all__base__somatic_snvs",
-    "version": 1,
-    "revision": 1,
-    "status": "published",
-    "created_by": "demo.installer",
-    "created_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "updated_by": "demo.installer",
-    "updated_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "published_by": "demo.installer",
-    "published_on": {
-      "$date": "2026-01-01T00:00:00Z"
-    },
-    "system_installed": true,
-    "_id": {
-      "$oid": "90ccff51a33510d29b993c6a"
-    }
+    "_id": "61b29bc4064ca51055eec425"
   }
 ]

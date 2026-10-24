@@ -1,5 +1,30 @@
 [
   {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "55c39322abf3b740e3fb058b"
+  },
+  {
     "SAMPLE_ID": "dd54815825da439747a7082d",
     "name": "DEMO_CASE",
     "MSIS": {
@@ -22,9 +47,7 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "55c39322abf3b740e3fb058b"
-    }
+    "_id": "c086f318b1c3644a7168e9e5"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -49,36 +72,7 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "c086f318b1c3644a7168e9e5"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "name": "DEMO_CASE",
-    "MSIS": {
-      "tot": 100,
-      "som": 0,
-      "per": 0.0
-    },
-    "MSIP": {
-      "tot": 100,
-      "som": 1,
-      "per": 1.0
-    },
-    "HRD": {
-      "tai": 2,
-      "hrd": 3,
-      "lst": 4,
-      "sum": 9
-    },
-    "TMB": {
-      "value": 12.4,
-      "unit": "mut/Mb"
-    },
-    "_id": {
-      "$oid": "615e29c61ca9523e4e7a8415"
-    }
+    "_id": "615e29c61ca9523e4e7a8415"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -103,9 +97,7 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "46da2ffb86b3a558efef06de"
-    }
+    "_id": "46da2ffb86b3a558efef06de"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -130,9 +122,32 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "b44a95038c99b15e90c3c8b6"
-    }
+    "_id": "b44a95038c99b15e90c3c8b6"
+  },
+  {
+    "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "d37fe0bf1b7f7f1fadb29502"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -157,9 +172,7 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "d37fe0bf1b7f7f1fadb29502"
-    }
+    "_id": "ba3b06076403cadeb1438fd3"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -184,9 +197,7 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "ba3b06076403cadeb1438fd3"
-    }
+    "_id": "e9dfaab70d0ae1b27b21246b"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -211,8 +222,131 @@
       "value": 12.4,
       "unit": "mut/Mb"
     },
-    "_id": {
-      "$oid": "e9dfaab70d0ae1b27b21246b"
-    }
+    "_id": "4fc843913b7aaabaadbf7871"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "aa98002186d4a91b238c15d3"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "e2cdb294a09e1e9fadf5fd0a"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "9f59e9c694cd2e6966f493d6"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "38a560dd54fa4c501ab6d6ae"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "name": "DEMO_CASE",
+    "MSIS": {
+      "tot": 100,
+      "som": 0,
+      "per": 0.0
+    },
+    "MSIP": {
+      "tot": 100,
+      "som": 1,
+      "per": 1.0
+    },
+    "HRD": {
+      "tai": 2,
+      "hrd": 3,
+      "lst": 4,
+      "sum": 9
+    },
+    "TMB": {
+      "value": 12.4,
+      "unit": "mut/Mb"
+    },
+    "_id": "08b0c3a5ed4c16bb6fb675ec"
   }
 ]

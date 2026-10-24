@@ -524,6 +524,20 @@ def get_request_api_session(request: Request) -> ApiSession:
     return cast(ApiSession, session)
 
 
+def require_annotation_publication(user: ApiUser, sample: dict[str, Any]) -> None:
+    """Require the clinical publication grant for production annotation mutations.
+
+    Args:
+        user: Authenticated principal with current role-derived permissions.
+        sample: Authorized server-loaded sample; sandbox samples retain normal curation grants.
+
+    Raises:
+        HTTPException: Production publication is not permitted for this principal.
+    """
+    if sample.get("environment") == "production":
+        _enforce_access(user, permission="annotation:publish")
+
+
 def require_access(
     permission: str | None = None,
 ) -> Callable[[Request], Generator[ApiUser, None, None]]:

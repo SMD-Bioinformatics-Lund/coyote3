@@ -6,6 +6,7 @@ import pytest
 
 from api.application.classification.tiering import ResourceClassificationService
 from api.application.classification.variant_annotation import ResourceAnnotationService
+from api.application.common.release_resources import capture_assay_resource
 
 
 class _AnnotationHandlerStub:
@@ -233,14 +234,19 @@ class _RepoStub:
             (),
             {
                 "get_aspc_no_meta": staticmethod(
-                    lambda assay, profile, subpanel: {
+                    lambda assay, profile, diagnosis: {
                         "_id": "aspc-oid",
                         "aspc_id": "assay:production:base",
-                        "asp_id": "assay",
+                        "asp_id": assay,
                         "asp_group": "dna",
-                        "subpanel_id": subpanel or "base",
+                        "analysis_types": ["SNV", "TRANSLOCATION"],
+                        "analysis_intents": ["somatic"],
+                        "diagnosis_id": diagnosis or "base",
                         "environment": profile,
                         "version": 2,
+                        "assay_resource_release": capture_assay_resource(
+                            self.assay_panel_repository.get_asp(assay)
+                        ),
                     }
                 )
             },
@@ -248,7 +254,17 @@ class _RepoStub:
         self.assay_panel_repository = type(
             "_Asp",
             (),
-            {"get_asp": staticmethod(lambda asp_id: {"asp_id": asp_id, "asp_group": "dna"})},
+            {
+                "get_asp": staticmethod(
+                    lambda asp_id: {
+                        "asp_id": asp_id,
+                        "asp_group": "dna",
+                        "asp_family": "panel-dna",
+                        "asp_category": "dna",
+                        "version": 1,
+                    }
+                )
+            },
         )()
 
 
@@ -320,6 +336,8 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_r
     """An owned CNV receives its local annotation through the CNV repository."""
     repo = _RepoStub()
     service = ResourceAnnotationService(
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_panel_repository=repo.assay_panel_repository,
         annotation_repository=repo.annotation_repository,
         fusion_repository=repo.fusion_repository,
         translocation_repository=repo.translocation_repository,
@@ -345,6 +363,8 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     """An owned translocation receives its local annotation through its repository."""
     repo = _RepoStub()
     service = ResourceAnnotationService(
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_panel_repository=repo.assay_panel_repository,
         annotation_repository=repo.annotation_repository,
         fusion_repository=repo.fusion_repository,
         translocation_repository=repo.translocation_repository,
@@ -390,8 +410,9 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     assert docs[0]["variant_data"]["gene1"] == "EML4"
     assert docs[0]["variant_data"]["gene2"] == "ALK"
     assert set(docs[0]["variant_data"]) == {
+        "resource_context",
         "assay_group",
-        "subpanel",
+        "diagnosis",
         "gene1",
         "gene2",
     }
@@ -423,6 +444,29 @@ def test_resource_classification_service_persists_tier_three_classification_only
     assert "simple_id" not in docs[0]["variant_data"]
 
 
+def test_tiering_uses_requested_diagnosis_when_configuration_resolves_to_base(monkeypatch):
+    """Using Base settings must not write a named-diagnosis decision into the Base scope."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(
+        "api.application.classification.tiering.get_formatted_assay_config",
+        lambda *args, **kwargs: {
+            "asp_group": "solid",
+            "diagnosis_id": "base",
+            "aspc_resolution": {"context": {"group_id": "solid", "diagnosis_id": "lung"}},
+        },
+    )
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "diagnosis_id": "lung"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=2,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    assert repo.annotation_repository.inserted_bulk[0]["variant_data"]["diagnosis"] == "lung"
+
+
 def test_resource_classification_service_adds_automatic_tier_three_text_when_requested(
     monkeypatch,
 ):
@@ -437,7 +481,9 @@ def test_resource_classification_service_adds_automatic_tier_three_text_when_req
         "classification_context",
         lambda _sample: {
             "assay_group": "hematology",
-            "subpanel": "base",
+            "diagnosis": "base",
+            "resource_context": {"group_id": "hematology", "diagnosis_id": "base"},
+            "configuration": {"asp_id": "assay", "environment": "production"},
         },
     )
 
@@ -467,7 +513,11 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
     monkeypatch.setattr(
         service,
         "classification_context",
-        lambda _sample: {"assay_group": "hematology", "subpanel": "base"},
+        lambda _sample: {
+            "assay_group": "hematology",
+            "diagnosis": "base",
+            "resource_context": {"group_id": "hematology", "diagnosis_id": "base"},
+        },
     )
 
     service.set_tier_bulk(
@@ -490,7 +540,7 @@ def test_automatic_annotation_requires_published_terminology(monkeypatch):
 
     repo = _RepoStub()
     service = _classification_service(repo)
-    monkeypatch.setattr(service, "classification_context", lambda sample: {"subpanel": "base"})
+    monkeypatch.setattr(service, "classification_context", lambda sample: {"diagnosis": "base"})
     with pytest.raises(AppError) as error:
         service.set_tier_bulk(
             sample={"asp_id": "assay"},
@@ -538,7 +588,7 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
             "_id": "S1",
             "asp_id": "assay",
             "environment": "production",
-            "subpanel_id": "solid",
+            "diagnosis_id": "solid",
         },
         resource_type="translocation",
         resource_ids=["tl-1"],

@@ -31,6 +31,7 @@ def test_from_store_uses_repository_database_bindings() -> None:
         "anno_vep_repository",
         "copy_number_variant_repository",
         "biomarker_repository",
+        "pgx_repository",
         "translocation_repository",
         "d4_coverage_repository",
         "fusion_repository",

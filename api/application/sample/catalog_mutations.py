@@ -6,6 +6,7 @@ import re
 from copy import deepcopy
 from typing import Any
 
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.loaders.filter_flags import filter_flag_options
 from api.domain.common.biomarkers import project_biomarkers
@@ -30,7 +31,7 @@ class SampleCatalogMutationsMixin:
             dict[str, Any]: Genelist item payload for the UI.
         """
         target = self._normalize_list_target(sample, target)
-        asp = self.assay_panel_repository.get_asp(sample.get("asp_id"))
+        asp = assay_resource(self._get_formatted_assay_config(sample))
         if target == "all":
             items = []
             for scoped_target in ("snv", "cnv", "translocation", "fusion"):
@@ -55,7 +56,7 @@ class SampleCatalogMutationsMixin:
         assay = sample.get("asp_id")
         if not assay:
             raise api_error(400, "Sample is missing the 'asp_id' field")
-        asp = self.assay_panel_repository.get_asp(assay)
+        asp = assay_resource(self._get_formatted_assay_config(sample))
         items, asp_covered_genes, _asp_group = self._effective_genes_for_target(
             sample=sample, asp=asp, target=target
         )
@@ -77,28 +78,17 @@ class SampleCatalogMutationsMixin:
         assay = sample.get("asp_id")
         if not assay:
             raise api_error(400, "Sample is missing the 'asp_id' field")
-        asp = self.assay_panel_repository.get_asp(assay)
+        asp = assay_resource(self._get_formatted_assay_config(sample))
 
         if sample.get("filters") is None:
             assay_config = self._get_formatted_assay_config(sample)
             analysis_intents = list(assay_config.get("analysis_intents") or ["somatic"])
             default_filters = sample_filters_from_aspc_filters(
                 assay_config.get("filters"),
-                str(sample.get("omics_layer") or "dna"),
+                str(sample.get("asp_category") or "dna"),
                 analysis_intents=analysis_intents,
             )
-            self.sample_repository.reset_sample_settings(
-                sample.get("_id"),
-                default_filters,
-                aspc={
-                    "_id": assay_config.get("_id"),
-                    "aspc_id": assay_config.get("aspc_id"),
-                    "version": assay_config.get("version"),
-                },
-                analysis_intents=analysis_intents,
-                aspc_resolution=assay_config.get("aspc_resolution"),
-            )
-            sample = self.sample_repository.get_sample(sample["_id"])
+            sample = {**sample, "filters": default_filters, "analysis_intents": analysis_intents}
 
         filters = self._sample_filters(sample)
         adhoc_scopes = self._normalized_adhoc_genes(filters) or {}
@@ -109,7 +99,7 @@ class SampleCatalogMutationsMixin:
         sample_filters = merge_filter_defaults(
             sample_filters,
             assay_config.get("filters"),
-            omics_layer=str(sample.get("omics_layer") or "dna"),
+            asp_category=str(sample.get("asp_category") or "dna"),
         )
         for scope, entry in adhoc_scopes.items():
             if scope in {"snv", "cnv", "fusion", "translocation"}:
@@ -170,8 +160,8 @@ class SampleCatalogMutationsMixin:
             "biomarkers": biomarker_rows,
             "aspc_update": {
                 "available": bool(latest_revision and latest_revision != current_revision),
-                "current_aspc_id": sample.get("current_aspc_key"),
-                "current_version": sample.get("current_aspc_version"),
+                "current_aspc_id": assay_config.get("aspc_id"),
+                "current_version": assay_config.get("version"),
                 "latest_aspc_id": latest_assay_config.get("aspc_id"),
                 "latest_version": latest_assay_config.get("version"),
             },
@@ -200,10 +190,15 @@ class SampleCatalogMutationsMixin:
             raise api_error(400, "Invalid isgl_ids payload")
         if target == "all":
             raise api_error(400, "Gene lists must be applied to one analysis type")
-        normalized_ids = self._validated_genelist_ids(genelist_ids, target=target)
+        normalized_ids = self._validated_genelist_ids(
+            genelist_ids, target=target, configuration=self._get_formatted_assay_config(sample)
+        )
+        gene_list_resources(self._get_formatted_assay_config(sample), normalized_ids)
         target_filters[self._filter_key_for_target(target)] = normalized_ids
         filters = self._replace_target_filters(sample, target, target_filters)
-        self.sample_repository.update_sample_filters(sample.get("_id"), filters)
+        self.sample_repository.update_sample_filters(
+            sample.get("_id"), filters, expected_version=sample["version"]
+        )
         return {
             "status": "ok",
             "sample_id": sample_id,
@@ -239,7 +234,9 @@ class SampleCatalogMutationsMixin:
             "genes": genes,
         }
         filters = self._replace_target_filters(sample, target, target_filters)
-        self.sample_repository.update_sample_filters(sample.get("_id"), filters)
+        self.sample_repository.update_sample_filters(
+            sample.get("_id"), filters, expected_version=sample["version"]
+        )
         return {
             "status": "ok",
             "sample_id": sample_id,
@@ -268,7 +265,9 @@ class SampleCatalogMutationsMixin:
             return {"status": "ok", "sample_id": sample_id, "action": "clear_adhoc_genes"}
         target_filters.pop("adhoc_genes", None)
         filters = self._replace_target_filters(sample, target, target_filters)
-        self.sample_repository.update_sample_filters(sample.get("_id"), filters)
+        self.sample_repository.update_sample_filters(
+            sample.get("_id"), filters, expected_version=sample["version"]
+        )
         return {
             "status": "ok",
             "sample_id": sample_id,
@@ -292,6 +291,8 @@ class SampleCatalogMutationsMixin:
         report = self.sample_repository.get_report(sample_id, report_id)
         if not report:
             raise api_error(404, "Report not found")
+        if any(artifact.get("status") == "pending" for artifact in report.get("artifacts", [])):
+            raise api_error(503, "Report is saved; its files are being finalized. Retry shortly.")
         report_name = report.get("report_name")
         filepath = report.get("filepath")
         pdf_report_name = report.get("pdf_report_name")
@@ -323,7 +324,7 @@ class SampleCatalogMutationsMixin:
             "pdf_report_name": pdf_report_name,
             "pdf_filepath": pdf_filepath,
             "asp_id": report.get("asp_id"),
-            "subpanel_id": report.get("subpanel_id"),
+            "diagnosis_id": report.get("diagnosis_id"),
             "environment": report.get("environment"),
             "author": report.get("author"),
             "time_created": report.get("time_created"),
@@ -349,7 +350,7 @@ class SampleCatalogMutationsMixin:
         """Replace the stored filters for a sample."""
         normalized = normalize_sample_filters(
             filters,
-            omics_layer=str(sample.get("omics_layer") or "dna"),
+            asp_category=str(sample.get("asp_category") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
             canonical=True,
         )
@@ -357,32 +358,103 @@ class SampleCatalogMutationsMixin:
         normalized = merge_filter_defaults(
             normalized,
             assay_config.get("filters"),
-            omics_layer=str(sample.get("omics_layer") or "dna"),
+            asp_category=str(sample.get("asp_category") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
         )
-        normalized = self._validate_filter_genelists(normalized)
-        self.sample_repository.update_sample_filters(sample.get("_id"), normalized)
+        normalized = self._validate_filter_genelists(normalized, configuration=assay_config)
+        self.sample_repository.update_sample_filters(
+            sample.get("_id"), normalized, expected_version=sample["version"]
+        )
 
-    def apply_latest_aspc(self, *, sample: dict) -> dict[str, Any]:
-        """Apply the active ASPC revision to a sample by explicit user action."""
+    def preview_latest_aspc(
+        self, *, sample: dict, retain_overrides: bool = False
+    ) -> dict[str, Any]:
+        """Resolve a candidate configuration and its changes without modifying the sample."""
         assay_config = self._get_formatted_assay_config(sample, use_sample_revision=False)
+        previous = self._get_formatted_assay_config(sample)
         analysis_intents = list(assay_config.get("analysis_intents") or ["somatic"])
         filters = sample_filters_from_aspc_filters(
             assay_config.get("filters"),
-            str(sample.get("omics_layer") or "dna"),
+            str(sample.get("asp_category") or "dna"),
             analysis_intents=analysis_intents,
         )
-        filters = self._validate_filter_genelists(filters)
+        if retain_overrides:
+            old_defaults = sample_filters_from_aspc_filters(
+                previous.get("filters"),
+                str(sample.get("asp_category") or "dna"),
+                analysis_intents=sample.get("analysis_intents"),
+            )
+            for intent, targets in (sample.get("filters") or {}).items():
+                for target, values in targets.items():
+                    overrides = {
+                        key: value
+                        for key, value in values.items()
+                        if value != old_defaults.get(intent, {}).get(target, {}).get(key)
+                    }
+                    if overrides and (intent not in filters or target not in filters[intent]):
+                        raise api_error(
+                            422, "Existing overrides are not compatible with this configuration"
+                        )
+                    if overrides:
+                        filters[intent][target].update(overrides)
+        filters = normalize_sample_filters(
+            filters,
+            asp_category=str(sample.get("asp_category") or "dna"),
+            analysis_intents=analysis_intents,
+            canonical=True,
+        )
+        filters = self._validate_filter_genelists(filters, configuration=assay_config)
+        return {
+            "expected_version": sample["version"],
+            "configuration_id": str(assay_config["_id"]),
+            "configuration": assay_config,
+            "filters_before": sample.get("filters"),
+            "filters_after": filters,
+            "retain_overrides": retain_overrides,
+            "changed_components": [
+                name
+                for name in (
+                    "assay_resource_release",
+                    "gene_list_release",
+                    "query_policy_release",
+                    "clinical_rule_release",
+                )
+                if (previous.get(name) or {}).get("content_hash")
+                != (assay_config.get(name) or {}).get("content_hash")
+            ],
+        }
+
+    def apply_latest_aspc(
+        self,
+        *,
+        sample: dict,
+        expected_version: int,
+        configuration_id: str,
+        reason: str,
+        retain_overrides: bool = False,
+    ) -> dict[str, Any]:
+        """Apply a reviewed candidate only while the sample and candidate remain unchanged."""
+        if sample["version"] != expected_version or not reason.strip():
+            raise api_error(409, "Reload the configuration preview and provide a reason")
+        preview = self.preview_latest_aspc(sample=sample, retain_overrides=retain_overrides)
+        if preview["configuration_id"] != configuration_id:
+            raise api_error(409, "The active configuration changed. Review the new preview.")
+        assay_config = preview["configuration"]
+        analysis_intents = assay_config["analysis_intents"]
+        filters = preview["filters_after"]
         self.sample_repository.update_sample_filters(
             sample.get("_id"),
             filters,
             aspc={
                 "_id": assay_config.get("_id"),
                 "aspc_id": assay_config.get("aspc_id"),
+                "display_name": assay_config.get("display_name"),
+                "aspc_resolution": assay_config.get("aspc_resolution"),
                 "version": assay_config.get("version"),
             },
             analysis_intents=analysis_intents,
-            aspc_resolution=assay_config.get("aspc_resolution"),
+            expected_version=sample["version"],
+            settings_reason=reason.strip(),
         )
         return {
             "aspc_id": assay_config.get("aspc_id"),
@@ -393,20 +465,24 @@ class SampleCatalogMutationsMixin:
         """Reset a sample's filters from assay defaults."""
         default_filters = sample_filters_from_aspc_filters(
             assay_config.get("filters"),
-            str(sample.get("omics_layer") or "dna"),
+            str(sample.get("asp_category") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
         )
-        default_filters = self._validate_filter_genelists(default_filters)
+        default_filters = self._validate_filter_genelists(
+            default_filters, configuration=assay_config
+        )
         self.sample_repository.reset_sample_settings(
             sample.get("_id"),
             default_filters,
             aspc={
                 "_id": assay_config.get("_id"),
                 "aspc_id": assay_config.get("aspc_id"),
+                "display_name": assay_config.get("display_name"),
+                "aspc_resolution": assay_config.get("aspc_resolution"),
                 "version": assay_config.get("version"),
             },
             analysis_intents=list(assay_config.get("analysis_intents") or ["somatic"]),
-            aspc_resolution=assay_config.get("aspc_resolution"),
+            expected_version=sample["version"],
         )
 
     def add_coverage_blacklist(

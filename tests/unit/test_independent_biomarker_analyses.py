@@ -127,7 +127,7 @@ def test_separate_file_keys_are_rejected_before_parsing(key, container):
     if container:
         payload = {container: payload}
     with pytest.raises(ValueError, match="Use one biomarkers JSON"):
-        validate_payload_file_keys(Mock(), {"omics_layer": "dna", **payload})
+        validate_payload_file_keys(Mock(), {"asp_category": "dna", **payload})
     if container is None:
         with pytest.raises(ValidationError, match="Use one biomarkers JSON"):
             SamplesDoc.model_validate(payload)
@@ -240,7 +240,7 @@ def test_api_selection_uses_stored_configuration(monkeypatch):
         assay_panel_repository=object(),
         assay_configuration_repository=object(),
     )
-    sample = {"_id": "sample", "omics_layer": "dna"}
+    sample = {"_id": "sample", "asp_category": "dna"}
     payload = service.list_payload(sample=sample, analysis_type="TMB")
     assert set(payload["tmb"][0]) == {"name", "TMB"}
     with pytest.raises(AppError):

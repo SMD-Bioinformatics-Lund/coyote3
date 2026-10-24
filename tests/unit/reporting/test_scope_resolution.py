@@ -13,23 +13,23 @@ from api.infra.mongo.repositories.clinical_rule_sets import ClinicalRuleSetRepos
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 
-def release(subpanel="base", *, language="sv", analyte="dna", **changes):
+def release(diagnosis="base", *, language="sv", analyte="dna", **changes):
     """Make a synthetic published release with a valid content digest."""
     doc = _document(status="published", active=True).model_copy(deep=True)
-    doc.scope.subpanel_id = subpanel
+    doc.scope.diagnosis_id = diagnosis
     doc.scope.language = language
     doc.scope.analyte = analyte
-    doc.rule_set_id = f"assay_1__{subpanel}__{language}"
+    doc.rule_set_id = f"assay_1__{diagnosis}__{language}"
     doc.content_hash = content_hash(doc)
     return dict(doc.model_dump(mode="python", by_alias=True), **changes)
 
 
-def resolve(rows, subpanel="named", language="sv", analyte="dna"):
+def resolve(rows, diagnosis="named", language="sv", analyte="dna"):
     """Resolve synthetic releases without a database connection."""
     return resolve_published_rule_set(
         SimpleNamespace(list_active_for_assay=lambda _asp, **_scope: rows),
         asp_id="assay_1",
-        subpanel_id=subpanel,
+        diagnosis_id=diagnosis,
         language=language,
         analyte=analyte,
     )
@@ -37,8 +37,8 @@ def resolve(rows, subpanel="named", language="sv", analyte="dna"):
 
 def test_exact_scope_wins_independent_of_order():
     base, named = release(), release("named")
-    assert resolve([base, named]).scope.subpanel_id == "named"
-    assert resolve([named, base]).scope.subpanel_id == "named"
+    assert resolve([base, named]).scope.diagnosis_id == "named"
+    assert resolve([named, base]).scope.diagnosis_id == "named"
 
 
 def test_repository_limits_candidates_to_assay_scope_analyte_and_language():
@@ -71,29 +71,29 @@ def test_repository_limits_candidates_to_assay_scope_analyte_and_language():
     )
     found = repository.list_active_for_assay(
         "assay_1",
-        subpanel_id="named",
+        diagnosis_id="named",
         analyte="dna",
         language="sv",
     )
-    assert [row["scope"]["subpanel_id"] for row in found] == ["base", "named", "named"]
+    assert [row["scope"]["diagnosis_id"] for row in found] == ["base", "named", "named"]
 
 
 @pytest.mark.parametrize(
     "changes", [{"status": "draft"}, {"status": "approved"}, {"active": False}]
 )
 def test_unpublished_or_inactive_exact_scope_does_not_replace_base(changes):
-    assert resolve([release(), release("named", **changes)]).scope.subpanel_id == "base"
+    assert resolve([release(), release("named", **changes)]).scope.diagnosis_id == "base"
 
 
 @pytest.mark.parametrize("scope", ["", "base"])
 def test_implicit_base_is_not_treated_as_duplicate(scope):
-    assert resolve([release()], subpanel=scope).scope.subpanel_id == "base"
+    assert resolve([release()], diagnosis=scope).scope.diagnosis_id == "base"
 
 
 @pytest.mark.parametrize(
     "rows", [[], [release("other")], [release(language="en")], [release(analyte="rna")]]
 )
-def test_never_crosses_subpanel_language_or_analyte(rows):
+def test_never_crosses_diagnosis_language_or_analyte(rows):
     with pytest.raises(ValueError, match="No active published"):
         resolve(rows)
 
@@ -111,26 +111,34 @@ def test_ambiguous_selected_scope_fails_closed(scope):
         resolve([release(scope), release(scope)])
 
 
-def test_published_exact_release_is_used_without_aspc_changes_and_source_is_preserved():
+def test_published_exact_release_requires_new_configuration_and_preserves_prior_source():
     rows = [release()]
     service = ClinicalRuleService(
         SimpleNamespace(list_active_for_assay=lambda _asp, **_scope: rows)
     )
     context = _context()
-    context.sample.subpanel_id = "named"
-    prior = service.evaluate(aspc={}, context=context)
+    context.sample.diagnosis_id = "named"
+    configuration = {
+        **context.aspc.model_dump(),
+        "asp_category": "dna",
+        "clinical_rule_release": rows[0],
+    }
+    prior = service.evaluate(aspc=configuration, context=context)
     rows.append(release("named"))
-    current = service.evaluate(aspc={}, context=context)
+    unchanged = service.evaluate(aspc=configuration, context=context)
+    assert unchanged.source.content_hash == prior.source.content_hash
+    configuration = {**configuration, "diagnosis_id": "named", "clinical_rule_release": rows[-1]}
+    current = service.evaluate(aspc=configuration, context=context)
     assert prior.source.rule_set_id == "assay_1__base__sv"
-    assert prior.source.resolved_subpanel_id == "base"
+    assert prior.source.resolved_diagnosis_id == "base"
     assert current.source.rule_set_id == "assay_1__named__sv"
-    assert current.source.requested_subpanel_id == "named"
+    assert current.source.requested_diagnosis_id == "named"
     assert current.source.content_hash == rows[-1]["content_hash"]
 
 
 def test_corrupt_exact_release_never_falls_back_to_valid_base():
     context = _context()
-    context.sample.subpanel_id = "named"
+    context.sample.diagnosis_id = "named"
     rows = [release(), release("named", content_hash="invalid")]
     with pytest.raises(ValueError, match="integrity"):
         ClinicalRuleService(
@@ -138,14 +146,14 @@ def test_corrupt_exact_release_never_falls_back_to_valid_base():
         ).resolve(context=context)
 
 
-@pytest.mark.parametrize("subpanel", [None, "", "base"])
-def test_unscoped_sample_never_inherits_a_named_configuration_scope(subpanel):
+@pytest.mark.parametrize("diagnosis", [None, "", "base"])
+def test_unscoped_sample_never_inherits_a_named_configuration_scope(diagnosis):
     context = prepare_report_context(
-        sample={"name": "SYNTHETIC", "asp_id": "assay_1", "subpanel_id": subpanel},
+        sample={"name": "SYNTHETIC", "asp_id": "assay_1", "diagnosis_id": diagnosis},
         asp={"asp_id": "assay_1"},
-        aspc={"aspc_id": "config", "asp_id": "assay_1", "subpanel_id": "named"},
+        aspc={"aspc_id": "config", "asp_id": "assay_1", "diagnosis_id": "named"},
         analyte="dna",
         applied_gene_lists=[],
         report_sections_data={},
     )
-    assert context.sample.subpanel_id == "base"
+    assert context.sample.diagnosis_id == "base"

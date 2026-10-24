@@ -62,14 +62,14 @@ def test_get_samples_does_not_restrict_the_omics_layer() -> None:
             "environment": "production",
             "ingest_status": "ready",
             "reported": False,
-            "omics_layer": "dna",
+            "asp_category": "dna",
         },
         {
             "name": "ready-rna",
             "environment": "production",
             "ingest_status": "ready",
             "reported": False,
-            "omics_layer": "rna",
+            "asp_category": "rna",
         },
     )
 
@@ -87,37 +87,37 @@ def test_gene_cohort_samples_are_ready_samples_in_user_scope() -> None:
     handler = _handler_with_docs(
         {
             "name": "eligible-dna",
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "environment": "production",
             "ingest_status": "ready",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "latest_report_id": "report-1",
         },
         {
             "name": "other-environment",
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "environment": "testing",
             "ingest_status": "ready",
-            "omics_layer": "dna",
+            "asp_category": "dna",
         },
         {
             "name": "rna-sample",
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "environment": "production",
             "ingest_status": "ready",
-            "omics_layer": "rna",
+            "asp_category": "rna",
         },
         {
             "name": "loading-dna",
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "environment": "production",
             "ingest_status": "loading",
-            "omics_layer": "dna",
+            "asp_category": "dna",
         },
     )
 
     rows = handler.get_gene_cohort_samples(
-        asp_ids=["solid_gmsv3"],
+        asp_ids=["demo-solid_gmsv3"],
         environments=["production"],
     )
 
@@ -218,12 +218,12 @@ def test_search_samples_for_admin_can_include_non_ready_docs() -> None:
     assert [row["name"] for row in rows] == ["ready-report", "loading-report"]
 
 
-def test_search_samples_for_admin_filters_environment_and_subpanel_scope() -> None:
+def test_search_samples_for_admin_filters_environment_and_diagnosis_scope() -> None:
     handler = _handler_with_docs(
         {
             "name": "base-explicit",
             "asp_id": "ASP1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
             "ingest_status": "ready",
         },
@@ -234,16 +234,16 @@ def test_search_samples_for_admin_filters_environment_and_subpanel_scope() -> No
             "ingest_status": "ready",
         },
         {
-            "name": "other-subpanel",
+            "name": "other-diagnosis",
             "asp_id": "ASP1",
-            "subpanel_id": "myeloid",
+            "diagnosis_id": "myeloid",
             "environment": "production",
             "ingest_status": "ready",
         },
         {
             "name": "other-environment",
             "asp_id": "ASP1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
             "ingest_status": "ready",
         },
@@ -252,7 +252,7 @@ def test_search_samples_for_admin_filters_environment_and_subpanel_scope() -> No
     rows, total = handler.search_samples_for_admin(
         asp_ids=["ASP1"],
         environments=["production"],
-        subpanel_id="base",
+        diagnosis_id="base",
         search_str="base",
         page=1,
         per_page=30,

@@ -1,8 +1,8 @@
 [
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "99706ace86ce1244957c7181",
+    "finding_oid": "081202ac235dcb1d624352e8",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10001_A_G",
@@ -22,14 +22,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "c7a5843810c3efe31da6c536"
-    }
+    "_id": "c7a5843810c3efe31da6c536"
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "579024fb4d650d30158c5b14",
+    "finding_oid": "05d53f056187fc4944fbc081",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10002_A_G",
@@ -49,14 +47,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "7c970d2cedda484c02d6f9e6"
-    }
+    "_id": "7c970d2cedda484c02d6f9e6"
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "54f31f14b984ced71f6071c0",
+    "finding_oid": "086c86743b851a0b663e22ac",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10003_A_G",
@@ -76,14 +72,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "d450ff02cb151b04ecb9e60a"
-    }
+    "_id": "d450ff02cb151b04ecb9e60a"
   },
   {
-    "sample_oid": "029f2978888a36aa73630c02",
+    "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_MYELOID",
-    "finding_oid": "ef3d06db40ba3f7c31a662f2",
+    "finding_oid": "5c681704b760797d0502e6ab",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10004_A_G",
@@ -103,14 +97,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "81276f40d53eb43e71110acf"
-    }
+    "_id": "81276f40d53eb43e71110acf"
   },
   {
-    "sample_oid": "e8e084c990e226e1f6a8affb",
+    "sample_oid": "a7b64d012ad9bb1b21076104",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "ee75b2bfa66a84030219f790",
+    "finding_oid": "4e0ac42ae302136f144e7fc9",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10001_A_G",
@@ -130,14 +122,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "613e2e4e8d0282dc0f882cb2"
-    }
+    "_id": "613e2e4e8d0282dc0f882cb2"
   },
   {
-    "sample_oid": "e8e084c990e226e1f6a8affb",
+    "sample_oid": "a7b64d012ad9bb1b21076104",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "f0f00e14d254feef08b216eb",
+    "finding_oid": "4c750747f76e1bd38935931b",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10002_A_G",
@@ -157,14 +147,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "5f88662500946c601e836705"
-    }
+    "_id": "5f88662500946c601e836705"
   },
   {
-    "sample_oid": "e8e084c990e226e1f6a8affb",
+    "sample_oid": "a7b64d012ad9bb1b21076104",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "24e86e96042cdfcee0f9044d",
+    "finding_oid": "f5bddf68c4b0d1e72bacdd3d",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10003_A_G",
@@ -184,14 +172,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "21cdb037b451cfde5a2ad4ad"
-    }
+    "_id": "21cdb037b451cfde5a2ad4ad"
   },
   {
-    "sample_oid": "e8e084c990e226e1f6a8affb",
+    "sample_oid": "a7b64d012ad9bb1b21076104",
     "sample_name": "DEMO_MYELOID_MISSING",
-    "finding_oid": "2991c5e88c73e1bc977de038",
+    "finding_oid": "c62a54272626d8a417518bed",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10004_A_G",
@@ -211,14 +197,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "f1d9a4c0db43182e688f05e2"
-    }
+    "_id": "f1d9a4c0db43182e688f05e2"
   },
   {
-    "sample_oid": "dd54815825da439747a7082d",
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
     "sample_name": "DEMO_GROUP_DNA",
-    "finding_oid": "f6a2bf3165c77d43ab51ee74",
+    "finding_oid": "6e11cb319ccde1de3a852a4a",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10001_A_G",
@@ -238,14 +222,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "ea246a838e8e8e86643f64cd"
-    }
+    "_id": "ea246a838e8e8e86643f64cd"
   },
   {
-    "sample_oid": "dd54815825da439747a7082d",
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
     "sample_name": "DEMO_GROUP_DNA",
-    "finding_oid": "98dbc284eba4c334e814328d",
+    "finding_oid": "f5427c02d42c96870221aa44",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10002_A_G",
@@ -265,14 +247,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "8e0685517691d2a653e713aa"
-    }
+    "_id": "8e0685517691d2a653e713aa"
   },
   {
-    "sample_oid": "dd54815825da439747a7082d",
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
     "sample_name": "DEMO_GROUP_DNA",
-    "finding_oid": "786911f3675e7acede4a8ae6",
+    "finding_oid": "8ae52dfbd39f269513ec8503",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10003_A_G",
@@ -292,14 +272,12 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "307650e41e4017aea4b6322a"
-    }
+    "_id": "307650e41e4017aea4b6322a"
   },
   {
-    "sample_oid": "dd54815825da439747a7082d",
+    "sample_oid": "2bc12c9832e8356c4d92a49d",
     "sample_name": "DEMO_GROUP_DNA",
-    "finding_oid": "3a7fa3ce1849c52b0aa25d74",
+    "finding_oid": "d14d5cce5497eee308ba0f0b",
     "finding_type": "small_variant",
     "nomenclature": "g",
     "variant": "1_10004_A_G",
@@ -319,8 +297,6 @@
       "$date": "2026-01-01T00:00:00Z"
     },
     "time_hidden": null,
-    "_id": {
-      "$oid": "092e19fb8a10f61554aae82c"
-    }
+    "_id": "092e19fb8a10f61554aae82c"
   }
 ]

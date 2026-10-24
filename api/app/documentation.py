@@ -39,7 +39,7 @@ the application; using an integration does not bypass those checks.
 ## Finding query rules
 
 Published query policies resolve from application defaults through group, assay
-and subpanel scopes. Application defaults use analysis-specific evidence and saved
+and diagnosis scopes. Application defaults use analysis-specific evidence and saved
 sample filters; group-specific exceptions are stored in database rule sets.
 Drafts do not affect clinical retrieval. Preview the effective policy and test a
 saved version against a sample before approval and publication. Query-rule

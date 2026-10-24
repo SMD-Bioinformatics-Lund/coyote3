@@ -18,18 +18,18 @@ def merge_sample_settings_with_assay_config(
     sample_doc = deepcopy(sample_doc)
     filters_config = assay_config_doc.get("filters", {})
     sample_filters = sample_doc.get("filters", {})
-    omics_layer = str(sample_doc.get("omics_layer") or "dna")
+    asp_category = str(sample_doc.get("asp_category") or "dna")
     sample_doc["filters"] = (
         normalize_sample_filters(
             deepcopy(sample_filters),
-            omics_layer=omics_layer,
+            asp_category=asp_category,
             analysis_intents=sample_doc.get("analysis_intents"),
             canonical=True,
         )
         if sample_filters
         else sample_filters_from_aspc_filters(
             filters_config,
-            omics_layer,
+            asp_category,
             analysis_intents=sample_doc.get("analysis_intents"),
         )
     )
@@ -52,20 +52,12 @@ def get_genes_covered_in_panel(
     """Annotate each genelist with covered and uncovered genes for the assay panel."""
     covered_genes_set = set(assay_panel_doc.get("covered_genes", []))
     updated_genelists = {}
-    asp_family = assay_panel_doc.get("asp_family", "").lower()
 
     for genelist_id, genelist_values in genelists.items():
         genelist_genes = set(genelist_values.get("genes", []))
-        if asp_family in ["wgs", "wts"]:
-            genelist_values["covered"] = sorted(genelist_genes)
-            genelist_values["uncovered"] = []
-        else:
-            genelist_values["covered"] = sorted(
-                list(genelist_genes.intersection(covered_genes_set))
-            )
-            genelist_values["uncovered"] = sorted(
-                list(genelist_genes.difference(covered_genes_set))
-            )
+        genelist_values = deepcopy(genelist_values)
+        genelist_values["covered"] = sorted(genelist_genes.intersection(covered_genes_set))
+        genelist_values["uncovered"] = sorted(genelist_genes.difference(covered_genes_set))
         updated_genelists[genelist_id] = genelist_values
     return updated_genelists
 
@@ -268,19 +260,25 @@ def get_sample_effective_genes(
     filter section. An ISGL's ``list_type`` controls whether it is valid for
     that target; it does not make a selection in one analysis apply to another.
 
-    Without a target-specific ISGL or ad-hoc selection, a targeted assay uses
-    the ASP's physical ``covered_genes``. An ASP with no covered-gene scope
-    returns an empty effective list, which query builders interpret as
-    unrestricted (the expected behavior for WGS/WTS designs).
+    Without a target-specific selection, use the assay's validated eligible genes.
+    Sequencing family does not grant eligibility. Empty selections and empty
+    eligibility remain restrictive; an empty scope selects no findings.
     """
     sample_filters = normalize_sample_filters(
         sample.get("filters"),
-        omics_layer=str(sample.get("omics_layer") or "dna"),
+        asp_category=str(sample.get("asp_category") or "dna"),
         analysis_intents=sample.get("analysis_intents"),
         intent=intent,
     )
     section = "translocation" if target == "translocation" else target
     target_filters = sample_filters.get(section) or {}
+    list_key = {
+        "snv": "snvlists",
+        "cnv": "cnvlists",
+        "fusion": "fusionlists",
+        "translocation": "fusionlists",
+    }.get(target)
+    selected_ids = target_filters.get(list_key, []) if list_key else []
     target_adhoc_genes = target_filters.get("adhoc_genes") or {}
     adhoc_genes_doc = target_adhoc_genes or sample_filters.get("adhoc_genes", {}) or {}
     scoped_adhoc_entries = {}
@@ -338,7 +336,7 @@ def get_sample_effective_genes(
 
     genes_covered_in_panel = get_genes_covered_in_panel(target_gl_dict, asp_doc)
     effective_filter_genes = create_filter_genelist(genes_covered_in_panel)
-    if not target_gl_dict:
+    if not target_gl_dict and not selected_ids:
         effective_filter_genes = sorted(
             {
                 str(gene).strip()
@@ -347,40 +345,6 @@ def get_sample_effective_genes(
             }
         )
     return genes_covered_in_panel, effective_filter_genes
-
-
-def has_sample_gene_restriction(
-    sample: dict[str, Any],
-    asp_doc: dict[str, Any],
-    *,
-    target: str,
-    intent: str = "somatic",
-) -> bool:
-    """Return whether a target has an explicit or physical gene scope.
-
-    This is intentionally separate from the resolved gene list. A selected
-    ISGL can have no overlap with a targeted panel; that state is restrictive
-    and must return no findings rather than being mistaken for an unrestricted
-    WGS/WTS scope.
-    """
-    sample_filters = normalize_sample_filters(
-        sample.get("filters"),
-        omics_layer=str(sample.get("omics_layer") or "dna"),
-        analysis_intents=sample.get("analysis_intents"),
-        intent=intent,
-    )
-    section = "translocation" if target == "translocation" else target
-    target_filters = sample_filters.get(section) or {}
-    list_key = {
-        "snv": "snvlists",
-        "cnv": "cnvlists",
-        "fusion": "fusionlists",
-        "translocation": "fusionlists",
-    }.get(target)
-    selected_ids = target_filters.get(list_key, []) if list_key else []
-    adhoc = target_filters.get("adhoc_genes") or {}
-    has_adhoc = isinstance(adhoc, dict) and bool(adhoc.get("genes"))
-    return bool(selected_ids or has_adhoc or (asp_doc.get("covered_genes") or []))
 
 
 def get_case_and_control_sample_ids(sample_doc: dict[str, Any]) -> dict[str, str]:

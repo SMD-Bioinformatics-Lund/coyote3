@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from fastapi import APIRouter
 
 from api.interfaces.http.admin.clinical_rules import router as clinical_rules_router
+from api.interfaces.http.admin.configuration_profiles import router as configuration_profiles_router
 from api.interfaces.http.admin.deployment_data import router as deployment_data_router
 from api.interfaces.http.admin.operations import router as admin_operations_router
 from api.interfaces.http.admin.permissions import router as permissions_router
@@ -60,6 +61,7 @@ ROUTERS = (
     RouterRegistration(resource_asp_router),
     RouterRegistration(assay_setup_router),
     RouterRegistration(resource_aspc_router),
+    RouterRegistration(configuration_profiles_router),
     RouterRegistration(resource_genelists_router),
     RouterRegistration(resource_samples_router),
     RouterRegistration(biomarkers_router),

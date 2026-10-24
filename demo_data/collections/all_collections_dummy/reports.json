@@ -3,7 +3,7 @@
     "sample_oid": "sample_oid_seed",
     "sample_name": "demo_dna_sample",
     "asp_id": "assay_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "environment": "production",
     "report_num": 1,
     "report_id": "demo_dna_sample_1",
@@ -14,9 +14,12 @@
     "time_created": "2026-01-01T10:00:00+00:00",
     "filters_snapshot": {},
     "aspc": {
-      "aspc_id": "assay_1_base_production",
+      "aspc_id": "assay_1::base::production",
       "version": 1
     },
-    "clinical_rule_source": null
+    "clinical_rule_source": null,
+    "resolution_snapshot": null,
+    "artifacts": [],
+    "sample_version": null
   }
 ]

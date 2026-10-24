@@ -198,7 +198,7 @@ class DnaService:
                 "filter_genes": filter_genes,
                 "assay_group": assay_group or sample.get("asp_group"),
                 "asp_id": sample.get("asp_id"),
-                "subpanel_id": sample.get("subpanel_id"),
+                "diagnosis_id": sample.get("diagnosis_id"),
                 "intent": "somatic",
             },
             include_normal=include_normal_cnvs(sample),

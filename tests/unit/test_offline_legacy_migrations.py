@@ -59,8 +59,8 @@ def review():
         "sample": {
             "metadata": {
                 "asp_id": "synthetic",
-                "omics_layer": "dna",
-                "sequencing_scope": "panel",
+                "asp_category": "dna",
+                "asp_family": "panel-dna",
                 "ingest_status": "ready",
                 "current_aspc_id": "synthetic_aspc",
                 "database_versions": {"vep": "110"},
@@ -360,9 +360,9 @@ def configured_target(sample_record):
         {
             "_id": sample_record["current_aspc_id"],
             "asp_id": sample_record["asp_id"],
-            "asp_category": sample_record["omics_layer"],
+            "asp_category": sample_record["asp_category"],
             "environment": sample_record["environment"],
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
         }
     )
     return target

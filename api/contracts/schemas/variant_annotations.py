@@ -8,6 +8,7 @@ from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
+from api.contracts.schemas.assay_context import AssayContextDoc
 from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
 from api.contracts.schemas.normalizers import normalize_ampersand_terms
 from api.domain.core.annotation_identity import (
@@ -28,7 +29,9 @@ class AnnotationDoc(_StrictCollectionDocBase):
     gene1: str | None = None
     gene2: str | None = None
     assay: str
-    subpanel: str
+    diagnosis: str
+    resource_context: AssayContextDoc | None = None
+    namespace: Literal["clinical", "sandbox"] = "clinical"
     author: str
     nomenclature: Literal["p", "g", "c", "f", "cn", "t"]
     transcript: str | None = None
@@ -82,6 +85,16 @@ class AnnotationDoc(_StrictCollectionDocBase):
             Required identity keys may hold null where their field types allow it;
             presence is checked separately from value completeness.
         """
+        if self.resource_context is not None:
+            expected_namespace = (
+                "clinical" if self.resource_context.environment == "production" else "sandbox"
+            )
+            self.namespace = expected_namespace
+            if (
+                self.assay != self.resource_context.group_id
+                or self.diagnosis != self.resource_context.diagnosis_id
+            ):
+                raise ValueError("Annotation scope does not match its resource context")
         if (self.class_ is None and self.text is None) or (
             self.class_ is not None and self.text is not None
         ):

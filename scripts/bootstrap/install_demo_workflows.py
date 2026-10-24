@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlsplit
 
 from pymongo import MongoClient
@@ -21,7 +22,10 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
 from api.application.provisioning.demo_installation import DemoInstallationService  # noqa: E402
+from api.application.query_rules.service import QueryRuleService  # noqa: E402
+from api.config.loaders.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository  # noqa: E402
+from api.infra.mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
 
 
 def validate_target(uri: str, database: str) -> None:
@@ -58,7 +62,20 @@ def main() -> None:
         args.mongo_uri, directConnection=True, serverSelectionTimeoutMS=5000
     ) as client:
         repository = DemoInstallationRepository(client[args.db])
-        service = DemoInstallationService(repository, ingest=None)
+        mapping = load_collection_section("primary")
+        query_rules = QueryRuleService(
+            QueryRuleRepository(
+                SimpleNamespace(
+                    query_rule_sets_collection=client[args.db][
+                        mapping["query_rule_sets_collection"]
+                    ],
+                    query_rule_revisions_collection=client[args.db][
+                        mapping["query_rule_revisions_collection"]
+                    ],
+                )
+            )
+        )
+        service = DemoInstallationService(repository, ingest=None, query_rule_service=query_rules)
         documents = service.configuration(args.actor)
         repository.preflight(documents)
         print(json.dumps({name: len(rows) for name, rows in documents.items()}, indent=2))

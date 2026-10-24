@@ -36,13 +36,13 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
             "name": "seed_sample",
             "environment": "production",
             "asp_id": "hematology",
-            "subpanel_id": "Hem",
+            "diagnosis_id": "Hem",
             "case_id": "case",
             "control_id": "control",
             "paired": True,
         }
     ]
-    annotation_docs = [{"_id": annotation_oid, "assay": "hematology", "subpanel": "Hem"}]
+    annotation_docs = [{"_id": annotation_oid, "assay": "hematology", "diagnosis": "Hem"}]
     enriched = report_summary.enrich_reported_variant_docs(
         docs,
         sample_repository=_FakeSampleHandler(sample_docs),
@@ -53,4 +53,4 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
     assert enriched[0]["sample"]["sample_name"] == "seed_sample"
     assert enriched[0]["annotation"]["assay"] == "hematology"
     assert enriched[1]["sample"]["asp_id"] == "hematology"
-    assert enriched[1]["annotation"]["subpanel"] == "Hem"
+    assert enriched[1]["annotation"]["diagnosis"] == "Hem"

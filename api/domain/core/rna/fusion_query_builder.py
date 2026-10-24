@@ -158,7 +158,7 @@ def build_fusion_query(
     scope = {
         "assay_group": str(assay_group or "").strip().lower(),
         "asp_id": str(settings.get("asp_id") or "").strip().lower(),
-        "subpanel_id": str(settings.get("subpanel_id") or "base").strip().lower(),
+        "diagnosis_id": str(settings.get("diagnosis_id") or "base").strip().lower(),
         "intent": str(settings.get("intent") or "somatic").strip().lower(),
     }
     admissions = [

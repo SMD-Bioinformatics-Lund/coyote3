@@ -23,6 +23,7 @@ class IngestCollectionGateway:
                 "anno_vep": store.anno_vep_repository.get_collection(),
                 "cnvs": store.copy_number_variant_repository.get_collection(),
                 "biomarkers": store.biomarker_repository.get_collection(),
+                "pgx": store.pgx_repository.get_collection(),
                 "translocations": store.translocation_repository.get_collection(),
                 "d4_coverage": store.d4_coverage_repository.get_collection(),
                 "fusions": store.fusion_repository.get_collection(),

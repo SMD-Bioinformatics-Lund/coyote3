@@ -154,14 +154,14 @@ def test_sample_repository_indexes_pagination_sorting_and_literal_search() -> No
     ]
     indexes = adapter.samples_collection.index_information()
     assert "name_1" in indexes
-    assert "ingest_status_1_omics_layer_1_asp_id_1_environment_1" in indexes
+    assert "ingest_status_1_asp_category_1_asp_id_1_environment_1" in indexes
     assert "reported_1_latest_report_on_-1" in indexes
 
 
 def test_sample_repository_update_and_missing_document_semantics(monkeypatch) -> None:
     adapter = _adapter()
     repository = SampleRepository(adapter)
-    sample_id = adapter.samples_collection.insert_one({"name": "CASE_A"}).inserted_id
+    sample_id = adapter.samples_collection.insert_one({"name": "CASE_A", "version": 1}).inserted_id
     monkeypatch.setattr(
         "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
@@ -169,7 +169,7 @@ def test_sample_repository_update_and_missing_document_semantics(monkeypatch) ->
         "api.infra.mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
     )
 
-    result = repository.update_sample(sample_id, {"name": "CASE_A", "reported": True})
+    result = repository.update_sample(sample_id, {"name": "CASE_A", "reported": True, "version": 1})
 
     assert result.matched_count == 1
     assert repository.get_sample_by_id(str(sample_id))["reported"] is True

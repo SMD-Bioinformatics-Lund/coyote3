@@ -28,6 +28,8 @@ from api.contracts.home import (
     SampleNavigationCountsPayload,
 )
 from api.contracts.samples import (
+    ConfigurationApplyRequest,
+    ConfigurationPreviewPayload,
     CoverageBlacklistUpdateRequest,
     SampleBamFilesPayload,
     SampleChangePayload,
@@ -406,7 +408,7 @@ def _add_sample_comment(
     result = change_payload(
         sample_id=sample_id, resource="sample_comment", resource_id="new", action="add"
     )
-    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    result["meta"]["asp_category"] = sample.get("asp_category")
     return util.common.convert_to_serializable(result)
 
 
@@ -448,7 +450,7 @@ def _hide_sample_comment(
     result = change_payload(
         sample_id=sample_id, resource="sample_comment", resource_id=comment_id, action="hide"
     )
-    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    result["meta"]["asp_category"] = sample.get("asp_category")
     return util.common.convert_to_serializable(result)
 
 
@@ -478,7 +480,7 @@ def _unhide_sample_comment(
     result = change_payload(
         sample_id=sample_id, resource="sample_comment", resource_id=comment_id, action="unhide"
     )
-    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    result["meta"]["asp_category"] = sample.get("asp_category")
     return util.common.convert_to_serializable(result)
 
 
@@ -512,7 +514,7 @@ def _update_sample_filters(
     analysis_intents = sample.get("analysis_intents") or ["somatic"]
     existing_profiles = normalize_sample_filters(
         sample.get("filters"),
-        omics_layer=str(sample.get("omics_layer") or "dna"),
+        asp_category=str(sample.get("asp_category") or "dna"),
         analysis_intents=analysis_intents,
         canonical=True,
     )
@@ -531,7 +533,7 @@ def _update_sample_filters(
         merged_profiles[intent] = {**dict(existing_profiles.get(intent) or {}), **profile}
     normalized_profiles = normalize_sample_filters(
         merged_profiles,
-        omics_layer=str(sample.get("omics_layer") or "dna"),
+        asp_category=str(sample.get("asp_category") or "dna"),
         analysis_intents=analysis_intents,
         canonical=True,
     )
@@ -599,6 +601,23 @@ def reset_sample_filters(
     return _reset_sample_filters(sample_id=sample_id, user=user, service=service)
 
 
+@router.get("/api/v1/samples/{sample_id}/aspc/preview", response_model=ConfigurationPreviewPayload)
+def preview_sample_aspc(
+    sample_id: str,
+    retain_overrides: bool = False,
+    user: ApiUser = Depends(require_access(permission="sample:edit:own")),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
+):
+    """Preview configuration changes for an accessible sample without changing its settings."""
+    sample = _get_sample_for_api(sample_id, user)
+    return util.common.convert_to_serializable(
+        service.preview_latest_aspc(
+            sample=sample,
+            retain_overrides=retain_overrides,
+        )
+    )
+
+
 @router.post(
     "/api/v1/samples/{sample_id}/aspc/apply-latest",
     response_model=SampleChangePayload,
@@ -606,12 +625,13 @@ def reset_sample_filters(
 )
 def apply_latest_sample_aspc(
     sample_id: str,
+    payload: ConfigurationApplyRequest,
     user: ApiUser = Depends(require_access(permission="sample:edit:own")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Replace a sample's stored ASPC snapshot only after an explicit user action."""
     sample = _get_sample_for_api(sample_id, user)
-    applied = service.apply_latest_aspc(sample=sample)
+    applied = service.apply_latest_aspc(sample=sample, **payload.model_dump())
     result = change_payload(
         sample_id=sample_id,
         resource="sample_aspc",

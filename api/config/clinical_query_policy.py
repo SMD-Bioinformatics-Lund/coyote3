@@ -38,7 +38,7 @@ _EXCEPTION_KEYS = frozenset(
         "intents",
         "assay_groups",
         "asp_ids",
-        "subpanel_ids",
+        "diagnosis_ids",
         "genes",
         "consequence_terms",
         "filter_values",
@@ -52,7 +52,7 @@ _EXCEPTION_KEYS = frozenset(
         "condition",
     }
 )
-_SCOPE_KEYS = frozenset({"id", "mode", "intents", "assay_groups", "asp_ids", "subpanel_ids"})
+_SCOPE_KEYS = frozenset({"id", "mode", "intents", "assay_groups", "asp_ids", "diagnosis_ids"})
 _ANALYSIS_POLICY_KEYS = frozenset({"exceptions"})
 _CNV_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
     {"genes", "callers", "effects", "chromosomes", "size_min", "size_max", "condition"}
@@ -78,7 +78,7 @@ def exception_payload(exception: Any) -> dict:
     values = asdict(exception)
     values["id"] = values.pop("rule_id")
     values.update(values.pop("criteria", {}))
-    for key in ("assay_groups", "asp_ids", "subpanel_ids", "intents"):
+    for key in ("assay_groups", "asp_ids", "diagnosis_ids", "intents"):
         values.pop(key, None)
     return {
         key: list(value) if isinstance(value, tuple) else value
@@ -180,7 +180,7 @@ class SnvQueryException:
     intents: tuple[str, ...]
     assay_groups: tuple[str, ...]
     asp_ids: tuple[str, ...]
-    subpanel_ids: tuple[str, ...]
+    diagnosis_ids: tuple[str, ...]
     genes: tuple[str, ...]
     consequence_terms: tuple[str, ...]
     filter_values: tuple[str, ...]
@@ -193,13 +193,13 @@ class SnvQueryException:
     alt_regex: str | None
     condition: dict[str, Any] | None = None
 
-    def applies_to(self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str) -> bool:
+    def applies_to(self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str) -> bool:
         """Return whether this released exception applies to the request scope."""
         return (
             (not self.intents or intent in self.intents)
             and (not self.assay_groups or assay_group in self.assay_groups)
             and (not self.asp_ids or asp_id in self.asp_ids)
-            and (not self.subpanel_ids or subpanel_id in self.subpanel_ids)
+            and (not self.diagnosis_ids or diagnosis_id in self.diagnosis_ids)
         )
 
 
@@ -220,7 +220,7 @@ class SnvQueryPolicy:
         return self.assay_group_policies.get(assay_group, self.default_somatic_policy)
 
     def exceptions_for(
-        self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str, mode: str
+        self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str, mode: str
     ) -> tuple[SnvQueryException, ...]:
         """Return matching exceptions in the configuration's display order.
 
@@ -236,7 +236,7 @@ class SnvQueryPolicy:
             and exception.applies_to(
                 assay_group=assay_group,
                 asp_id=asp_id,
-                subpanel_id=subpanel_id,
+                diagnosis_id=diagnosis_id,
                 intent=intent,
             )
         )
@@ -251,16 +251,16 @@ class FindingQueryException:
     intents: tuple[str, ...]
     assay_groups: tuple[str, ...]
     asp_ids: tuple[str, ...]
-    subpanel_ids: tuple[str, ...]
+    diagnosis_ids: tuple[str, ...]
     criteria: dict[str, Any]
 
-    def applies_to(self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str) -> bool:
+    def applies_to(self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str) -> bool:
         """Match the request scope against this exception's configured restrictions.
 
         Args:
             assay_group: Normalized assay group of the request.
             asp_id: Normalized assay-specific panel identifier.
-            subpanel_id: Normalized subpanel identifier.
+            diagnosis_id: Normalized diagnosis identifier.
             intent: Analysis intent, such as somatic or germline.
 
         Returns:
@@ -271,7 +271,7 @@ class FindingQueryException:
             (not self.intents or intent in self.intents)
             and (not self.assay_groups or assay_group in self.assay_groups)
             and (not self.asp_ids or asp_id in self.asp_ids)
-            and (not self.subpanel_ids or subpanel_id in self.subpanel_ids)
+            and (not self.diagnosis_ids or diagnosis_id in self.diagnosis_ids)
         )
 
 
@@ -282,14 +282,14 @@ class FindingQueryPolicy:
     exceptions: tuple[FindingQueryException, ...]
 
     def exceptions_for(
-        self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str, mode: str
+        self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str, mode: str
     ) -> tuple[FindingQueryException, ...]:
         """Select exceptions with the requested mode and matching scope.
 
         Args:
             assay_group: Normalized assay group to match.
             asp_id: Normalized assay-specific panel identifier to match.
-            subpanel_id: Normalized subpanel identifier to match.
+            diagnosis_id: Normalized diagnosis identifier to match.
             intent: Analysis intent to match.
             mode: Exception mode, such as admit or exclude.
 
@@ -303,7 +303,7 @@ class FindingQueryPolicy:
             and exception.applies_to(
                 assay_group=assay_group,
                 asp_id=asp_id,
-                subpanel_id=subpanel_id,
+                diagnosis_id=diagnosis_id,
                 intent=intent,
             )
         )
@@ -394,8 +394,8 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
             raw.get("assay_groups"), key=f"snv.exceptions[{index}].assay_groups"
         ),
         asp_ids=_identifiers(raw.get("asp_ids"), key=f"snv.exceptions[{index}].asp_ids"),
-        subpanel_ids=_identifiers(
-            raw.get("subpanel_ids"), key=f"snv.exceptions[{index}].subpanel_ids"
+        diagnosis_ids=_identifiers(
+            raw.get("diagnosis_ids"), key=f"snv.exceptions[{index}].diagnosis_ids"
         ),
         genes=_strings(raw.get("genes"), key=f"snv.exceptions[{index}].genes", uppercase=True),
         consequence_terms=_strings(
@@ -510,7 +510,7 @@ def _finding_exception(
         intents=intents,
         assay_groups=_identifiers(raw.get("assay_groups"), key=f"{prefix}.assay_groups"),
         asp_ids=_identifiers(raw.get("asp_ids"), key=f"{prefix}.asp_ids"),
-        subpanel_ids=_identifiers(raw.get("subpanel_ids"), key=f"{prefix}.subpanel_ids"),
+        diagnosis_ids=_identifiers(raw.get("diagnosis_ids"), key=f"{prefix}.diagnosis_ids"),
         criteria=criteria,
     )
 

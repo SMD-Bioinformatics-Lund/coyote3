@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable
 from typing import Any
 
-from api.application.ingest.parsers import infer_omics_layer, runtime_file_path
+from api.application.ingest.parsers import infer_asp_category, runtime_file_path
 from api.config.constants import (
     SAMPLE_FILE_KEYS,
     expected_file_keys,
@@ -22,10 +22,10 @@ def assay_file_policy(
     collection: DocumentReader,
     *,
     assay_name: str | None,
-    omics_layer: str | None,
+    asp_category: str | None,
 ) -> tuple[set[str], set[str]]:
     """Return ASP-controlled expected and required file keys for an assay."""
-    normalized_omics = str(omics_layer or "").strip().lower()
+    normalized_omics = str(asp_category or "").strip().lower()
     default_category = "rna" if normalized_omics == "rna" else "dna"
     if not assay_name:
         raise ValueError("assay is required for sample ingest")
@@ -63,8 +63,8 @@ def validate_payload_file_keys(
 ) -> dict[str, Any]:
     """Reject declared file resources outside the active ASP contract."""
     validated = dict(payload)
-    omics_layer = (
-        str(validated.get("omics_layer") or infer_omics_layer(validated) or "").strip().lower()
+    asp_category = (
+        str(validated.get("asp_category") or infer_asp_category(validated) or "").strip().lower()
     )
     files = validated.get("files") if isinstance(validated.get("files"), dict) else {}
     runtime = (
@@ -80,7 +80,7 @@ def validate_payload_file_keys(
             "Use one biomarkers JSON input instead of separate file keys: " + ", ".join(retired)
         )
     expected, _required = assay_file_policy(
-        collection, assay_name=validated.get("asp_id"), omics_layer=omics_layer
+        collection, assay_name=validated.get("asp_id"), asp_category=asp_category
     )
     declared = {
         key
@@ -104,9 +104,9 @@ def validate_declared_file_resources(
     Missing optional expected resources do not block ingestion. The caller retains
     their metadata and reports their absence after committing the sample.
     """
-    omics = str(payload.get("omics_layer") or infer_omics_layer(payload) or "").lower()
+    omics = str(payload.get("asp_category") or infer_asp_category(payload) or "").lower()
     expected, required = assay_file_policy(
-        collection, assay_name=payload.get("asp_id"), omics_layer=omics
+        collection, assay_name=payload.get("asp_id"), asp_category=omics
     )
     declared = {key for key in expected if runtime_file_path(payload, key)}
     missing = sorted(required - declared)

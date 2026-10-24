@@ -176,7 +176,7 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
             )
         )
 
-    def get_transloc_annotations(self, tl: dict) -> list:
+    def get_transloc_annotations(self, tl: dict, *, sample_context: dict) -> list:
         """
         Retrieve annotations for a given translocation.
 
@@ -188,9 +188,14 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
             classification or textual information.
         """
         var = translocation_annotation_identity(tl)
-        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
-            "time_created", 1
-        )
+        annotations = self.adapter.annotations_collection.find(
+            {
+                "variant": var,
+                "resource_context.assay_id": sample_context["assay_id"],
+                "resource_context.environment": sample_context["environment"],
+                "diagnosis": sample_context["diagnosis_id"],
+            }
+        ).sort("time_created", 1)
 
         # Keep latest classification tracked for parity with CNV annotation handling.
         _latest_classification = {"class": 999}

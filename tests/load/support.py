@@ -352,12 +352,12 @@ def validate_fixtures(fixtures: dict, workflows: set[str]) -> None:
             "environment",
             "case_id",
             "sample_no",
-            "sequencing_scope",
-            "omics_layer",
+            "asp_family",
+            "asp_category",
             "pipeline",
         }
         allowed = required | {
-            "subpanel_id",
+            "diagnosis_id",
             "genome_build",
             "database_versions",
             "analysis_intents",
@@ -377,7 +377,7 @@ def validate_fixtures(fixtures: dict, workflows: set[str]) -> None:
         )
         require(
             bool(re.fullmatch(r"[a-z][a-z0-9_-]*", sample["environment"]))
-            and sample["omics_layer"] == "dna"
+            and sample["asp_category"] == "dna"
             and type(sample["sample_no"]) is int
             and sample["sample_no"] >= 1,
             "invalid ingest template",

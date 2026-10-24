@@ -45,7 +45,7 @@ def _reported_variant_search_query(
 
     exact = str(search_str).strip()
     gene_exact = exact.upper()
-    subpanel_exact = exact.lower()
+    diagnosis_exact = exact.lower()
     contains = literal_text_query(search_str, contains=True)
     mode = str(search_mode or "variant").lower()
     variant_fields = [
@@ -97,8 +97,8 @@ def _reported_variant_search_query(
         query = {"$or": [{field: exact} for field in variant_fields]}
     elif mode == "author":
         query = {"created_by": contains}
-    elif mode == "subpanel":
-        query = {"subpanel": subpanel_exact}
+    elif mode == "diagnosis":
+        query = {"diagnosis": diagnosis_exact}
     elif mode == "all":
         query = {
             "$or": [
@@ -108,7 +108,7 @@ def _reported_variant_search_query(
                 {"gene2": gene_exact},
                 {"transcript": exact},
                 {"created_by": contains},
-                {"subpanel": subpanel_exact},
+                {"diagnosis": diagnosis_exact},
                 *[{field: exact} for field in variant_fields],
             ]
         }
@@ -167,7 +167,7 @@ class ReportedVariantsRepository(BaseRepository):
         report_num: int | None = None,
         assay: str | None = None,
         assay_group: str | None = None,
-        subpanel: str | None = None,
+        diagnosis: str | None = None,
         environment: str | None = None,
         session: Any = None,
     ) -> int:
@@ -203,7 +203,7 @@ class ReportedVariantsRepository(BaseRepository):
                 "report_num": report_num,
                 "assay": assay,
                 "assay_group": assay_group,
-                "subpanel": subpanel,
+                "diagnosis": diagnosis,
                 "environment": environment,
                 "created_by": created_by,
                 **r,  # r can include var_oid, tier, gene, etc.
@@ -218,7 +218,7 @@ class ReportedVariantsRepository(BaseRepository):
             doc["report_num"] = report_num
             doc["assay"] = assay
             doc["assay_group"] = assay_group
-            doc["subpanel"] = subpanel
+            doc["diagnosis"] = diagnosis
             doc["environment"] = environment
             doc["created_by"] = created_by
 
@@ -524,7 +524,7 @@ class ReportedVariantsRepository(BaseRepository):
             "report_num": 1,
             "assay": 1,
             "assay_group": 1,
-            "subpanel": 1,
+            "diagnosis": 1,
             "analysis_type": 1,
             "finding_type": 1,
             "nomenclature": 1,

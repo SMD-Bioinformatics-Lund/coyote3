@@ -14,7 +14,7 @@ class DnaVariantsListPayload(BaseModel):
     meta: dict[str, Any]
     filters: dict[str, Any]
     assay_group: str
-    subpanel: str | None = None
+    diagnosis: str | None = None
     analysis_sections: list[Any]
     assay_config: dict[str, Any]
     assay_config_schema: dict[str, Any] | None = None
@@ -103,7 +103,7 @@ class DnaVariantContextPayload(BaseModel):
     iarc_tp53: Any
     cosmic: dict[str, Any]
     assay_group: str
-    subpanel: str | None = None
+    diagnosis: str | None = None
     pon: Any
     sample_ids: dict[str, str]
     bam_id: Any
@@ -130,6 +130,8 @@ class DnaCnvContextPayload(BaseModel):
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     cnv: dict[str, Any]
+    latest_classification: dict[str, Any] | None = None
+    other_classifications: list[dict[str, Any]] = Field(default_factory=list)
     annotations: list[dict[str, Any]]
     sample_ids: dict[str, str]
     bam_id: Any
@@ -158,6 +160,8 @@ class DnaTranslocationContextPayload(BaseModel):
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     translocation: dict[str, Any]
+    latest_classification: dict[str, Any] | None = None
+    other_classifications: list[dict[str, Any]] = Field(default_factory=list)
     transcript_combinations: list[dict[str, Any]] = Field(default_factory=list)
     annotations: list[dict[str, Any]]
     sample_ids: dict[str, str]

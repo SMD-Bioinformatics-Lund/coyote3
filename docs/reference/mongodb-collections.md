@@ -26,15 +26,15 @@ queue ownership, indexes, retention boundaries and failure recovery.
 ## Cross-collection relations
 
 - `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
-- Initial ASPC resolution uses `samples.asp_id`, `samples.subpanel_id`, and `samples.environment`; the resolved ObjectId/key and `aspc_resolution` are persisted on the sample.
-- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; `diagnosis[]` carries its reusable diagnosis/in-silico-subpanel tags.
+- Initial ASPC resolution uses `samples.asp_id`, `samples.diagnosis_id`, and `samples.environment`. `samples.current_aspc_id` is the exact configuration ObjectId; `current_aspc_name` is its display label for tracking, never a lookup key. `aspc_resolution` records the resolved diagnosis, Base fallback flag and warning. Runtime context is derived from that release's captured resources.
+- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; `diagnosis[]` carries its reusable diagnosis/in-silico-diagnosis tags.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
 
 ## DNA vs RNA sample rules
 
-- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`.
-- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`.
+- `asp_category=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`.
+- `asp_category=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`.
 - Mixed DNA+RNA file-key payloads are rejected by model validation.
 
 ## `anno_vep`
@@ -53,7 +53,7 @@ Optional keys:
 Required keys:
 - `variant` (str)
 - `assay` (str)
-- `subpanel` (str)
+- `diagnosis` (str)
 - `author` (str)
 - `nomenclature` (Literal['p', 'g', 'c', 'f', 'cn', 't'])
 
@@ -66,6 +66,8 @@ Optional keys:
 - `gene` (str | None)
 - `gene1` (str | None)
 - `gene2` (str | None)
+- `resource_context` (api.contracts.schemas.assay_context.AssayContextDoc | None)
+- `namespace` (Literal['clinical', 'sandbox'])
 - `transcript` (str | None)
 - `time_created` (datetime)
 - `class_` (int | None)
@@ -102,7 +104,7 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
-- `subpanel_id` (str)
+- `diagnosis_id` (str)
 - `analysis_types` (list[str])
 - `analysis_intents` (list[str])
 - `system_managed` (bool)
@@ -114,6 +116,15 @@ Optional keys:
 - `verification_samples` (dict[str, list[int]])
 - `use_diagnosis_genelist` (bool)
 - `catalog` (AspcCatalogDoc)
+- `query_policy_release` (api.contracts.schemas.query_rules.CompiledQueryPoliciesDoc | None)
+- `clinical_rule_release` (api.contracts.schemas.clinical_rules.ClinicalRuleSetDoc | None)
+- `clinical_rule_base` (api.contracts.schemas.clinical_rules.ClinicalRuleSetDoc | None)
+- `assay_resource_release` (dict[str, Any] | None)
+- `gene_list_release` (dict[str, Any] | None)
+- `profile_sources` (list[dict[str, Any]])
+- `profile_overrides` (dict[str, Any])
+- `template_release` (dict[str, str] | None)
+- `promotion` (dict[str, Any] | None)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
@@ -144,6 +155,7 @@ Required keys:
 Optional keys:
 - `id_` (Any | None)
 - `description` (str)
+- `parent_group_id` (str | None)
 - `system_managed` (bool)
 - `is_active` (bool)
 - `version` (int)
@@ -193,6 +205,7 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
+- `supported_analyses` (list[str] | None)
 - `description` (str | None)
 - `igv` (api.contracts.schemas.assay.AspIgvDoc | None)
 - `expected_files` (list[str])
@@ -428,6 +441,47 @@ Optional keys:
 - `genes` (list[api.contracts.schemas.dna.CnvGeneDoc])
 - `callers` (list[str])
 
+## `configuration_profiles`
+
+Required keys:
+- `profile_id` (str)
+- `name` (str)
+- `kind` (Literal['filters', 'reporting', 'clinical_rules', 'template'])
+- `bindings` (list[api.contracts.configuration_profiles.ConfigurationScope])
+- `content` (dict[str, Any])
+- `reason` (str)
+- `version` (int)
+- `content_hash` (str)
+- `created_by` (str)
+- `created_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `status` (Literal['draft', 'published'])
+- `is_current` (bool)
+- `published_by` (str | None)
+- `published_on` (datetime.datetime | None)
+
+## `configuration_promotions`
+
+Required keys:
+- `source_id` (str)
+- `source_hash` (str)
+- `candidate` (dict[str, Any])
+- `content_hash` (str)
+- `expected_target_version` (int)
+- `evidence` (list[str])
+- `reason` (str)
+- `created_by` (str)
+- `created_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `status` (Literal['pending', 'approved'])
+- `approved_by` (str | None)
+- `approved_on` (datetime.datetime | None)
+- `target_id` (str | None)
+
 ## `cosmic`
 
 Required keys:
@@ -655,6 +709,37 @@ Optional keys:
 - `coord` (str | None)
 - `group_region_id` (str | None)
 
+## `diagnoses`
+
+Required keys:
+- `display_name` (str)
+- `diagnosis_id` (str)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `description` (str)
+- `is_active` (bool)
+- `version` (int)
+- `system_installed` (bool)
+- `is_current` (bool)
+
+## `diagnosis_associations`
+
+Required keys:
+- `asp_id` (str)
+- `diagnosis_id` (str)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `is_active` (bool)
+- `version` (int)
+- `system_installed` (bool)
+- `is_current` (bool)
+
 ## `finding_comments`
 
 Required keys:
@@ -813,7 +898,6 @@ Optional keys:
 - `is_active` (bool)
 - `asp_groups` (list[str])
 - `genes` (list[str])
-- `germline_genes` (list[str])
 - `asp_ids` (list[str])
 - `version` (int)
 - `created_by` (str | None)
@@ -980,6 +1064,8 @@ Optional keys:
 - `maintainer` (str | None)
 - `layout` (PublicCatalogLayoutDoc)
 - `modalities` (dict[str, api.contracts.schemas.public_catalog.PublicCatalogModalityDoc])
+- `published_offerings` (list[api.contracts.schemas.catalog_offerings.CatalogOfferingDoc])
+- `resource_revisions` (dict[str, dict[str, Any]])
 - `created_at` (datetime)
 - `created_by` (str)
 - `updated_at` (datetime)
@@ -1079,7 +1165,7 @@ Optional keys:
 - `report_num` (int | None)
 - `assay` (str | None)
 - `assay_group` (str | None)
-- `subpanel` (str | None)
+- `diagnosis` (str | None)
 - `environment` (str | None)
 - `analysis_intent` (str | None)
 - `finding_type` (str | None)
@@ -1142,7 +1228,7 @@ Required keys:
 Optional keys:
 - `sample_name` (str | None)
 - `asp_id` (str | None)
-- `subpanel_id` (str | None)
+- `diagnosis_id` (str | None)
 - `environment` (str | None)
 - `report_type` (str)
 - `author` (str | None)
@@ -1150,6 +1236,9 @@ Optional keys:
 - `filters_snapshot` (dict[str, Any])
 - `aspc` (dict[str, Any] | None)
 - `clinical_rule_source` (dict[str, Any] | None)
+- `resolution_snapshot` (dict[str, Any] | None)
+- `artifacts` (list[dict[str, Any]])
+- `sample_version` (int | None)
 
 ## `rna_classification`
 
@@ -1236,15 +1325,15 @@ Required keys:
 - `environment` (str)
 - `case_id` (str)
 - `sample_no` (int)
-- `sequencing_scope` (str)
-- `omics_layer` (Literal['dna', 'rna'])
+- `asp_family` (str)
+- `asp_category` (Literal['dna', 'rna'])
 - `pipeline` (str)
 
 Optional keys:
-- `subpanel_id` (str | None)
+- `version` (int)
+- `diagnosis_id` (str | None)
 - `current_aspc_id` (Any | None)
-- `current_aspc_key` (str | None)
-- `current_aspc_version` (int | None)
+- `current_aspc_name` (str | None)
 - `aspc_resolution` (api.contracts.schemas.samples.SampleAspcResolutionDoc | None)
 - `genome_build` (int | None)
 - `database_versions` (dict[str, str])
@@ -1268,37 +1357,6 @@ Optional keys:
 - `time_added` (datetime)
 - `ingested_by` (str | None)
 - `ingest_source` (Literal['api', 'upload', 'watcher', 'collection_import'] | None)
-
-## `subpanel_associations`
-
-Required keys:
-- `asp_id` (str)
-- `subpanel_id` (str)
-- `updated_by` (str)
-- `updated_on` (datetime)
-
-Optional keys:
-- `id_` (Any | None)
-- `is_active` (bool)
-- `version` (int)
-- `system_installed` (bool)
-- `is_current` (bool)
-
-## `subpanels`
-
-Required keys:
-- `display_name` (str)
-- `subpanel_id` (str)
-- `updated_by` (str)
-- `updated_on` (datetime)
-
-Optional keys:
-- `id_` (Any | None)
-- `description` (str)
-- `is_active` (bool)
-- `version` (int)
-- `system_installed` (bool)
-- `is_current` (bool)
 
 ## `translocations`
 

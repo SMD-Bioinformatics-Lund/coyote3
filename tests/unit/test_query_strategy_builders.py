@@ -24,7 +24,7 @@ def _finding_rule(
         intents=("somatic",),
         assay_groups=assay_groups,
         asp_ids=(),
-        subpanel_ids=(),
+        diagnosis_ids=(),
         criteria=criteria,
     )
 
@@ -175,11 +175,11 @@ def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:
     query = build_cnv_query("SAMPLE_1", filters, include_normal=True)
 
     assert all("NORMAL" not in str(clause) for clause in query["$and"])
-    assert include_normal_cnvs({"sequencing_scope": "wgs"}) is True
+    assert include_normal_cnvs({"asp_family": "wgs"}) is True
     assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is False
     assert include_normal_cnvs({}, {"asp_group": "new_center_group", "asp_family": "wgs"}) is True
-    assert include_normal_cnvs({"asp_group": "tumwgs", "sequencing_scope": "panel"}) is False
-    assert include_normal_cnvs({"sequencing_scope": "panel"}, {"asp_group": "solid"}) is False
+    assert include_normal_cnvs({"asp_group": "tumwgs", "asp_family": "panel-dna"}) is False
+    assert include_normal_cnvs({"asp_family": "panel-dna"}, {"asp_group": "solid"}) is False
 
 
 def test_cnv_policy_admission_extends_the_normal_filter_query() -> None:
@@ -465,7 +465,7 @@ def test_fusion_policy_admission_uses_gene_pairs_without_changing_the_baseline()
         {
             "id": "SAMPLE_1",
             "asp_id": "rna_fusion",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "min_spanning_reads": 10,
         },
         policy=policy,

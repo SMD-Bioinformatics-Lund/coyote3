@@ -93,10 +93,10 @@ def metadata_blocks(group: str, analyte: str) -> list[dict]:
         add(
             "clinical_question",
             [
-                (predicate("sample.subpanel_id", "bp"), text("Bröst-Pilot")),
+                (predicate("sample.diagnosis_id", "bp"), text("Bröst-Pilot")),
                 (
-                    predicate("sample.subpanel_id", ["base", ""], "not_in"),
-                    [{"type": "fact", "path": "sample.subpanel_id", "missing": "omit"}],
+                    predicate("sample.diagnosis_id", ["base", ""], "not_in"),
+                    [{"type": "fact", "path": "sample.diagnosis_id", "missing": "omit"}],
                 ),
             ],
         )
@@ -108,7 +108,7 @@ def metadata_blocks(group: str, analyte: str) -> list[dict]:
                     {
                         "type": "all",
                         "children": [
-                            predicate("sample.subpanel_id", "hem-snabb"),
+                            predicate("sample.diagnosis_id", "hem-snabb"),
                             predicate("sample.paired", paired),
                         ],
                     },

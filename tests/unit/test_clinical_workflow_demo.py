@@ -23,6 +23,44 @@ def demo_db():
     return replay()
 
 
+@pytest.mark.parametrize(
+    "diagnosis,group", [("mpn", "hematology"), ("cll", "hematology"), ("lung", "solid")]
+)
+def test_diagnosis_uses_shared_lists_with_distinct_panel_and_wgs_configuration(
+    demo_db, diagnosis, group
+):
+    """Sequencing choice preserves diagnosis/list identity while pinning distinct thresholds."""
+    panel = demo_db.samples.find_one({"name": f"DEMO_{diagnosis.upper()}_PANEL"})
+    wgs = demo_db.samples.find_one({"name": f"DEMO_{diagnosis.upper()}_WGS"})
+    assert panel["diagnosis_id"] == wgs["diagnosis_id"] == diagnosis
+    assert panel["asp_family"] == "panel-dna"
+    assert wgs["asp_family"] == "wgs"
+    assert panel["current_aspc_id"] != wgs["current_aspc_id"]
+    for sample, depth in ((panel, 100), (wgs, 30)):
+        configuration = demo_db.asp_configs.find_one({"_id": sample["current_aspc_id"]})
+        assert configuration["asp_group"] == group
+        assert configuration["aspc_id"] == f"{sample['asp_id']}::{diagnosis}::testing"
+        assert configuration["filters"]["somatic"]["snv"]["snvlists"] == [f"{diagnosis}-variants"]
+        assert configuration["filters"]["somatic"]["snv"]["min_depth"] == depth
+        assert configuration["clinical_rule_release"]["scope"]["diagnosis_id"] == diagnosis
+        assert configuration["clinical_rule_release"]["scope"]["asp_id"] == sample["asp_id"]
+
+
+def test_demo_groups_are_biological_and_retain_legacy_destinations(demo_db):
+    """Technical strategies and analysis types must not reappear as seeded groups."""
+    assert {row["group_id"] for row in demo_db.assay_groups.find()} == {
+        "hematology",
+        "solid",
+        "pgx",
+        "myeloid",
+        "lymphoid",
+    }
+    assert {row["asp_group"] for row in demo_db.assay_specific_panels.find()} == {
+        "hematology",
+        "solid",
+    }
+
+
 def test_demo_structural_events_reach_the_collection_with_embedded_evidence(demo_db):
     """Verify the service persists paired BND evidence and symbolic endpoints."""
     pair = demo_db.translocations.find_one({"ID": "custom-left"})
@@ -53,20 +91,20 @@ def test_demo_transcripts_have_reference_backed_mane_and_alternatives(demo_db):
 @pytest.mark.parametrize(
     "name,assay,collection",
     [
-        ("DEMO_GROUP_DNA", "demo_e2e_demo_dna", "variants"),
-        ("DEMO_GROUP_RNA", "demo_e2e_demo_rna", "fusions"),
+        ("DEMO_GROUP_DNA", "demo-tumwgs-solid", "variants"),
+        ("DEMO_GROUP_RNA", "demo-wts-solid", "fusions"),
     ],
 )
 def test_demo_group_has_complete_sample_and_reporting_configuration(
     demo_db, name, assay, collection
 ):
-    """Dedicated demo-group samples resolve their own profiles, evidence and report drafts."""
+    """Solid DNA and RNA samples resolve their biological group and technical family."""
     sample = demo_db.samples.find_one({"name": name})
     assert sample["asp_id"] == assay
     asp = demo_db.assay_specific_panels.find_one({"asp_id": assay})
-    assert asp["asp_group"] == "demo"
-    aspc = demo_db.asp_configs.find_one({"aspc_id": sample["current_aspc_key"]})
-    assert aspc["asp_group"] == "demo"
+    assert asp["asp_group"] == "solid"
+    aspc = demo_db.asp_configs.find_one({"_id": sample["current_aspc_id"]})
+    assert aspc["asp_group"] == "solid"
     assert aspc["environment"] == "testing"
     assert demo_db[collection].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
     rule = demo_db.clinical_rule_sets.find_one({"scope.asp_id": assay})
@@ -90,7 +128,7 @@ def selected_labels(db, name, **overrides):
         QueryRuleScope(
             assay_group=asp["asp_group"],
             asp_id=sample["asp_id"],
-            subpanel_id=sample["subpanel_id"],
+            diagnosis_id=sample["diagnosis_id"],
             analysis="snv",
         )
     )
@@ -98,7 +136,7 @@ def selected_labels(db, name, **overrides):
         sample["filters"]["somatic"]["snv"],
         id=str(sample["_id"]),
         asp_id=sample["asp_id"],
-        subpanel_id=sample["subpanel_id"],
+        diagnosis_id=sample["diagnosis_id"],
         filter_conseq=["missense_variant"],
     )
     settings.update(overrides)
@@ -125,7 +163,7 @@ def test_raw_variants_cover_installed_rules(demo_db, group):
         "depth_boundary",
         "alt_reads_boundary",
     }
-    if group in {"HEMATOLOGY", "MYELOID", "TUMWGS"}:
+    if group in {"HEMATOLOGY", "MYELOID", "TUMWGS", "LYMPHOID"}:
         expected |= {
             "flt3_svtype",
             "flt3_long_alt",

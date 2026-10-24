@@ -7,6 +7,7 @@ from typing import Any
 
 from api.application.common.alignment_files import alignment_files_payload
 from api.application.common.pagination import paginate_items, request_pagination
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.application.common.table_state import (
     parse_sort_specs,
     sort_items,
@@ -21,7 +22,6 @@ from api.application.reporting.dna_report_payload import hotspot_variant
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.domain.common.assay_filters import has_sample_gene_restriction
 from api.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
 from api.domain.common.errors import api_error, setup_error
 from api.domain.common.sample_filters import (
@@ -350,7 +350,7 @@ def _build_display_and_summary_sections(
             "filter_genes": translocation_filter_genes,
             "assay_group": assay_group,
             "asp_id": sample.get("asp_id"),
-            "subpanel_id": sample.get("subpanel_id"),
+            "diagnosis_id": sample.get("diagnosis_id"),
             "intent": "somatic",
         }
         translocation_policy = effective_policy(
@@ -370,8 +370,6 @@ def _build_display_and_summary_sections(
             policy=translocation_policy,
         )
 
-    if "FUSION" in analysis_sections:
-        display_sections_data["fusions"] = []
         summary_sections_data["translocs"] = [
             transloc
             for transloc in display_sections_data.get("translocs", [])
@@ -428,7 +426,7 @@ def list_variants_payload(
     sample_filters = merge_filter_defaults(
         sample_filters,
         assay_config.get("filters"),
-        omics_layer=str(sample.get("omics_layer") or "dna"),
+        asp_category=str(sample.get("asp_category") or "dna"),
         analysis_intents=analysis_intents,
     )
     snv_filters = merged_dna_variant_filters(
@@ -438,12 +436,12 @@ def list_variants_payload(
     )
     cnv_filters = merged_dna_cnv_filters(sample_filters)
     assay_group = assay_config.get("asp_group", "unknown")
-    subpanel = sample.get("subpanel_id")
+    diagnosis = sample.get("diagnosis_id")
     analysis_sections = _normalize_dna_analysis_sections(assay_config.get("analysis_types", []))
 
-    assay_panel_doc = service.assay_panel_repository.get_asp(asp_name=sample.get("asp_id"))
+    assay_panel_doc = assay_resource(assay_config)
     checked_snvlists = snv_filters.get("snvlists", [])
-    checked_snvlists_genes_dict = service.gene_list_repository.get_isgl_by_ids(checked_snvlists)
+    checked_snvlists_genes_dict = gene_list_resources(assay_config, checked_snvlists)
     genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
         sample,
         assay_panel_doc,
@@ -452,26 +450,14 @@ def list_variants_payload(
         intent=intent,
     )
     checked_cnvlists = cnv_filters.get("cnvlists", [])
-    checked_cnvlists_genes_dict = service.gene_list_repository.get_isgl_by_ids(checked_cnvlists)
+    checked_cnvlists_genes_dict = gene_list_resources(assay_config, checked_cnvlists)
     _cnv_genes_covered_in_panel, cnv_filter_genes = util_module.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_cnvlists_genes_dict, target="cnv"
     )
-    snv_gene_restricted = has_sample_gene_restriction(
-        {**sample, "filters": sample_filters},
-        assay_panel_doc,
-        target="snv",
-        intent=intent,
-    )
-    cnv_filters["restrict_to_genes"] = has_sample_gene_restriction(
-        {**sample, "filters": sample_filters},
-        assay_panel_doc,
-        target="cnv",
-    )
+    cnv_filters["restrict_to_genes"] = True
     translocation_filters = merged_dna_translocation_filters(sample_filters)
     checked_translocation_lists = translocation_filters.get("fusionlists", [])
-    checked_translocation_docs = service.gene_list_repository.get_isgl_by_ids(
-        checked_translocation_lists
-    )
+    checked_translocation_docs = gene_list_resources(assay_config, checked_translocation_lists)
     _translocation_covered, translocation_filter_genes = (
         util_module.common.get_sample_effective_genes(
             sample,
@@ -479,11 +465,6 @@ def list_variants_payload(
             checked_translocation_docs,
             target="translocation",
         )
-    )
-    translocation_restricted = has_sample_gene_restriction(
-        {**sample, "filters": sample_filters},
-        assay_panel_doc,
-        target="translocation",
     )
     filter_conseq = get_filter_conseq_terms_fn(snv_filters.get("vep_consequences", []))
 
@@ -509,10 +490,10 @@ def list_variants_payload(
             "exclude_flags": snv_filters.get("exclude_flags", []),
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
-            "restrict_to_genes": snv_gene_restricted,
+            "restrict_to_genes": True,
             "disp_pos": disp_pos,
             "asp_id": sample.get("asp_id"),
-            "subpanel_id": sample.get("subpanel_id") or assay_config.get("subpanel_id"),
+            "diagnosis_id": sample.get("diagnosis_id") or assay_config.get("diagnosis_id"),
         },
         intent=intent,
         policy=effective_policy(
@@ -539,7 +520,8 @@ def list_variants_payload(
         _annotated, tiered_variants = add_global_annotations_fn(
             variants,
             assay_group,
-            subpanel,
+            diagnosis,
+            sample_context=assay_config["aspc_resolution"]["context"],
         )
     else:
         tiered_variants = []
@@ -555,10 +537,8 @@ def list_variants_payload(
     )
     vep_conseq_meta = service.vep_metadata_repository.get_conseq_translations(vep_version)
     has_hidden_comments = service.sample_repository.hidden_sample_comments(sample.get("_id"))
-    insilico_panel_genelists = service.gene_list_repository.get_isgl_by_asp(
-        sample.get("asp_id"), is_active=True
-    )
-    all_panel_genelist_names = util_module.common.get_assay_genelist_names(insilico_panel_genelists)
+    insilico_panel_genelists = gene_list_resources(assay_config)
+    all_panel_genelist_names = list(insilico_panel_genelists)
     assay_config_schema = build_form_spec(aspc_spec_for_category("DNA"))
 
     pagination_meta: dict[str, Any] = {
@@ -583,7 +563,8 @@ def list_variants_payload(
         _annotated, tiered_variants = add_global_annotations_fn(
             variants_page,
             assay_group,
-            subpanel,
+            diagnosis,
+            sample_context=assay_config["aspc_resolution"]["context"],
         )
 
     context_variants = variants if include_report_context else variants_page
@@ -614,7 +595,7 @@ def list_variants_payload(
             filter_genes=filter_genes,
             cnv_filter_genes=cnv_filter_genes,
             translocation_filter_genes=translocation_filter_genes,
-            translocation_restricted=translocation_restricted,
+            translocation_restricted=True,
             assay_group=assay_group,
         )
         translocation_filters = merged_dna_translocation_filters(sample_filters)
@@ -627,7 +608,7 @@ def list_variants_payload(
                 ]
             )
         )
-        selected_list_docs = service.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        selected_list_docs = gene_list_resources(assay_config, selected_list_ids)
         applied_gene_lists = [
             {
                 **document,
@@ -682,12 +663,12 @@ def list_variants_payload(
         },
         "filters": sample_filters,
         "assay_group": assay_group,
-        "subpanel": subpanel,
+        "diagnosis": diagnosis,
         "analysis_sections": analysis_sections,
         "assay_config": assay_config,
         "assay_config_schema": assay_config_schema,
         "assay_panel_doc": assay_panel_doc,
-        "assay_panels": insilico_panel_genelists,
+        "assay_panels": list(insilico_panel_genelists.values()),
         "all_panel_genelist_names": all_panel_genelist_names,
         "checked_snvlists": checked_snvlists,
         "checked_snvlists_dict": genes_covered_in_panel,
@@ -776,14 +757,19 @@ def variant_context_payload(
             ),
         )
     assay_group = assay_config.get("asp_group", "unknown")
-    subpanel = sample.get("subpanel_id")
+    diagnosis = sample.get("diagnosis_id")
 
     variant = service.blacklist_repository.add_blacklist_data([variant], assay_group)[0]
     annotations, latest_classification, other_classifications, annotations_interesting = (
-        service.annotation_repository.get_global_annotations(variant, assay_group, subpanel)
+        service.annotation_repository.get_global_annotations(
+            variant,
+            assay_group,
+            diagnosis,
+            sample_context=assay_config["aspc_resolution"]["context"],
+        )
     )
     assay_group_mappings = service.assay_panel_repository.get_asp_group_mappings()
-    tier_by_scope: dict[tuple[str, str | None], int | None] = {}
+    tier_by_scope: dict[tuple[str, str, str, str], int | None] = {}
 
     def classification_tier(classification: dict[str, Any] | None) -> int | None:
         """Extract a displayable tier from a scoped classification.
@@ -801,28 +787,46 @@ def variant_context_payload(
             return None
         return tier if tier in {1, 2, 3, 4} else None
 
-    tier_by_scope[(assay_group, subpanel)] = classification_tier(latest_classification)
     in_other = service.variant_repository.get_variant_in_other_samples(variant)
     for match in in_other:
-        matched_assay = match.get("assay")
-        matched_group = assay_group_mappings.get(matched_assay)
-        matched_subpanel = match.get("subpanel")
+        matched_sample = match.pop("configuration_sample", None)
+        match["tier"] = None
+        if not matched_sample:
+            continue
+        matched_context = assay_config_getter(matched_sample)["aspc_resolution"]["context"]
+        if matched_context.get("environment") != assay_config["aspc_resolution"]["context"].get(
+            "environment"
+        ):
+            continue
+        matched_group = matched_context.get("group_id")
+        matched_diagnosis = match.get("diagnosis")
         match["assay_group"] = matched_group
         if not matched_group:
             continue
-        scope = (matched_group, matched_subpanel)
+        scope = (
+            matched_group,
+            matched_diagnosis,
+            matched_context.get("assay_id"),
+            matched_context.get("environment"),
+        )
         if scope not in tier_by_scope:
             _, matched_classification, _, _ = service.annotation_repository.get_global_annotations(
                 variant,
                 matched_group,
-                matched_subpanel,
+                matched_diagnosis,
+                sample_context=matched_context,
             )
             tier_by_scope[scope] = classification_tier(matched_classification)
         match["tier"] = tier_by_scope[scope]
 
     has_hidden_comments = service.variant_repository.hidden_var_comments(var_id)
     if not latest_classification or latest_classification.get("class") == 999:
-        variant = add_alt_class_fn(variant, assay_group, subpanel)
+        variant = add_alt_class_fn(
+            variant,
+            assay_group,
+            diagnosis,
+            sample_context=assay_config["aspc_resolution"]["context"],
+        )
     else:
         variant["additional_classifications"] = None
 
@@ -860,7 +864,8 @@ def variant_context_payload(
             variant,
             transcripts,
             assay_group,
-            subpanel,
+            diagnosis,
+            sample_context=assay_config["aspc_resolution"]["context"],
         )
     )
     for transcript in transcripts:
@@ -930,7 +935,7 @@ def variant_context_payload(
             "name": sample.get("name"),
             "assay": sample.get("asp_id"),
             "assay_group": assay_group,
-            "subpanel": subpanel,
+            "diagnosis": diagnosis,
         },
         "variant": variant,
         "transcripts": transcripts,
@@ -953,14 +958,14 @@ def variant_context_payload(
         "iarc_tp53": iarc_tp53,
         "cosmic": cosmic,
         "assay_group": assay_group,
-        "subpanel": subpanel,
+        "diagnosis": diagnosis,
         "pon": format_pon(variant),
         "sample_ids": sample_ids,
         **alignment_files_payload(
             sample,
             sample_ids,
             service.bam_record_repository.get_bams,
-            asp=service.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+            asp=assay_resource(assay_config),
         ),
         "vep_var_class_translations": service.vep_metadata_repository.get_variant_class_translations(
             vep_version

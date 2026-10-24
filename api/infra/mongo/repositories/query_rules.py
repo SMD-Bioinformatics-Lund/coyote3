@@ -99,7 +99,7 @@ class QueryRuleRepository(BaseRepository):
         """Propose the next version; the unique index detects competing creation.
 
         Args:
-            scope_key: Canonical group/assay/subpanel/analysis/intent identity.
+            scope_key: Canonical group/assay/diagnosis/analysis/intent identity.
 
         Returns:
             One greater than the greatest retained version, or 1 for a new scope.
@@ -108,36 +108,17 @@ class QueryRuleRepository(BaseRepository):
         return int(row["version"]) + 1 if row else 1
 
     def published_for(self, scope: dict) -> list[dict]:
-        """Read published ancestors without matching another assay or subpanel.
+        """Read published ancestors without matching another assay or diagnosis.
 
         Args:
-            scope: Validated scope mapping; absent/null assay and subpanel mean
+            scope: Validated scope mapping; absent/null assay and diagnosis mean
                 the corresponding level was not selected.
 
         Returns:
             Unordered published versions at the requested scope and its ancestors.
         """
         selected = QueryRuleScope.model_validate(scope)
-        ancestors = [QueryRuleScope(analysis=selected.analysis, intent=selected.intent)]
-        if selected.assay_group:
-            ancestors.append(
-                QueryRuleScope(
-                    assay_group=selected.assay_group,
-                    analysis=selected.analysis,
-                    intent=selected.intent,
-                )
-            )
-        if selected.asp_id:
-            ancestors.append(
-                QueryRuleScope(
-                    assay_group=selected.assay_group,
-                    asp_id=selected.asp_id,
-                    analysis=selected.analysis,
-                    intent=selected.intent,
-                )
-            )
-        if selected.subpanel_id:
-            ancestors.append(selected)
+        ancestors = selected.ancestors()
         return list(
             self.get_collection().find(
                 {

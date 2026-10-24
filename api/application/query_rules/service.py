@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Literal
 
+from api.application.query_rules.compilation import load_compiled_query_policy
 from api.config.clinical_query_policy import (
     CLINICAL_QUERY_POLICY,
     FindingQueryPolicy,
@@ -11,6 +12,7 @@ from api.config.clinical_query_policy import (
     exception_payload,
     resolved_query_policy,
 )
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.loaders.filter_flags import filter_flag_options
 from api.contracts.schemas.query_rules import (
     QueryConditionTest,
@@ -22,7 +24,7 @@ from api.contracts.schemas.query_rules import (
     QueryRuleTransition,
     QueryRuleUpdate,
 )
-from api.domain.common.errors import api_error
+from api.domain.common.errors import api_error, setup_error
 from api.domain.query_conditions import (
     compile_condition,
     condition_catalog,
@@ -39,13 +41,13 @@ def effective_policy(
     assay_group: str | None = None,
     intent: str = "somatic",
 ) -> SnvQueryPolicy | FindingQueryPolicy:
-    """Resolve an injected policy service; standalone workflows use release defaults.
+    """Load pinned sample policies; explicit offline workflows use software defaults.
 
     Args:
         service: Workflow's query-rule service; None for explicit offline workflows.
         analysis: Implemented query namespace.
-        sample: Sample or scope mapping with assay and subpanel identifiers.
-        assay_group: Resolved ASPC group, overriding the sample's group when supplied.
+        sample: Persisted sample with its exact configuration revision reference.
+        assay_group: Caller group context checked against the pinned configuration.
         intent: Somatic or germline query intent.
 
     Returns:
@@ -53,12 +55,11 @@ def effective_policy(
     """
     if service is None:
         return getattr(CLINICAL_QUERY_POLICY, analysis)
-    return service.policy(
+    return service.policy_for_sample(
         analysis=analysis,
-        assay_group=assay_group or sample.get("asp_group"),
-        asp_id=sample.get("asp_id"),
-        subpanel_id=sample.get("subpanel_id") or "base",
+        sample=sample,
         intent=intent,
+        assay_group=assay_group,
     )
 
 
@@ -70,7 +71,8 @@ class QueryRuleService:
         repository: Any,
         groups: Any = None,
         assays: Any = None,
-        subpanels: Any = None,
+        diagnoses: Any = None,
+        configurations: Any = None,
     ) -> None:
         """Bind policy persistence and the registries used to validate authoring scopes.
 
@@ -78,12 +80,14 @@ class QueryRuleService:
             repository: Policy repository; reads must return only published ancestors.
             groups: Assay-group registry for authoring validation.
             assays: ASP registry for group membership validation.
-            subpanels: Assay/subpanel association registry.
+            diagnoses: Assay/diagnosis association registry.
+            configurations: Immutable ASPC revision repository for sample execution.
         """
         self.repository = repository
         self.groups = groups
         self.assays = assays
-        self.subpanels = subpanels
+        self.diagnoses = diagnoses
+        self.configurations = configurations
 
     @classmethod
     def from_store(cls, store: Any) -> "QueryRuleService":
@@ -99,20 +103,56 @@ class QueryRuleService:
             store.query_rule_repository,
             store.assay_group_repository,
             store.assay_panel_repository,
-            store.assay_subpanel_repository,
+            store.assay_diagnosis_repository,
+            store.assay_configuration_repository,
         )
+
+    def policy_for_sample(
+        self,
+        *,
+        sample: dict,
+        analysis: str,
+        intent: str = "somatic",
+        assay_group: str | None = None,
+    ) -> SnvQueryPolicy | FindingQueryPolicy:
+        """Execute only the compiled policy belonging to the sample's exact ASPC revision.
+
+        Args:
+            sample: Persisted sample with an exact current_aspc_id reference.
+            analysis: Requested finding namespace.
+            intent: Requested analytical intent.
+            assay_group: Optional caller context, which must agree with the pinned release.
+
+        Returns:
+            Typed policy with no live registry composition.
+
+        Raises:
+            AppError: Sample revision is missing, unavailable or has invalid compiled content.
+        """
+        if self.configurations is None or sample.get("current_aspc_id") is None:
+            raise setup_error("Sample query execution requires an exact configuration revision")
+        configuration = self.configurations.get_aspc_revision_no_meta(sample["current_aspc_id"])
+        if not configuration:
+            raise setup_error("The sample's configuration revision is unavailable")
+        if assay_group is not None and configuration.get("asp_group") != assay_group:
+            raise setup_error("Query group does not match the sample configuration")
+        return load_compiled_query_policy(configuration, sample, analysis, intent)
 
     def validate_scope(self, scope: QueryRuleScope) -> None:
         """Reject unknown or mismatched clinical scopes before saving or previewing.
 
         Args:
-            scope: Group and optional assay/subpanel selected by the operator.
+            scope: Group and optional assay/diagnosis selected by the operator.
 
         Raises:
             AppError: A registry record is absent, inactive or belongs to another group.
         """
         if scope.assay_group is None:
             return
+        if scope.asp_id and scope.family:
+            raise api_error(422, "Choose either an assay binding or a family binding")
+        if scope.modality and scope.modality != ("rna" if scope.analysis == "fusion" else "dna"):
+            raise api_error(422, "Analysis is incompatible with the selected modality")
         group = self.groups.get(scope.assay_group)
         if not group or not group.get("is_active", True):
             raise api_error(422, "Choose an active registered assay group")
@@ -127,14 +167,25 @@ class QueryRuleService:
             category = "rna" if scope.analysis == "fusion" else "dna"
             if assay.get("asp_category") != category:
                 raise api_error(422, "Analysis is incompatible with the assay category")
-        if scope.subpanel_id and scope.subpanel_id != "base":
-            panel = self.subpanels.get_current(scope.asp_id, scope.subpanel_id)
-            if (
-                not panel
-                or not panel.get("is_active", True)
-                or not panel.get("definition_is_active", True)
+        if scope.diagnosis_id and scope.diagnosis_id != "base":
+            assays = (
+                [scope.asp_id]
+                if scope.asp_id
+                else [
+                    assay["asp_id"]
+                    for assay in self.assays.get_all_asps(is_active=True)
+                    if assay.get("asp_group") == scope.assay_group
+                    and (not scope.family or assay.get("asp_family") == scope.family)
+                ]
+            )
+            associations = [
+                self.diagnoses.get_current(assay_id, scope.diagnosis_id) for assay_id in assays
+            ]
+            if not any(
+                row and row.get("is_active", True) and row.get("definition_is_active", True)
+                for row in associations
             ):
-                raise api_error(422, "Choose an active subpanel associated with the assay")
+                raise api_error(422, "Choose an active diagnosis associated with this scope")
 
     def list(self) -> dict:
         """Return retained versions without exposing persistence result objects.
@@ -145,14 +196,19 @@ class QueryRuleService:
         return {"items": self.repository.list()}
 
     def options(self) -> dict:
-        """Return active groups, assays and their available subpanel scopes.
+        """Return active groups, assays and their available diagnosis scopes.
 
         Returns:
-            Group labels and assay identities/category/group/subpanel choices.
-            Only named subpanels are offered; base denotes no specific subpanel.
+            Group labels and assay identities/category/group/diagnosis choices.
+            Only named diagnoses are offered; base denotes no specific diagnosis.
         """
         return {
             "conditions": self.condition_options(),
+            "environments": list(CLINICAL_VOCABULARY.environment_options),
+            "families": [
+                {"id": family, "modality": modality}
+                for family, modality in CLINICAL_VOCABULARY.assay_family_categories.items()
+            ],
             "groups": [
                 {"id": g["group_id"], "name": g.get("display_name", g["group_id"])}
                 for g in self.groups.list()
@@ -163,11 +219,12 @@ class QueryRuleService:
                     "id": a["asp_id"],
                     "group": a["asp_group"],
                     "category": a["asp_category"],
-                    "subpanels": [
+                    "family": a.get("asp_family"),
+                    "diagnoses": [
                         *[
-                            p["subpanel_id"]
-                            for p in self.subpanels.list_for_assay(a["asp_id"], active_only=True)
-                            if p["subpanel_id"] != "base"
+                            p["diagnosis_id"]
+                            for p in self.diagnoses.list_for_assay(a["asp_id"], active_only=True)
+                            if p["diagnosis_id"] != "base"
                         ],
                     ],
                 }
@@ -230,7 +287,7 @@ class QueryRuleService:
         *,
         publication: dict | None = None,
     ) -> QueryRuleResolution:
-        """Resolve explicit fields through group, assay and subpanel published policies.
+        """Resolve explicit fields through group, assay and diagnosis published policies.
 
         Args:
             scope: Exact request scope, including analysis and intent.
@@ -243,6 +300,16 @@ class QueryRuleService:
         Raises:
             AppError: More than one published version exists at a scope.
         """
+        if scope.asp_id and not scope.family and self.assays is not None:
+            assay = self.assays.get_asp(scope.asp_id)
+            if assay and assay.get("asp_family"):
+                scope = QueryRuleScope.model_validate(
+                    {
+                        **scope.model_dump(),
+                        "family": assay["asp_family"],
+                        "modality": assay["asp_category"],
+                    }
+                )
         baseline = getattr(CLINICAL_QUERY_POLICY, scope.analysis)
         mode = (
             baseline.policy_for(assay_group=scope.assay_group, intent=scope.intent)
@@ -255,7 +322,7 @@ class QueryRuleService:
             if e.applies_to(
                 assay_group=scope.assay_group,
                 asp_id=scope.asp_id or "",
-                subpanel_id=scope.subpanel_id or "",
+                diagnosis_id=scope.diagnosis_id or "",
                 intent=scope.intent,
             )
         ]
@@ -288,21 +355,19 @@ class QueryRuleService:
                 )
             return [*inherited, *content.exceptions]
 
-        rows = self.repository.published_for(scope.model_dump())
+        rows = self.repository.published_for(scope.model_dump()) if self.repository else []
         if publication is not None:
             rows = [r for r in rows if r["scope_key"] != publication["scope_key"]] + [publication]
         for row in sorted(
             rows,
-            key=lambda r: sum(
-                bool(r["scope"].get(key)) for key in ("assay_group", "asp_id", "subpanel_id")
-            ),
+            key=lambda r: QueryRuleScope.model_validate(r["scope"]).precedence(),
         ):
             doc = QueryRuleDoc.model_validate(row)
             if override is not None and doc.scope_key == scope.key():
                 continue
-            if doc.scope_key in seen:
+            if doc.scope.precedence() in seen:
                 raise api_error(409, "Ambiguous published query policy")
-            seen.add(doc.scope_key)
+            seen.add(doc.scope.precedence())
             fields = []
             if doc.content.evidence_mode is not None:
                 mode = doc.content.evidence_mode
@@ -373,27 +438,33 @@ class QueryRuleService:
         analysis: str,
         assay_group: str,
         asp_id: str | None,
-        subpanel_id: str | None,
+        diagnosis_id: str | None,
         intent: str = "somatic",
+        environment: str | None = None,
     ) -> SnvQueryPolicy | FindingQueryPolicy:
-        """Resolve a runtime policy without weakening mandatory query scope predicates.
+        """Resolve a current authoring policy without weakening mandatory scope predicates.
 
         Args:
             analysis: Lowercase supported finding namespace.
             assay_group: Registered group identifier resolved from the sample's ASPC.
             asp_id: Sample's ASP identifier, or None for group scope.
-            subpanel_id: Sample's subpanel identifier, or None for all assay subpanels.
+            diagnosis_id: Sample's diagnosis identifier, or None for all assay diagnoses.
             intent: SNV intent; other analyses use somatic.
+            environment: Exact sample environment; None resolves shared policies only.
 
         Returns:
             Typed policy consumed by the existing domain query builder.
         """
+        assay = self.assays.get_asp(asp_id) if self.assays is not None and asp_id else None
         scope = QueryRuleScope(
             assay_group=assay_group,
             asp_id=asp_id or None,
-            subpanel_id=subpanel_id or None,
+            diagnosis_id=diagnosis_id or None,
             analysis=analysis,
             intent=intent,
+            environment=environment,
+            family=assay.get("asp_family") if assay else None,
+            modality=assay.get("asp_category") if assay and assay.get("asp_family") else None,
         )
         result = self.resolve(scope)
         return resolved_query_policy(analysis, result.evidence_mode, result.exceptions)
@@ -504,12 +575,29 @@ class QueryRuleService:
             values["approved_by"] = actor
         if action == "publish":
             for descendant in self.repository.list():
-                child_scope = descendant["scope"]
-                if descendant["status"] == "published" and all(
-                    value is None or child_scope.get(key) == value
-                    for key, value in current["scope"].items()
-                ):
-                    self.resolve(QueryRuleScope.model_validate(child_scope), publication=current)
+                if descendant["status"] != "published":
+                    continue
+                child_scope = QueryRuleScope.model_validate(descendant["scope"])
+                if child_scope.asp_id and not child_scope.family:
+                    assay = self.assays.get_asp(child_scope.asp_id)
+                    if assay and assay.get("asp_family"):
+                        child_scope = child_scope.model_copy(
+                            update={
+                                "family": assay["asp_family"],
+                                "modality": assay["asp_category"],
+                            }
+                        )
+                environments = (
+                    [child_scope.environment]
+                    if child_scope.environment
+                    else [None, *CLINICAL_VOCABULARY.environment_options]
+                )
+                for environment in environments:
+                    candidate = child_scope.model_copy(update={"environment": environment})
+                    if current["scope_key"] in {
+                        ancestor.key() for ancestor in candidate.ancestors()
+                    }:
+                        self.resolve(candidate, publication=current)
             values.update(published_by=actor, published_on=datetime.now(timezone.utc))
         return self.repository.change(identifier, payload.expected_revision, before, values, actor)
 

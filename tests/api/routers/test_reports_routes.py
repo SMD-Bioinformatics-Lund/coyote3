@@ -11,6 +11,7 @@ from api.contracts.reports import ReportSaveRequest
 from api.domain.core.exceptions import AppError
 from api.interfaces.http.clinical.reporting import reports
 from api.security.access import ApiUser
+from tests.fixtures.api import mock_collections as fx
 
 
 def _user(username: str = "tester", role: str = "admin") -> ApiUser:
@@ -45,7 +46,7 @@ def test_report_validation_rejects_analyte_that_does_not_match_sample_modality()
     with pytest.raises(AppError) as exc_info:
         reports._validate_report_inputs(
             "dna",
-            {"name": "RNA_SAMPLE", "omics_layer": "rna"},
+            {"name": "RNA_SAMPLE", "asp_category": "rna"},
             {"analysis_types": ["FUSION"]},
         )
 
@@ -269,7 +270,7 @@ def test_save_report_success(monkeypatch):
         "_build_preview_report",
         lambda analyte, sample, assay_config, save, include_snapshot: (
             "dna_report.html",
-            {"sample": sample, "assay_config": {}, "report_sections_data": {}},
+            {"sample": sample, "assay_config": fx.assay_config_doc(), "report_sections_data": {}},
             [{"v": 1}],
         ),
     )
@@ -335,7 +336,11 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
         "_build_preview_report",
         lambda analyte, sample, assay_config, save, include_snapshot: (
             "report_fusion.html",
-            {"sample": sample, "assay_config": {}, "report_sections_data": {}},
+            {
+                "sample": sample,
+                "assay_config": fx.assay_config_doc(asp_category="rna"),
+                "report_sections_data": {},
+            },
             [],
         ),
     )

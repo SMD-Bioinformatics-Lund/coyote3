@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.finding_access import require_sample_finding
 
 
@@ -19,6 +20,8 @@ class ResourceAnnotationService:
             translocation_repository=store.translocation_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
             variant_repository=store.variant_repository,
+            assay_configuration_repository=store.assay_configuration_repository,
+            assay_panel_repository=store.assay_panel_repository,
         )
 
     def __init__(
@@ -29,6 +32,8 @@ class ResourceAnnotationService:
         translocation_repository: Any,
         copy_number_variant_repository: Any,
         variant_repository: Any,
+        assay_configuration_repository: Any,
+        assay_panel_repository: Any,
     ) -> None:
         """Create the service with explicit injectable repositories."""
         self.annotation_repository = annotation_repository
@@ -36,6 +41,8 @@ class ResourceAnnotationService:
         self.translocation_repository = translocation_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.variant_repository = variant_repository
+        self.assay_configuration_repository = assay_configuration_repository
+        self.assay_panel_repository = assay_panel_repository
 
     def require_resource_for_sample(
         self,
@@ -87,6 +94,15 @@ class ResourceAnnotationService:
         doc = create_comment_doc_fn(form_data, nomenclature=nomenclature, variant=variant)
         comment_scope = form_data.get("global")
         if comment_scope == "global":
+            configuration = get_formatted_assay_config(
+                sample,
+                assay_configuration_repository=self.assay_configuration_repository,
+                assay_panel_repository=self.assay_panel_repository,
+            )
+            context = configuration["aspc_resolution"]["context"]
+            doc["resource_context"] = context
+            doc["assay"] = context["group_id"]
+            doc["diagnosis"] = context["diagnosis_id"]
             self.annotation_repository.add_anno_comment(doc)
         if nomenclature == "f":
             if comment_scope != "global":

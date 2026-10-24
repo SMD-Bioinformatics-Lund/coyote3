@@ -14,6 +14,7 @@ from api.application.accounts.common import (
 from api.application.common.protected_records import reject_system_managed_delete
 from api.application.resources.availability import require_active_group
 from api.application.resources.helpers import _validated_doc, require_new_identifier
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.errors import api_error
 
@@ -100,6 +101,9 @@ class AspService:
         config = payload.get("config", {})
         if not config:
             raise api_error(400, "Missing panel config payload")
+        family = str(config.get("asp_family") or "").strip().lower()
+        if family in CLINICAL_VOCABULARY.assay_family_categories:
+            config["asp_category"] = CLINICAL_VOCABULARY.assay_family_categories[family]
         config.setdefault("is_active", True)
         config["system_managed"] = False
         config["system_installed"] = False
@@ -148,6 +152,9 @@ class AspService:
         if not updated:
             raise api_error(400, "Missing panel config payload")
         updated_doc = {**panel, **updated}
+        family = str(updated_doc.get("asp_family") or "").strip().lower()
+        if family in CLINICAL_VOCABULARY.assay_family_categories:
+            updated_doc["asp_category"] = CLINICAL_VOCABULARY.assay_family_categories[family]
         updated_doc["asp_id"] = panel.get("asp_id", panel_id)
         updated_doc["system_managed"] = bool(panel.get("system_managed"))
         updated_doc["system_installed"] = bool(panel.get("system_installed"))

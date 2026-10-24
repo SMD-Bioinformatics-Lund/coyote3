@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from api.application.ingest.parsers import infer_omics_layer
+from api.application.ingest.parsers import infer_asp_category
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 
 
@@ -55,16 +55,16 @@ def prepare_update_payload(
 ) -> dict[str, Any]:
     """Validate that an update payload preserves the existing omics layer."""
     normalized = dict(payload)
-    existing_layer = str(sample_doc.get("omics_layer") or "").strip().lower()
+    existing_layer = str(sample_doc.get("asp_category") or "").strip().lower()
     if existing_layer not in {"dna", "rna"}:
-        existing_layer = infer_omics_layer(sample_doc) or ""
+        existing_layer = infer_asp_category(sample_doc) or ""
     if existing_layer not in {"dna", "rna"}:
         raise ValueError("Cannot determine existing sample data type for update")
 
-    requested_layer = str(normalized.get("omics_layer") or existing_layer).strip().lower()
+    requested_layer = str(normalized.get("asp_category") or existing_layer).strip().lower()
     if requested_layer != existing_layer:
         raise ValueError(
-            f"Sample omics_layer is '{existing_layer}' and cannot be changed to '{requested_layer}'"
+            f"Sample asp_category is '{existing_layer}' and cannot be changed to '{requested_layer}'"
         )
 
     forbidden_keys = RNA_SAMPLE_FILE_KEYS if existing_layer == "dna" else DNA_SAMPLE_FILE_KEYS
@@ -74,7 +74,7 @@ def prepare_update_payload(
             f"Cannot add {'RNA' if existing_layer == 'dna' else 'DNA'} data to an existing {existing_layer.upper()} sample"
         )
 
-    normalized["omics_layer"] = existing_layer
+    normalized["asp_category"] = existing_layer
     return normalized
 
 

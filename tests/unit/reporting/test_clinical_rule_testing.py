@@ -91,9 +91,9 @@ def test_search_limits_samples_to_rule_scope_and_returns_minimal_metadata() -> N
             "_id": "s1",
             "name": "Sample 1",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
-            "omics_layer": "dna",
+            "asp_category": "dna",
         },
         {"_id": "s2", "case_id": "Case 2"},
         {"_id": "s3"},
@@ -103,7 +103,7 @@ def test_search_limits_samples_to_rule_scope_and_returns_minimal_metadata() -> N
     result = testing.search_samples(
         document_id="rule",
         search="sample",
-        match_subpanel=True,
+        match_diagnosis=True,
         allowed_asp_ids=["assay_1"],
         allowed_environments=["production"],
         page=2,
@@ -111,12 +111,12 @@ def test_search_limits_samples_to_rule_scope_and_returns_minimal_metadata() -> N
     )
 
     assert [item["name"] for item in result["items"]] == ["Sample 1", "Case 2", "s3"]
-    assert result["items"][1]["subpanel_id"] == "base"
+    assert result["items"][1]["diagnosis_id"] == "base"
     assert result["total"] == 3
     assert testing.sample_repository.call == {
         "asp_ids": ["assay_1"],
         "environments": ["production"],
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "search_str": "sample",
         "page": 2,
         "per_page": 10,
@@ -129,13 +129,13 @@ def test_search_supports_assay_only_and_superuser_scope() -> None:
     testing.search_samples(
         document_id="rule",
         search="",
-        match_subpanel=False,
+        match_diagnosis=False,
         allowed_asp_ids=None,
         allowed_environments=None,
         page=1,
         per_page=20,
     )
-    assert testing.sample_repository.call["subpanel_id"] is None
+    assert testing.sample_repository.call["diagnosis_id"] is None
 
 
 def test_search_rejects_rule_outside_user_assay_scope() -> None:
@@ -143,7 +143,7 @@ def test_search_rejects_rule_outside_user_assay_scope() -> None:
         service().search_samples(
             document_id="rule",
             search="",
-            match_subpanel=False,
+            match_diagnosis=False,
             allowed_asp_ids=["another_assay"],
             allowed_environments=[],
             page=1,
@@ -158,7 +158,7 @@ def test_preview_uses_selected_rule_version_without_persistence(monkeypatch, ana
         update={"scope": document.scope.model_copy(update={"analyte": analyte})}
     )
     context = _context()
-    context.sample.omics_layer = analyte
+    context.sample.asp_category = analyte
     evaluation = (
         ClinicalRuleEvaluator()
         .evaluate(

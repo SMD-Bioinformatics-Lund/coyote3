@@ -40,18 +40,18 @@ ANALYSIS_FILTER_SECTIONS: dict[tuple[str, str], str] = {
 }
 
 
-def filter_section_for_analysis(*, omics_layer: str, analysis_type: str) -> str | None:
+def filter_section_for_analysis(*, asp_category: str, analysis_type: str) -> str | None:
     """Return the persisted filter section for one supported analysis type."""
     return ANALYSIS_FILTER_SECTIONS.get(
-        (str(omics_layer).strip().lower(), str(analysis_type).strip().upper())
+        (str(asp_category).strip().lower(), str(analysis_type).strip().upper())
     )
 
 
-def filter_keys(*, omics_layer: str, intent: str, section: str) -> frozenset[str]:
+def filter_keys(*, asp_category: str, intent: str, section: str) -> frozenset[str]:
     """Return the immutable accepted field names for one filter profile."""
     model = FILTER_PROFILE_MODELS.get(
         (
-            str(omics_layer).strip().lower(),
+            str(asp_category).strip().lower(),
             str(intent).strip().lower(),
             str(section).strip().lower(),
         )
@@ -62,9 +62,9 @@ def filter_keys(*, omics_layer: str, intent: str, section: str) -> frozenset[str
 
 
 def select_filter_values(
-    values: dict[str, Any] | None, *, omics_layer: str, intent: str, section: str
+    values: dict[str, Any] | None, *, asp_category: str, intent: str, section: str
 ) -> dict[str, Any]:
     """Retain only values accepted by the specified frozen profile."""
     source = values if isinstance(values, dict) else {}
-    allowed = filter_keys(omics_layer=omics_layer, intent=intent, section=section)
+    allowed = filter_keys(asp_category=asp_category, intent=intent, section=section)
     return {key: value for key, value in source.items() if key in allowed}

@@ -30,8 +30,8 @@ def repository():
         asp_collection=db.asp,
         aspc_collection=db.aspc,
         insilico_genelist_collection=db.isgl,
-        subpanels_collection=db.subpanels,
-        subpanel_associations_collection=db.associations,
+        diagnoses_collection=db.diagnoses,
+        diagnosis_associations_collection=db.associations,
         clinical_rule_sets_collection=db.rules,
     )
     try:

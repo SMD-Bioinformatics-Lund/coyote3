@@ -1,11 +1,11 @@
 [
   {
-    "asp_id": "demo_e2e_hematology",
+    "asp_id": "demo-hematology_gmsv1",
     "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
-    "display_name": "Synthetic hematology",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-hematology_gmsv1 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -37,12 +37,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_myeloid",
-    "asp_group": "myeloid",
+    "asp_id": "demo-myeloid_gmsv1",
+    "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
-    "display_name": "Synthetic myeloid",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-myeloid_gmsv1 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -74,12 +74,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_solid",
+    "asp_id": "demo-solid_gmsv3",
     "asp_group": "solid",
     "asp_family": "panel-dna",
     "asp_category": "dna",
-    "display_name": "Synthetic solid",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-solid_gmsv3 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -111,12 +111,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_tumwgs",
-    "asp_group": "tumwgs",
+    "asp_id": "demo-tumwgs-hema",
+    "asp_group": "hematology",
     "asp_family": "wgs",
     "asp_category": "dna",
-    "display_name": "Synthetic tumwgs",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-tumwgs-hema (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -148,12 +148,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_lymphoid",
-    "asp_group": "lymphoid",
+    "asp_id": "demo-lymphoid_gmsv5",
+    "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
-    "display_name": "Synthetic lymphoid",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-lymphoid_gmsv5 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -185,12 +185,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_fusion",
-    "asp_group": "fusion",
+    "asp_id": "demo-gms_rnafusionv5",
+    "asp_group": "hematology",
     "asp_family": "panel-rna",
     "asp_category": "rna",
-    "display_name": "Synthetic fusion",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-gms_rnafusionv5 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -217,12 +217,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_wts",
-    "asp_group": "wts",
+    "asp_id": "demo-wts-hema",
+    "asp_group": "hematology",
     "asp_family": "wts",
     "asp_category": "rna",
-    "display_name": "Synthetic wts",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-wts-hema (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -251,12 +251,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_demo_dna",
-    "asp_group": "demo",
-    "asp_family": "panel-dna",
+    "asp_id": "demo-tumwgs-solid",
+    "asp_group": "solid",
+    "asp_family": "wgs",
     "asp_category": "dna",
-    "display_name": "Synthetic demo DNA",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-tumwgs-solid (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -288,12 +288,12 @@
     "created_by": "demo.author"
   },
   {
-    "asp_id": "demo_e2e_demo_rna",
-    "asp_group": "demo",
+    "asp_id": "demo-wts-solid",
+    "asp_group": "solid",
     "asp_family": "wts",
     "asp_category": "rna",
-    "display_name": "Synthetic demo RNA",
-    "description": "Synthetic workflow validation only",
+    "display_name": "demo-wts-solid (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
       "FLT3",
@@ -313,6 +313,75 @@
       "fusion_files",
       "expression_path",
       "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo-hematology-training",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "demo-hematology-training (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "asp_id": "demo-rna-training",
+    "asp_group": "hematology",
+    "asp_family": "panel-rna",
+    "asp_category": "rna",
+    "display_name": "demo-rna-training (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "fusion_files",
       "qc"
     ],
     "required_files": [

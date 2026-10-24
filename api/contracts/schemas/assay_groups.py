@@ -14,6 +14,15 @@ class AssayGroupCreate(_StrictDocBase):
     group_id: str = Field(min_length=1, max_length=100)
     display_name: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=4000)
+    parent_group_id: str | None = Field(default=None, min_length=1, max_length=100)
+
+    @field_validator("parent_group_id")
+    @classmethod
+    def canonical_parent(cls, value: str | None) -> str | None:
+        """Validate an optional biological parent without inferring it from a label."""
+        if value is None:
+            return None
+        return normalize_clinical_identifier(value, label="parent_group_id")
 
     @field_validator("group_id")
     @classmethod

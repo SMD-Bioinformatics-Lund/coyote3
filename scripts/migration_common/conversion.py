@@ -77,9 +77,10 @@ def prepare_sample(source: dict, review: dict) -> tuple[dict, dict]:
     if scope is not None:
         aliases = {
             "asp_id": ("asp_id", "assay"),
-            "subpanel_id": ("subpanel_id", "subpanel"),
+            "diagnosis_id": ("diagnosis_id", "subpanel_id", "subpanel"),
             "environment": ("environment", "profile"),
-            "omics_layer": ("omics_layer",),
+            "asp_category": ("asp_category", "omics_layer"),
+            "asp_family": ("asp_family", "sequencing_scope"),
         }
         fields = scope.get("fields", {})
         if scope.get("source_sha256") != digest(source) or not scope.get("reason") or not fields:
@@ -381,15 +382,16 @@ def scoped_record(source: dict, review: dict | None, kind: str) -> dict:
     """Apply only explicitly reviewed, digest-bound destination scope mappings."""
     document = supplement(source, review)
     mapping = (review or {}).get("scope", {})
-    if set(mapping) - {"assay_group", "subpanel"}:
+    if set(mapping) - {"assay_group", "diagnosis"}:
         raise ValueError("Scope mapping contains unsupported fields")
     if "assay_group" in mapping:
         key = "group" if kind == "d4_coverage_blacklist" else "assay"
         document[key] = mapping["assay_group"]
-    if "subpanel" in mapping:
+    if "diagnosis" in mapping:
         if kind != "annotation":
-            raise ValueError("Only annotations have a subpanel scope mapping")
-        document["subpanel"] = mapping["subpanel"]
+            raise ValueError("Only annotations have a diagnosis scope mapping")
+        document.pop("subpanel", None)
+        document["diagnosis"] = mapping["diagnosis"]
     return document
 
 

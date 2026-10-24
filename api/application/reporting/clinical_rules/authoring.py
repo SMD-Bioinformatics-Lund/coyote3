@@ -13,7 +13,7 @@ from api.application.reporting.clinical_rules.validation import (
     validate_rule_set,
 )
 from api.application.resources.availability import require_active_group
-from api.config.constants import ENVIRONMENT_OPTIONS, SUBPANEL_BASE_ID
+from api.config.constants import DIAGNOSIS_BASE_ID, ENVIRONMENT_OPTIONS
 from api.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
@@ -85,7 +85,7 @@ class ClinicalRuleAuthoringService:
             store.clinical_rule_set_repository,
             revision_repository=store.clinical_rule_revision_repository,
             assay_panel_repository=store.assay_panel_repository,
-            assay_subpanel_repository=store.assay_subpanel_repository,
+            assay_diagnosis_repository=store.assay_diagnosis_repository,
             assay_setup_repository=getattr(store, "assay_setup_repository", None),
             user_repository=getattr(store, "user_repository", None),
             role_repository=getattr(store, "roles_repository", None),
@@ -97,7 +97,7 @@ class ClinicalRuleAuthoringService:
         *,
         revision_repository: Any | None = None,
         assay_panel_repository: Any | None = None,
-        assay_subpanel_repository: Any | None = None,
+        assay_diagnosis_repository: Any | None = None,
         assay_setup_repository: Any | None = None,
         user_repository: Any | None = None,
         role_repository: Any | None = None,
@@ -109,7 +109,7 @@ class ClinicalRuleAuthoringService:
             repository: Stores rule versions and conditional lifecycle updates.
             revision_repository: Reads revision history; None disables history lookup.
             assay_panel_repository: Optional active-assay validation and option source.
-            assay_subpanel_repository: Registered scopes; required when validating an assay.
+            assay_diagnosis_repository: Registered scopes; required when validating an assay.
             assay_setup_repository: Unpublished setup scopes available only to rule authoring.
             user_repository: Optional active-user lookup for assignments.
             role_repository: Optional permission-to-role lookup for assignments.
@@ -118,7 +118,7 @@ class ClinicalRuleAuthoringService:
         self.repository = repository
         self.revision_repository = revision_repository
         self.assay_panel_repository = assay_panel_repository
-        self.assay_subpanel_repository = assay_subpanel_repository
+        self.assay_diagnosis_repository = assay_diagnosis_repository
         self.assay_setup_repository = assay_setup_repository
         self.user_repository = user_repository
         self.role_repository = role_repository
@@ -141,14 +141,17 @@ class ClinicalRuleAuthoringService:
                     "asp_id": asp_id,
                     "display_name": str(panel.get("display_name") or asp_id),
                     "analyte": analyte,
-                    "subpanels": [
-                        {"subpanel_id": scope["subpanel_id"], "display_name": scope["display_name"]}
-                        for scope in self._registered_subpanels(asp_id)
+                    "diagnoses": [
+                        {
+                            "diagnosis_id": scope["diagnosis_id"],
+                            "display_name": scope["display_name"],
+                        }
+                        for scope in self._registered_diagnoses(asp_id)
                     ],
                 }
             )
-        subpanels = sorted(
-            {scope["subpanel_id"] for assay in assays for scope in assay["subpanels"]}
+        diagnoses = sorted(
+            {scope["diagnosis_id"] for assay in assays for scope in assay["diagnoses"]}
         )
         groups = sorted(
             {str(panel.get("asp_group") or "").strip() for panel in self._authoring_panels()} - {""}
@@ -157,7 +160,7 @@ class ClinicalRuleAuthoringService:
             "assays": sorted(assays, key=lambda item: (item["display_name"], item["asp_id"])),
             "condition_values": {
                 "sample.asp_id": [item["asp_id"] for item in assays],
-                "sample.subpanel_id": subpanels,
+                "sample.diagnosis_id": diagnoses,
                 "sample.environment": list(ENVIRONMENT_OPTIONS),
                 "asp.asp_group": groups,
             },
@@ -174,25 +177,25 @@ class ClinicalRuleAuthoringService:
                     panels.append({**panel, "is_active": True})
         return panels
 
-    def _registered_subpanels(self, asp_id: str) -> list[dict[str, Any]]:
+    def _registered_diagnoses(self, asp_id: str) -> list[dict[str, Any]]:
         """Return active registered scopes; fail closed when the repository is not configured."""
-        if self.assay_subpanel_repository is None:
-            raise RuntimeError("Assay subpanel repository is required for rule authoring")
+        if self.assay_diagnosis_repository is None:
+            raise RuntimeError("Assay diagnosis repository is required for rule authoring")
         if self.assay_setup_repository is not None and not self.assay_panel_repository.get_asp(
             asp_id
         ):
             for setup in self.assay_setup_repository.authoring_scopes():
                 if setup["content"]["panel"]["asp_id"] == asp_id:
-                    definitions = self.assay_subpanel_repository.list_definitions()
-                    return [{"subpanel_id": SUBPANEL_BASE_ID, "display_name": "Base"}] + [
+                    definitions = self.assay_diagnosis_repository.list_definitions()
+                    return [{"diagnosis_id": DIAGNOSIS_BASE_ID, "display_name": "Base"}] + [
                         d
                         for d in definitions
-                        if d["subpanel_id"] in setup["content"]["scopes"] and d["is_active"]
+                        if d["diagnosis_id"] in setup["content"]["scopes"] and d["is_active"]
                     ]
-        return [{"subpanel_id": SUBPANEL_BASE_ID, "display_name": "Base"}] + [
+        return [{"diagnosis_id": DIAGNOSIS_BASE_ID, "display_name": "Base"}] + [
             row
-            for row in self.assay_subpanel_repository.list_for_assay(asp_id, active_only=True)
-            if row["subpanel_id"] != SUBPANEL_BASE_ID
+            for row in self.assay_diagnosis_repository.list_for_assay(asp_id, active_only=True)
+            if row["diagnosis_id"] != DIAGNOSIS_BASE_ID
         ]
 
     def _validate_new_scope(self, payload: ClinicalRuleDraftCreate) -> None:
@@ -216,10 +219,10 @@ class ClinicalRuleAuthoringService:
         analyte = str(panel.get("asp_category") or "").lower()
         if analyte != payload.scope.analyte:
             raise api_error(409, "Clinical rule-set analyte does not match the assay panel")
-        if payload.scope.subpanel_id not in {
-            scope["subpanel_id"] for scope in self._registered_subpanels(payload.scope.asp_id)
+        if payload.scope.diagnosis_id not in {
+            scope["diagnosis_id"] for scope in self._registered_diagnoses(payload.scope.asp_id)
         }:
-            raise api_error(409, "Select an active registered subpanel for this assay")
+            raise api_error(409, "Select an active registered diagnosis for this assay")
 
     def _document(self, document_id: str) -> ClinicalRuleSetDoc:
         """Load and parse a stored rule version.
@@ -447,7 +450,7 @@ class ClinicalRuleAuthoringService:
                 ClinicalRuleDraftCreate(scope=target_scope, name=payload.name or source.name)
             )
             target_rule_set_id = (
-                f"{target_scope.asp_id}__{target_scope.subpanel_id}__{target_scope.language}"
+                f"{target_scope.asp_id}__{target_scope.diagnosis_id}__{target_scope.language}"
             )
             document.update(
                 {
@@ -485,7 +488,7 @@ class ClinicalRuleAuthoringService:
                 raise api_error(400, "A new rule set requires scope and name")
             self._validate_new_scope(payload)
             rule_set_id = (
-                f"{payload.scope.asp_id}__{payload.scope.subpanel_id}__{payload.scope.language}"
+                f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
             )
             document = {
                 "rule_set_id": rule_set_id,
@@ -539,7 +542,7 @@ class ClinicalRuleAuthoringService:
         now = _now()
         self._validate_new_scope(create)
         target_rule_set_id = (
-            f"{payload.scope.asp_id}__{payload.scope.subpanel_id}__{payload.scope.language}"
+            f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
         )
         document = source.model_dump(mode="python", by_alias=True)
         document.pop("_id", None)

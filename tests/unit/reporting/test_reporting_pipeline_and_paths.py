@@ -174,7 +174,8 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
 
     monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
     sample_repository = SimpleNamespace(
-        save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
+        save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1],
+        complete_report_artifacts=lambda report_oid: True,
     )
     report_file = str(tmp_path / "seed_report.html")
 
@@ -183,9 +184,9 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
         sample={
             "_id": "sample_oid_seed",
             "name": "seed_sample",
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "asp_group": "solid",
-            "subpanel_id": "colon",
+            "diagnosis_id": "colon",
             "environment": "production",
         },
         report_num=2,
@@ -316,5 +317,5 @@ def test_uncertain_commit_retains_artifacts_for_reconciliation(monkeypatch, tmp_
             created_by="test",
             sample_repository=SimpleNamespace(save_report=uncertain),
         )
-    assert (tmp_path / "r1.html").read_text() == "report"
-    assert (tmp_path / "r1.pdf").read_bytes() == b"pdf"
+    assert (tmp_path / "r1.html.pending").read_text() == "report"
+    assert (tmp_path / "r1.pdf.pending").read_bytes() == b"pdf"

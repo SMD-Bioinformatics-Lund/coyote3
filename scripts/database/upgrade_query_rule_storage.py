@@ -65,7 +65,7 @@ def upgrade(db, *, actor: str, backup: Path | None = None, apply: bool = False) 
             published.add(key)
         changed = (
             any(original.get(field) != key for field in ("scope_key", "query_id", "name"))
-            or original["scope"].get("subpanel_id") == "base"
+            or original["scope"].get("diagnosis_id") == "base"
         )
         existing_history = history.find_one({"rule_oid": str(original["_id"])})
         if changed and existing_history:

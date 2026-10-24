@@ -149,8 +149,8 @@ def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
         payload = yaml.safe_load(yaml_content)
 
         assert isinstance(payload, dict)
-        assert {"assay", "subpanel", "profile", "sequencing_technology"}.issubset(payload)
-        assert not {"asp_id", "subpanel_id", "environment", "platform"}.intersection(payload)
+        assert {"assay", "diagnosis", "profile", "sequencing_technology"}.issubset(payload)
+        assert not {"asp_id", "diagnosis_id", "environment", "platform"}.intersection(payload)
         assert "files" not in payload
         assert "case" not in payload
         assert payload.get("case_id")

@@ -3,8 +3,8 @@
     "scenario": "assay_inherit",
     "request": {
       "scope": {
-        "assay_group": "myeloid",
-        "asp_id": "demo_e2e_myeloid",
+        "assay_group": "hematology",
+        "asp_id": "demo-myeloid_gmsv1",
         "analysis": "snv",
         "intent": "somatic"
       },
@@ -20,8 +20,8 @@
     "scenario": "assay_extend",
     "request": {
       "scope": {
-        "assay_group": "myeloid",
-        "asp_id": "demo_e2e_myeloid",
+        "assay_group": "hematology",
+        "asp_id": "demo-myeloid_gmsv1",
         "analysis": "snv",
         "intent": "somatic"
       },
@@ -47,12 +47,12 @@
     }
   },
   {
-    "scenario": "subpanel_replace",
+    "scenario": "diagnosis_replace",
     "request": {
       "scope": {
-        "assay_group": "myeloid",
-        "asp_id": "demo_e2e_myeloid",
-        "subpanel_id": "demo_focus",
+        "assay_group": "hematology",
+        "asp_id": "demo-myeloid_gmsv1",
+        "diagnosis_id": "mpn",
         "analysis": "snv",
         "intent": "somatic"
       },
@@ -68,8 +68,8 @@
     "scenario": "nested_logic",
     "request": {
       "scope": {
-        "assay_group": "lymphoid",
-        "asp_id": "demo_e2e_lymphoid",
+        "assay_group": "hematology",
+        "asp_id": "demo-lymphoid_gmsv5",
         "analysis": "snv",
         "intent": "somatic"
       },

@@ -7,6 +7,25 @@ from datetime import date
 import pytest
 
 from api.application.reporting.report_renderer import render_report_html
+from api.domain.core.exceptions import AppError
+
+
+def test_renderer_rejects_a_changed_approved_template():
+    with pytest.raises(AppError, match="approved report template"):
+        render_report_html(
+            template_name="dna_report.html",
+            template_context={
+                "assay_config": {
+                    "template_release": {
+                        "template_name": "dna_report.html",
+                        "content_hash": "0" * 64,
+                    }
+                }
+            },
+            snapshot_rows=[],
+            analyte="dna",
+            preview=True,
+        )
 
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])

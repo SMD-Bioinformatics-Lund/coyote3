@@ -5,9 +5,11 @@ from __future__ import annotations
 import shlex
 from typing import Any, Callable
 
+from api.application.common.assay_context import build_assay_context
+from api.application.common.release_resources import assay_resource
 from api.config.constants import (
     DEFAULT_ENVIRONMENT,
-    SUBPANEL_BASE_ID,
+    DIAGNOSIS_BASE_ID,
     normalize_clinical_identifier,
     normalize_environment,
     primary_analysis_file_key,
@@ -269,11 +271,23 @@ def assay_default_filters(
     read_configuration: Callable[[dict[str, Any]], dict[str, Any] | None],
     sample_doc: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Resolve formatted ASPC default filters and metadata for a sample payload."""
+    """Resolve intake defaults using the assay snapshot captured in the selected release.
+
+    Args:
+        read_configuration: Repository lookup for an active exact-context configuration.
+        sample_doc: Intake assay, diagnosis, environment and analysis metadata.
+
+    Returns:
+        Validated settings and resolution receipt, or None when no release exists.
+
+    Raises:
+        ValueError: The selected Base release does not authorize diagnosis fallback.
+        AppError: Captured resources or intake context are invalid.
+    """
     assay_name = normalize_clinical_identifier(sample_doc.get("asp_id"), label="asp_id")
-    requested_subpanel_id = normalize_clinical_identifier(
-        sample_doc.get("subpanel_id") or SUBPANEL_BASE_ID,
-        label="subpanel_id",
+    requested_diagnosis_id = normalize_clinical_identifier(
+        sample_doc.get("diagnosis_id") or DIAGNOSIS_BASE_ID,
+        label="diagnosis_id",
     )
     profile = normalize_environment(sample_doc.get("environment") or DEFAULT_ENVIRONMENT)
     query_base = {
@@ -281,16 +295,16 @@ def assay_default_filters(
         "environment": profile,
         "is_active": True,
     }
-    raw_config = read_configuration({**query_base, "subpanel_id": requested_subpanel_id})
+    raw_config = read_configuration({**query_base, "diagnosis_id": requested_diagnosis_id})
     used_base_configuration = False
-    if not isinstance(raw_config, dict) and requested_subpanel_id != SUBPANEL_BASE_ID:
-        raw_config = read_configuration({**query_base, "subpanel_id": SUBPANEL_BASE_ID})
+    if not isinstance(raw_config, dict) and requested_diagnosis_id != DIAGNOSIS_BASE_ID:
+        raw_config = read_configuration({**query_base, "diagnosis_id": DIAGNOSIS_BASE_ID})
         used_base_configuration = isinstance(raw_config, dict)
     if not isinstance(raw_config, dict):
         return None
-    omics = str(sample_doc.get("omics_layer") or "").strip().upper()
-    if not omics:
-        omics = "RNA" if sample_doc.get(primary_analysis_file_key("rna", "FUSION")) else "DNA"
+    panel = assay_resource(raw_config)
+    context = build_assay_context(sample_doc, panel, raw_config)
+    omics = panel["asp_category"]
     filters = raw_config.get("filters")
     if not isinstance(filters, dict):
         return None
@@ -300,20 +314,24 @@ def assay_default_filters(
         analysis_intents=raw_config.get("analysis_intents"),
     )
     return {
+        "asp_category": panel["asp_category"],
+        "asp_family": panel["asp_family"],
         "filters": profiles,
         "aspc": {
             "_id": raw_config.get("_id"),
             "aspc_id": raw_config.get("aspc_id"),
+            "display_name": raw_config.get("display_name"),
             "version": raw_config.get("version"),
-            "subpanel_id": raw_config.get("subpanel_id"),
+            "diagnosis_id": raw_config.get("diagnosis_id"),
             "analysis_intents": raw_config.get("analysis_intents") or ["somatic"],
         },
         "aspc_resolution": {
-            "requested_subpanel_id": requested_subpanel_id,
-            "resolved_subpanel_id": raw_config.get("subpanel_id") or SUBPANEL_BASE_ID,
+            "context": context,
+            "requested_diagnosis_id": requested_diagnosis_id,
+            "resolved_diagnosis_id": raw_config.get("diagnosis_id") or DIAGNOSIS_BASE_ID,
             "used_base_configuration": used_base_configuration,
             "warning": (
-                "No subpanel-specific ASPC is active; base configuration is in use."
+                "No diagnosis-specific ASPC is active; base configuration is in use."
                 if used_base_configuration
                 else None
             ),

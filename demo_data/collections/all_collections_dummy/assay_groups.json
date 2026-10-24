@@ -1,6 +1,6 @@
 [
   {
-    "group_id": "demo",
+    "group_id": "hematology",
     "display_name": "Demo",
     "description": "",
     "system_managed": true,
@@ -11,6 +11,7 @@
     "publication_serial": 0,
     "updated_by": null,
     "updated_on": null,
-    "status_reason": ""
+    "status_reason": "",
+    "parent_group_id": null
   }
 ]

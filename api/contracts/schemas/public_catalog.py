@@ -8,10 +8,11 @@ from enum import Enum
 from typing import Any, Literal
 
 import bleach
-from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from api.config.constants import normalize_clinical_identifier
 from api.contracts.schemas.base import _StrictCollectionDocBase, _StrictDocBase
+from api.contracts.schemas.catalog_offerings import CatalogOfferingDoc, CatalogPriceDoc
 from api.domain.catalog_hierarchy import INHERITED_CATALOG_FIELDS, resolve_catalog_categories
 
 
@@ -141,12 +142,17 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
     """
 
     parent_key: str | None = None
+    price: CatalogPriceDoc | None = None
+    pricing_message: str = "Contact for pricing"
+    methodology: str = ""
+    ordering_information: str = ""
+    report_deliverables: list[str] = Field(default_factory=list)
     node_kind: Literal["entry", "folder"] = "entry"
     clear_fields: list[str] = Field(default_factory=list)
     catalog_id: str | None = None
     asp_id: str | None = None
     aspc_id: str | None = None
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
     aspc_ids: dict[str, str] = Field(default_factory=dict)
     gene_lists: list[PublicCatalogGeneListDoc] = Field(default_factory=list)
     no_gene_list: list[str] = Field(
@@ -162,13 +168,14 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
             raise ValueError("Unknown catalog inheritance field")
         return value
 
-    @field_validator("catalog_id", "asp_id", "aspc_id", "subpanel_id", mode="before")
+    @field_validator("catalog_id", "asp_id", "aspc_id", "diagnosis_id", mode="before")
     @classmethod
-    def normalize_optional_identifier(cls, value: Any) -> str | None:
-        """Canonicalize an optional catalog, assay, configuration, or subpanel identifier.
+    def normalize_optional_identifier(cls, value: Any, info: ValidationInfo) -> str | None:
+        """Canonicalize an optional catalog, assay, configuration, or diagnosis identifier.
 
         Args:
             value: Identifier value; null or whitespace-only input means unspecified.
+            info: Field metadata distinguishing compound configuration keys.
 
         Returns:
             The lowercase clinical identifier, or None for unspecified input.
@@ -178,7 +185,7 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
         """
         if value is None or not str(value).strip():
             return None
-        return normalize_clinical_identifier(value, label="public catalog identifier")
+        return normalize_clinical_identifier(value, label=info.field_name or "identifier")
 
 
 class PublicCatalogModalityDoc(PublicCatalogPresentationDoc):
@@ -237,6 +244,8 @@ class PublicAssayCatalogDoc(_StrictCollectionDocBase):
     maintainer: str | None = None
     layout: PublicCatalogLayoutDoc = Field(default_factory=PublicCatalogLayoutDoc)
     modalities: dict[str, PublicCatalogModalityDoc] = Field(default_factory=dict)
+    published_offerings: list[CatalogOfferingDoc] = Field(default_factory=list)
+    resource_revisions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str = "system"
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

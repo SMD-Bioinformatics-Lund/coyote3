@@ -10,6 +10,7 @@ from typing import Any
 from api.application.common.alignment_files import alignment_files_payload
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import request_pagination
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.application.common.table_state import (
     numeric_value,
     parse_sort_specs,
@@ -22,7 +23,6 @@ from api.application.query_rules.service import QueryRuleService, effective_poli
 from api.contracts.operations import OperationResult
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
-    has_sample_gene_restriction,
 )
 from api.domain.common.errors import api_error, setup_error
 from api.domain.common.sample_filters import (
@@ -37,6 +37,7 @@ from api.domain.core.dna.structural_annotations import (
     snpeff_consequence_metadata,
     structural_transcript_rows,
 )
+from api.domain.core.dna.structural_identity import translocation_annotation_identity
 from api.domain.core.dna.transcript_payloads import build_hgnc_lookup_maps
 from api.domain.core.dna.translocqueries import (
     build_transloc_query,
@@ -223,6 +224,7 @@ class DnaStructuralService:
     def from_store(cls, store: Any) -> "DnaStructuralService":
         """Build the service from the runtime store."""
         return cls(
+            annotation_repository=store.annotation_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
             translocation_repository=store.translocation_repository,
             assay_panel_repository=store.assay_panel_repository,
@@ -238,6 +240,7 @@ class DnaStructuralService:
     def __init__(
         self,
         *,
+        annotation_repository: Any,
         copy_number_variant_repository: Any,
         translocation_repository: Any,
         assay_panel_repository: Any,
@@ -250,6 +253,7 @@ class DnaStructuralService:
         hgnc_repository=None,
     ) -> None:
         """Create the service with explicit injected repositories."""
+        self.annotation_repository = annotation_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.translocation_repository = translocation_repository
         self.assay_panel_repository = assay_panel_repository
@@ -293,9 +297,7 @@ class DnaStructuralService:
         return result
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
-        """Resolve formatted assay config using injected repositories when available."""
-        if self.assay_configuration_repository is None:
-            return get_formatted_assay_config(sample)
+        """Resolve configuration through the injected resource repositories."""
         return get_formatted_assay_config(
             sample,
             assay_panel_repository=self.assay_panel_repository,
@@ -332,7 +334,7 @@ class DnaStructuralService:
                 or (assay_panel or {}).get("asp_group")
                 or sample.get("asp_group"),
                 "asp_id": sample.get("asp_id"),
-                "subpanel_id": sample.get("subpanel_id"),
+                "diagnosis_id": sample.get("diagnosis_id"),
                 "intent": "somatic",
             },
             include_normal=include_normal_cnvs(sample, assay_panel),
@@ -383,22 +385,18 @@ class DnaStructuralService:
         sample_filters = merge_filter_defaults(
             sample.get("filters"),
             assay_config.get("filters"),
-            omics_layer=str(sample.get("omics_layer") or "dna"),
+            asp_category=str(sample.get("asp_category") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
         )
         cnv_filters = merged_dna_cnv_filters(sample_filters)
         sample = {**sample, "filters": sample_filters}
-        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id"))
+        assay_panel_doc = assay_resource(assay_config)
         checked_cnvlists = cnv_filters.get("cnvlists", [])
-        checked_cnvlists_genes_dict = self.gene_list_repository.get_isgl_by_ids(checked_cnvlists)
+        checked_cnvlists_genes_dict = gene_list_resources(assay_config, checked_cnvlists)
         _genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
             sample, assay_panel_doc, checked_cnvlists_genes_dict, target="cnv"
         )
-        cnv_filters["restrict_to_genes"] = has_sample_gene_restriction(
-            sample,
-            assay_panel_doc or {},
-            target="cnv",
-        )
+        cnv_filters["restrict_to_genes"] = True
         cnvs = self.load_cnvs_for_sample(
             sample=sample,
             sample_filters=cnv_filters,
@@ -470,7 +468,18 @@ class DnaStructuralService:
         cosmic = self.cosmic_repository.get_cnv_evidence(
             cnv, genome_build=sample.get("genome_build")
         )
+        _, classification, alternatives, _ = self.annotation_repository.get_global_annotations(
+            {
+                "nomenclature": "cn",
+                "variant": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
+            },
+            assay_group,
+            sample.get("diagnosis_id") or "base",
+            sample_context=assay_config["aspc_resolution"]["context"],
+        )
         return {
+            "latest_classification": classification,
+            "other_classifications": alternatives,
             "sample": sample,
             "sample_summary": {
                 "id": str(sample.get("_id")),
@@ -479,13 +488,15 @@ class DnaStructuralService:
                 "assay_group": assay_group,
             },
             "cnv": cnv,
-            "annotations": self.copy_number_variant_repository.get_cnv_annotations(cnv),
+            "annotations": self.copy_number_variant_repository.get_cnv_annotations(
+                cnv, sample_context=assay_config["aspc_resolution"]["context"]
+            ),
             "sample_ids": sample_ids,
             **alignment_files_payload(
                 sample,
                 sample_ids,
                 self.bam_record_repository.get_bams,
-                asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+                asp=assay_resource(assay_config),
             ),
             "has_hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
             "hidden_comments": self.copy_number_variant_repository.hidden_cnv_comments(cnv_id),
@@ -543,25 +554,20 @@ class DnaStructuralService:
         sample_filters = merge_filter_defaults(
             sample.get("filters"),
             assay_config.get("filters"),
-            omics_layer="dna",
+            asp_category="dna",
             analysis_intents=sample.get("analysis_intents"),
         )
         translocation_filters = merged_dna_translocation_filters(
             sample_filters,
             analysis_intents=sample.get("analysis_intents"),
         )
-        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")) or {}
+        assay_panel_doc = assay_resource(assay_config)
         selected_list_ids = list(translocation_filters.get("fusionlists") or [])
-        selected_lists = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        selected_lists = gene_list_resources(assay_config, selected_list_ids)
         _covered_map, filter_genes = get_sample_effective_genes(
             {**sample, "filters": sample_filters},
             assay_panel_doc,
             selected_lists,
-            target="translocation",
-        )
-        restricted = has_sample_gene_restriction(
-            {**sample, "filters": sample_filters},
-            assay_panel_doc,
             target="translocation",
         )
 
@@ -570,7 +576,7 @@ class DnaStructuralService:
             **translocation_filters,
             "assay_group": assay_config.get("asp_group"),
             "asp_id": sample.get("asp_id"),
-            "subpanel_id": sample.get("subpanel_id"),
+            "diagnosis_id": sample.get("diagnosis_id"),
             "intent": "somatic",
         }
         translocation_policy = effective_policy(
@@ -592,7 +598,7 @@ class DnaStructuralService:
                 yield from filter_translocations_by_genes(
                     list(batch),
                     filter_genes=filter_genes,
-                    restricted=restricted,
+                    restricted=True,
                     settings=policy_settings,
                     policy=translocation_policy,
                 )
@@ -665,7 +671,15 @@ class DnaStructuralService:
             else []
         )
         by_id, by_symbol = build_hgnc_lookup_maps(records)
+        _, classification, alternatives, _ = self.annotation_repository.get_global_annotations(
+            {"nomenclature": "t", "variant": translocation_annotation_identity(transloc)},
+            assay_group,
+            sample.get("diagnosis_id") or "base",
+            sample_context=assay_config["aspc_resolution"]["context"],
+        )
         return {
+            "latest_classification": classification,
+            "other_classifications": alternatives,
             "sample": sample,
             "sample_summary": {
                 "id": str(sample.get("_id")),
@@ -675,13 +689,15 @@ class DnaStructuralService:
             },
             "translocation": transloc,
             "transcript_combinations": structural_transcript_rows(annotations, by_id, by_symbol),
-            "annotations": self.translocation_repository.get_transloc_annotations(transloc),
+            "annotations": self.translocation_repository.get_transloc_annotations(
+                transloc, sample_context=assay_config["aspc_resolution"]["context"]
+            ),
             "sample_ids": sample_ids,
             **alignment_files_payload(
                 sample,
                 sample_ids,
                 self.bam_record_repository.get_bams,
-                asp=self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")),
+                asp=assay_resource(assay_config),
             ),
             "snpeff_conseq_translations": snpeff_consequence_metadata([transloc]),
             "has_hidden_comments": self.translocation_repository.hidden_transloc_comments(

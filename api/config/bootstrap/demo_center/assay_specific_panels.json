@@ -36,7 +36,7 @@
   },
   {
     "asp_id": "assay_rna_1",
-    "asp_group": "wts",
+    "asp_group": "hematology",
     "asp_family": "wts",
     "asp_category": "rna",
     "display_name": "Demo RNA WTS",

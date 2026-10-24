@@ -275,7 +275,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         collection.create_index(
             [
                 ("scope.asp_id", 1),
-                ("scope.subpanel_id", 1),
+                ("scope.diagnosis_id", 1),
                 ("scope.analyte", 1),
                 ("scope.language", 1),
                 ("status", 1),
@@ -288,7 +288,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         collection.create_index(
             [
                 ("scope.asp_id", 1),
-                ("scope.subpanel_id", 1),
+                ("scope.diagnosis_id", 1),
                 ("scope.analyte", 1),
                 ("scope.language", 1),
             ],
@@ -314,7 +314,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         Args:
             status: Exact lifecycle status; falsey values omit this filter.
             search: Literal case-insensitive substring of identity, name, assay, or
-                subpanel; falsey values omit text filtering.
+                diagnosis; falsey values omit text filtering.
             skip: Number of matching documents to skip.
             limit: MongoDB page limit, defaulting to 50; zero means no limit.
 
@@ -330,7 +330,7 @@ class ClinicalRuleSetRepository(BaseRepository):
                 {"rule_set_id": {"$regex": escaped_search, "$options": "i"}},
                 {"name": {"$regex": escaped_search, "$options": "i"}},
                 {"scope.asp_id": {"$regex": escaped_search, "$options": "i"}},
-                {"scope.subpanel_id": {"$regex": escaped_search, "$options": "i"}},
+                {"scope.diagnosis_id": {"$regex": escaped_search, "$options": "i"}},
             ]
         collection = self.get_collection()
         rows = list(
@@ -385,7 +385,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         self,
         asp_id: str,
         *,
-        subpanel_id: str | None = None,
+        diagnosis_id: str | None = None,
         analyte: str | None = None,
         language: str | None = None,
     ) -> list[dict[str, Any]]:
@@ -393,7 +393,7 @@ class ClinicalRuleSetRepository(BaseRepository):
 
         Args:
             asp_id: Assay identity.
-            subpanel_id: Restrict subpanels to this identity and Base when supplied.
+            diagnosis_id: Restrict diagnoses to this identity and Base when supplied.
             analyte: Optional exact DNA/RNA restriction.
             language: Optional exact reporting language restriction.
 
@@ -401,9 +401,9 @@ class ClinicalRuleSetRepository(BaseRepository):
             Matching releases; all matches are retained to detect invalid duplicates.
         """
         query: dict[str, Any] = {"scope.asp_id": asp_id, "status": "published", "active": True}
-        if subpanel_id is not None:
-            query["scope.subpanel_id"] = {
-                "$in": list(dict.fromkeys((subpanel_id or "base", "base")))
+        if diagnosis_id is not None:
+            query["scope.diagnosis_id"] = {
+                "$in": list(dict.fromkeys((diagnosis_id or "base", "base")))
             }
         if analyte is not None:
             query["scope.analyte"] = analyte
@@ -412,7 +412,7 @@ class ClinicalRuleSetRepository(BaseRepository):
         return list(
             self.get_collection()
             .find(query)
-            .sort([("scope.subpanel_id", 1), ("scope.language", 1)])
+            .sort([("scope.diagnosis_id", 1), ("scope.language", 1)])
         )
 
     def next_content_version(self, rule_set_id: str) -> int:

@@ -7,7 +7,10 @@ from typing import Any
 
 from bson import ObjectId
 
+from api.application.provisioning.demo_catalog import DemoCatalogResources
+from api.application.query_rules.service import QueryRuleService
 from api.application.reporting.clinical_rules.validation import content_hash
+from api.application.resources.release_compilation import compile_bundle_configurations
 from api.config.constants import ALL_SAMPLE_FILE_KEYS
 from api.contracts.demo_installation import DemoInstallationPlan, DemoSampleStatus
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
@@ -16,8 +19,8 @@ from api.domain.common.errors import api_error
 
 BUNDLE = Path(__file__).resolve().parents[3] / "demo_data/clinical_workflows"
 STARTER_SAMPLES = {
-    "first_sample": ("DEMO_STARTER_DNA", "demo_starter_dna", "demo_starter_focus"),
-    "rna_fusion": ("DEMO_STARTER_RNA", "demo_starter_rna", "demo_starter_fusion"),
+    "first_sample": ("DEMO_STARTER_DNA", "demo-hematology-training", "myeloid"),
+    "rna_fusion": ("DEMO_STARTER_RNA", "demo-rna-training", "lymphoid"),
 }
 STARTER_CATALOG_ID = "c0de00000000000000000001"
 
@@ -25,33 +28,47 @@ STARTER_CATALOG_ID = "c0de00000000000000000001"
 class DemoInstallationService:
     """Coordinate the fixed server-owned demo bundle without accepting client file paths."""
 
-    def __init__(self, repository: Any, ingest: Any, bundle: Path = BUNDLE) -> None:
-        """Bind application storage, the normal ingest service and packaged fixture root."""
+    def __init__(
+        self,
+        repository: Any,
+        ingest: Any,
+        bundle: Path = BUNDLE,
+        *,
+        query_rule_service: QueryRuleService | None = None,
+    ) -> None:
+        """Bind storage, normal ingestion and source policy resolution.
+
+        Args:
+            repository: Demo installation and collision-check repository.
+            ingest: Normal ingest service; None permits configuration planning only.
+            bundle: Server-owned directory containing synthetic setup and raw manifests.
+            query_rule_service: Deployment resolver for published policy ancestors. None
+                compiles packaged policies over software defaults for offline fixture work.
+        """
         self.repository = repository
         self.ingest = ingest
         self.bundle = bundle
+        self.query_rule_service = query_rule_service or QueryRuleService(None)
 
-    def configuration(
-        self, actor: str, *, starter: bool = False
-    ) -> dict[str, list[dict[str, Any]]]:
+    def configuration(self, actor: str) -> dict[str, list[dict[str, Any]]]:
         """Validate packaged configuration and attach installer identity and current timestamps.
 
         Args:
             actor: Authenticated operator username, or preview for a read-only plan.
-            starter: Select the connected starter package with assay-scoped active rules.
 
         Returns:
             Current-schema synthetic records with published rules restricted to
             assays supplied by the selected demonstration package.
 
         Raises:
-            AppError: Bundle is absent, a profile is not for testing, or a rule has an unsafe scope.
+            AppError: Bundle is absent, a profile uses an unsupported environment,
+                or a rule references an assay outside the bundle.
         """
         if not (self.bundle / "setup").is_dir():
             raise api_error(503, "This image does not contain the demonstration bundle")
         documents = {}
         now = datetime.now(timezone.utc)
-        directory = self.bundle / "starter" if starter else self.bundle
+        directory = self.bundle
         for path in sorted((directory / "setup").glob("*.json")):
             rows = []
             for source in json.loads(path.read_text()):
@@ -71,38 +88,38 @@ class DemoInstallationService:
                 for field in ("published_at", "published_on", "effective_from"):
                     if row.get(field) is not None:
                         row[field] = now
-                if (
-                    path.stem == "asp_configs"
-                    and row["environment"] != "testing"
-                    and not (
-                        starter
-                        and row["environment"] == "production"
-                        and row["asp_id"] in {scope[1] for scope in STARTER_SAMPLES.values()}
+                if path.stem == "asp_configs" and row["environment"] not in {
+                    "testing",
+                    "production",
+                }:
+                    raise api_error(
+                        422, "Demo profiles require a testing or production environment"
                     )
-                ):
-                    raise api_error(422, "Demo profiles must use the testing environment")
                 if path.stem == "clinical_rule_sets":
-                    if starter:
-                        if row["scope"]["asp_id"] not in {
-                            scope[1] for scope in STARTER_SAMPLES.values()
-                        }:
-                            raise api_error(
-                                422, "Starter rules must belong to the demo starter assay"
-                            )
-                    else:
-                        demo_assays = {
-                            item["asp_id"]
-                            for item in json.loads(
-                                (directory / "setup/assay_specific_panels.json").read_text()
-                            )
-                        }
-                        if row["scope"]["asp_id"] not in demo_assays:
-                            raise api_error(
-                                422, "Demo reporting rules must belong to a packaged assay"
-                            )
+                    demo_assays = {
+                        item["asp_id"]
+                        for item in json.loads(
+                            (directory / "setup/assay_specific_panels.json").read_text()
+                        )
+                    }
+                    if row["scope"]["asp_id"] not in demo_assays:
+                        raise api_error(422, "Demo reporting rules must belong to a packaged assay")
                     row["content_hash"] = content_hash(ClinicalRuleSetDoc.model_validate(row))
                 rows.append(normalize_collection_document(path.stem, row))
             documents[path.stem] = rows
+        compile_bundle_configurations(documents, self.query_rule_service.repository)
+        group_path = (
+            Path(__file__).resolve().parents[2]
+            / "config/bootstrap/reference/assay_groups.seed.ndjson"
+        )
+        groups = [
+            normalize_collection_document("assay_groups", json.loads(line))
+            for line in group_path.read_text().splitlines()
+            if line.strip()
+        ]
+        resources = DemoCatalogResources(documents, groups)
+        for publication in documents.get("public_assay_catalog_versions", []):
+            publication["catalog"] = resources.compile(publication["catalog"])
         return documents
 
     def manifests(self) -> dict[str, Path]:
@@ -126,7 +143,7 @@ class DemoInstallationService:
             AppError: A configuration identity conflicts or normal ingest fails.
         """
         creator = created_by or actor
-        documents = self.configuration(creator, starter=True)
+        documents = self.configuration(creator)
         if not self.repository.configuration_installed(documents, require_packaged=True):
             if force:
                 self.repository.repair_configuration(documents, actor)
@@ -146,14 +163,14 @@ class DemoInstallationService:
         """Return configuration counts and presence of samples without database writes."""
         documents = self.configuration("preview")
         starter_samples = []
-        for key, (name, assay, subpanel) in STARTER_SAMPLES.items():
+        for key, (name, assay, diagnosis) in STARTER_SAMPLES.items():
             existing = self.repository.sample(name) or {}
             starter_samples.append(
                 DemoSampleStatus(
                     key=key,
                     name=name,
                     installed=existing.get("asp_id") == assay
-                    and existing.get("subpanel_id") == subpanel
+                    and existing.get("diagnosis_id") == diagnosis
                     and existing.get("environment") == "testing",
                 )
             )
@@ -169,8 +186,7 @@ class DemoInstallationService:
             )
         return DemoInstallationPlan(
             starter_configuration={
-                name: len(rows)
-                for name, rows in self.configuration("preview", starter=True).items()
+                name: len(rows) for name, rows in self.configuration("preview").items()
             },
             configuration={name: len(rows) for name, rows in documents.items()},
             configuration_installed=self.repository.configuration_installed(documents),
@@ -178,7 +194,7 @@ class DemoInstallationService:
             starter_samples=starter_samples,
             starter_installed=all(sample.installed for sample in starter_samples)
             and self.repository.configuration_installed(
-                self.configuration("preview", starter=True), require_packaged=True
+                self.configuration("preview"), require_packaged=True
             ),
         )
 
@@ -213,7 +229,7 @@ class DemoInstallationService:
         if path is None:
             raise api_error(404, "Unknown demo sample")
         if not self.repository.configuration_installed(
-            self.configuration(actor, starter=starter), require_packaged=starter
+            self.configuration(actor), require_packaged=starter
         ):
             raise api_error(409, "Install demo configuration before its samples")
         payload = self.ingest.parse_yaml_payload(path.read_text())
@@ -221,7 +237,7 @@ class DemoInstallationService:
         if existing:
             if starter and (
                 existing.get("environment") != "testing"
-                or existing.get("subpanel_id") != payload.get("subpanel_id")
+                or existing.get("diagnosis_id") != payload.get("diagnosis_id")
             ):
                 raise api_error(409, "Starter sample scope conflicts; nothing replaced")
             if existing.get("asp_id") != payload.get("asp_id") or existing.get(

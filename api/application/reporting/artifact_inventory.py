@@ -16,6 +16,11 @@ def inspect_report_artifacts(root, records, *, minimum_age_seconds=86400):
     referenced = set()
     missing, outside, unreferenced = [], [], []
     for record in records:
+        referenced.update(
+            Path(artifact["staging_path"]).resolve()
+            for artifact in record.get("artifacts", [])
+            if artifact.get("staging_path")
+        )
         for field in ("filepath", "pdf_filepath"):
             value = record.get(field)
             if not value:
@@ -35,7 +40,10 @@ def inspect_report_artifacts(root, records, *, minimum_age_seconds=86400):
                 )
     cutoff = time.time() - max(0, minimum_age_seconds)
     for path in root.rglob("*"):
-        if path.suffix.lower() not in {".html", ".pdf"} or path.is_symlink():
+        if (
+            not path.name.lower().endswith((".html", ".pdf", ".html.pending", ".pdf.pending"))
+            or path.is_symlink()
+        ):
             continue
         resolved = path.resolve()
         if not resolved.is_relative_to(root) or resolved in referenced or not path.is_file():

@@ -17,7 +17,7 @@ INHERITED_CATALOG_FIELDS = (
     "asp_id",
     "aspc_id",
     "aspc_ids",
-    "subpanel_id",
+    "diagnosis_id",
     "gene_lists",
     "no_gene_list",
 )

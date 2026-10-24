@@ -1,5 +1,110 @@
 [
   {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "b7dbf2ac5c14e6572daec59d"
+  },
+  {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "41d8a3b530ab6b100e3eb340"
+  },
+  {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "5f0bef91a57e27dfc7d32ea3"
+  },
+  {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "fe5190914abd8d97c06e71e4"
+  },
+  {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "6edc1007dc53f69b457731a8"
+  },
+  {
     "SAMPLE_ID": "dd54815825da439747a7082d",
     "chr": "1",
     "start": 10000,
@@ -18,9 +123,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "b7dbf2ac5c14e6572daec59d"
-    }
+    "_id": "97f349d9ea72833bad2fbc6b"
   },
   {
     "SAMPLE_ID": "dd54815825da439747a7082d",
@@ -41,9 +144,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "41d8a3b530ab6b100e3eb340"
-    }
+    "_id": "c5cbc00ca9fd81460cf9ea96"
   },
   {
     "SAMPLE_ID": "dd54815825da439747a7082d",
@@ -64,9 +165,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "5f0bef91a57e27dfc7d32ea3"
-    }
+    "_id": "9d4ea5fd30bcf6650749dfd9"
   },
   {
     "SAMPLE_ID": "dd54815825da439747a7082d",
@@ -87,9 +186,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "fe5190914abd8d97c06e71e4"
-    }
+    "_id": "ebb45505a0619c370b360484"
   },
   {
     "SAMPLE_ID": "dd54815825da439747a7082d",
@@ -110,9 +207,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "6edc1007dc53f69b457731a8"
-    }
+    "_id": "73130c08acda351b7e11a0d6"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -133,9 +228,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "97f349d9ea72833bad2fbc6b"
-    }
+    "_id": "b3163e5a935fd5c3eb363e30"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -156,9 +249,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "c5cbc00ca9fd81460cf9ea96"
-    }
+    "_id": "8457c6d5cdf0924828e630ea"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -179,9 +270,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "9d4ea5fd30bcf6650749dfd9"
-    }
+    "_id": "4e0cabb773a2151d43cc863f"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -202,9 +291,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "ebb45505a0619c370b360484"
-    }
+    "_id": "44af39225163a341a6536abb"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -225,124 +312,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "73130c08acda351b7e11a0d6"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "chr": "1",
-    "start": 10000,
-    "end": 20000,
-    "size": 10000,
-    "ratio": -0.6,
-    "type": "loss",
-    "nprobes": 12,
-    "genes": [
-      {
-        "gene": "TP53",
-        "class": "coding",
-        "cnv_type": "loss"
-      }
-    ],
-    "callers": [
-      "cnvkit"
-    ],
-    "_id": {
-      "$oid": "b3163e5a935fd5c3eb363e30"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "chr": "1",
-    "start": 3030000,
-    "end": 3050000,
-    "size": 20000,
-    "ratio": 0.8,
-    "type": "gain",
-    "nprobes": 12,
-    "genes": [
-      {
-        "gene": "TP53",
-        "class": "coding",
-        "cnv_type": "gain"
-      }
-    ],
-    "callers": [
-      "cnvkit"
-    ],
-    "_id": {
-      "$oid": "8457c6d5cdf0924828e630ea"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "chr": "1",
-    "start": 6030000,
-    "end": 6050000,
-    "size": 20000,
-    "ratio": 0.1,
-    "type": "gain",
-    "nprobes": 12,
-    "genes": [
-      {
-        "gene": "TP53",
-        "class": "coding",
-        "cnv_type": "gain"
-      }
-    ],
-    "callers": [
-      "cnvkit"
-    ],
-    "_id": {
-      "$oid": "4e0cabb773a2151d43cc863f"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "chr": "1",
-    "start": 9030000,
-    "end": 9030050,
-    "size": 50,
-    "ratio": -0.8,
-    "type": "loss",
-    "nprobes": 12,
-    "genes": [
-      {
-        "gene": "TP53",
-        "class": "coding",
-        "cnv_type": "loss"
-      }
-    ],
-    "callers": [
-      "cnvkit"
-    ],
-    "_id": {
-      "$oid": "44af39225163a341a6536abb"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "chr": "1",
-    "start": 12030000,
-    "end": 14030000,
-    "size": 2000000,
-    "ratio": -0.8,
-    "type": "loss",
-    "nprobes": 12,
-    "genes": [
-      {
-        "gene": "TP53",
-        "class": "coding",
-        "cnv_type": "loss"
-      }
-    ],
-    "callers": [
-      "cnvkit"
-    ],
-    "_id": {
-      "$oid": "cfa5a0c87b414998d0e198c8"
-    }
+    "_id": "cfa5a0c87b414998d0e198c8"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -363,9 +333,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "f2390f973186d7bbeab94b64"
-    }
+    "_id": "f2390f973186d7bbeab94b64"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -386,9 +354,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "2b205ed94814a16b3b3fa696"
-    }
+    "_id": "2b205ed94814a16b3b3fa696"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -409,9 +375,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "f522d91f12f2d3871eb4d33e"
-    }
+    "_id": "f522d91f12f2d3871eb4d33e"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -432,9 +396,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "0d694997cb7f887547064ea9"
-    }
+    "_id": "0d694997cb7f887547064ea9"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -455,9 +417,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "f13587d4ebac934b93a1699f"
-    }
+    "_id": "f13587d4ebac934b93a1699f"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -478,9 +438,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "aa2c84e348fff20166ef5e95"
-    }
+    "_id": "aa2c84e348fff20166ef5e95"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -501,9 +459,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "3c305e7ff8785e7772095fb7"
-    }
+    "_id": "3c305e7ff8785e7772095fb7"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -524,9 +480,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "c71f796b00c6f335603769c5"
-    }
+    "_id": "c71f796b00c6f335603769c5"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -547,9 +501,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "9638cbb57ba4a541962f0fc1"
-    }
+    "_id": "9638cbb57ba4a541962f0fc1"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -570,9 +522,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "a49d99e9977493dc55ef9ea0"
-    }
+    "_id": "a49d99e9977493dc55ef9ea0"
   },
   {
     "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
@@ -593,9 +543,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "92c9b097a96e8dc8d92af7a8"
-    }
+    "_id": "92c9b097a96e8dc8d92af7a8"
   },
   {
     "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
@@ -616,9 +564,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "dc8e5c0c402520f6baf587aa"
-    }
+    "_id": "dc8e5c0c402520f6baf587aa"
   },
   {
     "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
@@ -639,9 +585,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "7cd877b6a7652d1fa63c28f0"
-    }
+    "_id": "7cd877b6a7652d1fa63c28f0"
   },
   {
     "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
@@ -662,9 +606,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "0bab4590d1580d9cb5779a13"
-    }
+    "_id": "0bab4590d1580d9cb5779a13"
   },
   {
     "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
@@ -685,9 +627,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "2164eea5bb7ae41321865c15"
-    }
+    "_id": "2164eea5bb7ae41321865c15"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -708,9 +648,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "1af418061eba235c1b97bf52"
-    }
+    "_id": "1af418061eba235c1b97bf52"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -731,9 +669,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "95fe09c2dd6b92e08afea8ca"
-    }
+    "_id": "95fe09c2dd6b92e08afea8ca"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -754,9 +690,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "b3e27758f1634b31db0772e8"
-    }
+    "_id": "b3e27758f1634b31db0772e8"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -777,9 +711,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "0ee73d90fc31494a0a41291a"
-    }
+    "_id": "0ee73d90fc31494a0a41291a"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -800,9 +732,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "9193155405984a28b3af0587"
-    }
+    "_id": "9193155405984a28b3af0587"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -823,9 +753,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "0d71a12218d14709f000e78d"
-    }
+    "_id": "0d71a12218d14709f000e78d"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -846,9 +774,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "7c29181772fc6b201fa412b2"
-    }
+    "_id": "7c29181772fc6b201fa412b2"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -869,9 +795,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "8084d8c6f43d4e8f0273c5a6"
-    }
+    "_id": "8084d8c6f43d4e8f0273c5a6"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -892,9 +816,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "ef0eebf1e0efa79c280727fe"
-    }
+    "_id": "ef0eebf1e0efa79c280727fe"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -915,9 +837,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "3a42f63efa6cb75d65630857"
-    }
+    "_id": "3a42f63efa6cb75d65630857"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -938,9 +858,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "a9b073b865b450f641d7cf93"
-    }
+    "_id": "a9b073b865b450f641d7cf93"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -961,9 +879,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "8715a470c6ef8e308d98f7b4"
-    }
+    "_id": "8715a470c6ef8e308d98f7b4"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -984,9 +900,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "101116ff1a9cd2d097fc7338"
-    }
+    "_id": "101116ff1a9cd2d097fc7338"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -1007,9 +921,7 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "d6e98122483121748c5aa721"
-    }
+    "_id": "d6e98122483121748c5aa721"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -1030,8 +942,636 @@
     "callers": [
       "cnvkit"
     ],
-    "_id": {
-      "$oid": "a56922466bea1280d8f9f47a"
-    }
+    "_id": "a56922466bea1280d8f9f47a"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "ed59c902526426c28ff64a44"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "fe35c4c8552d47ccdd8e7035"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "e1ced79ba0d71f8cae925c1e"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "4827d1badac69b23fee14ef4"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "6c0157c40b5b296e8ca9c193"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "7f6958d9633bb7c6c737a3d8"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "913d75aaf7b10d194bef1db2"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "6739ba82bef611717af63b3f"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "fc6caa4f5d5b78af0d2417c4"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "84de7e57504b54f1f2556c64"
+  },
+  {
+    "SAMPLE_ID": "a7b64d012ad9bb1b21076104",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "66f7d56cc490accf57ce60fc"
+  },
+  {
+    "SAMPLE_ID": "a7b64d012ad9bb1b21076104",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "8ff652ebfc6331101e5bc9a5"
+  },
+  {
+    "SAMPLE_ID": "a7b64d012ad9bb1b21076104",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "46fd21580ac239644984c25b"
+  },
+  {
+    "SAMPLE_ID": "a7b64d012ad9bb1b21076104",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "52cda23f395b1c2715d11ce9"
+  },
+  {
+    "SAMPLE_ID": "a7b64d012ad9bb1b21076104",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "aaed131b3c2df468318fcb78"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "86119b7fda137c06a98f52ea"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "b0a881f2205d21ae40d7de62"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "79d1877b29d99256b02a75f0"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "02e998064e7a45a1eb82d6eb"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "854690580ffd56696c1962f0"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "330ba5fad59c509de644d24a"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "0ea72129a8e9b4fce4733047"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "572373c7a63a0259fcaf2ac2"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "9f80b0c97ae52c858929dcc2"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "7320b6a2234da60cd57d6b6d"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "chr": "1",
+    "start": 10000,
+    "end": 20000,
+    "size": 10000,
+    "ratio": -0.6,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "84f6be03427ca1de5c6a1b36"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "chr": "1",
+    "start": 3030000,
+    "end": 3050000,
+    "size": 20000,
+    "ratio": 0.8,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "c49dbed1809d0ea026e43fdb"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "chr": "1",
+    "start": 6030000,
+    "end": 6050000,
+    "size": 20000,
+    "ratio": 0.1,
+    "type": "gain",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "gain"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "dc084fe9cd387bb54ca12c51"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "chr": "1",
+    "start": 9030000,
+    "end": 9030050,
+    "size": 50,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "b0df8ba92fa3bcd6311009d3"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "chr": "1",
+    "start": 12030000,
+    "end": 14030000,
+    "size": 2000000,
+    "ratio": -0.8,
+    "type": "loss",
+    "nprobes": 12,
+    "genes": [
+      {
+        "gene": "TP53",
+        "class": "coding",
+        "cnv_type": "loss"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ],
+    "_id": "0de64a5d0ce1c69f3ff3025a"
   }
 ]

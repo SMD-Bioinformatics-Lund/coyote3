@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from api.application.common.release_resources import capture_assay_resource
 from api.application.dna import payloads
 from api.application.reporting.dna_report_payload import hotspot_variant
 from api.domain.core.exceptions import AppError
@@ -214,7 +215,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
         service,
         variants=[{"_id": "snv-1"}],
         tiered_variants=[{"_id": "snv-tiered"}],
-        analysis_sections=["CNV", "TMB", "TRANSLOCATION", "FUSION"],
+        analysis_sections=["CNV", "TMB", "TRANSLOCATION"],
         sample={"_id": "sample-1"},
         sample_filters={},
         cnv_filters={"gain": 3},
@@ -229,7 +230,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
     assert summary["cnvs"] == [{"_id": "cnv-interesting", "interesting": True}]
     assert display["biomarkers"][0]["name"] == "sample-1"
     assert display["translocs"][0]["restricted"] is True
-    assert display["fusions"] == []
+    assert "fusions" not in display
     assert summary["translocs"][0]["_id"] == "transloc-1"
 
 
@@ -259,6 +260,22 @@ def test_plot_and_biomarker_payloads_and_missing_configuration() -> None:
     assert exc.value.status_code == 422
 
 
+def _detail_configuration(group):
+    assay = "demo-solid_gmsv3" if group == "solid" else "hema_gmsv1"
+    panel = {"asp_id": assay, "asp_group": group}
+    return {
+        **panel,
+        "assay_resource_release": capture_assay_resource(panel),
+        "aspc_resolution": {
+            "context": {
+                "assay_id": assay,
+                "group_id": group,
+                "environment": "production",
+            }
+        },
+    }
+
+
 def _context_service(variant):
     return SimpleNamespace(
         variant_repository=SimpleNamespace(
@@ -266,28 +283,30 @@ def _context_service(variant):
             get_variant_in_other_samples=lambda row: [
                 {
                     "sample_name": "OTHER_SAMPLE",
-                    "assay": "solid_gmsv3",
-                    "subpanel": "colon",
+                    "assay": "demo-solid_gmsv3",
+                    "diagnosis": "colon",
                     "vaf": 0.125,
+                    "configuration_sample": {"asp_id": "demo-solid_gmsv3"},
                 },
                 {
                     "sample_name": "OTHER_HEMA_SAMPLE",
                     "assay": "hema_gmsv1",
-                    "subpanel": "base",
+                    "diagnosis": "base",
                     "vaf": 0.04,
+                    "configuration_sample": {"asp_id": "hema_gmsv1"},
                 },
             ],
             hidden_var_comments=lambda variant_id: True,
         ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, group: rows),
         annotation_repository=SimpleNamespace(
-            get_global_annotations=lambda row, group, subpanel: (
+            get_global_annotations=lambda row, group, diagnosis, **kwargs: (
                 [{"text": "annotation"}],
                 {"class": 1 if group == "hematology" else 2},
                 [{"class": 3}],
                 True,
             ),
-            get_latest_transcript_classifications=lambda row, transcripts, group, subpanel: {
+            get_latest_transcript_classifications=lambda row, transcripts, group, diagnosis, **kwargs: {
                 "NM_000546.6": {"class": 3}
             },
         ),
@@ -329,7 +348,7 @@ def _context_service(variant):
         assay_panel_repository=SimpleNamespace(
             get_asp=lambda **kwargs: {},
             get_asp_group_mappings=lambda: {
-                "solid_gmsv3": "solid",
+                "demo-solid_gmsv3": "solid",
                 "hema_gmsv1": "hematology",
             },
         ),
@@ -366,19 +385,21 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     sample = {
         "_id": "sample-1",
         "name": "SAMPLE_1",
-        "asp_id": "solid_gmsv3",
-        "subpanel_id": "colon",
+        "asp_id": "demo-solid_gmsv3",
+        "diagnosis_id": "colon",
         "database_versions": {"vep": "110"},
     }
     observed = payloads.variant_context_payload(
         service=_context_service(variant),
         sample=sample,
         var_id="variant-1",
-        add_alt_class_fn=lambda row, group, subpanel: {**row, "alternative": True},
+        add_alt_class_fn=lambda row, group, diagnosis, **kwargs: {**row, "alternative": True},
         util_module=SimpleNamespace(
             common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {"case": "C1"})
         ),
-        assay_config_getter=lambda value: {"asp_group": "solid"},
+        assay_config_getter=lambda value: _detail_configuration(
+            "hematology" if value.get("asp_id") == "hema_gmsv1" else "solid"
+        ),
     )
     assert observed["sample_summary"]["name"] == "SAMPLE_1"
     assert observed["transcripts"] == [{"Feature": "NM_000546.6", "tier": 3}]
@@ -386,8 +407,8 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     assert observed["in_other_samples"] == [
         {
             "sample_name": "OTHER_SAMPLE",
-            "assay": "solid_gmsv3",
-            "subpanel": "colon",
+            "assay": "demo-solid_gmsv3",
+            "diagnosis": "colon",
             "vaf": 0.125,
             "assay_group": "solid",
             "tier": 2,
@@ -395,7 +416,7 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
         {
             "sample_name": "OTHER_HEMA_SAMPLE",
             "assay": "hema_gmsv1",
-            "subpanel": "base",
+            "diagnosis": "base",
             "vaf": 0.04,
             "assay_group": "hematology",
             "tier": 1,
@@ -413,8 +434,8 @@ def test_variant_context_derives_transcript_badges_from_current_hgnc() -> None:
     sample = {
         "_id": "sample-1",
         "name": "SAMPLE_1",
-        "asp_id": "solid_gmsv3",
-        "subpanel_id": "colon",
+        "asp_id": "demo-solid_gmsv3",
+        "diagnosis_id": "colon",
         "database_versions": {"vep": "110"},
     }
     service = _context_service(variant)
@@ -443,11 +464,11 @@ def test_variant_context_derives_transcript_badges_from_current_hgnc() -> None:
         service=service,
         sample=sample,
         var_id="variant-1",
-        add_alt_class_fn=lambda row, group, subpanel: row,
+        add_alt_class_fn=lambda row, group, diagnosis, **kwargs: row,
         util_module=SimpleNamespace(
             common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {"case": "C1"})
         ),
-        assay_config_getter=lambda value: {"asp_group": "solid"},
+        assay_config_getter=lambda value: _detail_configuration("solid"),
     )
 
     transcript = observed["transcripts"][0]
@@ -485,10 +506,10 @@ def test_variant_context_sets_special_clinical_descriptions(
         service=_context_service(variant),
         sample=sample,
         var_id="variant-1",
-        add_alt_class_fn=lambda row, group, subpanel: row,
+        add_alt_class_fn=lambda row, group, diagnosis, **kwargs: row,
         util_module=SimpleNamespace(
             common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {})
         ),
-        assay_config_getter=lambda value: {"asp_group": "hematology"},
+        assay_config_getter=lambda value: _detail_configuration("hematology"),
     )
     assert observed["civic"]["description"] == expected

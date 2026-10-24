@@ -27,8 +27,8 @@ from api.contracts.schemas.variant_annotations import (
 )
 
 
-def test_isgl_diagnosis_is_the_canonical_multi_subpanel_scope():
-    """ISGL diagnosis accepts comma/newline tags without a duplicate subpanel field."""
+def test_isgl_diagnosis_is_the_canonical_multi_diagnosis_scope():
+    """ISGL diagnosis accepts comma/newline tags without a duplicate diagnosis field."""
     doc = InsilicoGenelistsDoc.model_validate(
         {
             "isgl_id": "solid_scope",
@@ -37,12 +37,12 @@ def test_isgl_diagnosis_is_the_canonical_multi_subpanel_scope():
             "diagnosis": "endometrie, breast\ncolon, breast",
             "list_type": ["snv"],
             "asp_groups": ["solid"],
-            "asp_ids": ["solid_gmsv3"],
+            "asp_ids": ["demo-solid_gmsv3"],
         }
     )
 
     assert doc.diagnosis == ["endometrie", "breast", "colon"]
-    assert "subpanel_id" not in doc.model_dump()
+    assert "diagnosis_id" not in doc.model_dump()
 
 
 def _load_seed_list(path: Path) -> list[dict]:
@@ -285,12 +285,12 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
         {
             "name": "S1",
             "asp_id": "assay_1",
-            "subpanel_id": "hem",
+            "diagnosis_id": "hem",
             "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "1.0.0",
             "vcf_files": "x",
@@ -305,12 +305,12 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
         {
             "name": "S2",
             "asp_id": "fusion_assay",
-            "subpanel_id": "rna",
+            "diagnosis_id": "rna",
             "environment": "production",
             "case_id": "CASE_RNA",
             "sample_no": 1,
-            "sequencing_scope": "wts",
-            "omics_layer": "rna",
+            "asp_family": "wts",
+            "asp_category": "rna",
             "pipeline": "RnaPipeline",
             "pipeline_version": "1.0.0",
             "fusion_files": "x",
@@ -324,12 +324,12 @@ def test_samples_doc_accepts_only_persisted_ingest_states():
     payload = {
         "name": "S1",
         "asp_id": "assay_1",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "case_id": "seed_case",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "1.0.0",
         "files": {"vcf_files": {"path": "x"}},
@@ -347,12 +347,12 @@ def test_samples_doc_preserves_nullable_pipeline_version_for_persistence():
     payload = {
         "name": "S1",
         "asp_id": "assay_1",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "case_id": "seed_case",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "not provided",
         "files": {"vcf_files": {"path": "x"}},
@@ -371,12 +371,12 @@ def test_sample_persistence_document_keeps_nullable_nested_metadata():
         {
             "name": "S1",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "SomaticPanelPipeline",
             "files": {"vcf_files": {"path": "x"}},
         }
@@ -396,12 +396,12 @@ def test_samples_doc_normalizes_one_sample_level_sex_value():
     payload = {
         "name": "S1",
         "asp_id": "assay_1",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "case_id": "seed_case",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "sex": " Female ",
         "pipeline": "SomaticPanelPipeline",
         "files": {"vcf_files": {"path": "x"}},
@@ -433,12 +433,12 @@ def test_sample_database_versions_use_only_canonical_nested_keys():
     payload = {
         "name": "S1",
         "assay": "assay_1",
-        "subpanel": "hem",
+        "diagnosis": "hem",
         "profile": "production",
         "case_id": "seed_case",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "1.0.0",
         "vcf_files": "x",
@@ -453,12 +453,12 @@ def test_platform_derives_read_technology_and_rejects_invalid_read_mode():
     payload = {
         "name": "S1",
         "asp_id": "assay_1",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "case_id": "seed_case",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "platform": "illumina",
         "read_mode": "PE",
         "pipeline": "SomaticPanelPipeline",
@@ -484,7 +484,7 @@ def test_collection_validator_rejects_dna_sample_with_rna_keys():
                 "profile": "prod",
                 "case_id": "S1",
                 "sample_no": 1,
-                "omics_layer": "DNA",
+                "asp_category": "DNA",
                 "vcf_files": "/data/dna.vcf.gz",
                 "fusion_files": "/data/rna.fusions.json",
             },
@@ -502,7 +502,7 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
                 "profile": "prod",
                 "case_id": "S1",
                 "sample_no": 1,
-                "omics_layer": "RNA",
+                "asp_category": "RNA",
                 "fusion_files": "/data/rna.fusions.json",
                 "vcf_files": "/data/dna.vcf.gz",
             },
@@ -699,7 +699,7 @@ def test_collection_validator_rejects_invalid_aspc_identifier():
             {
                 "aspc_id": "assay_1:production",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "production",
                 "asp_group": "hematology",
             },
@@ -746,7 +746,7 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
         {
             "aspc_id": "assay_1_base_development",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "development",
             "asp_group": "hematology",
             "asp_category": "dna",
@@ -788,7 +788,7 @@ def test_collection_validator_requires_translocation_filter_scope() -> None:
             {
                 "aspc_id": "assay_1_base_development",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "development",
                 "asp_group": "hematology",
                 "asp_category": "dna",

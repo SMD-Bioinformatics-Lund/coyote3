@@ -620,7 +620,7 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
     sample_oid: Any
     assay: str | None = None
     assay_group: str | None = None
-    subpanel: str | None = None
+    diagnosis: str | None = None
     environment: str | None = None
     analysis_type: str
     analysis_intent: str | None = None

@@ -1,11 +1,11 @@
 [
   {
-    "isgl_id": "demo_e2e_focus",
+    "isgl_id": "mpn-variants",
     "diagnosis": [
-      "demo_focus"
+      "mpn"
     ],
-    "name": "Synthetic focus",
-    "displayname": "Synthetic focus",
+    "name": "mpn-variants (synthetic)",
+    "displayname": "mpn-variants (synthetic)",
     "aliases": [],
     "list_type": [
       "snv",
@@ -17,15 +17,16 @@
     "system_installed": false,
     "is_active": true,
     "asp_groups": [
-      "myeloid"
+      "hematology"
     ],
     "genes": [
       "FLT3",
       "CEBPA"
     ],
-    "germline_genes": [],
     "asp_ids": [
-      "demo_e2e_myeloid"
+      "demo-hematology_gmsv1",
+      "demo-tumwgs-hema",
+      "demo-myeloid_gmsv1"
     ],
     "version": 1,
     "created_by": "demo.author",
@@ -38,8 +39,316 @@
     "retired_by": null,
     "retired_on": null,
     "retired_reason": null,
-    "_id": {
-      "$oid": "ca47981c89088d6570d3cdcc"
-    }
+    "_id": "ca47981c89088d6570d3cdcc"
+  },
+  {
+    "isgl_id": "myeloid-variants",
+    "diagnosis": [
+      "myeloid"
+    ],
+    "name": "myeloid-variants (synthetic)",
+    "displayname": "myeloid-variants (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "hematology"
+    ],
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "asp_ids": [
+      "demo-hematology-training"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "b314152e1ae7bfdf4bbac4aa"
+  },
+  {
+    "isgl_id": "lymphoid-fusion",
+    "diagnosis": [
+      "lymphoid"
+    ],
+    "name": "lymphoid-fusion (synthetic)",
+    "displayname": "lymphoid-fusion (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "fusion"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "hematology"
+    ],
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "asp_ids": [
+      "demo-rna-training"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "787f3b5c3dc98bcf76baa848"
+  },
+  {
+    "isgl_id": "cll-variants",
+    "diagnosis": [
+      "cll"
+    ],
+    "name": "cll-variants",
+    "displayname": "cll-variants (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "hematology"
+    ],
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "asp_ids": [
+      "demo-hematology_gmsv1",
+      "demo-tumwgs-hema",
+      "demo-lymphoid_gmsv5"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "02d0837c8a98dd72cea1d538"
+  },
+  {
+    "isgl_id": "lung-variants",
+    "diagnosis": [
+      "lung"
+    ],
+    "name": "lung-variants",
+    "displayname": "lung-variants (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "solid"
+    ],
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "asp_ids": [
+      "demo-solid_gmsv3",
+      "demo-tumwgs-solid"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "114f024b2ccd165c6bbf68a9"
+  },
+  {
+    "isgl_id": "breast-variants",
+    "diagnosis": [
+      "breast"
+    ],
+    "name": "breast-variants",
+    "displayname": "breast-variants (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "solid"
+    ],
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "asp_ids": [
+      "demo-solid_gmsv3",
+      "demo-tumwgs-solid"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "b003c6171ab4d2be0d254266"
+  },
+  {
+    "isgl_id": "cll-fusion",
+    "diagnosis": [
+      "cll"
+    ],
+    "name": "cll-fusion",
+    "displayname": "cll-fusion (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "fusion"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "hematology"
+    ],
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "asp_ids": [
+      "demo-gms_rnafusionv5",
+      "demo-wts-hema"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "41ec200991e61e6aac4f49bc"
+  },
+  {
+    "isgl_id": "lung-fusion",
+    "diagnosis": [
+      "lung"
+    ],
+    "name": "lung-fusion",
+    "displayname": "lung-fusion (synthetic)",
+    "aliases": [],
+    "list_type": [
+      "fusion"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "asp_groups": [
+      "solid"
+    ],
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "asp_ids": [
+      "demo-wts-solid"
+    ],
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "f9a54349eb7e5a15b37c735b"
   }
 ]

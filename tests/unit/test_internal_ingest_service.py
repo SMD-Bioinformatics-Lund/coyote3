@@ -11,6 +11,7 @@ import api.application.ingest.helpers as ingest_helpers
 import api.application.ingest.parsers as ingest_parsers
 import api.application.ingest.sample_updates as sample_updates
 import api.application.ingest.service as ingest
+from api.application.common.release_resources import capture_assay_resource
 from api.contracts.schemas.rna import FusionsDoc
 from api.domain.core.dna.transcript_payloads import (
     annotate_transcript_provenance,
@@ -120,7 +121,7 @@ def _store_stub(sample_docs=None):
                     "_id": "aspc-1",
                     "aspc_id": "assay_1:production:base",
                     "asp_id": "assay_1",
-                    "subpanel_id": "Hem",
+                    "diagnosis_id": "Hem",
                     "environment": "production",
                     "is_active": True,
                     "analysis_types": [],
@@ -130,7 +131,7 @@ def _store_stub(sample_docs=None):
                     "_id": "aspc-a",
                     "aspc_id": "A:production:base",
                     "asp_id": "A",
-                    "subpanel_id": "base",
+                    "diagnosis_id": "base",
                     "environment": "production",
                     "is_active": True,
                     "analysis_types": [],
@@ -201,6 +202,22 @@ def _store_stub(sample_docs=None):
 
 
 def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd799439011"):
+    for panel in store_stub.coyote_db["assay_specific_panels"].docs:
+        panel.setdefault("version", 1)
+    for configuration in store_stub.coyote_db["asp_configs"].docs:
+        configuration.setdefault("version", 1)
+        configuration.setdefault("asp_group", "hematology")
+        configuration.setdefault("analysis_intents", ["somatic"])
+        panel = next(
+            (
+                panel
+                for panel in store_stub.coyote_db["assay_specific_panels"].docs
+                if panel["asp_id"] == configuration["asp_id"].lower()
+            ),
+            None,
+        )
+        if panel is not None:
+            configuration["assay_resource_release"] = capture_assay_resource(panel)
     monkeypatch.setattr(ingest, "_provider_sample_id", lambda sample_id: sample_id)
     monkeypatch.setattr(ingest, "_new_sample_id", lambda: new_sample_id)
     monkeypatch.setattr(
@@ -306,13 +323,13 @@ def test_sample_meta_omits_unknown_ffpe_and_uses_contract_default():
     payload = {
         "name": "RNA1",
         "asp_id": "fusion",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "case_id": "RNA1",
         "sample_no": 1,
         "paired": False,
-        "sequencing_scope": "wts",
-        "omics_layer": "rna",
+        "asp_family": "wts",
+        "asp_category": "rna",
         "platform": "illumina",
         "pipeline": "rnaseq_fusion",
         "pipeline_version": "not_provided",
@@ -372,7 +389,7 @@ def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
     parser = ingest_parsers.DnaIngestParser()
     preload = parser.parse(
         {
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "files": {
                 "cnv": {"path": str(cnv_path)},
                 "biomarkers": {"path": str(biomarker_path)},
@@ -698,9 +715,9 @@ def test_sample_meta_extracts_versions_from_runtime_vcf_path(tmp_path):
 
 def test_type_and_string_helpers(monkeypatch):
     _ = monkeypatch
-    assert ingest_parsers.infer_omics_layer({"vcf_files": "x"}) == "dna"
+    assert ingest_parsers.infer_asp_category({"vcf_files": "x"}) == "dna"
     with pytest.raises(ValueError):
-        ingest_parsers.infer_omics_layer({"vcf_files": "x", "fusion_files": "y"})
+        ingest_parsers.infer_asp_category({"vcf_files": "x", "fusion_files": "y"})
 
     left, right, true = sample_updates.catch_left_right("CASE", "CASE-2")
     assert (left, right, true) == ("", "-2", "CASE")
@@ -732,7 +749,7 @@ def test_assay_file_policy_normalizes_pipeline_asp_identifier(monkeypatch):
 
     expected, required = service._assay_file_policy(
         assay_name="hema_GMSv1",
-        omics_layer="DNA",
+        asp_category="DNA",
     )
 
     assert expected == {"vcf_files", "cnv"}
@@ -766,8 +783,8 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         "environment": "production",
         "case_id": "CASE1",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "1.0.0",
         "vcf_files": str(vcf_path),
@@ -793,7 +810,7 @@ def test_ingest_proceeds_with_missing_expected_files(monkeypatch, tmp_path, capl
             "_id": "aspc-1",
             "aspc_id": "assay_1_base_production",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
             "is_active": True,
             "analysis_types": ["SNV", "TRANSLOCATION"],
@@ -822,8 +839,8 @@ def test_ingest_proceeds_with_missing_expected_files(monkeypatch, tmp_path, capl
         "environment": "production",
         "case_id": "CASE1",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "1.0.0",
         "vcf_files": str(vcf_path),
@@ -888,7 +905,7 @@ def test_aspc_enabled_analysis_does_not_add_asp_file_requirements(tmp_path, monk
             "_id": "aspc-1",
             "aspc_id": "assay_1_base_production",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
             "is_active": True,
             "analysis_types": ["SNV", "CNV", "CNV_PROFILE", "COVERAGE"],
@@ -902,7 +919,7 @@ def test_aspc_enabled_analysis_does_not_add_asp_file_requirements(tmp_path, monk
             "name": "S1",
             "asp_id": "assay_1",
             "environment": "production",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "vcf_files": str(vcf_path),
         }
     )
@@ -1205,17 +1222,17 @@ def test_parse_yaml_payload():
     assert parsed["case_purity"] is None
 
     parsed = service.parse_yaml_payload(
-        "name: S1\nassay: hema_GMSv1\nsubpanel: Hem\nprofile: production\n"
+        "name: S1\nassay: hema_GMSv1\ndiagnosis: Hem\nprofile: production\n"
         "sequencing_technology: Illumina\n"
     )
     assert parsed["asp_id"] == "hema_GMSv1"
-    assert parsed["subpanel_id"] == "Hem"
+    assert parsed["diagnosis_id"] == "Hem"
     assert parsed["environment"] == "production"
     assert parsed["platform"] == "Illumina"
     assert "assay" not in parsed
 
     parsed = service.parse_yaml_payload(
-        "subpanel: Hem\nname: SAMPLE_1\nclarity_case_id: CASE_CLARITY\n"
+        "diagnosis: Hem\nname: SAMPLE_1\nclarity_case_id: CASE_CLARITY\n"
         "clarity_control_id: CONTROL_CLARITY\ngenome_build: 38\n"
         "vcf_files: /srv/coyote3-data/case.vcf\nsample_no: 2\n"
         "case_id: CASE_1\ncontrol_id: CONTROL_1\nprofile: production\n"
@@ -1227,7 +1244,7 @@ def test_parse_yaml_payload():
         "cov: /srv/coyote3-data/case.coverage.json\n"
     )
     assert parsed["asp_id"] == "hema_GMSv1"
-    assert parsed["subpanel_id"] == "Hem"
+    assert parsed["diagnosis_id"] == "Hem"
     assert parsed["environment"] == "production"
     assert parsed["platform"] == "Illumina"
     assert parsed["vcf_files"] == "/srv/coyote3-data/case.vcf"
@@ -1419,10 +1436,10 @@ def test_service_parse_preload(monkeypatch):
     assert "samples" in service.list_supported_collections()
 
     monkeypatch.setattr(ingest.DnaIngestParser, "parse", lambda self, args: {"snvs": [args]})
-    assert "snvs" in service._parse_preload({"omics_layer": "dna", "vcf_files": "x"})
+    assert "snvs" in service._parse_preload({"asp_category": "dna", "vcf_files": "x"})
 
     monkeypatch.setattr(ingest.RnaIngestParser, "parse", lambda args: {"fusions": [args]})
-    assert "fusions" in service._parse_preload({"omics_layer": "rna", "fusion_files": "x"})
+    assert "fusions" in service._parse_preload({"asp_category": "rna", "fusion_files": "x"})
 
     with pytest.raises(ValueError):
         service._parse_preload({})
@@ -1497,14 +1514,14 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
         invalidate_dashboard_metrics=lambda: None,
     )
     out = service._prepare_update_payload(
-        sample_doc={"omics_layer": "rna", "fusion_files": "x"},
+        sample_doc={"asp_category": "rna", "fusion_files": "x"},
         payload={"name": "S1"},
     )
-    assert out["omics_layer"] == "rna"
+    assert out["asp_category"] == "rna"
 
     with pytest.raises(ValueError):
         service._prepare_update_payload(
-            sample_doc={"omics_layer": "rna", "fusion_files": "x"},
+            sample_doc={"asp_category": "rna", "fusion_files": "x"},
             payload={"name": "S1", "vcf_files": "/tmp/a.vcf"},
         )
 
@@ -1534,14 +1551,15 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         [
             {
                 "_id": sample_id,
+                "version": 1,
                 "name": "S1",
                 "asp_id": "assay_1",
-                "subpanel_id": "Hem",
+                "diagnosis_id": "Hem",
                 "environment": "production",
                 "case_id": "seed_case",
                 "sample_no": 1,
-                "sequencing_scope": "panel",
-                "omics_layer": "dna",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
                 "pipeline": "SomaticPanelPipeline",
                 "pipeline_version": "1.0.0",
                 "vcf_files": "x",
@@ -1559,12 +1577,12 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         lambda sample_doc, payload: {
             "name": payload["name"],
             "asp_id": "assay_1",
-            "subpanel_id": "Hem",
+            "diagnosis_id": "Hem",
             "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "case_ffpe": False,
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "1.0.0",
@@ -1596,12 +1614,12 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     update_payload = {
         "name": "S1",
         "asp_id": "assay_1",
-        "subpanel_id": "Hem",
+        "diagnosis_id": "Hem",
         "environment": "production",
         "case_id": "seed_case",
         "sample_no": 1,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "1.0.0",
         "vcf_files": "x",
@@ -1635,7 +1653,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     )
 
     out = service.ingest_sample_bundle(
-        {"name": "S1", "asp_id": "A", "omics_layer": "dna"}, allow_update=False
+        {"name": "S1", "asp_id": "A", "asp_category": "dna"}, allow_update=False
     )
     assert out["status"] == "ok"
 
@@ -1644,7 +1662,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     )
     with pytest.raises(RuntimeError):
         service.ingest_sample_bundle(
-            {"name": "S2", "asp_id": "A", "omics_layer": "dna"}, allow_update=False
+            {"name": "S2", "asp_id": "A", "asp_category": "dna"}, allow_update=False
         )
     assert not hasattr(service, "_cleanup")
 
@@ -1679,15 +1697,15 @@ def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch, bam
         {
             "name": "S2",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
             "case_id": "C2",
             "case_bam": bam,
             "case_bai": bai,
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "not provided",
             "files": {"vcf_files": {"path": "x"}},
@@ -1763,7 +1781,9 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
     stub.coyote_db["asp_configs"].docs = [
         {
             "asp_id": "assay_1",
-            "subpanel_id": "hem",
+            "aspc_id": "assay_1_hem_production",
+            "analysis_types": ["SNV", "CNV"],
+            "diagnosis_id": "hem",
             "environment": "production",
             "is_active": True,
             "asp_category": "dna",
@@ -1796,12 +1816,12 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
         {
             "name": "S1",
             "asp_id": "assay_1",
-            "subpanel_id": "hem",
+            "diagnosis_id": "hem",
             "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "case_ffpe": False,
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "1.0.0",

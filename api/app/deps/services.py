@@ -36,10 +36,12 @@ from api.application.resources.asp import AspService
 from api.application.resources.aspc import AspcService
 from api.application.resources.assay_groups import AssayGroupService
 from api.application.resources.assay_setup import AssaySetupService
+from api.application.resources.configuration_profiles import ConfigurationProfileService
+from api.application.resources.configuration_promotions import ConfigurationPromotionService
+from api.application.resources.diagnoses import DiagnosisService
 from api.application.resources.isgl import IsglService
 from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
 from api.application.resources.sample import ResourceSampleService
-from api.application.resources.subpanels import SubpanelService
 from api.application.rna.expression_analysis import RnaService
 from api.application.sample.catalog import SampleCatalogService
 from api.application.sample.coverage import CoverageService
@@ -79,9 +81,9 @@ def get_admin_panel_service() -> AspService:
     return AspService.from_store(get_store())
 
 
-def get_admin_subpanel_service() -> SubpanelService:
-    """Build the assay-owned subpanel management service."""
-    return SubpanelService.from_store(get_store())
+def get_admin_diagnosis_service() -> DiagnosisService:
+    """Build the assay-owned diagnosis management service."""
+    return DiagnosisService.from_store(get_store())
 
 
 def get_admin_assay_group_service() -> AssayGroupService:
@@ -107,6 +109,21 @@ def get_admin_aspc_service() -> AspcService:
 
 
 @lru_cache
+def get_configuration_profile_service() -> ConfigurationProfileService:
+    """Return reusable source-profile authoring and publication workflows."""
+    return ConfigurationProfileService(get_store().configuration_profile_repository)
+
+
+@lru_cache
+def get_configuration_promotion_service() -> ConfigurationPromotionService:
+    """Return exact-source environment promotion and independent approval workflows."""
+    store = get_store()
+    return ConfigurationPromotionService(
+        store.configuration_profile_repository, store.assay_configuration_repository
+    )
+
+
+@lru_cache
 def get_admin_sample_service() -> ResourceSampleService:
     """Return the admin sample-management service."""
     return ResourceSampleService.from_store(get_store())
@@ -116,7 +133,6 @@ def get_admin_public_assay_catalog_service() -> PublicAssayCatalogManagementServ
     """Return the public assay catalog administration service."""
     service = PublicAssayCatalogManagementService.from_store(get_store())
     service.notification_service = get_notification_service()
-    service.public_catalog_service = get_public_catalog_service()
     return service
 
 
@@ -238,7 +254,9 @@ def get_demo_installation_service() -> DemoInstallationService:
     from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository
 
     return DemoInstallationService(
-        DemoInstallationRepository(get_store().coyote_db), get_internal_ingest_service()
+        DemoInstallationRepository(get_store().coyote_db),
+        get_internal_ingest_service(),
+        query_rule_service=QueryRuleService.from_store(get_store()),
     )
 
 

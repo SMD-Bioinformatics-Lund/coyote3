@@ -237,7 +237,7 @@ def validate_aspc_id_change(
             "exists": service.assay_config_exists(
                 aspc_id=str(payload.get("aspc_id", "") or ""),
                 asp_id=str(payload.get("asp_id", "") or ""),
-                subpanel_id=str(payload.get("subpanel_id", "") or ""),
+                diagnosis_id=str(payload.get("diagnosis_id", "") or ""),
                 environment=str(payload.get("environment", "") or ""),
             )
         }

@@ -1,0 +1,866 @@
+[
+  {
+    "catalog_key": "default",
+    "system_installed": false,
+    "schema_version": 1,
+    "content_version": null,
+    "base_version": 0,
+    "content_editors": [],
+    "revision": 1,
+    "status": "draft",
+    "catalog": {
+      "_id": null,
+      "catalog_id": "default",
+      "schema_version": 1,
+      "version": 1,
+      "header": "Demonstration assay catalog",
+      "description": "Synthetic training configuration. Not for clinical use.",
+      "maintainer": null,
+      "layout": {
+        "order": [
+          "dna",
+          "rna"
+        ]
+      },
+      "modalities": {
+        "dna": {
+          "label": "DNA",
+          "title": null,
+          "description": null,
+          "subheading": null,
+          "input_material": [],
+          "sample_modes": [],
+          "analysis": [],
+          "report_sections": [],
+          "clinical_indications": [],
+          "tat": "",
+          "limitations": null,
+          "public_notes": null,
+          "categories": {
+            "hematology-training-myeloid": {
+              "label": "demo-hematology-training (synthetic) / Myeloid",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "hematology-training-myeloid",
+              "asp_id": "demo-hematology-training",
+              "aspc_id": "demo-hematology-training::myeloid::production",
+              "diagnosis_id": "myeloid",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "myeloid-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "hematology_gmsv1-mpn": {
+              "label": "demo-hematology_gmsv1 (synthetic) / MPN",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "hematology_gmsv1-mpn",
+              "asp_id": "demo-hematology_gmsv1",
+              "aspc_id": "demo-hematology_gmsv1::mpn::production",
+              "diagnosis_id": "mpn",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "mpn-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "tumwgs-hema-mpn": {
+              "label": "demo-tumwgs-hema (synthetic) / MPN",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "10-14 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "tumwgs-hema-mpn",
+              "asp_id": "demo-tumwgs-hema",
+              "aspc_id": "demo-tumwgs-hema::mpn::production",
+              "diagnosis_id": "mpn",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "mpn-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "myeloid_gmsv1-mpn": {
+              "label": "demo-myeloid_gmsv1 (synthetic) / MPN",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "myeloid_gmsv1-mpn",
+              "asp_id": "demo-myeloid_gmsv1",
+              "aspc_id": "demo-myeloid_gmsv1::mpn::production",
+              "diagnosis_id": "mpn",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "mpn-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "hematology_gmsv1-cll": {
+              "label": "demo-hematology_gmsv1 (synthetic) / CLL",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "hematology_gmsv1-cll",
+              "asp_id": "demo-hematology_gmsv1",
+              "aspc_id": "demo-hematology_gmsv1::cll::production",
+              "diagnosis_id": "cll",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "cll-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "tumwgs-hema-cll": {
+              "label": "demo-tumwgs-hema (synthetic) / CLL",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "10-14 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "tumwgs-hema-cll",
+              "asp_id": "demo-tumwgs-hema",
+              "aspc_id": "demo-tumwgs-hema::cll::production",
+              "diagnosis_id": "cll",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "cll-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "lymphoid_gmsv5-cll": {
+              "label": "demo-lymphoid_gmsv5 (synthetic) / CLL",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "lymphoid_gmsv5-cll",
+              "asp_id": "demo-lymphoid_gmsv5",
+              "aspc_id": "demo-lymphoid_gmsv5::cll::production",
+              "diagnosis_id": "cll",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "cll-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "solid_gmsv3-lung": {
+              "label": "demo-solid_gmsv3 (synthetic) / Lung",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "solid_gmsv3-lung",
+              "asp_id": "demo-solid_gmsv3",
+              "aspc_id": "demo-solid_gmsv3::lung::production",
+              "diagnosis_id": "lung",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "lung-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "tumwgs-solid-lung": {
+              "label": "demo-tumwgs-solid (synthetic) / Lung",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "10-14 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "tumwgs-solid-lung",
+              "asp_id": "demo-tumwgs-solid",
+              "aspc_id": "demo-tumwgs-solid::lung::production",
+              "diagnosis_id": "lung",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "lung-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "solid_gmsv3-breast": {
+              "label": "demo-solid_gmsv3 (synthetic) / Breast",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "solid_gmsv3-breast",
+              "asp_id": "demo-solid_gmsv3",
+              "aspc_id": "demo-solid_gmsv3::breast::production",
+              "diagnosis_id": "breast",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "breast-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "tumwgs-solid-breast": {
+              "label": "demo-tumwgs-solid (synthetic) / Breast",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "CNV",
+                "SNV"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "10-14 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "tumwgs-solid-breast",
+              "asp_id": "demo-tumwgs-solid",
+              "aspc_id": "demo-tumwgs-solid::breast::production",
+              "diagnosis_id": "breast",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "SNV",
+                    "CNV"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "breast-variants",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            }
+          },
+          "omics": "dna"
+        },
+        "rna": {
+          "label": "RNA",
+          "title": null,
+          "description": null,
+          "subheading": null,
+          "input_material": [],
+          "sample_modes": [],
+          "analysis": [],
+          "report_sections": [],
+          "clinical_indications": [],
+          "tat": "",
+          "limitations": null,
+          "public_notes": null,
+          "categories": {
+            "rna-training-lymphoid": {
+              "label": "demo-rna-training (synthetic) / Lymphoid",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "FUSION"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "rna-training-lymphoid",
+              "asp_id": "demo-rna-training",
+              "aspc_id": "demo-rna-training::lymphoid::production",
+              "diagnosis_id": "lymphoid",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "FUSION"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "lymphoid-fusion",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "gms_rnafusionv5-cll": {
+              "label": "demo-gms_rnafusionv5 (synthetic) / CLL",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "FUSION"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "3-5 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "gms_rnafusionv5-cll",
+              "asp_id": "demo-gms_rnafusionv5",
+              "aspc_id": "demo-gms_rnafusionv5::cll::production",
+              "diagnosis_id": "cll",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "FUSION"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "cll-fusion",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "wts-hema-cll": {
+              "label": "demo-wts-hema (synthetic) / CLL",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "FUSION"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "10-14 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "wts-hema-cll",
+              "asp_id": "demo-wts-hema",
+              "aspc_id": "demo-wts-hema::cll::production",
+              "diagnosis_id": "cll",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "FUSION"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "cll-fusion",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            },
+            "wts-solid-lung": {
+              "label": "demo-wts-solid (synthetic) / Lung",
+              "title": null,
+              "description": "Synthetic demonstration offering. Not for clinical use.",
+              "subheading": null,
+              "input_material": [],
+              "sample_modes": [],
+              "analysis": [
+                "FUSION"
+              ],
+              "report_sections": [],
+              "clinical_indications": [],
+              "tat": "10-14 days",
+              "limitations": null,
+              "public_notes": null,
+              "parent_key": null,
+              "price": null,
+              "pricing_message": "Demonstration only; no service price",
+              "methodology": "",
+              "ordering_information": "",
+              "report_deliverables": [],
+              "node_kind": "entry",
+              "clear_fields": [],
+              "catalog_id": "wts-solid-lung",
+              "asp_id": "demo-wts-solid",
+              "aspc_id": "demo-wts-solid::lung::production",
+              "diagnosis_id": "lung",
+              "aspc_ids": {},
+              "gene_lists": [
+                {
+                  "label": null,
+                  "title": null,
+                  "description": null,
+                  "subheading": null,
+                  "input_material": [],
+                  "sample_modes": [],
+                  "analysis": [
+                    "FUSION"
+                  ],
+                  "report_sections": [],
+                  "clinical_indications": [],
+                  "tat": "",
+                  "limitations": null,
+                  "public_notes": null,
+                  "isgl_id": "lung-fusion",
+                  "key": null
+                }
+              ],
+              "no_gene_list": []
+            }
+          },
+          "omics": "rna"
+        }
+      },
+      "published_offerings": [],
+      "resource_revisions": {},
+      "created_at": {
+        "$date": "2026-01-01T00:00:00Z"
+      },
+      "created_by": "system",
+      "updated_at": {
+        "$date": "2026-01-01T00:00:00Z"
+      },
+      "updated_by": "system"
+    },
+    "review": {
+      "submitted_by": null,
+      "submitted_at": null,
+      "reviewer": null,
+      "reviewer_decision_at": null,
+      "reviewer_reason": null,
+      "publisher": null
+    },
+    "lifecycle": [],
+    "change_summary": "Packaged demo starter catalog",
+    "created_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "created_by": "system",
+    "updated_at": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": "system",
+    "published_at": null,
+    "published_by": null,
+    "_id": "7f86097363f96d9b53cd34bc"
+  }
+]

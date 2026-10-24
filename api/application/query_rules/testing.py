@@ -12,7 +12,7 @@ from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.config.clinical_query_policy import resolved_query_policy
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRulePreview, QueryRuleScope
-from api.domain.common.assay_filters import get_sample_effective_genes, has_sample_gene_restriction
+from api.domain.common.assay_filters import get_sample_effective_genes
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
@@ -71,14 +71,22 @@ class QueryRuleTestingService:
             if a.get("asp_category") == category
             and (not scope.assay_group or a.get("asp_group") == scope.assay_group)
             and (not scope.asp_id or a["asp_id"] == scope.asp_id)
+            and (not scope.family or a.get("asp_family") == scope.family)
             and (allowed_asp_ids is None or a["asp_id"] in allowed_asp_ids)
         ]
-        if not assays or allowed_environments == []:
+        environments = allowed_environments
+        if scope.environment:
+            environments = (
+                [scope.environment]
+                if environments is None or scope.environment in environments
+                else []
+            )
+        if not assays or environments == []:
             return {"items": [], "total": 0, "page": page, "per_page": 20}
         rows, total = self.store.sample_repository.search_samples_for_admin(
             asp_ids=assays,
-            environments=allowed_environments,
-            subpanel_id=scope.subpanel_id,
+            environments=environments,
+            diagnosis_id=scope.diagnosis_id,
             search_str=search,
             page=page,
             per_page=20,
@@ -90,7 +98,7 @@ class QueryRuleTestingService:
                     "id": str(r["_id"]),
                     "name": str(r.get("name") or r["_id"]),
                     "asp_id": r.get("asp_id"),
-                    "subpanel_id": r.get("subpanel_id") or "base",
+                    "diagnosis_id": r.get("diagnosis_id") or "base",
                 }
                 for r in rows
             ],
@@ -176,22 +184,33 @@ class QueryRuleTestingService:
             assay_panel_repository=self.store.assay_panel_repository,
             assay_configuration_repository=self.store.assay_configuration_repository,
         )
+        context = config.get("aspc_resolution", {}).get("context", {})
         scope = QueryRuleScope(
             assay_group=config.get("asp_group"),
             asp_id=sample.get("asp_id"),
-            subpanel_id=sample.get("subpanel_id") or "base",
+            diagnosis_id=sample.get("diagnosis_id") or "base",
             analysis=request.scope.analysis,
             intent="somatic" if request.scope.analysis == "snv" else request.scope.intent,
+            environment=sample.get("environment"),
+            family=context.get("family"),
+            modality=context.get("modality") if context.get("family") else None,
         )
         if scope.analysis.upper() not in config.get("analysis_types", []):
             raise api_error(422, "The sample ASPC does not enable the selected analysis")
         if any(
             getattr(request.scope, key) is not None
             and getattr(request.scope, key) != getattr(scope, key)
-            for key in ("assay_group", "asp_id", "subpanel_id")
+            for key in (
+                "assay_group",
+                "asp_id",
+                "diagnosis_id",
+                "modality",
+                "family",
+                "environment",
+            )
         ):
             raise api_error(422, "Sample is outside the query-rule scope")
-        if (sample.get("omics_layer") == "rna") != (scope.analysis == "fusion"):
+        if (sample.get("asp_category") == "rna") != (scope.analysis == "fusion"):
             raise api_error(422, "Sample omics layer does not support the selected analysis")
         if scope.intent not in (sample.get("analysis_intents") or ["somatic"]):
             raise api_error(422, "Sample does not enable the selected analysis intent")
@@ -254,7 +273,7 @@ class QueryRuleTestingService:
         filters = merge_filter_defaults(
             deepcopy(sample.get("filters")),
             config.get("filters"),
-            omics_layer=sample.get("omics_layer") or "dna",
+            asp_category=sample.get("asp_category") or "dna",
             analysis_intents=sample.get("analysis_intents"),
         )
         effective_sample = {**sample, "filters": filters}
@@ -264,16 +283,20 @@ class QueryRuleTestingService:
                 deepcopy(sample), config, str(sample["_id"]), logging.getLogger(__name__)
             )
             context = workflow.compute_filter_context(
-                sample=rna_sample, sample_filters=section, assay_panel_doc=panel
+                sample=rna_sample,
+                sample_filters=section,
+                assay_panel_doc=panel,
+                selected_list_docs=self.store.gene_list_repository.get_isgl_by_ids(
+                    section.get("fusionlists", [])
+                ),
             )
-            resolver = SimpleNamespace(policy=lambda **kwargs: policy)
+            resolver = SimpleNamespace(policy_for_sample=lambda **kwargs: policy)
             query = workflow.build_fusion_list_query(
                 scope.assay_group,
                 str(sample["_id"]),
                 section,
                 context,
-                asp_id=scope.asp_id,
-                subpanel_id=scope.subpanel_id,
+                sample=sample,
                 query_rule_service=resolver,
             )
             repository = self.store.fusion_repository
@@ -296,17 +319,14 @@ class QueryRuleTestingService:
             _, genes = get_sample_effective_genes(
                 effective_sample, panel, lists, target=analysis, intent=scope.intent
             )
-            restricted = has_sample_gene_restriction(
-                effective_sample, panel, target=analysis, intent=scope.intent
-            )
             settings = {
                 **section,
                 "id": str(sample["_id"]),
                 "filter_genes": genes,
-                "restrict_to_genes": restricted,
+                "restrict_to_genes": True,
                 "assay_group": scope.assay_group,
                 "asp_id": scope.asp_id,
-                "subpanel_id": scope.subpanel_id,
+                "diagnosis_id": scope.diagnosis_id,
                 "intent": scope.intent,
             }
             if analysis == "snv":
@@ -348,7 +368,7 @@ class QueryRuleTestingService:
                 "Translocation gene-scope and exception checks run after MongoDB retrieval."
             )
             rows = filter_translocations_by_genes(
-                rows, filter_genes=genes, restricted=restricted, settings=settings, policy=policy
+                rows, filter_genes=genes, restricted=True, settings=settings, policy=policy
             )
         if analysis == "cnv":
             effects = create_cnveffectlist(section.get("cnveffects", []))

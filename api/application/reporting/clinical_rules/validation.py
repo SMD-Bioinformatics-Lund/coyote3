@@ -7,6 +7,7 @@ import json
 from typing import Any
 
 from api.application.reporting.clinical_rules.registry import validate_fact_path
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.clinical_rules import (
     ClinicalCondition,
     ClinicalFactOutput,
@@ -117,6 +118,12 @@ def validate_rule_set(
     """
     errors: list[str] = []
     warnings: list[str] = []
+    supported = set(CLINICAL_VOCABULARY.analysis_file_keys_by_omics[document.scope.analyte])
+    declared = set(document.analysis_declarations) | {
+        block.analysis for block in document.blocks if block.analysis
+    }
+    for analysis in sorted(declared - supported):
+        errors.append(f"Analysis '{analysis}' is not supported for {document.scope.analyte}")
     if {"BIOMARKER", "LOH"} & set(document.analysis_declarations) or any(
         block.analysis in {"BIOMARKER", "LOH"} for block in document.blocks
     ):

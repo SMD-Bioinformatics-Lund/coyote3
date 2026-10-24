@@ -75,8 +75,11 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     Returns:
         The function result.
     """
-    sample = {**fx.sample_doc(), "omics_layer": "rna"}
-    assay_config = {**fx.assay_config_doc(), "asp_group": "rna", "analysis_types": ["FUSION"]}
+    sample = {**fx.sample_doc(), "asp_category": "rna"}
+    assay_config = {
+        **fx.assay_config_doc(asp_group="rna", asp_category="rna"),
+        "analysis_types": ["FUSION"],
+    }
     merged_sample = {**sample, "filters": {"min_spanning_reads": 3, "min_spanning_pairs": 2}}
     filter_context = {
         "checked_fusionlists": ["gl1"],
@@ -87,7 +90,9 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     service = _rna_service()
 
     monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(rna_service_module, "get_formatted_assay_config", lambda s: assay_config)
+    monkeypatch.setattr(
+        rna_service_module, "get_formatted_assay_config", lambda s, **kwargs: assay_config
+    )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "merge_and_normalize_sample_filters",
@@ -117,7 +122,7 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "compute_filter_context",
-        lambda self, sample, sample_filters, assay_panel_doc: filter_context,
+        lambda self, sample, sample_filters, assay_panel_doc, selected_list_docs: filter_context,
     )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
@@ -133,7 +138,10 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     monkeypatch.setattr(
         rna_service_module,
         "add_global_annotations",
-        lambda fusions, assay_group, subpanel, annotation_repository=None: (fusions, fusions),
+        lambda fusions, assay_group, diagnosis, annotation_repository=None, **kwargs: (
+            fusions,
+            fusions,
+        ),
     )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
@@ -175,7 +183,7 @@ def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
 
 def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
     """The sample-comment suggestion exposes the existing filtered RNA summary."""
-    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1", "omics_layer": "rna"}
+    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1", "asp_category": "rna"}
     captured = {}
     service = SimpleNamespace(
         list_fusions_payload=lambda **kwargs: (
@@ -244,7 +252,7 @@ def test_restful_rna_mutation_routes_are_registered():
 
 def test_read_rna_analysis_returns_independent_records(monkeypatch):
     """The WTS views read expression, classification, and QC by sample ObjectId."""
-    sample = {**fx.sample_doc(), "_id": "sample-oid", "name": "RNA_1", "omics_layer": "rna"}
+    sample = {**fx.sample_doc(), "_id": "sample-oid", "name": "RNA_1", "asp_category": "rna"}
     service = SimpleNamespace(
         rna_analysis_payload=lambda **kwargs: {
             "sample_id": "sample-oid",

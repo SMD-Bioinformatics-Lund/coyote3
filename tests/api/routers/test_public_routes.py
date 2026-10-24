@@ -85,13 +85,13 @@ def test_public_contact_read_uses_runtime_config(monkeypatch):
 
 def test_public_assay_catalog_context_empty_installation_has_landing_page(monkeypatch):
     """An unconfigured installation keeps its landing page but rejects missing entries."""
-    monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda self, **kwargs: {})
+    monkeypatch.setattr(public.PublicCatalogService, "_load_catalog_document", lambda self: {})
     assert public.public_assay_catalog_context_read()["order"] == []
     with pytest.raises(AppError) as exc:
         public.public_assay_catalog_context_read(mod="dna")
 
     assert exc.value.status_code == 404
-    assert exc.value.detail["error"] == "Catalog not found"
+    assert exc.value.detail["error"] == "Published offering not found"
 
 
 def test_catalog_matrix_passes_pagination_and_gene_filter(monkeypatch):
@@ -104,7 +104,7 @@ def test_catalog_matrix_passes_pagination_and_gene_filter(monkeypatch):
     monkeypatch.setattr(
         public,
         "get_public_catalog_service",
-        lambda: SimpleNamespace(assay_catalog_matrix_payload=matrix),
+        lambda: SimpleNamespace(published_matrix=matrix),
     )
     assert public.public_assay_catalog_matrix_context_read(page=2, per_page=20, gene="TP53") == {
         "genes": []
@@ -115,35 +115,31 @@ def test_catalog_matrix_passes_pagination_and_gene_filter(monkeypatch):
 @pytest.mark.parametrize("category", [None, "solid"])
 def test_catalog_csv_exports_selected_genes(monkeypatch, category):
     service = SimpleNamespace(
-        normalize_mod=lambda mod: mod,
-        hydrate_modality=lambda mod: {"asp_id": "panel"},
-        hydrate_category=lambda *args, **kwargs: {"asp_id": "panel"},
-        resolve_gene_table=lambda *args: (
-            "asp",
-            [{"hgnc_id": "HGNC:11998", "symbol": "TP53", "gene_type": ["protein-coding"]}],
-            {},
-        ),
+        published_context=lambda *args: {
+            "gene_mode": "published",
+            "genes": [{"symbol": "TP53"}],
+        },
     )
     monkeypatch.setattr(public, "get_public_catalog_service", lambda: service)
     payload = public.public_assay_catalog_genes_csv_context_read("wgs", cat=category)
-    assert "HGNC:11998,TP53" in payload["content"]
+    assert ",TP53," in payload["content"]
     assert payload["filename"].endswith(".genes.csv")
 
 
-@pytest.mark.parametrize(
-    "valid_mod,category,error",
-    [(False, None, "Modality not found"), (True, "missing", "Category not found")],
-)
-def test_catalog_csv_rejects_unknown_selection(monkeypatch, valid_mod, category, error):
+@pytest.mark.parametrize("category", [None, "missing"])
+def test_catalog_csv_rejects_unknown_selection(monkeypatch, category):
+    from api.application.public.published_catalog_views import publication_context
+
     monkeypatch.setattr(
         public,
         "get_public_catalog_service",
         lambda: SimpleNamespace(
-            normalize_mod=lambda mod: mod if valid_mod else None,
-            hydrate_category=lambda *args, **kwargs: None,
+            published_context=lambda *args: publication_context(
+                {"version": 0, "header": "Catalog", "description": "", "offerings": []}, *args
+            ),
         ),
     )
     with pytest.raises(AppError) as exc:
         public.public_assay_catalog_genes_csv_context_read("wgs", cat=category)
     assert exc.value.status_code == 404
-    assert exc.value.detail["error"] == error
+    assert exc.value.detail["error"] == "Published offering not found"

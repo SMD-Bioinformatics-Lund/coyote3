@@ -201,7 +201,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
         Returns:
             list: A list of dictionaries, each containing details about the variant
                 and its associated sample, including `sample_name`, `assay`,
-                `subpanel`, `GT`, and curation flags.
+                `diagnosis`, `GT`, and curation flags.
         """
         canonical_variant = ensure_variant_identity_fields(variant)
         current_sample_id = canonical_variant["SAMPLE_ID"]
@@ -244,11 +244,22 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             str(s["_id"]): {
                 "sample_name": s.get("name", "unknown"),
                 "assay": s.get("asp_id"),
-                "subpanel": s.get("subpanel_id"),
+                "diagnosis": s.get("diagnosis_id"),
+                "configuration_sample": s,
             }
             for s in self.adapter.samples_collection.find(
                 {"_id": {"$in": list(sample_ids)}},
-                {"_id": 1, "name": 1, "asp_id": 1, "subpanel_id": 1},
+                {
+                    "_id": 1,
+                    "name": 1,
+                    "asp_id": 1,
+                    "diagnosis_id": 1,
+                    "environment": 1,
+                    "asp_category": 1,
+                    "analysis_intents": 1,
+                    "genome_build": 1,
+                    "current_aspc_id": 1,
+                },
             )
         }
 
@@ -259,7 +270,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             info = dict(
                 sample_map.get(
                     sid,
-                    {"sample_name": "unknown", "assay": None, "subpanel": None},
+                    {"sample_name": "unknown", "assay": None, "diagnosis": None},
                 )
             )
             info["GT"] = v.get("GT")

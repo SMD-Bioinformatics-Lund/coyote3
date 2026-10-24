@@ -33,7 +33,7 @@ class ClinicalVocabulary:
     assay_families: tuple[str, ...]
     assay_family_categories: dict[str, str]
     assay_family_scopes: dict[str, str]
-    base_subpanel_id: str
+    base_diagnosis_id: str
     environment_options: tuple[str, ...]
     default_environment: str
     sample_file_keys: dict[str, tuple[str, ...]]
@@ -114,11 +114,6 @@ class CenterClinicalContract:
     """
 
     vocabulary: ClinicalVocabulary
-
-    @property
-    def sequencing_scope_options(self) -> tuple[str, ...]:
-        """Return distinct configured sequencing scopes in first-encounter order."""
-        return tuple(dict.fromkeys(self.vocabulary.assay_family_scopes.values()))
 
     @property
     def targeted_panel_asp_families(self) -> frozenset[str]:
@@ -265,7 +260,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         "assay": {
             "categories",
             "families",
-            "base_subpanel_id",
+            "base_diagnosis_id",
             "family_categories",
             "family_scopes",
         },
@@ -316,8 +311,8 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     if set(analysis) - {*assay_categories, "allowed_by_family"}:
         raise RuntimeError("Unknown clinical vocabulary analysis category")
     assay_families = _identifier_tuple(assay.get("families"), key="assay.families")
-    base_subpanel_id = _identifier_value(
-        assay.get("base_subpanel_id"), key="assay.base_subpanel_id"
+    base_diagnosis_id = _identifier_value(
+        assay.get("base_diagnosis_id"), key="assay.base_diagnosis_id"
     )
     raw_family_categories = assay.get("family_categories")
     raw_family_scopes = assay.get("family_scopes")
@@ -520,7 +515,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         assay_families=assay_families,
         assay_family_categories=assay_family_categories,
         assay_family_scopes=assay_family_scopes,
-        base_subpanel_id=base_subpanel_id,
+        base_diagnosis_id=base_diagnosis_id,
         environment_options=environment_options,
         default_environment=default_environment,
         sample_file_keys=sample_file_keys,

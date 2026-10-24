@@ -6,11 +6,12 @@ from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 
+from api.application.common.assay_config import get_formatted_assay_config
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.application.interpretation.report_summary import enrich_reported_variant_docs
 from api.config.application_metadata import oncokb_gene_url
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
-    has_sample_gene_restriction,
 )
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
@@ -44,6 +45,7 @@ class CommonQueryService:
             annotation_repository=store.annotation_repository,
             sample_repository=store.sample_repository,
             gene_list_repository=store.gene_list_repository,
+            assay_configuration_repository=store.assay_configuration_repository,
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
             civic_repository=getattr(store, "civic_repository", None),
@@ -65,6 +67,7 @@ class CommonQueryService:
         annotation_repository: Any,
         sample_repository: Any,
         gene_list_repository: Any,
+        assay_configuration_repository: Any = None,
         oncokb_public_cache_repository: Any | None = None,
         clinpgx_public_repository: Any | None = None,
         civic_repository: Any | None = None,
@@ -83,6 +86,7 @@ class CommonQueryService:
         self.annotation_repository = annotation_repository
         self.sample_repository = sample_repository
         self.gene_list_repository = gene_list_repository
+        self.assay_configuration_repository = assay_configuration_repository
         self.oncokb_public_cache_repository = oncokb_public_cache_repository
         self.clinpgx_public_repository = clinpgx_public_repository
         self.civic_repository = civic_repository
@@ -392,7 +396,7 @@ class CommonQueryService:
             "name": resolved_name,
             "asp_id": (sample_doc or {}).get("asp_id"),
             "assay_group": (sample_doc or {}).get("assay_group"),
-            "subpanel_id": (sample_doc or {}).get("subpanel_id"),
+            "diagnosis_id": (sample_doc or {}).get("diagnosis_id"),
             "environment": (sample_doc or {}).get("environment"),
             "report_oids": {},
             "latest_report_num": None,
@@ -525,20 +529,20 @@ class CommonQueryService:
                     if value and str(value).strip()
                 )
             )
-            subpanels = list(
+            diagnoses = list(
                 dict.fromkeys(
                     str(value).strip()
                     for value in [
-                        *(sample.get("subpanel_id") for sample in sample_oids.values()),
-                        merged_doc.get("subpanel"),
+                        *(sample.get("diagnosis_id") for sample in sample_oids.values()),
+                        merged_doc.get("diagnosis"),
                     ]
                     if value and str(value).strip()
                 )
             )
             merged_doc["assay_groups"] = assay_groups
-            merged_doc["subpanels"] = subpanels
+            merged_doc["diagnoses"] = diagnoses
             merged_doc["assay_group"] = assay_groups[0] if len(assay_groups) == 1 else None
-            merged_doc["subpanel"] = subpanels[0] if len(subpanels) == 1 else None
+            merged_doc["diagnosis"] = diagnoses[0] if len(diagnoses) == 1 else None
             merged_doc.update(finding_display_fields(merged_doc))
 
             if merged_doc.get("_id") not in associated_annotation_text_oids:
@@ -591,13 +595,15 @@ class CommonQueryService:
                 or merged_doc.get("assay_group")
                 or merged_doc.get("assay")
             )
-            merged_doc["subpanel"] = (sample_doc or {}).get("subpanel_id") or merged_doc.get(
-                "subpanel"
+            merged_doc["diagnosis"] = (sample_doc or {}).get("diagnosis_id") or merged_doc.get(
+                "diagnosis"
             )
             merged_doc["assay_groups"] = (
                 [merged_doc["assay_group"]] if merged_doc.get("assay_group") else []
             )
-            merged_doc["subpanels"] = [merged_doc["subpanel"]] if merged_doc.get("subpanel") else []
+            merged_doc["diagnoses"] = (
+                [merged_doc["diagnosis"]] if merged_doc.get("diagnosis") else []
+            )
             merged_doc.update(finding_display_fields(merged_doc))
             if include_annotation_text and reported_doc.get("annotation_text_oid"):
                 merged_doc["text"] = self.annotation_repository.get_annotation_text_by_oid(
@@ -628,7 +634,7 @@ class CommonQueryService:
         """Return target-specific ISGL selections grouped by analysis intent."""
         filters = normalize_sample_filters(
             sample.get("filters"),
-            omics_layer=str(sample.get("omics_layer") or "dna"),
+            asp_category=str(sample.get("asp_category") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
             canonical=True,
         )
@@ -650,7 +656,9 @@ class CommonQueryService:
                     dict.fromkeys(str(value) for value in section.get(list_key, []) if str(value))
                 )
         if not any(targets for targets in values.values()):
-            default_target = "fusion" if str(sample.get("omics_layer") or "dna") == "rna" else "snv"
+            default_target = (
+                "fusion" if str(sample.get("asp_category") or "dna") == "rna" else "snv"
+            )
             values.setdefault("somatic", {})[default_target] = []
         return values
 
@@ -674,43 +682,27 @@ class CommonQueryService:
             asp_ids=visible_asp_ids,
             environments=visible_environments,
         )
-        asp_map = self.assay_panel_repository.get_asps_for_gene_scope(visible_asp_ids)
-        selected_ids = list(
-            dict.fromkeys(
-                list_id
-                for sample in samples
-                for target_lists in self._list_ids_by_target_and_intent(sample).values()
-                for list_ids in target_lists.values()
-                for list_id in list_ids
-            )
-        )
-        isgl_map = self.gene_list_repository.get_isgl_by_ids(selected_ids)
-
         profiled_samples: list[dict[str, Any]] = []
+        asp_map: dict[str, dict[str, Any]] = {}
         excluded_samples = 0
         for sample in samples:
-            asp = asp_map.get(str(sample.get("asp_id") or ""))
-            if not asp:
-                excluded_samples += 1
-                continue
+            configuration = get_formatted_assay_config(
+                sample,
+                assay_panel_repository=self.assay_panel_repository,
+                assay_configuration_repository=self.assay_configuration_repository,
+            )
+            asp = assay_resource(configuration)
+            asp_map[asp["asp_id"]] = asp
 
             target_lists_by_intent = self._list_ids_by_target_and_intent(sample)
             gene_is_profiled = False
             for intent, target_lists in target_lists_by_intent.items():
                 for target, list_ids in target_lists.items():
-                    selected_lists = {
-                        list_id: isgl_map[list_id] for list_id in list_ids if list_id in isgl_map
-                    }
+                    selected_lists = gene_list_resources(configuration, list_ids)
                     _scope_details, effective_genes = get_sample_effective_genes(
                         sample,
                         asp,
                         selected_lists,
-                        target=target,
-                        intent=intent,
-                    )
-                    has_restriction = has_sample_gene_restriction(
-                        sample,
-                        asp,
                         target=target,
                         intent=intent,
                     )
@@ -719,7 +711,7 @@ class CommonQueryService:
                         for value in effective_genes
                         if str(value).strip()
                     }
-                    if not has_restriction or symbol in normalized_genes:
+                    if symbol in normalized_genes:
                         gene_is_profiled = True
                         break
                 if gene_is_profiled:
@@ -933,7 +925,7 @@ class CommonQueryService:
                 {
                     "sample_name": sample_name,
                     "asp_id": sample.get("asp_id"),
-                    "subpanel_id": sample.get("subpanel_id"),
+                    "diagnosis_id": sample.get("diagnosis_id"),
                     "environment": sample.get("environment"),
                     "sex": sample.get("sex"),
                     "finding_details": [
@@ -970,7 +962,6 @@ class CommonQueryService:
                 "report_scope": "historical" if include_history else "latest",
                 "ready_samples_considered": len(samples),
                 "samples_excluded_outside_gene_scope": excluded_samples,
-                "unrestricted_asp_scope_counts_as_profiled": True,
                 "duplicate_report_observations_removed": duplicate_report_observations_removed,
             },
             "tier_counts": tier_counts,

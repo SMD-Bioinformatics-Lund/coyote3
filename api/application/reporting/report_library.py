@@ -59,7 +59,7 @@ class ReportLibraryService:
                     "report_name": row.get("report_name"),
                     "sample_id": str(row.get("sample_name") or row.get("sample_oid") or ""),
                     "asp_id": row.get("asp_id"),
-                    "subpanel_id": row.get("subpanel_id"),
+                    "diagnosis_id": row.get("diagnosis_id"),
                     "environment": row.get("environment"),
                     "author": row.get("author"),
                     "time_created": row.get("time_created"),

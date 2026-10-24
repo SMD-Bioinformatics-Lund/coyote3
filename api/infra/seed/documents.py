@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from api.application.reporting.clinical_rules.validation import content_hash
+from api.application.resources.release_compilation import compile_bundle_configurations
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.contracts.schemas.registry import normalize_collection_document
 from api.infra.seed.bundle import (
@@ -96,24 +97,5 @@ def build_seed_documents(
         normalized[collection] = [
             normalize_collection_document(collection, document) for document in documents
         ]
-    if normalized.get("assay_specific_panels"):
-        from api.infra.seed.subpanels import plan_subpanels
-
-        scopes = plan_subpanels(
-            normalized["assay_specific_panels"],
-            normalized.get("asp_configs", []),
-            normalized.get("clinical_rule_sets", []),
-            normalized.get("insilico_genelists", []),
-            actor=actor,
-        )
-        normalized["subpanels"] = list(
-            {
-                row["subpanel_id"]: {key: value for key, value in row.items() if key != "asp_id"}
-                for row in scopes
-            }.values()
-        )
-        normalized["subpanel_associations"] = [
-            {key: value for key, value in row.items() if key not in {"display_name", "description"}}
-            for row in scopes
-        ]
+    compile_bundle_configurations(normalized)
     return normalized

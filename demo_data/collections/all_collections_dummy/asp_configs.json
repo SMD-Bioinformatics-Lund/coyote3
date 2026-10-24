@@ -1,8 +1,8 @@
 [
   {
-    "aspc_id": "assay_1_base_production",
+    "aspc_id": "assay_1::base::production",
     "asp_id": "assay_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "environment": "production",
     "asp_group": "hematology",
     "asp_category": "dna",
@@ -93,6 +93,15 @@
     "catalog": {
       "is_public": true
     },
+    "query_policy_release": null,
+    "clinical_rule_release": null,
+    "clinical_rule_base": null,
+    "assay_resource_release": null,
+    "gene_list_release": null,
+    "profile_sources": [],
+    "profile_overrides": {},
+    "template_release": null,
+    "promotion": null,
     "version": 1,
     "created_by": null,
     "created_on": "2026-01-01T18:13:16.916174+00:00",
@@ -104,9 +113,9 @@
     "retired_reason": null
   },
   {
-    "aspc_id": "assay_1_base_testing",
+    "aspc_id": "assay_1::base::testing",
     "asp_id": "assay_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "environment": "testing",
     "asp_group": "hematology",
     "asp_category": "dna",
@@ -197,6 +206,15 @@
     "catalog": {
       "is_public": true
     },
+    "query_policy_release": null,
+    "clinical_rule_release": null,
+    "clinical_rule_base": null,
+    "assay_resource_release": null,
+    "gene_list_release": null,
+    "profile_sources": [],
+    "profile_overrides": {},
+    "template_release": null,
+    "promotion": null,
     "version": 1,
     "created_by": null,
     "created_on": "2026-01-01T18:13:16.916381+00:00",
@@ -208,11 +226,11 @@
     "retired_reason": null
   },
   {
-    "aspc_id": "assay_rna_1_base_production",
+    "aspc_id": "assay_rna_1::base::production",
     "asp_id": "assay_rna_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "environment": "production",
-    "asp_group": "wts",
+    "asp_group": "hematology",
     "asp_category": "rna",
     "analysis_types": [
       "FUSION",
@@ -274,6 +292,15 @@
     "catalog": {
       "is_public": true
     },
+    "query_policy_release": null,
+    "clinical_rule_release": null,
+    "clinical_rule_base": null,
+    "assay_resource_release": null,
+    "gene_list_release": null,
+    "profile_sources": [],
+    "profile_overrides": {},
+    "template_release": null,
+    "promotion": null,
     "version": 1,
     "created_by": null,
     "created_on": "2026-01-01T18:36:29.602575+00:00",

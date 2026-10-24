@@ -120,7 +120,7 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         return self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
 
-    def get_cnv_annotations(self, cnv: str) -> list:
+    def get_cnv_annotations(self, cnv: dict, *, sample_context: dict) -> list:
         """
         Retrieve annotations for a specific CNV.
 
@@ -136,9 +136,14 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
             list: A list of annotation documents associated with the CNV.
         """
         var = f"{str(cnv['chr'])}:{str(cnv['start'])}-{str(cnv['end'])}"
-        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
-            "time_created", 1
-        )
+        annotations = self.adapter.annotations_collection.find(
+            {
+                "variant": var,
+                "resource_context.assay_id": sample_context["assay_id"],
+                "resource_context.environment": sample_context["environment"],
+                "diagnosis": sample_context["diagnosis_id"],
+            }
+        ).sort("time_created", 1)
 
         # Keep latest classification tracked for parity with translocation annotation handling.
         _latest_classification = {"class": 999}

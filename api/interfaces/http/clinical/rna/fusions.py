@@ -25,12 +25,12 @@ router = APIRouter(tags=[TAG_RNA_FUSIONS])
 
 def _require_rna_sample(sample: dict, sample_id: str) -> None:
     """Reject RNA fusion requests for samples that do not have RNA analysis data."""
-    if str(sample.get("omics_layer") or "").lower() != "rna":
+    if str(sample.get("asp_category") or "").lower() != "rna":
         raise setup_error(
             "RNA fusion analysis is unavailable for this sample",
             (
                 f"Sample '{sample.get('name') or sample_id}' has omics layer "
-                f"'{sample.get('omics_layer') or 'unknown'}'. RNA fusion endpoints require an RNA sample."
+                f"'{sample.get('asp_category') or 'unknown'}'. RNA fusion endpoints require an RNA sample."
             ),
         )
 

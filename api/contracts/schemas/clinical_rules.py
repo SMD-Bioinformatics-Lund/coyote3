@@ -335,17 +335,17 @@ class ClinicalRuleBlock(_StrictModel):
 
 
 class ClinicalRuleScope(_StrictModel):
-    """Assay, subpanel, analyte, and language addressed by a rule set."""
+    """Assay, diagnosis, analyte, and language addressed by a rule set."""
 
     asp_id: str
-    subpanel_id: str
+    diagnosis_id: str
     analyte: Literal["dna", "rna"]
     language: str = Field(default="sv", min_length=2, max_length=16)
 
-    @field_validator("asp_id", "subpanel_id", mode="before")
+    @field_validator("asp_id", "diagnosis_id", mode="before")
     @classmethod
     def _normalize_identity(cls, value: Any) -> str:
-        """Canonicalize an assay or subpanel identifier.
+        """Canonicalize an assay or diagnosis identifier.
 
         Args:
             value: Identifier accepted by the clinical identifier normalizer.
@@ -481,11 +481,11 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
             This rule set unchanged.
 
         Raises:
-            ValueError: If the ID differs from assay/subpanel/language, block or
+            ValueError: If the ID differs from assay/diagnosis/language, block or
                 rule IDs repeat, publication metadata is missing, or an
                 unpublished rule set is active.
         """
-        expected_id = f"{self.scope.asp_id}__{self.scope.subpanel_id}__{self.scope.language}"
+        expected_id = f"{self.scope.asp_id}__{self.scope.diagnosis_id}__{self.scope.language}"
         if self.rule_set_id != expected_id:
             raise ValueError(f"rule_set_id must be '{expected_id}'")
         block_ids = [block.block_id for block in self.blocks]
@@ -549,8 +549,8 @@ class ClinicalRuleSourceRef(_StrictModel):
     content_hash: str
     language: str
     effective_from: datetime | None = None
-    requested_subpanel_id: str | None = None
-    resolved_subpanel_id: str | None = None
+    requested_diagnosis_id: str | None = None
+    resolved_diagnosis_id: str | None = None
 
 
 class ClinicalConditionTraceNode(_StrictModel):
@@ -694,7 +694,7 @@ class ClinicalRuleAssayOption(_StrictModel):
     asp_id: str
     display_name: str
     analyte: Literal["dna", "rna"]
-    subpanels: list[dict[str, str]] = Field(default_factory=list)
+    diagnoses: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
@@ -712,9 +712,9 @@ class ClinicalRuleTestSample(_StrictModel):
     id: str
     name: str
     asp_id: str | None = None
-    subpanel_id: str
+    diagnosis_id: str
     environment: str | None = None
-    omics_layer: str | None = None
+    asp_category: str | None = None
 
 
 class ClinicalRuleTestSamplesPayload(_StrictModel):

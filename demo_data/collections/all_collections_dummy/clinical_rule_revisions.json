@@ -18,7 +18,7 @@
       "revision": 1,
       "scope": {
         "asp_id": "assay_1",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "analyte": "dna",
         "language": "sv"
       },

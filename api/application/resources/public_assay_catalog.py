@@ -7,12 +7,15 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from api.application.public.offering_snapshots import build_offering_snapshot
+from api.application.public.published_catalog_views import publication_context, publication_matrix
 from api.application.resources.availability import available_panels
 from api.config.constants import (
     ALL_ANALYSIS_TYPE_OPTIONS,
     DNA_ANALYSIS_TYPE_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
 )
+from api.contracts.schemas.catalog_offerings import CatalogDiscoveryDoc
 from api.contracts.schemas.public_catalog import (
     PublicAssayCatalogDoc,
     PublicAssayCatalogVersionDoc,
@@ -44,6 +47,8 @@ class PublicAssayCatalogManagementService:
             versions=store.public_assay_catalog_version_repository,
             users=store.user_repository,
             roles=store.roles_repository,
+            groups=store.assay_group_repository,
+            diagnoses=store.assay_diagnosis_repository,
         )
 
     def __init__(
@@ -56,6 +61,8 @@ class PublicAssayCatalogManagementService:
         versions: Any = None,
         users: Any = None,
         roles: Any = None,
+        groups: Any = None,
+        diagnoses: Any = None,
     ) -> None:
         """Configure catalog persistence and sources for governance choices.
 
@@ -67,11 +74,13 @@ class PublicAssayCatalogManagementService:
             versions: Version/history repository required for governance operations.
             users: Active-user repository required for assignee choices.
             roles: Role/capability repository required for assignee choices.
+            groups: Biological group registry required for publication validation.
+            diagnoses: Shared diagnosis associations required for named offerings.
         """
         self.repository = repository
         self.versions, self.users, self.roles = versions, users, roles
+        self.groups, self.diagnoses = groups, diagnoses
         self.notification_service = None
-        self.public_catalog_service = None
         self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
         self.gene_list_repository = gene_list_repository
@@ -150,7 +159,7 @@ class PublicAssayCatalogManagementService:
                     {
                         "aspc_id": item.get("aspc_id"),
                         "asp_id": item.get("asp_id"),
-                        "subpanel_id": item.get("subpanel_id"),
+                        "diagnosis_id": item.get("diagnosis_id"),
                         "environment": item.get("environment"),
                         "is_active": bool(item.get("is_active")),
                     }
@@ -261,10 +270,7 @@ class PublicAssayCatalogManagementService:
         isgl_key: str | None = None,
     ) -> dict[str, Any]:
         """Resolve public metadata using the same renderer as the published catalog."""
-        document = self._content(content, actor=actor)
-        return self.public_catalog_service.catalog_context(
-            mod, cat, isgl_key, preview_document=document
-        )
+        return publication_context(self.preview_offerings(content, actor=actor), mod, cat, isgl_key)
 
     def revisions(self, oid: str) -> dict[str, Any]:
         """Read revision snapshots after checking that the version exists.
@@ -305,9 +311,8 @@ class PublicAssayCatalogManagementService:
         Raises:
             AppError: With status 422 for invalid content or duplicate entry identifiers.
         """
-        document = self._content(content, actor=actor)
-        return self.public_catalog_service.assay_catalog_matrix_payload(
-            preview_document=document,
+        return publication_matrix(
+            self.preview_offerings(content, actor=actor),
             page=page,
             per_page=per_page,
             gene=gene,
@@ -327,6 +332,8 @@ class PublicAssayCatalogManagementService:
             AppError: With status 422 for invalid schema or duplicate catalog IDs.
         """
         candidate = deepcopy(raw)
+        candidate["published_offerings"] = []
+        candidate["resource_revisions"] = {}
         candidate.pop("_id", None)
         try:
             candidate = PublicAssayCatalogDoc.model_validate(candidate).model_dump(by_alias=True)
@@ -562,13 +569,17 @@ class PublicAssayCatalogManagementService:
         doc = self._checked(oid, revision, "draft")
         reviewer = self._assignee(reviewer, "catalog:review", doc["content_editors"] + [actor])
         self.validate_links(doc["catalog"])
+        snapshot = self.offering_snapshot(doc["catalog"])
         review = {
             "submitted_by": actor,
             "submitted_at": datetime.now(timezone.utc),
             "reviewer": reviewer,
         }
         saved = self._save(
-            doc, {"status": "submitted", "review": review}, actor=actor, action="submitted"
+            doc,
+            {"status": "submitted", "review": review, "catalog": snapshot},
+            actor=actor,
+            action="submitted",
         )
         self._notify(saved, reviewer, actor, "Catalog review requested")
         return saved
@@ -653,6 +664,12 @@ class PublicAssayCatalogManagementService:
             raise api_error(403, "This publication is assigned to another user")
         self._assignee(doc["review"]["reviewer"], "catalog:review", doc["content_editors"])
         self.validate_links(doc["catalog"])
+        current = self.offering_snapshot(doc["catalog"])
+        if any(
+            current[key] != doc["catalog"].get(key)
+            for key in ("published_offerings", "resource_revisions")
+        ):
+            raise api_error(409, "Offering sources changed after review; submit an updated draft")
         saved = self._save(
             doc,
             {
@@ -666,6 +683,48 @@ class PublicAssayCatalogManagementService:
         )
         self._notify(saved, doc["created_by"], actor, "Catalog published")
         return saved
+
+    def offering_snapshot(self, catalog: dict) -> dict:
+        """Resolve a review snapshot using the authoritative resource repositories."""
+        return build_offering_snapshot(
+            catalog,
+            panels=self.assay_panel_repository,
+            configurations=self.assay_configuration_repository,
+            gene_lists=self.gene_list_repository,
+            groups=self.groups,
+            diagnoses=self.diagnoses,
+        )
+
+    def preview_offerings(self, content: dict, *, actor: str) -> dict:
+        """Preview reviewed snapshots or resolve draft services without persistence.
+
+        Args:
+            content: Draft content or a saved review/publication snapshot.
+            actor: Authenticated operator requesting this private preview.
+
+        Returns:
+            Allowlisted service details. Supplied snapshots are preview-only; saving
+            and submission discard and rebuild all derived fields from resources.
+        """
+        if content.get("resource_revisions") and content.get("published_offerings"):
+            try:
+                return CatalogDiscoveryDoc(
+                    version=content.get("version", 0),
+                    header=content.get("header", "Genomic test catalog"),
+                    description=content.get("description", ""),
+                    offerings=content["published_offerings"],
+                ).model_dump(mode="json")
+            except ValueError as exc:
+                raise api_error(422, "Invalid offering preview snapshot") from exc
+        document = self._content(content, actor=actor)
+        self.validate_links(document)
+        snapshot = self.offering_snapshot(document)
+        return {
+            "version": document["version"],
+            "header": document["header"],
+            "description": document["description"],
+            "offerings": snapshot["published_offerings"],
+        }
 
     def delete_unpublished(self, identifier: str, revision: int, *, actor: str) -> dict:
         """Discard a pre-publication catalog version without touching the live publication.
@@ -735,10 +794,10 @@ class PublicAssayCatalogManagementService:
                         raise api_error(
                             422, "Choose an active production configuration for the selected assay"
                         )
-                    if (category.get("subpanel_id") or "base") != (
-                        configs[ref].get("subpanel_id") or "base"
+                    if (category.get("diagnosis_id") or "base") != (
+                        configs[ref].get("diagnosis_id") or "base"
                     ):
-                        raise api_error(422, "The configuration must match the selected subpanel")
+                        raise api_error(422, "The configuration must match the selected diagnosis")
                 selected_lists: set[str] = set()
                 analyses = set(category.get("analysis") or [])
                 omics = modality.get("omics") or asps[category["asp_id"]].get("category")
@@ -778,9 +837,9 @@ class PublicAssayCatalogManagementService:
                         raise api_error(422, "Gene-list types must support their selected analyses")
                     if (
                         source.get("diagnosis")
-                        and category.get("subpanel_id") not in source["diagnosis"]
+                        and category.get("diagnosis_id") not in source["diagnosis"]
                     ):
-                        raise api_error(422, "Gene lists must support the selected subpanel")
+                        raise api_error(422, "Gene lists must support the selected diagnosis")
                     assigned.update(linked_analyses)
                 if assigned & no_gene_list:
                     raise api_error(422, "An analysis cannot have gene lists and No gene list")

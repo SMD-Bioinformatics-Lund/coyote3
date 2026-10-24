@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.app.container import store
+from api.application.common.release_resources import capture_gene_lists
 from api.application.sample import catalog as sample_catalog_service_module
 from api.application.sample.catalog import SampleCatalogService
 from api.domain.core.exceptions import AppError
@@ -20,6 +21,9 @@ def _sample_catalog_service() -> SampleCatalogService:
         sample_repository=store.sample_repository,
         gene_list_repository=store.gene_list_repository,
         assay_panel_repository=store.assay_panel_repository,
+        assay_configuration_repository=SimpleNamespace(
+            get_aspc_no_meta=lambda *args: fx.assay_config_doc(),
+        ),
         variant_repository=store.variant_repository,
         copy_number_variant_repository=store.copy_number_variant_repository,
         fusion_repository=store.fusion_repository,
@@ -229,6 +233,11 @@ def test_home_apply_isgl_rejects_list_for_different_analysis_type(monkeypatch):
     """The API must reject an SNV-only list submitted to the CNV filter section."""
     sample = fx.sample_doc()
     service = _sample_catalog_service()
+    configuration = fx.assay_config_doc()
+    configuration["gene_list_release"] = capture_gene_lists(
+        [{"isgl_id": "SNV_ONLY", "version": 1, "list_type": ["snv"], "genes": ["TP53"]}]
+    )
+    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda sample: configuration)
     monkeypatch.setattr(
         service.gene_list_repository,
         "get_isgl_by_ids",
@@ -260,7 +269,13 @@ def test_replace_sample_filters_rejects_snv_list_in_cnv_section(monkeypatch):
     monkeypatch.setattr(
         service,
         "_get_formatted_assay_config",
-        lambda sample_doc: {"filters": submitted},
+        lambda sample_doc: {
+            **fx.assay_config_doc(),
+            "filters": submitted,
+            "gene_list_release": capture_gene_lists(
+                [{"isgl_id": "SNV_ONLY", "version": 1, "list_type": ["snv"], "genes": ["TP53"]}]
+            ),
+        },
     )
     monkeypatch.setattr(
         service.gene_list_repository,
@@ -295,7 +310,8 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
 
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
 
-    def _update_sample_filters(sample_id, filters):
+    def _update_sample_filters(sample_id, filters, *, expected_version):
+        assert expected_version == sample["version"]
         """Update sample filters.
 
         Args:
@@ -332,7 +348,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     """Edit context should expose raw and gene-filtered counts for other analysis types too."""
     sample = fx.sample_doc()
     sample["_id"] = "s1"
-    sample["omics_layer"] = "dna"
+    sample["asp_category"] = "dna"
     sample["filters"]["somatic"]["snv"]["snvlists"] = ["gl1"]
     sample["filters"]["somatic"]["cnv"]["cnvlists"] = ["gl1"]
     sample["filters"]["somatic"]["snv"]["adhoc_genes"] = {}
@@ -347,7 +363,19 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         sample_catalog_service_module,
         "get_formatted_assay_config",
         lambda sample_doc, **_kwargs: {
+            **fx.assay_config_doc(),
             "analysis_types": ["TMB"],
+            "gene_list_release": capture_gene_lists(
+                [
+                    {
+                        "isgl_id": "gl1",
+                        "version": 1,
+                        "is_active": True,
+                        "list_type": ["snv", "cnv"],
+                        "genes": ["TP53"],
+                    }
+                ]
+            ),
             "filters": dict(sample_doc.get("filters") or {}),
         },
     )
@@ -427,14 +455,28 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     """Edit-context counts should seed from ASPC only when the sample has no filters doc."""
     sample = fx.sample_doc()
     sample["_id"] = "s1"
-    sample["omics_layer"] = "dna"
+    sample["asp_category"] = "dna"
     sample["filters"] = None
     service = _sample_catalog_service()
 
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc, **_kwargs: {"filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}}},
+        lambda sample_doc, **_kwargs: {
+            **fx.assay_config_doc(),
+            "filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}},
+            "gene_list_release": capture_gene_lists(
+                [
+                    {
+                        "isgl_id": "gl1",
+                        "version": 1,
+                        "is_active": True,
+                        "list_type": ["snv"],
+                        "genes": ["TP53"],
+                    }
+                ]
+            ),
+        },
     )
     monkeypatch.setattr(
         service.assay_panel_repository,

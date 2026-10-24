@@ -26,7 +26,6 @@ ANALYSIS_PRELOAD_CONTRACT = AnalysisPreloadContract(
             "HRD": "biomarkers",
             "MSI": "biomarkers",
             "COVERAGE": "cov",
-            "FUSION": "transloc",
             "TMB": "biomarkers",
             "PGX": "pgx",
         },

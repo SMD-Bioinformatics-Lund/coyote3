@@ -140,7 +140,7 @@ def _consequence_admission_clause(
     policy: SnvQueryPolicy,
     assay_group: str,
     asp_id: str,
-    subpanel_id: str,
+    diagnosis_id: str,
     intent: str,
     terms: list[str],
     filter_values: dict[str, Any] | None = None,
@@ -152,7 +152,7 @@ def _consequence_admission_clause(
         for exception in policy.exceptions_for(
             assay_group=assay_group,
             asp_id=asp_id,
-            subpanel_id=subpanel_id,
+            diagnosis_id=diagnosis_id,
             intent=intent,
             mode="extend_consequence",
         )
@@ -165,7 +165,7 @@ def _admission_clause(
     policy: SnvQueryPolicy,
     assay_group: str,
     asp_id: str,
-    subpanel_id: str,
+    diagnosis_id: str,
     intent: str,
     filter_values: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -175,7 +175,7 @@ def _admission_clause(
         for exception in policy.exceptions_for(
             assay_group=assay_group,
             asp_id=asp_id,
-            subpanel_id=subpanel_id,
+            diagnosis_id=diagnosis_id,
             intent=intent,
             mode="admit",
         )
@@ -190,7 +190,7 @@ def _exclusion_clause(
     policy: SnvQueryPolicy,
     assay_group: str,
     asp_id: str,
-    subpanel_id: str,
+    diagnosis_id: str,
     intent: str,
     filter_values: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -200,7 +200,7 @@ def _exclusion_clause(
         for exception in policy.exceptions_for(
             assay_group=assay_group,
             asp_id=asp_id,
-            subpanel_id=subpanel_id,
+            diagnosis_id=diagnosis_id,
             intent=intent,
             mode="exclude",
         )
@@ -218,7 +218,7 @@ def build_query(
     """Build an intent-specific SNV query from filters and released policy.
 
     ``settings`` carries sample identity plus resolved ``asp_id`` and
-    ``subpanel_id``. They select configured exception scopes; they are never
+    ``diagnosis_id``. They select configured exception scopes; they are never
     interpreted as data-store field paths or query operators.
     Nonempty excluded-flag selections reject literal FILTER values after admission
     exceptions. An empty exclusion list does not restrict flags.
@@ -228,7 +228,7 @@ def build_query(
     if normalized_intent not in {"somatic", "germline"}:
         raise ValueError("intent must be somatic or germline")
     asp_id = str(settings.get("asp_id") or "").strip().lower()
-    subpanel_id = str(settings.get("subpanel_id") or "base").strip().lower()
+    diagnosis_id = str(settings.get("diagnosis_id") or "base").strip().lower()
     baseline = policy.policy_for(assay_group=normalized_group, intent=normalized_intent)
     gene_position_scope = build_pos_genes_filter(settings)
     terms = list(settings.get("filter_conseq") or [])
@@ -244,7 +244,7 @@ def build_query(
                     policy=policy,
                     assay_group=normalized_group,
                     asp_id=asp_id,
-                    subpanel_id=subpanel_id,
+                    diagnosis_id=diagnosis_id,
                     intent=normalized_intent,
                     terms=terms,
                     filter_values=settings,
@@ -260,7 +260,7 @@ def build_query(
                     policy=policy,
                     assay_group=normalized_group,
                     asp_id=asp_id,
-                    subpanel_id=subpanel_id,
+                    diagnosis_id=diagnosis_id,
                     intent=normalized_intent,
                     terms=terms,
                     filter_values=settings,
@@ -274,14 +274,14 @@ def build_query(
                 policy=policy,
                 assay_group=normalized_group,
                 asp_id=asp_id,
-                subpanel_id=subpanel_id,
+                diagnosis_id=diagnosis_id,
                 intent=normalized_intent,
             )
         )
     if baseline != "exception_only" and policy.exceptions_for(
         assay_group=normalized_group,
         asp_id=asp_id,
-        subpanel_id=subpanel_id,
+        diagnosis_id=diagnosis_id,
         intent=normalized_intent,
         mode="admit",
     ):
@@ -289,7 +289,7 @@ def build_query(
             policy=policy,
             assay_group=normalized_group,
             asp_id=asp_id,
-            subpanel_id=subpanel_id,
+            diagnosis_id=diagnosis_id,
             intent=normalized_intent,
             filter_values=settings,
         )
@@ -299,7 +299,7 @@ def build_query(
         policy=policy,
         assay_group=normalized_group,
         asp_id=asp_id,
-        subpanel_id=subpanel_id,
+        diagnosis_id=diagnosis_id,
         intent=normalized_intent,
     )
     if exclusion:

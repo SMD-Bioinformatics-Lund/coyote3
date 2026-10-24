@@ -101,8 +101,8 @@ class ActivityNotificationService:
                     "aspc": "Assay configuration",
                     "genelist": "Gene list (ISGL)",
                     "assay_group": "Assay group",
-                    "subpanel": "Subpanel",
-                    "assay_subpanel": "Assay subpanel",
+                    "diagnosis": "Diagnosis",
+                    "assay_diagnosis": "Assay diagnosis",
                     "assay_setup": "Assay setup",
                 }.get(str(resource.get("type") or ""), "Shared configuration")
                 title = f"{label} {action}"

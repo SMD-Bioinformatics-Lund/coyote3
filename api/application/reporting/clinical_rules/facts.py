@@ -20,9 +20,9 @@ class PreparedSampleFacts(_FactModel):
 
     name: str
     asp_id: str
-    subpanel_id: str
+    diagnosis_id: str
     environment: str
-    omics_layer: Literal["dna", "rna"]
+    asp_category: Literal["dna", "rna"]
     paired: bool = False
     genome_build: int | str | None = None
     analysis_intent: Literal["somatic", "germline"] = "somatic"
@@ -53,7 +53,7 @@ class PreparedAspcFacts(_FactModel):
     asp_id: str
     asp_group: str | None = None
     asp_category: str | None = None
-    subpanel_id: str
+    diagnosis_id: str
     environment: str
     reporting: PreparedAspcReportingFacts = Field(default_factory=PreparedAspcReportingFacts)
 

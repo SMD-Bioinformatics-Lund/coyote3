@@ -16,8 +16,8 @@ IDENTITIES = {
     "asp_configs": ("aspc_collection", "aspc_id"),
     "clinical_rule_sets": ("clinical_rule_sets_collection", "rule_set_id"),
     "insilico_genelists": ("insilico_genelist_collection", "isgl_id"),
-    "subpanels": ("subpanels_collection", "subpanel_id"),
-    "subpanel_associations": ("subpanel_associations_collection", "subpanel_id"),
+    "diagnoses": ("diagnoses_collection", "diagnosis_id"),
+    "diagnosis_associations": ("diagnosis_associations_collection", "diagnosis_id"),
     "query_rule_sets": ("query_rule_sets_collection", "scope_key"),
     "public_assay_catalog_versions": ("public_assay_catalog_versions_collection", "_id"),
 }
@@ -47,8 +47,11 @@ class DemoInstallationRepository:
         for name, rows in documents.items():
             collection, key = IDENTITIES[name]
             for row in rows:
+                selector = {key: row[key]}
+                if name == "diagnosis_associations":
+                    selector["asp_id"] = row["asp_id"]
                 if not self.database[self.mapping[collection]].find_one(
-                    {key: row[key], **({"system_installed": True} if require_packaged else {})},
+                    {**selector, **({"system_installed": True} if require_packaged else {})},
                     {"_id": 1},
                     session=session,
                 ):
@@ -111,7 +114,7 @@ class DemoInstallationRepository:
                 target = self.database[self.mapping[attribute]]
                 for row in rows:
                     selector = {key: row[key]}
-                    if name == "subpanel_associations":
+                    if name == "diagnosis_associations":
                         selector["asp_id"] = row["asp_id"]
                     existing = target.find_one(selector, session=session)
                     if existing is not None:

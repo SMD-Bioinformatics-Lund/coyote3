@@ -117,9 +117,9 @@ class CommonUtility:
             nomenclature: Identity category, normally p, c, g, cn, f, or t; passed
                 to the canonical context and identity helpers without validation here.
             class_num: Classification stored as class only when text is not supplied.
-            variant_data: Source for assay_group, subpanel, and nomenclature-specific
+            variant_data: Source for assay_group, diagnosis, and nomenclature-specific
                 gene, transcript, and alternate identity fields. Missing assay_group
-                and subpanel values become None.
+                and diagnosis values become None.
             **kwargs: Only text is used. Its presence, even with None or an empty
                 value, stores text instead of class; other keywords are ignored.
 
@@ -134,7 +134,8 @@ class CommonUtility:
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": variant_data.get("assay_group", None),
-            "subpanel": variant_data.get("subpanel", None),
+            "diagnosis": variant_data.get("diagnosis", None),
+            "resource_context": variant_data.get("resource_context"),
         }
 
         if "text" in kwargs:
@@ -178,7 +179,7 @@ class CommonUtility:
         """Resolve target-specific gene coverage using the canonical domain helper.
 
         Args:
-            sample: Sample filters, omics_layer, and analysis_intents used to
+            sample: Sample filters, asp_category, and analysis_intents used to
                 resolve the profile and ad-hoc genes; absent filters are normalized.
             asp_doc: Panel covered_genes and asp_family settings.
             checked_gl_dict: Records keyed by list IDs selected for this target;
@@ -190,8 +191,7 @@ class CommonUtility:
         Returns:
             Coverage-annotated records and deduplicated active covered genes as a
             pair. With no applicable lists or ad-hoc genes, uses sorted panel
-            coverage. Empty genes can mean an unrestricted panel or a selection
-            without overlap; caller documents are not mutated.
+            eligibility. Empty genes select no findings; caller documents are not mutated.
         """
         return domain_assay_filters.get_sample_effective_genes(
             sample,

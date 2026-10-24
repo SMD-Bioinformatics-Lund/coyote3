@@ -9,6 +9,7 @@ from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import request_pagination
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.application.common.table_state import (
     numeric_value,
     parse_sort_specs,
@@ -267,9 +268,7 @@ class RnaService:
         )
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
-        """Resolve formatted assay config using injected repositories when available."""
-        if self.assay_configuration_repository is None:
-            return get_formatted_assay_config(sample)
+        """Resolve configuration through the injected resource repositories."""
         return get_formatted_assay_config(
             sample,
             assay_panel_repository=self.assay_panel_repository,
@@ -298,12 +297,12 @@ class RnaService:
         Returns:
             dict[str, Any]: Fusion list payload with filters and summary data.
         """
-        if str(sample.get("omics_layer") or "").lower() != "rna":
+        if str(sample.get("asp_category") or "").lower() != "rna":
             raise setup_error(
                 "RNA fusion analysis is unavailable for this sample",
                 (
                     f"Sample '{sample.get('name') or sample.get('_id')}' has omics layer "
-                    f"'{sample.get('omics_layer') or 'unknown'}'. RNA fusion analysis requires an RNA sample."
+                    f"'{sample.get('asp_category') or 'unknown'}'. RNA fusion analysis requires an RNA sample."
                 ),
             )
 
@@ -321,18 +320,23 @@ class RnaService:
             sample, assay_config, str(sample.get("_id")), logger
         )
         assay_group = assay_config.get("asp_group", "unknown")
-        subpanel = sample.get("subpanel_id")
+        diagnosis = sample.get("diagnosis_id")
         assay_config_schema = build_form_spec(aspc_spec_for_category("RNA"))
-        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id"))
-        fusionlist_options = self.gene_list_repository.get_isgl_by_asp(
-            sample.get("asp_id"), is_active=True, adhoc=False, list_type="fusion"
-        )
+        assay_panel_doc = assay_resource(assay_config)
+        fusionlist_options = [
+            value
+            for value in gene_list_resources(assay_config).values()
+            if "fusion" in value.get("list_type", [])
+        ]
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
         has_hidden_comments = self.sample_repository.hidden_sample_comments(sample.get("_id"))
         filter_context = self.workflow.compute_filter_context(
             sample=sample,
             sample_filters=sample_filters,
             assay_panel_doc=assay_panel_doc,
+            selected_list_docs=gene_list_resources(
+                assay_config, sample_filters.get("fusionlists", [])
+            ),
         )
         query = self.workflow.build_fusion_list_query(
             query_rule_service=self.workflow.query_rule_service,
@@ -340,8 +344,7 @@ class RnaService:
             sample_id=str(sample["_id"]),
             sample_filters=sample_filters,
             filter_context=filter_context,
-            asp_id=str(sample.get("asp_id") or ""),
-            subpanel_id=str(sample.get("subpanel_id") or "base"),
+            sample=sample,
         )
         tiered_fusions: list[dict[str, Any]] = []
 
@@ -352,8 +355,9 @@ class RnaService:
                 enriched, tiered = add_global_annotations(
                     hydrated,
                     assay_group,
-                    subpanel,
+                    diagnosis,
                     annotation_repository=self.annotation_repository,
+                    sample_context=assay_config["aspc_resolution"]["context"],
                 )
                 tiered_fusions.extend(tiered)
                 yield from enriched
@@ -376,7 +380,7 @@ class RnaService:
         ai_text = ""
         if include_report_context:
             selected_list_ids = list(filter_context.get("checked_fusionlists") or [])
-            selected_list_docs = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+            selected_list_docs = gene_list_resources(assay_config, selected_list_ids)
             applied_gene_lists = [
                 {**document, "isgl_id": isgl_id, "selected_for": ["fusion"]}
                 for isgl_id, document in selected_list_docs.items()
@@ -404,7 +408,7 @@ class RnaService:
                 "sort": sort_spec_to_query_value(sort_specs),
             },
             "assay_group": assay_group,
-            "subpanel": subpanel,
+            "diagnosis": diagnosis,
             "analysis_sections": assay_config.get("analysis_types", []),
             "assay_config": assay_config,
             "assay_config_schema": assay_config_schema,
@@ -449,11 +453,12 @@ class RnaService:
                 ),
             )
         assay_group = assay_config.get("asp_group", "unknown")
-        subpanel = sample.get("subpanel_id")
+        diagnosis = sample.get("diagnosis_id")
         show_context = self.workflow.build_show_fusion_context(
             fusion,
             assay_group,
-            subpanel,
+            diagnosis,
+            sample_context=assay_config["aspc_resolution"]["context"],
         )
         cosmic = self.cosmic_repository.get_fusion_evidence(show_context["fusion"])
         return {
@@ -463,7 +468,7 @@ class RnaService:
                 "name": sample.get("name"),
                 "assay": sample.get("asp_id"),
                 "assay_group": assay_group,
-                "subpanel": subpanel,
+                "diagnosis": diagnosis,
             },
             "fusion": show_context["fusion"],
             "in_other": show_context["in_other"],
@@ -474,7 +479,7 @@ class RnaService:
             "has_hidden_comments": show_context["hidden_comments"],
             "hidden_comments": show_context["hidden_comments"],
             "assay_group": assay_group,
-            "subpanel": subpanel,
+            "diagnosis": diagnosis,
             "assay_group_mappings": show_context["assay_group_mappings"],
             "fusion_caller_options": list(CLINICAL_VOCABULARY.fusion_callers),
             "fusion_annotation_metadata": CLINICAL_VOCABULARY.fusion_annotation_metadata(),

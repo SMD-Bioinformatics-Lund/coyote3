@@ -432,8 +432,8 @@ def test_panel_gene_stats_exclude_wgs_and_wts_families():
 def test_panel_asp_ids_exclude_non_panel_families():
     assert panel_asp_ids(
         [
-            {"asp_id": "solid_gmsv3", "asp_family": "panel-dna"},
+            {"asp_id": "demo-solid_gmsv3", "asp_family": "panel-dna"},
             {"asp_id": "tumwgs_solid", "asp_family": "wgs"},
             {"asp_id": "fusion", "asp_family": "wts"},
         ]
-    ) == ["solid_gmsv3"]
+    ) == ["demo-solid_gmsv3"]

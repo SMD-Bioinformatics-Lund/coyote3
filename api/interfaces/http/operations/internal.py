@@ -234,6 +234,11 @@ def _is_superuser(user: ApiUser) -> bool:
 
 def _enforce_collection_permission(*, user: ApiUser, collection: str, action: str) -> None:
     """Enforce collection-level action permissions for non-superuser operators."""
+    if collection in {"configuration_profiles", "configuration_promotions"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Use the configuration authoring and independent publication workflows.",
+        )
     if _is_superuser(user):
         return
     if (

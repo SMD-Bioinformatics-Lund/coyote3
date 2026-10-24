@@ -56,12 +56,17 @@
                 "limitations": null,
                 "public_notes": null,
                 "parent_key": null,
+                "price": null,
+                "pricing_message": "Contact for pricing",
+                "methodology": "",
+                "ordering_information": "",
+                "report_deliverables": [],
                 "node_kind": "entry",
                 "clear_fields": [],
                 "catalog_id": "assay_1_base",
                 "asp_id": "assay_1",
-                "aspc_id": "assay_1_base_testing",
-                "subpanel_id": null,
+                "aspc_id": "assay_1::base::testing",
+                "diagnosis_id": null,
                 "aspc_ids": {},
                 "gene_lists": [],
                 "no_gene_list": []
@@ -70,6 +75,8 @@
             "omics": null
           }
         },
+        "published_offerings": [],
+        "resource_revisions": {},
         "created_at": "2026-01-01T10:00:00+00:00",
         "created_by": "system",
         "updated_at": "2026-01-01T10:00:00+00:00",

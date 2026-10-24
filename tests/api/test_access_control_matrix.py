@@ -5,7 +5,13 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.security.access import ApiUser, _enforce_access, _get_sample_for_api, is_public_api_path
+from api.security.access import (
+    ApiUser,
+    _enforce_access,
+    _get_sample_for_api,
+    is_public_api_path,
+    require_annotation_publication,
+)
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -29,13 +35,22 @@ def _isolate_policy_repositories(monkeypatch: pytest.MonkeyPatch):
                         {
                             "role_id": "manager",
                             "is_active": True,
-                            "permissions": ["report:create"],
+                            "permissions": ["report:create", "annotation:publish"],
                         },
                     ]
                 )
             },
         )(),
     )
+
+
+def test_clinical_publication_is_separate_from_sandbox_curation():
+    """Sandbox access cannot publish production interpretations without the clinical grant."""
+    require_annotation_publication(_u(), {"environment": "testing"})
+    with pytest.raises(HTTPException) as denied:
+        require_annotation_publication(_u(), {"environment": "production"})
+    assert denied.value.status_code == 403
+    require_annotation_publication(_u(role="manager"), {"environment": "production"})
 
 
 def _u(

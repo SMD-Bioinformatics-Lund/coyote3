@@ -222,7 +222,6 @@ files = [
     "api/infra/observability/client_errors.py",
     "api/application/reporting/clinical_rules/renderers.py",
     "api/application/reporting/clinical_rules/resolution.py",
-    "api/application/reporting/clinical_rules/terminology_defaults.py",
     "api/application/reporting/clinical_rules/testing.py",
     "api/application/reporting/report_library.py",
     "api/application/resources/asp.py",

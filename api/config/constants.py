@@ -13,9 +13,7 @@ from api.config.sequencing import PLATFORM_OPTIONS, READ_MODE_OPTIONS
 
 ASP_CATEGORY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assay_categories
 ASP_FAMILY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assay_families
-SEQUENCING_SCOPE_OPTIONS = CENTER_CLINICAL_CONTRACT.sequencing_scope_options
 TARGETED_PANEL_ASP_FAMILY_OPTIONS = CENTER_CLINICAL_CONTRACT.targeted_panel_asp_families
-TUMOR_WGS_ASP_GROUPS: tuple[str, ...] = ("tumwgs", "tumwgs-hema", "tumwgs-solid")
 
 GENOME_BUILD_TO_ASSEMBLY: dict[int, str] = {37: "GRCH37", 38: "GRCH38"}
 
@@ -87,9 +85,9 @@ ANALYSIS_FILE_KEYS_BY_OMICS: dict[str, dict[str, tuple[str, ...]]] = (
 )
 
 
-def analysis_file_keys(omics_layer: object, analysis_type: object) -> tuple[str, ...]:
+def analysis_file_keys(asp_category: object, analysis_type: object) -> tuple[str, ...]:
     """Return the configured manifest file keys for an implemented analysis."""
-    category = normalize_asp_category(omics_layer)
+    category = normalize_asp_category(asp_category)
     analysis = str(analysis_type or "").strip().upper()
     try:
         return ANALYSIS_FILE_KEYS_BY_OMICS[category][analysis]
@@ -97,14 +95,14 @@ def analysis_file_keys(omics_layer: object, analysis_type: object) -> tuple[str,
         raise ValueError(f"analysis '{analysis}' is not configured for {category}") from error
 
 
-def primary_analysis_file_key(omics_layer: object, analysis_type: object) -> str:
+def primary_analysis_file_key(asp_category: object, analysis_type: object) -> str:
     """Return the primary configured manifest file key for an analysis."""
-    return analysis_file_keys(omics_layer, analysis_type)[0]
+    return analysis_file_keys(asp_category, analysis_type)[0]
 
 
-def analysis_type_for_file_key(omics_layer: object, file_key: object) -> str:
+def analysis_type_for_file_key(asp_category: object, file_key: object) -> str:
     """Return the configured analysis type that owns a manifest file key."""
-    category = normalize_asp_category(omics_layer)
+    category = normalize_asp_category(asp_category)
     normalized_key = str(file_key or "").strip()
     for analysis_type, keys in ANALYSIS_FILE_KEYS_BY_OMICS[category].items():
         if normalized_key in keys:
@@ -112,14 +110,14 @@ def analysis_type_for_file_key(omics_layer: object, file_key: object) -> str:
     raise ValueError(f"file key '{normalized_key}' is not configured for {category}")
 
 
-def manifest_file_preload_keys(omics_layer: object) -> dict[str, str]:
+def manifest_file_preload_keys(asp_category: object) -> dict[str, str]:
     """Map configured manifest file keys to their database preload payloads.
 
     Application capabilities own external manifest names and their mappings.
     Parser payload names are tied to collection contracts; center policy cannot
     redefine either side of the binding.
     """
-    category = normalize_asp_category(omics_layer)
+    category = normalize_asp_category(asp_category)
     configured = ANALYSIS_FILE_KEYS_BY_OMICS[category]
     bindings = ANALYSIS_PRELOAD_CONTRACT.preload_keys_by_omics.get(category, {})
     missing = set(configured) - set(bindings)
@@ -143,9 +141,9 @@ def manifest_file_preload_keys(omics_layer: object) -> dict[str, str]:
     return result
 
 
-def non_database_manifest_file_keys(omics_layer: object) -> frozenset[str]:
+def non_database_manifest_file_keys(asp_category: object) -> frozenset[str]:
     """Return configured file keys that intentionally do not write a collection."""
-    category = normalize_asp_category(omics_layer)
+    category = normalize_asp_category(asp_category)
     bindings = ANALYSIS_PRELOAD_CONTRACT.preload_keys_by_omics.get(category, {})
     return frozenset(
         file_key
@@ -164,7 +162,7 @@ GENELIST_TYPE_OPTIONS: tuple[str, ...] = (
 )
 
 TRANSCRIPT_SELECTION_ORDER: tuple[str, ...] = CLINICAL_VOCABULARY.transcript_selection_order
-SUBPANEL_BASE_ID = CLINICAL_VOCABULARY.base_subpanel_id
+DIAGNOSIS_BASE_ID = CLINICAL_VOCABULARY.base_diagnosis_id
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -185,14 +183,20 @@ def validate_identifier(value: object, *, label: str = "identifier") -> str:
 def normalize_clinical_identifier(value: object, *, label: str = "identifier") -> str:
     """Return the canonical lower-case form of a clinical identifier.
 
-    ASP, ASPC, ISGL, and subpanel identifiers are join keys across MongoDB,
+    ASP, ASPC, ISGL, and diagnosis identifiers are join keys across MongoDB,
     static reporting rules, manifests, and access scope. They are therefore
     case-insensitive identifiers, unlike human-facing display labels. Hyphens
     and underscores are meaningful accepted separators and are preserved;
     whitespace, dots, and every other unsupported character are rejected at
     the boundary rather than silently rewritten.
+    ASPC keys also accept three identifier segments separated by ``::``.
     """
     normalized = str(value or "").strip().lower()
+    if label == "aspc_id" and "::" in normalized:
+        parts = normalized.split("::")
+        if len(parts) != 3:
+            raise ValueError("aspc_id must use assay::diagnosis::environment")
+        return "::".join(validate_identifier(part, label=label) for part in parts)
     return validate_identifier(normalized, label=label)
 
 
@@ -321,17 +325,6 @@ def normalize_permission_category(value: object) -> str:
             "permission category must be one of: " + ", ".join(PERMISSION_CATALOG.categories)
         )
     return normalized
-
-
-def normalize_sequencing_scope(value: object) -> str:
-    """Normalize and validate a sequencing scope."""
-    return _ensure_in_options(value, options=SEQUENCING_SCOPE_OPTIONS, label="sequencing_scope")
-
-
-def scope_from_family(asp_family: str) -> str:
-    """Derive the sequencing scope from an ASP family value."""
-    normalized = normalize_asp_family(asp_family)
-    return CLINICAL_VOCABULARY.assay_family_scopes[normalized]
 
 
 def expected_file_keys(asp_category: str) -> tuple[str, ...]:

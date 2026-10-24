@@ -192,7 +192,12 @@ def test_annotation_rejects_foreign_finding_before_any_write(nomenclature, scope
     """Local and global comments require the target finding to belong to the sample."""
     repositories = _foreign_repositories()
     annotations = SimpleNamespace(add_anno_comment=Mock())
-    service = ResourceAnnotationService(annotation_repository=annotations, **repositories)
+    service = ResourceAnnotationService(
+        annotation_repository=annotations,
+        assay_configuration_repository=Mock(),
+        assay_panel_repository=Mock(),
+        **repositories,
+    )
     with pytest.raises(AppError):
         service.create_annotation(
             form_data={"text": "note", "global": scope},
@@ -215,7 +220,7 @@ def test_rule_authoring_binds_runtime_roles_repository():
         clinical_rule_set_repository=object(),
         clinical_rule_revision_repository=object(),
         assay_panel_repository=object(),
-        assay_subpanel_repository=object(),
+        assay_diagnosis_repository=object(),
         user_repository=object(),
         roles_repository=roles,
     )

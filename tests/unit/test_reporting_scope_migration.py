@@ -13,7 +13,12 @@ def test_dry_run_apply_idempotency_and_historical_isolation(monkeypatch):
             "rule_set_id": "assay__base__en",
             "status": "published",
             "active": True,
-            "scope": {"asp_id": "assay", "subpanel_id": "base", "analyte": "dna", "language": "en"},
+            "scope": {
+                "asp_id": "assay",
+                "diagnosis_id": "base",
+                "analyte": "dna",
+                "language": "en",
+            },
         }
     )
     reporting = {"clinical_rule_set_id": "assay__base__en", "report_sections": ["SNV"]}
@@ -95,7 +100,7 @@ def test_duplicate_published_scope_stops_before_writes():
                 "active": True,
                 "scope": {
                     "asp_id": "assay",
-                    "subpanel_id": "base",
+                    "diagnosis_id": "base",
                     "analyte": "dna",
                     "language": "sv",
                 },
@@ -115,7 +120,7 @@ def test_scope_index_allows_drafts_but_rejects_two_active_releases(monkeypatch):
     )
     migrate(db, apply=True)
     row = {
-        "scope": {"asp_id": "a", "subpanel_id": "base", "analyte": "dna", "language": "sv"},
+        "scope": {"asp_id": "a", "diagnosis_id": "base", "analyte": "dna", "language": "sv"},
         "status": "published",
         "active": True,
     }

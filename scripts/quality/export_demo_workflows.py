@@ -17,15 +17,28 @@ from pathlib import Path
 
 import mongomock
 from bson import ObjectId
-from bson.json_util import dumps
+from bson.json_util import dumps, loads
 
 ROOT = Path(__file__).resolve().parents[2] / "demo_data/clinical_workflows"
 sys.path.insert(0, str(ROOT.parents[1]))
 
+from api.application.common.release_resources import (  # noqa: E402
+    capture_assay_resource,
+    capture_gene_lists,
+)
 from api.application.ingest.service import InternalIngestService  # noqa: E402
+from api.application.query_rules.compilation import compile_query_policies  # noqa: E402
+from api.application.query_rules.service import QueryRuleService  # noqa: E402
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator  # noqa: E402
 from api.application.reporting.clinical_rules.preparation import (  # noqa: E402
     prepare_report_context,
+)
+from api.application.reporting.clinical_rules.resolution import (  # noqa: E402
+    resolve_published_rule_set,
+)
+from api.application.resources.release_compilation import (  # noqa: E402
+    BundleClinicalRules,
+    BundleQueryPolicies,
 )
 from api.config.constants import ALL_SAMPLE_FILE_KEYS  # noqa: E402
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
@@ -94,14 +107,49 @@ def replay():
         ]
         if documents:
             db[path.stem].insert_many(documents)
+    query_service = QueryRuleService(BundleQueryPolicies(list(db.query_rule_sets.find()), None))
+    for configuration in db.asp_configs.find():
+        panel = db.assay_specific_panels.find_one({"asp_id": configuration["asp_id"]})
+        clinical_rules = resolve_published_rule_set(
+            BundleClinicalRules(list(db.clinical_rule_sets.find())),
+            asp_id=configuration["asp_id"],
+            diagnosis_id=configuration["diagnosis_id"],
+            analyte=configuration["asp_category"],
+            language=configuration["reporting"]["language"],
+        ).model_dump(mode="python", by_alias=True)
+        db.asp_configs.update_one(
+            {"_id": configuration["_id"]},
+            {
+                "$set": {
+                    "query_policy_release": compile_query_policies(
+                        configuration, panel, query_service
+                    ),
+                    "clinical_rule_release": clinical_rules,
+                    "assay_resource_release": capture_assay_resource(panel),
+                    "gene_list_release": capture_gene_lists(
+                        list(
+                            db.insilico_genelists.find(
+                                {
+                                    "is_active": True,
+                                    "$or": [
+                                        {"asp_ids": configuration["asp_id"]},
+                                        {"asp_groups": configuration["asp_group"]},
+                                    ],
+                                }
+                            )
+                        )
+                    ),
+                }
+            },
+        )
     names = set(INGEST_DEPENDENT_COLLECTIONS.values()) | {
         "samples",
         "anno_vep",
         "hgnc_genes",
         "asp_configs",
         "assay_specific_panels",
-        "subpanels",
-        "subpanel_associations",
+        "diagnoses",
+        "diagnosis_associations",
         "assay_groups",
         "insilico_genelists",
     }
@@ -144,11 +192,22 @@ def portable_documents(db):
     def normalize(value):
         """Normalize export-only volatile values without changing evidence."""
         if isinstance(value, ObjectId):
-            return {"$oid": identities[str(value)]}
+            return identities[str(value)]
         if isinstance(value, datetime):
             return {"$date": "2026-01-01T00:00:00Z"}
         if isinstance(value, dict):
-            return {key: normalize(item) for key, item in value.items()}
+            normalized = {key: normalize(item) for key, item in value.items()}
+            if set(normalized) == {"content", "content_hash"}:
+                # Exported resource content has portable IDs and dates. Its digest
+                # must describe that content, not the volatile in-memory original.
+                content = loads(json.dumps(normalized["content"]))
+                release = (
+                    capture_assay_resource(content)
+                    if "asp_id" in content
+                    else capture_gene_lists(list(content.values()))
+                )
+                normalized["content_hash"] = release["content_hash"]
+            return normalized
         if isinstance(value, list):
             return [normalize(item) for item in value]
         if isinstance(value, str):
@@ -184,9 +243,9 @@ def review_examples(db):
         sample = db.samples.find_one({"name": name})
         sid = str(sample["_id"])
         asp = db.assay_specific_panels.find_one({"asp_id": sample["asp_id"]})
-        aspc = db.asp_configs.find_one({"aspc_id": sample["current_aspc_key"]})
+        aspc = db.asp_configs.find_one({"_id": sample["current_aspc_id"]})
         snvs = []
-        if sample["omics_layer"] == "dna":
+        if sample["asp_category"] == "dna":
             for tier, label in enumerate(
                 ["baseline_pass", "tier2_candidate", "tier3_candidate", "tier4_candidate"], 1
             ):
@@ -206,7 +265,7 @@ def review_examples(db):
                 annotation = dict(
                     identity,
                     assay=asp["asp_group"],
-                    subpanel="base",
+                    diagnosis="base",
                     author="demo.reviewer",
                     nomenclature="g",
                     time_created=now,
@@ -214,7 +273,7 @@ def review_examples(db):
                 if not db.annotation.find_one(
                     {
                         "assay": asp["asp_group"],
-                        "subpanel": "base",
+                        "diagnosis": "base",
                         "nomenclature": "g",
                         "variant": variant["simple_id"],
                     }
@@ -263,7 +322,7 @@ def review_examples(db):
             sample=sample,
             asp=asp,
             aspc=aspc,
-            analyte=sample["omics_layer"],
+            analyte=sample["asp_category"],
             applied_gene_lists=[],
             report_sections_data={
                 "snvs": snvs,

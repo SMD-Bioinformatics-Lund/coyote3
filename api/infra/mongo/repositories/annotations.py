@@ -12,6 +12,7 @@ from copy import deepcopy
 from typing import Any
 from urllib.parse import unquote
 
+from api.config.constants import DIAGNOSIS_BASE_ID
 from api.contracts.operations import OperationResult
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.core.annotation_identity import (
@@ -19,15 +20,16 @@ from api.domain.core.annotation_identity import (
     annotation_context_fields,
     enrich_annotation_identity,
 )
+from api.domain.core.annotation_scope import annotation_scope_match
 from api.domain.core.dna.variant_identity import build_simple_id
 from api.infra.mongo.repositories.annotation_queries import (
     _annotation_class_value,
     _annotation_object_id,
     _annotation_search_query,
     _classification_text_lookup_query,
-    _named_subpanel,
     _small_variant_identity_clauses,
     _text_values,
+    annotation_visibility_query,
 )
 from api.infra.mongo.repositories.annotation_statistics import AnnotationStatisticsMixin
 from api.infra.mongo.repositories.base import BaseRepository
@@ -72,6 +74,17 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         )
         col.create_index([("gene", 1)], name="gene_1", background=True)
         col.create_index([("variant", 1)], name="variant_1", background=True)
+        col.create_index(
+            [
+                ("resource_context.assay_id", 1),
+                ("resource_context.environment", 1),
+                ("diagnosis", 1),
+                ("variant", 1),
+                ("time_created", -1),
+            ],
+            name="annotation_resource_scope",
+            background=True,
+        )
         for identity_field in ANNOTATION_IDENTITY_FIELDS:
             col.create_index(
                 [(identity_field, 1)],
@@ -95,8 +108,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             background=True,
         )
         col.create_index(
-            [("transcript", 1), ("assay", 1), ("subpanel", 1), ("time_created", -1)],
-            name="transcript_assay_subpanel_time_created",
+            [("transcript", 1), ("assay", 1), ("diagnosis", 1), ("time_created", -1)],
+            name="transcript_assay_diagnosis_time_created",
             background=True,
             sparse=True,
         )
@@ -192,22 +205,25 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             self.invalidate_dashboard_metrics()
         return result
 
-    def get_global_annotations(self, variant: dict, assay_group: str, subpanel: str) -> tuple:
+    def get_global_annotations(
+        self, variant: dict, assay_group: str, diagnosis: str, *, sample_context: dict | None = None
+    ) -> tuple:
         """
-        Retrieve global annotations for a given variant, assay, and subpanel.
+        Retrieve global annotations for a given variant, assay, and diagnosis.
 
-        This method queries the MongoDB collection for annotations that match
-        the provided variant's genomic location, gene symbol, and nomenclature
-        (HGVSp, HGVSc, or genomic). It prioritizes annotations based on the
-        presence of HGVSp, HGVSc, or genomic location in that order.
+        Match identity and visibility first. Exact assay, group, diagnosis and
+        environment classifications are effective. Broader interpretations are
+        ordered by specificity, including nearest biological ancestors, and
+        require re-tiering before they can qualify for reporting.
 
         Args:
             variant (dict): A dictionary containing variant details, including
                             'CHROM', 'POS', 'REF', 'ALT', and 'INFO' with
                             'selected_CSQ' data.
             assay_group (str): The type of assay being used (e.g., 'solid').
-            subpanel (str): Exact named scope, or Base/empty for the latest
-                annotation in the assay group regardless of subpanel.
+            diagnosis (str): Exact diagnosis scope; null or blank selects Base.
+            sample_context: Resolved assay and environment. Without context no
+                classification is accepted as effective.
 
         Returns:
             tuple: A tuple containing:
@@ -215,10 +231,11 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 - latest_classification (dict): The latest classification for
                   the current assay.
                 - latest_other_arr (list): A list of classifications for other
-                  assays and subpanels.
+                  assays and diagnoses.
                 - annotations_interesting (dict): A dictionary of annotations
-                  deemed interesting based on assay and subpanel.
+                  deemed interesting based on assay and diagnosis.
         """
+        diagnosis = diagnosis or DIAGNOSIS_BASE_ID
         genomic = ""
         if all(key in variant for key in ("CHROM", "POS", "REF", "ALT")):
             genomic = build_simple_id(
@@ -233,10 +250,36 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             genomic=genomic,
         )
 
-        if selected_CSQ.get("SYMBOL") and identity_clauses:
+        if variant.get("nomenclature") in {"cn", "t"} and variant.get("variant"):
             annotations = (
                 self.get_collection()
-                .find({"gene": selected_CSQ["SYMBOL"], "$or": identity_clauses})
+                .find(
+                    {
+                        "$and": [
+                            {
+                                "nomenclature": variant["nomenclature"],
+                                "variant": variant["variant"],
+                                **annotation_context_fields(
+                                    nomenclature=variant["nomenclature"], source=variant
+                                ),
+                            },
+                            annotation_visibility_query((sample_context or {}).get("environment")),
+                        ]
+                    }
+                )
+                .sort([("time_created", 1), ("_id", 1)])
+            )
+        elif selected_CSQ.get("SYMBOL") and identity_clauses:
+            annotations = (
+                self.get_collection()
+                .find(
+                    {
+                        "$and": [
+                            {"gene": selected_CSQ["SYMBOL"], "$or": identity_clauses},
+                            annotation_visibility_query((sample_context or {}).get("environment")),
+                        ]
+                    }
+                )
                 .sort([("time_created", 1), ("_id", 1)])
             )
         elif "breakpoint1" in variant and "breakpoint2" in variant:
@@ -246,7 +289,16 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             }
             fusion_query.update(annotation_context_fields(nomenclature="f", source=variant))
             annotations = (
-                self.get_collection().find(fusion_query).sort([("time_created", 1), ("_id", 1)])
+                self.get_collection()
+                .find(
+                    {
+                        "$and": [
+                            fusion_query,
+                            annotation_visibility_query((sample_context or {}).get("environment")),
+                        ]
+                    }
+                )
+                .sort([("time_created", 1), ("_id", 1)])
             )
         else:
             annotations = []
@@ -257,39 +309,79 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         annotations_interesting = {}
 
         for anno in annotations:
+            context = anno.get("resource_context") or {}
+            if anno.get("namespace") == "sandbox" and (
+                not sample_context
+                or context.get("environment") != sample_context.get("environment")
+            ):
+                continue
+            effective = bool(
+                sample_context
+                and context.get("assay_id") == sample_context.get("assay_id")
+                and context.get("environment") == sample_context.get("environment")
+            )
             anno_class = _annotation_class_value(anno.get("class"))
             if anno_class is not None:
                 anno["class"] = anno_class
                 assay = anno["assay"]
-                sub = anno.get("subpanel")
+                sub = anno.get("diagnosis")
                 ass_sub = f"{assay}:{sub}"
-                if _named_subpanel(subpanel):
-                    if assay == assay_group and sub == subpanel:
-                        latest_classification = anno
-                    else:
-                        latest_classification_other[ass_sub] = anno["class"]
-                elif assay == assay_group:
+                if assay == assay_group and sub == diagnosis and effective:
                     latest_classification = anno
                 else:
-                    latest_classification_other[ass_sub] = anno["class"]
-            if "text" in anno:
+                    scope = (assay, sub, context.get("assay_id"), context.get("environment"))
+                    latest_classification_other.pop(scope, None)
+                    latest_classification_other[scope] = anno
+            if anno.get("text") is not None:
                 assay = anno["assay"]
-                sub = anno.get("subpanel")
+                sub = anno.get("diagnosis")
                 ass_sub = f"{assay}:{sub}"
-                if assay == assay_group and (not _named_subpanel(subpanel) or sub == subpanel):
-                    annotations_interesting[ass_sub if _named_subpanel(subpanel) else assay] = anno
+                if assay == assay_group and sub == diagnosis and effective:
+                    annotations_interesting[ass_sub] = anno
                 annotations_arr.append(anno)
 
         latest_other_arr = []
-        for latest_assay in latest_classification_other:
-            assay_sub = latest_assay.split(":")
+        group_path = [assay_group]
+        group = self.adapter.assay_groups_collection.find_one({"group_id": assay_group})
+        while isinstance(group, dict) and group.get("parent_group_id"):
+            parent = group["parent_group_id"]
+            if parent in group_path:
+                break
+            group = self.adapter.assay_groups_collection.find_one({"group_id": parent})
+            if not isinstance(group, dict) or not group.get("is_active", True):
+                break
+            group_path.append(parent)
+        for scope, annotation in latest_classification_other.items():
             latest_other_arr.append(
                 {
-                    "assay": assay_sub[0],
-                    "class": latest_classification_other[latest_assay],
-                    "subpanel": assay_sub[1] if len(assay_sub) > 1 else None,
+                    "_id": annotation.get("_id"),
+                    "assay": scope[0],
+                    "class": annotation["class"],
+                    "diagnosis": scope[1],
+                    "asp_id": scope[2],
+                    "environment": scope[3],
+                    "namespace": annotation.get("namespace"),
+                    "requires_retiering": True,
+                    "effective": False,
+                    **annotation_scope_match(
+                        annotation,
+                        group_path=group_path,
+                        diagnosis=diagnosis,
+                        context=sample_context or {},
+                    ),
                 }
             )
+
+        # Inputs are oldest first; stable sorting keeps the latest equal-scope
+        # candidate first without allowing recency to override specificity.
+        latest_other_arr.reverse()
+        latest_other_arr.sort(
+            key=lambda row: (
+                not row["fallback_eligible"],
+                row["scope_priority"],
+                row["diagnosis_priority"],
+            )
+        )
 
         return (
             annotations_arr,
@@ -303,7 +395,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         variant: dict[str, Any],
         transcripts: list[dict[str, Any]],
         assay_group: str,
-        subpanel: str | None,
+        diagnosis: str | None,
+        *,
+        sample_context: dict | None = None,
     ) -> dict[str, dict[str, Any]]:
         """Return the newest classification for each exact alternate transcript."""
         genomic = variant.get("simple_id")
@@ -339,8 +433,11 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "class": {"$in": [1, 2, 3, 4]},
             "$or": transcript_clauses,
         }
-        if _named_subpanel(subpanel):
-            query["subpanel"] = subpanel
+        query["diagnosis"] = diagnosis or DIAGNOSIS_BASE_ID
+        if not sample_context:
+            return {}
+        query["resource_context.assay_id"] = sample_context["assay_id"]
+        query["resource_context.environment"] = sample_context["environment"]
 
         latest_by_transcript: dict[str, dict[str, Any]] = {}
         annotations = self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)])
@@ -351,18 +448,18 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         return latest_by_transcript
 
     def get_additional_classifications(
-        self, variant: dict, assay_group: str, subpanel: str
+        self, variant: dict, assay_group: str, diagnosis: str, *, sample_context: dict | None = None
     ) -> list:
         """
-        Retrieve additional classifications for a given variant based on specified assay and subpanel.
+        Retrieve additional classifications for a given variant based on specified assay and diagnosis.
         This method constructs a query to search for classifications in the database that match the
         provided variant's genes, transcripts, and nomenclature variants (HGVSp and HGVSc). If the
-        sample has a named subpanel, it further filters by that exact subpanel.
+        sample's diagnosis is always matched exactly, including Base.
         Args:
             variant (dict): A dictionary containing variant details including 'transcripts', 'HGVSp',
                             'HGVSc', and 'genes'.
             assay_group (str): The type of assay being used (e.g., 'solid').
-            subpanel (str): Exact named scope; Base or empty uses assay group alone.
+            diagnosis (str): Exact scope; null or blank selects Base.
         Returns:
             list: A list of annotations that match the query criteria, sorted by the time they were created.
 
@@ -394,8 +491,11 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 "class": {"$in": [1, 2, 3, 4]},
             }
             query.update(annotation_context_fields(nomenclature="f", source=variant))
-        if _named_subpanel(subpanel):
-            query["subpanel"] = subpanel
+        query["diagnosis"] = diagnosis or DIAGNOSIS_BASE_ID
+        if not sample_context:
+            return []
+        query["resource_context.assay_id"] = sample_context["assay_id"]
+        query["resource_context.environment"] = sample_context["environment"]
 
         return list(
             self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)]).limit(1)
@@ -413,7 +513,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         Insert a classified variant into the database.
 
         This method creates a document representing a classified variant and inserts it into the MongoDB collection.
-        The document includes details such as the variant, nomenclature, classification, assay, subpanel, and additional
+        The document includes details such as the variant, nomenclature, classification, assay, diagnosis, and additional
         metadata like the author and creation time.
 
         Args:
@@ -422,7 +522,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             class_num (int): The classification number assigned to the variant.
             variant_data (dict): A dictionary containing additional variant details, such as:
                 - assay (str): The assay type (e.g., 'solid').
-                - subpanel (str): The subpanel identifier.
+                - diagnosis (str): The diagnosis identifier.
                 - gene (str): The gene symbol (if applicable).
                 - transcript (str): The transcript identifier (if applicable).
                 - gene1 (str): The first gene symbol (if nomenclature is 'f').
@@ -439,7 +539,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": variant_data.get("assay_group", None),
-            "subpanel": variant_data.get("subpanel", None),
+            "diagnosis": variant_data.get("diagnosis", None),
+            "resource_context": deepcopy(variant_data.get("resource_context")),
         }
 
         if "text" in kwargs:
@@ -469,7 +570,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
 
         This method removes a classified variant document from the MongoDB collection
         based on the provided variant details, nomenclature, and assay information.
-        Deletion is limited to the exact assay, subpanel, nomenclature, and
+        Deletion is limited to the exact assay, diagnosis, nomenclature, and
         finding context supplied by the current workflow.
 
         Args:
@@ -477,7 +578,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             nomenclature (str): The nomenclature type ('p', 'c', 'g', or 'f').
             variant_data (dict): A dictionary containing additional variant details, such as:
                 - assay (str): The assay type (e.g., 'solid').
-                - subpanel (str): The subpanel identifier.
+                - diagnosis (str): The diagnosis identifier.
                 - gene (str): The gene symbol (if applicable).
 
         Returns:
@@ -487,7 +588,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "variant": variant,
             "assay": variant_data.get("assay_group", None),
             "nomenclature": nomenclature,
-            "subpanel": variant_data.get("subpanel", None),
+            "diagnosis": variant_data.get("diagnosis", None),
             **annotation_context_fields(nomenclature=nomenclature, source=variant_data),
         }
 
@@ -500,6 +601,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             delete_clause.append({"text": annotation_text})
 
         scoped_query = {**query, "$or": delete_clause}
+        context = variant_data.get("resource_context") or {}
+        scoped_query["resource_context.assay_id"] = context.get("assay_id")
+        scoped_query["resource_context.environment"] = context.get("environment")
         result = OperationResult.from_delete(self.delete_many_atomic(scoped_query))
         if result.deleted_count:
             self.invalidate_dashboard_metrics()
@@ -521,7 +625,11 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             list: A list of annotations related to the specified gene,
                   sorted by creation time.
         """
-        return self.get_collection().find({"gene": gene_name}).sort("time_created", 1)
+        return (
+            self.get_collection()
+            .find({"gene": gene_name, "namespace": "clinical"})
+            .sort("time_created", 1)
+        )
 
     def add_anno_comment(self, comment: dict) -> Any:
         """
@@ -560,7 +668,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         Args:
             search_str (str): The search string to match against variant fields.
             limit (int | None): Optional limit on the number of results to return.
-            search_mode (str): The mode of search, can be 'gene', 'transcript', 'variant', 'author', or 'subpanel'.
+            search_mode (str): The mode of search, can be 'gene', 'transcript', 'variant', 'author', or 'diagnosis'.
             include_annotation_text (bool): Whether to include annotations with text.
             asp_ids (list | None): Optional ASP identifiers to filter the results.
 

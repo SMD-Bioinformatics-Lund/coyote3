@@ -6,7 +6,10 @@ from typing import Any
 
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.application.reporting.clinical_rules.resolution import resolve_published_rule_set
+from api.application.reporting.clinical_rules.resolution import (
+    load_compiled_rule_set,
+    resolve_published_rule_set,
+)
 from api.application.reporting.clinical_rules.validation import (
     REPORT_METADATA_SECTIONS,
 )
@@ -55,18 +58,16 @@ class ClinicalRuleService:
         return resolve_published_rule_set(
             self.repository,
             asp_id=context.sample.asp_id,
-            subpanel_id=context.sample.subpanel_id,
-            analyte=context.sample.omics_layer,
+            diagnosis_id=context.sample.diagnosis_id,
+            analyte=context.sample.asp_category,
             language=context.aspc.reporting.language,
         )
 
-    def annotation_tumor_type(self, *, asp_id: str, subpanel_id: str, language: str) -> str | None:
-        """Read approved automatic-annotation terminology from the scoped DNA release.
+    def annotation_tumor_type(self, *, aspc: dict) -> str | None:
+        """Read automatic-annotation terminology from the pinned DNA rule content.
 
         Args:
-            asp_id: Sample's assay identifier.
-            subpanel_id: Sample's resolved interpretation scope, with assay Base fallback.
-            language: ASPC reporting language. The existing automatic sentence supports sv.
+            aspc: Exact sample configuration with its captured clinical rule release.
 
         Returns:
             Configured tumor-type wording, or None when automatic annotation is not configured.
@@ -75,13 +76,10 @@ class ClinicalRuleService:
             ValueError: Release resolution/integrity fails or automatic Swedish text
                 is requested for another reporting language.
         """
-        release = resolve_published_rule_set(
-            self.repository,
-            asp_id=asp_id,
-            subpanel_id=subpanel_id,
-            analyte="dna",
-            language=language,
-        )
+        release = load_compiled_rule_set(aspc)
+        if release.scope.analyte != "dna":
+            raise ValueError("Automatic variant annotation requires a DNA configuration")
+        language = release.scope.language
         value = release.terminology.get("automatic_annotation_tumor_type")
         if value and language != "sv":
             raise ValueError(
@@ -111,10 +109,10 @@ class ClinicalRuleService:
         aspc: dict[str, Any],
         context: PreparedReportContext,
     ) -> ClinicalRuleEvaluation:
-        """Resolve the scoped release and evaluate the prepared reporting sections.
+        """Evaluate the immutable rule content captured in the sample's configuration.
 
         Args:
-            aspc: Accepted but unused; configuration is read from context.aspc.
+            aspc: Exact pinned configuration with its captured clinical rule release.
             context: Prepared facts and reporting configuration.
 
         Returns:
@@ -124,8 +122,13 @@ class ClinicalRuleService:
             ValueError: Release resolution fails, report analyses are undeclared,
                 or the evaluator cannot render the rules.
         """
-        _ = aspc
-        rule_set = self.resolve(context=context)
+        if (
+            aspc.get("asp_id") != context.sample.asp_id
+            or aspc.get("environment") != context.sample.environment
+            or aspc.get("aspc_id") != context.aspc.aspc_id
+        ):
+            raise ValueError("Report context does not match its pinned configuration")
+        rule_set = load_compiled_rule_set(aspc)
         return self.evaluate_document(rule_set=rule_set, context=context)
 
     def evaluate_document(
@@ -136,7 +139,7 @@ class ClinicalRuleService:
         include_condition_trace: bool = False,
     ) -> ClinicalRuleEvaluation:
         """Evaluate an explicitly selected rule version against prepared report facts."""
-        if rule_set.scope.analyte != context.sample.omics_layer:
+        if rule_set.scope.analyte != context.sample.asp_category:
             raise ValueError("Clinical rule-set analyte does not match the report context")
         report_sections = self._report_sections(context)
         undeclared = sorted(report_sections - set(rule_set.analysis_declarations))

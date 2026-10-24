@@ -6,7 +6,7 @@
     "revision": 1,
     "scope": {
       "asp_id": "assay_1",
-      "subpanel_id": "base",
+      "diagnosis_id": "base",
       "analyte": "dna",
       "language": "sv"
     },
@@ -38,6 +38,6 @@
     "effective_from": null,
     "retired_at": null,
     "retired_by": null,
-    "content_hash": null
+    "content_hash": "6b94b2bb943564acdb3b9b03de489905e0f743d63865990c13137422c90b38ae"
   }
 ]

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from api.application.common.assay_context import build_assay_context
+from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
 from api.security.access import ApiUser
 
 
@@ -65,14 +67,15 @@ def sample_doc() -> dict:
     """
     defaults = {
         "_id": "s1",
+        "version": 1,
         "name": "SAMPLE_001",
         "asp_id": "wgs",
         "environment": "production",
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "wgs",
+        "asp_category": "dna",
         "case_id": "CASE001",
         "control_id": "CTRL001",
-        "subpanel_id": "myeloid",
+        "diagnosis_id": "myeloid",
         "database_versions": {"vep": "110"},
         "report_num": 2,
         "reports": [{"_id": "r1", "report_id": "RID1", "report_num": 1, "time_created": 1}],
@@ -99,20 +102,49 @@ def sample_doc() -> dict:
     return defaults
 
 
-def assay_config_doc() -> dict:
-    """Assay config doc.
-
-    Returns:
-        dict: The function result.
-    """
+def assay_config_doc(*, asp_group="dna", asp_category="dna") -> dict:
+    """Construct a configuration with captured assay and selectable gene-list revisions."""
+    panel = {
+        "asp_id": "wgs",
+        "asp_group": asp_group,
+        "asp_category": asp_category,
+        "asp_family": "wts" if asp_category == "rna" else "wgs",
+        "version": 1,
+        "covered_genes": ["TP53", "NPM1"],
+    }
     defaults = {
         "_id": "aspc1",
-        "asp_group": "dna",
-        "analysis_types": ["SNV", "CNV", "HRD", "MSI"],
+        "aspc_id": "wgs_myeloid_production",
+        "asp_id": "wgs",
+        "asp_group": asp_group,
+        "environment": "production",
+        "diagnosis_id": "myeloid",
+        "version": 1,
+        "analysis_types": ["FUSION"] if asp_category == "rna" else ["SNV", "CNV", "HRD", "MSI"],
+        "analysis_intents": ["somatic"],
         "filters": deepcopy(sample_doc().get("filters", {})),
         "reporting": {"report_path": "dna_report.html", "plots_path": "reports/plots"},
         "verification_samples": {"SAMPLE": ["1:1:A:T"]},
+        "assay_resource_release": capture_assay_resource(panel),
+        "gene_list_release": capture_gene_lists(
+            [
+                {
+                    **isgl_doc(),
+                    "isgl_id": "gl1",
+                    "version": 1,
+                    "list_type": ["snv", "cnv"],
+                    "is_active": True,
+                    "genes": ["TP53", "NPM1"],
+                }
+            ]
+        ),
     }
+    context_sample = {
+        **sample_doc(),
+        "asp_category": asp_category,
+        "asp_family": panel["asp_family"],
+    }
+    defaults["aspc_resolution"] = {"context": build_assay_context(context_sample, panel, defaults)}
     return defaults
 
 

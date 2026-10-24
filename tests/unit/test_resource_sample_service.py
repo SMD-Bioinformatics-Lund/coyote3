@@ -108,13 +108,13 @@ def valid_sample_document(**overrides: object) -> dict[str, object]:
         "_id": "507f191e810c19729de860ea",
         "name": "synthetic-sample",
         "asp_id": "assay",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "case_id": "synthetic-case",
         "sample_no": 1,
         "paired": False,
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
         "pipeline": "SyntheticPanelPipeline",
         "pipeline_version": "1.0.0",
         "files": {"vcf_files": {"path": "/synthetic/sample.vcf"}},
@@ -222,6 +222,8 @@ def test_context_payload_returns_sample_and_rejects_unknown_id() -> None:
 
 def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.MonkeyPatch) -> None:
     service, repository, _ = build_service()
+    repository.samples["sample-oid"].update(valid_sample_document(version=1))
+    repository.samples["sample-oid"]["_id"] = "sample-oid"
     repository.samples["sample-oid"].update(ingested_by="initial.user", ingest_source="upload")
     timestamp = datetime(2026, 7, 31, 10, 0, tzinfo=UTC)
     monkeypatch.setattr("api.application.resources.sample.utc_now", lambda: timestamp)

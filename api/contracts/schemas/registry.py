@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
+from api.contracts.configuration_profiles import ConfigurationProfileDoc, ConfigurationPromotionDoc
 from api.contracts.schemas.app_controls import AppControlsDoc
 from api.contracts.schemas.assay import (
     AspConfigDoc,
@@ -17,6 +18,10 @@ from api.contracts.schemas.assay import (
 from api.contracts.schemas.assay_groups import AssayGroupDoc
 from api.contracts.schemas.assay_setup import AssaySetupDoc, AssaySetupRevisionDoc
 from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
+from api.contracts.schemas.diagnoses import (
+    DiagnosisAssociationDoc,
+    DiagnosisDefinitionDoc,
+)
 from api.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
@@ -60,10 +65,6 @@ from api.contracts.schemas.samples import (
     SampleReportRecordDoc,
     SamplesDoc,
 )
-from api.contracts.schemas.subpanels import (
-    SubpanelAssociationDoc,
-    SubpanelDefinitionDoc,
-)
 from api.contracts.schemas.variant_annotations import (
     AnnotationDoc,
     AnnoVepDoc,
@@ -72,10 +73,12 @@ from api.contracts.schemas.variant_annotations import (
 )
 
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
+    "configuration_profiles": TypeAdapter(ConfigurationProfileDoc),
+    "configuration_promotions": TypeAdapter(ConfigurationPromotionDoc),
     "assay_setups": TypeAdapter(AssaySetupDoc),
     "assay_setup_revisions": TypeAdapter(AssaySetupRevisionDoc),
-    "subpanels": TypeAdapter(SubpanelDefinitionDoc),
-    "subpanel_associations": TypeAdapter(SubpanelAssociationDoc),
+    "diagnoses": TypeAdapter(DiagnosisDefinitionDoc),
+    "diagnosis_associations": TypeAdapter(DiagnosisAssociationDoc),
     "ingest_jobs": TypeAdapter(IngestJobDoc),
     "samples": TypeAdapter(SamplesDoc),
     "sample_comments": TypeAdapter(SampleCommentRecordDoc),

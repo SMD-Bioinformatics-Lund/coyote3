@@ -37,7 +37,7 @@ def _merge_missing_values(current: Any, defaults: Any) -> Any:
     return merged
 
 
-def normalize_analysis_intents(value: Any, *, omics_layer: str) -> list[str]:
+def normalize_analysis_intents(value: Any, *, asp_category: str) -> list[str]:
     """Normalize supported sample/ASPC analysis intents."""
     values = value if isinstance(value, list) else [value]
     intents = list(
@@ -48,7 +48,7 @@ def normalize_analysis_intents(value: Any, *, omics_layer: str) -> list[str]:
     invalid = [intent for intent in intents if intent not in ANALYSIS_INTENT_OPTIONS]
     if invalid:
         raise ValueError("analysis_intents may contain only somatic and germline")
-    if str(omics_layer or "").strip().lower() != "dna" and "germline" in intents:
+    if str(asp_category or "").strip().lower() != "dna" and "germline" in intents:
         raise ValueError("germline analysis is currently supported only for DNA SNV")
     return intents
 
@@ -56,7 +56,7 @@ def normalize_analysis_intents(value: Any, *, omics_layer: str) -> list[str]:
 def normalize_sample_filters(
     filters: dict[str, Any] | None,
     *,
-    omics_layer: str,
+    asp_category: str,
     analysis_intents: Any = None,
     canonical: bool = False,
     intent: str = "somatic",
@@ -67,14 +67,14 @@ def normalize_sample_filters(
     requests an intent profile, which remains a plain section map such as
     ``{"snv": {...}, "cnv": {...}}``.
     """
-    layer = str(omics_layer or "dna").strip().lower()
+    layer = str(asp_category or "dna").strip().lower()
     source = deepcopy(filters or {})
     if not isinstance(source, dict):
         source = {}
     inferred_intents = analysis_intents
     if inferred_intents is None:
         inferred_intents = [key for key in ANALYSIS_INTENT_OPTIONS if key in source] or ["somatic"]
-    intents = normalize_analysis_intents(inferred_intents, omics_layer=layer)
+    intents = normalize_analysis_intents(inferred_intents, asp_category=layer)
 
     model = DnaFilterProfilesDoc if layer == "dna" else RnaFilterProfilesDoc
     validated: dict[str, Any] = model.model_validate(source).model_dump(exclude_none=True)
@@ -90,14 +90,14 @@ def normalize_sample_filters(
 
 def sample_filters_from_aspc_filters(
     filters: dict[str, Any] | None,
-    omics_layer: str,
+    asp_category: str,
     *,
     analysis_intents: Any = None,
 ) -> dict[str, Any]:
     """Return the validated full filter snapshot copied from an ASPC."""
     return normalize_sample_filters(
         filters,
-        omics_layer=omics_layer,
+        asp_category=asp_category,
         analysis_intents=analysis_intents,
         canonical=True,
     )
@@ -107,14 +107,14 @@ def sample_filter_section(
     filters: dict[str, Any] | None,
     section: str,
     *,
-    omics_layer: str = "dna",
+    asp_category: str = "dna",
     intent: str = "somatic",
     analysis_intents: Any = None,
 ) -> dict[str, Any]:
     """Return a validated filter section from one analysis intent."""
     profile = normalize_sample_filters(
         filters,
-        omics_layer=omics_layer,
+        asp_category=asp_category,
         analysis_intents=analysis_intents,
         intent=intent,
     )
@@ -126,7 +126,7 @@ def canonical_dna_filter_section(filters: dict[str, Any] | None, section: str) -
     """Validate one DNA somatic filter section against the frozen contract."""
     profile = normalize_sample_filters(
         {"somatic": {section: deepcopy(filters or {})}},
-        omics_layer="dna",
+        asp_category="dna",
         canonical=False,
     )
     return deepcopy(profile.get(section) or {})
@@ -136,17 +136,17 @@ def merge_filter_defaults(
     filters: dict[str, Any] | None,
     defaults: dict[str, Any] | None,
     *,
-    omics_layer: str,
+    asp_category: str,
     analysis_intents: Any = None,
 ) -> dict[str, Any]:
     """Merge only absent canonical groups from the selected ASPC defaults."""
-    layer = str(omics_layer or "dna").strip().lower()
-    intents = normalize_analysis_intents(analysis_intents, omics_layer=layer)
+    layer = str(asp_category or "dna").strip().lower()
+    intents = normalize_analysis_intents(analysis_intents, asp_category=layer)
     current = normalize_sample_filters(
-        filters, omics_layer=layer, analysis_intents=intents, canonical=True
+        filters, asp_category=layer, analysis_intents=intents, canonical=True
     )
     default_profiles = normalize_sample_filters(
-        defaults, omics_layer=layer, analysis_intents=intents, canonical=True
+        defaults, asp_category=layer, analysis_intents=intents, canonical=True
     )
     for profile_intent in intents:
         default_profile = default_profiles.get(profile_intent) or {}
@@ -158,7 +158,7 @@ def merge_filter_defaults(
                 target_profile.get(section, {}), default_values
             )
     return normalize_sample_filters(
-        current, omics_layer=layer, analysis_intents=intents, canonical=True
+        current, asp_category=layer, analysis_intents=intents, canonical=True
     )
 
 
@@ -168,7 +168,7 @@ def merged_dna_variant_filters(
     """Return SNV and coverage values for the selected DNA intent."""
     profile = normalize_sample_filters(
         filters,
-        omics_layer="dna",
+        asp_category="dna",
         analysis_intents=analysis_intents,
         intent=intent,
     )
@@ -184,7 +184,7 @@ def merged_dna_cnv_filters(
     """Return the somatic CNV and coverage values for CNV query builders."""
     profile = normalize_sample_filters(
         filters,
-        omics_layer="dna",
+        asp_category="dna",
         analysis_intents=analysis_intents,
         intent="somatic",
     )
@@ -199,7 +199,7 @@ def merged_dna_translocation_filters(
     """Return the somatic DNA fusion/translocation gene-scope values."""
     profile = normalize_sample_filters(
         filters,
-        omics_layer="dna",
+        asp_category="dna",
         analysis_intents=analysis_intents,
         intent="somatic",
     )

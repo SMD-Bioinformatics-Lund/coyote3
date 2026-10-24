@@ -102,12 +102,12 @@ def test_common_gene_cohort_read_applies_user_scope(monkeypatch):
     user = fx.api_user()
     user.roles = ["user"]
     user.role = "user"
-    user.asp_ids = ["solid_gmsv3"]
+    user.asp_ids = ["demo-solid_gmsv3"]
     user.envs = ["production"]
     common.common_gene_cohort_read("TP53", user=user, service=service)
     assert captured == {
         "gene_id": "TP53",
-        "visible_asp_ids": ["solid_gmsv3"],
+        "visible_asp_ids": ["demo-solid_gmsv3"],
         "visible_environments": ["production"],
         "include_history": False,
     }

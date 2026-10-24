@@ -2,9 +2,37 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+
+class ConfigurationApplyRequest(BaseModel):
+    """Apply only the configuration and sample state reviewed in the preceding preview."""
+
+    expected_version: int = Field(ge=1)
+    configuration_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1, max_length=2000)
+    retain_overrides: bool = False
+
+
+class ConfigurationPreviewPayload(BaseModel):
+    """Reviewed candidate, effective filter changes and optimistic concurrency preconditions."""
+
+    expected_version: int = Field(ge=1)
+    configuration_id: str = Field(min_length=1)
+    configuration: dict[str, Any]
+    filters_before: dict[str, Any] | None
+    filters_after: dict[str, Any]
+    retain_overrides: bool
+    changed_components: list[
+        Literal[
+            "assay_resource_release",
+            "gene_list_release",
+            "query_policy_release",
+            "clinical_rule_release",
+        ]
+    ]
 
 
 class SampleCommentCreateRequest(BaseModel):

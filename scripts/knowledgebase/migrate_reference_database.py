@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Move HGNC/VEP references and retire the superseded assay subpanel collection."""
+"""Move HGNC/VEP references and retire the superseded assay diagnosis collection."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
 )
 
 
-def validate_legacy_subpanels(source) -> int:
+def validate_legacy_diagnoses(source) -> int:
     """Require every current named legacy scope to have a current replacement.
 
     Args:
@@ -42,15 +42,15 @@ def validate_legacy_subpanels(source) -> int:
         key = row.get("subpanel_id")
         if key in (None, "", "base"):
             continue
-        definition = source[mapping["subpanels_collection"]].find_one(
-            {"subpanel_id": key, "is_current": True}
+        definition = source[mapping["diagnoses_collection"]].find_one(
+            {"diagnosis_id": key, "is_current": True}
         )
-        association = source[mapping["subpanel_associations_collection"]].find_one(
-            {"subpanel_id": key, "asp_id": row.get("asp_id"), "is_current": True}
+        association = source[mapping["diagnosis_associations_collection"]].find_one(
+            {"diagnosis_id": key, "asp_id": row.get("asp_id"), "is_current": True}
         )
         if definition is None or association is None:
             raise ValueError(
-                "Legacy subpanel has no current replacement; run subpanel migration first"
+                "Legacy diagnosis has no current replacement; run diagnosis migration first"
             )
     return source.assay_subpanels.count_documents({})
 
@@ -78,7 +78,7 @@ def migrate(source, target, *, apply=False, backup_dir: Path | None = None) -> d
         retain legacy revisions; only current scopes are checked for replacement.
     """
     assert_distinct_databases(source, target)
-    legacy_count = validate_legacy_subpanels(source)
+    legacy_count = validate_legacy_diagnoses(source)
     mapping = load_collection_section("knowledgebase")
     references = {key: mapping[key] for key in ("hgnc_collection", "vep_metadata_collection")}
     plans = [
@@ -120,7 +120,7 @@ def migrate(source, target, *, apply=False, backup_dir: Path | None = None) -> d
             copy_indexes(source[name], target[name])
             if not verify_pair(source[name], target[name], key)["verified"]:
                 raise RuntimeError("Reference verification failed; sources retained")
-    validate_legacy_subpanels(source)
+    validate_legacy_diagnoses(source)
     for name in [*references.values(), "assay_subpanels"]:
         if name in names:
             source.drop_collection(name)

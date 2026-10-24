@@ -124,14 +124,17 @@ class CoverageProcessingService:
 
     @staticmethod
     def filter_genes_from_form(
-        cov_dict: dict, filter_genes: list, smp_grp: str, *, d4_coverage_blacklist_repository
+        cov_dict: dict,
+        filter_genes: list[str],
+        smp_grp: str,
+        *,
+        d4_coverage_blacklist_repository,
     ) -> dict:
         """Filter coverage data down to selected genes.
 
         Args:
             cov_dict: Coverage payload to filter.
-            filter_genes: Genes covered by the ASP. An empty list means that
-                every gene in the coverage payload is eligible.
+            filter_genes: Resolved sample eligibility. An empty list excludes all genes.
             smp_grp: Assay group used for blacklist lookups.
 
         Returns:
@@ -144,7 +147,7 @@ class CoverageProcessingService:
             d4_coverage_blacklist_repository.get_regions_per_group(smp_grp)
         )
         for gene, gene_cov in genes.items():
-            if (not filter_set or gene in filter_set) and gene not in gene_blacklist:
+            if gene in filter_set and gene not in gene_blacklist:
                 filtered_dict["genes"][gene] = gene_cov
         return filtered_dict
 

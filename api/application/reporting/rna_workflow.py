@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from types import SimpleNamespace
-from typing import Any
 
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.application.interpretation.annotation_enrichment import add_alt_class
 from api.application.query_rules.service import QueryRuleService, effective_policy
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
@@ -15,12 +15,9 @@ from api.application.reporting.persistence import (
 from api.application.reporting.persistence import (
     prepare_report_output as prepare_shared_report_output,
 )
-from api.application.reporting.snapshot_rows import build_pgx_snapshot_rows, flatten_pgx_records
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.domain.common.assay_filters import (
-    format_filters_from_form,
     get_sample_effective_genes,
-    has_sample_gene_restriction,
     merge_sample_settings_with_assay_config,
 )
 from api.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC, utc_now
@@ -42,7 +39,6 @@ from api.domain.core.workflows.filter_normalization import normalize_rna_filter_
 util = SimpleNamespace(
     common=SimpleNamespace(
         merge_sample_settings_with_assay_config=merge_sample_settings_with_assay_config,
-        format_filters_from_form=format_filters_from_form,
         get_sample_effective_genes=get_sample_effective_genes,
     )
 )
@@ -65,7 +61,6 @@ class RNAWorkflowService:
             assay_panel_repository=store.assay_panel_repository,
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
-            pgx_repository=store.pgx_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
             query_rule_service=QueryRuleService.from_store(store),
         )
@@ -83,7 +78,6 @@ class RNAWorkflowService:
         assay_panel_repository,
         reported_variant_repository,
         report_repository,
-        pgx_repository=None,
         clinical_rule_service=None,
         query_rule_service=None,
     ) -> None:
@@ -98,7 +92,6 @@ class RNAWorkflowService:
         self.assay_panel_repository = assay_panel_repository
         self.reported_variant_repository = reported_variant_repository
         self.report_repository = report_repository
-        self.pgx_repository = pgx_repository
         self.clinical_rule_service = clinical_rule_service
         self.query_rule_service = query_rule_service
 
@@ -117,50 +110,19 @@ class RNAWorkflowService:
             sample_filter_section(
                 sample.get("filters"),
                 "fusion",
-                omics_layer="rna",
+                asp_category="rna",
                 analysis_intents=sample.get("analysis_intents"),
             )
         )
         validate_rna_filter_inputs(logger, sample.get("name", sample_id), sample_filters)
         return sample, sample_filters
 
-    def persist_form_filters(
-        self,
-        sample: dict,
-        form: Any,
-        assay_config_schema: dict,
-        request_form: Any,
-    ) -> tuple[dict, dict]:
-        """Persist normalized RNA form filters and return refreshed sample state."""
-        _id = str(sample.get("_id"))
-        filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
-        filters_from_form["fusionlists"] = request_form.getlist("fusionlists")
-        filters_from_form["fusion_callers"] = create_fusioncallers(
-            filters_from_form.get("fusion_callers", [])
-        )
-        filters_from_form["fusion_effects"] = create_fusioneffectlist(
-            filters_from_form.get("fusion_effects", [])
-        )
-        existing_fusion_filters = sample_filter_section(
-            sample.get("filters"), "fusion", omics_layer="rna"
-        )
-        if existing_fusion_filters.get("adhoc_genes"):
-            filters_from_form["adhoc_genes"] = existing_fusion_filters.get("adhoc_genes")
-        self.sample_repository.update_sample_filters(
-            _id, {"somatic": {"fusion": filters_from_form}}
-        )
-
-        updated_sample = self.sample_repository.get_sample(_id)
-        updated_filters = normalize_rna_filter_keys(
-            sample_filter_section(updated_sample.get("filters"), "fusion", omics_layer="rna")
-        )
-        return updated_sample, updated_filters
-
     def compute_filter_context(
         self,
         sample: dict,
         sample_filters: dict,
         assay_panel_doc: dict,
+        selected_list_docs: dict,
     ) -> dict:
         """Compute the canonical filter context used by fusion-list routes."""
         fusion_effects = create_fusioneffectlist(sample_filters.get("fusion_effects", []))
@@ -173,9 +135,7 @@ class RNAWorkflowService:
             }
         )
         checked_fusionlists = sample_filters.get("fusionlists", [])
-        checked_fusionlists_genes_dict = self.gene_list_repository.get_isgl_by_ids(
-            checked_fusionlists
-        )
+        checked_fusionlists_genes_dict = selected_list_docs
 
         genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
             sample, assay_panel_doc, checked_fusionlists_genes_dict, target="fusion"
@@ -195,15 +155,7 @@ class RNAWorkflowService:
             "checked_fusionlists": checked_fusionlists,
             "genes_covered_in_panel": genes_covered_in_panel,
             "filter_genes": filter_genes,
-            "restrict_to_genes": has_sample_gene_restriction(
-                {
-                    **sample,
-                    "omics_layer": "rna",
-                    "filters": {"somatic": {"fusion": sample_filters}},
-                },
-                assay_panel_doc,
-                target="fusion",
-            ),
+            "restrict_to_genes": True,
             "fusion_effect_form_keys": fusion_effect_form_keys,
         }
 
@@ -214,8 +166,7 @@ class RNAWorkflowService:
         sample_filters: dict,
         filter_context: dict,
         *,
-        asp_id: str,
-        subpanel_id: str,
+        sample: dict,
         intent: str = "somatic",
         query_rule_service=None,
     ) -> dict:
@@ -225,7 +176,7 @@ class RNAWorkflowService:
             policy=effective_policy(
                 query_rule_service,
                 "fusion",
-                {"asp_id": asp_id, "subpanel_id": subpanel_id},
+                sample,
                 assay_group=assay_group,
                 intent=intent,
             ),
@@ -239,8 +190,8 @@ class RNAWorkflowService:
                 "checked_fusionlists": filter_context["checked_fusionlists"],
                 "filter_genes": filter_context["filter_genes"],
                 "restrict_to_genes": filter_context["restrict_to_genes"],
-                "asp_id": asp_id,
-                "subpanel_id": subpanel_id,
+                "asp_id": sample["asp_id"],
+                "diagnosis_id": sample.get("diagnosis_id") or "base",
                 "intent": intent,
             },
         )
@@ -258,7 +209,9 @@ class RNAWorkflowService:
         self,
         fusion: dict,
         assay_group: str,
-        subpanel: str,
+        diagnosis: str,
+        *,
+        sample_context: dict,
     ) -> dict:
         """Build annotation and classification context for a fusion detail view."""
         in_other = self.fusion_repository.get_fusion_in_other_samples(fusion)
@@ -269,15 +222,16 @@ class RNAWorkflowService:
             other_classifications,
             annotations_interesting,
         ) = self.annotation_repository.get_global_annotations(
-            selected_fusion_call, assay_group, subpanel
+            selected_fusion_call, assay_group, diagnosis, sample_context=sample_context
         )
 
         if not latest_classification or latest_classification.get("class") == 999:
             fusion = add_alt_class(
                 fusion,
                 assay_group,
-                subpanel,
+                diagnosis,
                 annotation_repository=self.annotation_repository,
+                sample_context=sample_context,
             )
         else:
             fusion["additional_classifications"] = None
@@ -332,6 +286,7 @@ class RNAWorkflowService:
         snapshot_rows: list | None,
         created_by: str,
         rule_provenance: dict | None = None,
+        resolution_snapshot: dict | None = None,
     ) -> tuple[str, str]:
         """
         Persist RNA report artifacts via common reporting pipeline.
@@ -346,6 +301,7 @@ class RNAWorkflowService:
             snapshot_rows=snapshot_rows,
             created_by=created_by,
             rule_provenance=rule_provenance,
+            resolution_snapshot=resolution_snapshot,
             sample_repository=self.sample_repository,
         )
 
@@ -479,7 +435,8 @@ class RNAWorkflowService:
             ) = self.annotation_repository.get_global_annotations(
                 {**fusion, **(get_selected_fusioncall(fusion) or {})},
                 str(assay_config["asp_group"]),
-                sample.get("subpanel_id"),
+                sample.get("diagnosis_id"),
+                sample_context=assay_config["aspc_resolution"]["context"],
             )
             fusion["global_annotations"] = list(interesting.values())
 
@@ -496,30 +453,25 @@ class RNAWorkflowService:
         ]
         for fusion in reportable_fusions:
             self._validate_reportable_fusion(fusion)
-        fusion_filters = sample_filter_section(sample.get("filters"), "fusion", omics_layer="rna")
+        fusion_filters = sample_filter_section(sample.get("filters"), "fusion", asp_category="rna")
         selected_list_ids = list(fusion_filters.get("fusionlists", []) or [])
-        selected_list_docs = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        selected_list_docs = gene_list_resources(assay_config, selected_list_ids)
         applied_gene_lists = [
             {**document, "isgl_id": isgl_id, "selected_for": ["fusion"]}
             for isgl_id, document in selected_list_docs.items()
         ]
-        assay_panel = self.assay_panel_repository.get_asp(str(sample.get("asp_id") or "")) or {}
+        assay_panel = assay_resource(assay_config)
         report_sections = {
             str(value).strip().upper()
             for value in reporting_config.get("report_sections", ["FUSION"])
         }
-        pgx_records = flatten_pgx_records(
-            list(self.pgx_repository.get_sample_pgx(str(sample["_id"])) or [])
-            if "PGX" in report_sections and self.pgx_repository is not None
-            else []
-        )
         prepared_rule_context = prepare_report_context(
             sample=sample,
             asp=assay_panel,
             aspc=assay_config,
             analyte="rna",
             applied_gene_lists=applied_gene_lists,
-            report_sections_data={"fusions": reportable_fusions, "pgx": pgx_records},
+            report_sections_data={"fusions": reportable_fusions},
         )
         clinical_rule_evaluation = None
         if self.clinical_rule_service is not None:
@@ -558,7 +510,6 @@ class RNAWorkflowService:
             "assay_config": assay_config,
             "report_sections": report_sections,
             "fusions": reportable_fusions,
-            "pgx": pgx_records,
             "report_header": report_header,
             "sample": sample,
             "class_desc": TIER_DESC,
@@ -576,7 +527,6 @@ class RNAWorkflowService:
         if not include_snapshot:
             return "report_fusion.html", template_context, []
         snapshot_rows = RNAWorkflowService._build_snapshot_rows(reportable_fusions)
-        snapshot_rows.extend(build_pgx_snapshot_rows(pgx_records))
         return (
             "report_fusion.html",
             template_context,

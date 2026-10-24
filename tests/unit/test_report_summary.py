@@ -57,7 +57,7 @@ def test_create_comment_doc_global_annotation_has_flat_variant_identities(monkey
             "text": "reviewed",
             "global": "global",
             "assay_group": "hematology",
-            "subpanel": "base",
+            "diagnosis": "base",
             "gene": "SRSF2",
             "transcript": "NM_003016.4",
             "hgvsp": "p.Met89Val",

@@ -12,6 +12,7 @@ from api.config.clinical_query_policy import (
     _exception,
     _finding_exception,
 )
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.base import _StrictCollectionDocBase, _StrictDocBase
 from api.domain.query_conditions import compile_condition
 
@@ -76,33 +77,42 @@ class QueryConditionTestResult(_StrictDocBase):
 
 
 class QueryRuleScope(_StrictDocBase):
-    """Identify a global, group, assay or subpanel policy for one analysis and intent."""
+    """Identify a shared or environment-specific policy within the clinical hierarchy."""
 
     assay_group: str | None = Field(
         default=None, min_length=1, max_length=100, pattern=r"^[a-z0-9_-]+$"
     )
     asp_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[a-z0-9_-]+$")
-    subpanel_id: str | None = Field(
+    diagnosis_id: str | None = Field(
         default=None, min_length=1, max_length=100, pattern=r"^[a-z0-9_-]+$"
     )
+    modality: Literal["dna", "rna"] | None = None
+    family: str | None = None
+    environment: str | None = None
     analysis: Literal["snv", "cnv", "translocation", "fusion"]
     intent: Literal["somatic", "germline"] = "somatic"
 
     @model_validator(mode="after")
     def validate_hierarchy(self):
-        """Require an assay for subpanel scope and supported analysis intents."""
-        if self.subpanel_id == "base":
-            self.subpanel_id = None
+        """Validate independent diagnosis, family, assay and environment dimensions."""
+        if self.diagnosis_id == "base":
+            self.diagnosis_id = None
         if any(
-            "__" in value for value in (self.assay_group, self.asp_id, self.subpanel_id) if value
+            "__" in value for value in (self.assay_group, self.asp_id, self.diagnosis_id) if value
         ):
             raise ValueError("Query scope identifiers cannot contain the reserved __ separator")
         if self.assay_group == "default" or self.asp_id == "all":
             raise ValueError("default group and all assay are reserved query identity tokens")
-        if self.subpanel_id and not self.asp_id:
-            raise ValueError("A subpanel policy requires its assay")
-        if self.asp_id and not self.assay_group:
-            raise ValueError("An assay policy requires its group")
+        if (self.diagnosis_id or self.asp_id or self.family) and not self.assay_group:
+            raise ValueError("A diagnosis, family or assay policy requires its group")
+        if bool(self.modality) != bool(self.family):
+            raise ValueError("Family policies require both modality and family")
+        if self.family and (
+            CLINICAL_VOCABULARY.assay_family_categories.get(self.family) != self.modality
+        ):
+            raise ValueError("Family must belong to the selected modality")
+        if self.environment and self.environment not in CLINICAL_VOCABULARY.environment_options:
+            raise ValueError("Choose a configured sample environment")
         if self.analysis != "snv" and self.intent != "somatic":
             raise ValueError("Only SNV currently supports germline query policies")
         return self
@@ -115,14 +125,61 @@ class QueryRuleScope(_StrictDocBase):
             "fusion": "fusions",
             "translocation": "translocations",
         }[self.analysis]
-        return "__".join(
-            (
-                self.assay_group or "default",
-                self.asp_id or "all",
-                self.subpanel_id or "base",
-                f"{self.intent}_{datatype}",
-            )
-        )
+        parts = [
+            self.assay_group or "default",
+            self.asp_id or "all",
+            self.diagnosis_id or "base",
+            f"{self.intent}_{datatype}",
+        ]
+        if self.family and not self.asp_id:
+            parts.extend((self.modality, self.family))
+        if self.environment:
+            parts.append(self.environment)
+        return "__".join(parts)
+
+    def precedence(self) -> tuple[int, int]:
+        """Return hierarchy rank followed by shared-before-environment ordering."""
+        if self.asp_id:
+            rank = 7 if self.diagnosis_id else 6
+        elif self.diagnosis_id:
+            rank = 5 if self.family else 4
+        elif self.family:
+            rank = 3
+        else:
+            rank = 2 if self.assay_group else 1
+        return rank, int(self.environment is not None)
+
+    def ancestors(self) -> list["QueryRuleScope"]:
+        """Return applicable bindings in deterministic broad-to-specific order.
+
+        Returns:
+            Shared and exact-environment scopes at each applicable rank. Another
+            environment is never an ancestor. Assay bindings do not duplicate
+            family bindings, even when the resolution context supplies both.
+        """
+        base = {"analysis": self.analysis, "intent": self.intent}
+        levels = [base]
+        if self.assay_group:
+            group = {**base, "assay_group": self.assay_group}
+            levels.append(group)
+            family = {"modality": self.modality, "family": self.family}
+            if self.family:
+                levels.append({**group, **family})
+            if self.diagnosis_id:
+                diagnosis = {**group, "diagnosis_id": self.diagnosis_id}
+                levels.append(diagnosis)
+                if self.family:
+                    levels.append({**diagnosis, **family})
+            if self.asp_id:
+                assay = {**group, "asp_id": self.asp_id}
+                levels.append(assay)
+                if self.diagnosis_id:
+                    levels.append({**assay, "diagnosis_id": self.diagnosis_id})
+        return [
+            QueryRuleScope.model_validate({**level, "environment": environment})
+            for level in levels
+            for environment in ((None, self.environment) if self.environment else (None,))
+        ]
 
 
 class QueryRuleContent(_StrictDocBase):
@@ -187,7 +244,7 @@ class QueryRuleDraft(_StrictDocBase):
                 not isinstance(value, (str, int, float, bool)) for value in info.values()
             ):
                 raise ValueError("INFO equality values must be scalar literals")
-            if set(item) & {"assay_groups", "asp_ids", "subpanel_ids", "intents"}:
+            if set(item) & {"assay_groups", "asp_ids", "diagnosis_ids", "intents"}:
                 raise ValueError("Exception scope is inherited from the rule-set scope")
             try:
                 if self.scope.analysis == "snv":
@@ -311,7 +368,7 @@ class QueryRuleSampleSummary(_StrictDocBase):
     id: str
     name: str
     asp_id: str | None = None
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
 
 
 class QueryRuleSampleSearchResult(_StrictDocBase):
@@ -331,12 +388,20 @@ class QueryRuleGroupOption(_StrictDocBase):
 
 
 class QueryRuleAssayOption(_StrictDocBase):
-    """Identify an active assay and its associated subpanels."""
+    """Identify an active assay and its associated diagnoses."""
 
     id: str
     group: str
     category: str
-    subpanels: list[str]
+    family: str | None = None
+    diagnoses: list[str]
+
+
+class QueryRuleFamilyOption(_StrictDocBase):
+    """Identify a supported technical family and its molecular layer."""
+
+    id: str
+    modality: Literal["dna", "rna"]
 
 
 class QueryRuleOptions(_StrictDocBase):
@@ -344,6 +409,8 @@ class QueryRuleOptions(_StrictDocBase):
 
     groups: list[QueryRuleGroupOption]
     assays: list[QueryRuleAssayOption]
+    families: list[QueryRuleFamilyOption] = Field(default_factory=list)
+    environments: list[str] = Field(default_factory=list)
     conditions: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -356,6 +423,13 @@ class QueryRuleResolution(_StrictDocBase):
     lineage: list[dict[str, Any]]
     compiled_conditions: list[dict[str, Any]] = Field(default_factory=list)
     requires_sample_context: bool = False
+
+
+class CompiledQueryPoliciesDoc(_StrictDocBase):
+    """Freeze effective finding policies and their source lineage for one ASPC revision."""
+
+    policies: dict[str, QueryRuleResolution]
+    content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
 class QueryRuleFindingSummary(_StrictDocBase):

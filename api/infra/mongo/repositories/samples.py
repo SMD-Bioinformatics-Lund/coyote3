@@ -15,11 +15,17 @@ import re
 from typing import Any
 
 from bson.objectid import ObjectId
+from pymongo import ReturnDocument
 
 from api.contracts.operations import OperationResult
+from api.contracts.schemas.samples import SampleAspcResolutionDoc
+from api.domain.common.errors import api_error
+from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.sample_statistics import SampleStatisticsMixin
 from api.infra.mongo.repository_utils import generate_sample_cache_key
+from api.infra.mongo.transactions import run_transaction
+from api.infra.request_context import current_username
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
 
 SAMPLE_LIST_SORT_FIELDS: dict[str, str] = {
@@ -30,7 +36,7 @@ SAMPLE_LIST_SORT_FIELDS: dict[str, str] = {
     "control_clarity": "control.clarity_id",
     "environment": "environment",
     "asp_id": "asp_id",
-    "subpanel": "subpanel_id",
+    "diagnosis": "diagnosis_id",
     "pipeline": "pipeline",
     "analysis": "ingest_status",
     "added": "time_added",
@@ -92,11 +98,11 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         col.create_index(
             [
                 ("ingest_status", 1),
-                ("omics_layer", 1),
+                ("asp_category", 1),
                 ("asp_id", 1),
                 ("environment", 1),
             ],
-            name="ingest_status_1_omics_layer_1_asp_id_1_environment_1",
+            name="ingest_status_1_asp_category_1_asp_id_1_environment_1",
             background=True,
         )
 
@@ -412,15 +418,17 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         projection = {
             "name": 1,
             "asp_id": 1,
-            "subpanel_id": 1,
+            "diagnosis_id": 1,
             "environment": 1,
             "sex": 1,
             "filters": 1,
             "analysis_intents": 1,
-            "omics_layer": 1,
+            "asp_category": 1,
             "reported": 1,
             "latest_report_id": 1,
             "files": 1,
+            "current_aspc_id": 1,
+            "version": 1,
         }
         return list(self.get_collection().find(query, projection))
 
@@ -542,7 +550,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             {
                 "name": 1,
                 "asp_id": 1,
-                "subpanel_id": 1,
+                "diagnosis_id": 1,
                 "environment": 1,
                 "case_id": 1,
                 "control_id": 1,
@@ -556,7 +564,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         *,
         aspc: dict | None = None,
         analysis_intents: list[str] | None = None,
-        aspc_resolution: dict | None = None,
+        expected_version: int | None = None,
     ) -> Any:
         """
         Reset a sample to its default settings.
@@ -575,22 +583,14 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         default_filters = dict(default_filters or {})
         default_filters.pop("_id", None)
         default_filters.pop("id_", None)
-        update = {"filters": default_filters}
-        if isinstance(aspc, dict):
-            update["current_aspc_id"] = aspc.get("_id")
-            update["current_aspc_key"] = aspc.get("aspc_id")
-            update["current_aspc_version"] = aspc.get("version")
-        if analysis_intents is not None:
-            update["analysis_intents"] = analysis_intents
-        if aspc_resolution is not None:
-            update["aspc_resolution"] = aspc_resolution
-
-        self.get_collection().update_one(
-            {"_id": ObjectId(sample_id)},
-            {"$set": update},
+        self.update_sample_filters(
+            sample_id,
+            default_filters,
+            aspc=aspc,
+            analysis_intents=analysis_intents,
+            expected_version=expected_version,
+            settings_reason="Reset to applied configuration defaults",
         )
-        invalidate_samples_cache(self.adapter)
-        self.invalidate_dashboard_metrics()
 
     def update_sample_filters(
         self,
@@ -599,33 +599,63 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         *,
         aspc: dict | None = None,
         analysis_intents: list[str] | None = None,
-        aspc_resolution: dict | None = None,
+        expected_version: int | None = None,
+        settings_reason: str | None = None,
     ) -> None:
-        """
-        Update the filters of a sample document in the database.
-
-        This method updates the `filters` field of a sample document with the provided filters.
+        """Commit sample settings and their before/after audit receipt atomically.
 
         Args:
-            sample_id (str): The unique identifier (ObjectId) of the sample to update.
-            filters (dict): A dictionary containing the new filter settings.
+            sample_id: Sample ObjectId represented as a string.
+            filters: Complete validated effective filter settings.
+            aspc: Exact configuration revision being applied, or None to retain it.
+            analysis_intents: Replacement intents, or None to retain existing intents.
+            expected_version: Optimistic concurrency precondition, when supplied.
+            settings_reason: Operator explanation recorded in the audit event.
 
-        Returns:
-            None
+        Raises:
+            AppError: The sample is absent or its operation version changed.
         """
         update = {"filters": filters}
         if isinstance(aspc, dict):
             update["current_aspc_id"] = aspc.get("_id")
-            update["current_aspc_key"] = aspc.get("aspc_id")
-            update["current_aspc_version"] = aspc.get("version")
+            update["current_aspc_name"] = aspc.get("display_name") or aspc["aspc_id"]
+            if isinstance(aspc.get("aspc_resolution"), dict):
+                update["aspc_resolution"] = SampleAspcResolutionDoc.from_resolution(
+                    aspc["aspc_resolution"]
+                ).model_dump()
         if analysis_intents is not None:
             update["analysis_intents"] = analysis_intents
-        if aspc_resolution is not None:
-            update["aspc_resolution"] = aspc_resolution
-        self.get_collection().update_one(
-            {"_id": ObjectId(sample_id)},
-            {"$set": update},
-        )
+        selector = {"_id": ObjectId(sample_id)}
+        if expected_version is not None:
+            selector["version"] = expected_version
+
+        def persist(session):
+            """Commit settings and their application audit together under the sample version guard."""
+            previous = self.get_collection().find_one_and_update(
+                selector,
+                {"$set": update, "$inc": {"version": 1}},
+                return_document=ReturnDocument.BEFORE,
+                session=session,
+            )
+            if previous is None:
+                raise api_error(409, "Sample settings changed. Reload the sample before saving.")
+            enqueue_audit(
+                self.get_collection().database,
+                session,
+                event_type="sample.configuration_applied" if aspc else "sample.filters_updated",
+                resource_type="sample",
+                resource_id=sample_id,
+                actor=current_username(),
+                metadata={
+                    "reason": settings_reason,
+                    "previous_version": previous["version"],
+                    "new_version": previous["version"] + 1,
+                    "before": {key: previous.get(key) for key in update},
+                    "after": update,
+                },
+            )
+
+        run_transaction(self.adapter.client, persist)
         invalidate_samples_cache(self.adapter)
         self.invalidate_dashboard_metrics()
 
@@ -633,7 +663,13 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         """
         Update sample document
         """
-        result = self.get_collection().replace_one({"_id": sample_id}, sample_doc)
+        expected_version = sample_doc["version"]
+        replacement = {**sample_doc, "version": expected_version + 1}
+        result = self.get_collection().replace_one(
+            {"_id": sample_id, "version": expected_version}, replacement
+        )
+        if not result.matched_count:
+            raise api_error(409, "Sample changed. Reload the sample before saving metadata.")
         invalidate_samples_cache(self.adapter)
         self.invalidate_dashboard_metrics()
         return OperationResult.from_update(result)
@@ -752,7 +788,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         *,
         asp_ids: list[str] | None = None,
         environments: list[str] | None = None,
-        subpanel_id: str | None = None,
+        diagnosis_id: str | None = None,
         search_str: str = "",
         page: int = 1,
         per_page: int = 30,
@@ -764,8 +800,10 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             query["asp_id"] = {"$in": asp_ids}
         if environments is not None:
             query["environment"] = {"$in": environments}
-        if subpanel_id:
-            query["subpanel_id"] = {"$in": ["base", None]} if subpanel_id == "base" else subpanel_id
+        if diagnosis_id:
+            query["diagnosis_id"] = (
+                {"$in": ["base", None]} if diagnosis_id == "base" else diagnosis_id
+            )
         normalized_q = str(search_str or "").strip()
         if normalized_q:
             pattern = re.escape(normalized_q)
@@ -774,7 +812,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
                 {"case_id": {"$regex": pattern, "$options": "i"}},
                 {"control_id": {"$regex": pattern, "$options": "i"}},
                 {"asp_id": {"$regex": pattern, "$options": "i"}},
-                {"subpanel_id": {"$regex": pattern, "$options": "i"}},
+                {"diagnosis_id": {"$regex": pattern, "$options": "i"}},
                 {"environment": {"$regex": pattern, "$options": "i"}},
             ]
         page = max(1, int(page or 1))
@@ -811,6 +849,9 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         rule_provenance: dict | None = None,
         snapshot_rows: list[dict] | None = None,
         created_by: str | None = None,
+        prepared_sample: dict | None = None,
+        resolution_snapshot: dict | None = None,
+        artifacts: list[dict] | None = None,
     ) -> bool | None:
         """
         Save a report to a sample document in the database.
@@ -824,7 +865,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         Returns:
             bool | None: Returns the result of the database update operation.
         """
-        sample = self.get_sample(sample_id)
+        sample = prepared_sample if prepared_sample is not None else self.get_sample(sample_id)
         if not sample:
             return None
         return self.adapter.report_repository.save_report(
@@ -836,7 +877,13 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             rule_provenance=rule_provenance,
             snapshot_rows=snapshot_rows,
             created_by=created_by,
+            resolution_snapshot=resolution_snapshot,
+            artifacts=artifacts,
         )
+
+    def complete_report_artifacts(self, report_oid: Any) -> bool:
+        """Mark a committed report's checksum-verified files ready."""
+        return self.adapter.report_repository.complete_artifacts(report_oid)
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:
         """

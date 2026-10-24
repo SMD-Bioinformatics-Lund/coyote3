@@ -16,6 +16,7 @@ from api.app.deps.services import (
     get_notification_service,
     get_public_oncokb_refresh_service,
 )
+from api.application.reporting.artifact_finalization import finalize_pending_reports
 from api.celery_app import celery_app
 from api.config.paths import REPORTS_BASE_PATH
 from api.infra.dashboard_metric_cache import DASHBOARD_METRICS
@@ -36,6 +37,16 @@ def erase_deleted_sample_reports() -> dict[str, int]:
     return erase_pending_reports(
         repository.get_collection(),
         root=repository.app.config.get("REPORTS_BASE_PATH", REPORTS_BASE_PATH),
+    )
+
+
+@celery_app.task(name="api.tasks.maintenance.finalize_report_artifacts")
+def finalize_report_artifacts() -> dict[str, int]:
+    """Resume checksum-verified publication of committed report files."""
+    _ensure_worker_runtime()
+    repository = store.report_repository
+    return finalize_pending_reports(
+        repository, root=repository.app.config.get("REPORTS_BASE_PATH", REPORTS_BASE_PATH)
     )
 
 

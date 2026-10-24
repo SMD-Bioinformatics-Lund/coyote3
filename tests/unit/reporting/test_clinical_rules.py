@@ -32,19 +32,18 @@ def test_annotation_terminology_is_scoped_published_and_integrity_checked():
     doc = _document(status="published", active=True)
     doc.terminology = {"automatic_annotation_tumor_type": "hematologiska"}
     doc.content_hash = content_hash(doc)
-    rows = [doc.model_dump(by_alias=True)]
-    service = ClinicalRuleService(
-        SimpleNamespace(list_active_for_assay=lambda *args, **kwargs: rows)
+    configuration = _configuration(doc)
+    service = ClinicalRuleService(None)
+    assert service.annotation_tumor_type(aspc=configuration) == "hematologiska"
+    configuration["clinical_rule_release"]["terminology"]["automatic_annotation_tumor_type"] = (
+        "solida"
     )
-    assert (
-        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="other", language="sv")
-        == "hematologiska"
-    )
-    rows[0]["terminology"]["automatic_annotation_tumor_type"] = "solida"
     with pytest.raises(ValueError, match="integrity"):
-        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="sv")
-    with pytest.raises(ValueError, match="No active"):
-        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="en")
+        service.annotation_tumor_type(aspc=configuration)
+    configuration = _configuration(doc)
+    configuration["reporting"]["language"] = "en"
+    with pytest.raises(ValueError, match="scope"):
+        service.annotation_tumor_type(aspc=configuration)
 
 
 def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
@@ -59,7 +58,9 @@ def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
         )
     )
     with pytest.raises(ValueError, match="requires Swedish"):
-        service.annotation_tumor_type(asp_id="assay_1", subpanel_id="base", language="en")
+        configuration = _configuration(document)
+        configuration["reporting"]["language"] = "en"
+        service.annotation_tumor_type(aspc=configuration)
 
 
 @pytest.mark.parametrize("value", ["", " padded ", 7, "x" * 121])
@@ -76,14 +77,14 @@ def _context():
         sample={
             "name": "SYNTHETIC_1",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
         },
         asp={"asp_id": "assay_1", "asp_group": "demo", "accredited": True},
         aspc={
             "aspc_id": "assay_1_base_testing",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
             "reporting": {
                 "report_sections": ["SNV", "CNV"],
@@ -121,7 +122,7 @@ def _document(*, status: str = "draft", active: bool = False) -> ClinicalRuleSet
             "revision": 1,
             "scope": {
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "analyte": "dna",
                 "language": "sv",
             },
@@ -382,6 +383,16 @@ def test_validation_executes_embedded_exact_output_cases():
     assert "unexpected report text" in result.errors[0]
 
 
+def _configuration(document, context=None):
+    """Create a native pinned configuration from synthetic report facts and approved content."""
+    context = context or _context()
+    return {
+        **context.aspc.model_dump(),
+        "asp_category": document.scope.analyte,
+        "clinical_rule_release": document.model_dump(mode="python", by_alias=True),
+    }
+
+
 def test_runtime_resolves_published_scope_and_verifies_hash():
     document = _document(status="published", active=True)
 
@@ -390,7 +401,9 @@ def test_runtime_resolves_published_scope_and_verifies_hash():
             assert asp_id == "assay_1"
             return [document.model_dump(mode="python", by_alias=True)]
 
-    result = ClinicalRuleService(Repository()).evaluate(aspc={}, context=_context())
+    result = ClinicalRuleService(Repository()).evaluate(
+        aspc=_configuration(document), context=_context()
+    )
     assert result.source.rule_set_id == "assay_1__base__sv"
     assert result.source.content_version == 1
 
@@ -527,8 +540,8 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
     service = ClinicalRuleAuthoringService(
         repository,
         assay_panel_repository=panels,
-        assay_subpanel_repository=SimpleNamespace(
-            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        assay_diagnosis_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"diagnosis_id": "base", "display_name": "Base"}]
         ),
     )
 
@@ -538,17 +551,17 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
             "asp_id": "dna_a",
             "display_name": "DNA A",
             "analyte": "dna",
-            "subpanels": [{"subpanel_id": "base", "display_name": "Base"}],
+            "diagnoses": [{"diagnosis_id": "base", "display_name": "Base"}],
         },
         {
             "asp_id": "rna_b",
             "display_name": "RNA B",
             "analyte": "rna",
-            "subpanels": [{"subpanel_id": "base", "display_name": "Base"}],
+            "diagnoses": [{"diagnosis_id": "base", "display_name": "Base"}],
         },
     ]
     assert options["condition_values"]["sample.asp_id"] == ["rna_b", "dna_a"]
-    assert options["condition_values"]["sample.subpanel_id"] == ["base"]
+    assert options["condition_values"]["sample.diagnosis_id"] == ["base"]
     assert options["clinical_reviewers"] == []
     assert options["publishers"] == []
     assert ClinicalRuleAuthoringService(object()).authoring_options() == {
@@ -572,12 +585,12 @@ def test_new_rule_scope_must_match_an_active_assay(panel, message):
     service = ClinicalRuleAuthoringService(
         object(),
         assay_panel_repository=panels,
-        assay_subpanel_repository=SimpleNamespace(
-            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        assay_diagnosis_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"diagnosis_id": "base", "display_name": "Base"}]
         ),
     )
     payload = ClinicalRuleDraftCreate(
-        scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
+        scope={"asp_id": "assay_1", "diagnosis_id": "base", "analyte": "dna"},
         name="Rules",
     )
 

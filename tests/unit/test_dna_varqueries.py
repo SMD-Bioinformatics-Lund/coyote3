@@ -56,7 +56,7 @@ def _settings(**overrides: object) -> dict:
     settings = {
         "id": "SAMPLE_1",
         "asp_id": "hema_gmsv1",
-        "subpanel_id": "hem",
+        "diagnosis_id": "hem",
         "max_freq": 1.0,
         "min_freq": 0.1,
         "max_control_freq": 0.05,
@@ -114,7 +114,7 @@ def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
     policy = load_clinical_query_policy().snv
     hema_query = build_query("hematology", _settings(), policy=policy)
     solid_query = build_query(
-        "solid", _settings(asp_id="solid_gmsv3", subpanel_id="colon"), policy=policy
+        "solid", _settings(asp_id="demo-solid_gmsv3", diagnosis_id="colon"), policy=policy
     )
 
     assert _contains_mapping(hema_query, {"genes": {"$in": ["FLT3"]}})

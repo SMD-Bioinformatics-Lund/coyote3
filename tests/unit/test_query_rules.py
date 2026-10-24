@@ -6,6 +6,7 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
+from api.application.query_rules.compilation import compile_query_policies
 from api.application.query_rules.service import QueryRuleService
 from api.contracts.schemas.query_rules import (
     QueryRuleContent,
@@ -53,15 +54,23 @@ def service(monkeypatch):
         repository,
         groups=SimpleNamespace(get=lambda key: {"group_id": key} if key == "example" else None),
         assays=SimpleNamespace(
+            get_all_asps=lambda **kwargs: [
+                {
+                    "asp_id": "panel",
+                    "asp_group": "example",
+                    "asp_category": "dna",
+                    "asp_family": "panel-dna",
+                }
+            ],
             get_asp=lambda key: (
                 {"asp_id": key, "asp_group": "example", "asp_category": "dna"}
                 if key == "panel"
                 else None
-            )
+            ),
         ),
-        subpanels=SimpleNamespace(
+        diagnoses=SimpleNamespace(
             get_current=lambda assay, panel: (
-                {"subpanel_id": panel, "is_active": True, "definition_is_active": True}
+                {"diagnosis_id": panel, "is_active": True, "definition_is_active": True}
                 if panel == "myeloid"
                 else None
             )
@@ -102,8 +111,34 @@ def release(service, selected=None, **content):
     )
 
 
+def compiled_sample(service, analysis):
+    """Bind a synthetic sample to compiled policies from its current source publications."""
+    configuration = {
+        "asp_id": "panel",
+        "asp_group": "example",
+        "diagnosis_id": "base",
+        "environment": "testing",
+        "analysis_types": [analysis.upper()],
+        "analysis_intents": ["somatic"],
+    }
+    panel = {
+        "asp_category": "rna" if analysis == "fusion" else "dna",
+        "asp_family": "panel-rna" if analysis == "fusion" else "panel-dna",
+    }
+    configuration["query_policy_release"] = compile_query_policies(configuration, panel, service)
+    service.configurations = SimpleNamespace(
+        get_aspc_revision_no_meta=lambda identifier: configuration
+    )
+    return {
+        "_id": "sample-one",
+        "asp_id": "panel",
+        "environment": "testing",
+        "current_aspc_id": "revision-one",
+    }
+
+
 def test_default_and_field_inheritance(service):
-    target = scope(asp_id="panel", subpanel_id="myeloid")
+    target = scope(asp_id="panel", diagnosis_id="myeloid")
     assert service.resolve(target).evidence_mode == "paired"
     exception = {"id": "example", "mode": "exclude", "genes": ["TP53"]}
     release(service, evidence_mode="case_only", exceptions=[exception])
@@ -312,13 +347,96 @@ def test_invalid_preview_is_request_validation_error():
 
 def test_invalid_hierarchy_and_registry_membership(service):
     with pytest.raises(ValidationError):
-        scope(subpanel_id="myeloid")
+        QueryRuleScope(analysis="snv", diagnosis_id="myeloid")
+    service.validate_scope(scope(diagnosis_id="myeloid"))
     with pytest.raises(AppError):
         service.create(draft(scope(asp_id="other")), "author")
     with pytest.raises(AppError):
-        service.create(draft(scope(asp_id="panel", subpanel_id="unregistered")), "author")
+        service.create(draft(scope(asp_id="panel", diagnosis_id="unregistered")), "author")
     with pytest.raises(ValidationError):
         QueryRuleScope(assay_group="example", analysis="cnv", intent="germline")
+
+
+def test_family_diagnosis_and_environment_precedence(service):
+    """Resolve all ranks independently of publication order and isolate environments."""
+    target = scope(
+        asp_id="panel",
+        diagnosis_id="myeloid",
+        modality="dna",
+        family="panel-dna",
+        environment="production",
+    )
+    ancestors = target.ancestors()
+    assert [item.precedence() for item in ancestors] == [
+        (rank, environment) for rank in range(1, 8) for environment in (0, 1)
+    ]
+    # Publish in reverse order to exercise deterministic hierarchy ordering.
+    for index, binding in reversed(list(enumerate(ancestors))):
+        release(
+            service,
+            binding,
+            exceptions=[{"id": f"rank_{index}", "mode": "exclude", "genes": ["TP53"]}],
+        )
+    result = service.resolve(target)
+    assert [item["id"] for item in result.exceptions] == ["rank_13"]
+    result = service.resolve(target.model_copy(update={"environment": "validation"}))
+    assert [item["id"] for item in result.exceptions] == ["rank_12"]
+    result = service.resolve(
+        scope(diagnosis_id="myeloid", modality="dna", family="panel-dna", environment="production")
+    )
+    assert [item["id"] for item in result.exceptions] == ["rank_9"]
+
+
+def test_family_binding_cannot_be_authored_as_redundant_assay_scope(service):
+    """Assay bindings have one identity regardless of the assay's technical family."""
+    with pytest.raises(AppError, match="either an assay binding"):
+        service.create(draft(scope(asp_id="panel", modality="dna", family="panel-dna")), "author")
+
+
+def test_compiled_sample_policy_survives_new_publication_and_assay_edits(service):
+    """New rules and current assay metadata cannot change an already pinned sample."""
+    release(service, evidence_mode="case_only", exceptions=[])
+    sample = compiled_sample(service, "snv")
+    before = service.policy_for_sample(sample=sample, analysis="snv")
+    release(service, evidence_mode="exception_only", exceptions=[])
+    service.assays.get_asp = lambda identifier: pytest.fail("Runtime read mutable assay metadata")
+    after = service.policy_for_sample(sample=sample, analysis="snv")
+    assert before == after
+    assert after.policy_for(assay_group="example", intent="somatic") == "case_only"
+
+
+def test_compiled_policy_rejects_corruption_missing_revision_and_cross_environment(service):
+    """Runtime must fail closed without consulting mutable source policies."""
+    sample = compiled_sample(service, "snv")
+    with pytest.raises(AppError, match="scope does not match"):
+        service.policy_for_sample(sample={**sample, "environment": "production"}, analysis="snv")
+    with pytest.raises(AppError, match="does not enable"):
+        service.policy_for_sample(sample=sample, analysis="fusion")
+    configuration = service.configurations.get_aspc_revision_no_meta("revision-one")
+    configuration["query_policy_release"]["policies"]["somatic.snv"]["evidence_mode"] = "case_only"
+    with pytest.raises(AppError, match="integrity"):
+        service.policy_for_sample(sample=sample, analysis="snv")
+    service.configurations.get_aspc_revision_no_meta = lambda identifier: None
+    with pytest.raises(AppError, match="unavailable"):
+        service.policy_for_sample(sample=sample, analysis="snv")
+
+
+def test_compiled_policy_requires_a_sample_revision(service):
+    with pytest.raises(AppError, match="exact configuration revision"):
+        service.policy_for_sample(sample={"asp_id": "panel"}, analysis="snv")
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"family": "panel-dna"},
+        {"family": "panel-dna", "modality": "rna"},
+        {"environment": "unknown"},
+    ],
+)
+def test_query_scope_rejects_invalid_dimensions(values):
+    with pytest.raises(ValidationError):
+        scope(**values)
 
 
 def test_compiled_policy_preserves_scoping_and_literal_exceptions(service):
@@ -330,7 +448,7 @@ def test_compiled_policy_preserves_scoping_and_literal_exceptions(service):
         exceptions=[{"id": "exclude", "mode": "exclude", "genes": ["TP53"]}],
     )
     policy = service.policy(
-        analysis="snv", assay_group="example", asp_id="panel", subpanel_id="myeloid"
+        analysis="snv", assay_group="example", asp_id="panel", diagnosis_id="myeloid"
     )
     assert policy.exceptions[0].genes == ("TP53",)
     # The typed policy cannot modify identity predicates supplied by the query builder.
@@ -350,19 +468,19 @@ def test_document_identity_is_serializable_and_scope_is_checked(service):
         QueryRuleDoc.model_validate({**row, "scope_key": "wrong"})
 
 
-def test_base_scope_does_not_require_a_named_subpanel_record(service):
-    release(service, scope(asp_id="panel", subpanel_id="base"), evidence_mode="case_only")
-    assert service.resolve(scope(asp_id="panel", subpanel_id="base")).evidence_mode == "case_only"
+def test_base_scope_does_not_require_a_named_diagnosis_record(service):
+    release(service, scope(asp_id="panel", diagnosis_id="base"), evidence_mode="case_only")
+    assert service.resolve(scope(asp_id="panel", diagnosis_id="base")).evidence_mode == "case_only"
     assert (
-        service.resolve(scope(asp_id="panel", subpanel_id="myeloid")).evidence_mode == "case_only"
+        service.resolve(scope(asp_id="panel", diagnosis_id="myeloid")).evidence_mode == "case_only"
     )
 
 
 def test_generated_identity_normalizes_base_and_separates_analysis():
     assert scope().key() == "example__all__base__somatic_snvs"
-    assert scope(asp_id="panel", subpanel_id="base").key() == "example__panel__base__somatic_snvs"
+    assert scope(asp_id="panel", diagnosis_id="base").key() == "example__panel__base__somatic_snvs"
     assert (
-        scope(asp_id="panel", subpanel_id="myeloid").key()
+        scope(asp_id="panel", diagnosis_id="myeloid").key()
         == "example__panel__myeloid__somatic_snvs"
     )
     assert (
@@ -380,7 +498,7 @@ def test_structural_rules_compile_and_remain_analysis_specific(service, analysis
     selected = QueryRuleScope(assay_group="example", analysis=analysis)
     release(service, selected, exceptions=[{"id": "exclude", "mode": "exclude", "genes": ["TP53"]}])
     policy = service.policy(
-        analysis=analysis, assay_group="example", asp_id="panel", subpanel_id="myeloid"
+        analysis=analysis, assay_group="example", asp_id="panel", diagnosis_id="myeloid"
     )
     assert policy.exceptions[0].criteria["genes"] == ("TP53",)
     assert service.resolve(scope()).exceptions == []
@@ -410,6 +528,7 @@ def test_cnv_workflow_uses_published_policy_and_keeps_sample_identity(service):
     )
     repository = SimpleNamespace(get_sample_cnvs=Mock(return_value=[]))
     workflow = DnaStructuralService(
+        annotation_repository=None,
         copy_number_variant_repository=repository,
         translocation_repository=None,
         assay_panel_repository=None,
@@ -420,7 +539,7 @@ def test_cnv_workflow_uses_published_policy_and_keeps_sample_identity(service):
         query_rule_service=service,
     )
     workflow.load_cnvs_for_sample(
-        sample={"_id": "sample-one", "asp_id": "panel"},
+        sample=compiled_sample(service, "cnv"),
         sample_filters={
             "cnv_loss_cutoff": 0.5,
             "cnv_gain_cutoff": 1.5,
@@ -449,7 +568,7 @@ def test_condition_tree_survives_publication_inheritance_and_preview(service):
         exceptions=[{"id": "nested", "mode": "exclude", "condition": condition}],
     )
     leaf = QueryRuleScope(
-        assay_group="example", asp_id="panel", subpanel_id="myeloid", analysis="cnv"
+        assay_group="example", asp_id="panel", diagnosis_id="myeloid", analysis="cnv"
     )
     result = service.resolve(leaf)
     assert result.exceptions[0]["condition"] == condition
@@ -484,8 +603,7 @@ def test_rna_workflow_uses_published_policy_and_keeps_sample_identity(service):
             "filter_genes": [],
             "restrict_to_genes": False,
         },
-        asp_id="panel",
-        subpanel_id="base",
+        sample=compiled_sample(service, "fusion"),
         query_rule_service=service,
     )
     assert query["SAMPLE_ID"] == "sample-one"

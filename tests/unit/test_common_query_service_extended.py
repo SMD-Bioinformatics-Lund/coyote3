@@ -8,6 +8,7 @@ import pytest
 
 from api.application.common import query_service
 from api.application.common.query_service import CommonQueryService
+from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
 from api.domain.core.exceptions import AppError
 
 
@@ -118,8 +119,8 @@ def _service(**overrides) -> CommonQueryService:
                 {
                     "_id": oid,
                     "name": "database-name",
-                    "asp_id": "solid_gmsv3",
-                    "subpanel_id": "colon",
+                    "asp_id": "demo-solid_gmsv3",
+                    "diagnosis_id": "colon",
                     "environment": "production",
                 }
                 if oid == "sample-1"
@@ -132,6 +133,44 @@ def _service(**overrides) -> CommonQueryService:
         ),
     }
     values.update(overrides)
+    if hasattr(values["sample_repository"], "get_gene_cohort_samples"):
+        releases = {}
+        panels = values["assay_panel_repository"].get_asps_for_gene_scope([])
+        lists = values["gene_list_repository"].get_isgl_by_ids([])
+        list_release = capture_gene_lists(
+            [{"isgl_id": key, "version": 1, **row} for key, row in lists.items()]
+        )
+        for sample in values["sample_repository"].get_gene_cohort_samples():
+            assay = sample["asp_id"]
+            category = sample["asp_category"]
+            panel = {
+                "asp_id": assay,
+                "asp_group": "solid",
+                "version": 1,
+                "asp_category": category,
+                "asp_family": f"panel-{category}",
+                **panels.get(assay, {}),
+            }
+            configuration = {
+                "_id": assay,
+                "asp_id": assay,
+                "aspc_id": assay,
+                "asp_group": panel["asp_group"],
+                "version": 1,
+                "diagnosis_id": "base",
+                "environment": sample["environment"],
+                "analysis_types": ["SNV", "CNV"] if category == "dna" else ["FUSION"],
+                "analysis_intents": ["somatic"],
+                "filters": {},
+                "reporting": {},
+                "assay_resource_release": capture_assay_resource(panel),
+                "gene_list_release": list_release,
+            }
+            sample["current_aspc_id"] = assay
+            releases[assay] = configuration
+        values["assay_configuration_repository"] = SimpleNamespace(
+            get_aspc_revision_no_meta=lambda oid: releases[oid]
+        )
     return CommonQueryService(**values)
 
 
@@ -142,6 +181,7 @@ def test_from_store_copies_required_and_optional_repositories() -> None:
         variant_repository=object(),
         reported_variant_repository=object(),
         assay_panel_repository=object(),
+        assay_configuration_repository=object(),
         annotation_repository=object(),
         sample_repository=object(),
         gene_list_repository=object(),
@@ -395,7 +435,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
             "name": "S1",
             "asp_id": "panel_a",
             "environment": "production",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "analysis_intents": ["somatic"],
             "sex": "female",
             "latest_report_id": "new-oid",
@@ -405,7 +445,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
             "name": "S2",
             "asp_id": "panel_a",
             "environment": "production",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "analysis_intents": ["somatic"],
             "sex": "male",
             "filters": {"somatic": {"snv": {"snvlists": []}}},
@@ -414,7 +454,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
             "name": "S3",
             "asp_id": "genome",
             "environment": "production",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "analysis_intents": ["somatic"],
             "latest_report_id": "r3-oid",
             "filters": {},
@@ -423,7 +463,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
             "name": "RNA1",
             "asp_id": "rna_panel",
             "environment": "production",
-            "omics_layer": "rna",
+            "asp_category": "rna",
             "filters": {},
         },
     ]
@@ -452,7 +492,13 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
         },
     ]
     service = _service(
-        sample_repository=SimpleNamespace(get_gene_cohort_samples=lambda **kwargs: samples),
+        sample_repository=SimpleNamespace(
+            get_gene_cohort_samples=lambda **kwargs: [
+                row
+                for row in samples
+                if not kwargs.get("asp_ids") or row["asp_id"] in kwargs["asp_ids"]
+            ]
+        ),
         assay_panel_repository=SimpleNamespace(
             get_asps_for_gene_scope=lambda asp_ids: {
                 "panel_a": {
@@ -465,7 +511,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
                     "asp_id": "genome",
                     "display_name": "Genome",
                     "asp_group": "tumwgs",
-                    "covered_genes": [],
+                    "covered_genes": ["TP53"],
                 },
             }
         ),
@@ -506,7 +552,7 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
         "male",
         "not_recorded",
     }
-    assert result["denominator"]["samples_excluded_outside_gene_scope"] == 1
+    assert result["denominator"]["samples_excluded_outside_gene_scope"] == 0
     assert result["denominator"]["report_scope"] == "latest"
     assert result["denominator"]["duplicate_report_observations_removed"] == 0
     assert result["knowledgebase"]["sources"]["cosmic"]["gene_census"][0]["gene_symbol"] == "TP53"
@@ -538,7 +584,7 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
         "name": "S1",
         "asp_id": "panel",
         "environment": "production",
-        "omics_layer": "dna",
+        "asp_category": "dna",
         "analysis_intents": ["somatic"],
         "filters": {"somatic": {"snv": {"snvlists": []}}},
         "latest_report_id": "latest-report",
@@ -641,7 +687,7 @@ def test_gene_cohort_combines_target_scoped_cnv_and_fusion_findings() -> None:
             "name": "DNA1",
             "asp_id": "dna_panel",
             "environment": "production",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "analysis_intents": ["somatic"],
             "latest_report_id": "dna-report",
             "filters": {"somatic": {"cnv": {"cnvlists": ["tp53_cnv"]}}},
@@ -651,7 +697,7 @@ def test_gene_cohort_combines_target_scoped_cnv_and_fusion_findings() -> None:
             "name": "RNA1",
             "asp_id": "rna_panel",
             "environment": "production",
-            "omics_layer": "rna",
+            "asp_category": "rna",
             "analysis_intents": ["somatic"],
             "latest_report_id": "rna-report",
             "filters": {"somatic": {"fusion": {"fusionlists": ["tp53_fusion"]}}},
@@ -685,12 +731,12 @@ def test_gene_cohort_combines_target_scoped_cnv_and_fusion_findings() -> None:
                 "dna_panel": {
                     "asp_id": "dna_panel",
                     "asp_family": "wgs",
-                    "covered_genes": [],
+                    "covered_genes": ["TP53"],
                 },
                 "rna_panel": {
                     "asp_id": "rna_panel",
                     "asp_family": "wts",
-                    "covered_genes": [],
+                    "covered_genes": ["TP53"],
                 },
             }
         ),
@@ -737,7 +783,7 @@ def test_gene_cohort_excludes_selected_list_without_gene() -> None:
         "name": "S1",
         "asp_id": "panel",
         "environment": "production",
-        "omics_layer": "dna",
+        "asp_category": "dna",
         "analysis_intents": ["somatic"],
         "filters": {"somatic": {"snv": {"snvlists": ["other"]}}},
     }

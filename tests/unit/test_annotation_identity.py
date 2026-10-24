@@ -217,7 +217,7 @@ def test_single_classification_insert_uses_the_stable_flat_identity_shape():
         1,
         {
             "assay_group": "global",
-            "subpanel": "base",
+            "diagnosis": "base",
             "gene": "TP53",
             "transcript": "NM_000546.6",
             "hgvsp": "p.Val157GlyfsTer24",

@@ -46,7 +46,7 @@ def test_report_filter_respects_tiers_genes_and_blacklist():
 
 
 @pytest.mark.parametrize(
-    "group,analyte,subpanel,paired,question,suffix",
+    "group,analyte,diagnosis,paired,question,suffix",
     [
         (
             "myeloid",
@@ -67,11 +67,15 @@ def test_report_filter_respects_tiers_genes_and_blacklist():
     ],
 )
 def test_metadata_migration_preserves_conditional_outputs(
-    group, analyte, subpanel, paired, question, suffix
+    group, analyte, diagnosis, paired, question, suffix
 ):
     source = _document(status="published", active=True).model_dump(mode="python", by_alias=True)
-    original = deepcopy(source)
     source["scope"]["analyte"] = analyte
+    if analyte == "rna":
+        source["analysis_declarations"] = {}
+        source["blocks"] = []
+        source["test_cases"] = []
+    original = deepcopy(source)
     candidate = metadata_draft(source, group=group, version=2, actor="migration-test")
     parsed = ClinicalRuleSetDoc.model_validate(candidate)
     assert parsed.status == "draft"
@@ -80,7 +84,7 @@ def test_metadata_migration_preserves_conditional_outputs(
     assert parsed.schema_version == 1
     assert validate_rule_set(parsed).valid
     context = _context()
-    context.sample.subpanel_id = subpanel
+    context.sample.diagnosis_id = diagnosis
     context.sample.paired = paired
     evaluation = ClinicalRuleEvaluator().evaluate(context, parsed, reporting_analyses=set())
     assert evaluation.sections.get("clinical_question", [""])[0] == question

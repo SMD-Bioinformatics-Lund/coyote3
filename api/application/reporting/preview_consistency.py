@@ -4,6 +4,7 @@ import hashlib
 import json
 from hmac import compare_digest
 
+from api.application.reporting.report_renderer import template_content_hash
 from api.domain.common.errors import api_error
 
 
@@ -28,7 +29,11 @@ def preview_fingerprint(template: str, context: dict) -> str:
         if key not in {"save", "report_date", "report_timestamp"}
     }
     encoded = json.dumps(
-        {"template": template, "context": content},
+        {
+            "template": template,
+            "template_hash": template_content_hash(template),
+            "context": content,
+        },
         sort_keys=True,
         separators=(",", ":"),
         default=str,

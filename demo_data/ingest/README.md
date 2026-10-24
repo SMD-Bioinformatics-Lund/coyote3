@@ -35,7 +35,7 @@ together when copying the fixture into a watch directory. This matches the
 ingest service's manifest-relative path resolution and keeps the bundle
 portable between the repository, upload staging, and container mounts.
 
-Identity and deployment scope use the pipeline keys `assay`, `subpanel`, and
+Identity and deployment scope use the pipeline keys `assay`, `diagnosis`, and
 `profile`. Sequencing metadata uses `sequencing_technology`; ingestion maps
 these fields to the internal sample contract and derives `read_technology`.
 RNA fusion ingest does not use VEP, so the RNA example has no VEP database

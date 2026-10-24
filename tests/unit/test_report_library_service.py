@@ -23,7 +23,7 @@ class ReportRepositoryStub:
                     "report_name": "S1_2.html",
                     "sample_name": "S1",
                     "asp_id": "hema_gmsv1",
-                    "subpanel_id": "hem",
+                    "diagnosis_id": "hem",
                     "environment": "production",
                     "author": "reviewer",
                     "time_created": datetime(2026, 8, 25, tzinfo=UTC),

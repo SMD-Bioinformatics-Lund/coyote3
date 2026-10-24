@@ -142,10 +142,10 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
     resource_labels = {
         "asp_id": "Assay ID",
         "asp_ids": "Assays",
-        "asp_category": "Assay category",
-        "asp_group": "Assay group",
-        "asp_groups": "Assay groups",
-        "asp_family": "Assay family",
+        "asp_category": "Modality",
+        "asp_group": "Biological group",
+        "asp_groups": "Biological groups",
+        "asp_family": "Sequencing family",
         "aspc_id": "Configuration ID",
         "isgl_id": "Gene list ID",
     }
@@ -213,7 +213,7 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         fields[identity_field].pop("derive_from", None)
     if spec.key.startswith("aspc_"):
         fields["aspc_id"]["help"] = (
-            "Generated automatically from the assay, subpanel, and environment."
+            "Generated as assay::diagnosis::environment; for example hematology_gmsv1::mpn::testing."
         )
         fields["analysis_types"]["show_unavailable_options"] = True
         fields["analysis_types"]["help"] = (

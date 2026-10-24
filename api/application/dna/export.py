@@ -33,18 +33,6 @@ def consequence_terms(value: object) -> set[str]:
     return {text} if text else set()
 
 
-def consequence_list(value: object) -> list[str]:
-    """Normalize selected_CSQ consequence values into list form."""
-    if isinstance(value, str):
-        return [part.strip() for part in value.split("&") if part.strip()]
-    if isinstance(value, (list, tuple, set)):
-        return [str(item).strip() for item in value if str(item).strip()]
-    if value in {None, ""}:
-        return []
-    text = str(value).strip()
-    return [text] if text else []
-
-
 def join_tokens(value: object, *, delimiter: str = " | ") -> str:
     """Normalize list-like values into unique, ordered, pipe-delimited text."""
     if value is None:

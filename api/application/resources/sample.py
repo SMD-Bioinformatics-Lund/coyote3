@@ -198,6 +198,30 @@ class ResourceSampleService:
         updated_sample["updated_by"] = current_actor(actor_username)
         for field in ("ingested_by", "ingest_source"):
             updated_sample[field] = sample_doc.get(field)
+        if "current_aspc_id" in updated_sample and str(updated_sample["current_aspc_id"]) == str(
+            sample_doc.get("current_aspc_id")
+        ):
+            updated_sample["current_aspc_id"] = sample_doc.get("current_aspc_id")
+        for field in (
+            "asp_id",
+            "diagnosis_id",
+            "environment",
+            "asp_category",
+            "asp_family",
+            "genome_build",
+            "analysis_intents",
+            "current_aspc_id",
+            "current_aspc_name",
+            "aspc_resolution",
+            "filters",
+            "version",
+        ):
+            if field in updated_sample and updated_sample[field] != sample_doc.get(field):
+                raise api_error(
+                    409, f"Use the sample configuration or filter workflow to change '{field}'"
+                )
+            if field in sample_doc:
+                updated_sample[field] = deepcopy(sample_doc[field])
         updated_sample = _validated_doc("samples", updated_sample)
         updated_sample = _restore_object_ids(updated_sample)
         updated_sample["_id"] = sample_obj

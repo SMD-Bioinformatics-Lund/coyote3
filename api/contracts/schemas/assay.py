@@ -7,15 +7,16 @@ from typing import Any, Literal
 
 from pydantic import Field, computed_field, field_validator, model_validator
 
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
+    DIAGNOSIS_BASE_ID,
     DNA_ANALYSIS_TYPE_OPTIONS,
     GENELIST_ADHOC_TYPE_OPTIONS,
     GENELIST_STANDARD_TYPE_OPTIONS,
     GENELIST_TYPE_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
-    SUBPANEL_BASE_ID,
     expected_file_keys,
     normalize_analysis_type,
     normalize_asp_category,
@@ -29,7 +30,10 @@ from api.config.constants import (
 )
 from api.config.sequencing import derived_read_technology, validate_platform_read_mode
 from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
+from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from api.contracts.schemas.filter_profiles import DnaFilterProfilesDoc, RnaFilterProfilesDoc
+from api.contracts.schemas.query_rules import CompiledQueryPoliciesDoc
+from api.domain.common.assay_capabilities import supported_assay_analyses
 from api.domain.common.sample_filters import normalize_analysis_intents, normalize_sample_filters
 
 DNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["dna"]
@@ -142,7 +146,7 @@ class AspcReportingDoc(_StrictDocBase):
 
 
 class AspcCatalogDoc(_StrictDocBase):
-    """Public visibility control for one ASPC environment/subpanel tuple."""
+    """Public visibility control for one ASPC environment/diagnosis tuple."""
 
     is_public: bool = True
 
@@ -164,7 +168,7 @@ class AspConfigDoc(_StrictCollectionDocBase):
 
     aspc_id: str
     asp_id: str
-    subpanel_id: str = SUBPANEL_BASE_ID
+    diagnosis_id: str = DIAGNOSIS_BASE_ID
     environment: str
     asp_group: str
     asp_category: str
@@ -183,6 +187,15 @@ class AspConfigDoc(_StrictCollectionDocBase):
     filters: DnaFilterProfilesDoc | RnaFilterProfilesDoc
     reporting: AspcReportingDoc
     catalog: AspcCatalogDoc = Field(default_factory=AspcCatalogDoc)
+    query_policy_release: CompiledQueryPoliciesDoc | None = None
+    clinical_rule_release: ClinicalRuleSetDoc | None = None
+    clinical_rule_base: ClinicalRuleSetDoc | None = None
+    assay_resource_release: dict[str, Any] | None = None
+    gene_list_release: dict[str, Any] | None = None
+    profile_sources: list[dict[str, Any]] = Field(default_factory=list)
+    profile_overrides: dict[str, Any] = Field(default_factory=dict)
+    template_release: dict[str, str] | None = None
+    promotion: dict[str, Any] | None = None
 
     version: int = 1
     created_by: str | None = None
@@ -248,7 +261,7 @@ class AspConfigDoc(_StrictCollectionDocBase):
         """Canonicalize the configuration identifier.
 
         Args:
-            value: Required identifier, allowing letters, digits, hyphens, and underscores.
+            value: Configuration key; identifier segments may be separated by ``::``.
 
         Returns:
             The stripped, lowercase identifier.
@@ -274,24 +287,24 @@ class AspConfigDoc(_StrictCollectionDocBase):
         """
         return normalize_clinical_identifier(value, label="asp_id")
 
-    @field_validator("subpanel_id", mode="before")
+    @field_validator("diagnosis_id", mode="before")
     @classmethod
-    def _validate_subpanel_id(cls, value: Any) -> str:
-        """Canonicalize a subpanel identifier, defaulting blank input to the base panel.
+    def _validate_diagnosis_id(cls, value: Any) -> str:
+        """Canonicalize a diagnosis identifier, defaulting blank input to the base panel.
 
         Args:
-            value: Subpanel identifier; null and blank values select the base panel.
+            value: Diagnosis identifier; null and blank values select the base panel.
 
         Returns:
-            The canonical identifier or SUBPANEL_BASE_ID.
+            The canonical identifier or DIAGNOSIS_BASE_ID.
 
         Raises:
             ValueError: If a nonblank identifier contains unsupported characters.
         """
         raw = str(value or "").strip()
         if not raw:
-            return SUBPANEL_BASE_ID
-        return normalize_clinical_identifier(raw, label="subpanel_id")
+            return DIAGNOSIS_BASE_ID
+        return normalize_clinical_identifier(raw, label="diagnosis_id")
 
     @field_validator("asp_group", mode="before")
     @classmethod
@@ -403,7 +416,7 @@ class AspConfigDoc(_StrictCollectionDocBase):
         if not self.analysis_types:
             raise ValueError("analysis_types must include at least one enabled analysis")
         self.analysis_intents = normalize_analysis_intents(
-            self.analysis_intents, omics_layer=self.asp_category
+            self.analysis_intents, asp_category=self.asp_category
         )
         if "germline" in self.analysis_intents and "SNV" not in self.analysis_types:
             raise ValueError("germline analysis requires SNV in analysis_types")
@@ -420,7 +433,7 @@ class AspConfigDoc(_StrictCollectionDocBase):
         filter_profiles = self.filters.model_dump(exclude_none=True)
         normalize_sample_filters(
             filter_profiles,
-            omics_layer=self.asp_category,
+            asp_category=self.asp_category,
             analysis_intents=self.analysis_intents,
             canonical=True,
         )
@@ -497,6 +510,7 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     asp_group: str
     asp_family: str
     asp_category: str
+    supported_analyses: list[str] | None = None
     display_name: str
     description: str | None = None
     igv: AspIgvDoc | None = None
@@ -706,6 +720,31 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
         return self
 
     @model_validator(mode="after")
+    def _validate_capabilities(self) -> "AssaySpecificPanelsDoc":
+        """Require a compatible modality/family and implemented assay analyses.
+
+        Returns:
+            This definition with its resolved supported analysis subset.
+
+        Raises:
+            ValueError: Modality, family, input files or declared analyses conflict.
+        """
+        expected_category = CLINICAL_VOCABULARY.assay_family_categories[self.asp_family]
+        if self.asp_category != expected_category:
+            raise ValueError(f"Family '{self.asp_family}' requires modality '{expected_category}'")
+        self.supported_analyses = supported_assay_analyses(
+            family_analyses=CLINICAL_VOCABULARY.analysis_types_by_family[self.asp_family],
+            file_bindings=CLINICAL_VOCABULARY.analysis_file_keys_by_omics[self.asp_category],
+            expected_files=self.expected_files,
+            declared_analyses=(
+                [normalize_analysis_type(value) for value in self.supported_analyses]
+                if self.supported_analyses is not None
+                else None
+            ),
+        )
+        return self
+
+    @model_validator(mode="after")
     def _derive_platform_capabilities(self) -> "AssaySpecificPanelsDoc":
         """Validate read mode and derive read technology from the platform.
 
@@ -754,7 +793,6 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     is_active: bool = True
     asp_groups: list[str] = Field(default_factory=list)
     genes: list[str] = Field(default_factory=list)
-    germline_genes: list[str] = Field(default_factory=list)
     asp_ids: list[str] = Field(default_factory=list)
     version: int = 1
     created_by: str | None = None
@@ -814,7 +852,7 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @field_validator("diagnosis", mode="before")
     @classmethod
     def _normalize_diagnosis(cls, value: Any) -> list[str]:
-        """Parse diagnosis/subpanel identifiers separated by commas or newlines.
+        """Parse diagnosis identifiers separated by commas or newlines.
 
         Args:
             value: Delimited string or iterable of strings; falsey input gives no IDs.
@@ -836,7 +874,7 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
                 diagnosis = token.strip()
                 if diagnosis:
                     diagnosis_id = normalize_clinical_identifier(
-                        diagnosis, label="diagnosis/subpanel identifier"
+                        diagnosis, label="diagnosis identifier"
                     )
                     if diagnosis_id not in seen:
                         normalized.append(diagnosis_id)
@@ -930,12 +968,6 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     def gene_count(self) -> int:
         """Return the number of gene entries, including duplicates."""
         return len(self.genes)
-
-    @computed_field
-    @property
-    def germline_gene_count(self) -> int:
-        """Return the number of germline-gene entries, including duplicates."""
-        return len(self.germline_genes)
 
 
 class BlacklistDoc(_StrictCollectionDocBase):

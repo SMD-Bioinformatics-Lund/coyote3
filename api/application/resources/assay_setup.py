@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from api.application.accounts.common import build_managed_form
+from api.application.query_rules.service import QueryRuleService
 from api.application.reporting.clinical_rules.resolution import resolve_published_rule_set
 from api.application.resources.aspc import AspcService
 from api.application.resources.helpers import require_new_identifier
@@ -29,25 +30,39 @@ class SetupWorkspace:
         perform their normal validation against this explicitly selected workspace.
     """
 
-    def __init__(self, content: AssaySetupContent, store: Any, actor: str) -> None:
-        """Bind a draft's assay and scopes, retaining live sources for reference choices."""
+    def __init__(
+        self,
+        content: AssaySetupContent,
+        store: Any,
+        actor: str,
+        *,
+        created_at: datetime | None = None,
+    ) -> None:
+        """Bind draft resources with stable attribution for reproducible compilation.
+
+        Args:
+            content: Saved resource definitions or an unsaved form preview.
+            store: Repositories used to validate shared resource references.
+            actor: Draft creator retained in compiled resource attribution.
+            created_at: Saved draft creation time; None uses now for unsaved previews.
+        """
         self.store = store
         self.actor = actor
         if content.panel.asp_group not in self.group_options():
             raise api_error(422, "Register the assay group before configuring the assay")
-        self.now = datetime.now(timezone.utc)
+        self.now = created_at if created_at is not None else datetime.now(timezone.utc)
         self.panel = self.document(
             content.panel.model_dump(by_alias=True, exclude_computed_fields=True)
         )
         self.definitions = [
             d
-            for d in store.assay_subpanel_repository.list_definitions()
-            if d["subpanel_id"] in content.scopes
+            for d in store.assay_diagnosis_repository.list_definitions()
+            if d["diagnosis_id"] in content.scopes
         ]
         if set(content.scopes) - {"base"} != {
-            d["subpanel_id"] for d in self.definitions if d["is_active"]
+            d["diagnosis_id"] for d in self.definitions if d["is_active"]
         }:
-            raise api_error(422, "Select available subpanel definitions; Base is implicit")
+            raise api_error(422, "Select available diagnosis definitions; Base is implicit")
         self.gene_lists: list[dict] = []
         self.configurations: list[dict] = []
         self.existing_lists = list(
@@ -125,14 +140,16 @@ class SetupWorkspace:
     def services(self, common_util: Any) -> tuple[IsglService, AspcService]:
         """Build existing resource validators against this draft workspace."""
         return IsglService(
-            gene_list_repository=self, assay_panel_repository=self, assay_subpanel_repository=self
+            gene_list_repository=self, assay_panel_repository=self, assay_diagnosis_repository=self
         ), AspcService(
             assay_configuration_repository=self,
             assay_panel_repository=self,
-            assay_subpanel_repository=self,
+            assay_diagnosis_repository=self,
             gene_list_repository=self,
             vep_metadata_repository=self.store.vep_metadata_repository,
             clinical_rule_set_repository=self.store.clinical_rule_set_repository,
+            query_rule_service=QueryRuleService(self.store.query_rule_repository),
+            configuration_profile_repository=self.store.configuration_profile_repository,
         )
 
 
@@ -218,7 +235,9 @@ class AssaySetupService:
     def _workspace(self, document: dict, actor: str) -> SetupWorkspace:
         """Validate staged lists using the normal gene-list service."""
         content = AssaySetupContent.model_validate(document["content"])
-        workspace = SetupWorkspace(content, self.store, actor)
+        workspace = SetupWorkspace(
+            content, self.store, document["created_by"], created_at=document["created_at"]
+        )
         lists, _ = workspace.services(self.common_util)
         for config in content.gene_lists:
             values = workspace.document(config)
@@ -233,7 +252,7 @@ class AssaySetupService:
         """Return managed forms, scope choices, rule references and saved progress."""
         result = {
             "panel_form": build_managed_form(managed_resource_spec("asp"), actor_username=actor),
-            "subpanels": self.store.assay_subpanel_repository.list_definitions(),
+            "diagnoses": self.store.assay_diagnosis_repository.list_definitions(),
             "environments": list(ENVIRONMENT_OPTIONS),
         }
         result["panel_form"]["fields"]["asp_group"]["options"] = (
@@ -311,7 +330,7 @@ class AssaySetupService:
         for source in content.configurations:
             config = workspace.document(source)
             config["asp_id"] = content.panel.asp_id
-            key = (config.get("subpanel_id") or "base", config.get("environment"))
+            key = (config.get("diagnosis_id") or "base", config.get("environment"))
             if key not in expected or key in actual:
                 raise api_error(422, "Each selected scope/environment needs exactly one ASPC")
             configs.create(payload={"config": config}, actor_username=actor)
@@ -321,7 +340,7 @@ class AssaySetupService:
                 rule = resolve_published_rule_set(
                     self.store.clinical_rule_set_repository,
                     asp_id=content.panel.asp_id,
-                    subpanel_id=key[0],
+                    diagnosis_id=key[0],
                     analyte=config["asp_category"].lower(),
                     language=reporting.get("language", "sv"),
                 )
@@ -343,7 +362,7 @@ class AssaySetupService:
             "associations": [
                 {
                     "asp_id": content.panel.asp_id,
-                    "subpanel_id": d["subpanel_id"],
+                    "diagnosis_id": d["diagnosis_id"],
                     "is_active": True,
                     "is_current": True,
                     "version": 1,
@@ -370,6 +389,48 @@ class AssaySetupService:
             for kind in ("rules", "definitions", "existing_lists")
             for d in bundle[kind]
         ]
+        identities.extend(
+            (
+                "query_policy",
+                configuration["aspc_id"],
+                configuration["query_policy_release"]["content_hash"],
+                None,
+            )
+            for configuration in bundle["configurations"]
+        )
+        identities.extend(
+            (resource, configuration["aspc_id"], configuration[resource]["content_hash"], None)
+            for configuration in bundle["configurations"]
+            for resource in ("assay_resource_release", "gene_list_release")
+        )
+        identities.extend(
+            (
+                "clinical_rule",
+                configuration["aspc_id"],
+                configuration["clinical_rule_release"]["content_hash"],
+                None,
+            )
+            for configuration in bundle["configurations"]
+            if configuration.get("clinical_rule_release")
+        )
+        identities.extend(
+            (
+                "configuration_profiles",
+                configuration["aspc_id"],
+                sha256(
+                    json.dumps(
+                        {
+                            "sources": configuration.get("profile_sources", []),
+                            "template": configuration.get("template_release"),
+                        },
+                        sort_keys=True,
+                        default=str,
+                    ).encode()
+                ).hexdigest(),
+                None,
+            )
+            for configuration in bundle["configurations"]
+        )
         return sha256(json.dumps(sorted(identities), default=str).encode()).hexdigest()
 
     def transition(

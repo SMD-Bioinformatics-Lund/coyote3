@@ -103,10 +103,10 @@ def check_sample_scope(target: Any, sample: dict, session: Any = None) -> None:
     for field, value in {
         "asp_id": sample["asp_id"],
         "environment": sample["environment"],
-        "asp_category": sample["omics_layer"],
-        "subpanel_id": sample.get("subpanel_id") or "base",
+        "asp_category": sample["asp_category"],
+        "diagnosis_id": sample.get("diagnosis_id") or "base",
     }.items():
-        if aspc.get(field, "base" if field == "subpanel_id" else None) != value:
+        if aspc.get(field, "base" if field == "diagnosis_id" else None) != value:
             raise ValueError("Destination ASPC scope differs from the sample")
 
 

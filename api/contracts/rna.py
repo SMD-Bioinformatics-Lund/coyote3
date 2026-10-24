@@ -13,7 +13,7 @@ class RnaFusionListPayload(BaseModel):
     sample: dict[str, Any]
     meta: dict[str, Any]
     assay_group: str
-    subpanel: str | None = None
+    diagnosis: str | None = None
     analysis_sections: list[Any]
     assay_config: dict[str, Any]
     assay_config_schema: dict[str, Any] | None = None
@@ -46,7 +46,7 @@ class RnaFusionContextPayload(BaseModel):
     has_hidden_comments: bool
     hidden_comments: bool
     assay_group: str
-    subpanel: str | None = None
+    diagnosis: str | None = None
     assay_group_mappings: dict[str, Any]
     fusion_caller_options: list[str] = Field(default_factory=list)
     fusion_annotation_metadata: dict[str, list[str]] = Field(default_factory=dict)

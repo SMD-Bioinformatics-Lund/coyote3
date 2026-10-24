@@ -3,7 +3,10 @@
     "scope": {
       "assay_group": "example",
       "asp_id": null,
-      "subpanel_id": null,
+      "diagnosis_id": null,
+      "modality": null,
+      "family": null,
+      "environment": null,
       "analysis": "snv",
       "intent": "somatic"
     },

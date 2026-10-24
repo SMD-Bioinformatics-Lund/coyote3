@@ -39,7 +39,7 @@ OPERATIONAL_COLLECTIONS: Final = OperationalCollectionContract()
 PIPELINE_MANIFEST: Final = PipelineManifestContract(
     field_aliases={
         "assay": "asp_id",
-        "subpanel": "subpanel_id",
+        "diagnosis": "diagnosis_id",
         "profile": "environment",
         "sequencing_technology": "platform",
     }

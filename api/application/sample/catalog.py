@@ -54,7 +54,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         sample_repository: Any,
         gene_list_repository: Any,
         assay_panel_repository: Any,
-        assay_configuration_repository: Any | None = None,
+        assay_configuration_repository: Any,
         variant_repository: Any,
         copy_number_variant_repository: Any,
         fusion_repository: Any,
@@ -83,9 +83,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
     def _get_formatted_assay_config(
         self, sample: dict, *, use_sample_revision: bool = True
     ) -> dict:
-        """Resolve formatted assay config using injected repositories when available."""
-        if self.assay_configuration_repository is None:
-            return get_formatted_assay_config(sample, use_sample_revision=use_sample_revision)
+        """Resolve the sample release through the explicitly injected repositories."""
         return get_formatted_assay_config(
             sample,
             assay_panel_repository=self.assay_panel_repository,
@@ -102,7 +100,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         if isinstance(raw, list):
             keys = [str(item or "").strip() for item in raw if str(item or "").strip()]
             return keys
-        omics = str(sample.get("omics_layer", "")).strip().lower()
+        omics = str(sample.get("asp_category", "")).strip().lower()
         if omics == "rna":
             return list(RNA_EXPECTED_FILE_OPTIONS)
         return list(DNA_EXPECTED_FILE_OPTIONS)
@@ -122,13 +120,13 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         """Build Files & QC rows from assay-configured expected file keys."""
         data_counts = dict(sample.get("data_counts") or {})
         sample_files = sample.get("files") if isinstance(sample.get("files"), dict) else {}
-        omics_layer = str(sample.get("omics_layer") or "dna").strip().lower()
-        preload_keys = manifest_file_preload_keys(omics_layer)
+        asp_category = str(sample.get("asp_category") or "dna").strip().lower()
+        preload_keys = manifest_file_preload_keys(asp_category)
         required_keys = cls._required_file_keys_for_sample(asp)
         rows: list[dict[str, Any]] = []
         for key in cls._expected_file_keys_for_sample(sample, asp):
             analysis_type = (
-                None if key == "biomarkers" else analysis_type_for_file_key(omics_layer, key)
+                None if key == "biomarkers" else analysis_type_for_file_key(asp_category, key)
             )
             file_doc = sample_files.get(key)
             file_meta = file_doc if isinstance(file_doc, dict) else {}
@@ -341,7 +339,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             merged: dict[str, Any] = {}
             context_key = tuple(
                 str(sample.get(key) or "")
-                for key in ("current_aspc_id", "asp_id", "subpanel_id", "environment")
+                for key in ("current_aspc_id", "asp_id", "diagnosis_id", "environment")
             )
             if context_key not in configurations:
                 configurations[context_key] = self._get_formatted_assay_config(sample)
@@ -393,6 +391,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         for asp in self.assay_panel_repository.get_all_asps() or []:
             asp_id = str(asp.get("asp_id") or "").strip()
             if not asp_id:
+                continue
+            if accessible_assays is not None and asp_id not in accessible_assays:
                 continue
             category = str(asp.get("asp_category") or "assay").strip().lower()
             raw_family = str(asp.get("asp_family") or "").strip().lower()

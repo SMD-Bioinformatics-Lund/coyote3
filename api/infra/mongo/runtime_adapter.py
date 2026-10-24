@@ -23,13 +23,13 @@ from api.infra.mongo.connections import MongoConnections
 from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
 from api.infra.mongo.repositories.assay_groups import AssayGroupRepository
 from api.infra.mongo.repositories.assay_panels import ASPRepository
 from api.infra.mongo.repositories.assay_setup import (
     AssaySetupRepository,
     AssaySetupRevisionRepository,
 )
-from api.infra.mongo.repositories.assay_subpanels import AssaySubpanelRepository
 from api.infra.mongo.repositories.bam_records import BamServiceRepository
 from api.infra.mongo.repositories.biomarkers import BiomarkerRepository
 from api.infra.mongo.repositories.blacklist import BlacklistRepository
@@ -37,6 +37,7 @@ from api.infra.mongo.repositories.clinical_rule_sets import (
     ClinicalRuleRevisionRepository,
     ClinicalRuleSetRepository,
 )
+from api.infra.mongo.repositories.configuration_profiles import ConfigurationProfileRepository
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
 from api.infra.mongo.repositories.d4_coverage import D4CoverageRepository
 from api.infra.mongo.repositories.d4_coverage_blacklist import D4CoverageBlacklistRepository
@@ -70,6 +71,7 @@ from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
 from api.infra.observability.prometheus_metrics import observe_operation
 
 CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
+    ("configuration_profile_repository", ConfigurationProfileRepository, "configuration_profiles"),
     ("translocation_repository", TranslocsRepository, "translocs"),
     ("copy_number_variant_repository", CNVsRepository, "cnvs"),
     ("variant_repository", VariantsRepository, "variants"),
@@ -80,7 +82,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),
     ("finding_comment_repository", FindingCommentsRepository, "finding_comments"),
     ("assay_panel_repository", ASPRepository, "asp"),
-    ("assay_subpanel_repository", AssaySubpanelRepository, "assay_subpanels"),
+    ("assay_diagnosis_repository", AssayDiagnosisRepository, "assay_diagnoses"),
     ("assay_setup_repository", AssaySetupRepository, "assay_setups"),
     ("assay_group_repository", AssayGroupRepository, "assay_groups"),
     ("assay_setup_revision_repository", AssaySetupRevisionRepository, "assay_setup_revisions"),

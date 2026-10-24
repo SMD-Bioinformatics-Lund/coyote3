@@ -77,7 +77,7 @@ def runtime_file_path(args: dict[str, Any], key: str) -> str | None:
     return str(value) if value else None
 
 
-def infer_omics_layer(args: dict[str, Any]) -> str | None:
+def infer_asp_category(args: dict[str, Any]) -> str | None:
     """Detect the omics layer (DNA or RNA) from file keys present in the payload.
 
     Args:
@@ -718,4 +718,4 @@ def _normalize_transloc_doc(doc: dict[str, Any]) -> dict[str, Any]:
 
 from .analysis_parsers import DnaIngestParser, RnaIngestParser  # noqa: E402
 
-__all__ = ["DnaIngestParser", "RnaIngestParser", "infer_omics_layer"]
+__all__ = ["DnaIngestParser", "RnaIngestParser", "infer_asp_category"]

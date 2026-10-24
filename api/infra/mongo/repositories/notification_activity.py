@@ -136,8 +136,8 @@ class NotificationActivityRepository:
                 "asp",
                 "aspc",
                 "assay_group",
-                "subpanel",
-                "assay_subpanel",
+                "diagnosis",
+                "assay_diagnosis",
                 "assay_setup",
                 "genelist",
             }

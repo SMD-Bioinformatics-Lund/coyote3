@@ -55,7 +55,7 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
         scope = rule["scope"]
         languages.setdefault(rule["rule_set_id"], set()).add(scope["language"])
         if rule.get("active") and rule.get("status") == "published":
-            key = tuple(scope[key] for key in ("asp_id", "subpanel_id", "analyte", "language"))
+            key = tuple(scope[key] for key in ("asp_id", "diagnosis_id", "analyte", "language"))
             if key in active_scopes:
                 raise ValueError(f"Ambiguous published scope: {key}")
             active_scopes.add(key)
@@ -145,7 +145,7 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
         rule = resolve_published_rule_set(
             rule_repository,
             asp_id=config["asp_id"],
-            subpanel_id=config.get("subpanel_id") or "base",
+            diagnosis_id=config.get("diagnosis_id") or "base",
             analyte=config["asp_category"].lower(),
             language=updated_reporting["language"],
         )
@@ -193,7 +193,7 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
         db[mapping["clinical_rule_sets_collection"]].create_index(
             [
                 ("scope.asp_id", 1),
-                ("scope.subpanel_id", 1),
+                ("scope.diagnosis_id", 1),
                 ("scope.analyte", 1),
                 ("scope.language", 1),
             ],

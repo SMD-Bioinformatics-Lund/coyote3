@@ -18,9 +18,11 @@ def test_generation_metadata_does_not_change_reviewed_content():
         "report_date": "first",
         "report_timestamp": "first",
     }
-    fingerprint = preview_fingerprint("dna", context)
+    fingerprint = preview_fingerprint("dna_report.html", context)
     require_current_preview(
-        fingerprint, "dna", dict(context, save=True, report_date="later", report_timestamp="later")
+        fingerprint,
+        "dna_report.html",
+        dict(context, save=True, report_date="later", report_timestamp="later"),
     )
 
 
@@ -36,14 +38,16 @@ def test_generation_metadata_does_not_change_reviewed_content():
 )
 def test_changes_require_a_new_preview(key):
     context = {key: {"value": "reviewed"}}
-    expected = preview_fingerprint("dna", context)
+    expected = preview_fingerprint("dna_report.html", context)
     changed = deepcopy(context)
     changed[key] = {"value": "changed"}
     with pytest.raises(AppError, match="Refresh and review") as error:
-        require_current_preview(expected, "dna", changed)
+        require_current_preview(expected, "dna_report.html", changed)
     assert error.value.status_code == 409
 
 
 def test_template_change_requires_a_new_preview():
     with pytest.raises(AppError):
-        require_current_preview(preview_fingerprint("dna", {}), "rna", {})
+        require_current_preview(
+            preview_fingerprint("dna_report.html", {}), "report_fusion.html", {}
+        )

@@ -100,7 +100,7 @@ class HomeReportContextPayload(BaseModel):
     pdf_report_name: str | None = None
     pdf_filepath: str | None = None
     asp_id: str | None = None
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
     environment: str | None = None
     author: str | None = None
     time_created: datetime | None = None

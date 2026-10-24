@@ -42,17 +42,17 @@ def registry(monkeypatch):
 def test_installation_is_explicit_idempotent_and_preserves_custom_groups(registry):
     db, repository, panels = registry
     db.assay_specific_panels.insert_one({"asp_id": "demo", "asp_group": "custom-scope"})
-    assert install(db, actor="operator") == 12
+    assert install(db, actor="operator") == 6
     assert repository.list() == []
-    assert install(db, actor="operator", apply=True) == 12
+    assert install(db, actor="operator", apply=True) == 6
     before = repository.list()
     assert install(db, actor="other", apply=True) == 0
     assert repository.list() == before
     assert db.assay_groups.find_one({"group_id": "solid"})["system_managed"] is True
-    assert db.assay_groups.find_one({"group_id": "demo"})["system_managed"] is True
+    assert db.assay_groups.find_one({"group_id": "hematology"})["system_managed"] is True
     assert db.assay_groups.find_one({"group_id": "custom-scope"})["system_managed"] is False
     assert "custom-scope" in panels.group_options()
-    assert {"tumwgs", "tumwgs-hema", "tumwgs-solid"} <= set(panels.group_options())
+    assert {"hematology", "solid", "myeloid", "lymphoid"} <= set(panels.group_options())
     assert db.assay_specific_panels.find_one()["asp_group"] == "custom-scope"
 
 
@@ -77,18 +77,20 @@ def test_create_custom_group_and_select_in_assay_form(registry):
     assert db.assay_groups.find_one()["display_name"] == "Methylation"
 
 
-def test_upgrade_adds_two_wgs_groups_without_changing_legacy_assignments(registry):
-    """Missing subgroups are inserted while existing group status and assay scopes remain."""
+def test_repair_adds_biological_groups_without_changing_legacy_assignments(registry):
+    """Missing biological groups are inserted while existing group status and assay scopes remain."""
     db, repository, _ = registry
     install(db, actor="operator", apply=True)
-    db.assay_groups.delete_many({"group_id": {"$in": ["tumwgs-hema", "tumwgs-solid"]}})
-    db.assay_groups.update_one({"group_id": "tumwgs"}, {"$set": {"version": 5, "is_active": False}})
-    db.assay_specific_panels.insert_one({"asp_id": "legacy_wgs", "asp_group": "tumwgs"})
-    legacy = db.assay_groups.find_one({"group_id": "tumwgs"})
+    db.assay_groups.delete_many({"group_id": {"$in": ["hematology", "solid"]}})
+    db.assay_groups.update_one(
+        {"group_id": "myeloid"}, {"$set": {"version": 5, "is_active": False}}
+    )
+    db.assay_specific_panels.insert_one({"asp_id": "legacy_myeloid", "asp_group": "myeloid"})
+    legacy = db.assay_groups.find_one({"group_id": "myeloid"})
     assert install(db, actor="operator", apply=True) == 2
-    assert db.assay_groups.find_one({"group_id": "tumwgs"}) == legacy
-    assert db.assay_specific_panels.find_one({"asp_id": "legacy_wgs"})["asp_group"] == "tumwgs"
-    assert {"tumwgs-hema", "tumwgs-solid"} <= {group["group_id"] for group in repository.list()}
+    assert db.assay_groups.find_one({"group_id": "myeloid"}) == legacy
+    assert db.assay_specific_panels.find_one({"asp_id": "legacy_myeloid"})["asp_group"] == "myeloid"
+    assert {"hematology", "solid"} <= {group["group_id"] for group in repository.list()}
 
 
 def test_system_group_cannot_be_replaced_by_creation(registry):
@@ -144,15 +146,15 @@ def test_system_group_status_changes_preserve_children_and_seed_reinstallation(r
     install(db, actor="operator", apply=True)
     db.assay_specific_panels.insert_many(
         [
-            {"asp_id": "active", "asp_group": "demo", "is_active": True},
-            {"asp_id": "inactive", "asp_group": "demo", "is_active": False},
+            {"asp_id": "active", "asp_group": "hematology", "is_active": True},
+            {"asp_id": "inactive", "asp_group": "hematology", "is_active": False},
         ]
     )
     before = list(db.assay_specific_panels.find())
     service = AssayGroupService(repository)
-    assert service.impact("demo")["assays"] == ["active", "inactive"]
+    assert service.impact("hematology")["assays"] == ["active", "inactive"]
     result = service.change_status(
-        "demo",
+        "hematology",
         AssayGroupStatus(
             is_active=False,
             expected_version=1,
@@ -161,17 +163,17 @@ def test_system_group_status_changes_preserve_children_and_seed_reinstallation(r
         actor="admin",
     )
     assert result["meta"]["revision"]["previous_is_active"] is True
-    assert "demo" not in panels.group_options()
-    assert "demo" in panels.get_all_asp_groups()
+    assert "hematology" not in panels.group_options()
+    assert "hematology" in panels.get_all_asp_groups()
     assert panels.get_asp("active")["asp_id"] == "active"
     assert list(db.assay_specific_panels.find()) == before
     install(db, actor="operator", apply=True)
-    assert repository.get("demo")["is_active"] is False
-    assert repository.get("demo")["system_managed"] is True
-    assert repository.get("demo")["updated_by"] == "admin"
+    assert repository.get("hematology")["is_active"] is False
+    assert repository.get("hematology")["system_managed"] is True
+    assert repository.get("hematology")["updated_by"] == "admin"
     with pytest.raises(AppError) as error:
         service.change_status(
-            "demo",
+            "hematology",
             AssayGroupStatus(
                 is_active=True,
                 expected_version=1,
@@ -181,7 +183,7 @@ def test_system_group_status_changes_preserve_children_and_seed_reinstallation(r
         )
     assert error.value.status_code == 409
     service.change_status(
-        "demo",
+        "hematology",
         AssayGroupStatus(
             is_active=True,
             expected_version=2,
@@ -189,13 +191,50 @@ def test_system_group_status_changes_preserve_children_and_seed_reinstallation(r
         ),
         actor="admin",
     )
-    assert "demo" in panels.group_options()
+    assert "hematology" in panels.group_options()
     assert list(db.assay_specific_panels.find()) == before
 
 
 def test_blank_status_reason_is_rejected():
     with pytest.raises(ValidationError):
         AssayGroupStatus(is_active=False, expected_version=1, reason="   ")
+
+
+def test_biological_parentage_is_explicit_and_does_not_move_assays(registry):
+    """A child records its parent without acquiring that parent's assay assignments."""
+    db, repository, _ = registry
+    service = AssayGroupService(repository)
+    service.create(AssayGroupCreate(group_id="solid", display_name="Solid"), actor="admin")
+    db.assay_specific_panels.insert_one({"asp_id": "solid_panel", "asp_group": "solid"})
+    service.create(
+        AssayGroupCreate(group_id="lung", display_name="Lung", parent_group_id="solid"),
+        actor="admin",
+    )
+    assert repository.get("lung")["parent_group_id"] == "solid"
+    assert repository.affected_assays("lung") == []
+    assert repository.affected_assays("solid") == ["solid_panel"]
+    assert repository.get("solid")["version"] == 1
+
+
+@pytest.mark.parametrize("parent_id", ["absent", "child", "inactive", "cycle_a", "orphan"])
+def test_invalid_biological_ancestry_blocks_creation(registry, parent_id):
+    """Reject absent, retired, self-referencing and corrupt ancestor chains."""
+    db, repository, _ = registry
+    db.assay_groups.insert_many(
+        [
+            {"group_id": "inactive", "is_active": False},
+            {"group_id": "cycle_a", "is_active": True, "parent_group_id": "cycle_b"},
+            {"group_id": "cycle_b", "is_active": True, "parent_group_id": "cycle_a"},
+            {"group_id": "orphan", "is_active": True, "parent_group_id": "absent"},
+        ]
+    )
+    with pytest.raises(AppError) as error:
+        AssayGroupService(repository).create(
+            AssayGroupCreate(group_id="child", display_name="Child", parent_group_id=parent_id),
+            actor="admin",
+        )
+    assert error.value.status_code == 422
+    assert repository.get("child") is None
 
 
 def test_installer_backfills_only_missing_status_fields(registry):

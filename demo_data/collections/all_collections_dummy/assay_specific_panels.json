@@ -4,6 +4,16 @@
     "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB"
+    ],
     "display_name": "Hema GMS v1",
     "description": "Demo DNA assay panel for first-run validation",
     "igv": null,
@@ -58,9 +68,15 @@
   },
   {
     "asp_id": "assay_rna_1",
-    "asp_group": "wts",
+    "asp_group": "hematology",
     "asp_family": "wts",
     "asp_category": "rna",
+    "supported_analyses": [
+      "FUSION",
+      "EXPRESSION",
+      "CLASSIFICATION",
+      "QC"
+    ],
     "display_name": "Demo RNA WTS",
     "description": "Demo RNA WTS assay panel for first-run validation",
     "igv": null,

@@ -39,7 +39,7 @@ def test_sectioned_sample_filter_payload_stays_in_canonical_contract():
                 "coverage": {"warn_cov": 500},
             },
         },
-        omics_layer="dna",
+        asp_category="dna",
     )
 
     assert normalized["snv"]["min_depth"] == 100
@@ -75,7 +75,7 @@ def test_filter_defaults_complete_an_existing_empty_intent_profile():
                 "cnv": {"cnv_loss_cutoff": -0.2, "cnv_gain_cutoff": 0.2},
             }
         },
-        omics_layer="dna",
+        asp_category="dna",
         analysis_intents=["somatic"],
     )
 

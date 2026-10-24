@@ -4,13 +4,21 @@ from __future__ import annotations
 
 
 def add_alt_class(
-    variant: dict, assay_group: str, subpanel: str | None, *, annotation_repository
+    variant: dict,
+    assay_group: str,
+    diagnosis: str | None,
+    *,
+    annotation_repository,
+    sample_context: dict | None = None,
 ) -> dict:
     """
     Add alternative classifications to a variant/fusion entry.
     """
     additional_classifications = list(
-        annotation_repository.get_additional_classifications(variant, assay_group, subpanel) or []
+        annotation_repository.get_additional_classifications(
+            variant, assay_group, diagnosis, sample_context=sample_context
+        )
+        or []
     )
     if additional_classifications:
         additional_classifications[0].pop("author", None)
@@ -28,7 +36,12 @@ def add_alt_class(
 
 
 def add_global_annotations(
-    variants: list, assay_group: str, subpanel: str | None, *, annotation_repository
+    variants: list,
+    assay_group: str,
+    diagnosis: str | None,
+    *,
+    annotation_repository,
+    sample_context: dict | None = None,
 ) -> tuple[list, list]:
     """
     Add global annotation/classification fields and collect selected entities.
@@ -40,7 +53,9 @@ def add_global_annotations(
             variants[var_idx]["classification"],
             variants[var_idx]["other_classification"],
             variants[var_idx]["annotations_interesting"],
-        ) = annotation_repository.get_global_annotations(var, assay_group, subpanel)
+        ) = annotation_repository.get_global_annotations(
+            var, assay_group, diagnosis, sample_context=sample_context
+        )
         classification = variants[var_idx]["classification"]
         if classification is not None:
             class_value = classification.get("class")
@@ -54,7 +69,11 @@ def add_global_annotations(
                 selected_variants.append(variants[var_idx])
 
         variants[var_idx] = add_alt_class(
-            variants[var_idx], assay_group, subpanel, annotation_repository=annotation_repository
+            variants[var_idx],
+            assay_group,
+            diagnosis,
+            annotation_repository=annotation_repository,
+            sample_context=sample_context,
         )
     return variants, selected_variants
 

@@ -7,12 +7,12 @@ from fastapi import APIRouter, Body, Depends, Query, Request
 from api.app.container import util
 from api.app.deps.services import (
     get_admin_assay_group_service,
+    get_admin_diagnosis_service,
     get_admin_panel_service,
-    get_admin_subpanel_service,
 )
 from api.application.resources.asp import AspService
 from api.application.resources.assay_groups import AssayGroupService
-from api.application.resources.subpanels import SubpanelService
+from api.application.resources.diagnoses import DiagnosisService
 from api.contracts.admin import (
     AdminChangePayload,
     AdminExistsPayload,
@@ -26,14 +26,14 @@ from api.contracts.schemas.assay_groups import (
     AssayGroupsPayload,
     AssayGroupStatus,
 )
-from api.contracts.schemas.subpanels import (
-    SharedSubpanelCreate,
-    SharedSubpanelUpdate,
-    SubpanelAssociationUpdate,
-    SubpanelCreate,
-    SubpanelDefinitionsPayload,
-    SubpanelsPayload,
-    SubpanelUpdate,
+from api.contracts.schemas.diagnoses import (
+    DiagnosesPayload,
+    DiagnosisAssociationUpdate,
+    DiagnosisCreate,
+    DiagnosisDefinitionsPayload,
+    DiagnosisUpdate,
+    SharedDiagnosisCreate,
+    SharedDiagnosisUpdate,
 )
 from api.interfaces.http.admin.resources.audit import set_managed_resource_audit_context
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
@@ -92,95 +92,95 @@ def create_assay_group(
     return result
 
 
-@router.post("/api/v1/resources/subpanels", response_model=AdminChangePayload, status_code=201)
-def create_shared_subpanel(
+@router.post("/api/v1/resources/diagnoses", response_model=AdminChangePayload, status_code=201)
+def create_shared_diagnosis(
     request: Request,
-    payload: SharedSubpanelCreate,
+    payload: SharedDiagnosisCreate,
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
     """Create one shared definition and selected assay links; requires assay.panel:edit."""
     result = service.create_definition(payload, actor=user.username)
     set_managed_resource_audit_context(
-        request, resource_type="subpanel", action="created", result=result
+        request, resource_type="diagnosis", action="created", result=result
     )
     return result
 
 
 @router.patch(
-    "/api/v1/resources/asp/{assay_panel_id}/subpanels/{subpanel_id}/status",
+    "/api/v1/resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status",
     response_model=AdminChangePayload,
 )
-def change_subpanel_association_status(
+def change_diagnosis_association_status(
     request: Request,
     assay_panel_id: str,
-    subpanel_id: str,
-    payload: SubpanelAssociationUpdate,
+    diagnosis_id: str,
+    payload: DiagnosisAssociationUpdate,
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
     """Enable or disable only this assay link; requires assay.panel:edit."""
     result = service.set_association_status(
-        assay_panel_id, subpanel_id, payload, actor=user.username
+        assay_panel_id, diagnosis_id, payload, actor=user.username
     )
     set_managed_resource_audit_context(
-        request, resource_type="assay_subpanel", action="updated", result=result
+        request, resource_type="assay_diagnosis", action="updated", result=result
     )
     return result
 
 
-@router.get("/api/v1/resources/subpanels", response_model=SubpanelDefinitionsPayload)
-def list_shared_subpanels(
+@router.get("/api/v1/resources/diagnoses", response_model=DiagnosisDefinitionsPayload)
+def list_shared_diagnoses(
     user: ApiUser = Depends(require_access(permission="assay.panel:view")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
     """List shared definitions; requires assay.panel:view."""
     return util.common.convert_to_serializable(service.definitions_payload())
 
 
-@router.put("/api/v1/resources/subpanels/{subpanel_id}", response_model=AdminChangePayload)
-def revise_shared_subpanel(
+@router.put("/api/v1/resources/diagnoses/{diagnosis_id}", response_model=AdminChangePayload)
+def revise_shared_diagnosis(
     request: Request,
-    subpanel_id: str,
-    payload: SharedSubpanelUpdate,
+    diagnosis_id: str,
+    payload: SharedDiagnosisUpdate,
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
     """Revise shared metadata for all associated assays; requires assay.panel:edit."""
-    result = service.revise_definition(subpanel_id, payload, actor=user.username)
+    result = service.revise_definition(diagnosis_id, payload, actor=user.username)
     set_managed_resource_audit_context(
-        request, resource_type="subpanel", action="updated", result=result
+        request, resource_type="diagnosis", action="updated", result=result
     )
     return result
 
 
-@router.get("/api/v1/resources/asp/{assay_panel_id}/subpanels", response_model=SubpanelsPayload)
-def list_subpanels(
+@router.get("/api/v1/resources/asp/{assay_panel_id}/diagnoses", response_model=DiagnosesPayload)
+def list_diagnoses(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="assay.panel:view")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
-    """List current and retired subpanels; requires assay.panel:view."""
+    """List current and retired diagnoses; requires assay.panel:view."""
     return util.common.convert_to_serializable(service.list_payload(assay_panel_id))
 
 
 @router.post(
-    "/api/v1/resources/asp/{assay_panel_id}/subpanels",
+    "/api/v1/resources/asp/{assay_panel_id}/diagnoses",
     response_model=AdminChangePayload,
     status_code=201,
 )
-def create_subpanel(
+def create_diagnosis(
     request: Request,
     assay_panel_id: str,
-    payload: SubpanelCreate,
+    payload: DiagnosisCreate,
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
-    """Register a subpanel under an existing assay; requires assay.panel:edit."""
+    """Register a diagnosis under an existing assay; requires assay.panel:edit."""
     result = service.save(assay_panel_id, payload, actor=user.username)
     set_managed_resource_audit_context(
         request,
-        resource_type="assay_subpanel",
+        resource_type="assay_diagnosis",
         action="created",
         result=result,
     )
@@ -188,22 +188,22 @@ def create_subpanel(
 
 
 @router.put(
-    "/api/v1/resources/asp/{assay_panel_id}/subpanels/{subpanel_id}",
+    "/api/v1/resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}",
     response_model=AdminChangePayload,
 )
-def update_subpanel(
+def update_diagnosis(
     request: Request,
     assay_panel_id: str,
-    subpanel_id: str,
-    payload: SubpanelUpdate,
+    diagnosis_id: str,
+    payload: DiagnosisUpdate,
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
-    service: SubpanelService = Depends(get_admin_subpanel_service),
+    service: DiagnosisService = Depends(get_admin_diagnosis_service),
 ):
-    """Revise or retire a subpanel; requires assay.panel:edit and its current version."""
-    result = service.save(assay_panel_id, payload, actor=user.username, subpanel_id=subpanel_id)
+    """Revise or retire a diagnosis; requires assay.panel:edit and its current version."""
+    result = service.save(assay_panel_id, payload, actor=user.username, diagnosis_id=diagnosis_id)
     set_managed_resource_audit_context(
         request,
-        resource_type="assay_subpanel",
+        resource_type="assay_diagnosis",
         action="updated",
         result=result,
     )

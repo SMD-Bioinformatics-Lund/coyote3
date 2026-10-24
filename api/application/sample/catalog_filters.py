@@ -6,8 +6,8 @@ import re
 from copy import deepcopy
 from typing import Any
 
-from api.config.constants import TUMOR_WGS_ASP_GROUPS
-from api.domain.common.assay_filters import get_sample_effective_genes, has_sample_gene_restriction
+from api.application.common.release_resources import gene_list_resources
+from api.domain.common.assay_filters import get_sample_effective_genes
 from api.domain.common.biomarkers import biomarker_counts
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
@@ -19,7 +19,7 @@ class SampleCatalogFiltersMixin:
     @staticmethod
     def _normalize_list_target(sample: dict, target: str | None) -> str:
         """Normalize a list/effective-gene target for the sample's omics layer."""
-        omics = str(sample.get("omics_layer", "")).strip().lower()
+        omics = str(sample.get("asp_category", "")).strip().lower()
         if target is None or not isinstance(target, str):
             normalized = ""
         else:
@@ -48,7 +48,7 @@ class SampleCatalogFiltersMixin:
         """Return the complete persisted filter profile map."""
         return normalize_sample_filters(
             sample.get("filters"),
-            omics_layer=str(sample.get("omics_layer") or "dna"),
+            asp_category=str(sample.get("asp_category") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
             canonical=True,
         )
@@ -91,8 +91,6 @@ class SampleCatalogFiltersMixin:
             normalized.add("expression")
         if {"pgx", "adhoc_pgx"} & values:
             normalized.add("pgx")
-        if not normalized:
-            normalized.add("snv")
         return normalized
 
     @classmethod
@@ -102,14 +100,16 @@ class SampleCatalogFiltersMixin:
         normalized_target = "fusion" if target == "translocation" else target
         return normalized_target == "all" or normalized_target in supported_targets
 
-    def _validated_genelist_ids(self, values: Any, *, target: str) -> list[str]:
+    def _validated_genelist_ids(
+        self, values: Any, *, target: str, configuration: dict
+    ) -> list[str]:
         """Validate selected ISGL IDs against one analysis-specific list contract."""
         if not isinstance(values, list):
             raise api_error(400, f"{target.upper()} gene-list selection must be a list")
         normalized_ids = list(
             dict.fromkeys(str(value).strip() for value in values if str(value).strip())
         )
-        selected_docs = self.gene_list_repository.get_isgl_by_ids(normalized_ids)
+        selected_docs = gene_list_resources(configuration, normalized_ids)
         missing_ids = [list_id for list_id in normalized_ids if list_id not in selected_docs]
         incompatible_ids = [
             list_id
@@ -126,7 +126,9 @@ class SampleCatalogFiltersMixin:
             )
         return normalized_ids
 
-    def _validate_filter_genelists(self, filters: dict[str, Any]) -> dict[str, Any]:
+    def _validate_filter_genelists(
+        self, filters: dict[str, Any], *, configuration: dict
+    ) -> dict[str, Any]:
         """Validate every persisted analysis-specific ISGL selection."""
         validated = deepcopy(filters)
         for intent, target, key in (
@@ -138,7 +140,9 @@ class SampleCatalogFiltersMixin:
         ):
             section = (validated.get(intent) or {}).get(target) or {}
             if key in section:
-                section[key] = self._validated_genelist_ids(section[key], target=target)
+                section[key] = self._validated_genelist_ids(
+                    section[key], target=target, configuration=configuration
+                )
         return validated
 
     @staticmethod
@@ -173,7 +177,7 @@ class SampleCatalogFiltersMixin:
             "list_type": list_type,
             "asp_ids": list(gl.get("asp_ids") or []),
             "asp_groups": list(gl.get("asp_groups") or []),
-            "subpanel_id": gl.get("subpanel_id"),
+            "diagnosis_id": gl.get("diagnosis_id"),
             "diagnosis": gl.get("diagnosis"),
         }
 
@@ -181,27 +185,22 @@ class SampleCatalogFiltersMixin:
         self, *, sample: dict[str, Any], asp: dict[str, Any], target: str
     ) -> list[dict[str, Any]]:
         """Return selectable ISGL options scoped by assay or assay group."""
-        list_type = self._isgl_list_type_for_target(target)
-        isgls = self.gene_list_repository.get_isgl_for_scope(
-            asp_name=sample.get("asp_id"),
-            assay_group=asp.get("asp_group"),
-            is_active=True,
-            adhoc=False,
-            list_type=list_type,
-        )
+        isgls = gene_list_resources(self._get_formatted_assay_config(sample)).values()
         return [self._genelist_option(gl) for gl in isgls if self._is_matching_target(gl, target)]
 
     def _selected_gene_panel_summary(
         self, *, sample: dict[str, Any], asp: dict[str, Any]
     ) -> dict[str, Any]:
         """Return selected ISGL/ad-hoc list summaries for the sample header card."""
-        omics = str(sample.get("omics_layer") or "dna").strip().lower()
+        omics = str(sample.get("asp_category") or "dna").strip().lower()
         targets = ["fusion"] if omics == "rna" else ["snv", "cnv", "translocation"]
         summary: dict[str, Any] = {}
         for target in targets:
             target_filters = self._target_filters(sample, target)
             selected_ids = list(target_filters.get(self._filter_key_for_target(target), []) or [])
-            selected_docs = self.gene_list_repository.get_isgl_by_ids(selected_ids)
+            selected_docs = gene_list_resources(
+                self._get_formatted_assay_config(sample), selected_ids
+            )
             covered_map, effective_genes = get_sample_effective_genes(
                 sample, asp, selected_docs, target=target
             )
@@ -389,10 +388,12 @@ class SampleCatalogFiltersMixin:
         if not assay:
             raise api_error(400, "Sample is missing the 'asp_id' field")
         asp_group = str(asp.get("asp_group") or "")
-        asp_covered_genes, _asp_germline_genes = self.assay_panel_repository.get_asp_genes(assay)
+        asp_covered_genes = list(asp.get("covered_genes") or [])
         resolved_asp = {**asp, "covered_genes": asp_covered_genes}
         selected_list_ids = target_filters.get(self._filter_key_for_target(target), [])
-        selected_lists = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        selected_lists = gene_list_resources(
+            self._get_formatted_assay_config(sample), selected_list_ids
+        )
         _covered_map, effective_genes = get_sample_effective_genes(
             {**sample, "filters": filters},
             resolved_asp,
@@ -406,7 +407,7 @@ class SampleCatalogFiltersMixin:
     ) -> tuple[dict[str, int], dict[str, int], dict[str, Any]]:
         """Return raw/filtered analysis-type counts plus SNV stats."""
         sample_id = str(sample.get("_id"))
-        snv_genes, asp_covered_genes, asp_group = self._effective_genes_for_target(
+        snv_genes, _asp_covered_genes, _asp_group = self._effective_genes_for_target(
             sample=sample, asp=asp, target="snv"
         )
         cnv_genes, _cnv_covered_genes, _ = self._effective_genes_for_target(
@@ -420,19 +421,9 @@ class SampleCatalogFiltersMixin:
         )
 
         variant_stats_filtered = deepcopy(variant_stats_raw or {})
-        snv_restricted = has_sample_gene_restriction(sample, asp, target="snv")
-        cnv_restricted = has_sample_gene_restriction(sample, asp, target="cnv")
-        fusion_restricted = has_sample_gene_restriction(sample, asp, target="fusion")
-        if snv_restricted and not snv_genes:
+        if not snv_genes:
             variant_stats_filtered = {**variant_stats_filtered, "variants": 0}
-        elif (
-            snv_genes
-            and variant_stats_raw
-            and (
-                len(snv_genes) < len(asp_covered_genes)
-                or asp_group in (*TUMOR_WGS_ASP_GROUPS, "wts")
-            )
-        ):
+        else:
             variant_stats_filtered = self.variant_repository.get_variant_stats(
                 sample_id, genes=snv_genes
             )
@@ -459,15 +450,9 @@ class SampleCatalogFiltersMixin:
         }
         filtered_counts = {
             "snv": int(variant_stats_filtered.get("variants") or 0),
-            "cnv": self._count_matching_docs(cnv_rows, set(cnv_genes))
-            if cnv_restricted
-            else raw_counts["cnv"],
-            "transloc": self._count_matching_docs(transloc_rows, set(translocation_genes))
-            if has_sample_gene_restriction(sample, asp, target="translocation")
-            else raw_counts["transloc"],
-            "fusion": self._count_matching_docs(fusion_rows, set(fusion_genes))
-            if fusion_restricted
-            else raw_counts["fusion"],
+            "cnv": self._count_matching_docs(cnv_rows, set(cnv_genes)),
+            "transloc": self._count_matching_docs(transloc_rows, set(translocation_genes)),
+            "fusion": self._count_matching_docs(fusion_rows, set(fusion_genes)),
             **biomarker_counts(biomarker_rows),
         }
         return raw_counts, filtered_counts, variant_stats_filtered

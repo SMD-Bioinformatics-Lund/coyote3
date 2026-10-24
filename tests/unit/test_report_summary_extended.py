@@ -1,26 +1,6 @@
 from __future__ import annotations
 
-import pytest
-
 from api.application.interpretation import report_summary
-
-
-def test_process_annotations_groups_class_and_text_by_required_context() -> None:
-    grouped = report_summary.process_gene_annotations(
-        [
-            {"class": 1, "assay": "hema", "subpanel": "hem", "variant": "v1"},
-            {"text": "one", "assay": "hema", "subpanel": "hem", "variant": "v1"},
-            {"class": 2, "assay": "solid", "subpanel": "colon", "variant": "v2"},
-        ]
-    )
-    assert grouped["hema:hem"]["v1"]["latest_class"]["class"] == 1
-    assert grouped["hema:hem"]["v1"]["latest_text"]["text"] == "one"
-    assert grouped["solid:colon"]["v2"]["latest_class"]["class"] == 2
-
-
-def test_process_annotations_rejects_rows_without_required_context() -> None:
-    with pytest.raises(KeyError, match="assay"):
-        report_summary.process_gene_annotations([{"class": 2, "variant": "v2"}])
 
 
 def test_global_structural_comment_shapes(monkeypatch) -> None:

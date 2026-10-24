@@ -36,6 +36,7 @@ class ReportRepository(BaseRepository):
         """Create report ID, sample chronology, and assay/environment lookup indexes."""
         col = self.get_collection()
         col.create_index([("report_id", 1)], name="report_id_1", background=True)
+        col.create_index([("artifacts.status", 1)], name="report_artifact_status")
         col.create_index(
             [("sample_oid", 1), ("report_num", -1)], name="sample_oid_report_num", background=True
         )
@@ -47,6 +48,23 @@ class ReportRepository(BaseRepository):
             name="asp_environment_time",
             background=True,
         )
+
+    def pending_artifacts(self, *, limit: int = 100) -> list[dict]:
+        """Return committed reports awaiting artifact publication, oldest first."""
+        return list(
+            self.get_collection()
+            .find({"artifacts.status": "pending"})
+            .sort("time_created", 1)
+            .limit(limit)
+        )
+
+    def complete_artifacts(self, report_oid: Any) -> bool:
+        """Mark verified artifacts ready without changing the saved clinical receipt."""
+        result = self.get_collection().update_one(
+            {"_id": self._object_id(report_oid)},
+            {"$set": {"artifacts.$[].status": "ready"}},
+        )
+        return result.matched_count == 1
 
     @staticmethod
     def _object_id(value: Any) -> ObjectId:
@@ -95,6 +113,8 @@ class ReportRepository(BaseRepository):
         rule_provenance: dict | None = None,
         snapshot_rows: list[dict] | None = None,
         created_by: str | None = None,
+        resolution_snapshot: dict | None = None,
+        artifacts: list[dict] | None = None,
     ) -> ObjectId:
         """Commit report metadata, sample report state, and finding snapshots together.
 
@@ -111,6 +131,8 @@ class ReportRepository(BaseRepository):
             snapshot_rows: Finding snapshot rows; ``None`` is treated as an empty list.
             created_by: Finding-snapshot author; falsey values use the current username.
                 The report metadata author always uses the current username.
+            resolution_snapshot: Resolved report inputs captured before artifact rendering.
+            artifacts: Staged artifact paths, SHA-256 checksums and storage states.
 
         Returns:
             ObjectId of the committed report metadata.
@@ -133,7 +155,7 @@ class ReportRepository(BaseRepository):
             "sample_oid": self._object_id(sample.get("_id")),
             "sample_name": sample.get("name"),
             "asp_id": sample.get("asp_id"),
-            "subpanel_id": sample.get("subpanel_id"),
+            "diagnosis_id": sample.get("diagnosis_id"),
             "environment": sample.get("environment"),
             "report_num": int(report_num),
             "report_id": str(report_id),
@@ -148,10 +170,11 @@ class ReportRepository(BaseRepository):
             "aspc": aspc_snapshot
             or {
                 "_id": sample.get("current_aspc_id"),
-                "aspc_id": sample.get("current_aspc_key"),
-                "version": sample.get("current_aspc_version"),
             },
             "clinical_rule_source": rule_provenance,
+            "resolution_snapshot": resolution_snapshot,
+            "artifacts": artifacts or [],
+            "sample_version": sample.get("version", 1),
         }
 
         def transaction(session):
@@ -169,7 +192,15 @@ class ReportRepository(BaseRepository):
             """
             # Writing the owning sample serializes concurrent report saves for that sample.
             result = self.adapter.samples_collection.update_one(
-                {"_id": doc["sample_oid"]},
+                {
+                    "_id": doc["sample_oid"],
+                    "current_aspc_id": sample.get("current_aspc_id"),
+                    "filters": sample.get("filters"),
+                    "environment": sample.get("environment"),
+                    "diagnosis_id": sample.get("diagnosis_id"),
+                    "analysis_intents": sample.get("analysis_intents"),
+                    "version": sample.get("version"),
+                },
                 {
                     "$set": {
                         "reported": True,
@@ -180,7 +211,7 @@ class ReportRepository(BaseRepository):
                 session=session,
             )
             if result.matched_count != 1:
-                raise AppError(404, "Sample no longer exists.")
+                raise AppError(409, "Sample changed. Refresh and review the report preview.")
             latest = self.get_collection().find_one(
                 {"sample_oid": doc["sample_oid"]},
                 {"report_num": 1},
@@ -200,7 +231,7 @@ class ReportRepository(BaseRepository):
                 report_num=report_num,
                 assay=sample.get("asp_id"),
                 assay_group=sample.get("asp_group"),
-                subpanel=sample.get("subpanel_id"),
+                diagnosis=sample.get("diagnosis_id"),
                 environment=sample.get("environment"),
                 snapshot_rows=snapshot_rows or [],
                 created_by=created_by or doc["author"],
@@ -277,7 +308,7 @@ class ReportRepository(BaseRepository):
                         {"sample_name": expression},
                         {"author": expression},
                         {"asp_id": expression},
-                        {"subpanel_id": expression},
+                        {"diagnosis_id": expression},
                     ]
                 }
             )

@@ -14,9 +14,9 @@ copy these application-owned files into the external center directory.
 | Directory | Collections | Authority | First-deployment behavior |
 | --- | --- | --- | --- |
 | `rbac/` | `permissions`, `roles` | Coyote3 application release | Installed before the first local superuser is created. Bundled records cannot be deleted through the UI. Roles may be deactivated or revised through their normal managed workflow. |
-| `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote3 application release | Eleven groups and twelve group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
+| `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote3 application release | Five biological groups and six group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
 | `reference/` knowledgebase snapshots | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Bundled reference snapshot in `KNOWLEDGEBASE_DB` | Separate optional reference installation imports only into empty destination collections. Existing reference collections are never merged or replaced. |
-| `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic demonstration configuration | Installed through the separate demo workflow, including named subpanels/associations and report-rule revision baselines. Add center-approved definitions before clinical use. |
+| `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic configuration fixtures | Used for bootstrap validation and isolated collection-import exercises. The starter installer uses `demo_data/clinical_workflows/` for its connected catalog and samples. |
 
 See [Installed defaults and demonstration configuration](../../../docs/administration/installed-defaults.md)
 for the complete inventory, query conditions, demo filters and role responsibilities.
@@ -55,7 +55,7 @@ Supported catalogs are marked `system_managed`, and document versions start
 at `1`. Clinical rule content versions and revisions also start at `1`; their
 synthetic review, publication, and lifecycle metadata use the administrator and
 installation time. This metadata does not establish clinical approval. Generated
-subpanel definitions and associations start at version `1` with the same administrator.
+diagnosis definitions and associations start at version `1` with the same administrator.
 Reference release identifiers remain unchanged. Existing database records and
 immutable revision history are never reset by rerunning bootstrap.
 
@@ -64,7 +64,8 @@ Application upgrades use dedicated synchronization or release procedures:
 - RBAC additions are applied with `scripts/identity/sync_rbac_catalog.py`.
 - Query-rule roles and permissions are included in RBAC. Bootstrap combines
   `reference/query_rule_sets.seed.ndjson` with application-owned `../clinical_query_seed.toml`
-  and installs version-one publications attributed to the initial administrator.
+  and installs version-one publications attributed to `system` during first
+  installation or to the authenticated operator during maintenance.
   They are marked `system_installed`; installation does not imply independent review.
   `scripts/bootstrap/install_query_rules.py` plans and installs missing scopes in
   existing deployments without overwriting any existing scope or lifecycle history.

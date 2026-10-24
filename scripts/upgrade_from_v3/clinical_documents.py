@@ -146,7 +146,8 @@ def convert_sample(
             raise ValueError("Legacy assay requires an explicit physical asp_id mapping")
         document.pop("assay")
     rename_field(document, "profile", "environment")
-    rename_field(document, "subpanel", "subpanel_id")
+    rename_field(document, "subpanel", "diagnosis_id")
+    rename_field(document, "subpanel_id", "diagnosis_id")
     for key, value in metadata.items():
         if key in document and document[key] != value:
             raise ValueError(f"Reviewed metadata conflicts with source field: {key}")
@@ -170,7 +171,7 @@ def convert_sample(
                 "sample_oid": document["_id"],
                 "sample_name": document["name"],
                 "asp_id": document.get("asp_id"),
-                "subpanel_id": document.get("subpanel_id"),
+                "diagnosis_id": document.get("diagnosis_id"),
                 "environment": document.get("environment"),
             },
         )
@@ -211,6 +212,7 @@ def convert_annotation(source: dict[str, Any]) -> dict[str, Any]:
     """
     document = deepcopy(source)
     nomenclature = document.get("nomenclature")
+    rename_field(document, "subpanel", "diagnosis")
     if nomenclature not in NOMENCLATURE_FIELDS:
         raise ValueError("Unsupported annotation nomenclature")
     if "time_created" not in document:

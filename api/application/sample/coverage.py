@@ -7,8 +7,14 @@ from copy import deepcopy
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
+from api.application.common.release_resources import assay_resource, gene_list_resources
 from api.application.coverage.processing import CoverageProcessingService
+from api.domain.common.assay_filters import (
+    get_sample_effective_genes,
+    merge_sample_settings_with_assay_config,
+)
 from api.domain.common.errors import forbidden_error, setup_error
+from api.domain.common.sample_filters import normalize_sample_filters
 
 
 class CoverageService:
@@ -64,14 +70,14 @@ class CoverageService:
             )
 
         assay_group = assay_config.get("asp_group", "unknown")
-        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample_assay)
-        if not assay_panel_doc:
-            raise setup_error(
-                f"ASP not registered for assay '{sample_assay}'",
-                f"No active ASP exists for sample '{sample.get('name', sample.get('_id'))}'.",
-                hint="Create and activate the matching ASP before opening coverage pages.",
-            )
-        gene_scope = list(assay_panel_doc.get("covered_genes") or [])
+        assay_panel_doc = assay_resource(assay_config)
+        scoped_sample = merge_sample_settings_with_assay_config(sample, assay_config)
+        filters = normalize_sample_filters(scoped_sample.get("filters"), asp_category="dna")
+        selected = (filters.get("snv") or {}).get("snvlists") or []
+        lists = gene_list_resources(assay_config, selected) if selected else {}
+        _, gene_scope = get_sample_effective_genes(
+            scoped_sample, assay_panel_doc, lists, target="snv"
+        )
 
         cov_dict = self.d4_coverage_repository.get_sample_coverage(str(sample["_id"])) or {}
         cov_dict = deepcopy(cov_dict)

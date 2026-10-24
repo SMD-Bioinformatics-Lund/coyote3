@@ -6,32 +6,6 @@ from api.config.constants import DEFAULT_ENVIRONMENT
 class SampleStatisticsMixin:
     """Read sample statistics through MongoDB aggregation pipelines."""
 
-    def get_all_sample_counts(self, report: bool | None = None) -> list:
-        """
-        Retrieve the total count of all samples in the database.
-
-        This method fetches the total number of samples, optionally filtered by their report status:
-        - If `report` is None, it retrieves the count of all samples.
-        - If `report` is True, it retrieves the count of samples with reports.
-        - If `report` is False, it retrieves the count of samples without reports.
-
-        Returns:
-            list: A list containing the total count of samples based on the specified criteria.
-        """
-        if report is None:
-            return self.get_collection().count_documents({})
-        if report:
-            return self.get_collection().count_documents({"reported": True})
-        return self.get_collection().count_documents(
-            {
-                "$or": [
-                    {"reported": False},
-                    {"reported": None},
-                    {"reported": {"$exists": False}},
-                ]
-            }
-        )
-
     def user_sample_counts_by_assay(self, report: bool | None = None, assays: list = None) -> dict:
         """
         Retrieve the count of samples for each assay group.
@@ -102,11 +76,11 @@ class SampleStatisticsMixin:
                         {"$project": {"_id": 0, "key": "$_id", "count": 1}},
                     ],
                     "omics_layers": [
-                        {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
+                        {"$group": {"_id": "$asp_category", "count": {"$sum": 1}}},
                         {"$project": {"_id": 0, "key": "$_id", "count": 1}},
                     ],
                     "sequencing_scopes": [
-                        {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
+                        {"$group": {"_id": "$asp_family", "count": {"$sum": 1}}},
                         {"$project": {"_id": 0, "key": "$_id", "count": 1}},
                     ],
                     "pair_counts": [
@@ -158,11 +132,11 @@ class SampleStatisticsMixin:
                                 "id": {"$toString": "$_id"},
                                 "name": 1,
                                 "asp_id": 1,
-                                "subpanel_id": 1,
+                                "diagnosis_id": 1,
                                 "environment": 1,
                                 "reported": 1,
                                 "ingest_status": 1,
-                                "omics_layer": 1,
+                                "asp_category": 1,
                                 "time_added": 1,
                             }
                         },
@@ -281,23 +255,6 @@ class SampleStatisticsMixin:
 
         return assay_group_stats
 
-    def get_profile_counts(self) -> dict:
-        """
-        Retrieve the count of samples for each profile.
-
-        This method aggregates sample counts by profile groups, returning a dictionary
-        where each key is a profile and the value is the count of samples in that profile.
-
-        Returns:
-            dict: A dictionary where each key is a profile and the value is the count of samples in that profile.
-        """
-        pipeline = [
-            {"$group": {"_id": "$environment", "count": {"$sum": 1}}},
-            {"$project": {"_id": 0, "environment": "$_id", "count": 1}},
-        ]
-        result = list(self.get_collection().aggregate(pipeline))
-        return {item["environment"]: item["count"] for item in result}
-
     def get_observed_software_versions(self, *, limit: int = 1000) -> dict[str, object]:
         """Return bounded, de-duplicated pipeline and VEP versions for public metadata."""
         pipelines: dict[str, set[str]] = {}
@@ -343,62 +300,3 @@ class SampleStatisticsMixin:
                 if key and value:
                     database_versions.setdefault(key, set()).add(value)
         return {key: sorted(values) for key, values in sorted(database_versions.items())}
-
-    def get_omics_counts(self) -> dict:
-        """
-        Retrieve the count of samples for each omics type.
-
-        This method aggregates sample counts by omics types, returning a dictionary
-        where each key is an omics type and the value is the count of samples in that omics type.
-
-        Returns:
-            dict: A dictionary where each key is an omics type and the value is the count of samples in that omics type.
-        """
-        pipeline = [
-            {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
-            {"$project": {"_id": 0, "omics_layer": "$_id", "count": 1}},
-        ]
-        result = list(self.get_collection().aggregate(pipeline))
-        return {item["omics_layer"]: item["count"] for item in result}
-
-    def get_sequencing_scope_counts(self) -> dict:
-        """
-        Retrieve the count of samples for each sequencing scope.
-
-        This method aggregates sample counts by sequencing scopes, returning a dictionary
-        where each key is a sequencing scope and the value is the count of samples in that scope.
-
-        Returns:
-            dict: A dictionary where each key is a sequencing scope and the value is the count of samples in that scope.
-        """
-        pipeline = [
-            {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
-            {"$project": {"_id": 0, "sequencing_scope": "$_id", "count": 1}},
-        ]
-        result = list(self.get_collection().aggregate(pipeline))
-        return {item["sequencing_scope"]: item["count"] for item in result}
-
-    def get_paired_sample_counts(self) -> dict:
-        """
-        Retrieve the count of paired, unpaired, and samples without a paired key.
-
-        This method aggregates sample counts based on the `paired` field, returning a dictionary
-        where each key is a boolean indicating whether the sample is paired (True) or unpaired (False),
-        and None for samples without a paired key.
-
-        Returns:
-            dict: A dictionary with keys True, False, and None representing paired, unpaired, and missing paired status.
-        """
-        pipeline = [{"$group": {"_id": "$paired", "count": {"$sum": 1}}}]
-        result = list(self.get_collection().aggregate(pipeline))
-        # Ensure all three keys (True, False, None) are present in the result
-        counts = {"paired": 0, "unpaired": 0, "unknown": 0}
-        for item in result:
-            if item["_id"] is True:
-                counts["paired"] = item["count"]
-            elif item["_id"] is False:
-                counts["unpaired"] = item["count"]
-            else:
-                counts["unknown"] = item["count"]
-
-        return counts

@@ -17,6 +17,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     sample["filters"]["somatic"]["snv"]["exclude_flags"] = ["WARN_NOVAR"]
     queries = []
     assay_config = {
+        **fx.assay_config_doc(asp_group="tumwgs"),
         "asp_group": "tumwgs",
         "analysis_types": [],
         "reporting": {},
@@ -61,7 +62,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
         request=SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants")),
         sample=sample,
         util_module=util_module,
-        add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
+        add_global_annotations_fn=lambda rows, assay_group, diagnosis, **kwargs: (rows, []),
         build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {
             "assay_group": assay_group,
             "intent": intent,
@@ -83,7 +84,11 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
 def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
     """A normal table page does not run classification lookups for every finding."""
     sample = fx.sample_doc()
-    assay_config = {"asp_group": "tumwgs", "analysis_types": [], "reporting": {}}
+    assay_config = {
+        **fx.assay_config_doc(asp_group="tumwgs"),
+        "analysis_types": [],
+        "reporting": {},
+    }
     variants = [
         {"_id": str(index), "GT": [{"type": "case", "AF": index / 100}]} for index in range(100)
     ]
@@ -122,7 +127,7 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
         ),
         sample=sample,
         util_module=util_module,
-        add_global_annotations_fn=lambda rows, *_args: (
+        add_global_annotations_fn=lambda rows, *_args, **_kwargs: (
             enriched_counts.append(len(rows)) or rows,
             [],
         ),
@@ -140,6 +145,7 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
     """TMB is selected independently and PGX does not expose other measurements."""
     sample = fx.sample_doc()
     assay_config = {
+        **fx.assay_config_doc(asp_group="panel"),
         "asp_group": "panel",
         "analysis_types": ["SNV", "TMB", "PGX"],
         "reporting": {},
@@ -186,7 +192,7 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
         request=SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants")),
         sample=sample,
         util_module=util_module,
-        add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
+        add_global_annotations_fn=lambda rows, assay_group, diagnosis, **kwargs: (rows, []),
         build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {
             "assay_group": assay_group,
             "intent": intent,

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-
 from api.config.application_metadata import oncokb_gene_url
 from api.domain.common.reporting import utc_now
 from api.domain.core.annotation_identity import (
@@ -12,18 +10,6 @@ from api.domain.core.annotation_identity import (
 )
 from api.infra.mongo.persistence import new_object_id
 from api.infra.request_context import current_username
-
-
-def process_gene_annotations(annotations: dict) -> dict:
-    """Group annotation documents by assay/subpanel and variant."""
-    annotations_dict = defaultdict(lambda: defaultdict(dict))
-    for anno in annotations:
-        assub = f"{anno['assay']}:{anno['subpanel']}"
-        if "class" in anno:
-            annotations_dict[assub][anno["variant"]]["latest_class"] = anno
-        if "text" in anno:
-            annotations_dict[assub][anno["variant"]]["latest_text"] = anno
-    return annotations_dict
 
 
 def create_annotation_text_from_gene(gene: str, csq: list, tumor_type: str, **kwargs) -> str:
@@ -76,7 +62,8 @@ def create_comment_doc(
             "author": author,
             "time_created": utc_now(),
             "assay": data.get("assay_group", None),
-            "subpanel": data.get("subpanel", None),
+            "diagnosis": data.get("diagnosis", None),
+            "resource_context": data.get("resource_context"),
             **identity,
         }
     return {
@@ -140,7 +127,7 @@ def enrich_reported_variant_docs(
             "environment": sample.get("environment"),
             "paired": sample.get("paired"),
             "asp_id": sample.get("asp_id"),
-            "subpanel_id": sample.get("subpanel_id"),
+            "diagnosis_id": sample.get("diagnosis_id"),
         }
         annotation = annotation_map.get(str(doc.get("annotation_oid"))) or {}
         enriched_doc["annotation"] = {**annotation}

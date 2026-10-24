@@ -1,8 +1,8 @@
 [
   {
-    "isgl_id": "demo_e2e_focus",
-    "name": "Synthetic focus",
-    "displayname": "Synthetic focus",
+    "isgl_id": "mpn-variants",
+    "name": "mpn-variants (synthetic)",
+    "displayname": "mpn-variants (synthetic)",
     "genes": [
       "FLT3",
       "CEBPA"
@@ -12,13 +12,234 @@
       "cnv"
     ],
     "diagnosis": [
-      "demo_focus"
+      "mpn"
     ],
     "asp_groups": [
-      "myeloid"
+      "hematology"
     ],
     "asp_ids": [
-      "demo_e2e_myeloid"
+      "demo-hematology_gmsv1",
+      "demo-tumwgs-hema",
+      "demo-myeloid_gmsv1"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "myeloid-variants",
+    "name": "myeloid-variants (synthetic)",
+    "displayname": "myeloid-variants (synthetic)",
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "diagnosis": [
+      "myeloid"
+    ],
+    "asp_groups": [
+      "hematology"
+    ],
+    "asp_ids": [
+      "demo-hematology-training"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "lymphoid-fusion",
+    "name": "lymphoid-fusion (synthetic)",
+    "displayname": "lymphoid-fusion (synthetic)",
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "list_type": [
+      "fusion"
+    ],
+    "diagnosis": [
+      "lymphoid"
+    ],
+    "asp_groups": [
+      "hematology"
+    ],
+    "asp_ids": [
+      "demo-rna-training"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "cll-variants",
+    "name": "cll-variants",
+    "displayname": "cll-variants (synthetic)",
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "diagnosis": [
+      "cll"
+    ],
+    "asp_groups": [
+      "hematology"
+    ],
+    "asp_ids": [
+      "demo-hematology_gmsv1",
+      "demo-tumwgs-hema",
+      "demo-lymphoid_gmsv5"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "lung-variants",
+    "name": "lung-variants",
+    "displayname": "lung-variants (synthetic)",
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "diagnosis": [
+      "lung"
+    ],
+    "asp_groups": [
+      "solid"
+    ],
+    "asp_ids": [
+      "demo-solid_gmsv3",
+      "demo-tumwgs-solid"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "breast-variants",
+    "name": "breast-variants",
+    "displayname": "breast-variants (synthetic)",
+    "genes": [
+      "FLT3",
+      "CEBPA"
+    ],
+    "list_type": [
+      "snv",
+      "cnv"
+    ],
+    "diagnosis": [
+      "breast"
+    ],
+    "asp_groups": [
+      "solid"
+    ],
+    "asp_ids": [
+      "demo-solid_gmsv3",
+      "demo-tumwgs-solid"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "cll-fusion",
+    "name": "cll-fusion",
+    "displayname": "cll-fusion (synthetic)",
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "list_type": [
+      "fusion"
+    ],
+    "diagnosis": [
+      "cll"
+    ],
+    "asp_groups": [
+      "hematology"
+    ],
+    "asp_ids": [
+      "demo-gms_rnafusionv5",
+      "demo-wts-hema"
+    ],
+    "is_active": true,
+    "is_public": true,
+    "adhoc": false,
+    "version": 1,
+    "created_by": "demo.author"
+  },
+  {
+    "isgl_id": "lung-fusion",
+    "name": "lung-fusion",
+    "displayname": "lung-fusion (synthetic)",
+    "genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "list_type": [
+      "fusion"
+    ],
+    "diagnosis": [
+      "lung"
+    ],
+    "asp_groups": [
+      "solid"
+    ],
+    "asp_ids": [
+      "demo-wts-solid"
     ],
     "is_active": true,
     "is_public": true,

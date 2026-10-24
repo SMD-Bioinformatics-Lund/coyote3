@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 from typing import Any
 
 import bleach
@@ -10,6 +11,7 @@ import markdown
 from jinja2 import DictLoader, Environment, select_autoescape
 
 from api.application.reporting.clinical_rules.validation import REPORT_METADATA_SECTIONS
+from api.domain.common.errors import api_error
 from api.domain.common.reporting import TIER_NAME
 
 REPORT_LAYOUT_TEMPLATE = r"""<!doctype html>
@@ -695,6 +697,22 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 """
 
 
+def template_content_hash(template_name: str) -> str:
+    """Hash the selected report template and shared layout used by the renderer.
+
+    Args:
+        template_name: Registered DNA or RNA report template name.
+
+    Returns:
+        SHA-256 digest covering the template and its shared layout.
+
+    Raises:
+        KeyError: The template is not registered.
+    """
+    templates = {"dna_report.html": DNA_REPORT_TEMPLATE, "report_fusion.html": RNA_REPORT_TEMPLATE}
+    return sha256((REPORT_LAYOUT_TEMPLATE + templates[template_name]).encode()).hexdigest()
+
+
 def _environment() -> Environment:
     """Return the report Jinja environment with Coyote3 report filters."""
     env = Environment(
@@ -846,6 +864,9 @@ def render_report_html(
 
     Returns:
         Escaped HTML suitable for browser preview and PDF rendering.
+
+    Raises:
+        AppError: The installed template differs from the approved configuration layout.
     """
     _ = snapshot_rows
     context = _template_defaults(template_context, analyte=analyte, preview=preview)
@@ -853,6 +874,12 @@ def render_report_html(
     selected_template = "report_fusion.html" if analyte == "rna" else "dna_report.html"
     if template_name in {"dna_report.html", "report_fusion.html"}:
         selected_template = template_name
+    template_release = (template_context.get("assay_config") or {}).get("template_release")
+    if template_release and (
+        template_release.get("template_name") != selected_template
+        or template_release.get("content_hash") != template_content_hash(selected_template)
+    ):
+        raise api_error(422, "The approved report template revision is not installed")
     return _environment().get_template(selected_template).render(**context)
 
 

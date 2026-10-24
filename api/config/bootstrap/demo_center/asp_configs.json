@@ -1,6 +1,6 @@
 [
   {
-    "aspc_id": "assay_1_base_production",
+    "aspc_id": "assay_1::base::production",
     "display_name": "Hema GMS v1",
     "asp_group": "hematology",
     "asp_category": "dna",
@@ -67,15 +67,15 @@
     },
     "verification_samples": {},
     "asp_id": "assay_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "analysis_intents": [
       "somatic"
     ]
   },
   {
-    "aspc_id": "assay_rna_1_base_production",
+    "aspc_id": "assay_rna_1::base::production",
     "display_name": "Demo RNA WTS",
-    "asp_group": "wts",
+    "asp_group": "hematology",
     "asp_category": "rna",
     "description": "Demo ASP configuration for first-run RNA WTS workflows",
     "reference_genome": "GRCh38",
@@ -118,7 +118,7 @@
     },
     "verification_samples": {},
     "asp_id": "assay_rna_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "analysis_intents": [
       "somatic"
     ]

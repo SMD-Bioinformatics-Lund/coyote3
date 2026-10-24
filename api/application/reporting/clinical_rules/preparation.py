@@ -177,11 +177,12 @@ def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
     }
 
 
-def _gene_list_fact(gene_list: dict[str, Any]) -> dict[str, Any]:
+def _gene_list_fact(gene_list: dict[str, Any], assay: dict[str, Any]) -> dict[str, Any]:
     """Project an applied gene list into the report fact fields.
 
     Args:
         gene_list: Applied list document; list_type may be a string or sequence.
+        assay: Pinned assay resource defining the germline gene subset.
 
     Returns:
         Identity, version, selection, and gene fields with absent sequences empty
@@ -196,7 +197,9 @@ def _gene_list_fact(gene_list: dict[str, Any]) -> dict[str, Any]:
         "list_type": list(list_type),
         "selected_for": list(gene_list.get("selected_for") or []),
         "genes": list(gene_list.get("genes") or []),
-        "germline_genes": list(gene_list.get("germline_genes") or []),
+        "germline_genes": sorted(
+            set(gene_list.get("genes") or []) & set(assay.get("germline_genes") or [])
+        ),
         "adhoc": bool(gene_list.get("adhoc")),
     }
 
@@ -277,9 +280,9 @@ def prepare_report_context(
         sample={
             "name": str(sample.get("name") or ""),
             "asp_id": str(sample.get("asp_id") or ""),
-            "subpanel_id": str(sample.get("subpanel_id") or "base"),
+            "diagnosis_id": str(sample.get("diagnosis_id") or "base"),
             "environment": str(sample.get("environment") or aspc.get("environment") or ""),
-            "omics_layer": analyte,
+            "asp_category": analyte,
             "paired": bool(sample.get("paired")),
             "genome_build": sample.get("genome_build"),
             "analysis_intent": intent,
@@ -296,7 +299,7 @@ def prepare_report_context(
             "asp_id": str(aspc.get("asp_id") or sample.get("asp_id") or ""),
             "asp_group": aspc.get("asp_group"),
             "asp_category": aspc.get("asp_category"),
-            "subpanel_id": str(aspc.get("subpanel_id") or sample.get("subpanel_id") or "base"),
+            "diagnosis_id": str(aspc.get("diagnosis_id") or sample.get("diagnosis_id") or "base"),
             "environment": str(aspc.get("environment") or sample.get("environment") or ""),
             "reporting": {
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),
@@ -304,7 +307,7 @@ def prepare_report_context(
                 "reportable_tiers": (aspc.get("reporting") or {}).get("reportable_tiers", {}),
             },
         },
-        applied_gene_lists=[_gene_list_fact(item) for item in applied_gene_lists],
+        applied_gene_lists=[_gene_list_fact(item, asp) for item in applied_gene_lists],
         findings=findings,
         biomarkers=biomarkers,
         **measurement_facts(biomarkers),

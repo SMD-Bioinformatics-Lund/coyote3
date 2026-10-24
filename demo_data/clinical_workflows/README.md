@@ -30,7 +30,7 @@ manifest syntax, each raw file format and the shared mongomock replay.
 
 | Directory | Contents |
 | --- | --- |
-| `setup/` | Nine demo ASPs, ten testing ASPCs, a named subpanel/association, an ISGL and nine published demo report-rule sets. Includes dedicated DNA and RNA assays in the `demo` group. |
+| `setup/` | Nine demo ASPs, ten testing ASPCs, a named diagnosis/association, an ISGL and nine published demo report-rule sets. Includes dedicated DNA and RNA assays in the `demo` group. |
 | `raw/` | Paired/unpaired VCFs, translocation VCF, CNVs, coverage, shared HRD/MSI/TMB JSON, PGX, RNA fusions/expression/classification/QC and a placeholder CNV profile image. |
 | `manifests/` | Twelve valid pipeline manifests with relative resource paths. |
 | `negative/` | Deliberately invalid missing-file, missing-ASPC and RNA/SNV manifests. |
@@ -39,7 +39,9 @@ manifest syntax, each raw file format and the shared mongomock replay.
 | `expected/after_review/` | Contract-validated examples of tiers and sample/finding comments linked to the ingested examples; these are illustrative user actions, not ingest output. |
 | `expected/report_previews.json` | Actual report-engine section output for six synthetic review contexts. These are previews, not saved report documents. |
 
-The examples use Extended JSON for BSON IDs/dates. Export IDs are deterministic
+The examples render BSON ObjectIds as plain hexadecimal strings and dates as Extended JSON.
+MongoDB stores identifiers as native ObjectIds; these readable exports are not database dumps.
+Export IDs are deterministic
 substitutes and timestamps are fixed to `2026-01-01T00:00:00Z`; live ingest generates
 its own IDs and times. References are substituted consistently. Absolute fixture
 paths become bundle-relative paths. Do not import expected snapshots into a running

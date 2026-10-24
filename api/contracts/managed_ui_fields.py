@@ -10,6 +10,7 @@ from api.config.constants import (
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
     AUTH_TYPE_OPTIONS,
+    DIAGNOSIS_BASE_ID,
     DNA_ANALYSIS_TYPE_OPTIONS,
     ENVIRONMENT_OPTIONS,
     GENELIST_ADHOC_TYPE_OPTIONS,
@@ -18,7 +19,6 @@ from api.config.constants import (
     PLATFORM_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
-    SUBPANEL_BASE_ID,
 )
 from api.config.contracts.governance import PERMISSION_CATALOG
 from api.config.sequencing import PLATFORM_CAPABILITIES
@@ -62,8 +62,51 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "asp_family": {
             "display_type": "select",
             "options": list(ASP_FAMILY_OPTIONS),
+            "help": "Select the sequencing family to set the modality and available analyses.",
         },
-        "asp_category": {"display_type": "select", "options": list(ASP_CATEGORY_OPTIONS)},
+        "asp_category": {
+            "display_type": "select",
+            "readonly": True,
+            "options": list(ASP_CATEGORY_OPTIONS),
+            "options_by_field": {
+                "field": "asp_family",
+                "values": {
+                    family: [category]
+                    for family, category in CLINICAL_VOCABULARY.assay_family_categories.items()
+                },
+            },
+            "help": "Determined by the sequencing family.",
+        },
+        "supported_analyses": {
+            "label": "Supported analyses",
+            "display_type": "checkbox-group",
+            "options": list(
+                dict.fromkeys((*DNA_ANALYSIS_TYPE_OPTIONS, *RNA_ANALYSIS_TYPE_OPTIONS))
+            ),
+            "options_by_field": {
+                "field": "asp_family",
+                "values": {
+                    family: list(analyses)
+                    for family, analyses in CLINICAL_VOCABULARY.analysis_types_by_family.items()
+                },
+            },
+            "options_require_inputs": {
+                "field": "expected_files",
+                "values": {
+                    analysis: list(
+                        dict.fromkeys(
+                            file_key
+                            for bindings in CLINICAL_VOCABULARY.analysis_file_keys_by_omics.values()
+                            for file_key in bindings.get(analysis, ())
+                        )
+                    )
+                    for analysis in dict.fromkeys(
+                        (*DNA_ANALYSIS_TYPE_OPTIONS, *RNA_ANALYSIS_TYPE_OPTIONS)
+                    )
+                },
+            },
+            "help": "Analyses supported by this assay. Configurations can enable a subset. Each selection must be supported by its family and accepted input files.",
+        },
         "platform": {
             "display_type": "select",
             "options": list(PLATFORM_OPTIONS),
@@ -97,12 +140,17 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "options": list(ALL_SAMPLE_FILE_KEYS),
             "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            "options_by_field": {
+                "field": "asp_category",
+                "values": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            },
             "help": "Files the assay is able to ingest. A declared file must be successfully loaded before the sample becomes ready.",
         },
         "required_files": {
             "display_type": "checkbox-group",
             "options": list(ALL_SAMPLE_FILE_KEYS),
             "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            "options_from_field": "expected_files",
             "help": "Minimum files required for this assay. A manifest missing one of these files fails ingest.",
         },
         "covered_genes": {
@@ -134,20 +182,20 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Assay",
             "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
         },
-        "subpanel_id": {
+        "diagnosis_id": {
             "display_type": "select",
-            "label": "Subpanel",
-            "options": [SUBPANEL_BASE_ID],
-            "default": SUBPANEL_BASE_ID,
-            "help": "Select an active subpanel registered under the selected assay. Use base for an assay-wide configuration.",
+            "label": "Diagnosis",
+            "options": [DIAGNOSIS_BASE_ID],
+            "default": DIAGNOSIS_BASE_ID,
+            "help": "Select an active diagnosis registered under the selected assay. Use base for an assay-wide configuration.",
         },
-        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
+        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "diagnosis_id", "environment"]},
         "asp_group": {"readonly": True},
         "asp_category": {"readonly": True},
         "platform": {"readonly": True},
         "use_diagnosis_genelist": {
             "display_type": "checkbox",
-            "label": "Automatically select diagnosis/subpanel gene lists",
+            "label": "Automatically select diagnosis gene lists",
             "default": True,
         },
         "environment": {
@@ -495,25 +543,31 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "retired_reason": {"readonly": True, "hidden_mode": ["create"]},
     },
     "aspc_rna": {
+        "analysis_intents": {
+            "display_type": "checkbox-group",
+            "options": ["somatic"],
+            "default": ["somatic"],
+            "help": "RNA configurations support somatic analysis.",
+        },
         "asp_id": {
             "display_type": "select",
             "label": "Assay",
             "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
         },
-        "subpanel_id": {
+        "diagnosis_id": {
             "display_type": "select",
-            "label": "Subpanel",
-            "options": [SUBPANEL_BASE_ID],
-            "default": SUBPANEL_BASE_ID,
-            "help": "Select an active subpanel registered under the selected assay. Use base for an assay-wide configuration.",
+            "label": "Diagnosis",
+            "options": [DIAGNOSIS_BASE_ID],
+            "default": DIAGNOSIS_BASE_ID,
+            "help": "Select an active diagnosis registered under the selected assay. Use base for an assay-wide configuration.",
         },
-        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
+        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "diagnosis_id", "environment"]},
         "asp_group": {"readonly": True},
         "asp_category": {"readonly": True},
         "platform": {"readonly": True},
         "use_diagnosis_genelist": {
             "display_type": "checkbox",
-            "label": "Automatically select diagnosis/subpanel gene lists",
+            "label": "Automatically select diagnosis gene lists",
             "default": True,
         },
         "environment": {
@@ -693,11 +747,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "help": "Readable names for this gene list, separated by commas or new lines. Names are searchable; references always use isgl_id.",
         },
         "diagnosis": {
-            "label": "Diagnosis / Subpanel IDs",
+            "label": "Diagnosis / Diagnosis IDs",
             "display_type": "checkbox-group",
             "options": [],
-            "default": [SUBPANEL_BASE_ID],
-            "help": "Select registered subpanels associated with the selected assays. Base means no named subpanel.",
+            "default": [DIAGNOSIS_BASE_ID],
+            "help": "Select registered diagnoses associated with the selected assays. Base means no named diagnosis.",
         },
         "asp_groups": {
             "display_type": "checkbox-group",
@@ -711,10 +765,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "genes": {
             "display_type": "jsoneditor-or-upload",
             "help": "Curated gene symbols for the selected clinical list type, one per entry.",
-        },
-        "germline_genes": {
-            "display_type": "jsoneditor-or-upload",
-            "help": "Optional germline subset associated with this curated list.",
         },
         "adhoc": {"display_type": "checkbox"},
         "is_public": {"display_type": "checkbox"},
@@ -815,9 +865,13 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             [
                 "expected_files",
                 "required_files",
+                "supported_analyses",
             ],
         ),
-        ("clinical gene scope", ["covered_genes", "germline_genes"]),
+        (
+            "clinical gene scope",
+            ["covered_genes", "germline_genes"],
+        ),
         ("alignment viewer", ["igv"]),
         ("lifecycle", ["system_managed", "is_active"]),
         (
@@ -841,14 +895,14 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             [
                 "aspc_id",
                 "asp_id",
-                "subpanel_id",
+                "diagnosis_id",
                 "environment",
                 "asp_group",
                 "asp_category",
                 "platform",
             ],
         ),
-        ("enabled analysis", ["analysis_types"]),
+        ("enabled analysis", ["analysis_types", "analysis_intents"]),
         ("analytical filters", ["filters"]),
         ("clinical reporting", ["reporting"]),
         ("public catalog", ["catalog"]),
@@ -875,14 +929,14 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             [
                 "aspc_id",
                 "asp_id",
-                "subpanel_id",
+                "diagnosis_id",
                 "environment",
                 "asp_group",
                 "asp_category",
                 "platform",
             ],
         ),
-        ("enabled analysis", ["analysis_types"]),
+        ("enabled analysis", ["analysis_types", "analysis_intents"]),
         ("analytical filters", ["filters"]),
         ("clinical reporting", ["reporting"]),
         ("public catalog", ["catalog"]),
@@ -905,7 +959,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     "isgl": [
         ("list identity", ["isgl_id", "name", "displayname", "aliases", "list_type", "diagnosis"]),
         ("clinical scope", ["asp_groups", "asp_ids"]),
-        ("curated gene content", ["genes", "germline_genes"]),
+        ("curated gene content", ["genes"]),
         ("availability", ["adhoc", "is_public", "system_managed", "is_active"]),
         (
             "system metadata",
@@ -946,8 +1000,30 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
     "asp": set(),
-    "aspc_dna": {"id_"},
-    "aspc_rna": {"id_"},
+    "aspc_dna": {
+        "id_",
+        "clinical_rule_base",
+        "profile_sources",
+        "profile_overrides",
+        "template_release",
+        "promotion",
+        "assay_resource_release",
+        "gene_list_release",
+        "query_policy_release",
+        "clinical_rule_release",
+    },
+    "aspc_rna": {
+        "id_",
+        "clinical_rule_base",
+        "profile_sources",
+        "profile_overrides",
+        "template_release",
+        "promotion",
+        "assay_resource_release",
+        "gene_list_release",
+        "query_policy_release",
+        "clinical_rule_release",
+    },
     "isgl": set(),
     "user": {
         "password_updated_on",

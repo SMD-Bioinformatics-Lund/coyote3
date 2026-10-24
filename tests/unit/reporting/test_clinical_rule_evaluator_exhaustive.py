@@ -44,16 +44,16 @@ def _context() -> PreparedReportContext:
             "sample": {
                 "name": "SYNTHETIC",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "testing",
-                "omics_layer": "dna",
+                "asp_category": "dna",
                 "paired": False,
             },
             "asp": {"asp_id": "assay_1", "accredited": True},
             "aspc": {
                 "aspc_id": "assay_1_base_testing",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "testing",
                 "reporting": {
                     "report_sections": ["SNV"],
@@ -90,7 +90,7 @@ def _document(blocks: list[dict]) -> ClinicalRuleSetDoc:
             "revision": 1,
             "scope": {
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "analyte": "dna",
                 "language": "sv",
             },

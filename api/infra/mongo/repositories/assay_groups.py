@@ -89,6 +89,22 @@ class AssayGroupRepository(BaseRepository):
 
         def create(session):
             """Insert the group and its audit receipt as one commit."""
+            parent_id = document.get("parent_group_id")
+            visited = {document["group_id"]}
+            while parent_id is not None:
+                if parent_id in visited:
+                    raise api_error(422, "Biological group ancestry must be acyclic")
+                visited.add(parent_id)
+                parent = collection.find_one({"group_id": parent_id}, session=session)
+                if parent is None or not parent.get("is_active"):
+                    raise api_error(422, "Biological parent must be a registered active group")
+                # Serialize against retirement of any ancestor during this creation.
+                collection.update_one(
+                    {"_id": parent["_id"]},
+                    {"$inc": {"publication_serial": 1}},
+                    session=session,
+                )
+                parent_id = parent.get("parent_group_id")
             collection.insert_one(dict(document), session=session)
             enqueue_audit(
                 collection.database,

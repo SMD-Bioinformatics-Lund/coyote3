@@ -11,7 +11,13 @@ from api.application.common.change_payload import change_payload
 from api.contracts.samples import SampleChangePayload
 from api.domain.core.dna.dna_variants import get_variant_nomenclature
 from api.interfaces.http.tags import TAG_KNOWLEDGEBASE
-from api.security.access import ApiUser, _get_sample_for_api, require_access
+from api.security.access import (
+    ApiUser,
+    _enforce_access,
+    _get_sample_for_api,
+    require_access,
+    require_annotation_publication,
+)
 
 router = APIRouter(tags=[TAG_KNOWLEDGEBASE])
 
@@ -32,6 +38,8 @@ def set_resource_tier_bulk(
     resource_type = str(payload.get("resource_type", "small_variant"))
     resource_ids = payload.get("resource_ids", payload.get("variant_ids", [])) or []
     apply = payload.get("apply", True)
+    _enforce_access(user, permission="tier:assign" if apply else "tier:remove:own")
+    require_annotation_publication(user, sample)
     tier_raw = payload.get("tier", 3)
     try:
         class_num = int(tier_raw)
@@ -74,6 +82,7 @@ def classify_resource_change(
 ):
     """Create a classification for a resource."""
     sample = _get_sample_for_api(sample_id, user)
+    require_annotation_publication(user, sample)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
     service.require_resource_for_sample(
@@ -109,6 +118,7 @@ def remove_classified_resource_change(
 ):
     """Remove a classification from a resource."""
     sample = _get_sample_for_api(sample_id, user)
+    require_annotation_publication(user, sample)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
     service.require_resource_for_sample(

@@ -15,7 +15,6 @@ from api.app.deps.services import get_app_controls_service, get_public_catalog_s
 from api.app.runtime_state import app as runtime_app
 from api.application.public.catalog import PublicCatalogService
 from api.config.application_metadata import APPLICATION_DESCRIPTION
-from api.config.constants import DEFAULT_ENVIRONMENT
 from api.config.loaders.contact import application_integration_links
 from api.config.loaders.filter_flags import load_filter_flag_metadata
 from api.config.security import get_runtime_environment
@@ -34,6 +33,7 @@ from api.contracts.public import (
     PublicVepReferencePayload,
     PublicVepVersionsPayload,
 )
+from api.contracts.schemas.catalog_offerings import CatalogDiscoveryDoc
 from api.domain.common.csv_safety import spreadsheet_text
 from api.interfaces.http.tags import TAG_PUBLIC
 
@@ -282,8 +282,14 @@ def public_assay_catalog_matrix_context_read(
         dict: Assay-catalog matrix payload.
     """
     service = get_public_catalog_service()
-    vm = service.assay_catalog_matrix_payload(page=page, per_page=per_page, gene=gene)
+    vm = service.published_matrix(page=page, per_page=per_page, gene=gene)
     return util.common.convert_to_serializable(vm)
+
+
+@router.get("/api/v1/public/assay-catalog/offerings", response_model=CatalogDiscoveryDoc)
+def public_catalog_offerings_read():
+    """Browse reviewed service offerings, prices and effective gene scopes."""
+    return get_public_catalog_service().published_offerings()
 
 
 @router.get("/api/v1/public/assay-catalog/context", response_model=PublicAssayCatalogPayload)
@@ -294,7 +300,7 @@ def public_assay_catalog_context_read(
 ):
     """Return public assay-catalog context for the selected modality/category."""
     return util.common.convert_to_serializable(
-        get_public_catalog_service().catalog_context(mod, cat, isgl_key)
+        get_public_catalog_service().published_context(mod, cat, isgl_key)
     )
 
 
@@ -309,20 +315,9 @@ def public_assay_catalog_genes_csv_context_read(
 ):
     """Return a CSV export payload for public assay-catalog genes."""
     service = get_public_catalog_service()
-    selected_mod = service.normalize_mod(mod)
-    if not selected_mod:
-        raise http.api_error(404, "Modality not found")
-
-    if not cat:
-        right = service.hydrate_modality(selected_mod)
-        asp_id = right.get("asp_id")
-    else:
-        hydrated_cat = service.hydrate_category(selected_mod, cat, env=DEFAULT_ENVIRONMENT)
-        if not hydrated_cat:
-            raise http.api_error(404, "Category not found")
-        asp_id = hydrated_cat.get("asp_id")
-
-    mode, rows, _stats = service.resolve_gene_table(asp_id, isgl_key)
+    context = service.published_context(mod, cat, isgl_key)
+    selected_mod = mod
+    mode, rows = context["gene_mode"], context["genes"]
 
     sio = io.StringIO()
     writer = csv.writer(sio, lineterminator="\n")

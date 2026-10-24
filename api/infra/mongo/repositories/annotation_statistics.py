@@ -28,7 +28,7 @@ class AnnotationStatisticsMixin:
         """
         assay_class_stats_pipeline = [
             # Match documents where the "class" field exists
-            {"$match": {"class": {"$exists": True}}},
+            {"$match": {"class": {"$exists": True}, "namespace": "clinical"}},
             # Sort by variant and time_created to ensure the latest document is first
             {"$sort": {"variant": 1, "time_created": -1}},
             # Group by variant to pick the latest document for each variant
@@ -72,7 +72,7 @@ class AnnotationStatisticsMixin:
         """
         class_stats_pipeline = [
             # Match documents where the "class" field exists
-            {"$match": {"class": {"$exists": True}}},
+            {"$match": {"class": {"$exists": True}, "namespace": "clinical"}},
             # Sort by nomenclature, variant, and time_created to ensure the latest document is first
             {"$sort": {"nomenclature": 1, "variant": 1, "time_created": -1}},
             # Group by variant to pick the latest document for each variant
@@ -263,8 +263,10 @@ class AnnotationStatisticsMixin:
         replace earlier values by selecting the newest annotation for the same
         canonical annotation identity.
         """
-        match = {"class": {"$in": [1, 2, 3, 4]}}
+        match = {"class": {"$in": [1, 2, 3, 4]}, "namespace": "clinical"}
         identity = {
+            "assay": "$resource_context.assay_id",
+            "diagnosis": "$diagnosis",
             "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
@@ -352,7 +354,7 @@ class AnnotationStatisticsMixin:
             ]
 
         pipeline = [
-            {"$match": {"class": {"$in": [1, 2, 3, 4]}}},
+            {"$match": {"class": {"$in": [1, 2, 3, 4]}, "namespace": "clinical"}},
             {
                 "$set": {
                     "biological_type": {
@@ -381,6 +383,8 @@ class AnnotationStatisticsMixin:
                 "$group": {
                     "_id": {
                         "type": "$biological_type",
+                        "assay": "$resource_context.assay_id",
+                        "diagnosis": "$diagnosis",
                         "identity": "$biological_identity",
                         "gene": "$gene",
                         "gene1": "$gene1",

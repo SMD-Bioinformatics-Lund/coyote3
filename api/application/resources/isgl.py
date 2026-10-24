@@ -14,7 +14,7 @@ from api.application.accounts.common import (
 from api.application.common.protected_records import reject_system_managed_delete
 from api.application.resources.availability import available_panels
 from api.application.resources.helpers import _validated_doc, require_new_identifier
-from api.config.constants import SUBPANEL_BASE_ID
+from api.config.constants import DIAGNOSIS_BASE_ID
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.assay_filters import create_assay_group_map
 from api.domain.common.errors import api_error
@@ -29,7 +29,7 @@ class IsglService:
         return cls(
             gene_list_repository=store.gene_list_repository,
             assay_panel_repository=store.assay_panel_repository,
-            assay_subpanel_repository=store.assay_subpanel_repository,
+            assay_diagnosis_repository=store.assay_diagnosis_repository,
         )
 
     def __init__(
@@ -37,13 +37,13 @@ class IsglService:
         *,
         gene_list_repository: Any,
         assay_panel_repository: Any,
-        assay_subpanel_repository: Any,
+        assay_diagnosis_repository: Any,
     ) -> None:
         """Create the service for genelist resource workflows."""
         self._spec = managed_resource_spec("isgl")
         self.gene_list_repository = gene_list_repository
         self.assay_panel_repository = assay_panel_repository
-        self.assay_subpanel_repository = assay_subpanel_repository
+        self.assay_diagnosis_repository = assay_diagnosis_repository
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the admin list payload for genelists.
@@ -131,7 +131,7 @@ class IsglService:
         form["fields"]["diagnosis"]["options_by_field"] = {
             "field": "asp_ids",
             "values": {
-                str(panel["asp_id"]).lower(): self._subpanel_choices(str(panel["asp_id"]))
+                str(panel["asp_id"]).lower(): self._diagnosis_choices(str(panel["asp_id"]))
                 for panels in assay_group_map.values()
                 for panel in panels
                 if panel.get("asp_id")
@@ -139,25 +139,25 @@ class IsglService:
         }
         return assay_group_map
 
-    def _subpanel_choices(self, asp_id: str) -> list[dict[str, str]]:
+    def _diagnosis_choices(self, asp_id: str) -> list[dict[str, str]]:
         """Offer Base and active registry scopes associated with one assay."""
-        return [{"value": SUBPANEL_BASE_ID, "label": "Base"}] + [
-            {"value": row["subpanel_id"], "label": row["display_name"]}
-            for row in self.assay_subpanel_repository.list_for_assay(asp_id, active_only=True)
-            if row["subpanel_id"] != SUBPANEL_BASE_ID
+        return [{"value": DIAGNOSIS_BASE_ID, "label": "Base"}] + [
+            {"value": row["diagnosis_id"], "label": row["display_name"]}
+            for row in self.assay_diagnosis_repository.list_for_assay(asp_id, active_only=True)
+            if row["diagnosis_id"] != DIAGNOSIS_BASE_ID
         ]
 
-    def _validate_subpanels(self, config: dict, *, previous: dict | None = None) -> None:
+    def _validate_diagnoses(self, config: dict, *, previous: dict | None = None) -> None:
         """Require registered scopes for new assignments; preserve unchanged historical scope."""
         if previous is not None and all(
             config.get(field) == previous.get(field) for field in ("asp_ids", "diagnosis")
         ):
             return
-        available = {SUBPANEL_BASE_ID}
+        available = {DIAGNOSIS_BASE_ID}
         for asp_id in config.get("asp_ids") or []:
-            available.update(option["value"] for option in self._subpanel_choices(asp_id))
+            available.update(option["value"] for option in self._diagnosis_choices(asp_id))
         if set(config.get("diagnosis") or []) - available:
-            raise api_error(422, "Select registered subpanels associated with the selected assays")
+            raise api_error(422, "Select registered diagnoses associated with the selected assays")
 
     def _validate_asp_scope(self, config: dict[str, Any]) -> None:
         """Reject ASP selections outside the ISGL's selected assay groups."""
@@ -239,7 +239,7 @@ class IsglService:
         config.setdefault("is_active", True)
         config["system_managed"] = False
         config["system_installed"] = False
-        config.pop("subpanel_id", None)
+        config.pop("diagnosis_id", None)
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
             raise api_error(400, "Missing isgl_id")
@@ -258,7 +258,7 @@ class IsglService:
         config["version"] = 1
         config = _validated_doc(self._spec.collection, config)
         self._validate_asp_scope(config)
-        self._validate_subpanels(config)
+        self._validate_diagnoses(config)
         self.gene_list_repository.create_genelist(config)
         return change_payload(
             resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create"
@@ -288,7 +288,7 @@ class IsglService:
         updated_doc["system_installed"] = bool(genelist.get("system_installed"))
         updated_doc.pop("_id", None)
         updated_doc.pop("gene_count", None)
-        updated_doc.pop("subpanel_id", None)
+        updated_doc.pop("diagnosis_id", None)
         # Required contract fields should not be unintentionally blanked by partial form submits.
         if not updated_doc.get("asp_ids"):
             updated_doc["asp_ids"] = list(genelist.get("asp_ids", []))
@@ -309,7 +309,7 @@ class IsglService:
         updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
         self._validate_asp_scope(updated_doc)
-        self._validate_subpanels(updated_doc, previous=genelist)
+        self._validate_diagnoses(updated_doc, previous=genelist)
         operation = self.gene_list_repository.rotate_isgl(
             genelist_id,
             updated_doc,

@@ -48,16 +48,16 @@ def test_fusion_call_helpers_preserve_selected_call_and_unique_callers() -> None
 
 def test_filter_capabilities_expose_only_supported_profiles_and_keys() -> None:
     """Filter profiles reject unsupported modality, intent, and arbitrary fields."""
-    assert filter_section_for_analysis(omics_layer="DNA", analysis_type="snv") == "snv"
-    assert filter_section_for_analysis(omics_layer="rna", analysis_type="CNV") is None
+    assert filter_section_for_analysis(asp_category="DNA", analysis_type="snv") == "snv"
+    assert filter_section_for_analysis(asp_category="rna", analysis_type="CNV") is None
 
-    germline_keys = filter_keys(omics_layer="dna", intent="germline", section="snv")
+    germline_keys = filter_keys(asp_category="dna", intent="germline", section="snv")
     assert "min_depth" in germline_keys
-    assert filter_keys(omics_layer="rna", intent="germline", section="fusion") == frozenset()
+    assert filter_keys(asp_category="rna", intent="germline", section="fusion") == frozenset()
 
     assert select_filter_values(
         {"min_depth": 50, "min_alt_reads": 5, "arbitrary_mongo_query": {"$where": "x"}},
-        omics_layer="dna",
+        asp_category="dna",
         intent="germline",
         section="snv",
     ) == {"min_depth": 50, "min_alt_reads": 5}

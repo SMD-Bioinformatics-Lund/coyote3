@@ -22,6 +22,7 @@ from api.contracts.public import (
 from api.contracts.public import (
     PublicAssayCatalogUpdateRequest as DraftUpdate,
 )
+from api.contracts.schemas.catalog_offerings import CatalogDiscoveryDoc
 from api.contracts.schemas.public_catalog import PublicAssayCatalogVersionDoc
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
@@ -141,6 +142,16 @@ def revisions(
         AppError: If the version does not exist (404).
     """
     return util.common.convert_to_serializable(service.revisions(oid))
+
+
+@router.post("/preview/offerings", response_model=CatalogDiscoveryDoc)
+def preview_offerings(
+    payload: DraftImport,
+    user: ApiUser = Depends(require_access(permission="catalog:view")),
+    service: PublicAssayCatalogManagementService = Depends(get_admin_public_assay_catalog_service),
+):
+    """Preview public services from validated sources without publishing; requires catalog:view."""
+    return service.preview_offerings(payload.document, actor=user.username)
 
 
 @router.post("/preview", response_model=PublicAssayCatalogPayload)

@@ -87,7 +87,7 @@ def test_sample_testing_routes_preserve_user_scope(monkeypatch) -> None:
     result = rules.search_clinical_rule_test_samples(
         "rule-version",
         q="sample",
-        match_subpanel=True,
+        match_diagnosis=True,
         page=1,
         per_page=20,
         user=user,
@@ -133,7 +133,7 @@ def test_create_draft_records_authenticated_actor(monkeypatch) -> None:
 
     payload = ClinicalRuleDraftCreate(
         scope=ClinicalRuleScope(
-            asp_id="hema_gmsv1", subpanel_id="base", analyte="dna", language="sv"
+            asp_id="hema_gmsv1", diagnosis_id="base", analyte="dna", language="sv"
         ),
         name="Hematology report rules",
     )

@@ -20,7 +20,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
         aspc={
             "aspc_id": "hema_gmsv1_base_production",
             "asp_id": "hema_gmsv1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "production",
             "reporting": {
                 "report_sections": ["results", "MSI"],
@@ -88,7 +88,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
         },
     )
 
-    assert context.sample.subpanel_id == "base"
+    assert context.sample.diagnosis_id == "base"
     assert context.sample.environment == "production"
     assert context.sample.analysis_intent == "germline"
     assert context.asp.asp_id == "hema_gmsv1"
@@ -153,7 +153,7 @@ def test_tier_summaries_skip_irrelevant_invalid_and_unselected_findings() -> Non
         },
     )
 
-    assert context.sample.subpanel_id == "base"
+    assert context.sample.diagnosis_id == "base"
     assert context.sample.environment == ""
     assert context.aspc.asp_id == "assay"
     assert context.aggregates.tier_1_count == 0
@@ -172,7 +172,7 @@ def test_empty_report_context_has_no_reportable_findings() -> None:
         report_sections_data={},
     )
 
-    assert context.sample.omics_layer == "rna"
+    assert context.sample.asp_category == "rna"
     assert context.findings == []
     assert context.biomarkers == []
     assert context.aggregates.finding_count == 0

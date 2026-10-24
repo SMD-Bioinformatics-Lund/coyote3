@@ -116,7 +116,7 @@ def clinical_rule_authoring_options(
 def search_clinical_rule_test_samples(
     document_id: str,
     q: str = Query(default=""),
-    match_subpanel: bool = Query(default=True),
+    match_diagnosis: bool = Query(default=True),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=20, ge=1, le=100),
     user: ApiUser = Depends(require_access(permission="clinical_rules:test")),
@@ -129,7 +129,7 @@ def search_clinical_rule_test_samples(
     Args:
         document_id: Rule-set version document identifier.
         q: Sample search text; an empty string omits text filtering.
-        match_subpanel: Restrict to the rule scope's subpanel when True (default).
+        match_diagnosis: Restrict to the rule scope's diagnosis when True (default).
         page: One-based result page; defaults to 1.
         per_page: Page size from 1 to 100; defaults to 20.
         user: Authorized user whose assay and environment scopes limit results.
@@ -149,7 +149,7 @@ def search_clinical_rule_test_samples(
         service.search_samples(
             document_id=document_id,
             search=q,
-            match_subpanel=match_subpanel,
+            match_diagnosis=match_diagnosis,
             allowed_asp_ids=None if user.is_superuser else user.asp_ids,
             allowed_environments=None if user.is_superuser else user.envs,
             page=page,

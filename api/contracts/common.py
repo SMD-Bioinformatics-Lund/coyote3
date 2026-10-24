@@ -59,7 +59,6 @@ class GeneCohortDenominator(BaseModel):
     report_scope: str
     ready_samples_considered: int
     samples_excluded_outside_gene_scope: int
-    unrestricted_asp_scope_counts_as_profiled: bool
     duplicate_report_observations_removed: int = 0
 
 
@@ -112,7 +111,7 @@ class GeneCohortSample(BaseModel):
 
     sample_name: str
     asp_id: str | None = None
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
     environment: str | None = None
     sex: str | None = None
     finding_details: list[GeneCohortSampleFinding] = Field(default_factory=list)

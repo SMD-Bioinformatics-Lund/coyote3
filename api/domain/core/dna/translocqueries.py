@@ -89,7 +89,7 @@ def build_transloc_query(
     scope = {
         "assay_group": str(settings.get("assay_group") or "").strip().lower(),
         "asp_id": str(settings.get("asp_id") or "").strip().lower(),
-        "subpanel_id": str(settings.get("subpanel_id") or "base").strip().lower(),
+        "diagnosis_id": str(settings.get("diagnosis_id") or "base").strip().lower(),
         "intent": str(settings.get("intent") or "somatic").strip().lower(),
     }
     exclusions = [
@@ -150,7 +150,7 @@ def filter_translocations_by_genes(
     scope = {
         "assay_group": str(settings.get("assay_group") or "").strip().lower(),
         "asp_id": str(settings.get("asp_id") or "").strip().lower(),
-        "subpanel_id": str(settings.get("subpanel_id") or "base").strip().lower(),
+        "diagnosis_id": str(settings.get("diagnosis_id") or "base").strip().lower(),
         "intent": str(settings.get("intent") or "somatic").strip().lower(),
     }
     admissions = policy.exceptions_for(**scope, mode="admit")

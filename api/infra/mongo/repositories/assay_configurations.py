@@ -19,7 +19,7 @@ from pymongo.errors import DuplicateKeyError
 
 from api.config.constants import (
     DEFAULT_ENVIRONMENT,
-    SUBPANEL_BASE_ID,
+    DIAGNOSIS_BASE_ID,
     normalize_clinical_identifier,
     normalize_environment,
     validate_identifier,
@@ -66,18 +66,18 @@ class ASPConfigRepository(BaseRepository):
             },
         )
         col.create_index(
-            [("is_active", 1), ("asp_id", 1), ("subpanel_id", 1), ("environment", 1)],
-            name="is_active_asp_subpanel_environment",
+            [("is_active", 1), ("asp_id", 1), ("diagnosis_id", 1), ("environment", 1)],
+            name="is_active_asp_diagnosis_environment",
             background=True,
         )
         col.create_index(
-            [("asp_id", 1), ("subpanel_id", 1), ("environment", 1), ("is_active", 1)],
-            name="asp_subpanel_environment_active_1",
+            [("asp_id", 1), ("diagnosis_id", 1), ("environment", 1), ("is_active", 1)],
+            name="asp_diagnosis_environment_active_1",
             unique=True,
             background=True,
             partialFilterExpression={
                 "asp_id": {"$exists": True, "$type": "string"},
-                "subpanel_id": {"$exists": True, "$type": "string"},
+                "diagnosis_id": {"$exists": True, "$type": "string"},
                 "environment": {"$exists": True, "$type": "string"},
                 "is_active": True,
             },
@@ -90,12 +90,12 @@ class ASPConfigRepository(BaseRepository):
         )
 
     @staticmethod
-    def build_aspc_id(asp_id: str, environment: str, subpanel_id: str | None = None) -> str:
+    def build_aspc_id(asp_id: str, environment: str, diagnosis_id: str | None = None) -> str:
         """Build the ASPC business key from the unique runtime configuration tuple."""
         asp = validate_identifier(asp_id, label="asp_id")
-        subpanel = validate_identifier(subpanel_id or SUBPANEL_BASE_ID, label="subpanel_id")
+        diagnosis = validate_identifier(diagnosis_id or DIAGNOSIS_BASE_ID, label="diagnosis_id")
         env = normalize_environment(environment)
-        return normalize_clinical_identifier(f"{asp}_{subpanel}_{env}", label="aspc_id")
+        return normalize_clinical_identifier(f"{asp}::{diagnosis}::{env}", label="aspc_id")
 
     @staticmethod
     def _normalize_aspc_id(aspc_id: str | None) -> str | None:
@@ -132,14 +132,14 @@ class ASPConfigRepository(BaseRepository):
             normalized = self.build_aspc_id(
                 str(data.get("asp_id")),
                 str(data.get("environment")),
-                str(data.get("subpanel_id") or SUBPANEL_BASE_ID),
+                str(data.get("diagnosis_id") or DIAGNOSIS_BASE_ID),
             )
         if normalized:
             data["aspc_id"] = normalized
             data["asp_id"] = normalize_clinical_identifier(data.get("asp_id"), label="asp_id")
-            data["subpanel_id"] = normalize_clinical_identifier(
-                data.get("subpanel_id") or SUBPANEL_BASE_ID,
-                label="subpanel_id",
+            data["diagnosis_id"] = normalize_clinical_identifier(
+                data.get("diagnosis_id") or DIAGNOSIS_BASE_ID,
+                label="diagnosis_id",
             )
             return data
         raise ValueError("asp_configs.aspc_id is required in strict business-key mode")
@@ -225,7 +225,7 @@ class ASPConfigRepository(BaseRepository):
             query["$or"] = [
                 {"aspc_id": {"$regex": pattern, "$options": "i"}},
                 {"asp_id": {"$regex": pattern, "$options": "i"}},
-                {"subpanel_id": {"$regex": pattern, "$options": "i"}},
+                {"diagnosis_id": {"$regex": pattern, "$options": "i"}},
                 {"environment": {"$regex": pattern, "$options": "i"}},
                 {"assay_type": {"$regex": pattern, "$options": "i"}},
                 {"category": {"$regex": pattern, "$options": "i"}},
@@ -237,35 +237,37 @@ class ASPConfigRepository(BaseRepository):
         total = int(col.count_documents(query))
         docs = list(
             col.find(query)
-            .sort([("asp_id", 1), ("subpanel_id", 1), ("environment", 1)])
+            .sort([("asp_id", 1), ("diagnosis_id", 1), ("environment", 1)])
             .skip(skip)
             .limit(per_page)
         )
         return docs, total
 
     def get_aspc(
-        self, assay: str, profile: str = DEFAULT_ENVIRONMENT, subpanel_id: str | None = None
+        self, assay: str, profile: str = DEFAULT_ENVIRONMENT, diagnosis_id: str | None = None
     ) -> dict | None:
         """
-        Retrieve the active configuration for an assay, environment, and subpanel.
+        Retrieve the active configuration for an assay, environment, and diagnosis.
 
         Args:
             assay (str): ASP identifier, independent of the configuration's chosen ID.
             profile (str): The environment profile associated with the assay configuration (default is "production").
-            subpanel_id: Subpanel identifier; omitted selects the base subpanel.
+            diagnosis_id: Diagnosis identifier; omitted selects the base diagnosis.
 
         Returns:
             dict | None: The assay configuration document if found, otherwise None.
         """
-        return self.get_collection().find_one(self._scope_lookup_query(assay, profile, subpanel_id))
+        return self.get_collection().find_one(
+            self._scope_lookup_query(assay, profile, diagnosis_id)
+        )
 
     @staticmethod
-    def _scope_lookup_query(assay: str, profile: str, subpanel_id: str | None) -> dict:
+    def _scope_lookup_query(assay: str, profile: str, diagnosis_id: str | None) -> dict:
         """Resolve the unique active runtime scope without inferring a business ID."""
         return {
             "asp_id": normalize_clinical_identifier(assay, label="asp_id"),
-            "subpanel_id": normalize_clinical_identifier(
-                subpanel_id or SUBPANEL_BASE_ID, label="subpanel_id"
+            "diagnosis_id": normalize_clinical_identifier(
+                diagnosis_id or DIAGNOSIS_BASE_ID, label="diagnosis_id"
             ),
             "environment": normalize_environment(profile),
             "is_active": True,
@@ -286,7 +288,7 @@ class ASPConfigRepository(BaseRepository):
         )
 
     def get_aspc_no_meta(
-        self, assay_id: str, profile: str = DEFAULT_ENVIRONMENT, subpanel_id: str | None = None
+        self, assay_id: str, profile: str = DEFAULT_ENVIRONMENT, diagnosis_id: str | None = None
     ) -> dict | None:
         """
         Retrieve an active scope configuration without creation/update metadata.
@@ -294,7 +296,7 @@ class ASPConfigRepository(BaseRepository):
         Args:
             assay_id (str): ASP identifier.
             profile (str): The profile name to filter the assay configuration.
-            subpanel_id: Subpanel identifier; omitted selects the base subpanel.
+            diagnosis_id: Diagnosis identifier; omitted selects the base diagnosis.
 
         Returns:
             dict: The filtered assay configuration document if found, otherwise `None`.
@@ -306,7 +308,7 @@ class ASPConfigRepository(BaseRepository):
             "created_by": 0,
         }
         return self.get_collection().find_one(
-            self._scope_lookup_query(assay_id, profile, subpanel_id),
+            self._scope_lookup_query(assay_id, profile, diagnosis_id),
             projection,
         )
 
@@ -344,7 +346,7 @@ class ASPConfigRepository(BaseRepository):
         return list(
             self.get_collection()
             .find({"asp_id": assay_id, "environment": env, "is_active": True})
-            .sort([("subpanel_id", 1), ("aspc_id", 1)])
+            .sort([("diagnosis_id", 1), ("aspc_id", 1)])
         )
 
     def rotate_aspc(
@@ -377,14 +379,14 @@ class ASPConfigRepository(BaseRepository):
             Structured write result for the insert.
 
         Raises:
-            AppError: If the ID/version or active assay/subpanel/environment already exists.
+            AppError: If the ID/version or active assay/diagnosis/environment already exists.
         """
         try:
             result = insert_audited(self.get_collection(), self.ensure_aspc_id(dict(data)))
         except DuplicateKeyError as exc:
             raise api_error(
                 409,
-                "ASPC ID or active assay/subpanel/environment already exists. "
+                "ASPC ID or active assay/diagnosis/environment already exists. "
                 "Choose a new ID and an unused configuration scope when copying.",
             ) from exc
         operation = OperationResult.from_insert_one(result)
@@ -454,7 +456,7 @@ class ASPConfigRepository(BaseRepository):
         self,
         assay_name: str,
         all_envs: list,
-        subpanel_id: str | None = None,
+        diagnosis_id: str | None = None,
     ) -> list:
         """
         Retrieves a list of available environments for a specific assay configuration.
@@ -468,7 +470,7 @@ class ASPConfigRepository(BaseRepository):
         """
         query = {
             "asp_id": assay_name,
-            "subpanel_id": str(subpanel_id or SUBPANEL_BASE_ID).strip(),
+            "diagnosis_id": str(diagnosis_id or DIAGNOSIS_BASE_ID).strip(),
         }
         assay_configs = self.get_collection().find(query, {"environment": 1})
 

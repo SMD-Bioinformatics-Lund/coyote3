@@ -78,6 +78,16 @@ def test_manifest_preload_bindings_follow_configured_file_keys():
     assert non_database_manifest_file_keys("rna") == set()
     assert analysis_type_for_file_key("dna", "vcf_files") == "SNV"
     assert analysis_type_for_file_key("rna", "fusion_files") == "FUSION"
+    assert analysis_type_for_file_key("dna", "transloc") == "TRANSLOCATION"
+
+
+def test_release_analysis_registry_matches_implemented_ingest_contract():
+    """Every advertised analysis must have an implemented ingest payload binding."""
+    from api.config.contracts.ingest import ANALYSIS_PRELOAD_CONTRACT
+
+    for modality, bindings in CLINICAL_VOCABULARY.analysis_file_keys_by_omics.items():
+        assert set(bindings) == set(ANALYSIS_PRELOAD_CONTRACT.preload_keys_by_omics[modality])
+    assert "FUSION" not in CLINICAL_VOCABULARY.analysis_file_keys_by_omics["dna"]
 
 
 @pytest.mark.parametrize(

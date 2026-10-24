@@ -1,5 +1,16 @@
 [
   {
+    "SAMPLE_ID": "edb431fec55fbfcaa64c174e",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "2c50d08f8b23ef6475ec679d"
+  },
+  {
     "SAMPLE_ID": "dd54815825da439747a7082d",
     "pipeline_version": "synthetic-1",
     "records": [
@@ -8,9 +19,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "2c50d08f8b23ef6475ec679d"
-    }
+    "_id": "bbc5f5190cd486a22380b0ed"
   },
   {
     "SAMPLE_ID": "2bc12c9832e8356c4d92a49d",
@@ -21,22 +30,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "bbc5f5190cd486a22380b0ed"
-    }
-  },
-  {
-    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
-    "pipeline_version": "synthetic-1",
-    "records": [
-      {
-        "gene": "TP53",
-        "result": "example"
-      }
-    ],
-    "_id": {
-      "$oid": "54ba1e1f862de91022a8a733"
-    }
+    "_id": "54ba1e1f862de91022a8a733"
   },
   {
     "SAMPLE_ID": "029f2978888a36aa73630c02",
@@ -47,9 +41,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "57c71de6651d6ad955ea41a8"
-    }
+    "_id": "57c71de6651d6ad955ea41a8"
   },
   {
     "SAMPLE_ID": "41e289bc028c176b28409af8",
@@ -60,9 +52,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "031bdacd30b550e56781cf35"
-    }
+    "_id": "031bdacd30b550e56781cf35"
   },
   {
     "SAMPLE_ID": "e8e084c990e226e1f6a8affb",
@@ -73,9 +63,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "b670289c3b278e1fec420105"
-    }
+    "_id": "b670289c3b278e1fec420105"
   },
   {
     "SAMPLE_ID": "53866644ef84fef9de195a7b",
@@ -86,9 +74,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "ea4520de8b7379ffd26d70dd"
-    }
+    "_id": "ea4520de8b7379ffd26d70dd"
   },
   {
     "SAMPLE_ID": "a3990b112e6f32660ee9c636",
@@ -99,9 +85,7 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "34b075a749aa6dfc91bc370e"
-    }
+    "_id": "34b075a749aa6dfc91bc370e"
   },
   {
     "SAMPLE_ID": "09a7efe1c1798b912925a34a",
@@ -112,8 +96,72 @@
         "result": "example"
       }
     ],
-    "_id": {
-      "$oid": "eca5d27d96d8259a96e9134d"
-    }
+    "_id": "eca5d27d96d8259a96e9134d"
+  },
+  {
+    "SAMPLE_ID": "4878e6d12fc826101d3917f6",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "edc486bb14c1292b2b003ae9"
+  },
+  {
+    "SAMPLE_ID": "18597e683b92cf3406ff50d9",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "86b229c7d5f2c6041fa3be51"
+  },
+  {
+    "SAMPLE_ID": "a7b64d012ad9bb1b21076104",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "afecc7328074b9f4c4ef9b8d"
+  },
+  {
+    "SAMPLE_ID": "d9cdef79469dfb042f9680a7",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "c72ded8b6a5826001b65c332"
+  },
+  {
+    "SAMPLE_ID": "5c42825759949218077a5cc1",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "f694b50b2b103b8ef8eb4141"
+  },
+  {
+    "SAMPLE_ID": "7a4a787e73b43335a1b1bda6",
+    "pipeline_version": "synthetic-1",
+    "records": [
+      {
+        "gene": "TP53",
+        "result": "example"
+      }
+    ],
+    "_id": "871adbf0f754b0648ad2a200"
   }
 ]

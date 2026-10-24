@@ -15,6 +15,7 @@ def _catalog_service(fake_store) -> SampleCatalogService:
         sample_repository=fake_store.sample_repository,
         gene_list_repository=fake_store.gene_list_repository,
         assay_panel_repository=fake_store.assay_panel_repository,
+        assay_configuration_repository=fake_store.assay_configuration_repository,
         variant_repository=fake_store.variant_repository,
         copy_number_variant_repository=fake_store.copy_number_variant_repository,
         fusion_repository=fake_store.fusion_repository,

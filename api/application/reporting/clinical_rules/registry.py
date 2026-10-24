@@ -87,10 +87,10 @@ _LIST = ("contains", "overlaps", "is_empty", "exists", "is_unknown")
 
 FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("sample.asp_id", "Assay", "Sample", "string", _EQUALITY),
-    _fact("sample.subpanel_id", "Subpanel", "Sample", "string", _EQUALITY),
+    _fact("sample.diagnosis_id", "Diagnosis", "Sample", "string", _EQUALITY),
     _fact("sample.environment", "Environment", "Sample", "string", _EQUALITY),
     _fact(
-        "sample.omics_layer",
+        "sample.asp_category",
         "Omics layer",
         "Sample",
         "string",

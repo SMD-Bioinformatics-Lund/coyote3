@@ -69,8 +69,10 @@ class ResourceClassificationService:
             )
         return {
             "assay_group": str(aspc.get("asp_group") or "").strip(),
-            "subpanel": str(aspc.get("subpanel_id") or "base").strip(),
+            "diagnosis": str(sample.get("diagnosis_id") or "base").strip(),
             "reporting_language": (aspc.get("reporting") or {}).get("language", "sv"),
+            "configuration": aspc,
+            "resource_context": deepcopy(aspc["aspc_resolution"]["context"]),
         }
 
     @staticmethod
@@ -155,7 +157,8 @@ class ResourceClassificationService:
         normalized_type = self.normalize_resource_type(resource_type)
         base_context = {
             "assay_group": classification_context["assay_group"],
-            "subpanel": classification_context["subpanel"],
+            "diagnosis": classification_context["diagnosis"],
+            "resource_context": classification_context["resource_context"],
         }
         if normalized_type == "small_variant":
             var = self.variant_repository.get_variant(str(resource_id))
@@ -290,9 +293,7 @@ class ResourceClassificationService:
             try:
                 if self.clinical_rule_service is not None:
                     tumor_type = self.clinical_rule_service.annotation_tumor_type(
-                        asp_id=sample["asp_id"],
-                        subpanel_id=classification_context["subpanel"],
-                        language=classification_context.get("reporting_language", "sv"),
+                        aspc=classification_context["configuration"],
                     )
             except ValueError as error:
                 if include_automatic_text and apply:

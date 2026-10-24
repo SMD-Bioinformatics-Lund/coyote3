@@ -95,7 +95,7 @@ def test_failed_attempt_retains_staged_input(jobs, monkeypatch, tmp_path, failur
     [
         (
             ValueError(
-                "No active ASPC is configured for assay='synthetic', subpanel='base', environment='development'"
+                "No active ASPC is configured for assay='synthetic', diagnosis='base', environment='development'"
             ),
             "No active ASPC is configured",
         ),

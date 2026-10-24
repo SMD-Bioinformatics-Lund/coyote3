@@ -147,6 +147,7 @@ class DNAWorkflowService:
         snapshot_rows: list | None,
         created_by: str,
         rule_provenance: dict | None = None,
+        resolution_snapshot: dict | None = None,
     ) -> tuple[str, str]:
         """Persist DNA report artifacts through the common reporting pipeline."""
         return persist_shared_report_and_snapshot(
@@ -159,5 +160,6 @@ class DNAWorkflowService:
             snapshot_rows=snapshot_rows,
             created_by=created_by,
             rule_provenance=rule_provenance,
+            resolution_snapshot=resolution_snapshot,
             sample_repository=self.sample_repository,
         )

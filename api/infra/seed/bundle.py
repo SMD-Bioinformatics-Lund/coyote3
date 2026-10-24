@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from api.config.constants import ALL_SAMPLE_FILE_KEYS, SUBPANEL_BASE_ID, normalize_environment
+from api.config.constants import ALL_SAMPLE_FILE_KEYS, DIAGNOSIS_BASE_ID, normalize_environment
 
 
 def _normalize_permission_id(permission_id) -> str:
@@ -29,7 +29,7 @@ def _normalize_permission_ids(permission_ids) -> list[str]:
     return normalized
 
 
-def _clean_identifier(value, *, default: str = SUBPANEL_BASE_ID) -> str:
+def _clean_identifier(value, *, default: str = DIAGNOSIS_BASE_ID) -> str:
     """Normalize seed identifiers to the canonical contract-safe character set."""
     text = str(value or "").strip()
     text = text.replace(":", "_").replace(" ", "_")
@@ -194,11 +194,11 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
             "asp_groups",
             "asp_ids",
         ),
-        "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
+        "asp_configs": ("aspc_id", "asp_id", "diagnosis_id", "asp_group"),
         "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
         "insilico_genelists": ("isgl_id", "diagnosis", "asp_groups", "asp_ids"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("asp_id", "subpanel_id", "environment", "platform"),
+        "samples": ("asp_id", "diagnosis_id", "environment", "platform"),
     }
 
     def normalize_item(value):
@@ -266,7 +266,7 @@ def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
 
     Args:
         seed: Collection mapping containing optional ``asp_configs`` documents.
-            Missing identifiers use ``assay`` and the configured base subpanel;
+            Missing identifiers use ``assay`` and the configured base diagnosis;
             a missing environment uses production.
 
     Raises:
@@ -280,17 +280,17 @@ def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
             continue
 
         asp_id = _clean_identifier(doc.get("asp_id"), default="assay")
-        subpanel_id = _clean_identifier(doc.get("subpanel_id") or SUBPANEL_BASE_ID)
+        diagnosis_id = _clean_identifier(doc.get("diagnosis_id") or DIAGNOSIS_BASE_ID)
         environment = normalize_environment(doc.get("environment") or "production")
 
         doc["asp_id"] = asp_id
-        doc["subpanel_id"] = subpanel_id
+        doc["diagnosis_id"] = diagnosis_id
         doc["environment"] = environment
         doc["aspc_id"] = _clean_identifier(
-            f"{asp_id}_{subpanel_id}_{environment}", default=f"assay_{environment}"
+            f"{asp_id}_{diagnosis_id}_{environment}", default=f"assay_{environment}"
         )
 
-        retired = {"assay_name", "query", "subpanel", "genelists", "cnv_genelists"}
+        retired = {"assay_name", "query", "diagnosis", "genelists", "cnv_genelists"}
         present = sorted(retired.intersection(doc))
         if present:
             raise ValueError(f"asp_configs seed uses retired fields: {', '.join(present)}")
@@ -314,14 +314,14 @@ def canonicalize_sample_fields(seed: dict[str, list[dict]]) -> None:
     for doc in seed.get("samples", []) or []:
         if not isinstance(doc, dict):
             continue
-        retired = {"assay", "profile", "subpanel", "sequencing_technology"}
+        retired = {"assay", "profile", "diagnosis", "sequencing_technology"}
         present = sorted(retired.intersection(doc))
         if present:
             raise ValueError(f"samples seed uses retired fields: {', '.join(present)}")
         if "environment" in doc:
             doc["environment"] = normalize_environment(doc.get("environment"))
-        if "omics_layer" in doc and isinstance(doc.get("omics_layer"), str):
-            doc["omics_layer"] = doc["omics_layer"].strip().lower()
+        if "asp_category" in doc and isinstance(doc.get("asp_category"), str):
+            doc["asp_category"] = doc["asp_category"].strip().lower()
         if "platform" in doc and isinstance(doc.get("platform"), str):
             doc["platform"] = doc["platform"].strip().lower()
 

@@ -7,7 +7,7 @@
     "sample_oid": "sample_oid_demo_001",
     "assay": null,
     "assay_group": null,
-    "subpanel": null,
+    "diagnosis": null,
     "environment": null,
     "analysis_type": "SNV",
     "analysis_intent": null,

@@ -55,7 +55,7 @@ class BiomarkerService:
         """
         if not sample:
             raise api_error(404, "Sample not found")
-        if sample.get("omics_layer") != "dna":
+        if sample.get("asp_category") != "dna":
             raise api_error(400, "Biomarker analyses require a DNA sample")
         config = get_formatted_assay_config(
             sample,

@@ -72,19 +72,25 @@ def _biomarker_service() -> biomarker_router.BiomarkerService:
 def _classification_service() -> classification_router.ResourceClassificationService:
     """Build a classification service for route tests."""
     assay_configuration_repository = SimpleNamespace(
-        get_aspc_no_meta=lambda assay, profile, subpanel: {
+        get_aspc_no_meta=lambda assay, profile, diagnosis: {
             **fx.assay_config_doc(),
             "_id": "aspc-1",
-            "aspc_id": f"{assay}:{profile}:{subpanel}",
+            "aspc_id": f"{assay}:{profile}:{diagnosis}",
             "asp_id": assay,
             "asp_group": "dna",
-            "subpanel_id": subpanel,
+            "diagnosis_id": diagnosis,
             "environment": profile,
             "version": 1,
         }
     )
     assay_panel_repository = SimpleNamespace(
-        get_asp=lambda asp_id: {"asp_id": asp_id, "asp_group": "dna"}
+        get_asp=lambda asp_id: {
+            "asp_id": asp_id,
+            "asp_group": "dna",
+            "asp_category": "dna",
+            "asp_family": "panel-dna",
+            "version": 1,
+        }
     )
     return classification_router.ResourceClassificationService(
         annotation_repository=store.annotation_repository,
@@ -280,7 +286,7 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
 
 
 def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
-    """Missing ASP should raise a specific setup error for the sample assay."""
+    """An unknown assay cannot resolve an operational release."""
     sample = fx.sample_doc()
     sample["name"] = "S1"
     sample["asp_id"] = "unknown_assay"
@@ -292,12 +298,15 @@ def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(store.assay_panel_repository, "get_asp", lambda assay_name: None)
+    monkeypatch.setattr(
+        store.assay_configuration_repository, "get_aspc_no_meta", lambda *args: None
+    )
 
     with pytest.raises(AppError) as exc:
         dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
 
     assert exc.value.status_code == 422
-    assert exc.value.detail["error"] == "ASP not registered for assay 'unknown_assay'"
+    assert "ASPC not registered for assay 'unknown_assay'" in exc.value.detail["error"]
 
 
 def test_dna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
@@ -353,7 +362,7 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     monkeypatch.setattr(
         store.assay_configuration_repository,
         "get_aspc_no_meta",
-        lambda assay_name, profile, subpanel_id=None: None,
+        lambda assay_name, profile, diagnosis_id=None: None,
     )
 
     with pytest.raises(AppError) as exc:
@@ -362,7 +371,7 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     assert exc.value.status_code == 422
     assert (
         exc.value.detail["error"]
-        == "ASPC not registered for assay 'hema_gmsv1', subpanel 'myeloid', environment 'production'"
+        == "ASPC not registered for assay 'hema_gmsv1', diagnosis 'myeloid', environment 'production'"
     )
 
 
@@ -391,7 +400,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
-        dna.http, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
+        dna.http, "get_formatted_assay_config", lambda _sample: fx.assay_config_doc()
     )
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda var_id: variant)
     monkeypatch.setattr(
@@ -404,14 +413,14 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     monkeypatch.setattr(
         store.annotation_repository,
         "get_global_annotations",
-        lambda variant, assay_group, subpanel: ({}, None, [], []),
+        lambda variant, assay_group, diagnosis, **kwargs: ({}, None, [], []),
     )
     monkeypatch.setattr(
         store.annotation_repository,
         "get_latest_transcript_classifications",
-        lambda *args: {},
+        lambda *args, **kwargs: {},
     )
-    monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, subpanel: var)
+    monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, diagnosis, **kwargs: var)
     monkeypatch.setattr(store.expression_repository, "get_expression_data", lambda transcripts: {})
     monkeypatch.setattr(store.civic_repository, "get_civic_data", lambda variant, desc: {})
     monkeypatch.setattr(store.civic_repository, "get_civic_gene_info", lambda symbol: {})
@@ -469,6 +478,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     )
 
     assay_config = {
+        **fx.assay_config_doc(asp_group="tumwgs"),
         "asp_group": "tumwgs",
         "analysis_types": [],
         "reporting": {},  # intentionally missing report_path
@@ -502,7 +512,10 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(
         dna,
         "add_global_annotations",
-        lambda variants, assay_group, subpanel, annotation_repository=None: (variants, []),
+        lambda variants, assay_group, diagnosis, annotation_repository=None, **kwargs: (
+            variants,
+            [],
+        ),
     )
     monkeypatch.setattr(
         dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"}
@@ -727,7 +740,7 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
             "resource_ids": ["v1"],
             "resource_type": "small_variant",
             "assay_group": "solid",
-            "subpanel": "A",
+            "diagnosis": "A",
             "tier": 3,
         },
         user=fx.api_user(),
@@ -739,8 +752,9 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
     assert len(captured["docs"]) == 1
     assert any(doc.get("class") == 3 for doc in captured["docs"])
     assert set(captured["docs"][0]["variant_data"]) == {
+        "resource_context",
         "assay_group",
-        "subpanel",
+        "diagnosis",
         "gene",
         "transcript",
         "hgvsp",
@@ -806,7 +820,7 @@ def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypat
             "resource_ids": ["v1"],
             "resource_type": "small_variant",
             "assay_group": "solid",
-            "subpanel": "A",
+            "diagnosis": "A",
             "tier": 3,
         },
         user=fx.api_user(),

@@ -5,8 +5,6 @@
 [snv]
 
 [snv.assay_group_policies]
-tumwgs-hema = "paired"
-tumwgs-solid = "paired"
 
 # Analysis-specific policy namespaces. Their exception arrays are empty until
 # a reviewed rule is released for that finding type. A rule in one namespace
@@ -23,7 +21,7 @@ tumwgs-solid = "paired"
 id = "flt3_svtype"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
+assay_groups = ["hematology", "myeloid"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -36,7 +34,7 @@ children = [
 id = "flt3_large_insertion"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
+assay_groups = ["hematology", "myeloid"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -49,7 +47,7 @@ children = [
 id = "solid_regulatory_tert_nfkbie"
 mode = "extend_consequence"
 intents = ["somatic"]
-assay_groups = ["solid", "tumwgs-solid"]
+assay_groups = ["solid"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -62,7 +60,7 @@ children = [
 id = "germline_myeloid_marker"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
+assay_groups = ["hematology", "myeloid"]
 
 
 [snv.exceptions.condition]
@@ -75,7 +73,7 @@ value = 1
 id = "germline_cebpa_filter"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
+assay_groups = ["hematology", "myeloid"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -88,7 +86,7 @@ children = [
 id = "germline_chr1_interval"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["hematology", "myeloid", "tumwgs", "tumwgs-hema"]
+assay_groups = ["hematology", "myeloid"]
 
 [snv.exceptions.condition]
 type = "all"
@@ -102,7 +100,7 @@ children = [
 id = "solid_germline_filter"
 mode = "admit"
 intents = ["germline"]
-assay_groups = ["tumwgs-solid"]
+assay_groups = ["solid"]
 
 [snv.exceptions.condition]
 type = "predicate"

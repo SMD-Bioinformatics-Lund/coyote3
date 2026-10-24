@@ -17,6 +17,7 @@ from api.application.reporting.preview_consistency import require_current_previe
 from api.application.reporting.report_builder import ReportAnalyte, ReportService
 from api.application.reporting.report_library import ReportLibraryService
 from api.application.reporting.report_renderer import render_pdf_bytes, render_report_html
+from api.application.reporting.resolution_receipt import report_resolution_receipt
 from api.config.security import to_bool
 from api.contracts.reports import (
     ReportLibraryPayload,
@@ -84,15 +85,15 @@ def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: 
         sample: Sample payload being reported.
         assay_config: Assay-config payload for the sample.
     """
-    omics_layer = str(sample.get("omics_layer") or "").strip().lower()
-    if omics_layer in {"dna", "rna"} and analyte != omics_layer:
+    asp_category = str(sample.get("asp_category") or "").strip().lower()
+    if asp_category in {"dna", "rna"} and analyte != asp_category:
         sample_name = str(sample.get("name") or sample.get("case_id") or "sample")
         raise http.api_error(
             422,
             "Report type does not match sample modality",
             (
-                f"Sample '{sample_name}' has omics layer '{omics_layer}'. "
-                f"Use the {omics_layer.upper()} report endpoint for this sample."
+                f"Sample '{sample_name}' has omics layer '{asp_category}'. "
+                f"Use the {asp_category.upper()} report endpoint for this sample."
             ),
             category="validation",
         )
@@ -206,6 +207,7 @@ def _persist_report(
     snapshot_rows: list,
     created_by: str,
     rule_provenance: dict | None = None,
+    resolution_snapshot: dict | None = None,
 ) -> tuple[str, str]:
     """Persist a rendered report through the workflow layer.
 
@@ -221,6 +223,8 @@ def _persist_report(
         created_by: Username saving the report.
         rule_provenance: Rule-source identity and matched rule IDs to persist
             with the report, or None when no rule provenance is supplied.
+        resolution_snapshot: Exact configuration, scopes and rendering receipt prepared
+            from the same inputs that passed preview validation.
 
     Returns:
         tuple[str, str]: Persisted report object identifier and PDF file path.
@@ -236,6 +240,7 @@ def _persist_report(
             snapshot_rows=snapshot_rows,
             created_by=created_by,
             rule_provenance=rule_provenance,
+            resolution_snapshot=resolution_snapshot,
         )
     return get_rna_workflow_service().persist_report(
         sample_id=sample_id,
@@ -247,6 +252,7 @@ def _persist_report(
         snapshot_rows=snapshot_rows,
         created_by=created_by,
         rule_provenance=rule_provenance,
+        resolution_snapshot=resolution_snapshot,
     )
 
 
@@ -418,6 +424,7 @@ def save_report(
         snapshot_rows=snapshot_rows,
         created_by=current_username(),
         rule_provenance=_clinical_rule_provenance(template_context),
+        resolution_snapshot=report_resolution_receipt(template_name, template_context),
     )
 
     payload = report_service.save_payload(

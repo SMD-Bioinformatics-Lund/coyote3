@@ -67,7 +67,7 @@ def prepare_uploaded_bundle(
     logger.info("Resolving ASP expected and required files")
     expected_keys, required_keys = ingest_service._assay_file_policy(
         assay_name=source_payload.get("asp_id"),
-        omics_layer=source_payload.get("omics_layer"),
+        asp_category=source_payload.get("asp_category"),
     )
 
     archive_index = UploadedFileIndex(exact={}, basename={}, checksums={})

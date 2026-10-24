@@ -10,11 +10,11 @@ from pydantic import Field, field_validator, model_validator
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     SAMPLE_FILE_KEYS,
+    normalize_asp_family,
     normalize_clinical_identifier,
     normalize_environment,
     normalize_platform,
     normalize_read_mode,
-    normalize_sequencing_scope,
 )
 from api.config.database_versions import normalize_database_versions
 from api.config.sequencing import derived_read_technology, validate_platform_read_mode
@@ -170,7 +170,7 @@ class SampleReportRecordDoc(_DocBase):
     sample_oid: Any
     sample_name: str | None = None
     asp_id: str | None = None
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
     environment: str | None = None
     report_num: int
     report_id: str
@@ -182,32 +182,9 @@ class SampleReportRecordDoc(_DocBase):
     filters_snapshot: dict[str, Any] = Field(default_factory=dict)
     aspc: dict[str, Any] | None = None
     clinical_rule_source: dict[str, Any] | None = None
-
-
-class SampleAspcResolutionDoc(_StrictDocBase):
-    """Persisted resolution between a sample scope and its applied ASPC."""
-
-    requested_subpanel_id: str
-    resolved_subpanel_id: str
-    used_base_configuration: bool = False
-    resolved_from_sample_revision: bool = False
-    warning: str | None = None
-
-    @field_validator("requested_subpanel_id", "resolved_subpanel_id", mode="before")
-    @classmethod
-    def _normalize_scope_identifier(cls, value: Any) -> str:
-        """Canonicalize a requested or resolved subpanel identifier.
-
-        Args:
-            value: Required subpanel identifier.
-
-        Returns:
-            Stripped lowercase identifier with hyphens and underscores preserved.
-
-        Raises:
-            ValueError: If blank or containing unsupported characters.
-        """
-        return normalize_clinical_identifier(value, label="subpanel_id")
+    resolution_snapshot: dict[str, Any] | None = None
+    artifacts: list[dict[str, Any]] = Field(default_factory=list)
+    sample_version: int | None = None
 
 
 # Public aliases retain the useful domain names for consumers of this contract.
@@ -219,16 +196,41 @@ SampleDnaFiltersDoc = DnaFilterProfilesDoc
 SampleRnaFiltersDoc = RnaFilterProfilesDoc
 
 
+class SampleAspcResolutionDoc(_StrictDocBase):
+    """Record the selected diagnosis and any Base fallback warning without duplicating context."""
+
+    resolved_diagnosis_id: str
+    used_base_configuration: bool = False
+    warning: str | None = None
+
+    @classmethod
+    def from_resolution(cls, resolution: dict[str, Any]) -> "SampleAspcResolutionDoc":
+        """Select persisted resolution details from a complete runtime receipt.
+
+        Args:
+            resolution: Resolved diagnosis, fallback flag and optional warning; context is omitted.
+
+        Returns:
+            Compact validated sample metadata, independent of runtime context fields.
+
+        Raises:
+            ValidationError: The resolved diagnosis is absent or selected metadata is invalid.
+        """
+        return cls.model_validate(
+            {key: resolution[key] for key in cls.model_fields if key in resolution}
+        )
+
+
 class SamplesDoc(_DocBase):
     """Sample ingest contract linking clinical scope, files, filters, and case/control metadata."""
 
     name: str
+    version: int = Field(default=1, ge=1)
     asp_id: str
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
     environment: str
     current_aspc_id: Any | None = None
-    current_aspc_key: str | None = None
-    current_aspc_version: int | None = None
+    current_aspc_name: str | None = None
     aspc_resolution: SampleAspcResolutionDoc | None = None
     genome_build: int | None = None
     database_versions: dict[str, str] = Field(default_factory=dict)
@@ -236,8 +238,8 @@ class SamplesDoc(_DocBase):
     control_id: str | None = None
     sample_no: int
     paired: bool | None = False
-    sequencing_scope: str
-    omics_layer: Literal["dna", "rna"]
+    asp_family: str
+    asp_category: Literal["dna", "rna"]
     sex: Literal["female", "male", "unknown"] | None = None
     platform: str | None = None
     read_mode: str | None = None
@@ -283,9 +285,15 @@ class SamplesDoc(_DocBase):
         if not isinstance(value, dict):
             return value
         retired_keys = {
+            "omics_layer",
+            "sequencing_scope",
+            "current_aspc_key",
+            "current_aspc_version",
             "assay",
             "profile",
+            "diagnosis",
             "subpanel",
+            "subpanel_id",
             "sequencing_technology",
             "vep_version",
             "db_versions",
@@ -297,14 +305,14 @@ class SamplesDoc(_DocBase):
             raise ValueError(
                 "Retired sample fields are not accepted: "
                 + ", ".join(present)
-                + ". Use asp_id, subpanel_id, environment, platform, and database_versions."
+                + ". Use asp_id, diagnosis_id, environment, platform, and database_versions."
             )
         return value
 
-    @field_validator("sequencing_scope", "omics_layer", mode="before")
+    @field_validator("asp_family", "asp_category", mode="before")
     @classmethod
     def _normalize_lowercase(cls, value: Any) -> Any:
-        """Trim and lowercase sequencing scope or omics-layer strings.
+        """Trim and lowercase assay family or category strings.
 
         Args:
             value: Raw scope or layer input.
@@ -332,10 +340,10 @@ class SamplesDoc(_DocBase):
         normalized = str(value).strip().lower()
         return normalized or None
 
-    @field_validator("asp_id", "subpanel_id", mode="before")
+    @field_validator("asp_id", "diagnosis_id", mode="before")
     @classmethod
     def _normalize_assay_identifiers(cls, value: Any) -> Any:
-        """Canonicalize nonnull assay and subpanel identifiers.
+        """Canonicalize nonnull assay and diagnosis identifiers.
 
         Args:
             value: Clinical scope identifier, or None.
@@ -368,10 +376,10 @@ class SamplesDoc(_DocBase):
             return None
         return normalize_environment(value, label="environment")
 
-    @field_validator("sequencing_scope", mode="before")
+    @field_validator("asp_family", mode="before")
     @classmethod
-    def _normalize_sequencing_scope(cls, value: Any) -> str:
-        """Validate the sample's sequencing scope.
+    def _normalize_asp_family(cls, value: Any) -> str:
+        """Validate the sample's technical assay family.
 
         Args:
             value: Scope label before whitespace and case normalization.
@@ -382,7 +390,7 @@ class SamplesDoc(_DocBase):
         Raises:
             ValueError: If the scope is blank or unsupported.
         """
-        return normalize_sequencing_scope(value)
+        return normalize_asp_family(value)
 
     @field_validator("platform", mode="before")
     @classmethod
@@ -573,7 +581,7 @@ class SamplesDoc(_DocBase):
         has_dna = any(key in present_keys for key in DNA_SAMPLE_FILE_KEYS)
         has_rna = any(key in present_keys for key in RNA_SAMPLE_FILE_KEYS)
 
-        if self.omics_layer == "dna":
+        if self.asp_category == "dna":
             if has_rna:
                 raise ValueError(
                     "DNA sample must not include RNA file keys "
@@ -581,7 +589,7 @@ class SamplesDoc(_DocBase):
                 )
             if not has_dna:
                 raise ValueError("DNA sample must include at least one DNA data file key")
-        elif self.omics_layer == "rna":
+        elif self.asp_category == "rna":
             if has_dna:
                 raise ValueError(
                     "RNA sample must not include DNA file keys "
@@ -638,7 +646,7 @@ class SamplesDoc(_DocBase):
         if normalized.get("filters") is not None:
             normalized["filters"] = normalize_sample_filters(
                 normalized.get("filters"),
-                omics_layer=str(normalized.get("omics_layer") or "dna"),
+                asp_category=str(normalized.get("asp_category") or "dna"),
                 analysis_intents=normalized.get("analysis_intents"),
                 canonical=True,
             )
@@ -655,7 +663,7 @@ class SamplesDoc(_DocBase):
             ValueError: If RNA requests germline, supplied filters lack germline SNV
                 for a germline intent, or germline filters exist without that intent.
         """
-        if self.omics_layer == "rna" and "germline" in self.analysis_intents:
+        if self.asp_category == "rna" and "germline" in self.analysis_intents:
             raise ValueError("germline analysis is currently supported only for DNA SNV")
         if self.filters is None:
             return self

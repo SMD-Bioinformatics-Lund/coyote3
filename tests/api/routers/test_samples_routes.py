@@ -235,8 +235,9 @@ def test_apply_latest_aspc_replaces_a_sample_snapshot_explicitly(monkeypatch):
     sample = {"_id": "sample-object-id", "name": "CASE_DEMO"}
     calls = {}
 
-    def apply_latest_aspc(*, sample):
+    def apply_latest_aspc(*, sample, **options):
         calls["sample"] = sample
+        calls["options"] = options
         return {"aspc_id": "hema_gmsv1_hem_production", "version": 3}
 
     service = SimpleNamespace(apply_latest_aspc=apply_latest_aspc)
@@ -245,11 +246,15 @@ def test_apply_latest_aspc_replaces_a_sample_snapshot_explicitly(monkeypatch):
 
     payload = samples.apply_latest_sample_aspc(
         "CASE_DEMO",
+        payload=samples.ConfigurationApplyRequest(
+            expected_version=2, configuration_id="release-3", reason="Validated release"
+        ),
         user=_route_test_user(),
         service=service,
     )
 
     assert calls["sample"] is sample
+    assert calls["options"]["expected_version"] == 2
     assert payload["resource"] == "sample_aspc"
     assert payload["action"] == "apply_latest"
     assert payload["meta"]["applied_aspc"] == {

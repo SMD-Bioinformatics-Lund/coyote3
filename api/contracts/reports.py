@@ -80,7 +80,7 @@ class ReportLibraryItem(BaseModel):
     report_name: str | None = None
     sample_id: str
     asp_id: str | None = None
-    subpanel_id: str | None = None
+    diagnosis_id: str | None = None
     environment: str | None = None
     author: str | None = None
     time_created: datetime | None = None

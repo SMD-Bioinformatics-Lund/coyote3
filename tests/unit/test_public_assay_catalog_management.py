@@ -7,10 +7,107 @@ from unittest.mock import Mock
 import pytest
 from bson import ObjectId
 
+from api.application.public.catalog import PublicCatalogService
+from api.application.public.published_catalog_views import publication_context, publication_matrix
 from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
 from api.config.constants import DNA_ANALYSIS_TYPE_OPTIONS, RNA_ANALYSIS_TYPE_OPTIONS
 from api.contracts.public import PublicAssayCatalogAdminPayload
 from api.domain.core.exceptions import AppError as ApiError
+
+
+def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(service):
+    """Publication exposes effective genes and price without operational configuration."""
+    source = content()
+    source["modalities"]["wgs"]["categories"]["solid"]["price"] = {
+        "amount": "123.45",
+        "currency": "EUR",
+        "kind": "starting",
+    }
+    lists = service.gene_list_repository.get_all_isgl()
+    lists[0]["genes"] = ["GENE1", "OUTSIDE"]
+    service.gene_list_repository.get_all_isgl = lambda **kw: lists
+    doc = service.create(actor="author", imported=source)
+    doc = service.submit(str(doc["_id"]), doc["revision"], "reviewer", actor="author")
+    item = doc["catalog"]["published_offerings"][0]
+    assert item["gene_scopes"][0]["genes"] == ["GENE1"]
+    assert item["gene_scopes"][0]["excluded_gene_count"] == 1
+    assert item["price"]["amount"] == "123.45"
+    publication = {"version": 1, "header": "Services", "description": "", "offerings": [item]}
+    matrix = publication_matrix(publication)
+    assert matrix["genes"] == ["GENE1"]
+    assert matrix["columns"][0]["analysis"] == "SNV"
+    assert publication_matrix(publication, gene="OUTSIDE")["total"] == 0
+    context = publication_context(publication, "dna", item["offering_id"])
+    assert [row["symbol"] for row in context["genes"]] == ["GENE1"]
+    assert not {"filters", "configuration_id", "aspc_id", "resource_revisions"} & item.keys()
+    doc = service.decide(
+        str(doc["_id"]),
+        doc["revision"],
+        actor="reviewer",
+        approve=True,
+        publisher="publisher",
+        reason="Reviewed",
+    )
+    service.publish(str(doc["_id"]), doc["revision"], actor="publisher")
+    lists[0]["genes"] = ["REPLACED"]
+    assert service.repository.get_default()["published_offerings"][0] == item
+    assert service.preview_offerings(doc["catalog"], actor="reviewer")["offerings"][0] == item
+    reader = PublicCatalogService(
+        assay_panel_repository=None,
+        hgnc_repository=None,
+        gene_list_repository=None,
+        sample_repository=None,
+        vep_metadata_repository=None,
+        public_assay_catalog_repository=service.repository,
+    )
+    assert reader.published_offerings()["offerings"] == [item]
+    assert "resource_revisions" not in reader.published_offerings()
+    assert reader.published_matrix()["genes"] == ["GENE1"]
+    assert reader.assay_catalog_gene_symbols_payload("diagnosis") == {"gene_symbols": ["GENE1"]}
+
+
+def test_source_revision_change_after_review_requires_new_review(service):
+    """A reviewed release cannot publish against silently changed source revisions."""
+    doc = approved(service)
+    panels = service.assay_panel_repository.get_all_asps()
+    panels[0]["version"] += 1
+    service.assay_panel_repository.get_all_asps = lambda **kw: panels
+    with pytest.raises(ApiError) as error:
+        service.publish(str(doc["_id"]), doc["revision"], actor="publisher")
+    assert error.value.status_code == 409
+    assert service.repository.get_default() is None
+
+
+def test_import_cannot_supply_a_publication_snapshot(service):
+    """Client-supplied derived scope is discarded before governance begins."""
+    source = content()
+    source.update(published_offerings=[{"title": "Unreviewed"}], resource_revisions={"fake": {}})
+    doc = service.create(actor="author", imported=source)
+    assert doc["catalog"]["published_offerings"] == []
+    assert doc["catalog"]["resource_revisions"] == {}
+    with pytest.raises(ApiError) as error:
+        service.preview_offerings(source, actor="author")
+    assert error.value.status_code == 422
+
+
+def test_offering_cannot_advertise_unselected_gene_scope(service):
+    """Public list bindings must be selected by the production analysis configuration."""
+    configs = service.assay_configuration_repository.get_all_aspc()
+    configs[0]["filters"] = {}
+    service.assay_configuration_repository.get_all_aspc = lambda: configs
+    doc = draft(service)
+    with pytest.raises(ApiError):
+        service.submit(str(doc["_id"]), doc["revision"], "reviewer", actor="author")
+
+
+def test_offering_cannot_advertise_disabled_analysis(service):
+    """Assay capability alone does not enable a production offering analysis."""
+    configs = service.assay_configuration_repository.get_all_aspc()
+    configs[0]["analysis_types"] = ["CNV"]
+    service.assay_configuration_repository.get_all_aspc = lambda: configs
+    doc = draft(service)
+    with pytest.raises(ApiError):
+        service.submit(str(doc["_id"]), doc["revision"], "reviewer", actor="author")
 
 
 class MemoryVersions:
@@ -71,8 +168,29 @@ def service():
         versions=MemoryVersions(live),
         users=users,
         roles=SimpleNamespace(get_all_roles_plus_permissions=lambda: roles),
+        groups=SimpleNamespace(
+            get=lambda key: {
+                "group_id": key,
+                "display_name": "Demo",
+                "version": 1,
+                "is_active": True,
+            }
+        ),
+        diagnoses=SimpleNamespace(list_for_assay=lambda *args, **kwargs: []),
         assay_panel_repository=SimpleNamespace(
-            get_all_asps=lambda **kw: [{"asp_id": "assay", "asp_group": "demo"}],
+            get_all_asps=lambda **kw: [
+                {
+                    "asp_id": "assay",
+                    "asp_group": "demo",
+                    "asp_category": "dna",
+                    "asp_family": "wgs",
+                    "version": 1,
+                    "is_active": True,
+                    "display_name": "Assay",
+                    "covered_genes": ["GENE1"],
+                    "supported_analyses": ["SNV", "CNV"],
+                }
+            ],
             group_options=lambda: ["demo"],
         ),
         assay_configuration_repository=SimpleNamespace(
@@ -80,6 +198,16 @@ def service():
                 {
                     "asp_id": "assay",
                     "aspc_id": "assay_base",
+                    "asp_group": "demo",
+                    "version": 1,
+                    "diagnosis_id": "base",
+                    "analysis_types": ["SNV", "CNV"],
+                    "filters": {
+                        "somatic": {
+                            "snv": {"snvlists": ["diagnosis"]},
+                            "cnv": {"cnvlists": ["diagnosis"]},
+                        }
+                    },
                     "environment": "production",
                     "is_active": True,
                 },
@@ -95,6 +223,8 @@ def service():
             get_all_isgl=lambda **kw: [
                 {
                     "isgl_id": "diagnosis",
+                    "displayname": "Diagnosis genes",
+                    "version": 1,
                     "genes": ["GENE1"],
                     "list_type": ["snv", "cnv"],
                     "asp_ids": ["assay"],
@@ -104,6 +234,16 @@ def service():
         ),
     )
     service.notification_service = Mock()
+    service.assay_panel_repository.get_asp = lambda key: next(
+        (x for x in service.assay_panel_repository.get_all_asps() if x["asp_id"] == key), None
+    )
+    service.assay_configuration_repository.get_aspc_with_id = lambda key: next(
+        (x for x in service.assay_configuration_repository.get_all_aspc() if x["aspc_id"] == key),
+        None,
+    )
+    service.gene_list_repository.get_isgl = lambda key, **kw: next(
+        (x for x in service.gene_list_repository.get_all_isgl() if x["isgl_id"] == key), None
+    )
     return service
 
 

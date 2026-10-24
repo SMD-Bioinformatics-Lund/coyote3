@@ -23,7 +23,7 @@ from api.application.ingest.helpers import (
 from api.application.ingest.parsers import (
     DnaIngestParser,
     RnaIngestParser,
-    infer_omics_layer,
+    infer_asp_category,
 )
 from api.config.constants import (
     manifest_file_preload_keys,
@@ -32,6 +32,7 @@ from api.config.constants import (
 from api.contracts.schemas.registry import normalize_collection_document
 from api.contracts.schemas.samples import (
     SAMPLE_SOURCE_PATH_KEYS,
+    SampleAspcResolutionDoc,
     SamplesDoc,
 )
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
@@ -126,7 +127,7 @@ class InternalIngestService:
             Sorted missing expected file keys from the active ASP contract.
         """
         expected, _required = self._assay_file_policy(
-            assay_name=payload.get("asp_id"), omics_layer=payload.get("omics_layer")
+            assay_name=payload.get("asp_id"), asp_category=payload.get("asp_category")
         )
         return sorted(expected - available)
 
@@ -282,7 +283,7 @@ class InternalIngestService:
         """Detect omics layer and delegate payload parsing to the appropriate parser.
 
         Args:
-            args: Validated sample payload dict with file path keys and omics_layer.
+            args: Validated sample payload dict with file path keys and asp_category.
 
         Returns:
             A preload dict keyed by data type (snvs, cnvs, fusions, etc.).
@@ -290,17 +291,17 @@ class InternalIngestService:
         Raises:
             ValueError: If the omics layer cannot be determined from the payload.
         """
-        omics_layer = str(args.get("omics_layer") or "").strip().lower()
-        if not omics_layer:
-            omics_layer = infer_omics_layer(args) or ""
-        if omics_layer == "dna":
+        asp_category = str(args.get("asp_category") or "").strip().lower()
+        if not asp_category:
+            asp_category = infer_asp_category(args) or ""
+        if asp_category == "dna":
             logger.info("Loading HGNC reference metadata for DNA parsing")
             hgnc_by_id, hgnc_by_symbol = self._hgnc_metadata_maps()
             return DnaIngestParser(
                 hgnc_by_id=hgnc_by_id,
                 hgnc_by_symbol=hgnc_by_symbol,
             ).parse(args)
-        if omics_layer == "rna":
+        if asp_category == "rna":
             return RnaIngestParser.parse(args)
         raise ValueError("Could not determine data type (DNA/RNA) from payload")
 
@@ -308,11 +309,11 @@ class InternalIngestService:
         self,
         *,
         assay_name: str | None,
-        omics_layer: str | None,
+        asp_category: str | None,
     ) -> tuple[set[str], set[str]]:
         """Return ASP-controlled expected and required file keys for an assay."""
         return assay_file_policy(
-            self.collection_gateway.find_document, assay_name=assay_name, omics_layer=omics_layer
+            self.collection_gateway.find_document, assay_name=assay_name, asp_category=asp_category
         )
 
     def _validate_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -333,44 +334,48 @@ class InternalIngestService:
 
         Ingested samples never accept a filter profile authored in the manifest.
         Their initial intent profiles and ASPC lineage come from the resolved
-        ASPC for the exact ASP, subpanel, and environment scope.
+        ASPC for the exact ASP, diagnosis, and environment scope.
         """
         resolved = assay_default_filters(
-            lambda query: self.collection_gateway.find_document("asp_configs", query), payload
+            lambda query: self.collection_gateway.find_document("asp_configs", query),
+            payload,
         )
         if resolved is None:
             raise ValueError(
                 f"No active ASPC is configured for assay='{payload.get('asp_id')}', "
-                f"subpanel='{payload.get('subpanel_id') or 'base'}', "
+                f"diagnosis='{payload.get('diagnosis_id') or 'base'}', "
                 f"environment='{payload.get('environment') or 'production'}'. "
                 "Create or activate the matching analysis configuration."
             )
         aspc = dict(resolved.get("aspc") or {})
         normalized = dict(payload)
+        normalized["asp_category"] = resolved["asp_category"]
+        normalized["asp_family"] = resolved["asp_family"]
         normalized["filters"] = sample_filters_from_aspc_filters(
             resolved.get("filters"),
-            normalized.get("omics_layer", "dna"),
+            normalized.get("asp_category", "dna"),
             analysis_intents=aspc.get("analysis_intents"),
         )
         normalized["analysis_intents"] = aspc.get("analysis_intents") or ["somatic"]
         normalized["current_aspc_id"] = aspc.get("_id")
-        normalized["current_aspc_key"] = aspc.get("aspc_id")
-        normalized["current_aspc_version"] = aspc.get("version")
-        normalized["aspc_resolution"] = resolved.get("aspc_resolution")
+        normalized["current_aspc_name"] = aspc.get("display_name") or aspc["aspc_id"]
+        normalized["aspc_resolution"] = SampleAspcResolutionDoc.from_resolution(
+            resolved["aspc_resolution"]
+        ).model_dump()
         return normalized
 
     @staticmethod
     def _validate_preload_matches_declared_files(
-        *, declared_file_keys: set[str], preload: dict[str, Any], omics_layer: str | None
+        *, declared_file_keys: set[str], preload: dict[str, Any], asp_category: str | None
     ) -> None:
         """Ensure each declared database-backed file produced a parsed preload section."""
         if not declared_file_keys:
             return
-        if not omics_layer:
-            raise ValueError("omics_layer is required to validate declared ingest files")
+        if not asp_category:
+            raise ValueError("asp_category is required to validate declared ingest files")
         missing_sections: list[str] = []
-        preload_keys = manifest_file_preload_keys(omics_layer)
-        non_database_keys = non_database_manifest_file_keys(omics_layer)
+        preload_keys = manifest_file_preload_keys(asp_category)
+        non_database_keys = non_database_manifest_file_keys(asp_category)
         for file_key in sorted(declared_file_keys - non_database_keys):
             preload_key = preload_keys.get(file_key)
             if preload_key and preload_key not in preload:
@@ -453,7 +458,7 @@ class InternalIngestService:
     ) -> dict[str, Any]:
         """Validate that the update payload preserves the existing omics layer.
 
-        Ensures the requested omics_layer matches the existing sample and that
+        Ensures the requested asp_category matches the existing sample and that
         no cross-layer file keys (RNA keys on a DNA sample, or vice versa) are present.
 
         Args:
@@ -461,7 +466,7 @@ class InternalIngestService:
             payload: Proposed update payload (will be copied, not mutated).
 
         Returns:
-            A normalised copy of payload with omics_layer set to the existing layer.
+            A normalised copy of payload with asp_category set to the existing layer.
 
         Raises:
             ValueError: If the omics layer cannot be determined, or if the
@@ -527,6 +532,19 @@ class InternalIngestService:
         for key in ("asp_id", "environment"):
             if payload.get(key) != current_doc.get(key):
                 raise ValueError(f"Sample ingest cannot change {key}; use sample administration.")
+        for key in (
+            "diagnosis_id",
+            "asp_category",
+            "asp_family",
+            "genome_build",
+            "analysis_intents",
+            "current_aspc_id",
+            "current_aspc_name",
+            "aspc_resolution",
+            "filters",
+        ):
+            if key in payload and payload[key] != current_doc.get(key):
+                raise ValueError(f"Sample ingest cannot change applied configuration field '{key}'")
 
         sample_id = str(current_doc["_id"])
         parsed_payload = self._prepare_update_payload(
@@ -552,6 +570,7 @@ class InternalIngestService:
 
         merged_doc = dict(current_doc)
         merged_doc.update(parsed_payload)
+        merged_doc["version"] = int(current_doc["version"]) + 1
         for field in ("ingested_by", "ingest_source"):
             merged_doc[field] = current_doc.get(field)
         if uploaded_checksums:
@@ -563,7 +582,7 @@ class InternalIngestService:
         validated_merged = SamplesDoc.model_validate(merged_doc)
         validated_payload = validated_merged.model_dump(exclude_none=True)
 
-        preload_payload: dict[str, Any] = {"omics_layer": validated_payload["omics_layer"]}
+        preload_payload: dict[str, Any] = {"asp_category": validated_payload["asp_category"]}
         if validated_payload.get("files"):
             preload_payload["files"] = validated_payload["files"]
         runtime_files = parsed_payload.get("_runtime_files")
@@ -580,7 +599,7 @@ class InternalIngestService:
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
-            omics_layer=validated_payload.get("omics_layer"),
+            asp_category=validated_payload.get("asp_category"),
         )
         counts = dict(current_doc.get("data_counts") or {})
         counts.update(self._data_counts(preload))
@@ -699,6 +718,7 @@ class InternalIngestService:
 
         parsed_payload["ingested_by"] = ingested_by
         parsed_payload["ingest_source"] = ingest_source
+        parsed_payload["version"] = 1
 
         self.preflight_sample_name(parsed_payload, increment=increment)
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
@@ -718,7 +738,7 @@ class InternalIngestService:
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
-            omics_layer=validated_payload.get("omics_layer"),
+            asp_category=validated_payload.get("asp_category"),
         )
         sample_name = self._next_unique_name(str(validated_payload["name"]), bool(increment))
         sample_id = self._new_sample_id()

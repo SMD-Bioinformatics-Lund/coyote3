@@ -31,8 +31,8 @@ def test_panel_and_broad_assay_gene_coverage() -> None:
         {"focus": {"genes": ["TP53", "KRAS"]}},
         {"covered_genes": [], "asp_family": "wgs"},
     )
-    assert broad["focus"]["covered"] == ["KRAS", "TP53"]
-    assert broad["focus"]["uncovered"] == []
+    assert broad["focus"]["covered"] == []
+    assert broad["focus"]["uncovered"] == ["KRAS", "TP53"]
     assert assay_filters.get_assay_genelist_names([{"_id": "one"}, {"_id": "two"}]) == [
         "one",
         "two",

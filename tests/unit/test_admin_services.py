@@ -715,7 +715,16 @@ class _AdminRepoStub:
         """
         if sample_id == "missing":
             return None
-        return {"_id": sample_id, "sample_id": sample_id}
+        return {
+            "_id": sample_id,
+            "sample_id": sample_id,
+            "asp_id": "hema_gmsv1",
+            "diagnosis_id": "base",
+            "environment": "production",
+            "asp_category": "dna",
+            "version": 1,
+            "asp_family": "panel-dna",
+        }
 
     def update_sample(self, sample_obj, updated_sample):
         """Update sample.
@@ -806,7 +815,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             "revision": 1,
             "scope": {
                 "asp_id": rule_set_id.split("__", 1)[0],
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "analyte": "dna",
                 "language": "sv",
             },
@@ -980,7 +989,7 @@ def _asp_service(repo: _AdminRepoStub) -> AspService:
 def _isgl_service(repo: _AdminRepoStub) -> IsglService:
     store = _build_store(repo)
     return IsglService(
-        assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
+        assay_diagnosis_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
         gene_list_repository=store.gene_list_repository,
         assay_panel_repository=store.assay_panel_repository,
     )
@@ -989,10 +998,10 @@ def _isgl_service(repo: _AdminRepoStub) -> IsglService:
 def _aspc_service(repo: _AdminRepoStub) -> AspcService:
     store = _build_store(repo)
     return AspcService(
-        assay_subpanel_repository=SimpleNamespace(
+        assay_diagnosis_repository=SimpleNamespace(
             list_for_assay=lambda *_a, **_k: [
-                {"subpanel_id": "base", "display_name": "Base"},
-                {"subpanel_id": "aml", "display_name": "AML"},
+                {"diagnosis_id": "base", "display_name": "Base"},
+                {"diagnosis_id": "aml", "display_name": "AML"},
             ]
         ),
         assay_configuration_repository=store.assay_configuration_repository,
@@ -1485,14 +1494,14 @@ def test_admin_genelist_form_filters_asps_by_selected_groups(monkeypatch):
     service = _isgl_service(repo)
     service.assay_panel_repository.get_all_asps = lambda is_active=None: [
         {"asp_id": "hema_gmsv1", "display_name": "Hematology GMSv1", "asp_group": "hematology"},
-        {"asp_id": "solid_gmsv3", "display_name": "Solid DNA GMSv3", "asp_group": "solid"},
+        {"asp_id": "demo-solid_gmsv3", "display_name": "Solid DNA GMSv3", "asp_group": "solid"},
     ]
 
     payload = service.create_context_payload(actor_username="actor@example.com")
     form = payload["form"]
 
-    assert "subpanel_id" not in form["fields"]
-    assert form["fields"]["diagnosis"]["label"] == "Diagnosis / Subpanel IDs"
+    assert "diagnosis_id" not in form["fields"]
+    assert form["fields"]["diagnosis"]["label"] == "Diagnosis / Diagnosis IDs"
     assert form["fields"]["asp_ids"]["options_by_field"] == {
         "field": "asp_groups",
         "values": {
@@ -1505,7 +1514,7 @@ def test_admin_genelist_form_filters_asps_by_selected_groups(monkeypatch):
             ],
             "solid": [
                 {
-                    "value": "solid_gmsv3",
+                    "value": "demo-solid_gmsv3",
                     "label": "Solid DNA GMSv3",
                     "category": "solid",
                 }
@@ -1521,7 +1530,7 @@ def test_admin_genelist_rejects_asp_outside_selected_groups(monkeypatch):
     service = _isgl_service(repo)
     service.assay_panel_repository.get_all_asps = lambda is_active=None: [
         {"asp_id": "hema_gmsv1", "asp_group": "hematology"},
-        {"asp_id": "solid_gmsv3", "asp_group": "solid"},
+        {"asp_id": "demo-solid_gmsv3", "asp_group": "solid"},
     ]
 
     with pytest.raises(AppError) as exc_info:
@@ -1552,7 +1561,7 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     form = payload["form"]
     analysis_options = form["fields"]["analysis_types"]["options"]
     analysis_options_by_asp = form["fields"]["analysis_types"]["options_by_field"]
-    subpanel_options_by_asp = form["fields"]["subpanel_id"]["options_by_field"]
+    diagnosis_options_by_asp = form["fields"]["diagnosis_id"]["options_by_field"]
     filter_groups = form["fields"]["filters"]["groups"]
     reporting_groups = form["fields"]["reporting"]["groups"]
     filter_keys = {field["key"] for group in filter_groups for field in group.get("fields", [])}
@@ -1565,8 +1574,8 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     assert "PGX" in analysis_options
     assert analysis_options_by_asp["field"] == "asp_id"
     assert "SNV" in analysis_options_by_asp["values"]["wgs"]
-    assert subpanel_options_by_asp["field"] == "asp_id"
-    assert subpanel_options_by_asp["values"]["wgs"][0]["value"] == "base"
+    assert diagnosis_options_by_asp["field"] == "asp_id"
+    assert diagnosis_options_by_asp["values"]["wgs"][0]["value"] == "base"
     assert "somatic.snv.snvlists" in filter_keys
     for intent in ("somatic", "germline"):
         flag_field = next(
@@ -1640,7 +1649,7 @@ def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):
     with pytest.raises(AppError) as exc:
         service.create(
             payload={
-                "config": {"asp_id": "wgs", "environment": "production", "subpanel_id": "base"}
+                "config": {"asp_id": "wgs", "environment": "production", "diagnosis_id": "base"}
             }
         )
 
@@ -1669,12 +1678,12 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
             "sample": {
                 "name": "CASE_1",
                 "asp_id": "hema_gmsv1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "production",
                 "case_id": "CASE_1",
                 "sample_no": 1,
-                "sequencing_scope": "panel",
-                "omics_layer": "dna",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
                 "pipeline": "test_pipeline",
                 "pipeline_version": "1.0",
                 "files": {"vcf_files": {"path": "/data/test.vcf"}},

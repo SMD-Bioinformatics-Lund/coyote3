@@ -6,20 +6,16 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-from api.application.reporting.clinical_rules.terminology_defaults import build_default_terminology
 from api.application.reporting.clinical_rules.validation import validate_rule_set
 from api.application.reporting.pdf_resources import ReportResourceFetcher
 from api.application.reporting.report_renderer import render_pdf_bytes
 from tests.unit.reporting.test_clinical_rules import _document
 
 
-def test_unconditional_rule_validates_and_default_terminology_is_independent():
+def test_unconditional_rule_validates():
     document = _document()
     document.blocks[0].rules[0].condition = None
     assert validate_rule_set(document).valid
-    first = build_default_terminology()
-    first.clear()
-    assert build_default_terminology()
 
 
 @pytest.mark.parametrize(

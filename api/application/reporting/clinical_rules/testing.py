@@ -84,7 +84,7 @@ class ClinicalRuleTestingService:
         *,
         document_id: str,
         search: str,
-        match_subpanel: bool,
+        match_diagnosis: bool,
         allowed_asp_ids: list[str] | None,
         allowed_environments: list[str] | None,
         page: int,
@@ -95,7 +95,7 @@ class ClinicalRuleTestingService:
         Args:
             document_id: Rule version whose assay constrains the search.
             search: Repository sample search text.
-            match_subpanel: Also restrict to the rule-set subpanel when True.
+            match_diagnosis: Also restrict to the rule-set diagnosis when True.
             allowed_asp_ids: Allowed assay IDs; None skips the assay access check.
             allowed_environments: Environment restriction forwarded to the repository;
                 None leaves it unrestricted.
@@ -115,7 +115,7 @@ class ClinicalRuleTestingService:
         rows, total = self.sample_repository.search_samples_for_admin(
             asp_ids=[asp_id],
             environments=allowed_environments,
-            subpanel_id=rule_set.scope.subpanel_id if match_subpanel else None,
+            diagnosis_id=rule_set.scope.diagnosis_id if match_diagnosis else None,
             search_str=search,
             page=page,
             per_page=per_page,
@@ -127,9 +127,9 @@ class ClinicalRuleTestingService:
                     "id": str(row.get("_id")),
                     "name": str(row.get("name") or row.get("case_id") or row.get("_id")),
                     "asp_id": row.get("asp_id"),
-                    "subpanel_id": row.get("subpanel_id") or "base",
+                    "diagnosis_id": row.get("diagnosis_id") or "base",
                     "environment": row.get("environment"),
-                    "omics_layer": row.get("omics_layer"),
+                    "asp_category": row.get("asp_category"),
                 }
                 for row in rows
             ],
@@ -193,7 +193,7 @@ class ClinicalRuleTestingService:
                 "id": str(sample.get("_id")),
                 "name": sample.get("name") or sample.get("case_id"),
                 "asp_id": sample.get("asp_id"),
-                "subpanel_id": sample.get("subpanel_id") or "base",
+                "diagnosis_id": sample.get("diagnosis_id") or "base",
                 "environment": sample.get("environment"),
             },
             "rule_set": {

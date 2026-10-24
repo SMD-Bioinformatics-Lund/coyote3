@@ -5,9 +5,20 @@
       "panel": {
         "_id": null,
         "asp_id": "pending-assay",
-        "asp_group": "demo",
+        "asp_group": "hematology",
         "asp_family": "panel-dna",
         "asp_category": "dna",
+        "supported_analyses": [
+          "SNV",
+          "CNV",
+          "CNV_PROFILE",
+          "TRANSLOCATION",
+          "HRD",
+          "MSI",
+          "COVERAGE",
+          "TMB",
+          "PGX"
+        ],
         "display_name": "Synthetic draft assay",
         "description": null,
         "igv": null,

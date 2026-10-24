@@ -10,7 +10,7 @@ from api.domain.core.exceptions import AppError
 
 @pytest.fixture
 def service():
-    """Provide arbitrary center-defined group and subpanel identifiers."""
+    """Provide arbitrary center-defined group and diagnosis identifiers."""
     return IsglService(
         gene_list_repository=SimpleNamespace(),
         assay_panel_repository=SimpleNamespace(
@@ -19,9 +19,9 @@ def service():
                 {"asp_id": "panel-a", "asp_group": "custom-group", "display_name": "Panel A"}
             ],
         ),
-        assay_subpanel_repository=SimpleNamespace(
+        assay_diagnosis_repository=SimpleNamespace(
             list_for_assay=lambda asp_id, **_: (
-                [{"subpanel_id": "custom-scope", "display_name": "Custom scope"}]
+                [{"diagnosis_id": "custom-scope", "display_name": "Custom scope"}]
                 if asp_id == "panel-a"
                 else []
             )
@@ -47,18 +47,18 @@ def test_form_uses_registry_choices_and_implicit_base(service):
 
 @pytest.mark.parametrize("diagnosis", [[], ["base"], ["custom-scope"], ["base", "custom-scope"]])
 def test_registered_scopes_and_base_are_accepted(service, diagnosis):
-    service._validate_subpanels({"asp_ids": ["panel-a"], "diagnosis": diagnosis})
+    service._validate_diagnoses({"asp_ids": ["panel-a"], "diagnosis": diagnosis})
 
 
 @pytest.mark.parametrize("assay,scope", [("panel-a", "unknown"), ("panel-b", "custom-scope")])
 def test_unregistered_or_unassociated_scopes_are_rejected(service, assay, scope):
     with pytest.raises(AppError) as error:
-        service._validate_subpanels({"asp_ids": [assay], "diagnosis": [scope]})
+        service._validate_diagnoses({"asp_ids": [assay], "diagnosis": [scope]})
     assert error.value.status_code == 422
 
 
 def test_unchanged_historical_assignments_are_preserved(service):
     existing = {"asp_ids": ["panel-a"], "diagnosis": ["retired"]}
-    service._validate_subpanels(existing, previous=existing)
+    service._validate_diagnoses(existing, previous=existing)
     with pytest.raises(AppError):
-        service._validate_subpanels({**existing, "asp_ids": ["panel-b"]}, previous=existing)
+        service._validate_diagnoses({**existing, "asp_ids": ["panel-b"]}, previous=existing)

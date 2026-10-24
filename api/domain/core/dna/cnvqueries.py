@@ -59,13 +59,9 @@ def include_normal_cnvs(sample: dict[str, Any], assay_panel: dict[str, Any] | No
     the whole-genome workflow. Group identifiers never select a query strategy.
     """
     panel = assay_panel or {}
-    sequencing_scope = (
-        str(sample.get("sequencing_scope") or sample.get("asp_family") or "").strip().lower()
-    )
-    panel_family = (
-        str(panel.get("asp_family") or panel.get("sequencing_scope") or "").strip().lower()
-    )
-    return sequencing_scope == "wgs" or panel_family == "wgs"
+    asp_family = str(sample.get("asp_family") or "").strip().lower()
+    panel_family = str(panel.get("asp_family") or "").strip().lower()
+    return asp_family == "wgs" or panel_family == "wgs"
 
 
 def build_cnv_query(
@@ -157,7 +153,7 @@ def build_cnv_query(
     scope = {
         "assay_group": str(filters.get("assay_group") or "").strip().lower(),
         "asp_id": str(filters.get("asp_id") or "").strip().lower(),
-        "subpanel_id": str(filters.get("subpanel_id") or "base").strip().lower(),
+        "diagnosis_id": str(filters.get("diagnosis_id") or "base").strip().lower(),
         "intent": str(filters.get("intent") or "somatic").strip().lower(),
     }
     admissions = [

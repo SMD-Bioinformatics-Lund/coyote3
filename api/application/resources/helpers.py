@@ -11,7 +11,7 @@ from api.domain.common.errors import api_error
 
 
 def require_new_identifier(value: object, *, label: str) -> str:
-    """Require lowercase words separated by single underscores for a new identity.
+    """Require lowercase identifier segments separated by a hyphen or underscore.
 
     Args:
         value: Proposed business identifier, not a reference to an existing record.
@@ -21,18 +21,18 @@ def require_new_identifier(value: object, *, label: str) -> str:
         The unchanged identifier when it meets the creation policy.
 
     Raises:
-        AppError: With status 422 for blanks, uppercase, whitespace, hyphens,
-            non-ASCII characters or leading, trailing or repeated underscores.
+        AppError: With status 422 for blanks, uppercase, whitespace, non-ASCII
+            characters or leading, trailing or repeated separators.
 
     Notes:
         Call only when registering an identity, never when reading or revising
         an existing one. This function does not translate or alias identifiers.
     """
-    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)*", value):
+    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9]+(?:[-_][a-z0-9]+)*", value):
         raise api_error(
             422,
             f"Invalid {label}",
-            details=f"{label} must use lowercase letters and digits with single underscores between words.",
+            details=f"{label} must use lowercase letters and digits with single hyphen or underscore separators.",
             category="validation",
         )
     return value
