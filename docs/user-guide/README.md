@@ -15,7 +15,7 @@ configuration and user access. Account and assay configuration are covered in
 | [Clinical review workflow](clinical-review-workflow.md) | Follow a sample from selection through review and reporting. |
 | [Sample management](sample-management.md) | Find samples and understand their overview and readiness. |
 | [Sample readiness and missing results](sample-readiness-and-missing-results.md) | Distinguish visibility, ingest completion, missing analyses, empty queries, and report state. |
-| [Gene lists and assay context](gene-lists-and-assay-context.md) | Check ASP, ASPC, ISGL, subpanel, and clinical-rule roles during review. |
+| [Gene lists and assay context](gene-lists-and-assay-context.md) | Check ASP, ASPC, ISGL, diagnosis, and clinical-rule roles during review. |
 | [DNA clinical review](dna-review.md) | Review DNA findings, filters, classifications, and comments. |
 | [RNA Clinical Review](rna-review.md) | Review fusions, expression, and RNA classifications. |
 | [Coverage Review](coverage-review.md) | Inspect coverage summaries, low-coverage genes, and regions. |

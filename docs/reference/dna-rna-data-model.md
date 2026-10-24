@@ -22,9 +22,9 @@ Configuration resources are linked by assay identifiers and runtime filter state
 Interpretation notes:
 
 - ASP is the assay anchor used by both ingest and read paths.
-- ASPC is the assay-plus-subpanel-plus-environment strategy contract. The base ASPC uses `subpanel_id=base`.
-- ASPC `subpanel_id` is singular because one configuration resolves one reporting and filtering context. Choices come from active [registered subpanels](../administration/assay-subpanels.md) owned by the selected ASP, independently of ISGL diagnosis tags.
-- ISGL does not store `subpanel_id`. One gene list can be tagged to several diagnosis/subpanel contexts through `diagnosis[]`.
+- ASPC is the assay-plus-diagnosis-plus-environment strategy contract. The base ASPC uses `diagnosis_id=base`.
+- ASPC `diagnosis_id` is singular because one configuration resolves one reporting and filtering context. Choices come from active [registered diagnoses](../administration/assay-diagnoses.md) owned by the selected ASP, independently of ISGL diagnosis tags.
+- ISGL does not store `diagnosis_id`. One gene list can be tagged to several diagnosis contexts through `diagnosis[]`.
 - ISGL is optional and becomes active only when selected into `sample.filters`.
 - Fusion-compatible ISGLs contain one gene symbol per line. A fusion matches
   when either `gene1` or `gene2` belongs to the effective fusion gene scope.
@@ -44,7 +44,7 @@ existing samples.
 
 The sample overview and the expanded filters sidebar show the recorded ASPC
 business identifier and version. When a newer active revision exists for the
-same `asp_id`, `subpanel_id`, and `environment`, they show an **Apply latest
+same `asp_id`, `diagnosis_id`, and `environment`, they show an **Apply latest
 ASPC** action. The action is deliberately explicit because it replaces the
 sample's saved filter defaults and enabled analysis intents with the new
 revision. It does not alter ingested evidence or previously saved report
@@ -63,7 +63,7 @@ During ingest, the system creates a sample anchor and then links finding collect
 |---|---|---|
 | **Bundle Ingest** | Creation of parent `samples` document | Primary system anchor |
 | **Finding Persistence** | Writing to `variants`, `cnvs`, `fusions`, etc. | Keyed by `SAMPLE_ID` |
-| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Stored ASPC revision for existing samples; active assay + subpanel + profile lookup only at ingest or after Apply latest ASPC |
+| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Stored ASPC revision for existing samples; active assay + diagnosis + environment lookup only at ingest or after Apply latest ASPC |
 
 ### Parent-child persistence model
 
@@ -78,15 +78,14 @@ For DNA and RNA workflows, the platform dynamically computes **effective gene sc
 Active `sample.filters.somatic.snv.snvlists` and
 `sample.filters.somatic.snv.adhoc_genes` define the somatic SNV gene
 restriction. If neither is selected, the SNV scope is `ASP.covered_genes`; an
-empty ASP coverage list means no gene restriction.
+empty ASP eligibility list selects no findings.
 
 ### CNV
 
 Active `sample.filters.somatic.cnv.cnvlists` and
 `sample.filters.somatic.cnv.adhoc_genes` define the CNV gene restriction. Only
 ISGLs typed as `cnv` or `adhoc_cnv` are accepted. If neither is selected, the
-CNV scope is `ASP.covered_genes`; an empty ASP coverage list means no gene
-restriction. The SNV selection never becomes a CNV filter, even when the
+CNV scope is `ASP.covered_genes`; an empty ASP eligibility list selects no findings. The SNV selection never becomes a CNV filter, even when the
 selected ISGL also declares `cnv` in its `list_type`.
 
 ### RNA fusion
@@ -94,13 +93,12 @@ selected ISGL also declares `cnv` in its `list_type`.
 Active `sample.filters.somatic.fusion.fusionlists` and ad-hoc fusion genes
 define fusion scope. Only ISGLs typed as `fusion` or `adhoc_fusion` are
 accepted. Without a fusion selection, the fusion scope is `ASP.covered_genes`;
-an empty ASP coverage list means no gene restriction. Caller, effect, minimum
+an empty ASP eligibility list selects no findings. Caller, effect, minimum
 spanning-pair, and minimum spanning-read criteria are read only from
 `sample.filters.somatic.fusion`.
 
-Fusion filtering is not gated by a legacy assay-group name. Once an RNA ASPC
-enables fusion analysis, targeted RNA panels and WTS samples use the same filter
-contract. Assay group organizes the workflow but does not suppress configured
+RNA panels and WTS samples use the same fusion filter contract when their ASPC
+enables fusion analysis. Assay group organizes the workflow but does not suppress configured
 caller, effect, support, or gene predicates.
 
 The aggregator or upstream pipeline nominates exactly one selected call. Query
@@ -138,7 +136,7 @@ translocation genes define the DNA fusion/translocation scope.
 Fusion-compatible ISGLs are accepted because DNA translocations and RNA fusions
 share gene-list membership semantics, but the saved selections remain
 independent. Without a translocation selection, the scope is
-`ASP.covered_genes`; an empty ASP coverage list means no gene restriction.
+`ASP.covered_genes`; an empty ASP eligibility list selects no findings.
 
 `ISGL.list_type` controls selector availability, not automatic application. A
 single ISGL may be available for SNV, CNV, and fusion, while each analysis
@@ -169,7 +167,7 @@ The usual flow from ingest to reporting is:
 
 | Collection | Operational Responsibility | Primary Relational Mapping |
 |---|---|---|
-| **asp_configs** | Assay/subpanel/environment configuration | `sample.current_aspc_id` and version |
+| **asp_configs** | Assay/diagnosis/environment configuration | `sample.current_aspc_id` and version |
 | **assay_specific_panels** | Panel-level gene universe definition | `sample.asp_id` (ASP ID) |
 | **insilico_genelists** | Curated gene lists | `isgl_id` via `sample.filters` |
 | **samples** | Parent clinical entity and user filter state | Core system root for all case findings |
@@ -192,25 +190,22 @@ findings. This single reportable set is used for all three outputs:
    fusion sections.
 
 The sample's recorded ASPC revision provides the report header, method, and analysis description.
-The scope-selected published rule set provides the approved assay/subpanel wording. Fusion
+The scope-selected published rule set provides the approved assay/diagnosis wording. Fusion
 caller selection and filtering occur before rule evaluation, so report rules
 cannot silently select a different call or reintroduce an excluded fusion.
 
-RNA reporting does not read the former application-level `REPORT_CONFIG`,
-reconstruct `gene1` and `gene2` from legacy combined strings, or select the
-first call when no call is marked selected. Each reportable fusion must contain
+Each reportable fusion must contain
 canonical `gene1` and `gene2` values and exactly one `calls[].selected = 1`
 entry. The sample's recorded ASPC revision must contain non-empty `reporting.report_header`,
 `reporting.report_method`, `reporting.report_description`, and
 `reporting.report_folder` values. A missing requirement stops preview or save
-with a validation response; it is never replaced by legacy configuration or
-placeholder clinical data.
+with a validation response identifying the missing requirement.
 
 ## Integrity Rules
 
 The following rules matter for correct behavior:
 
-- **Identifier Synchronization**: keep `samples.assay`, `asp.asp_id`, and `aspc.asp_id` aligned; ASPC uniqueness is `asp_id + subpanel_id + environment`.
+- **Identifier Synchronization**: keep `samples.assay`, `asp.asp_id`, and `aspc.asp_id` aligned; ASPC uniqueness is `asp_id + diagnosis_id + environment`.
 - **Environment Integrity**: Every sample `profile` must map to a valid `production`, `development`, or `validation` environment within the configuration tier.
 - **Relational Atomic Behavior**: Treat `samples` as the parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` are not allowed.
 - **DNA Metadata Alignment**: For DNA small-variant analysis,

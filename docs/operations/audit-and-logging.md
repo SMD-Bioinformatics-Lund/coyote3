@@ -117,7 +117,7 @@ MongoDB transaction as their data changes:
 - Public catalog revisions and publication.
 - Assay setup revisions and publication bundles.
 - Assay, ASPC and gene-list creation, revision rotation and availability changes.
-- Assay-group creation and availability changes; subpanel definitions and associations.
+- Assay-group creation and availability changes; diagnosis definitions and associations.
 - Report saves, sample-bundle ingestion, collection-ingest transaction callbacks,
   and sample deletion.
 
@@ -320,7 +320,7 @@ treated as durable operational broadcasts.
 
 | Event | Notification audience |
 | --- | --- |
-| Assay, ASPC, assay group, ISGL, subpanel, association or assay setup changed through administration | All signed-in active users |
+| Assay, ASPC, assay group, ISGL, diagnosis, association or assay setup changed through administration | All signed-in active users |
 | Knowledgebase release published through the release-registry workflow, or public OncoKB refresh completed | All signed-in active users |
 | Sample report saved successfully | Active users assigned to the sample's assay group whose assay and environment scopes also match; wildcard assignments are respected |
 

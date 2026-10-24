@@ -9,11 +9,11 @@ create an assay, enable an analysis, or grant users access to samples.
 
 | Installation component | Supplied records | Availability |
 | --- | --- | --- |
-| Assay groups | Eleven registered groups, listed below | Default first installation; disable with `--skip-application` |
-| Finding query rules | Twelve published SNV sets across six groups, with immutable baseline revisions | Default first installation; disable with `--skip-application` |
+| Assay groups | Five registered biological groups, listed below | Default first installation; disable with `--skip-application` |
+| Finding query rules | Six published SNV sets across hematology, myeloid and solid, with immutable baseline revisions | Default first installation; disable with `--skip-application` |
 | System roles | 32 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
 | Initial accounts | One named system administrator and one separate emergency superuser | Operator supplies identities and temporary passwords during bootstrap |
-| Starter demonstration | Two assays (hematology DNA and RNA fusion), two testing and two production catalog configurations, two gene lists, two named subpanels with associations, two published query policies, two published report-rule sets, an analysis-linked catalog and two ingested samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | Default first installation; disable with `--skip-demo`. Later additions use authenticated maintenance or Administration → Demo installation |
+| Starter demonstration | One connected resource bundle: 11 assays, six diagnoses, eight lists, 39 configurations, query and reporting rules, 15 catalog offerings and two default samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | Default first installation; disable with `--skip-demo`. Later additions use authenticated maintenance or Administration → Demo installation |
 | Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Default first installation; disable with `--skip-knowledgebase` |
 
 Installed versioned catalogs start at version 1 and are attributed to `system`.
@@ -38,26 +38,13 @@ documented synchronization workflows; rerunning bootstrap does not reset catalog
 | `lymphoid` | Lymphoid | Lymphoid assays | None; application query defaults apply |
 | `solid` | Solid tumors | Solid tumor assays | Somatic SNV regulatory extensions; GERMLINE-filter admission |
 | `pgx` | Pharmacogenomics | Pharmacogenomic assays | None; application query defaults apply |
-| `tumwgs` | Tumor WGS | Tumor whole-genome assays | Somatic SNV FLT3 extensions; three germline admissions |
-| `tumwgs-hema` | Tumor WGS — Hematology | Hematological tumor whole-genome assays | Somatic SNV FLT3 extensions; three germline admissions |
-| `tumwgs-solid` | Tumor WGS — Solid tumors | Solid tumor whole-genome assays | Somatic SNV regulatory extensions; GERMLINE-filter admission |
-| `wts` | Whole transcriptome | Whole-transcriptome assays | None; application query defaults apply |
-| `fusion` | Fusion | RNA fusion assays | None; application RNA fusion query defaults apply |
-| `demo` | Demo | Demonstration and training assays | None; application query defaults apply |
 
-Each assay group defines an independent registration and access scope.
-`tumwgs` remains available for existing assays. Its assignments, gene lists, permissions,
-and query rules are preserved; the two new groups do not inherit its access grants.
-For an existing deployment, run `scripts/bootstrap/install_assay_groups.py --actor ADMIN_USERNAME`
-to preview missing groups and repeat with `--apply` to insert them. Then preview
-`scripts/bootstrap/install_query_rules.py --actor ADMIN_USERNAME` and repeat with `--apply`
-to install the missing group policies. Both commands use the configured MongoDB connection
-and require `COYOTE3_DB` or `--db`. Existing group documents and published rules are preserved.
-The optional bootstrap examples use the `hematology` and `wts` groups.
-The [synthetic workflow bundle](../testing/clinical-workflow-demo.md) also provides
-DNA and RNA assays in the `demo` group, with matching sample manifests, raw data,
-testing configurations and report-rule drafts.
-See [Assay groups](assay-groups.md) for registration and access-scope management.
+Biological groups define registration and access scope. `myeloid` and `lymphoid`
+remain available for legacy samples. New demo assays use `hematology` or `solid`;
+sequencing family and enabled analyses are configured separately. The
+[synthetic workflow bundle](../testing/clinical-workflow-demo.md) demonstrates
+shared diagnoses and gene lists across panel, WGS and RNA assays.
+See [Assay groups](assay-groups.md) for registration and access management.
 
 ## Finding query sets
 
@@ -77,10 +64,10 @@ also apply. `exception_only` has no ordinary evidence branch; without admission
 exceptions it selects no findings.
 
 Query scope resolves from application defaults through published global, group,
-assay and named-subpanel policies. The installed group sets cover all assays and
-subpanels in their group unless a more specific policy changes the composition.
-`all` means no specific assay; `base` in these query IDs means no specific subpanel.
-It is not a named subpanel. No assay-specific or named-subpanel query sets ship.
+assay and named-diagnosis policies. The installed group sets cover all assays and
+diagnoses in their group unless a more specific policy changes the composition.
+`all` means no specific assay; `base` in these query IDs means no specific diagnosis.
+It is not a named diagnosis. No assay-specific or named-diagnosis query sets ship.
 
 ### Published set identifiers
 
@@ -96,14 +83,11 @@ in [Finding query rules](query-rules.md).
 | --- | --- | --- |
 | `hematology` | `hematology__all__base__somatic_snvs` | `hematology__all__base__germline_snvs` |
 | `myeloid` | `myeloid__all__base__somatic_snvs` | `myeloid__all__base__germline_snvs` |
-| `tumwgs` | `tumwgs__all__base__somatic_snvs` | `tumwgs__all__base__germline_snvs` |
-| `tumwgs-hema` | `tumwgs-hema__all__base__somatic_snvs` | `tumwgs-hema__all__base__germline_snvs` |
-| `tumwgs-solid` | `tumwgs-solid__all__base__somatic_snvs` | `tumwgs-solid__all__base__germline_snvs` |
 | `solid` | `solid__all__base__somatic_snvs` | `solid__all__base__germline_snvs` |
 
-### Hematology, myeloid and tumor WGS
+### Hematology and retained myeloid scope
 
-Hematology, myeloid, legacy `tumwgs` and `tumwgs-hema` receive the same two somatic exceptions and three germline
+Hematology and myeloid receive two somatic exceptions and three germline
 exceptions. Conditions within a row are combined with AND; alternative exception rows
 can independently match.
 
@@ -128,7 +112,7 @@ meaning against the assay's reference build before clinical use.
 | `solid_regulatory_tert_nfkbie` | Somatic: extend consequence eligibility | `genes` contains `TERT` or `NFKBIE`, and `consequence_terms` contains `regulatory_region_variant` or `TF_binding_site_variant`. |
 | `solid_germline_filter` | Germline: admit | `FILTER` contains `GERMLINE`; no gene condition is imposed by this exception. |
 
-`solid` and `tumwgs-solid` do not receive the myeloid-marker, CEBPA or chromosome-1 admissions.
+`solid` does not receive the myeloid-marker, CEBPA or chromosome-1 admissions.
 
 ### Effect on retrieved findings
 
@@ -140,16 +124,13 @@ Explicit exclusion exceptions still apply to admitted findings.
 SNV `exclude_flags` selections also apply after admission.
 Their choices come from the [configured flag metadata](../configuration/filter-flag-metadata-file.md#snv-flag-filtering-and-rule-conditions).
 
-> **Warning: Somatic SNV results can include germline findings**
->
-> The dedicated germline workflow is not fully implemented. Effective germline
-> admission exceptions also contribute to somatic SNV retrieval for the same
-> scope. The four hematology-related scopes above and the two solid-tumor scopes therefore
-> include their respective germline admissions in somatic results. Germline
-> evidence settings do not replace somatic evidence settings. Inclusion in the
-> somatic table does not establish somatic origin.
+Somatic and germline SNV review use separate filter profiles. During configuration
+compilation, the resolver also adds effective germline exceptions to the somatic
+SNV policy for the same scope. The somatic evidence mode remains unchanged.
+This applies to the hematology, myeloid and solid policies above. Appearing in a
+workspace does not establish a finding's biological origin.
 
-Lymphoid, PGX, WTS, fusion, demo and newly registered groups receive none of these group
+Lymphoid, PGX and newly registered groups receive none of these group
 exceptions automatically. No CNV, translocation or RNA fusion rule publications
 are included in the standard seed; their implemented base queries remain active.
 
@@ -162,79 +143,14 @@ not a runtime center-editable policy.
 
 ## Low-level bootstrap configuration examples
 
-The following bundled examples in `api/config/bootstrap/demo_center` contain
-configuration and report-rule test cases only. Account bootstrap does not install
-these legacy examples. The center installer uses the
-complete [DNA and RNA starter package](../testing/clinical-workflow-demo.md) instead,
-including ingested samples, unless `--skip-demo` is selected.
+`api/config/bootstrap/demo_center/` contains configuration fixtures for isolated
+bootstrap and collection-import checks. These fixtures are not installed by the
+starter demo workflow and do not describe its catalog.
 
-### Assays and configurations
-
-| Resource | DNA demonstration | RNA demonstration |
-| --- | --- | --- |
-| ASP ID and label | `assay_1` — Hema GMS v1 | `assay_rna_1` — Demo RNA WTS |
-| Group / family / category | `hematology` / `panel-dna` / `dna` | `wts` / `wts` / `rna` |
-| Covered genes | UBA1, APOB, EGFR, PHIP, ASXL2, ASXL1, FLT3, KMT2D, GNB1, TP53 | BCR, ABL1, ETV6, RUNX1 |
-| Germline genes | BRCA1 | Empty |
-| Expected file keys | `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, `biomarkers` | `fusion_files`, `expression_path`, `classification_path`, `qc` |
-| Required file keys | `vcf_files` | `fusion_files` |
-| ASPC ID | `assay_1_base_production` | `assay_rna_1_base_production` |
-| Enabled analyses | SNV, CNV, COVERAGE | FUSION, EXPRESSION, CLASSIFICATION, QC |
-| Report sections | SNV, CNV | FUSION, EXPRESSION, CLASSIFICATION, QC |
-
-Both ASPs and ASPCs are active. Both configurations use `GRCh38`, `Illumina`,
-environment `production`, intent `somatic`, and the unscoped `base` context.
-Expected files do not enable analyses by themselves: the DNA ASP, for example,
-expects a shared biomarker file but its demo ASPC does not enable those analyses.
-
-The DNA filter defaults are:
-
-| Filter area | Values |
-| --- | --- |
-| SNV allele fractions | Minimum `0.03`, maximum `1`, maximum control `0.05` |
-| SNV evidence | Minimum depth `100`, minimum alternate reads `5`, maximum population frequency `0.01` |
-| SNV consequence groups | `splicing`, `stop_gained`, `stop_lost`, `start_lost`, `frameshift`, `inframe_indel`, `missense`, `other_coding` |
-| CNV size | Minimum `100`, maximum `1000000` |
-| CNV effects and cutoffs | `gain` and `loss`; gain `0.3`, loss `-0.3` |
-| Coverage thresholds | Warning `500`, error `100` |
-
-DNA SNV/CNV gene-list selections are empty. RNA fusion caller, description, effect
-and gene-list selections are empty; minimum spanning pairs and spanning reads are
-both `0`, with no ad hoc gene criteria. Consult
-[Filter profile fields](../reference/filter-profile-fields.md) for field semantics.
-
-Both ASPCs have empty verification-sample mappings and demonstration report header,
-method and description text. Reporting language is `sv`, plot path is `/tmp`, and
-report folders are `demo` and `demo-rna`. These values are examples, not a validated
-center reporting configuration. Only production ASPCs are installed; embedded
-rule-test fixtures referencing testing contexts do not create testing ASPCs.
-
-### Gene list and named subpanel
-
-The ISGL `hematology_myeloid`, labelled **List A**, is active, public and non-ad-hoc.
-It supports `snv`, `cnv` and `fusion`, contains the ten DNA covered genes listed
-above, and is associated with group `hematology`, assay `assay_1` and diagnosis
-`hematology_myeloid`.
-
-Bootstrap derives one shared named-subpanel definition, `hematology_myeloid`, and
-one association to `assay_1` from that diagnosis mapping. It does not create a
-separate ASPC or report-rule set for this named subpanel. `base` represents no
-specific subpanel and is not registered as another subpanel definition. Review
-[Assay setup](assay-setup.md) before configuring a named-subpanel workflow.
-
-### Demonstration report rules
-
-| Published set | Scope | Output behavior |
-| --- | --- | --- |
-| `assay_1__base__sv` | DNA, `assay_1`, unscoped subpanel, language `sv` | An unconditional introduction evaluated once; an SNV block evaluated per finding emits the gene followed by “contains a reportable small variant.” when the tier is 1, 2 or 3. CNV narrative is declared `none`. |
-| `assay_rna_1__base__sv` | RNA, `assay_rna_1`, unscoped subpanel, language `sv` | An unconditional fusion-summary block evaluated once. Expression, classification and QC narrative are declared `none`. |
-
-Each set includes one synthetic no-findings test case. Although their language
-scope is `sv`, the supplied demonstration sentences are English. These published
-examples exercise report rendering; they are not approved center report wording.
-The bootstrap captures their immutable revision baselines. Use
-[Clinical reporting rules](../reference/clinical-reporting-rules.md) to prepare,
-test, review and publish center-specific content.
+For installed assay names, diagnosis associations, gene lists, configurations and
+sample scenarios, use the [synthetic workflow reference](../testing/clinical-workflow-demo.md#demo-resource-relationships).
+The [demo bundle reference](../testing/demo-data-bundle.md) describes the raw files
+and expected database records used by ingest and offline validation.
 
 ## Default roles and initial accounts
 
@@ -280,8 +196,9 @@ recorded under `api/config/bootstrap/reference/`. These snapshots do not install
 every external knowledgebase used by the application; follow the relevant
 [knowledgebase operations guides](../operations/README.md) for separate updates.
 
-The baseline contains no patient samples, findings, annotations, classifications,
-saved reports or published public assay catalog. Configure and publish the catalog
-separately. Center configuration templates provide editable examples; complete
-the [clinical configuration sequence](clinical-configuration-resources.md) and
-validate each assay before using it for clinical work.
+The application baseline contains group and query catalogs, without samples or
+assay offerings. The separately installed starter demo adds synthetic samples,
+findings and catalog offerings as described above. Neither supplies patient data
+or clinically approved assay configurations. Complete the
+[clinical configuration sequence](clinical-configuration-resources.md) and validate
+each assay before using it for clinical work.

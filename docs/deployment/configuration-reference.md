@@ -593,15 +593,15 @@ clinical logic.
 
 ## Related clinical settings
 
-### Assays and subpanels
+### Assays and diagnoses
 
 Use **Admin > Assay setup** for a new assay. Base is selected by default; named
 scopes are optional. The [setup workflow](../administration/assay-setup.md) stages
 the ASP, gene lists and configurations for independent review before activation.
 
-Create shared scopes under **Admin > Subpanel definitions**, then manage each
-assay's availability under **Admin > Assay subpanel associations**. See
-[Assay Subpanels](../administration/assay-subpanels.md) for creation order,
+Create shared scopes under **Admin > Diagnosis definitions**, then manage each
+assay's availability under **Admin > Assay diagnosis associations**. See
+[Assay Diagnoses](../administration/assay-diagnoses.md) for creation order,
 permissions, retirement, persistence and existing-installation setup.
 
 ### Annotation vocabulary and sample profiles

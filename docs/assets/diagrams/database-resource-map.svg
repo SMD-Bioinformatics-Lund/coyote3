@@ -154,7 +154,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <title>Primary · clinical resources</title>
     <use href="#icon-layers" x="431" y="409" width="58" height="58" aria-hidden="true" />
     <text x="460" y="494" text-anchor="middle" class="entity-title">Primary · clinical resources</text>
-    <text x="460" y="519" text-anchor="middle" class="entity-detail">Assays, groups, subpanels and associations</text>
+    <text x="460" y="519" text-anchor="middle" class="entity-detail">Assays, groups, diagnoses and associations</text>
     <text x="460" y="537" text-anchor="middle" class="entity-detail">ASPCs, ISGLs, assay setups and setup revisions</text>
     <text x="460" y="555" text-anchor="middle" class="entity-detail">Clinical rule sets and revision history</text>
     <text x="460" y="573" text-anchor="middle" class="entity-detail">Public catalog, versions and revisions</text>

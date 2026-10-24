@@ -36,7 +36,7 @@ interpretation from a saved artifact.
 
 ### 2.0 Canonical clinical scope identifiers
 
-`asp_id`, `aspc_id`, `subpanel_id`, and `isgl_id` are persisted join keys. They
+`asp_id`, `aspc_id`, `diagnosis_id`, and `isgl_id` are persisted join keys. They
 use lower-case letters, digits, underscores, and hyphens. The service lowers
 case only: accepted separators retain their meaning, so the display label
 `Hem-Snabb` has the stored identifier `hem-snabb`. Whitespace, dots, and all
@@ -70,7 +70,7 @@ the configuration lineage.
 
 ### 2.2 ASPC: analytical and reporting configuration
 
-An Assay Specific Panel Configuration (ASPC) binds an ASP to one subpanel and
+An Assay Specific Panel Configuration (ASPC) binds an ASP to one diagnosis and
 environment. One ASPC carries every enabled analytical intent for that scope;
 it is not duplicated solely because the same physical assay supports both
 somatic and germline review.
@@ -78,17 +78,17 @@ somatic and germline review.
 The logical identity is:
 
 ```text
-ASP + subpanel + environment
+ASP + diagnosis + environment
 ```
 
-The `base` subpanel is used when the assay has no specific subpanel
+The `base` diagnosis is used when the assay has no specific diagnosis
 configuration.
 
 | Field | Meaning |
 |---|---|
 | `aspc_id` | Stable logical configuration identifier |
 | `asp_id` | Parent ASP |
-| `subpanel_id` | Specific subpanel or `base` |
+| `diagnosis_id` | Specific diagnosis or `base` |
 | `environment` | Production, validation, testing, or development |
 | `analysis_types` | Analyses available for sample review |
 | `analysis_intents` | `somatic` and, for DNA SNV where configured, `germline`. The value controls the available filter profiles, review tables, and reporting contexts. |
@@ -97,8 +97,8 @@ configuration.
 | `reporting.report_header` | Report heading |
 | `reporting.report_method` | Method description |
 | `reporting.report_description` | Assay description |
-| `reporting.language` | Language for exact assay/subpanel/analyte rule selection, with assay Base fallback |
-| Published rule source | MongoDB `clinical_rule_sets` release resolved by assay, subpanel, analyte and language, with assay Base fallback; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
+| `reporting.language` | Language for exact assay/diagnosis/analyte rule selection, with assay Base fallback |
+| Published rule source | MongoDB `clinical_rule_sets` release resolved by assay, diagnosis, analyte and language, with assay Base fallback; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
 | `reporting.plots_path` | Approved source directory for report plots |
 | `reporting.report_folder` | Approved report output directory |
 
@@ -115,12 +115,10 @@ lineage:
 
 > [!WARNING]
 >
-> Current operational reads resolve the exact active ASPC by ASP, subpanel,
-> and environment. When a legacy sample has no subpanel-specific ASPC, the
-> active `base` ASPC is attached and `samples.aspc_resolution` records the
-> requested and resolved subpanel IDs plus an explicit warning. The analysis
-> and overview pages display that warning. A saved report preserves the
-> resolved ASPC identity and filter snapshot.
+> Operational reads load the exact revision referenced by `current_aspc_id`.
+> Intake selects a release by assay, diagnosis and environment. An explicitly
+> permitted Base fallback preserves the requested diagnosis and displays a
+> warning. A saved report captures the resolved context and effective filters.
 >
 
 ### 2.3 ISGL: in-silico gene lists
@@ -151,7 +149,7 @@ preparation, not every list configured for the assay.
 
 ### 3.1 Manifest and file policy
 
-The sample YAML identifies the sample, `asp_id`, `subpanel_id`, `environment`, pipeline,
+The sample YAML identifies the sample, `asp_id`, `diagnosis_id`, `environment`, pipeline,
 case/control relationship, and declared files.
 
 Ingest resolves the active ASP and ASPC before writing the sample. File policy
@@ -184,13 +182,10 @@ Key fields include:
 |---|---|
 | `name` | Human-facing sample identifier and route key |
 | `asp_id` | ASP identifier |
-| `subpanel_id` | Selected subpanel |
+| `diagnosis_id` | Selected diagnosis |
 | `environment` | Environment |
 | `current_aspc_id` | ASPC ObjectId resolved when sample state was established |
-| `current_aspc_key` | ASPC logical identifier recorded on the sample |
-| `current_aspc_version` | ASPC version recorded on the sample |
-| `aspc_resolution` | Requested and resolved configuration scope. A base fallback sets `used_base_configuration=true` and carries the visible warning text. |
-| `omics_layer` | DNA or RNA |
+| `asp_category` | DNA or RNA |
 | `sex` | Optional sample-level biological sex (`female`, `male`, or `unknown`) used by cohort summaries. It is not duplicated under case/control metadata. |
 | `platform` | Sequencing platform inherited from the resolved ASP, such as `illumina` or `pacbio` |
 | `read_mode` | Platform-supported read mode. It is currently applicable only to Illumina (`SE` or `PE`). |
@@ -294,7 +289,7 @@ spanning-read, and ad-hoc-gene settings.
 - A successful update invalidates cached query results for that sample/domain.
 - The UI reloads the result set using the new filter state.
 - **Reset** restores defaults from the active ASPC resolved for the sample's
-  assay, subpanel, and environment.
+  assay, diagnosis, and environment.
 - Saved reports retain their own filter snapshot and are not changed.
 
 > [!TIP]
@@ -355,7 +350,7 @@ different transcript.
 ### 5.3 Annotation identity and matching
 
 Every annotation stores the common review context (`variant`, `nomenclature`,
-`assay`, `subpanel`, `author`, and `time_created`) and only the identity fields
+`assay`, `diagnosis`, `author`, and `time_created`) and only the identity fields
 that belong to its nomenclature:
 
 | Nomenclature | Required identity and context fields |
@@ -444,7 +439,7 @@ annotation-level `variant_data` object in this contract.
 The source collection remains authoritative for the complete finding payload.
 `reported_variants` is the immutable, compact record of what was included in a
 specific saved report, together with the report-time identity, tier, assay,
-subpanel, environment, and analysis context required for traceability and
+diagnosis, environment, and analysis context required for traceability and
 cohort queries.
 
 Runtime report-history searches use only these current flat snapshot fields.
@@ -452,17 +447,24 @@ They do not inspect old `var_p`, `var_c`, `var_g`, or nested `variant_data`
 aliases. Existing report snapshots must therefore be normalized by migration
 before they are served by the current application.
 
-### 5.4 Assay and subpanel context
+### 5.4 Assay and diagnosis context
+
+Production tier changes and reusable interpretation text require `annotation:publish`
+in addition to their curation permission. Assigning a tier or submitting reusable text
+is the publication action after review. Sandbox curation uses the normal curation grants
+and stays in its environment; it never publishes into the clinical namespace implicitly.
+Bundled clinical administrator, manager and standard-user roles include publication;
+developer and tester roles do not. Centers control the grant through role administration.
 
 Classification applicability is contextual:
 
-- for the `solid` assay group, both annotation `assay` and `subpanel` must
+- for the `solid` assay group, both annotation `assay` and `diagnosis` must
   match;
 - for other assay groups, annotation `assay` must match;
-- classifications from other assay/subpanel contexts are retained separately
+- classifications from other assay/diagnosis contexts are retained separately
   for display but do not become the current classification.
 
-Free-text annotations use the same assay/subpanel context. They are available
+Free-text annotations use the same assay/diagnosis context. They are available
 as global annotation history and as the current assay-specific text.
 
 ### 5.5 Reportability
@@ -566,9 +568,9 @@ sample:
   oid: "<ObjectId>"
   name: "<sample name>"
   asp_id: "<ASP ID>"
-  subpanel_id: "<subpanel or base>"
+  diagnosis_id: "<diagnosis or base>"
   environment: "<environment>"
-  omics_layer: dna
+  asp_category: dna
   paired: true
   genome_build: 38
   database_versions:
@@ -626,7 +628,7 @@ The producer guarantees that:
 - findings have passed the current analytical filters;
 - gene-list scope has already been applied;
 - selected transcripts are final;
-- classifications are current for the sample assay/subpanel context;
+- classifications are current for the sample assay/diagnosis context;
 - excluded clinical states have already been removed;
 - enabled and missing domains are distinguishable;
 - source and output counts are available for traceability;
@@ -648,7 +650,7 @@ These values must not be collapsed into an empty string.
 ## 8. Clinical Text Generation Boundary
 
 Reporting composes report text from the prepared context, ASPC reporting
-fields, and the active published clinical-rule release selected by assay, subpanel,
+fields, and the active published clinical-rule release selected by assay, diagnosis,
 analyte, and reporting language. Exact scope takes precedence over the same assay's
 Base scope. An invalid or ambiguous exact release fails rather than falling back.
 Drafts and published releases are stored in MongoDB; runtime evaluation validates
@@ -684,7 +686,7 @@ is supposed to describe.
 
 Preview:
 
-1. resolves the active sample configuration by `asp_id`, `subpanel_id`, and
+1. resolves the active sample configuration by `asp_id`, `diagnosis_id`, and
    environment;
 2. builds the prepared report context from current filters;
 3. composes report text and sections;
@@ -726,7 +728,7 @@ A saved report preserves:
 
 The report also preserves the selected published MongoDB rule-set identity,
 content version, canonical content hash, and matched rule IDs. Selection uses
-assay, subpanel, analyte, and reporting language, with Base used only when no
+assay, diagnosis, analyte, and reporting language, with Base used only when no
 exact active published release exists. See [clinical reporting rules](../reference/clinical-reporting-rules.md#rule-set-identity-and-selection).
 
 ## 10. Collection Relationships

@@ -549,7 +549,7 @@ first-login password change, then record the following results.
 ### Sample and analysis checks
 
 1. Open **Samples** and locate `demo_dna_sample`.
-2. Confirm the sample is ready and uses `assay_1_base_production`.
+2. Confirm the sample is ready and uses `assay_1::base::production`.
 3. Confirm the overview shows the case, control, declared files, database
    versions, analysis status, and ASPC metadata.
 4. Open **Somatic SNVs** and verify that sorting, paging, searching, filters,

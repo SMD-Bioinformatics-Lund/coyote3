@@ -16,12 +16,14 @@ from assay group names. See [report metadata outputs](clinical-reporting-rules.m
 ## Annotation scope and report eligibility
 
 Annotation `assay` identifies an assay group, not an ASP identifier. For a sample
-with a named `subpanel_id`, classifications and annotation text match that group
-and exact subpanel. There is no fallback to another subpanel when no match exists.
-For Base, absent, null, or empty subpanel, the latest annotation in the group is
-used regardless of its subpanel. Ordering is by `time_created`, then MongoDB `_id`
-to break timestamp ties. The same selection applies to transcript classifications.
-Historical annotation documents are not renamed or rewritten.
+with a named `diagnosis_id`, effective classifications and annotation text match
+that group, exact diagnosis, assay and environment. Base matches Base only.
+The annotation's `resource_context` retains the configuration, family and modality
+used when the interpretation was recorded. Other contexts can be displayed for
+reference with `requires_retiering`; they do not supply an effective report tier.
+Production annotations use the `clinical` namespace. Non-production annotations
+use `sandbox` and match their own sample environment. Ordering is by `time_created`,
+then MongoDB `_id` to break timestamp ties. Transcript classifications use the same scope.
 
 The effective ASPC's `reporting.reportable_tiers` selects report candidates:
 
@@ -44,18 +46,33 @@ needs its tier-4 terminology and any tier-specific conditions authored and teste
 
 ## Save guarantees
 
+The saved `resolution_snapshot` records the applied configuration content, exact
+assay and gene-list snapshots, target/intent gene scopes, effective filters,
+compiled query and clinical rules, reference versions, template hash and software
+version. It includes input-file metadata, pipeline identity/version, reference assembly,
+and each effective filter value that differs from the configuration default.
+Artifact records include SHA-256 checksums. Saving checks the prepared
+sample version and settings inside the report transaction; a changed sample
+requires a fresh preview.
+
 Saving requires a transaction-capable MongoDB deployment, including a single-node
 replica set for local use. Report metadata, finding snapshots, and the sample's
 reported status commit in one transaction. A failed snapshot cannot leave a
 successfully reported sample. Concurrent saves for the same report number return
 one success and a conflict; refresh the preview before retrying the conflict.
 
-Artifact identifiers include a random suffix. HTML/PDF files are created exclusively,
-never overwritten, and removed when a confirmed failure aborts the save. If MongoDB
-cannot confirm the commit result, files are retained for reconciliation and the API
-returns a service-unavailable error. Check saved-report metadata before retrying.
-Process crashes can leave unreferenced artifacts; recovery procedures must reconcile
-files with report metadata rather than deleting files based only on an API error.
+Artifact identifiers include a random suffix. HTML/PDF files are staged exclusively
+with a `.pending` suffix and flushed to storage before the report transaction commits.
+Committed artifact records include their final path, staging path, checksum and `pending`
+state. Publication verifies the checksum, creates the final file without overwriting
+existing content, and marks the artifacts `ready`. Downloads wait until publication completes.
+
+The `finalize_report_artifacts` maintenance task retries pending publication every
+30 seconds. Repeating finalization verifies existing files without creating another
+report or changing its findings. Sample deletion queues both staged and final paths.
+Confirmed transaction failures remove newly staged files. An uncertain commit retains
+them for reconciliation; check saved-report metadata before submitting another save.
+Unreferenced staging files are included in the artifact inventory.
 
 Report folders must be relative paths within the configured report root. PDF rendering
 accepts embedded PNG/JPEG images only; it cannot fetch remote URLs or local files.
@@ -79,7 +96,7 @@ The core rule is:
 
 ![Clinical review and report persistence flow](../assets/diagrams/clinical-review-flow.svg)
 
-1. A sample is ingested into `samples` with assay, subpanel, environment,
+1. A sample is ingested into `samples` with assay, diagnosis, environment,
    files, current filters, and current ASPC references.
 2. The user reviews sample data in the UI: SNVs, CNVs, fusions,
    translocations, coverage, and comments.
@@ -106,9 +123,8 @@ reporting layer expects the sample to contain enough metadata to resolve:
 
 - the assay: `sample.asp_id`
 - the environment/profile: `sample.environment`
-- the subpanel if applicable: `sample.subpanel_id`
-- the current ASPC reference: `current_aspc_id`,
-  `current_aspc_key`, `current_aspc_version`
+- the diagnosis if applicable: `sample.diagnosis_id`
+- the exact ASPC revision reference: `current_aspc_id`
 - current filter settings: `sample.filters`
 - case/control identifiers and Clarity metadata
 - file paths under `sample.files`
@@ -136,15 +152,15 @@ which it was used. They do not reconstruct links from HGVS text or gene names.
 
 The ASPC is the digital rulebook for report generation. It controls:
 
-- which analysis sections are valid for the assay/subpanel/environment
+- which analysis sections are valid for the assay/diagnosis/environment
 - which sections are included in the report
 - default filters for SNV, CNV, coverage, and related domains
 - report wording such as method, header, description, and output folder
 
 When a sample is loaded, the current filters should come from the matching ASPC:
 
-1. Match by `asp_id`, `subpanel_id`, and environment/profile.
-2. If no specific subpanel configuration exists, use the `base` subpanel for
+1. Match by `asp_id`, `diagnosis_id`, and environment/profile.
+2. If no specific diagnosis configuration exists, use the `base` diagnosis for
    that assay and environment.
 3. Store the effective ASPC reference on the sample so filter reset can restore
    the same default rulebook.
@@ -481,7 +497,7 @@ nested object from becoming a second finding schema.
 
 The shared report context is stored directly on every row: `report_id`,
 `report_num`, `report_oid`, `sample_name`, `sample_oid`, `assay`,
-`assay_group`, `subpanel`, `environment`, `analysis_type`, and
+`assay_group`, `diagnosis`, `environment`, `analysis_type`, and
 `analysis_intent`. Analysis-specific values use the following fields:
 
 | Finding | Named snapshot fields |
@@ -522,7 +538,7 @@ Important fields:
   "sample_oid": "ObjectId",
   "sample_name": "seed_case",
   "asp_id": "hema_gmsv1",
-  "subpanel_id": "hem-snabb",
+  "diagnosis_id": "hem-snabb",
   "environment": "production",
   "report_num": 1,
   "report_id": "report_id_placeholder",

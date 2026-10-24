@@ -108,7 +108,7 @@ invoke application services without an HTTP request context.
 | --- | --- |
 | Database endpoints, credentials, service URLs and host mounts | Deployment environment. |
 | Contacts, clinical vocabulary and query policy | Supported files under `api/config/center/`. |
-| Assay groups, subpanel definitions and assay associations | MongoDB registries. |
+| Assay groups, diagnosis definitions and assay associations | MongoDB registries. |
 | Assays, assay configurations and gene lists | Versioned ASP, ASPC and ISGL documents. |
 | Clinical reporting rules | Governed rule-set documents in the application database. |
 | Public catalog structure and narrative | Governed catalog documents in the application database. |
@@ -196,18 +196,18 @@ PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 | --- | --- |
 | Assay group | Clinical grouping and availability of associated assays. |
 | Assay (ASP) | Assay identity, sequencing attributes, physical gene coverage and input-file policy. |
-| Subpanel | Shared interpretation scope associated with one or more assays. Availability can be controlled per association. |
-| Assay configuration (ASPC) | Assay, subpanel and environment-specific analyses, filter profiles and reporting settings. |
+| Diagnosis | Shared interpretation scope associated with one or more assays. Availability can be controlled per association. |
+| Assay configuration (ASPC) | Assay, diagnosis and environment-specific analyses, filter profiles and reporting settings. |
 | Gene list (ISGL) | Named gene selection offered to the analysis types declared by `list_type`. |
 
-`base` is the default interpretation scope when no named subpanel is selected.
-Named subpanel choices come from the selected assay's associations.
+`base` is the default interpretation scope when no named diagnosis is selected.
+Named diagnosis choices come from the selected assay's associations.
 
 Filter profiles separate analysis intent and finding type. An SNV gene-list
 selection does not implicitly restrict CNVs or fusions. Selected lists and
-ad-hoc genes are resolved against the assay's coverage policy; without a selected
-restriction, assay coverage applies. An empty broad-assay scope can mean no gene
-predicate, whereas a selected list with no overlap must remain restrictive.
+ad-hoc genes are intersected with the assay's eligible genes; without a selection,
+assay eligibility applies. Empty eligibility or a selection with no overlap
+selects no findings, including for WGS and WTS.
 
 The backend applies clinical predicates before sorting and pagination. UI tables
 display the resulting records and do not independently decide clinical inclusion.
@@ -246,8 +246,8 @@ publication workflow. Publishing approved rule content does not require a new
 application build.
 
 `api/application/reporting/clinical_rules/resolution.py` selects an active published
-release using the assay, sample subpanel, analyte and reporting language. An exact
-subpanel release takes precedence; assay Base is used only when no exact release
+release using the assay, sample diagnosis, analyte and reporting language. An exact
+diagnosis release takes precedence; assay Base is used only when no exact release
 exists. Selection does not cross assays, analytes or languages. Ambiguous releases,
 invalid content and checksum mismatches produce an error rather than a silent
 switch to another rule set.
@@ -319,7 +319,7 @@ owns the form layout and resource-specific behavior. Assay creation uses
 | `samples/` | `AdminSamplesPage` | `AdminSampleEditorPage` |
 
 To change assay columns or filters, edit `assays/resource.ts`; to change an assay
-cell, action, or table layout, edit `assays/AssaysPage.tsx`. Assay subpanel
+cell, action, or table layout, edit `assays/AssaysPage.tsx`. Assay diagnosis
 associations belong to `AssayEditorPage.tsx`. DNA/RNA schema selection belongs to
 the configuration editor, and account-assignment restrictions belong to the user
 editor. Sample administration uses the JSON document editor.

@@ -50,7 +50,7 @@ For admin-managed collections, use stable business IDs as primary document keys:
 - `permissions.permission_id`
 - `assay_specific_panels.asp_id`
 - `asp_configs.aspc_id` (stable identifier for one
-  `asp_id + subpanel_id + environment` configuration)
+  `asp_id + diagnosis_id + environment` configuration)
 - `insilico_genelists.isgl_id`
 
 Expected behavior:
@@ -236,9 +236,9 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
 {
   "collection": "asp_configs",
   "document": {
-    "aspc_id": "assay_1_base_production",
+    "aspc_id": "assay_1::base::production",
     "asp_id": "assay_1",
-    "subpanel_id": "base",
+    "diagnosis_id": "base",
     "environment": "production",
     "asp_group": "hematology",
     "asp_category": "dna",

@@ -1,6 +1,6 @@
 # DNA clinical review
 
-The DNA review workspace is the main clinical area for reviewing sample findings, assigning tiers, writing comments, and preparing report previews. The page is driven by the sample ASPC, so only analyses enabled for that sample's assay, subpanel, and environment are shown.
+The DNA review workspace is the main clinical area for reviewing sample findings, assigning tiers, writing comments, and preparing report previews. The page is driven by the sample ASPC, so only analyses enabled for that sample's assay, diagnosis, and environment are shown.
 
 > **Info: Detailed UI reference**
 >
@@ -41,8 +41,8 @@ The Small Variants table is the primary DNA review table for SNVs and indels.
 > The current somatic SNV queries can also return germline variants that satisfy
 > their selection criteria. The **Somatic** label identifies the review workflow;
 > it does not establish a variant's somatic origin or guarantee exclusion of
-> germline findings. The dedicated germline SNV pathway is not yet fully
-> implemented and must not be treated as a complete germline analysis workflow.
+> germline findings. Enabled germline review has its own filters and reporting
+> context; it does not partition observations into exclusive biological categories.
 > Published germline query exceptions also run in this somatic workflow for the
 > matching assay scope. Their findings remain in the somatic SNV results; the
 > rules do not reclassify a finding's biological origin.

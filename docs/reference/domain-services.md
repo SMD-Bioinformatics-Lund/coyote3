@@ -13,7 +13,7 @@ The `samples` document is the main record for a case. Most findings collections 
 | Identifier | Collection | Primary Key | Operational Scoping |
 |---|---|---|---|
 | **ASP** | `assay_specific_panels` | `asp_id` | Enforces the physical gene universe and assay metrics. |
-| **ASPC** | `asp_configs` | `aspc_id` | Enforces assay/subpanel/environment filtering and reporting strategies. |
+| **ASPC** | `asp_configs` | `aspc_id` | Enforces assay/diagnosis/environment filtering and reporting strategies. |
 | **ISGL** | `insilico_genelists` | `isgl_id` | Provides curated clinical gene cohorts for interpretation. |
 
 ### Resource identification and uniqueness
@@ -26,7 +26,7 @@ Administrative resources use stable business IDs for routing and lookup.
 | **Role** | `role_id` | Functional slug, such as `viewer` or `admin`. | Unique within the configured identity database. |
 | **Permission** | `permission_id` | `resource:action[:scope]` key, such as `sample:edit:global`. | Unique within the configured identity database. |
 | **ASP** | `asp_id` | Assay identifier mapped to `sample.asp_id`. | Identifier plus `version` identifies a stored revision. |
-| **ASPC** | `aspc_id` | Identifier for an ASP, subpanel and environment configuration. | Identifier plus `version` identifies a stored revision. |
+| **ASPC** | `aspc_id` | Identifier for an ASP, diagnosis and environment configuration. | Identifier plus `version` identifies a stored revision. |
 | **ISGL** | `isgl_id` | Gene-list identifier. | Identifier plus `version` identifies a stored revision. |
 
 A stable business ID is not a globally unique revision. Samples retain resolved
@@ -57,11 +57,11 @@ Small-variant tiering stores the most specific available identity in this order:
 protein HGVS (`p`), coding HGVS (`c`), then genomic
 `chromosome:position:reference/alternate` (`g`). Retrieval checks the same
 identities for the same gene. Classification documents persist the
-server-resolved assay group and subpanel, matching the clinical annotation
+server-resolved assay group and diagnosis, matching the clinical annotation
 identity used for retrieval. ASP and ASPC identifiers, configuration versions,
 environment, and API resource-dispatch fields are not embedded in annotation
 documents. Solid-tumor retrieval additionally constrains the classification by
-subpanel. Clients do not supply authoritative assay context; the API derives it
+diagnosis. Clients do not supply authoritative assay context; the API derives it
 from the sample's recorded ASPC revision.
 
 Classification and report narration are independent workflows. A bulk Tier
@@ -69,7 +69,7 @@ III classification can optionally create an accompanying text annotation for
 a small variant by calling `create_annotation_text_from_gene`. Its inputs are
 the selected transcript consequence, gene, sample assay group, and locally
 stored OncoKB gene status. Its tumor-type terminology is resolved from the published
-DNA clinical-rule release for the sample's assay, subpanel and language. The existing
+DNA clinical-rule release for the sample's assay, diagnosis and language. The existing
 automatic sentence requires Swedish terminology. Tier I, II and IV classifications
 are stored without generated text. Classification does not execute the report's
 section-narrative evaluation.

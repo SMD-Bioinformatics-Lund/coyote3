@@ -26,7 +26,7 @@ exclusion conditions belong in database rule sets.
 > unsaved editor changes are not included. Testing does not publish the draft.
 
 The rule list uses the same workspace controls and workflow-status badges as the
-clinical report-rule editor. Search by query ID, group, assay, subpanel, analysis
+clinical report-rule editor. Search by query ID, group, assay, diagnosis, analysis
 or intent, and filter by workflow state or assay group. Selecting a version opens
 its scope and conditions in the editor; the highlighted row identifies the current
 selection. Filtering the list does not change or discard the open draft.
@@ -74,8 +74,8 @@ Changing the scope or draft invalidates the displayed sample result; test again
 to see the updated query. Query inspection uses the existing sample-test permission
 and sample-access checks.
 
-Query rules control finding retrieval for an assay group, an assay within that group,
-or a subpanel associated with that assay. Open **Administration → Query rules** to
+Query rules control finding retrieval for biological groups, technical families,
+assays and shared diagnoses. Open **Administration → Query rules** to
 inspect the effective policy, prepare a draft and publish an approved version.
 Reporting rules remain separate: query rules select findings; reporting rules evaluate
 clinical facts and generate report text.
@@ -87,24 +87,48 @@ Policies resolve in this order:
 1. Application-owned base query.
 2. Published **Default: all groups** policy for the analysis and intent.
 3. Published policy for the assay group.
-4. Published policy for that group and assay (ASP).
-5. Published policy for that group, assay and subpanel.
+4. Published policy for the group, modality and technical family.
+5. Published policy for the group and diagnosis.
+6. Published policy for the group, diagnosis, modality and technical family.
+7. Published policy for that group and assay (ASP).
+8. Published policy for that group, assay and diagnosis.
+
+At each level, shared settings apply first, followed by settings for the sample's
+exact environment. Production never inherits testing, development or validation
+bindings. A more specific shared policy takes precedence over a broader
+environment-specific policy. Two publications at the same precedence are rejected.
+Null fields inherit their parent; an empty replacement exception list removes
+inherited exceptions. Extended exception lists require distinct stable identifiers.
 
 Each policy belongs to one analysis: SNV, CNV, DNA translocation or RNA fusion.
 SNV policies distinguish somatic and germline intent for authoring and inheritance.
 The current combined SNV workflow also applies germline exceptions during somatic
-retrieval, as described below. Policies for other analyses remain independent. A subpanel policy always includes its assay;
-sharing a subpanel identifier across assays does not share a query policy.
+retrieval, as described below. Policies for other analyses remain independent.
+A group diagnosis policy applies across associated assays. Adding a family or an
+assay narrows that binding. Family bindings use an explicit modality; they cannot
+enable an analysis unsupported by that modality.
 
-> **Warning: Somatic queries can return germline variants**
->
-> Intent scopes select query policies, not confirmed variant origin. Current
-> somatic SNV queries can include germline variants that meet their criteria.
-> The dedicated germline SNV pathway is not yet fully implemented. Published
-> germline exceptions are therefore evaluated within somatic SNV retrieval for
-> the same group, assay and subpanel. The somatic evidence mode remains active;
-> the germline evidence mode does not replace it. Germline policy options do not
-> imply a complete germline workflow or biological separation of the results.
+## Configuration release binding
+
+Creating or revising an ASPC compiles its enabled finding targets and intents into
+`query_policy_release`. The artifact contains effective conditions, evidence modes,
+ordered source versions and a SHA-256 content hash. Assay setup submission includes
+this hash in its review dependencies; changed query policies require another review
+before setup publication. Demo installation compiles its packaged policies through
+the same resolver.
+
+Sample execution reads this artifact from `current_aspc_id`. It does not resolve
+current published query rules or current assay metadata. Publishing a query rule
+affects subsequent configuration compilation; existing samples retain their pinned
+policy until an authorized configuration application selects another ASPC revision.
+A missing revision, missing artifact, hash mismatch or environment mismatch blocks
+query execution. The authoring preview and sample comparison tools resolve current
+source policies explicitly without changing the sample's configuration.
+
+Intent scopes select query policies, not confirmed variant origin. Published
+germline exceptions are also evaluated within somatic SNV retrieval for the same
+group, assay and diagnosis. The somatic evidence mode remains active; the germline
+evidence mode does not replace it.
 
 The resolver composes each intent's hierarchy independently, then adds the effective
 germline exceptions to the somatic exceptions. Effective germline identifiers use a
@@ -131,7 +155,7 @@ the sample does not need the germline intent enabled.
 | Retired version | Ignore that version and resolve from remaining published ancestors. |
 
 For example, a group can use case-only SNV evidence. An assay can replace its
-exceptions while inheriting case-only evidence. A subpanel can then select paired
+exceptions while inheriting case-only evidence. A diagnosis can then select paired
 evidence while retaining the assay's exception list. A change to a parent immediately
 affects descendants that inherit the changed field.
 
@@ -145,8 +169,8 @@ center bundle. Use the editor to publish changes to installed policies.
 - For a group-specific policy, register an active [assay group](assay-groups.md).
   The **Default: all groups** scope does not require a group or assay.
 - For assay scope, register an active ASP belonging to that group.
-- For subpanel scope, create an active subpanel definition and associate it with the ASP.
-  `base` means no specific subpanel; it is not a separate subpanel scope.
+- For diagnosis scope, create an active diagnosis definition and associate it with the ASP.
+  `base` means no specific diagnosis; it is not a separate diagnosis scope.
 - Complete the assay's [ASPC and gene-list configuration](assay-setup.md). Query rules
   do not create analysis availability, gene lists or missing finding data.
 - Assign the permissions below to the author, reviewer and publisher. The reviewer
@@ -180,25 +204,25 @@ These roles grant no sample access or reporting-rule permissions. See the
 ### Generated identities
 
 Each document defines one analysis and intent. `query_id`, `scope_key` and the stored
-name use `assay_group__assay__subpanel__intent_datatype`; operators cannot edit them.
+name use `assay_group__assay__diagnosis__intent_datatype`; operators cannot edit them.
 
 | Scope | Example identity |
 | --- | --- |
 | Shared default | `default__all__base__somatic_snvs` |
 | Assay group | `hematology__all__base__somatic_snvs` |
 | Assay | `hematology__example_panel__base__somatic_snvs` |
-| Named subpanel | `hematology__example_panel__myeloid__somatic_snvs` |
+| Named diagnosis | `hematology__example_panel__myeloid__somatic_snvs` |
 | CNV rules for an assay | `hematology__example_panel__base__somatic_cnvs` |
 
 The supported data-type suffixes are `snvs`, `cnvs`, `fusions` and `translocations`.
 Only SNVs currently support the `germline` intent. `default` as a group token,
 `all` as an assay token and the `__` separator are reserved. `base` means no
-specific subpanel and normalizes to null in the stored query scope. Samples may
-still carry `base` as their no-subpanel identifier.
+specific diagnosis and normalizes to null in the stored query scope. Samples may
+still carry `base` as their no-diagnosis identifier.
 
 Retrieval selects published IDs for the shared default, group, assay and optional
-named subpanel, in that order. It resolves inheritance before building and executing
-the sample-scoped query. No separate base-subpanel rule is evaluated.
+named diagnosis, in that order. It resolves inheritance before building and executing
+the sample-scoped query. No separate base-diagnosis rule is evaluated.
 
 ### Existing query-rule storage
 
@@ -238,7 +262,7 @@ bootstrap captures the installed versions automatically.
 2. Select the analysis and, for SNV, the intent.
 3. Select **Default: all groups** for a shared default, or select a group.
    Leave **All assays in group** for a group policy; select an
-   assay to narrow it. Leave **All subpanels in assay** or select an associated subpanel.
+   assay to narrow it. Leave **All diagnoses in assay** or select an associated diagnosis.
 4. In **Conditions**, select **Add condition** to open the field and operator editor.
    When the list is inherited, adding a condition selects **Inherit and add exceptions**.
    No parent conditions or sample filter values are copied. Each exception
@@ -305,10 +329,10 @@ duplicate inherited identifiers. Parent changes still require descendant sample 
 
 The assay dropdown lists active assays in the selected group and analysis category.
 **All assays in group** applies the policy throughout that group. Selecting an assay
-enables its active named subpanels; **All subpanels in assay** uses the `base` identifier and applies
+enables its active named diagnoses; **All diagnoses in assay** uses the `base` identifier and applies
 throughout that assay. More-specific published policies can override inherited
-settings. Changing the group clears the assay and subpanel selections; changing the
-assay clears the subpanel selection. Saved versions have an immutable scope; select
+settings. Changing the group clears the assay and diagnosis selections; changing the
+assay clears the diagnosis selection. Saved versions have an immutable scope; select
 **New scope version** to configure a different scope.
 
 ## Nested condition builder
@@ -484,7 +508,7 @@ lists, VEP version and application query builders. It includes CNV effect filter
 and translocation gene filtering. Counts describe retrieval selection before browser
 text search, classification enrichment and report eligibility; they are not report
 finding counts. The proposed policy is applied at its actual hierarchy level, so
-testing a group rule does not bypass an assay or subpanel override.
+testing a group rule does not bypass an assay or diagnosis override.
 
 Tests do not save sample filters, findings, reports or rules. Results are hidden when
 the draft changes. Comparisons read current data; rerun if samples, lists or published
@@ -579,15 +603,17 @@ and publication workflow. Installation is not evidence of clinical validation.
 
 | Scope | Intent | Installed criteria |
 | --- | --- | --- |
-| Hematology, myeloid, legacy tumor WGS (`tumwgs`) and `tumwgs-hema` | Somatic SNV | Paired evidence; extend eligible consequences for FLT3 with `SVTYPE` present or ALT matching `[A-Za-z0-9_]{10,200}`. |
-| Solid and `tumwgs-solid` | Somatic SNV | Paired evidence; TERT/NFKBIE regulatory-region and TF-binding consequences. |
-| Hematology, myeloid, legacy tumor WGS (`tumwgs`) and `tumwgs-hema` | Germline SNV | Admission by `MYELOID_GERMLINE = 1`, CEBPA with `GERMLINE` filter, or chromosome 1 positions 115256521–115256537 inclusive. These exceptions also contribute to somatic SNV retrieval in these groups. |
-| Solid and `tumwgs-solid` | Germline SNV | Admission of findings with the `GERMLINE` filter; the myeloid admissions do not apply. |
+| Hematology and myeloid | Somatic SNV | Paired evidence; extend eligible consequences for FLT3 with `SVTYPE` present or ALT matching `[A-Za-z0-9_]{10,200}`. |
+| Solid | Somatic SNV | Paired evidence; TERT/NFKBIE regulatory-region and TF-binding consequences. |
+| Hematology and myeloid | Germline SNV | Admission by `MYELOID_GERMLINE = 1`, CEBPA with `GERMLINE` filter, or chromosome 1 positions 115256521–115256537 inclusive. |
+| Solid | Germline SNV | Admission of findings with the `GERMLINE` filter; the myeloid admissions do not apply. |
 
-These admissions are not global defaults. Lymphoid, WTS, fusion, demo and newly registered
-groups do not inherit them automatically. The legacy `master` implementation also
-applied the myeloid admissions to `unknown`; that is not a registered installation
-group in the current application.
+These admissions apply only to their registered group and intent scopes. Lymphoid,
+PGX and newly registered groups do not inherit them automatically. Sequencing family
+and analysis type do not create group policies. For example, `demo-tumwgs-hema`
+uses its explicit hematology group rather than a separate tumor-WGS group.
+The resolver also includes effective germline exceptions in the somatic SNV policy
+for the same scope, as described under configuration release binding.
 
 The release catalog supplies group rules; the bundled installation TOML supplies the
 group-scoped germline criteria and overlapping group criteria. At installation, a file
@@ -606,7 +632,7 @@ coyote_compose run --rm api python scripts/bootstrap/install_query_rules.py --ac
 After reviewing the plan, repeat with `--apply`. This uses the configured application
 database and bundled application seed; `--db` and `--mongo-uri` allow explicit
 database selection. There is no seed-file override. It never replaces an existing scope, even when all its versions are retired.
-Registered assay groups must exist first. Assay/subpanel-specific file exceptions are
+Registered assay groups must exist first. Assay/diagnosis-specific file exceptions are
 rejected; configure those scopes in the editor after their registries are available.
 Use the `coyote_compose` helper from the [upgrade guide](../deployment/application-upgrades.md).
 

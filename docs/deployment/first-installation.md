@@ -432,7 +432,7 @@ bash scripts/deployment/install_center.sh \
 
 See [Installed defaults and demonstration configuration](../administration/installed-defaults.md)
 for the complete group inventory, exact query-rule conditions, optional demo assays,
-subpanels, gene lists, report rules and default role responsibilities.
+diagnoses, gene lists, report rules and default role responsibilities.
 
 The image packages `clinical_capabilities.toml`, `clinical_query_defaults.toml`,
 `clinical_query_seed.toml` and `collections.toml` under `api/config/`. These are
@@ -557,7 +557,7 @@ ISGL means an analysis-specific in-silico gene list.
 | 1 | Assign the setup author, independent reviewer and clinical-rule roles/scopes. | Distinct eligible people can author and approve the setup and rules. A user cannot approve setup content they edited. |
 | 2 | Create or select an active assay group. | The assay's parent group exists and is available. Reuse an existing suitable group. |
 | 3 | Create and save the **Assay** step in Assay setup. | Stable ASP ID, group, DNA/RNA category, family, covered genes and expected/required input files are defined. This is a draft, not an ingest-ready ASP. |
-| 4 | Select **Scopes** and target environments. | Base is included automatically. Register/reuse any active named subpanel definitions, refresh them and select the needed scopes. Their assay associations are created at activation. |
+| 4 | Select **Scopes** and target environments. | Base is included automatically. Register/reuse any active named diagnosis definitions, refresh them and select the needed scopes. Their assay associations are created at activation. |
 | 5 | Prepare **Gene lists** if filters will select them. | Each selected ISGL has the correct type, genes and assay/group/scope bindings. Leave this step empty if no list is required. |
 | 6 | Use **Open rule builder** for the saved draft assay; test, review and publish its rules. | A compatible published assay/scope/analyte/language release exists and declares the intended report analyses. Return to setup and refresh rules. |
 | 7 | Save **Configurations** for every selected scope/environment pair. | Each ASPC has supported analyses, filter defaults, eligible selected lists and compatible report settings. Base plus one named scope in two environments requires four ASPCs. |
@@ -565,10 +565,10 @@ ISGL means an analysis-specific in-silico gene list.
 | 9 | Verify user access and ingest an approved validation sample. | The intended ASPC resolves; evidence, tabs, gene filters, report preview, saved report and audit records behave as approved. Review any Base-fallback warning. |
 | 10 | Publish public assay catalog content if needed. | The separate catalog approval workflow exposes the offering. It is not required to activate the assay or review its samples. |
 
-**Order is conditional.** Shared subpanel definitions may be prepared before an
+**Order is conditional.** Shared diagnosis definitions may be prepared before an
 assay. ISGLs and reporting rules can be prepared in either order after their assay
 and scope dependencies exist; both must be suitable before dependent ASPCs are
-approved. Base needs no subpanel record. Unselected gene lists and public catalog
+approved. Base needs no diagnosis record. Unselected gene lists and public catalog
 entries do not block setup. A saved setup draft can be selected in the rule builder,
 so an operational ASP need not be created separately first.
 
@@ -584,7 +584,7 @@ The [assay setup procedure](../administration/assay-setup.md#step-by-step-add-a-
 provides the form-level steps for this same workflow when adding later assays.
 If the assay needs finding-selection exceptions, prepare and independently approve
 [query rules](../administration/query-rules.md) after activation and before validation
-ingest. Group rules may be published earlier; assay and named-subpanel scopes need
+ingest. Group rules may be published earlier; assay and named-diagnosis scopes need
 their active registry records. Missing scoped query rules use the installed defaults.
 These rules are separate from the reporting rules in step 6. Bootstrap installs
 the [group and default query policies](../administration/query-rules.md#installation-and-storage)

@@ -24,8 +24,8 @@ clinical scope is referenced.
 | Identifier | Represents | Primary use |
 |---|---|---|
 | `asp_id` | Physical assay definition | Connects an assay to its platforms, coverage, and assay family |
-| `subpanel_id` | In-silico subpanel within an ASP | Selects scoped filters, gene lists, and report rules; `base` means no subpanel-specific configuration |
-| `aspc_id` | Active assay configuration | Identifies the resolved ASP, subpanel, and environment configuration |
+| `diagnosis_id` | In-silico diagnosis within an ASP | Selects scoped filters, gene lists, and report rules; `base` means no diagnosis-specific configuration |
+| `aspc_id` | Active assay configuration | Identifies the resolved ASP, diagnosis, and environment configuration |
 | `isgl_id` | In-silico gene list | Identifies a reusable curated gene scope |
 | `sample.name` | Clinical sample identifier | Human-facing sample identity and URL segment |
 
@@ -34,7 +34,7 @@ clinical scope is referenced.
 | Rule | Requirement | Example |
 |---|---|---|
 | Case | Input is converted to lowercase before storage | `Hem-Snabb` becomes `hem-snabb` |
-| Allowed characters | Lowercase letters, digits, underscore, and hyphen | `solid_gmsv3`, `hem-snabb` |
+| Allowed characters | Lowercase letters, digits, underscore, and hyphen | `demo-solid_gmsv3`, `hem-snabb` |
 | Separator semantics | Hyphens and underscores are both valid and remain distinct | `hem-snabb` is not the same key as `hem_snabb` |
 | Disallowed characters | Whitespace, dots, slashes, and other punctuation are rejected | `Hem Snabb` and `gms.v1` are invalid |
 | Display text | Human-readable labels are kept separately from identifiers | `Hem-Snabb` can be displayed while `hem-snabb` is stored |
@@ -56,14 +56,15 @@ the previous document remains available for reconstruction.
 |---|---|---|---|
 | ASP | `asp_id` | `(asp_id, version)` | Physical assay and platform definition, assay family, coverage, and supported scope |
 | ASPC | `aspc_id` | `(aspc_id, version)` | Environment-specific enabled analyses, filter profiles, reporting configuration, and rule resolution scope |
-| ISGL | `isgl_id` | `(isgl_id, version)` | Typed curated genes and permitted assay/subpanel associations |
+| ISGL | `isgl_id` | `(isgl_id, version)` | Typed curated genes and permitted assay/diagnosis associations |
 
-The `base` subpanel is the explicit default for an ASP with no subpanel-specific
-configuration. If a sample requests a subpanel that does not have an active
-ASPC, Coyote3 resolves the active `base` ASPC and records both requested and
-resolved subpanel IDs in `samples.aspc_resolution`. The UI shows this as a
+The `base` diagnosis is the explicit default for an ASP with no diagnosis-specific
+configuration. If a sample requests a diagnosis that does not have an active
+ASPC, Coyote3 may resolve the active `base` ASPC when it explicitly permits
+fallback in the same environment. The sample retains the requested diagnosis;
+the exact referenced release supplies the resolved diagnosis. The UI shows this as a
 configuration warning because the configured default, rather than a matching
-subpanel configuration, was used.
+diagnosis configuration, was used.
 
 ### Revision protocol
 
@@ -134,7 +135,7 @@ still alter data outside the application.
 
 Current configuration and report reproducibility serve different purposes.
 
-1. A sample resolves an active ASPC by its canonical assay, subpanel, and
+1. A sample resolves an active ASPC by its canonical assay, diagnosis, and
    environment scope.
 2. The reviewer changes filters or selected gene lists as needed during review.
 3. Report preparation builds the exact finding and text context from that

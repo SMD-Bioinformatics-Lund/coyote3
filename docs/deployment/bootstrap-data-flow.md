@@ -177,7 +177,7 @@ ASPC contract rule for first-load data:
 - DNA SNV base behavior is configured with `filters`.
 - Evidence modes and typed finding exceptions resolve through
   [query rules](../administration/query-rules.md): application baseline, database
-  default, assay group, assay and subpanel. Bootstrap installs the bundled group
+  default, assay group, assay and diagnosis. Bootstrap installs the bundled group
   rules and typed installation-file criteria as attributed version-one publications.
 - DNA CNV thresholds use `filters.somatic.cnv`; RNA fusion thresholds use
   `filters.somatic.fusion`.

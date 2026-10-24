@@ -35,7 +35,7 @@ The following features apply across the platform:
 - **Sample search**: Find samples by their identifiers.
 - **Operational Scoping**: Filtering by production status, assay technology, and organizational assay groups.
 - **View Isolation**: Independent tracking and navigation for "Live" versus "Reported" sample states.
-- **Sample List Metadata**: The sample catalog shows sample identity, case/control identifiers, clarity identifiers, profile, assay, subpanel, analysis ingest state, report state, loaded data counts, and load date.
+- **Sample List Metadata**: The sample catalog shows sample identity, case/control identifiers, clarity identifiers, profile, assay, diagnosis, analysis ingest state, report state, loaded data counts, and load date.
 - **Input availability**: The sample overview lists configured inputs with their required or optional state, availability, size, and record count.
 
 ## Diagnostics and Configuration Workflow

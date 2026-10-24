@@ -124,7 +124,7 @@ review before use at a laboratory.
 | `filter_flag_metadata.yaml` | Labels, severity, descriptions, and hidden flags for the center's pipeline FILTER values. | Review explanations against actual pipeline output. These settings affect presentation, not finding admission. |
 | Private environment file | All four MongoDB URI/name pairs, organization name, public URL, TLS proxy settings, authentication, mail, integrations, secrets, storage, and network. | Start from `deploy/env/example.env`; use separate values and storage for each deployment. |
 
-ASP, ASPC, ISGL, assay groups, subpanels, clinical report rules, user accounts,
+ASP, ASPC, ISGL, assay groups, diagnoses, clinical report rules, user accounts,
 roles, and public assay catalog content are managed database resources. They are
 not additional TOML files. Bootstrap the system catalogs and initial accounts,
 then install the reviewed clinical configuration in the
@@ -191,7 +191,7 @@ Python loads `api/config/clinical_capabilities.toml` and
 `api/config/clinical_query_defaults.toml` from the application package. Neither
 path can be redirected through the center directory. These are software release
 assets, like `api/config/collections.toml`; centers must not edit or copy them.
-New ASPs, groups, subpanels and gene lists remain center-managed database resources.
+New ASPs, groups, diagnoses and gene lists remain center-managed database resources.
 
 Before upgrading a deployment that has older center files:
 
@@ -224,7 +224,7 @@ samples, ASPs, ASPCs or reports, and does not publish new database-managed query
 > annotation, query, ASP, ASPC, and ISGL scope. Manage system and custom groups
 > through [Admin > Assay groups](../administration/assay-groups.md).
 > Assay family (`panel-dna`, `wgs`, `panel-rna`,
-> `wts`) and subpanel (for example `endometrie` or `breast`) are separate
+> `wts`) and diagnosis (for example `endometrie` or `breast`) are separate
 > concepts.
 >
 
@@ -282,7 +282,7 @@ previews, notifications, revision history, and publication safeguards.
 | `category.description` | Recommended | Text | Public assay description; falls back to the ASP description where available. |
 | `category.subheading` | No | Text | Supplemental heading. |
 | `category.asp_id` | Recommended | Existing ASP `asp_id` | Links the catalog section to the physical assay definition. |
-| `category.subpanel_id` | No | Existing ASPC subpanel identifier | Narrows the category to a subpanel. Use the configured base subpanel when no specific subpanel applies. |
+| `category.diagnosis_id` | No | Existing ASPC diagnosis identifier | Narrows the category to a diagnosis. Use the configured base diagnosis when no specific diagnosis applies. |
 | `category.aspc_id` | Required before submission unless `aspc_ids.production` is set | Active production ASPC identifier | Direct configuration reference for the selected assay. |
 | `category.aspc_ids` | No | Production reference mapping | Only the `production` key is accepted for publication. |
 | `category.family` / `category.asp_family` | No | Supported ASP family identifier | Optional public family override; normally inherited from the ASP. |
@@ -298,7 +298,7 @@ previews, notifications, revision history, and publication safeguards.
 | `gene_lists[].key` or `gene_lists[].isgl_id` | Required for an ISGL-backed list | Existing ISGL `isgl_id` | Resolves active ISGL metadata and gene coverage. Remove blank placeholder entries in new catalog content. |
 | `gene_lists[].label`, `description` | No | Text | List-specific visible text; label falls back to the ISGL display name. |
 | `gene_lists[].diagnosis` | No | List of display strings | List-specific clinical context. |
-| `gene_lists[].subpanel_id`, `list_type` | No | Existing subpanel ID or ISGL list type | List-specific context overrides. |
+| `gene_lists[].diagnosis_id`, `list_type` | No | Existing diagnosis ID or ISGL list type | List-specific context overrides. |
 | `gene_lists[].tat`, `input_material`, `sample_modes`, `analysis` | No | Same forms as the category keys | List-level values override the corresponding category value. |
 
 > **Info: Use ASP, ASPC, and ISGL for clinical truth**

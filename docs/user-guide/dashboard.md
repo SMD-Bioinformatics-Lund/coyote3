@@ -30,7 +30,7 @@ samples.
 
 **My Recent Samples** lists the latest samples visible to the account. Select a
 row to open the sample workspace. Each row includes the sample name, omics
-layer, ingest state, ASP, subpanel, and relative ingest time when available.
+layer, ingest state, ASP, diagnosis, and relative ingest time when available.
 
 ## Sample Composition
 

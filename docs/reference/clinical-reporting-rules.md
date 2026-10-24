@@ -6,10 +6,12 @@ Clinical reporting rules convert a prepared clinical result into governed report
 wording. They do not select transcripts, filter findings, assign tiers, or modify
 findings. Those decisions are complete before rule evaluation begins.
 
-The authoritative rule source is the `clinical_rule_sets` collection in the primary
-application database. Report generation selects the active published rules by sample
-assay, subpanel, analyte and ASPC `reporting.language`. Runtime report generation
-does not load rule files or evaluate arbitrary templates.
+The authoring source is the `clinical_rule_sets` collection in the primary application
+database. Configuration preparation selects the active published rules by assay,
+diagnosis, analyte and ASPC `reporting.language`, then captures that document in
+`clinical_rule_release`. Report generation verifies and evaluates the captured
+content from the sample's exact configuration revision. Publishing or retiring a
+source rule does not change previously compiled configurations.
 
 ![Clinical report generation flow](../assets/diagrams/report-generation-flow.svg)
 
@@ -29,8 +31,8 @@ In **Administration → Clinical reporting rules**, open a DNA draft and set
 | Property | Requirement or behavior |
 | --- | --- |
 | Value | Optional trimmed text, 1–120 characters when supplied. Clear the field to omit it. |
-| Scope | Published DNA rules for the sample's assay, subpanel and ASPC reporting language. The assay Base release is the fallback when no exact subpanel release exists. |
-| Inheritance | Terminology comes from the selected release as a whole. An exact subpanel release with no term does not borrow a term from Base. |
+| Scope | DNA rule content captured in the sample's configuration. Configuration preparation selects the exact diagnosis or assay Base source for its reporting language. |
+| Inheritance | Terminology comes from the selected release as a whole. An exact diagnosis release with no term does not borrow a term from Base. |
 | Language | Automatic sentence generation currently supports `sv` only. |
 | Governance | Included in the content hash, draft revision, independent review and publication lifecycle, using existing clinical-rule permissions. |
 | Missing wording or invalid release | An explicit request for automatic text fails before classifications are written. Ordinary classification remains available. |
@@ -73,31 +75,32 @@ Finding eligibility is configured in the ASPC, not in these output rules. See
 The stable identity is:
 
 ```text
-<asp_id>__<subpanel_id>__<language>
+<asp_id>__<diagnosis_id>__<language>
 ```
 
 For example, `hema_gmsv1__base__sv` identifies Swedish reporting rules for the base
-subpanel of `hema_gmsv1`. Environment and ASPC version are not part of the identity.
-Production, validation, and development ASPCs resolve the same published scope within
-their application database. There is no cross-database or cross-assay lookup.
+diagnosis of `hema_gmsv1`. Environment and ASPC version are not part of the identity.
+Environment-specific ASPCs can capture the same reviewed source revision. Runtime
+evaluation uses the captured document and checks the sample environment against its
+configuration. There is no cross-database or cross-assay lookup.
 
 An active ASPC with reporting enabled is valid only when all of the following are true:
 
-- Its scope resolves an active published rule set for `reporting.language` (default `sv`).
+- Preparation captures an active published rule set for `reporting.language` (default `sv`).
 - The rule-set analyte matches the ASPC category.
 - Every entry in `reporting.report_sections` has an explicit analysis declaration.
 - A declaration is either `enabled`, meaning rule blocks may produce wording, or
   `none`, meaning no narrative is intentionally produced for that analysis.
 
-Selection follows this order for the same assay, analyte and language:
+Configuration preparation selects a source for the same assay, analyte and language:
 
 | Priority | Scope | Result |
 | --- | --- | --- |
-| 1 | Exact sample subpanel | Use its sole active published release |
+| 1 | Exact configuration diagnosis | Capture its sole active published release |
 | 2 | Assay `base` | Use Base only when no exact active published release exists |
-| 3 | Neither | Stop report generation with a configuration error |
+| 3 | Neither | Reject the reporting configuration |
 
-Missing subpanel means `base`. Other named subpanels, languages, analytes and assays
+Missing diagnosis means `base`. Other named diagnoses, languages, analytes and assays
 are never substituted. Ambiguous matches fail; an invalid exact release does not
 trigger Base fallback. Content hashes, engine support and analysis declarations
 are checked before rendering. A partial unique index enforces one active published
@@ -109,17 +112,17 @@ checks as report generation. An unusable release blocks readiness rather than
 being accepted for configuration and rejected only when a report is opened.
 
 In **Admin > Assay Configurations**, select **Reporting Language**, not a ruleset.
-Publishing a subpanel release makes it apply to subsequent report generation
-without editing ASPCs. Publishing Base affects scopes without a published exact
-release. Retiring an exact release returns those scopes to Base if available;
-retiring Base can block scopes that depend on it. Review these effects before
-publication or retirement.
+Publishing a diagnosis release makes it available to subsequent ASPC preparation.
+An existing ASPC retains its captured rule document. Retiring a source prevents new
+configurations from selecting it; it does not replace previously captured content.
+To change a sample's report policy, prepare and review a new configuration revision
+and explicitly apply it to that sample.
 
 The preview identifies the resolved rule identity, content version, language and
 Base selection. Saved reports retain the selected identity, hash, version, requested
-and resolved subpanel, matched rules and rendered text. They are not re-evaluated
-when a release changes. A fresh report generation can use a different release from
-an earlier preview; review the current preview before saving.
+and resolved diagnosis, matched rules and rendered text. They are not re-evaluated
+when a source release changes. Configuration or finding changes invalidate the
+reviewed preview; refresh and review it before saving.
 
 For database transitions and revision repairs, see
 [clinical-rule data maintenance](../operations/migrations/clinical-rule-migrations.md).
@@ -135,7 +138,7 @@ Each collection document is one independently versioned draft or immutable relea
 
 | Area | Purpose |
 | --- | --- |
-| `rule_set_id`, `scope` | Stable ASP, subpanel, analyte, and language identity. |
+| `rule_set_id`, `scope` | Stable ASP, diagnosis, analyte, and language identity. |
 | `content_version` | Monotonic clinical content version within the stable identity. |
 | `revision` | Optimistic-lock revision incremented by edits and lifecycle changes. |
 | `status`, `active` | Workflow state; only one published version can be active. |
@@ -159,7 +162,7 @@ interchangeably.
 
 | Value | Scope | Changes when | Clinical meaning |
 | --- | --- | --- | --- |
-| `rule_set_id` | One assay, subpanel, and language combination | Never for that scope | Stable identity, for example `hema_gmsv1__base__sv`. |
+| `rule_set_id` | One assay, diagnosis, and language combination | Never for that scope | Stable identity, for example `hema_gmsv1__base__sv`. |
 | `content_version` | One independently governed clinical content candidate or release | A new draft is created for the same `rule_set_id` | Clinical release sequence. This is the version shown as `v1`, `v2`, and so forth. |
 | `revision` | One MongoDB document for one content version | The draft is saved or the document changes workflow state | Technical concurrency and mutation counter, not a clinical release number. |
 | `schema_version` | The rule-document contract | The application adopts a new incompatible document format | Technical format version, not authored content history. |
@@ -242,7 +245,7 @@ through normal governance.
 ### Version fields
 
 `schema_version` identifies the document format; the current contract accepts `1`.
-`content_version` identifies an authored release for an assay/subpanel/language scope.
+`content_version` identifies an authored release for an assay/diagnosis/language scope.
 `revision` identifies successive edits and workflow changes within that release.
 The Coyote3 application version identifies the software deployment. There is no
 separate engine-version setting to configure or increment for individual features.
@@ -314,7 +317,7 @@ Groups do not span rule sets, and do not compare different findings or collectio
 ### Building and testing conditions in the UI
 
 1. Open **Administration > Clinical Report Rules** and create or open a draft for the
-   intended assay, subpanel and language. Check those scope values before authoring.
+   intended assay, diagnosis and language. Check those scope values before authoring.
 2. Add a section, select its analysis and evaluation mode, then choose match behavior.
    Use **For each finding** for finding-level predicates; use **Once per report** for
    report-level conclusions and collection queries.
@@ -470,9 +473,9 @@ cannot address arbitrary MongoDB fields.
 | Variable | Type | Evaluation scope | Meaning |
 | --- | --- | --- | --- |
 | `sample.asp_id` | string | all | Assay identity resolved for the sample. |
-| `sample.subpanel_id` | string | all | Effective subpanel identity. |
+| `sample.diagnosis_id` | string | all | Effective diagnosis identity. |
 | `sample.environment` | string | all | Effective ASPC environment. |
-| `sample.omics_layer` | string | all | `dna` or `rna`. |
+| `sample.asp_category` | string | all | `dna` or `rna`. |
 | `sample.analysis_intent` | string | all | `somatic` or `germline`. |
 | `sample.paired` | boolean | all | Whether a control sample participates in analysis. |
 | `sample.genome_build` | string | all | Prepared reference genome build; may be unknown. |
@@ -536,7 +539,7 @@ scope/version selection, rule editing, and output review visible together:
    draft, never a link to the source document. The
    analyte is derived from the ASP and cannot be entered independently. Starting creation
    clears the open release from the editor so existing content cannot be mistaken for the new
-   draft. The suggested rule-set name follows the assay and subpanel until the author edits it.
+   draft. The suggested rule-set name follows the assay and diagnosis until the author edits it.
 3. Add report sections and ordered rules.
 4. Build nested conditions using labelled facts and only compatible operators.
 5. Compose report text from literal text, facts, paragraph breaks, and named summaries.
@@ -553,7 +556,7 @@ The editor marks an invalid value with an error border and an explanation before
 an authoring aid only: the API validates the complete typed document on import, draft save,
 submission, and publication.
 
-Assay and subpanel scope are selected when the rule set is created. The ASPC supplies
+Assay and diagnosis scope are selected when the rule set is created. The ASPC supplies
 the reporting language. Report-time resolution uses the scope precedence above, not
 an ad hoc rule selection on the sample page. The rule-testing workspace can explicitly
 evaluate a draft without changing production resolution or the sample.
@@ -604,7 +607,7 @@ remain independently protected by the operation-specific permissions below.
 
 **Admin > Clinical Rule Testing** evaluates any non-retired rule-set version against an
 existing sample before publication. The rule-set selector fixes the required assay and offers
-two search scopes: exact assay plus subpanel, or any sample from the assay. Search results are
+two search scopes: exact assay plus diagnosis, or any sample from the assay. Search results are
 restricted to the operator's assigned assays and environments. Before a search is entered, the
 list contains the ten most recently added compatible samples; a search returns the ten newest
 matching samples using the same server-side identifier search as the sample list. Selecting a
@@ -734,8 +737,8 @@ and retry behavior with focused correctness tests, separately from HTTP timing.
 Report preparation creates facts only from the exact filtered findings, biomarkers,
 applied gene lists, ASP, and ASPC used for that report. The service then:
 
-1. resolves the exact sample scope, or assay Base, for the ASPC reporting language;
-2. requires the active published release and matching analyte;
+1. loads the captured clinical rule document from the sample's pinned ASPC;
+2. checks configuration identity, environment, source scope and analyte;
 3. verifies the release content hash and document schema;
 4. checks all selected report sections are declared;
 5. evaluates blocks in deterministic order;

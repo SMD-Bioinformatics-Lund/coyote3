@@ -92,7 +92,7 @@ Do not create empty input directories to conceal a missing pipeline mount.
 ## General rules
 
 - The YAML must decode to a single object.
-- `omics_layer` controls which file keys are allowed.
+- `asp_category` controls which file keys are allowed.
 - `DNA` samples must only use DNA file keys.
 - `RNA` samples must only use RNA file keys.
 - File paths must be readable from the API runtime environment.
@@ -116,14 +116,14 @@ once, before ASP/ASPC lookup and before the sample schema is evaluated.
 | Pipeline field | Canonical stored field | Applies to | Rule |
 | --- | --- | --- | --- |
 | `assay` | `asp_id` | DNA, RNA | Required clinical identity. Both names may be supplied only with the same value. |
-| `subpanel` | `subpanel_id` | DNA, RNA | Optional clinical identity. Omit for the configured `base` subpanel. |
+| `diagnosis` | `diagnosis_id` | DNA, RNA | Optional clinical identity. Omit for the configured `base` diagnosis. |
 | `profile` | `environment` | DNA, RNA | Required deployment/clinical environment. |
 | `sequencing_technology` | `platform` | DNA, RNA | Sequencing platform, such as `illumina`; read technology is derived from platform configuration. |
 
 Pipeline-authored YAML must use the left-hand names consistently. The
 right-hand names describe only the canonical internal representation after
 ingest normalization. After normalization, no stored sample, ASPC lookup, or
-downstream service uses `assay`, `subpanel`, `profile`, or
+downstream service uses `assay`, `diagnosis`, `profile`, or
 `sequencing_technology`.
 
 ## Shared top-level fields
@@ -134,7 +134,7 @@ These keys are common to DNA and RNA sample bundles.
 | --- | --- | --- | --- |
 | `name` | Yes | DNA, RNA | Unique sample name shown in the UI and stored in `samples.name`. |
 | `assay` | Yes | DNA, RNA | Pipeline ASP identifier. Ingest normalizes it to internal `asp_id`, which resolves the active physical assay definition and its allowed, expected, and required file keys. |
-| `subpanel` | No | DNA, RNA | Pipeline subpanel identifier. Ingest normalizes it to `subpanel_id`; omitting it resolves the configured `base` subpanel. |
+| `diagnosis` | No | DNA, RNA | Pipeline diagnosis identifier. Ingest normalizes it to `diagnosis_id`; omitting it resolves the configured `base` diagnosis. |
 | `profile` | Yes | DNA, RNA | Pipeline environment. Ingest normalizes it to internal `environment`. Allowed values are `production`, `development`, `testing`, and `validation`. |
 | `case_id` | Yes | DNA, RNA | Case/sample identifier from the upstream pipeline or LIMS. |
 | `control_id` | Paired only | DNA, RNA | Control sample identifier. Omit for single-sample ingest. |
@@ -142,8 +142,8 @@ These keys are common to DNA and RNA sample bundles.
 | `paired` | Yes | DNA, RNA | `true` when `control_id` is present, otherwise `false`. |
 | `genome_build` | Recommended | DNA, RNA | Integer reference genome build, normally `38`. |
 | `database_versions.vep` | No | DNA only | VEP metadata version. Normally extracted from the DNA VCF `##VEP=` header. RNA fusion inputs do not use VEP and must not declare a VEP version. |
-| `sequencing_scope` | Yes | DNA, RNA | Sequencing scope. Valid values are `panel`, `wgs`, or `wts`. |
-| `omics_layer` | Yes | DNA, RNA | `dna` or `rna` (case-insensitive input). This controls which file keys are legal. |
+| `asp_family` | Yes | DNA, RNA | Registered technical assay family, such as `panel-dna`, `panel-rna`, `wgs`, or `wts`; must match the selected release. |
+| `asp_category` | Yes | DNA, RNA | `dna` or `rna` (case-insensitive input). This controls which file keys are legal. |
 | `sex` | No | DNA, RNA | Sample-level biological sex used for cohort summaries when available. Allowed values are `female`, `male`, and `unknown`. For paired case/control analysis, both specimens belong to the same individual, so the value is declared once at the top level and is not repeated as `case_sex` or `control_sex`. Omit the key when the source has no reliable value; ingest does not infer it. |
 | `sequencing_technology` | Recommended | DNA, RNA | Pipeline platform label, for example `Illumina`, `Nanopore`, or `PacBio`. Ingest normalizes it to internal `platform`; the ASP platform compatibility check then applies. |
 | `read_mode` | Conditional | DNA, RNA | Platform-supported read mode, such as `PE` or `SE`; omit when the selected platform does not use read mode. |
@@ -286,7 +286,7 @@ cov: /srv/coyote3-data/coyote3/incoming/case_coverage.json
 > **Important: Analysis availability and required files**
 >
 >
-> The active ASPC is resolved from normalized `asp_id`, `subpanel_id`, and
+> The active ASPC is resolved from normalized `asp_id`, `diagnosis_id`, and
 > `environment`. An enabled analysis needs matching evidence for review, but
 > enabling it does not make its file mandatory during ingestion. The ASP alone
 > defines `expected_files` and `required_files`. For example, `cnv`, `cnvprofile`,
@@ -335,7 +335,7 @@ Ingest publication is atomic from the user's perspective:
 Pipeline-format example:
 
 ```yaml
-subpanel: "hematology-myeloid"
+diagnosis: "hematology-myeloid"
 name: "seed_case"
 genome_build: 38
 sample_no: 2
@@ -343,8 +343,8 @@ case_id: "seed_case"
 control_id: "seed_control"
 profile: "production"
 assay: "hema_GMSv1"
-sequencing_scope: "panel"
-omics_layer: "DNA"
+asp_family: "panel-dna"
+asp_category: "DNA"
 sex: "female"
 sequencing_technology: "Illumina"
 pipeline: "SomaticPanelPipeline"
@@ -409,8 +409,8 @@ paired: false
 genome_build: 38
 profile: "production"
 assay: "assay_rna_1"
-sequencing_scope: "wts"
-omics_layer: "RNA"
+asp_family: "wts"
+asp_category: "RNA"
 sex: "female"
 sequencing_technology: "Illumina"
 pipeline: "RnaFusionPipeline"
@@ -452,7 +452,7 @@ Notes:
 - A selected fusion ISGL contains one gene symbol per line. A fusion passes the
   gene-list predicate when either `gene1` or `gene2` occurs in the effective
   selected list. With no selected fusion ISGL, the ASP covered genes apply; if
-  both scopes are empty, no gene predicate is added.
+  the resolved scope is empty, no fusions pass the gene-list predicate.
 - A repo-local example is available at `demo_data/ingest/generic_rna_sample.yaml`.
 - The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [Sample Input Files](sample-file-formats.md#rna-raw-input-files).
 
@@ -520,7 +520,7 @@ keys exactly. Only external VCF-header labels are normalized before persistence.
   DNA filtering or reporting.
 - If `filters` is omitted entirely during ingest, ASPC defaults are initialized onto the sample.
 - Once stored, `samples.filters` is used as-is until reset or explicit update.
-- A pipeline manifest may use `assay`, `subpanel`, `profile`, and
+- A pipeline manifest may use `assay`, `diagnosis`, `profile`, and
   `sequencing_technology`; they are normalized before clinical validation.
 - Source file paths below `COYOTE3_DATA_HOST_ROOT` are retained unchanged in
   sample file records. Any symlink target outside that root requires its own

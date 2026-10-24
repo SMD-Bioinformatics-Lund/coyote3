@@ -30,8 +30,8 @@ extra:
       path: user-guide/application-guide/#comments-and-annotations
     - title: Assay groups
       path: administration/assay-groups/
-    - title: Subpanels
-      path: administration/assay-subpanels/
+    - title: Diagnoses
+      path: administration/assay-diagnoses/
     - title: Coverage review
       path: user-guide/coverage-review/
 
@@ -104,12 +104,14 @@ nav:
       - "System permission catalog": administration/permission-catalog.md
       - "System role catalog": administration/system-role-catalog.md
       - "Clinical configuration resources": administration/clinical-configuration-resources.md
+      - "Configuration profiles and promotion": administration/configuration-publication.md
       - "Planning configuration changes": administration/planning-configuration-changes.md
       - "Assay Groups": administration/assay-groups.md
-      - "Assay Subpanels": administration/assay-subpanels.md
+      - "Assay Diagnoses": administration/assay-diagnoses.md
       - "Assay Setup": administration/assay-setup.md
       - "Finding query rules": administration/query-rules.md
       - "Assay analysis and reporting availability": administration/assay-analysis-availability.md
+      - "Supported application capabilities": administration/supported-capabilities.md
       - "Clinical resource fields and defaults": administration/clinical-resource-fields.md
       - "Center Vocabulary Configuration": administration/clinical-vocabulary.md
       - "Public Assay Catalog": administration/public-assay-catalog.md

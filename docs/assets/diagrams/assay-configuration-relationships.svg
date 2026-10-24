@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1020" viewBox="0 0 1360 1020" role="img" aria-labelledby="figure-title figure-description">
   <title id="figure-title">Assay configuration and governed publication</title>
-  <desc id="figure-description">Named subpanels are shared definitions. Each assay association and configuration has its own identity. Setup activation is transactional. Rule publication and public catalog publication remain separate workflows.</desc>
+  <desc id="figure-description">Named diagnoses are shared definitions. Each assay association and configuration has its own identity. Setup activation is transactional. Rule publication and public catalog publication remain separate workflows.</desc>
   <defs>
     <style>
 :root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
@@ -135,7 +135,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     </symbol>
   </defs>
   <text x="40" y="34" text-anchor="start" class="figure-title">Assay configuration and governed publication</text>
-  <text x="40" y="68" text-anchor="start" class="figure-subtitle">Named subpanels are shared definitions. Each assay association and configuration has its own identity. Setup activation is transactional. Rule publication and public</text>
+  <text x="40" y="68" text-anchor="start" class="figure-subtitle">Named diagnoses are shared definitions. Each assay association and configuration has its own identity. Setup activation is transactional. Rule publication and public</text>
   <text x="40" y="87" text-anchor="start" class="figure-subtitle">catalog publication remain separate workflows.</text>
   <g class="connections">
     <path d="M275 173C460 161 460 185 645 173" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
@@ -166,10 +166,10 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="680" y="290" text-anchor="middle" class="entity-detail">Physical design and required files</text>
   </g>
   <g data-node="2" data-left="960" data-top="139" data-right="1280" data-bottom="310" class="entity blue">
-    <title>Shared subpanel</title>
+    <title>Shared diagnosis</title>
     <use href="#icon-layers" x="1091" y="144" width="58" height="58" aria-hidden="true" />
-    <text x="1120" y="229" text-anchor="middle" class="entity-title">Shared subpanel</text>
-    <text x="1120" y="254" text-anchor="middle" class="entity-detail">subpanels · named definitions</text>
+    <text x="1120" y="229" text-anchor="middle" class="entity-title">Shared diagnosis</text>
+    <text x="1120" y="254" text-anchor="middle" class="entity-detail">diagnoses · named definitions</text>
     <text x="1120" y="272" text-anchor="middle" class="entity-detail">Reusable across multiple assays</text>
     <text x="1120" y="290" text-anchor="middle" class="entity-detail">Base is implicit; no Base document</text>
   </g>
@@ -192,11 +192,11 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="680" y="665" text-anchor="middle" class="entity-detail">language</text>
   </g>
   <g data-node="5" data-left="960" data-top="478" data-right="1280" data-bottom="649" class="entity blue">
-    <title>Assay ↔ subpanel link</title>
+    <title>Assay ↔ diagnosis link</title>
     <use href="#icon-sample" x="1091" y="483" width="58" height="58" aria-hidden="true" />
-    <text x="1120" y="568" text-anchor="middle" class="entity-title">Assay ↔ subpanel link</text>
-    <text x="1120" y="593" text-anchor="middle" class="entity-detail">subpanel_associations</text>
-    <text x="1120" y="611" text-anchor="middle" class="entity-detail">asp_id + subpanel_id</text>
+    <text x="1120" y="568" text-anchor="middle" class="entity-title">Assay ↔ diagnosis link</text>
+    <text x="1120" y="593" text-anchor="middle" class="entity-detail">diagnosis_associations</text>
+    <text x="1120" y="611" text-anchor="middle" class="entity-detail">asp_id + diagnosis_id</text>
     <text x="1120" y="629" text-anchor="middle" class="entity-detail">Definition AND link must be active</text>
   </g>
   <g data-node="6" data-left="80" data-top="769" data-right="400" data-bottom="976" class="entity purple">
@@ -207,7 +207,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="240" y="902" text-anchor="middle" class="entity-detail">Rules: separately reviewed</text>
     <text x="240" y="920" text-anchor="middle" class="entity-detail">releases</text>
     <text x="240" y="938" text-anchor="middle" class="entity-detail">Scope must match assay /</text>
-    <text x="240" y="956" text-anchor="middle" class="entity-detail">subpanel</text>
+    <text x="240" y="956" text-anchor="middle" class="entity-detail">diagnosis</text>
   </g>
   <g data-node="7" data-left="520" data-top="769" data-right="840" data-bottom="958" class="entity blue">
     <title>Public catalog release</title>

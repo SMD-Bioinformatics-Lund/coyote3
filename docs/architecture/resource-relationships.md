@@ -19,8 +19,8 @@ Refer to each figure's labels for its specific relationship semantics.
 
 ## 1. Configuration Relationships
 
-An assay group registers the parent grouping. Named subpanels are shared definitions
-connected to assays through `subpanel_associations`; Base has no registry document.
+An assay group registers the parent grouping. Named diagnoses are shared definitions
+connected to assays through `diagnosis_associations`; Base has no registry document.
 Setup activation creates the operational resources after independent review.
 Clinical-rule publication and public-catalog publication have separate lifecycles.
 See [assay setup](../administration/assay-setup.md) for the creation procedure.
@@ -30,20 +30,20 @@ See [assay setup](../administration/assay-setup.md) for the creation procedure.
 ![Assay configuration and governed publication](../assets/diagrams/assay-configuration-relationships.svg)
 
 - ASP is the physical assay anchor.
-- ASPC is a required assay-plus-subpanel-plus-environment configuration. The
-  `base` subpanel is used when no specific subpanel configuration exists.
+- ASPC is a required assay-plus-diagnosis-plus-environment configuration. The
+  `base` diagnosis is used when no specific diagnosis configuration exists.
 - ISGL is optional. It is assay-scoped and becomes active only when selected into sample filter state.
 
 ### 1.2 Cardinality view
 
-![Assays, shared subpanels, and independent configurations](../assets/diagrams/assay-subpanel-cardinality.svg)
+![Assays, shared diagnoses, and independent configurations](../assets/diagrams/assay-diagnosis-cardinality.svg)
 
 | Relationship | Cardinality / lookup |
 | --- | --- |
-| ASP to ASPCs | Zero or more; one active release per subpanel/environment tuple. |
+| ASP to ASPCs | Zero or more; one active release per diagnosis/environment tuple. |
 | ASP to clinical rules | Zero or more rule identities; one active published release per identity. |
 | ASP to ISGL | Optional lists matched through `asp_ids[]` or `asp_groups[]`. |
-| ASPC to published rules | Resolve exact subpanel, then assay Base, for matching analyte and language. |
+| ASPC to published rules | Resolve exact diagnosis, then assay Base, for matching analyte and language. |
 | ASPC to ISGL | Optional IDs selected in analysis-specific defaults. |
 
 ### 1.3 Creation order
@@ -64,7 +64,7 @@ administrator cannot compensate for a missing parent by entering an arbitrary id
 | 2 | User accounts | Required roles and permissions | Clinical authoring, review, publication, configuration, and sample operations. |
 | 3 | Active assay group | Registered group and permitted operator | Saving the assay draft and making new assay operations available. |
 | 4 | ASP or saved assay setup draft | Active parent group | Assay identity, family, file policy and scopes. A saved setup draft can support rule authoring without an operational ASP. |
-| 5 | Named subpanel scopes | Active shared definitions; associations for an operational assay | Named-scope configuration. Definitions may exist earlier; setup creates its assay associations at activation. Base is implicit. |
+| 5 | Named diagnosis scopes | Active shared definitions; associations for an operational assay | Named-scope configuration. Definitions may exist earlier; setup creates its assay associations at activation. Base is implicit. |
 | 6 | ISGLs and published clinical rules | Eligible assay/group/scope for lists; saved assay identity and independent publication for rules | These can be prepared in either order. Lists are optional unless selected; setup requires compatible published rules for each configuration. |
 | 7 | ASPCs and setup activation | One valid ASPC per selected scope/environment, eligible selected lists, compatible rules and independent setup review | Operational assay use. Individual active reporting ASPCs also validate published rule compatibility. |
 | 8 | Sample | Available assay/group, resolvable active ASPC and required files | Findings and clinical review. A missing named ASPC can resolve to Base in the same environment with a warning. |
@@ -81,8 +81,10 @@ annotations or consequence choices.
 
 | Sample field | Resolution or stored identity |
 | --- | --- |
-| Assay, subpanel, environment | Resolve ASP and the required ASPC scope at ingest/update. |
-| `current_aspc_id` / `current_aspc_version` | Preserve the resolved ASPC revision. |
+| Assay, diagnosis, environment | Resolve ASP and the required ASPC scope at ingest/update. |
+| `current_aspc_id` | Reference the exact resolved ASPC revision. |
+| `current_aspc_name` | Captured display name for tracking; never used to resolve a configuration. |
+| `aspc_resolution` | Resolved diagnosis, Base fallback flag and warning; no repeated resource context. |
 | `snv.snvlists` / `cnv.cnvlists` | Select matching ISGL IDs within the analysis and intent. |
 | `fusion.fusionlists` / `translocation.fusionlists` | Independent RNA fusion and DNA translocation selections. |
 | Analysis `adhoc_genes` | Sample-specific gene overlay. |
@@ -137,9 +139,9 @@ own `translocation.fusionlists` selection. These query scopes remain independent
 while allowing one curated list to be reused deliberately.
 
 If no compatible selection exists for a target, `ASP.covered_genes` is the
-baseline effective set. If the ASP has no covered genes, the effective set is
-unrestricted. Selected lists are intersected with physical coverage for panel
-assays and used directly for WGS/WTS designs.
+baseline effective set. If the ASP has no eligible genes, the effective set is
+empty. Selected lists are intersected with assay eligibility for all sequencing
+families, including WGS and WTS. Empty scope never means unrestricted analysis.
 
 ## 5. Report and Interpretation Relationships
 
@@ -160,7 +162,7 @@ saved reports preserve their confirmed configuration and finding snapshots.
 ### 6.2 ASPC creation and update
 
 An ASPC requires an existing or staged assay definition and a validated
-assay/subpanel/environment scope. Group, category, and platform derive from the
+assay/diagnosis/environment scope. Group, category, and platform derive from the
 assay. Activation validates the required published clinical rules and selected
 gene lists. See the configuration-update diagram above and the
 [assay setup procedure](../administration/assay-setup.md).
@@ -177,7 +179,7 @@ shows how that selection combines with physical assay coverage.
 | Resource | Responsibility |
 | --- | --- |
 | ASP | Required physical assay anchor. |
-| ASPC | Configuration for assay, subpanel, and environment. |
+| ASPC | Configuration for assay, diagnosis, and environment. |
 | ISGL | Optional, explicitly selected gene scope. |
 | Sample | Parent clinical record with configuration and filter state. |
 | Sample-linked findings | Dependent analysis evidence. |

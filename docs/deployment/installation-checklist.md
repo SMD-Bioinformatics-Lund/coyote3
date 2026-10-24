@@ -30,7 +30,7 @@ For an existing installation, use the upgrade or redeployment procedure instead.
 - [ ] API and Redis healthy; all required services running without restart loops.
 - [ ] UI, API health and documentation reachable through the intended public URL.
 - [ ] Authentication, permission boundaries, workers and notification delivery verified.
-- [ ] Assay groups, ASPs, subpanels, ISGLs and reporting rules reviewed before dependent ASPCs.
+- [ ] Assay groups, ASPs, diagnoses, ISGLs and reporting rules reviewed before dependent ASPCs.
 - [ ] Active ASPCs have the correct environment, enabled analyses, filters and report sections.
 - [ ] Representative approved validation workflows completed with evidence retained.
 - [ ] Report generation, saved reports, exports and audit events verified.

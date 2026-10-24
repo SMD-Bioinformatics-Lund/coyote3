@@ -68,7 +68,7 @@ The application connects four areas of laboratory work:
 
 | Area | What users manage | Result |
 | --- | --- | --- |
-| Assay configuration | Assay groups, physical assays, shared subpanels, gene lists, analysis settings, and reporting rules. | A reviewed configuration that controls ingest, review, and reporting for an assay and environment. |
+| Assay configuration | Assay groups, physical assays, shared diagnoses, gene lists, analysis settings, and reporting rules. | A reviewed configuration that controls ingest, review, and reporting for an assay and environment. |
 | Data ingestion | Sample manifests and declared analysis files from laboratory pipelines. | Validated sample records and linked findings, with job status and ingestion provenance. |
 | Clinical interpretation | Sample filters, evidence, classifications, finding actions, and comments. | A review state shared by authorized users and used to prepare report content. |
 | Reporting and operations | Published clinical rules, saved reports, accounts, audit events, notifications, and reference releases. | Preserved reporting evidence and the operational context needed to run the installation. |
@@ -86,7 +86,7 @@ The application connects four areas of laboratory work:
 
 ASP is the physical assay, ASPC is its analysis configuration, and ISGL is an optional
 gene list. A sample records the configuration used for its review. See
-[resource relationships](docs/architecture/resource-relationships.md) for subpanels,
+[resource relationships](docs/architecture/resource-relationships.md) for diagnoses,
 cardinality, scope resolution, and dependencies.
 
 ## Key Capabilities
@@ -242,7 +242,7 @@ Coyote3 separates configuration by ownership:
 - ASP, ASPC, and ISGL are versioned clinical configuration resources, while
   roles and users are managed as operational identity resources;
 - published clinical report rules are governed in MongoDB and resolved for the
-  assay, subpanel, analyte, and reporting language, with an explicit Base fallback;
+  assay, diagnosis, analyte, and reporting language, with an explicit Base fallback;
 - fixed product behavior remains in Python and frontend theme configuration.
 
 Start with the [Configuration Guide](docs/deployment/configuration-reference.md) and
@@ -254,7 +254,7 @@ Start with the [Configuration Guide](docs/deployment/configuration-reference.md)
 | --- | --- |
 | Assay setup | Draft, readiness validation, independent review, and transactional activation. |
 | ASP / ASPC / ISGL | Stable business identities with versioned clinical configuration. |
-| Named subpanel | Shared definition plus independently managed assay associations; Base is implicit. |
+| Named diagnosis | Shared definition plus independently managed assay associations; Base is implicit. |
 | Clinical rule set | Authoring, tests, clinical review, publication, and immutable release provenance. |
 | Public assay catalog | Separate publication workflow referencing eligible assay and gene-list resources. |
 | Sample and findings | Validated ingestion, recorded configuration, review state, and actor/source provenance. |

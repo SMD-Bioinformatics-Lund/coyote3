@@ -123,10 +123,10 @@ Supported tiered-variant search modes:
 - **Genomic**: searches the canonical flat `genomic` and `genomic_hash` identities.
 - **Gene symbol**: searches annotation gene symbols case-insensitively.
 - **Transcript ID**: searches transcript identifiers.
-- **Subpanel**: searches clinical subpanel labels.
+- **Diagnosis**: searches clinical diagnosis labels.
 - **Author**: searches annotation author names.
 - **Annotation text**: searches free-text annotation/comment records.
-- **All fields**: searches identity, context, author, subpanel, and annotation text fields together.
+- **All fields**: searches identity, context, author, diagnosis, and annotation text fields together.
 
 ## Verify an action
 

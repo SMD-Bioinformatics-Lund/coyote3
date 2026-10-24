@@ -36,9 +36,9 @@ upgrade and recovery commands. Development and staging exclude this overlay.
 | Module | Default contents | Disable flag |
 | --- | --- | --- |
 | Identity | Emergency superuser, named system administrator, permissions and roles | `--skip-users` |
-| Application | Eleven assay groups, twelve group-scoped SNV policies and immutable baseline revisions | `--skip-application` |
+| Application | Five biological groups, six group-scoped SNV policies and immutable baseline revisions | `--skip-application` |
 | Knowledgebase | Bundled HGNC genes, VEP metadata and associated binary diagrams | `--skip-knowledgebase` |
-| Demo | Connected DNA/RNA assays, configurations, gene lists, subpanels, rules, catalog and two synthetic samples | `--skip-demo` |
+| Demo | Connected DNA/RNA assays, configurations, gene lists, diagnoses, rules, catalog and two synthetic samples | `--skip-demo` |
 
 `--skip-application` requires `--skip-demo`. `--skip-users` requires all three
 data modules to be skipped too: unauthenticated data installation is authorized only
@@ -152,7 +152,7 @@ audit events record the authenticated administrator.
 | `identity` | Restore missing bundled permissions/roles and union missing grants into system roles. Preserve local grants, activation state, every user, membership and password. Account creation/reset uses the normal account administration workflow. |
 | `application` | Repair bundled group labels/descriptions and add missing identities. Preserve group availability, center-owned scopes and custom records. Changed bundled query content is published as a new version with retained hash-linked history; retired-only scopes stay retired. |
 | `knowledgebase` | Repair system-created bundled reference IDs and content-addressed diagrams. A bundled publication or surviving system provenance identifies recoverable initial batches; active external releases are preserved. Preserve unknown/unattributed records and unrelated gene/release IDs. |
-| `demo` | Restore missing packaged configuration without overwriting existing configuration or rule history. Reingest only system-owned starter samples with their exact testing assay/subpanel, preserving sample IDs. Samples with reports, comments, RNA classifications or human ingest provenance are preserved. |
+| `demo` | Restore missing packaged configuration without overwriting existing configuration or rule history. Reingest only system-owned starter samples with their exact testing assay/diagnosis, preserving sample IDs. Samples with reports, comments, RNA classifications or human ingest provenance are preserved. |
 
 ## Knowledgebase operations
 

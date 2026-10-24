@@ -1,5 +1,35 @@
 # Assay Setup
 
+An assay is a center-defined sequencing offering. Its name does not require a
+dedicated code path: it selects compatible [application-supported analyses](supported-capabilities.md).
+The setup workflow configures those analyses for the assay's diagnoses and environments.
+
+The assay editor derives modality from the selected sequencing family. Modality is
+read-only; choose another family to change it. Accepted input
+files determine the required-file choices and, together with sequencing family,
+the available analyses. Changing a selection removes dependent choices that no
+longer apply.
+
+Gene eligibility always resolves from the sample's pinned assay configuration,
+diagnosis and analysis-specific gene-list selections. Selected and ad-hoc genes
+are bounded by assay eligibility for every sequencing family. An empty resolved
+scope selects no findings; there is no unrestricted-scope switch or approval field.
+
+ASPC source-profile receipts, compiled clinical-rule bases, template releases and
+promotion records are system-managed. Edit filter and reporting settings through
+their structured controls and manage reusable resources through their dedicated
+administration pages.
+
+Configuration scope is fixed at creation: assay, diagnosis and environment cannot
+be edited. Use **Copy as new** to create another scope. Resolution selects the named
+diagnosis configuration first, then Base for the same assay and environment when
+no named configuration exists. Base fallback records a warning on the sample.
+
+Analysis intents use checkboxes alongside enabled analyses. DNA supports somatic
+and germline SNV review; RNA supports somatic analysis. Gene lists contain one
+curated gene set. Their germline subset is resolved from its intersection with the
+sample's pinned assay germline genes.
+
 ![Assay setup and resource dependencies](../assets/diagrams/assay-configuration-relationships.svg)
 
 The diagram separates shared definitions, operational configuration, setup approval,
@@ -10,34 +40,28 @@ use the [clinical resource field reference](clinical-resource-fields.md).
 
 ## Names And Identifiers
 
-Administration uses **Assay group**, **Assay**, **Subpanel**, **Assay configuration**,
+Administration uses **Assay group**, **Assay**, **Diagnosis**, **Assay configuration**,
 **Gene list**, **Reporting rule set**, and **Assay catalog**. ASP, ASPC and ISGL
 remain technical names in API fields and storage; changing a display label does
 not change an endpoint, permission or database reference.
 
-Assay groups are center-defined. WGS, WTS and Fusion may be both group names and
-registered assays at a center; they are not forced into a clinical-specialty
-classification. Group membership and assay family are separate configuration fields.
+Assay groups describe biological or clinical context, such as hematology, solid
+tumors and pharmacogenomics. DNA/RNA identifies modality; panel, WGS and WTS are
+sequencing families. Fusion is an analysis type. Each assay has an explicit group,
+modality and family. Parent groups provide annotation fallback evidence without
+automatically sharing assay associations or configurations.
 
-Use lowercase ASCII letters and digits with **underscores between words for new
-database identifiers**: `solid_gmsv3`, `breast_cancer`, `mpn_diagnostic_genes`.
-Use **hyphens for URL path segments**, such as `/assay-groups`. JSON/Python field
-names use underscores (`asp_id`, `subpanel_id`). These are conventions for different
-kinds of names, not instructions to translate a stored identifier in a URL.
+Use lowercase ASCII letters and digits for resource keys. Separate distinct terms
+with hyphens (`demo-tumwgs-hema`, `mpn-variants`) and components within an assay name
+with underscores (`demo-hematology_gmsv1`, `demo-solid_gmsv3`). Creation rejects spaces,
+uppercase letters and leading, trailing or repeated separators with HTTP 422.
+Display names are independent and may use spaces and mixed case.
 
-New assay groups, assays, shared subpanels and gene lists must use lowercase
-letters and digits separated by single underscores. Creation rejects hyphens,
-spaces, and leading, trailing or repeated underscores with HTTP 422. The rule
-also applies to assay setup registration and gene lists created through setup,
-and to imported new definitions submitted through the same creation services.
-
-Existing identifiers and references retain their original separators. Editing
-metadata does not register a new identity. `breast-cancer` and `breast_cancer`
-remain different keys, not aliases; lookups do not try alternative spellings.
-Generated configuration and reporting keys continue to derive from their scope
-identifiers, using their established underscore separators without renaming an
-existing assay or subpanel reference. Do not create duplicate definitions solely
-to change punctuation. Renaming stored identities requires a reference migration.
+Configuration keys are generated as `assay::diagnosis::environment`, for example
+`demo-hematology_gmsv1::mpn::testing`. MongoDB ObjectIds identify individual revisions;
+samples pin the exact configuration revision. JSON field names retain underscores,
+such as `asp_id` and `diagnosis_id`. Identifier punctuation is significant; lookups
+do not translate hyphens into underscores or try alternate spellings.
 
 Display names may contain spaces, punctuation and clinical capitalization, such
 as **Breast Cancer** or **Hematology GMSv1**. Gene-list aliases provide alternative
@@ -45,14 +69,14 @@ readable names; references still use the stable gene-list identifier. Keep relea
 versions in version fields rather than changing the identifier on each publication.
 An established assay name may contain a generation marker, such as `gmsv1`; that
 is distinct from its configuration revision. `base` remains the implicit default
-scope and must not be registered as a separate subpanel.
+scope and must not be registered as a separate diagnosis.
 
 ## Starting A Setup
 
 ![Required setup order from accounts to sample review](../assets/diagrams/resource-setup-order.svg)
 
 The numbered path shows the dependencies for a new installation or assay. Existing
-accounts, groups, shared subpanels, and eligible gene lists can be reused. Gene lists
+accounts, groups, shared diagnoses, and eligible gene lists can be reused. Gene lists
 are optional unless selected by a configuration. Publish compatible rules through
 their separate review process before activating configurations that require them.
 
@@ -101,14 +125,14 @@ Do not create a second ASP with the same identifier through another workflow.
 
 ### 3. Select scopes and environments
 
-**Base is always selected** and needs no subpanel registry document. For a
-base-only assay, leave named subpanels unselected. Choose at least one target
+**Base is always selected** and needs no diagnosis registry document. For a
+base-only assay, leave named diagnoses unselected. Choose at least one target
 environment; this is the clinical configuration environment, not a separate
 application deployment.
 
-For each required named scope, reuse an active shared subpanel or select
-**Manage subpanel definitions** to register it. An unassigned definition can exist
-before the assay. Return to setup and select **Refresh subpanel definitions**,
+For each required named scope, reuse an active shared diagnosis or select
+**Manage diagnosis definitions** to register it. An unassigned definition can exist
+before the assay. Return to setup and select **Refresh diagnosis definitions**,
 then select the scope. Activation creates the draft assay's association; a shared
 definition by itself does not configure every assay.
 
@@ -126,9 +150,9 @@ scopes. A list for SNV does not automatically become a CNV or fusion list.
 
 This step may be left empty when the intended filters do not select an ISGL.
 Do not create an empty placeholder merely to proceed. Without selected lists or
-ad-hoc genes, applicable gene filtering falls back to the ASP's physical coverage;
-empty physical coverage can leave a query without a gene restriction. Review the
-intended scope explicitly before approving the assay.
+ad-hoc genes, applicable gene filtering uses the ASP's eligible genes. Empty
+eligibility selects no findings. Confirm the intended scope before approving
+the assay.
 
 ### 5. Publish compatible reporting rules
 
@@ -170,7 +194,7 @@ A qualified reviewer who did not edit the setup reviews its content and chooses
 submitting the draft alone does not activate it.
 
 Activation rechecks dependency versions and atomically creates the ASP, named
-subpanel associations, staged ISGLs and ASPCs. If a dependency changed after
+diagnosis associations, staged ISGLs and ASPCs. If a dependency changed after
 submission, return the setup, review the new values and submit again. Rule
 publication remains a separate operation; setup approval does not publish rules.
 
@@ -197,7 +221,7 @@ create an ASPC or make sample data public.
 
 | Dependency | Required order | What can be prepared independently |
 | --- | --- | --- |
-| Assay group and ASP | Register/activate the group before saving the assay setup. | Shared subpanel definitions can be created without an assay association. |
+| Assay group and ASP | Register/activate the group before saving the assay setup. | Shared diagnosis definitions can be created without an assay association. |
 | Assay identity and rules | Save the setup's ASP draft before authoring its rule scope. | An operational ASP is not required for rules authored against a saved setup draft. |
 | Gene lists and rules | Both must be suitable before configurations that use them are approved. | ISGL authoring and rule authoring/publication have no required order relative to each other. |
 | Named scopes and configurations | Register and select the named scope before configuring it. | Base has no definition or association to create. |
@@ -222,7 +246,7 @@ and use **Refresh reporting rules**.
 
 Clinical rules are published through their own approval process before setup
 activation. Setup approval does not publish or modify clinical-rule content.
-An ASPC supplies the reporting language. Its exact subpanel release is selected
+An ASPC supplies the reporting language. Its exact diagnosis release is selected
 automatically, with assay Base used only when no exact published release exists.
 The analyte and declared analyses must match the configuration. Publishing a new
 exact release does not require rebinding the ASPC.
@@ -245,11 +269,11 @@ setup snapshots cannot be edited. Subsequent changes use the individual resource
 administration pages.
 
 Activation revalidates configurations and checks the versions of published rules,
-shared subpanels and available shared gene lists against the submitted review.
+shared diagnoses and available shared gene lists against the submitted review.
 A dependency change requires returning the setup and submitting it again.
 Stale saves and concurrent publication attempts return a conflict.
 
-The ASP, named subpanel associations, newly staged gene lists, ASPCs, published
+The ASP, named diagnosis associations, newly staged gene lists, ASPCs, published
 setup state and revision snapshot are written in one MongoDB transaction. A
 failed write rolls back activation. A replica set is required, including a
 single-member replica set for local development. Samples, annotations and

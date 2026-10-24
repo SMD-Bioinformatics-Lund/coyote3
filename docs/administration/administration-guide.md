@@ -45,15 +45,15 @@ and protections; this workflow applies to documents with publication states.
 
 ## Finding an administrative page
 
-The administration home groups permitted destinations into **Assays and subpanels**,
+The administration home groups permitted destinations into **Assays and diagnoses**,
 **Reporting and catalog**, **Identity and access**, and **Application operations**.
 Browse the groups or search by page name and description. **Clear search**
 returns to all permitted destinations. Search never exposes pages outside your
 permissions. An access-loading error offers a retry instead of reporting that
 permissions are missing.
 
-Group and subpanel pages include an **Administration** link back to this home.
-Opening a subpanel definition replaces its table with the editor; **Save** or
+Group and diagnosis pages include an **Administration** link back to this home.
+Opening a diagnosis definition replaces its table with the editor; **Save** or
 **Cancel** returns to the list with its search preserved. Existing assay
 associations stay locked while new associations can be selected.
 
@@ -231,12 +231,12 @@ Values backed by platform constants, such as `DNA`, `RNA`, `hematology`, `solid`
 ### Assay configurations (ASPC)
 
 An ASPC defines analysis availability, default filters, and reporting settings for an
-assay, subpanel, and environment. Named subpanel configurations remain independent
+assay, diagnosis, and environment. Named diagnosis configurations remain independent
 of the assay's Base configuration and of configurations for other environments.
 
 On new and copied ASPCs, `aspc_id` is read-only and updates live as the ASP,
-subpanel, or environment changes: `<asp_id>_<subpanel_id>_<environment>`.
-An empty subpanel uses `base`. The server derives the ID on creation, replacing
+diagnosis, or environment changes: `<asp_id>_<diagnosis_id>_<environment>`.
+An empty diagnosis uses `base`. The server derives the ID on creation, replacing
 any identifier carried over from an imported or copied configuration.
 
 - **Review defaults**: Intent-specific thresholds, caller selections, and eligible gene-list selections.
@@ -272,7 +272,7 @@ same import mechanism without requiring an intermediate file download.
 | Resource | Suitable reuse | Required change before saving |
 | --- | --- | --- |
 | ASP | Start a related assay-panel definition. | Change `asp_id`; review the assay category, group, family, platform, read-mode, gene scope, and expected files. ASPs are panel definitions and do not have a profile/environment. |
-| ASPC | Create a configuration for another profile/environment or a related panel/subpanel. | Change the ASP, subpanel, or environment as appropriate. The server derives a new `aspc_id` from these fields. Review enabled analyses, filters, report sections, and defaults. |
+| ASPC | Create a configuration for another profile/environment or a related panel/diagnosis. | Change the ASP, diagnosis, or environment as appropriate. The server derives a new `aspc_id` from these fields. Review enabled analyses, filters, report sections, and defaults. |
 | ISGL | Start a related curated or ad-hoc gene list. | Change `isgl_id` and name. Review list type, member genes, ASP/assay-group scope, diagnosis tags, and visibility. |
 
 > [!WARNING]

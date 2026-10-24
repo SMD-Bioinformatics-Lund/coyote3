@@ -98,7 +98,7 @@ generic metadata without a sample may still request the latest release.
 ## Configuration Contracts
 
 `AssaySpecificPanelsDoc` defines the physical assay. `AspConfigDoc` defines one
-analytical configuration for an ASP, subpanel, and environment.
+analytical configuration for an ASP, diagnosis, and environment.
 
 The ASPC contract validates:
 

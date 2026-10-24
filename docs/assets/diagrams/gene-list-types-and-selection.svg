@@ -156,7 +156,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="240" y="229" text-anchor="middle" class="entity-title">Eligible ISGL</text>
     <text x="240" y="254" text-anchor="middle" class="entity-detail">Active list with matching assay</text>
     <text x="240" y="272" text-anchor="middle" class="entity-detail">asp_ids[] or asp_groups[]</text>
-    <text x="240" y="290" text-anchor="middle" class="entity-detail">Diagnosis/subpanel choices</text>
+    <text x="240" y="290" text-anchor="middle" class="entity-detail">Diagnosis/diagnosis choices</text>
     <text x="240" y="308" text-anchor="middle" class="entity-detail">validated</text>
   </g>
   <g data-node="1" data-left="520" data-top="139" data-right="840" data-bottom="328" class="entity blue">
@@ -215,7 +215,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <use href="#icon-branch" x="211" y="774" width="58" height="58" aria-hidden="true" />
     <text x="240" y="859" text-anchor="middle" class="entity-title">No compatible selection</text>
     <text x="240" y="884" text-anchor="middle" class="entity-detail">Use ASP.covered_genes baseline</text>
-    <text x="240" y="902" text-anchor="middle" class="entity-detail">Empty baseline → unrestricted</text>
+    <text x="240" y="902" text-anchor="middle" class="entity-detail">Empty scope → no findings</text>
     <text x="240" y="920" text-anchor="middle" class="entity-detail">genes</text>
     <text x="240" y="938" text-anchor="middle" class="entity-detail">Each domain keeps its own</text>
     <text x="240" y="956" text-anchor="middle" class="entity-detail">selection</text>

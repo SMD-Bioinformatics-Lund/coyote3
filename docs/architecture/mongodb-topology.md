@@ -171,25 +171,22 @@ use synchronous ingestion or maintenance import instead. Workers also enforce th
 boundary for queued work. Drain old tasks before relocating a target. Do not
 replace this guard with non-transactional completion receipts.
 
-## Configuration migration
+## Endpoint configuration
 
 1. Set `COYOTE3_MONGO_URI`; preserve the existing authentication path/options.
-2. Set identity, knowledgebase, and BAM URIs independently where needed. Rename
-   `MONGO_URI` to `COYOTE3_MONGO_URI` before upgrading; the old alias is not read.
-3. Keep existing database names unless data has been intentionally relocated.
-   `coyote3_knowledgebase` is not automatically renamed to `coyote3_knowledgebases`.
-4. Custom TOML collection files keep their existing logical sections. Python
-   integrations consuming `DB_COLLECTIONS_CONFIG` must use logical section keys,
-   not database names; `get_mongo_settings` now returns settings per logical service.
+2. Set identity, knowledgebase, and BAM URIs independently where needed.
+3. Set each service's database name explicitly. Database names are not inferred
+   from the URI or normalized to another spelling.
+4. Use logical section keys in TOML collection files and Python integrations
+   consuming `DB_COLLECTIONS_CONFIG`. `get_mongo_settings` returns settings per
+   logical service.
 5. Apply indexes with maintenance credentials on all configured endpoints before
    starting API/workers. Runtime startup inspects contracts; it does not create indexes.
 6. Restart API, workers, and beat together after endpoint changes.
 
-Legacy authenticated URIs without a path or `authSource` may have relied on the
-runtime appending `COYOTE3_DB`. They now need an explicit
-`authSource=<existing-authentication-database>`; changing the logical database name
-must not implicitly change authentication. Existing users created in an application
-database are not moved to admin by this configuration refactor.
+Authenticated URIs must identify the authentication database through their path or
+`authSource`. The logical database name does not change the URI's authentication
+database or move database users.
 
 The knowledgebase/identity relocation scripts accept `--source-mongo-uri` and
 `--target-mongo-uri`; `--mongo-uri` explicitly selects a shared endpoint for both.
@@ -205,7 +202,7 @@ Bootstrap accepts `--identity-mongo-uri` and `--knowledgebase-mongo-uri`
 independently of its primary `--mongo-uri`. HGNC and VEP reference seeds use
 `--knowledgebase-db` or `KNOWLEDGEBASE_DB`; they are not application collections.
 See [reference migration](../operations/migrations/knowledgebase-database-migration.md) for
-moving existing references and retiring the superseded subpanel collection.
+moving existing references and retiring the superseded diagnosis collection.
 
 Capacity snapshots include a logical `service` label, so identically named
 databases on separate hosts remain distinguishable without exposing URIs. Index

@@ -75,7 +75,7 @@ ASPC, and ISGL records.
 ## Assay Catalog Matrix
 
 The matrix shows gene coverage across assay sections, groups, assays, and
-subpanels. The header hierarchy mirrors the clinical catalog grouping.
+diagnoses. The header hierarchy mirrors the clinical catalog grouping.
 
 [![Assay catalog matrix](../assets/screenshots/assay_catalog_matrix.png)](../assets/screenshots/assay_catalog_matrix.png)
 

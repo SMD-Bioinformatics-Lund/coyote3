@@ -195,7 +195,7 @@ ASP documents describe the physical assay: assay ID, family, category, platform,
 ### ASPC
 
 ASPC documents describe the active rulebook for the unique
-`asp_id`/`subpanel_id`/`environment` scope. They contain enabled analysis
+`asp_id`/`diagnosis_id`/`environment` scope. They contain enabled analysis
 types, `analysis_intents`, frozen nested filter profiles, reporting settings,
 and report sections. Sample filters are seeded from ASPC during ingest.
 Resetting filters restores the sample's recorded ASPC defaults.
@@ -222,11 +222,11 @@ three related fields:
 | --- | --- | --- |
 | `asp_groups[]` | Assay groups in which the list may be used, such as `hematology` or `solid` | Selecting one or more groups reveals the union of active ASPs in those groups. |
 | `asp_ids[]` | Specific ASPs allowed to use the list | The user selects one or more ASPs from the group-filtered choices. Removing an assay group also removes ASP selections that no longer belong to the remaining groups. |
-| `diagnosis[]` | Clinical diagnosis or in-silico subpanel identifiers associated with the list | The form accepts comma-separated or newline-separated values and stores a deduplicated array. An empty array means assay-wide rather than diagnosis-specific scope. |
+| `diagnosis[]` | Shared diagnosis identifiers associated with the list | Checkboxes show diagnoses associated with the selected assays. An empty array means assay-wide rather than diagnosis-specific scope. |
 
-ISGL does not duplicate `subpanel_id`. That singular field belongs to sample and
+ISGL does not duplicate `diagnosis_id`. That singular field belongs to sample and
 ASPC identity, where it selects one effective configuration. A gene list can be
-reused by several diagnoses/subpanels, so ISGL stores those tags in the
+reused by several diagnoses, so ISGL stores those tags in the
 multi-valued `diagnosis[]` field. Runtime ISGL matching and public catalog
 grouping use `diagnosis[]`; the public catalog treats an empty list as the
 `base` scope.
@@ -252,7 +252,7 @@ The Celery worker can ingest explicitly queued bundles or scan the configured wa
 When a sample is loaded, the backend returns:
 
 - sample identity and status
-- assay, profile, subpanel, paired/single-sample state
+- assay, profile, diagnosis, paired/single-sample state
 - biomarker summary when present
 - available tabs derived from ASPC analysis types
 - effective filters by analysis domain

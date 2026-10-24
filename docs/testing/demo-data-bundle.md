@@ -15,7 +15,7 @@ into an isolated deployment. All sample identities and measurements are syntheti
 | `starter/manifests/` | Connected starter DNA and RNA sample manifests | Initial installation and the demo installation page |
 | `manifests/` | Additional DNA/RNA workflow manifests | Demo installation page and offline replay |
 | `raw/` | VCF, JSON and image inputs referenced by the manifests | Normal ingest parsers |
-| `starter/setup/`, `setup/` | Assays, subpanels, configurations, gene lists and published demo rules | Validated demo configuration installation |
+| `setup/` | One shared bundle of assays, diagnoses, configurations, gene lists, catalog offerings and published rules | Default installation and additional demo scenarios |
 | `negative/` | Invalid bundles for rejection cases | Tests only |
 | `scenarios/` | Finding labels and query draft requests | Review exercises and regression assertions |
 | `expected/after_ingest/` | Generated, portable collection snapshots | Snapshot comparison and persisted-shape examples |
@@ -35,8 +35,8 @@ files inside the package before calling ingest.
 
 ```yaml
 name: DEMO_STARTER_RNA
-assay: demo_starter_rna
-subpanel: demo_starter_fusion
+assay: demo-rna-training
+diagnosis: lymphoid
 profile: testing
 genome_build: 38
 case_id: DEMO_CASE
@@ -45,8 +45,8 @@ clarity_case_id: demo_rna_case_clarity
 clarity_case_pool_id: demo_rna_pool
 sample_no: 1
 paired: false
-sequencing_scope: panel
-omics_layer: rna
+asp_family: panel-rna
+asp_category: rna
 sex: female
 sequencing_technology: Illumina
 read_mode: PE

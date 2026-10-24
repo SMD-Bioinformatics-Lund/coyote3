@@ -29,7 +29,7 @@ assay configuration, access management, integration, deployment, and operations.
 | --- | --- |
 | [getting-started/](getting-started/README.md) | Entry point for evaluation, first installation, upgrades, redeployment and configuration references. |
 | [user-guide/](user-guide/README.md) | Clinical review, samples, coverage, dashboards, pages, and controls. |
-| [administration/](administration/README.md) | Users, access, assay groups, subpanels, clinical configuration, and catalog publication. |
+| [administration/](administration/README.md) | Users, access, assay groups, diagnoses, clinical configuration, and catalog publication. |
 | [api/](api/README.md) | Authentication, HTTP routes, ingestion, collection imports, and compatibility. |
 | [architecture/](architecture/README.md) | Components, resource relationships, clinical data flow, security, and design decisions. |
 | [deployment/](deployment/README.md) | Installation and infrastructure source guides, grouped under Getting started in the site. |
@@ -46,7 +46,7 @@ assay configuration, access management, integration, deployment, and operations.
 
 - [Samples and clinical review](user-guide/sample-management.md)
 - [Assays, configurations, and gene lists](user-guide/gene-lists-and-assay-context.md)
-- [Assay groups](administration/assay-groups.md) and [subpanels](administration/assay-subpanels.md)
+- [Assay groups](administration/assay-groups.md) and [diagnoses](administration/assay-diagnoses.md)
 - [Report preview and save](user-guide/application-guide.md#reports)
 - [Raw ingest files and examples](reference/ingest-files/README.md)
 - [Clinical concepts and resource identities](reference/clinical-concepts.md): ASP,
