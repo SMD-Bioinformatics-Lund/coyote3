@@ -1,6 +1,6 @@
-name: DEMO_INVALID_MISSING_VCF
-assay: demo-myeloid_gmsv1
-diagnosis: base
+name: DEMO_STARTER_DNA
+assay: demo-hematology-training
+diagnosis: myeloid
 profile: testing
 genome_build: 38
 database_versions:
@@ -29,7 +29,7 @@ case_reads: 49039064
 control_reads: 45889968
 case_purity: null
 control_purity: null
-vcf_files: ../raw/file_does_not_exist.vcf
+vcf_files: ../raw/dna.vcf
 cnv: ../raw/cnvs.json
 cnvprofile: ../raw/cnvprofile.png
 cov: ../raw/coverage.json

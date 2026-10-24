@@ -1,30 +1,27 @@
----
-name: demo_rna_sample
-assay: assay_rna_1
-diagnosis: base
-profile: production
+name: DEMO_STARTER_RNA
+assay: demo-rna-training
+diagnosis: lymphoid
+profile: testing
 genome_build: 38
-case_id: demo_rna_case
+case_id: DEMO_CASE
 control_id: null
 clarity_case_id: demo_rna_case_clarity
 clarity_case_pool_id: demo_rna_pool
 sample_no: 1
 paired: false
-asp_family: wts
+asp_family: panel-rna
 asp_category: rna
 sex: female
 sequencing_technology: Illumina
 read_mode: PE
-pipeline: RnaFusionPipeline
-pipeline_version: 1.0.0
+pipeline: SyntheticFixture
+pipeline_version: '1.0'
 case_ffpe: false
-case_sequencing_run: demo_rna_run
+case_sequencing_run: DEMO_RUN
 case_reads: 1000000
 case_purity: null
-fusion_files: ../collections/all_collections_dummy/fusions.json
-expression_path: generic_rna_expression.json
-classification_path: generic_rna_classification.json
-qc: generic_rna_qc.json
+fusion_files: ../raw/fusions.json
+qc: ../raw/qc.json
 
 # Optional IGV references; supply filenames only when matching files are served.
 case_bam: null
