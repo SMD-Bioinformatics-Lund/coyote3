@@ -40,7 +40,7 @@ const existingDraft = {
   schema_version: 1,
   content_version: 1,
   revision: 1,
-  scope: { asp_id: "solid_gmsv3", subpanel_id: "base", analyte: "dna", language: "sv" },
+  scope: { asp_id: "solid_gmsv3", diagnosis_id: "base", analyte: "dna", language: "sv" },
   name: "Existing solid rules",
   status: "draft",
   active: false,
@@ -81,8 +81,8 @@ describe("ClinicalRulesPage", () => {
         return Promise.resolve({
           data: {
             assays: [
-              { asp_id: "solid_gmsv3", display_name: "Solid GMSv3", analyte: "dna", subpanels: [{ subpanel_id: "base", display_name: "Base" }] },
-              { asp_id: "rna_fusion", display_name: "RNA Fusion", analyte: "rna", subpanels: [{ subpanel_id: "base", display_name: "Base" }, { subpanel_id: "solid", display_name: "Solid" }] },
+              { asp_id: "solid_gmsv3", display_name: "Solid GMSv3", analyte: "dna", diagnoses: [{ diagnosis_id: "base", display_name: "Base" }] },
+              { asp_id: "rna_fusion", display_name: "RNA Fusion", analyte: "rna", diagnoses: [{ diagnosis_id: "base", display_name: "Base" }, { diagnosis_id: "solid", display_name: "Solid" }] },
             ],
           },
         })
@@ -151,7 +151,7 @@ describe("ClinicalRulesPage", () => {
     ))
   })
 
-  it("generates an editable rule-set name from the assay and subpanel", async () => {
+  it("generates an editable rule-set name from the assay and diagnosis", async () => {
     const user = userEvent.setup()
     renderPage()
 
@@ -159,14 +159,14 @@ describe("ClinicalRulesPage", () => {
     await user.selectOptions(screen.getByLabelText("Assay"), "rna_fusion")
     expect(screen.getByLabelText("Rule-set name")).toHaveValue("RNA Fusion clinical report rules")
 
-    await user.selectOptions(screen.getByLabelText("Subpanel"), "solid")
+    await user.selectOptions(screen.getByLabelText("Diagnosis"), "solid")
     expect(screen.getByLabelText("Rule-set name")).toHaveValue(
       "RNA Fusion - solid clinical report rules",
     )
 
     await user.clear(screen.getByLabelText("Rule-set name"))
     await user.type(screen.getByLabelText("Rule-set name"), "Custom RNA wording")
-    await user.selectOptions(screen.getByLabelText("Subpanel"), "base")
+    await user.selectOptions(screen.getByLabelText("Diagnosis"), "base")
     expect(screen.getByLabelText("Rule-set name")).toHaveValue("Custom RNA wording")
   })
 

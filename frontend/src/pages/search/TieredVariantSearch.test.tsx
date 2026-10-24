@@ -115,7 +115,7 @@ describe("TieredVariantSearch", () => {
       "genomic",
       "transcript",
       "assay_group",
-      "subpanel",
+      "diagnosis",
       "samples",
     ]))
     expect(latestProps.data[0]).toMatchObject({

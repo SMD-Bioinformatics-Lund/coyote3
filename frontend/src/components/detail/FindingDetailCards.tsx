@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { MessageSquare, Tags } from "lucide-react"
+import { CircleHelp, MessageSquare, Tags } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { TierBadge } from "@/lib/variant-ui"
@@ -119,7 +119,7 @@ export function ClassificationsCard({
             </div>
           </div>
         )}
-        {latest ? (
+        {latest && Number(latest.class ?? latest.tier) !== 999 ? (
           <div className="rounded-lg border border-border bg-background/70 p-3">
             <div className="mb-2 flex items-center gap-2">
               <TierBadge tier={latest.class || latest.tier} />
@@ -134,8 +134,16 @@ export function ClassificationsCard({
           <div className="space-y-2">
             {other.map((item, index) => (
               <div key={item._id || index} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
-                <span>{item.text || item.reason || item.variant || "Classification"}</span>
-                <TierBadge tier={item.class || item.tier} />
+                <div>
+                  <span>{item.text || item.reason || item.variant || "Classification"}</span>
+                  <div className="type-meta text-muted-foreground">{[item.assay, item.asp_id, item.diagnosis].filter(Boolean).join(" · ")}</div>
+                  {item.match_level === "parent_group" && <div className="type-meta text-muted-foreground">Inherited from parent group · confirmation required</div>}
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-muted-foreground">
+                  {item.match_level === "same_assay" ? <TierBadge tier={item.class || item.tier} /> : <>Tier {item.class || item.tier}</>}
+                  <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />
+                  Re-tier required
+                </span>
               </div>
             ))}
           </div>
@@ -146,7 +154,7 @@ export function ClassificationsCard({
         title={pendingTierAction?.apply ? `Classify finding as Tier ${pendingTierAction.tier}?` : `Remove Tier ${pendingTierAction?.tier} classification?`}
         description={pendingTierAction?.apply
           ? `This will persist a Tier ${pendingTierAction.tier} classification for the finding.`
-          : "This removes the selected classification from the current assay and subpanel context."}
+          : "This removes the selected classification from the current assay and diagnosis context."}
         confirmLabel={pendingTierAction?.apply ? "Set classification" : "Remove classification"}
         isPending={tierMutation.isPending}
         onConfirm={() => {

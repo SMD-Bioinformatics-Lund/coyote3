@@ -24,7 +24,7 @@ export type ClinicalRuleAssayOption = {
   asp_id: string
   display_name: string
   analyte: "dna" | "rna"
-  subpanels?: { subpanel_id: string; display_name: string }[]
+  diagnoses?: { diagnosis_id: string; display_name: string }[]
 }
 
 export type ClinicalRuleReviewerOption = { username: string; name: string }
@@ -91,7 +91,7 @@ export type ClinicalRuleSet = {
   schema_version: number
   content_version: number
   revision: number
-  scope: { asp_id: string; subpanel_id: string; analyte: "dna" | "rna"; language: string }
+  scope: { asp_id: string; diagnosis_id: string; analyte: "dna" | "rna"; language: string }
   name: string
   status: RuleStatus
   active: boolean

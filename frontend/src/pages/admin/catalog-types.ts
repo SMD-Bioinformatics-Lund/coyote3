@@ -12,15 +12,20 @@ export type Presentation = {
   limitations?: string
   public_notes?: string
 }
-export type GeneEntry = Presentation & { key?: string; isgl_id?: string; subpanel_id?: string }
+export type GeneEntry = Presentation & { key?: string; isgl_id?: string; diagnosis_id?: string }
 export type Category = Presentation & {
+  price?: { amount: string; currency: string; kind: "fixed" | "starting" | "estimated"; conditions: string } | null
+  pricing_message?: string
+  methodology?: string
+  ordering_information?: string
+  report_deliverables?: string[]
   parent_key?: string | null
   node_kind?: "entry" | "folder"
   clear_fields?: string[]
   catalog_id?: string | null
   asp_id?: string | null
   aspc_id?: string | null
-  subpanel_id?: string | null
+  diagnosis_id?: string | null
   aspc_ids?: Record<string, string>
   gene_lists?: GeneEntry[]
   no_gene_list?: string[]
@@ -39,7 +44,7 @@ export type Version = {
 }
 export type SourceOptions = {
   asps: { asp_id: string; label: string; category?: string; group?: string }[]
-  aspcs: { aspc_id: string; asp_id: string; subpanel_id?: string }[]
+  aspcs: { aspc_id: string; asp_id: string; diagnosis_id?: string }[]
   gene_lists: { isgl_id: string; label: string; asp_ids: string[]; asp_groups?: string[]; diagnosis: string[]; list_type?: string[] }[]
 }
 export type Workspace = {

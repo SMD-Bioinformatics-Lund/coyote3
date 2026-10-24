@@ -10,8 +10,8 @@ export function CatalogAnalysisLists({ entry, sources, onChange }: {
   const eligible = useMemo(() => sources.gene_lists.filter((list) =>
     list.asp_ids.includes(entry.asp_id || "")
     && (!list.asp_groups?.length || list.asp_groups.includes(group || ""))
-    && (!list.diagnosis.length || list.diagnosis.includes(entry.subpanel_id || "base"))),
-  [sources.gene_lists, entry.asp_id, entry.subpanel_id, group])
+    && (!list.diagnosis.length || list.diagnosis.includes(entry.diagnosis_id || "base"))),
+  [sources.gene_lists, entry.asp_id, entry.diagnosis_id, group])
   const visible = eligible.filter((list) => `${list.label} ${list.isgl_id}`.toLowerCase().includes(search.toLowerCase()))
   const genes = entry.gene_lists || []
   const toggle = (analysis: string, id: string) => {
@@ -64,7 +64,7 @@ export function CatalogAnalysisLists({ entry, sources, onChange }: {
               <input type="checkbox" className="mt-1" checked={selected.some((item) => (item.isgl_id || item.key) === list.isgl_id)} onChange={() => toggle(analysis, list.isgl_id)} />
               <span className="min-w-0"><span className="block break-words">{list.label}</span><span className="type-meta text-muted-foreground">{list.isgl_id}</span></span>
             </label>)}
-            {!typedLists.length && <p className="type-body-sm text-muted-foreground">No matching public gene lists for this analysis, assay, group and subpanel.</p>}
+            {!typedLists.length && <p className="type-body-sm text-muted-foreground">No matching public gene lists for this analysis, assay, group and diagnosis.</p>}
           </div>}
           {!none && !selected.length && <p className="type-body-sm text-muted-foreground">Choose a list or No gene list before submitting.</p>}
         </fieldset>

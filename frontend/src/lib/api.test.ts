@@ -110,14 +110,14 @@ describe("typed API client", () => {
 
   it("preserves validation fields, hints, reference IDs and retry headers", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
-      error: "Validation failed", code: "validation_failed", hint: "Choose an associated subpanel.",
-      details: [{ field: "subpanel_id", message: "Not associated with this assay" }],
+      error: "Validation failed", code: "validation_failed", hint: "Choose an associated diagnosis.",
+      details: [{ field: "diagnosis_id", message: "Not associated with this assay" }],
     }), { status: 422, headers: { "X-Request-ID": "reference-42", "Retry-After": "30" } }))
     await expect(api.post("/admin/aspc", {})).rejects.toMatchObject({
       requestId: "reference-42", code: "validation_failed", retryAfter: "30",
-      message: expect.stringContaining("subpanel_id: Not associated with this assay"),
+      message: expect.stringContaining("diagnosis_id: Not associated with this assay"),
     })
-    expect(notifyMock.mock.calls[0][0].message).toContain("Choose an associated subpanel.")
+    expect(notifyMock.mock.calls[0][0].message).toContain("Choose an associated diagnosis.")
     expect(notifyMock.mock.calls[0][0].message).toContain("Reference: reference-42")
   })
 

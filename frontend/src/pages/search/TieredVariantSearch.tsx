@@ -32,7 +32,7 @@ function totalTierCount(stats: Record<string, unknown>) {
 function normalizeTieredSearch(value: string, mode: string) {
   const normalized = value.trim()
   if (mode === "gene") return normalized.toUpperCase()
-  if (mode === "subpanel") return normalized.toLowerCase()
+  if (mode === "diagnosis") return normalized.toLowerCase()
   return normalized
 }
 
@@ -45,10 +45,10 @@ function findingVariantText(row: any) {
 
 function findingScopeValues(
   row: any,
-  listKey: "assay_groups" | "subpanels",
-  sampleKey: "assay_group" | "subpanel_id",
+  listKey: "assay_groups" | "diagnoses",
+  sampleKey: "assay_group" | "diagnosis_id",
 ) {
-  const scalarKey = listKey === "assay_groups" ? "assay_group" : "subpanel"
+  const scalarKey = listKey === "assay_groups" ? "assay_group" : "diagnosis"
   return Array.from(new Set([
     ...(Array.isArray(row[listKey]) ? row[listKey] : []),
     row[scalarKey],
@@ -273,12 +273,12 @@ export function TieredVariantSearch() {
       ),
     },
     {
-      id: "subpanel",
-      header: "Subpanel",
-      accessorFn: (row) => findingScopeValues(row, "subpanels", "subpanel_id").join(", ") || "-",
+      id: "diagnosis",
+      header: "Diagnosis",
+      accessorFn: (row) => findingScopeValues(row, "diagnoses", "diagnosis_id").join(", ") || "-",
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
-          {findingScopeValues(row.original, "subpanels", "subpanel_id").map((value) => (
+          {findingScopeValues(row.original, "diagnoses", "diagnosis_id").map((value) => (
             <TableBadge key={value} className="badge-neutral">{value}</TableBadge>
           ))}
         </div>
@@ -347,7 +347,7 @@ export function TieredVariantSearch() {
             <option value="hgvsc">HGVSc</option>
             <option value="genomic">Genomic</option>
             <option value="transcript">Transcript ID</option>
-            <option value="subpanel">Subpanel</option>
+            <option value="diagnosis">Diagnosis</option>
             <option value="author">Author</option>
             <option value="annotation">Annotation text</option>
             <option value="all">All fields</option>

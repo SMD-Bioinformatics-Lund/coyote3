@@ -78,9 +78,9 @@ export function TieredVariantContext() {
       cell: ({ row }) => <span className="text-xs font-semibold uppercase">{String(row.getValue("assay"))}</span>,
     },
     {
-      id: "subpanel",
-      header: "Subpanel",
-      accessorFn: (row) => row?.annotation?.subpanel || row?.subpanel || row?.sample?.subpanel_id || "-",
+      id: "diagnosis",
+      header: "Diagnosis",
+      accessorFn: (row) => row?.annotation?.diagnosis || row?.diagnosis || row?.sample?.diagnosis_id || "-",
     },
     {
       id: "report",

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
   post: vi.fn(),
   put: vi.fn(),
   delete: vi.fn(),
@@ -11,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-vi.mock("@/lib/api", () => ({ api: { post: mocks.post, put: mocks.put, delete: mocks.delete } }))
+vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post, put: mocks.put, delete: mocks.delete } }))
 vi.mock("@/lib/notifications", () => ({
   notifySuccess: mocks.success,
   notifyActionError: mocks.error,
@@ -111,12 +112,18 @@ describe("FiltersSidebar", () => {
 
   it("shows the sampled ASPC and applies a newer revision only after confirmation", async () => {
     const user = userEvent.setup()
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+    mocks.get.mockResolvedValue({ data: {
+      expected_version: 4, configuration_id: "release-3",
+      configuration: { aspc_id: "hema_gmsv1_hem_production", version: 3, analysis_types: ["SNV"] },
+      filters_before: {}, filters_after: {}, changed_components: [],
+    } })
     renderSidebar({
-      sample: { ...sample, current_aspc_key: "hema_gmsv1_hem_production", current_aspc_version: 2 },
+      sample,
       context: {
         ...context,
         aspc_update: {
+          current_aspc_id: "hema_gmsv1_hem_production",
+          current_version: 2,
           available: true,
           latest_aspc_id: "hema_gmsv1_hem_production",
           latest_version: 3,
@@ -126,13 +133,16 @@ describe("FiltersSidebar", () => {
     await expand(user)
 
     expect(screen.getByText(/Configuration:/)).toHaveTextContent("hema_gmsv1_hem_production v2")
-    await user.click(screen.getByRole("button", { name: "Apply latest configuration" }))
+    await user.click(screen.getByRole("button", { name: "Review configuration update" }))
+    const apply = await screen.findByRole("button", { name: "Apply configuration" })
+    expect(apply).toBeDisabled()
+    await user.type(screen.getByLabelText("Reason for applying this release"), "Validated thresholds")
+    await user.click(apply)
 
     await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(
       "/samples/CASE_001/aspc/apply-latest",
-      {},
+      { expected_version: 4, configuration_id: "release-3", reason: "Validated thresholds", retain_overrides: false },
     ))
-    confirm.mockRestore()
   })
 
   it("starts collapsed and exposes the active intent and table", () => {

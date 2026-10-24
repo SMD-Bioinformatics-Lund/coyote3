@@ -10,7 +10,7 @@ import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
-import { StatusBadges, TierBadge } from "@/lib/variant-ui";
+import { FallbackTierBadge, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "@/lib/fusion-ui";
 import {
   findingRowClass,
@@ -218,7 +218,7 @@ export function FusionsTab({
         cellClassName: "w-14 min-w-14",
       },
       header: "Tier",
-      cell: ({ row }) => <TierBadge tier={tierValue(row.original)} />,
+      cell: ({ row }) => tierValue(row.original) === 999 ? <FallbackTierBadge candidates={row.original.other_classification} /> : <TierBadge tier={tierValue(row.original)} />,
     },
     {
       id: "description",

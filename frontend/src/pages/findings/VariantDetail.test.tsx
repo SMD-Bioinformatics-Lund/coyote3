@@ -38,9 +38,9 @@ vi.mock("@/components/knowledgebase/OncoKbGeneBadge", () => ({
 }))
 
 const detailPayload = {
-  sample: { name: "CASE_001", assay: "hema_gmsv1", subpanel: "hem" },
+  sample: { name: "CASE_001", assay: "hema_gmsv1", diagnosis: "hem" },
   assay_group: "hematology",
-  subpanel: "hem",
+  diagnosis: "hem",
   latest_classification: { class: 2 },
   variant: {
     _id: "variant-1",
@@ -87,7 +87,7 @@ const detailPayload = {
       sample_name: "OTHER_CASE",
       assay: "hema_gmsv1",
       assay_group: "hematology",
-      subpanel: "hem",
+      diagnosis: "hem",
       vaf: 0.085,
       tier: 2,
     },

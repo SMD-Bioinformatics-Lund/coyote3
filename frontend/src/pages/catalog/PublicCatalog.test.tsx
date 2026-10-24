@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api"
 import { PublicCatalogMatrix } from "./PublicCatalogMatrixPage"
-import { PublicCatalog } from "./PublicCatalogPage"
 
 beforeEach(() => localStorage.clear())
 
@@ -34,87 +33,6 @@ function renderPage(ui: React.ReactElement) {
     </QueryClientProvider>,
   )
 }
-
-it("shows first-install catalog guidance without a request failure", async () => {
-  vi.mocked(api.get).mockResolvedValue({ status: 200, data: { order: [], modalities: {}, genes: [], right: {}, meta: {} } })
-  renderPage(<PublicCatalog />)
-  expect(await screen.findByRole("heading", { name: "Add catalog" })).toBeInTheDocument()
-  expect(screen.getByRole("status")).toHaveTextContent("Administration → Assay catalog")
-  expect(screen.queryByText("Unable to load catalog")).not.toBeInTheDocument()
-})
-
-const catalogPayload = {
-  order: ["dna"],
-  modalities: {
-    dna: {
-      label: "DNA assays",
-      description: "DNA catalog description",
-      categories: {
-        hematology: {
-          label: "Hematology",
-          analysis: ["SNV", "CNV"],
-          no_gene_list: ["CNV"],
-          gene_lists: [{ key: "myeloid", label: "Myeloid genes", analysis: ["SNV"] }],
-        },
-      },
-    },
-  },
-  right: {
-    title: "Hematology GMSv1",
-    subheading: "Clinical panel",
-    description: "Panel description",
-    catalog_id: "hema_catalog",
-    asp_id: "hema_gmsv1",
-    input_material: ["Blood"],
-    tat: "21 days",
-    sample_modes: ["Tumor-normal"],
-    analysis: ["SNV", "CNV"],
-    no_gene_list: ["CNV"],
-    report_sections: ["Summary"],
-    clinical_indications: ["Hematologic malignancy"],
-    limitations: "Validated regions only",
-    public_notes: "Public note",
-    asp: { platform: "illumina", read_mode: "PE", read_length: 150 },
-    custom_detail: "Center detail",
-    gene_lists: [
-      {
-        key: "myeloid",
-        label: "Myeloid genes",
-        tat: "14 days",
-        description: "Selected list details",
-        analysis: ["SNV"],
-        sample_modes: ["Tumor-normal"],
-        input_material: ["Blood"],
-        list_type: ["snv"],
-      },
-    ],
-  },
-  stats: { total: 2, covered_total: 2, germline_total: 1 },
-  genes: [
-    { display_symbol: "TP53", hgnc_id: "HGNC:11998", gene_name: "tumor protein p53" },
-    { display_symbol: "DNMT3A", hgnc_id: "HGNC:2978", gene_name: "DNA methyltransferase 3 alpha" },
-  ],
-}
-
-it("renders draft preview with the public catalog navigation, details, and gene table", async () => {
-  const document = { header: "Draft catalog", description: "", layout: { order: [] }, modalities: {} }
-  vi.mocked(api.post).mockResolvedValue({ data: catalogPayload, status: 200 })
-  renderPage(<PublicCatalog previewDocument={document} />)
-  expect(await screen.findByText("Hematology GMSv1")).toBeVisible()
-  expect(screen.getByRole("region", { name: "Catalog introduction" })).toBeVisible()
-  expect(screen.queryByTestId("gene-table")).not.toBeInTheDocument()
-  fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
-  expect(await screen.findByText("21 days")).toBeVisible()
-  expect(screen.getByText("Illumina")).toBeVisible()
-  expect(screen.getByText("Paired-end (PE)")).toBeVisible()
-  expect(screen.getByText("150 bp")).toBeVisible()
-  expect(await screen.findByTestId("gene-table")).toHaveTextContent("2 genes")
-  await screen.findByRole("button", { name: "Hematology" })
-  fireEvent.click(screen.getByRole("button", { name: "Hematology" }))
-  await waitFor(() => expect(api.post).toHaveBeenLastCalledWith(
-    "/admin/assay-catalog/preview?mod=dna&cat=hematology", { document },
-  ))
-})
 
 const matrixPayload = {
   columns: [
@@ -149,114 +67,6 @@ const matrixPayload = {
   has_next: true,
   has_previous: false,
 }
-
-describe("PublicCatalog", () => {
-  beforeEach(() => {
-    vi.mocked(api.get).mockReset()
-  })
-
-  it("opens the first analysis automatically and keeps its details separate from the gene table", async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: catalogPayload } as never)
-    renderPage(<PublicCatalog />)
-    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
-    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
-    await waitFor(() => expect(screen.getByRole("tab", { name: "SNV" })).toHaveAttribute("aria-selected", "true"))
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/public/assay-catalog/context?mod=dna&cat=hematology&isgl_key=myeloid"))
-    expect(await screen.findByTestId("gene-table")).toBeVisible()
-    const details = screen.getByRole("region", { name: "Catalog entry details" })
-    const before = details.textContent
-    expect(within(details).queryByText("Selected gene list")).not.toBeInTheDocument()
-    expect(within(screen.getByRole("region", { name: "Gene table" })).getByText("Selected gene list")).toBeVisible()
-    fireEvent.click(screen.getByRole("tab", { name: "CNV" }))
-    expect(details.textContent).toBe(before)
-  })
-
-  it("opens the inherited general gene list when there are no analyses", async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: { ...catalogPayload,
-      right: { ...catalogPayload.right, analysis: [], no_gene_list: [],
-        gene_lists: [{ key: "general", label: "Inherited general genes", analysis: [] }] },
-    } } as never)
-    renderPage(<PublicCatalog />)
-    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
-    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/public/assay-catalog/context?mod=dna&cat=hematology&isgl_key=general"))
-    expect(await screen.findByTestId("gene-table")).toBeVisible()
-    expect(screen.queryByRole("tab")).not.toBeInTheDocument()
-  })
-
-  it("loads the catalog and narrows it by modality, category, and gene list", async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: catalogPayload } as never)
-    renderPage(<PublicCatalog />)
-
-    expect(await screen.findByText("Hematology GMSv1")).toBeVisible()
-    expect(screen.getByRole("region", { name: "Catalog introduction" })).toHaveTextContent("Panel description")
-    expect(screen.queryByText("Input material")).not.toBeInTheDocument()
-    expect(screen.queryByTestId("gene-table")).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
-    expect(await screen.findByTestId("gene-table")).toHaveTextContent("2 genes, 4 columns")
-    expect(screen.getByText("Public note")).toBeVisible()
-    expect(screen.getByText("Center detail")).toBeVisible()
-    expect(screen.queryByText("Reporting sections")).not.toBeInTheDocument()
-    expect(screen.queryByText("hema_catalog")).not.toBeInTheDocument()
-    expect(screen.queryByText("hema_gmsv1")).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole("button", { name: "DNA assays" }))
-    expect(await screen.findByText("DNA catalog description")).toBeVisible()
-    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
-    fireEvent.click(await screen.findByRole("tab", { name: "SNV" }))
-    fireEvent.click(await screen.findByRole("button", { name: "Myeloid genes" }))
-
-    await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith(
-        "/public/assay-catalog/context?mod=dna&cat=hematology&isgl_key=myeloid",
-      )
-    })
-    expect(await screen.findByText("Selected gene list")).toBeVisible()
-    expect(screen.getByText("Selected list details")).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "Catalog overview" }))
-    expect(await screen.findByRole("region", { name: "Catalog introduction" })).toBeVisible()
-    expect(screen.queryByRole("region", { name: "Gene table" })).not.toBeInTheDocument()
-  })
-
-  it("shows only the active analysis lists and keeps no-list analyses distinct", async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: catalogPayload } as never)
-    renderPage(<PublicCatalog />)
-    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
-    fireEvent.click(await screen.findByRole("button", { name: "Hematology" }))
-    fireEvent.click(await screen.findByRole("tab", { name: "SNV" }))
-    expect(await screen.findByRole("button", { name: "Myeloid genes" })).toBeVisible()
-    fireEvent.click(screen.getByRole("tab", { name: "CNV" }))
-    expect(await screen.findByText("No gene list for CNV.")).toBeVisible()
-    expect(screen.queryByRole("button", { name: "Myeloid genes" })).not.toBeInTheDocument()
-    expect(screen.queryByTestId("gene-table")).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Catalog CSV" })).toBeDisabled()
-  })
-
-  it("downloads the selected catalog as CSV", async () => {
-    vi.mocked(api.get).mockImplementation(async (url: string) => {
-      if (url.includes("genes.csv")) {
-        return { data: { content: "gene\nTP53", filename: "myeloid.csv" } } as never
-      }
-      return { data: catalogPayload } as never
-    })
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
-    renderPage(<PublicCatalog />)
-
-    fireEvent.click(await screen.findByRole("button", { name: "DNA assays" }))
-    await waitFor(() => expect(screen.getByRole("button", { name: "Catalog CSV" })).toBeEnabled())
-    fireEvent.click(screen.getByRole("button", { name: "Catalog CSV" }))
-
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/public/assay-catalog/genes.csv/context?mod=dna"))
-    expect(click).toHaveBeenCalled()
-    expect(URL.createObjectURL).toHaveBeenCalled()
-  })
-
-  it("shows a useful catalog error", async () => {
-    vi.mocked(api.get).mockRejectedValue(new Error("Catalog unavailable"))
-    renderPage(<PublicCatalog />)
-    expect(await screen.findByText("Catalog unavailable")).toBeVisible()
-  })
-})
 
 describe("PublicCatalogMatrix", () => {
   beforeEach(() => {

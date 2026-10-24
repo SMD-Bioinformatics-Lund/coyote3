@@ -148,7 +148,7 @@ export function PublicAssayCatalogPage() {
         <Button className="w-full" variant={!id ? "default" : "outline"} onClick={() => select("")}>{data.has_published ? `Published catalog v${data.catalog.version}` : "Starter catalog"}</Button>
         {!id && <div className="space-y-2">
           <Button className="w-full whitespace-normal" disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "create" })}><Edit /> {data.has_published ? "Edit published catalog" : "Create first draft"}</Button>
-          <p className="type-body-sm text-muted-foreground">Organize DNA and RNA sections into families, groups and assay or subpanel entries. Starter folders are optional.</p>
+          <p className="type-body-sm text-muted-foreground">Organize DNA and RNA sections into families, groups and assay or diagnosis entries. Starter folders are optional.</p>
         </div>}
         <div className="max-h-64 space-y-1 overflow-auto">
           {data.items.map((item) => <button key={item._id} onClick={() => select(item._id)}

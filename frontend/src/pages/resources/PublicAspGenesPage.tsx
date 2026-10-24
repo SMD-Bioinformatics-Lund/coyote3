@@ -24,7 +24,7 @@ export function PublicAspGenesPage() {
   const geneLists = Array.isArray(catalog.gene_lists) ? catalog.gene_lists.filter((item: any) => item?.key || item?.label) : []
   const title = catalog.title || catalog.label || asp.display_name || asp.assay_name || aspId
   const description = catalog.description || asp.description || "Assay-panel gene table."
-  const subpanel = catalog.subpanel_id && catalog.subpanel_id !== "base" ? catalog.subpanel_id : null
+  const diagnosis = catalog.diagnosis_id && catalog.diagnosis_id !== "base" ? catalog.diagnosis_id : null
 
   return (
     <PageShell eyebrow="Public" title={title} description={stripHtml(description) || "Assay-panel gene table."}>
@@ -47,9 +47,9 @@ export function PublicAspGenesPage() {
                       {catalog.assay_group}
                     </span>
                   )}
-                  {subpanel && (
+                  {diagnosis && (
                     <span className="rounded-full border border-tier3/30 bg-tier3/10 px-2.5 py-1 text-xs font-semibold uppercase text-tier3">
-                      {subpanel}
+                      {diagnosis}
                     </span>
                   )}
                 </div>

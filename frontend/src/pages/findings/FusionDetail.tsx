@@ -147,7 +147,7 @@ export function FusionDetail() {
                 resourceType="fusion"
                 resource={fusion}
                 assayGroup={data.assay_group}
-                subpanel={data.subpanel}
+                diagnosis={data.diagnosis}
                 queryKeys={[["fusion", id, varId]]}
               />
             </div>

@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
-import { AssaySubpanels } from "./AssaySubpanels"
-import { SubpanelNavigation } from "./SubpanelNavigation"
+import { AssayDiagnoses } from "./AssayDiagnoses"
+import { DiagnosisNavigation } from "./DiagnosisNavigation"
 import { AdminHomeLink } from "./AdminHomeLink"
 
 type Assay = { asp_id: string; display_name: string }
 type AssayResults = { panels: Assay[]; pagination: { total: number } }
 
-export function AssaySubpanelsPage() {
+export function AssayDiagnosesPage() {
   const access = useCurrentUserAccess()
   const [params, setParams] = useSearchParams()
   const selected = params.get("assay") || ""
@@ -23,14 +23,14 @@ export function AssaySubpanelsPage() {
   const [page, setPage] = useState(1)
   const permitted = hasPermission(access.data, "assay.panel:list") && hasPermission(access.data, "assay.panel:view")
   const assays = useQuery({
-    queryKey: ["subpanel-assay-options", search, page],
+    queryKey: ["diagnosis-assay-options", search, page],
     enabled: permitted,
     queryFn: () => api.get<AssayResults>(`/resources/asp?${new URLSearchParams({ q: search, page: String(page), per_page: "30" })}`).then((response) => response.data),
   })
 
-  return <PageShell eyebrow="Admin" title="Assay subpanel associations" actions={<AdminHomeLink />}>
+  return <PageShell eyebrow="Admin" title="Assay diagnosis associations" actions={<AdminHomeLink />}>
     <section aria-label="Assay association registry" className="glass-card min-w-0 space-y-3 p-3">
-    <SubpanelNavigation active="associations" />
+    <DiagnosisNavigation active="associations" />
     {access.isLoading ? <AppLoader label="Loading administration access" /> : !permitted ? (
       <p role="alert">Assay list and view permissions are required.</p>
     ) : <>
@@ -50,7 +50,7 @@ export function AssaySubpanelsPage() {
           <Button variant="outline" size="icon" aria-label="Next assay page" title="Next assay page" disabled={page * 30 >= assays.data.pagination.total || assays.isFetching} onClick={() => setPage(page + 1)}><ChevronRight /></Button>
         </div>}
       </section>
-      {selected && <AssaySubpanels key={selected} aspId={selected} canEdit={hasPermission(access.data, "assay.panel:edit")} />}
+      {selected && <AssayDiagnoses key={selected} aspId={selected} canEdit={hasPermission(access.data, "assay.panel:edit")} />}
       {!selected && !assays.isLoading && !assays.error && <p className="border-t border-border py-6 text-center type-body text-muted-foreground">No assay selected.</p>}
     </>}
     </section>

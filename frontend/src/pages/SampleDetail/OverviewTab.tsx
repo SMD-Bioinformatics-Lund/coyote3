@@ -11,7 +11,8 @@ import {
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
 import { SampleGeneSettings, SettingsCard } from "@/pages/SampleDetail/SampleGeneSettings"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, RefreshCw } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
+import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
 import { Link } from "react-router-dom"
 import { displayValue, fileItems, formatFileSize, formatPurityPercentage, overviewFilterGroups, reportItems } from "./overview-data"
 import { StatusPill } from "./OverviewStatusPill"
@@ -19,7 +20,7 @@ import { StatusPill } from "./OverviewStatusPill"
 export function OverviewTab({ sampleId, sample, context }: { sampleId: string; sample: any; context?: any }) {
   const queryClient = useQueryClient()
   const applyLatestAspc = useMutation({
-    mutationFn: () => api.post(`/samples/${sampleId}/aspc/apply-latest`, {}).then((response) => response.data),
+    mutationFn: (request: ConfigurationApplication) => api.post(`/samples/${sampleId}/aspc/apply-latest`, request).then((response) => response.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sample", sampleId] })
       queryClient.invalidateQueries({ queryKey: ["samples"] })
@@ -38,20 +39,21 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
     ...(cnvFilters?.adhoc_genes ? { cnv: cnvFilters.adhoc_genes } : {}),
     ...(fusionFilters?.adhoc_genes ? { fusion: fusionFilters.adhoc_genes } : {}),
   }
-  const omics = String(sample?.omics_layer || "").toLowerCase()
+  const omics = String(sample?.asp_category || "").toLowerCase()
   const reports = reportItems(sample)
   const filterGroups = overviewFilterGroups(sample, context)
+  const resolution = context?.assay_config?.aspc_resolution
 
   return (
     <div className="space-y-3">
-      {sample?.aspc_resolution?.used_base_configuration && (
+      {resolution?.used_base_configuration && (
         <section className="glass-card flex items-start gap-2 border-warn/35 bg-card/95 p-3 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           <div className="min-w-0">
             <strong className="text-warn">Base configuration in use.</strong>{" "}
             <span className="text-muted-foreground">
-              {sample.aspc_resolution.warning || "No subpanel-specific assay configuration is active."}{" "}
-              Requested subpanel: <strong className="text-foreground">{sample.aspc_resolution.requested_subpanel_id}</strong>.
+              {resolution.warning || "No diagnosis-specific assay configuration is active."}{" "}
+              Requested diagnosis: <strong className="text-foreground">{resolution.requested_diagnosis_id}</strong>.
             </span>
           </div>
         </section>
@@ -60,14 +62,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       <div className="grid gap-3 xl:grid-cols-5">
         <SettingsCard title="Sample Meta" tone="border-t-yellow-400" className="xl:col-span-1">
           <div className="flex flex-wrap gap-2">
-            {sample?.omics_layer && <StatusPill tone="blue">{String(sample.omics_layer).toUpperCase()}</StatusPill>}
+            {sample?.asp_category && <StatusPill tone="blue">{String(sample.asp_category).toUpperCase()}</StatusPill>}
             {sample?.platform && <StatusPill tone="green">{sample.platform}</StatusPill>}
             {sample?.read_mode && <StatusPill tone="green">{sample.read_mode}</StatusPill>}
-            {sample?.sequencing_scope && <StatusPill tone="blue">{sample.sequencing_scope}</StatusPill>}
+            {sample?.asp_family && <StatusPill tone="blue">{sample.asp_family}</StatusPill>}
             {sample?.genome_build && <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill>}
             {sample?.environment && <StatusPill tone="yellow">{sample.environment}</StatusPill>}
             {sample?.asp_id && <StatusPill tone="blue">Assay: {sample.asp_id}</StatusPill>}
-            {sample?.current_aspc_key && <StatusPill tone="blue">Configuration: {sample.current_aspc_key}{sample.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}</StatusPill>}
+            {context?.assay_config?.aspc_id && <StatusPill tone="blue">Configuration: {context.assay_config.aspc_id}{context.assay_config.version ? ` v${context.assay_config.version}` : ""}</StatusPill>}
             {sample?.pipeline && <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
             {sampleReported(sample) && <StatusPill tone="blue">Reported</StatusPill>}
           </div>
@@ -82,17 +84,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           {context?.aspc_update?.available && (
             <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
               <p className="text-xs font-semibold">Newer assay configuration available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
-              <button
-                type="button"
-                disabled={applyLatestAspc.isPending}
-                onClick={() => {
-                  if (window.confirm("Apply the latest assay configuration? This replaces this sample's saved filters and analysis configuration.")) applyLatestAspc.mutate()
-                }}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                {applyLatestAspc.isPending ? "Applying..." : "Apply latest configuration"}
-              </button>
+              <ConfigurationApplyButton sampleId={sampleId} pending={applyLatestAspc.isPending} apply={applyLatestAspc.mutateAsync} />
             </div>
           )}
         </SettingsCard>
@@ -129,7 +121,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           </div>
         </SettingsCard>
 
-        <SettingsCard title={`Files & QC (${sample?.omics_layer || "-"})`} tone="border-t-orange-800" className="xl:col-span-2">
+        <SettingsCard title={`Files & QC (${sample?.asp_category || "-"})`} tone="border-t-orange-800" className="xl:col-span-2">
           <div className="space-y-2">
             {files.length ? files.map((file: any, index: number) => (
               <div key={file.key || file.path || index} className="content-item flex items-start justify-between gap-3 px-3 py-2">

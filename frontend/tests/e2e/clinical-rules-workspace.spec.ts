@@ -8,7 +8,7 @@ const ruleSet = {
   schema_version: 1,
   content_version: 1,
   revision: 1,
-  scope: { asp_id: "assay_1", subpanel_id: "base", analyte: "dna", language: "sv" },
+  scope: { asp_id: "assay_1", diagnosis_id: "base", analyte: "dna", language: "sv" },
   name: "Assay 1 report rules",
   status: "draft",
   active: false,

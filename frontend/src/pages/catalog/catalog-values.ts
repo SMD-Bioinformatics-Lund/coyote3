@@ -29,7 +29,7 @@ export const FIRST_CLASS_CATALOG_FIELDS = new Set([
   "sample_modes",
   "sample_query",
   "subheading",
-  "subpanel_id",
+  "diagnosis_id",
   "tat",
   "title",
 ])

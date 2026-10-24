@@ -1,38 +1,40 @@
 import { useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Edit, Plus, Save, X } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { DataTable } from "@/components/data-table/DataTable"
 import { TableBadge } from "@/components/ui/table-badge"
-import { SubpanelNavigation } from "./SubpanelNavigation"
+import { DiagnosisNavigation } from "./DiagnosisNavigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import type { SubpanelDefinition } from "./AssaySubpanels"
+import type { DiagnosisDefinition } from "./AssayDiagnoses"
 import { RecordProvenance } from "./RecordProvenance"
 import { AdminHomeLink } from "./AdminHomeLink"
 
 type Assay = { asp_id: string; display_name: string; is_active: boolean }
-const empty = { subpanel_id: "", display_name: "", description: "", is_active: true, asp_ids: [] as string[] }
+const empty = { diagnosis_id: "", display_name: "", description: "", is_active: true, asp_ids: [] as string[] }
 
-export function SubpanelDefinitionsPage() {
+export function DiagnosisDefinitionsPage() {
+  const [params] = useSearchParams()
   const access = useCurrentUserAccess()
   const allowed = hasPermission(access.data, "assay.panel:view") && hasPermission(access.data, "assay.panel:list")
   const canEdit = hasPermission(access.data, "assay.panel:edit")
   const client = useQueryClient()
-  const [editing, setEditing] = useState<SubpanelDefinition | "new" | null>(null)
+  const [editing, setEditing] = useState<DiagnosisDefinition | "new" | null>(null)
   const [values, setValues] = useState(empty)
   const [idEdited, setIdEdited] = useState(false)
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState(params.get("diagnosis") || "")
   const [assaySearch, setAssaySearch] = useState("")
   const definitions = useQuery({
-    queryKey: ["subpanel-definitions"], enabled: allowed,
-    queryFn: () => api.get<{ subpanels: SubpanelDefinition[] }>("/resources/subpanels").then((response) => response.data.subpanels),
+    queryKey: ["diagnosis-definitions"], enabled: allowed,
+    queryFn: () => api.get<{ diagnoses: DiagnosisDefinition[] }>("/resources/diagnoses").then((response) => response.data.diagnoses),
   })
   const assays = useQuery({
-    queryKey: ["subpanel-all-assays"], enabled: allowed && canEdit && Boolean(editing),
+    queryKey: ["diagnosis-all-assays"], enabled: allowed && canEdit && Boolean(editing),
     queryFn: async () => {
       const rows: Assay[] = []
       for (let page = 1; ; page++) {
@@ -45,45 +47,45 @@ export function SubpanelDefinitionsPage() {
   })
   const mutation = useMutation({
     mutationFn: () => {
-      if (editing === "new") return api.post("/resources/subpanels", values)
-      if (!editing) throw new Error("Select a subpanel")
-      return api.put(`/resources/subpanels/${encodeURIComponent(editing.subpanel_id)}`, {
+      if (editing === "new") return api.post("/resources/diagnoses", values)
+      if (!editing) throw new Error("Select a diagnosis")
+      return api.put(`/resources/diagnoses/${encodeURIComponent(editing.diagnosis_id)}`, {
         display_name: values.display_name, description: values.description, is_active: values.is_active, expected_version: editing.version,
         add_asp_ids: values.asp_ids,
       })
     },
     onSuccess: () => {
       setEditing(null)
-      void client.invalidateQueries({ queryKey: ["subpanel-definitions"] })
-      void client.invalidateQueries({ queryKey: ["assay-subpanels"] })
+      void client.invalidateQueries({ queryKey: ["diagnosis-definitions"] })
+      void client.invalidateQueries({ queryKey: ["assay-diagnoses"] })
       void client.invalidateQueries({ queryKey: ["admin-resource-context", "aspc"] })
       void client.invalidateQueries({ queryKey: ["admin-resource-context", "genelists"] })
       void client.invalidateQueries({ queryKey: ["assay-setup-context"] })
       void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
-      notifySuccess("Shared subpanel saved")
+      notifySuccess("Shared diagnosis saved")
     },
-    onError: (error) => notifyActionError("Save shared subpanel", error),
+    onError: (error) => notifyActionError("Save shared diagnosis", error),
   })
-  const validId = editing !== "new" || /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(values.subpanel_id) && values.subpanel_id !== "base"
-  const rows = (definitions.data ?? []).filter((row) => `${row.display_name} ${row.subpanel_id}`.toLowerCase().includes(search.toLowerCase()))
-  return <PageShell eyebrow="Admin" title="Subpanel definitions" actions={<AdminHomeLink />}>
-    <section aria-label="Subpanel registry" className="glass-card min-w-0 space-y-3 p-3">
-    <SubpanelNavigation active="definitions" />
+  const validId = editing !== "new" || /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(values.diagnosis_id) && values.diagnosis_id !== "base"
+  const rows = (definitions.data ?? []).filter((row) => `${row.display_name} ${row.diagnosis_id}`.toLowerCase().includes(search.toLowerCase()))
+  return <PageShell eyebrow="Admin" title="Diagnosis definitions" actions={<AdminHomeLink />}>
+    <section aria-label="Diagnosis registry" className="glass-card min-w-0 space-y-3 p-3">
+    <DiagnosisNavigation active="definitions" />
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay list and view permissions are required.</p> : <>
-      {definitions.isLoading && <p role="status">Loading subpanels...</p>}
-      {definitions.error && <p role="alert" className="text-destructive">Unable to load shared subpanels.</p>}
+      {definitions.isLoading && <p role="status">Loading diagnoses...</p>}
+      {definitions.error && <p role="alert" className="text-destructive">Unable to load shared diagnoses.</p>}
       {!editing && !definitions.isLoading && !definitions.error && <DataTable
         data={rows}
-        stateKey="subpanel-definitions"
-        rowLabel="subpanels"
+        stateKey="diagnosis-definitions"
+        rowLabel="diagnoses"
         hideExport
-        emptyMessage="No subpanels found."
-        searchPlaceholder="Search subpanel definitions"
+        emptyMessage="No diagnoses found."
+        searchPlaceholder="Search diagnosis definitions"
         searchValue={search}
         onSearchChange={setSearch}
-        renderToolbar={() => canEdit && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><Plus className="h-4 w-4" />Create subpanel</Button>}
+        renderToolbar={() => canEdit && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><Plus className="h-4 w-4" />Create diagnosis</Button>}
         columns={[
-          { accessorKey: "display_name", header: "Subpanel", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.subpanel_id}</span></div> },
+          { accessorKey: "display_name", header: "Diagnosis", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.diagnosis_id}</span></div> },
           { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
           { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
           { id: "record_provenance", header: "Installed by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
@@ -91,14 +93,14 @@ export function SubpanelDefinitionsPage() {
         ]}
       />}
       {canEdit && editing && <form className="grid gap-4 border-t border-border py-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (validId && values.display_name.trim()) mutation.mutate() }}>
-        <h2 className="text-lg font-semibold md:col-span-2">{editing === "new" ? "New subpanel" : "Edit shared definition"}</h2>
+        <h2 className="text-lg font-semibold md:col-span-2">{editing === "new" ? "New diagnosis" : "Edit shared definition"}</h2>
         {editing !== "new" && <p className="type-body md:col-span-2" role="status">Changes apply to every associated assay.</p>}
         <label className="type-label">Display name<Input autoFocus required maxLength={200} value={values.display_name} onChange={(event) => {
           const name = event.target.value
-          setValues({ ...values, display_name: name, ...(editing === "new" && !idEdited ? { subpanel_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 100).replace(/^_|_$/g, "") } : {}) })
+          setValues({ ...values, display_name: name, ...(editing === "new" && !idEdited ? { diagnosis_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 100).replace(/^-|-$/g, "") } : {}) })
         }} /></label>
-        <label className="type-label">Subpanel identifier<Input required readOnly={editing !== "new"} maxLength={100} value={values.subpanel_id} aria-invalid={Boolean(values.subpanel_id) && !validId} onChange={(event) => { setIdEdited(true); setValues({ ...values, subpanel_id: event.target.value }) }} />
-          {values.subpanel_id && !validId && <span className="text-destructive">Use lowercase letters, numbers, single underscores between words. Base is implicit.</span>}
+        <label className="type-label">Diagnosis identifier<Input required readOnly={editing !== "new"} maxLength={100} value={values.diagnosis_id} aria-invalid={Boolean(values.diagnosis_id) && !validId} onChange={(event) => { setIdEdited(true); setValues({ ...values, diagnosis_id: event.target.value }) }} />
+          {values.diagnosis_id && !validId && <span className="text-destructive">Use lowercase letters, numbers, hyphens between distinct terms; underscores within names. Base is implicit.</span>}
         </label>
         <label className="type-label md:col-span-2">Description<textarea className="paper-inset mt-1 w-full rounded-md border border-border p-3" rows={3} maxLength={4000} value={values.description} onChange={(event) => setValues({ ...values, description: event.target.value })} /></label>
         <label className="flex items-center gap-2 type-body"><input type="checkbox" checked={values.is_active} onChange={(event) => setValues({ ...values, is_active: event.target.checked })} />Globally available</label>
@@ -114,7 +116,7 @@ export function SubpanelDefinitionsPage() {
           })}</div>
         </fieldset>
         {mutation.error && <p role="alert" className="text-destructive md:col-span-2">{mutation.error.message}</p>}
-        <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={mutation.isPending || !validId || !values.display_name.trim() || editing === "new" && (assays.isLoading || Boolean(assays.error))}><Save className="h-4 w-4" />Save subpanel</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setEditing(null)}><X className="h-4 w-4" />Cancel</Button></div>
+        <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={mutation.isPending || !validId || !values.display_name.trim() || editing === "new" && (assays.isLoading || Boolean(assays.error))}><Save className="h-4 w-4" />Save diagnosis</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setEditing(null)}><X className="h-4 w-4" />Cancel</Button></div>
       </form>}
     </>}
     </section>

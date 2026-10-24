@@ -10,7 +10,7 @@ interface FindingCommentBaseProps {
 
 interface FindingCommentComposerProps extends FindingCommentBaseProps {
   assayGroup?: string
-  subpanel?: string | null
+  diagnosis?: string | null
   draftText?: string
   onDraftChange?: (value: string) => void
 }
@@ -28,7 +28,7 @@ export function FindingCommentComposer({
   resource,
   queryKeys,
   assayGroup,
-  subpanel,
+  diagnosis,
   draftText,
   onDraftChange,
 }: FindingCommentComposerProps) {
@@ -42,7 +42,7 @@ export function FindingCommentComposer({
         comments={[]}
         showList={false}
         assayGroup={assayGroup}
-        subpanel={subpanel}
+        diagnosis={diagnosis}
         queryKeys={queryKeys}
         enableSuggestion={false}
         livePreview={false}

@@ -102,7 +102,7 @@ const dashboardData = {
     total_samples: 7,
     pending_samples: 3,
     analysed_rate_percent: 57.1,
-    recent_samples: [{ name: "DNA_CASE_001", asp_id: "hema_gmsv1", subpanel_id: "hem", omics_layer: "dna", ingest_status: "ready", time_added: "2026-08-01T10:00:00Z" }],
+    recent_samples: [{ name: "DNA_CASE_001", asp_id: "hema_gmsv1", diagnosis_id: "hem", asp_category: "dna", ingest_status: "ready", time_added: "2026-08-01T10:00:00Z" }],
     sample_stats: {
       pipelines: [
         { name: "SomaticPanelPipeline", version: "3.2.0", count: 5, analysed: 3, ready: 5 },
@@ -166,7 +166,7 @@ describe("Dashboard page", () => {
         ...dashboardData.user_scope_summary,
         recent_samples: Array.from({ length: 6 }, (_, index) => ({
           name: `DNA_CASE_00${index + 1}`,
-          omics_layer: "dna",
+          asp_category: "dna",
           ingest_status: "ready",
         })),
       },

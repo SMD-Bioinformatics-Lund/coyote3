@@ -10,7 +10,7 @@ vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 it("opens the linked saved version and clears sample testing when deselected", async () => {
   vi.mocked(api.get).mockResolvedValue({ status: 200, data: { items: [{
     _id: "saved", name: "Example query", version: 1, revision: 2, status: "draft",
-    scope: { assay_group: "example", asp_id: null, subpanel_id: null, analysis: "snv", intent: "somatic" },
+    scope: { assay_group: "example", asp_id: null, diagnosis_id: null, analysis: "snv", intent: "somatic" },
     content: { exceptions: [], evidence_mode: null },
   }] } })
   render(<MemoryRouter initialEntries={["/admin/query-rules/testing?version=saved"]}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><QueryRuleTestingPage /></QueryClientProvider></MemoryRouter>)

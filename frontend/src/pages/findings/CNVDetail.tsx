@@ -151,7 +151,7 @@ export function CNVDetail() {
                 resourceType="cnv"
                 resource={cnv}
                 assayGroup={data.assay_group}
-                subpanel={data.subpanel}
+                diagnosis={data.diagnosis}
                 queryKeys={[["cnv", id, varId]]}
               />
             </div>
@@ -191,6 +191,9 @@ export function CNVDetail() {
             <ClassificationsCard
               latest={latest_classification}
               other={data.other_classifications || []}
+              sampleId={id}
+              resourceType="cnv"
+              resourceId={varId}
             />
 
             <DetailCard title="Structural Evidence" tone="success">

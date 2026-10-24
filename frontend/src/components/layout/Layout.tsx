@@ -70,13 +70,6 @@ export function Layout() {
     if (user?.username) setTheme(accountTheme)
   }, [user?.username, accountTheme, setTheme])
 
-  const { data: catalogData } = useQuery({
-    queryKey: ['assay-catalog-nav'],
-    queryFn: () => api.get('/public/assay-catalog/context').then(res => res.data),
-    staleTime: 5 * 60 * 1000,
-    enabled: moduleIsEnabled(modules, "assay_catalog"),
-  })
-
   useEffect(() => {
     if (user?.must_change_password) navigate("/change-password", { replace: true })
   }, [user?.must_change_password, location.pathname, navigate])
@@ -211,9 +204,11 @@ export function Layout() {
   const activeAssayGroup = searchParams.get("assay_group") || searchParams.get("group") || ""
 
   const navGroups = useMemo(() => {
-    const groups = (catalogData?.meta?.nav_groups || catalogData?.nav_groups || []) as any[]
-    return groups.filter((group) => group?.category && group?.family && group?.assay_group)
-  }, [catalogData])
+    return Object.keys(navigationCounts?.counts || {}).map((key) => {
+      const [category, family, assay_group] = key.split(":")
+      return { category, family, assay_group }
+    }).filter((group) => group.category && group.family && group.assay_group)
+  }, [navigationCounts])
 
   const issueMenuLinks = useMemo(() => {
     const codebase = contactData?.codebase || {}

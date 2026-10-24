@@ -66,7 +66,7 @@ describe("TieredVariantContext", () => {
         sample_name: "SAMPLE_A",
         sample_id: "OID_A",
         assay: "hema_gmsv1",
-        subpanel: "hem",
+        diagnosis: "hem",
         tier: 2,
         hgvsp: "p.Arg175His",
         hgvsc: "c.524G>A",

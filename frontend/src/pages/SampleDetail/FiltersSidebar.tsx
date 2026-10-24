@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
-import { ChevronRight, Filter, RefreshCw, RotateCcw, Save } from "lucide-react"
+import { ChevronRight, Filter, RotateCcw, Save } from "lucide-react"
+import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -352,7 +353,7 @@ export function FiltersSidebar({
   })
 
   const applyLatestAspc = useMutation({
-    mutationFn: () => api.post(`/samples/${sampleId}/aspc/apply-latest`, {}).then((res) => res.data),
+    mutationFn: (request: ConfigurationApplication) => api.post(`/samples/${sampleId}/aspc/apply-latest`, request).then((res) => res.data),
     onSuccess: async (result) => {
       invalidateSampleQueries(queryClient, sampleId)
       await refetchActiveTable(queryClient, activeTab, sampleId)
@@ -387,10 +388,10 @@ export function FiltersSidebar({
         <div>
           <h3 className="text-sm font-semibold">Filters</h3>
           <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
-          {sample?.current_aspc_key && (
+          {context?.aspc_update?.current_aspc_id && (
             <p className="mt-0.5 type-label text-muted-foreground">
-              Configuration: <span className="font-semibold text-foreground">{sample.current_aspc_key}</span>
-              {sample?.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}
+              Configuration: <span className="font-semibold text-foreground">{context.aspc_update.current_aspc_id}</span>
+              {context.aspc_update.current_version ? ` v${context.aspc_update.current_version}` : ""}
             </p>
           )}
         </div>
@@ -408,19 +409,7 @@ export function FiltersSidebar({
             <p className="mt-1 type-meta text-muted-foreground">
               {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}
             </p>
-            <button
-              type="button"
-              disabled={applyLatestAspc.isPending}
-              onClick={() => {
-                if (window.confirm("Apply the latest assay configuration? This replaces this sample's saved filters and analysis configuration.")) {
-                  applyLatestAspc.mutate()
-                }
-              }}
-              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              {applyLatestAspc.isPending ? "Applying..." : "Apply latest configuration"}
-            </button>
+            <ConfigurationApplyButton sampleId={sampleId} pending={applyLatestAspc.isPending} apply={applyLatestAspc.mutateAsync} />
           </section>
         )}
         {(activeTab === "snvs" || activeTab === "germline-snvs") && (

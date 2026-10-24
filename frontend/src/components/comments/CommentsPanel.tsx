@@ -43,12 +43,12 @@ function resourceFormData(
   resource: any,
   text: string,
   global: boolean,
-  context: { assayGroup?: string; subpanel?: string | null } = {},
+  context: { assayGroup?: string; diagnosis?: string | null } = {},
 ) {
   const data: Record<string, any> = {
     text,
     assay_group: context.assayGroup,
-    subpanel: context.subpanel,
+    diagnosis: context.diagnosis,
   }
   if (global) data.global = "global"
 
@@ -103,7 +103,7 @@ export interface CommentsPanelProps {
   showComposer?: boolean
   allowHide?: boolean
   assayGroup?: string
-  subpanel?: string | null
+  diagnosis?: string | null
   draftText?: string
   onDraftChange?: (value: string) => void
   onUseAsDraft?: (value: string) => void
@@ -127,7 +127,7 @@ export function CommentsPanel({
   showComposer = true,
   allowHide = true,
   assayGroup,
-  subpanel,
+  diagnosis,
   draftText,
   onDraftChange,
   onUseAsDraft,
@@ -170,7 +170,7 @@ export function CommentsPanel({
       if (resourceType && resource) {
         return api.post(`/samples/${sampleId}/annotations`, {
           id: String(resource._id),
-          form_data: resourceFormData(resourceType, resource, text, global, { assayGroup, subpanel }),
+          form_data: resourceFormData(resourceType, resource, text, global, { assayGroup, diagnosis }),
         })
       }
       return api.post(`/samples/${sampleId}/comments`, { form_data: { sample_comment: text } })

@@ -38,14 +38,14 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
     return ((data?.columns || []) as any[])
       .filter((col) => !col.placeholder)
       .map((col) => {
-        const [family = "-", assayGroup = "-", assay = "-", subpanel = "-"] = String(col.cat || "").split("::")
+        const [family = "-", assayGroup = "-", assay = "-", diagnosis = "-"] = String(col.cat || "").split("::")
         return {
           ...col,
           family: col.family || family,
           modalityLabel: col.modality_label || col.modalityLabel || col.mod,
           assayGroup: col.assay_group || col.cat_label || assayGroup,
           assay: col.assay || assay,
-          subpanel: col.subpanel || subpanel,
+          diagnosis: col.diagnosis || diagnosis,
           analysis: col.analysis || "Unassigned",
           key: `${col.mod}:${col.cat}:${col.analysis || ""}:${col.isgl_key}`,
         }
@@ -59,7 +59,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
       if (filters.list && String(col.isgl_label || col.isgl_key) !== filters.list) return false
       if (filters.analysis && col.analysis !== filters.analysis) return false
       if (filters.assay && col.assay !== filters.assay) return false
-      if (filters.subpanel && col.subpanel !== filters.subpanel) return false
+      if (filters.diagnosis && col.diagnosis !== filters.diagnosis) return false
       return true
     })
   }, [allMatrixColumns, filters])
@@ -70,7 +70,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
     list: uniqueOptions(allMatrixColumns.map((col) => String(col.isgl_label || col.isgl_key))),
     analysis: uniqueOptions(allMatrixColumns.map((col) => col.analysis)),
     assay: uniqueOptions(allMatrixColumns.map((col) => col.assay)),
-    subpanel: uniqueOptions(allMatrixColumns.map((col) => col.subpanel)),
+    diagnosis: uniqueOptions(allMatrixColumns.map((col) => col.diagnosis)),
   }), [allMatrixColumns])
 
   const headerSpans = useMemo(() => {

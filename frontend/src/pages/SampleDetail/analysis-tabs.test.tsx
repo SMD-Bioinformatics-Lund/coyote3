@@ -306,7 +306,7 @@ describe("sample analysis table tabs", () => {
       sample: { name: "DNA_REPORT" },
       meta: { snapshot_count: 1, preview_fingerprint: "a".repeat(64), template_status: { status: "ready", has_html: true } },
       report: { html: "Rendered DNA report", snapshot_rows: [{ gene: "TP53", tier: 1 }], context: {
-        clinical_rule_evaluation: { source: { rule_set_id: "assay__base__sv", content_version: 2, language: "sv", requested_subpanel_id: "named", resolved_subpanel_id: "base" } },
+        clinical_rule_evaluation: { source: { rule_set_id: "assay__base__sv", content_version: 2, language: "sv", requested_diagnosis_id: "named", resolved_diagnosis_id: "base" } },
       } },
     } })
     mocks.post.mockResolvedValue({ data: { report_id: "R1" } })
@@ -369,7 +369,7 @@ describe("sample analysis table tabs", () => {
 
   it("uses the fixed RNA report workflow for an RNA sample", async () => {
     mocks.get.mockResolvedValue({ data: {
-      sample: { name: "RNA_REPORT", omics_layer: "rna" },
+      sample: { name: "RNA_REPORT", asp_category: "rna" },
       meta: { snapshot_count: 1, template_status: { status: "ready", has_html: true } },
       report: {
         html: "Rendered RNA report",

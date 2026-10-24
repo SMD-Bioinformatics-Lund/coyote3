@@ -9,10 +9,10 @@ const dnaContext: SampleContext = {
   sample: {
     name: "DNA_001",
     asp_id: "hema_gmsv1",
-    subpanel_id: "base",
+    diagnosis_id: "base",
     environment: "production",
     ingest_status: "ready",
-    omics_layer: "dna",
+    asp_category: "dna",
     analysis_intents: ["somatic"],
     files: {
       vcf_files: "/data/DNA_001.vcf.gz",
@@ -29,10 +29,10 @@ const rnaContext: SampleContext = {
   sample: {
     name: "RNA_001",
     asp_id: "rna_fusion_v1",
-    subpanel_id: "base",
+    diagnosis_id: "base",
     environment: "production",
     ingest_status: "ready",
-    omics_layer: "rna",
+    asp_category: "rna",
     analysis_intents: ["somatic"],
     files: { fusion_files: "/data/RNA_001.fusions.json" },
     data_counts: { fusions: 1 },

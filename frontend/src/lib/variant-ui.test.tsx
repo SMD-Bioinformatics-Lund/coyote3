@@ -7,6 +7,7 @@ import {
   CopyNumberBadge,
   ConsequenceBadges,
   FilterFlagBadges,
+  FallbackTierBadge,
   ImpactBadge,
   InfoTooltipBadge,
   PredictionBadge,
@@ -16,6 +17,16 @@ import {
 import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "./fusion-ui"
 
 describe("variant UI semantics", () => {
+  it("distinguishes same-assay suggestions from inherited reference tiers", () => {
+    const { rerender } = render(<FallbackTierBadge candidates={[{ class: 2, assay: "hematology", diagnosis: "mpn", match_level: "parent_group", fallback_eligible: true }]} />)
+    expect(screen.getByLabelText("Suggested Tier 2; confirmation required")).toBeVisible()
+    expect(screen.getByText("2")).toHaveClass("text-muted-foreground")
+    rerender(<FallbackTierBadge candidates={[{ class: 3, assay: "myeloid", diagnosis: "cll", match_level: "same_assay", fallback_eligible: false }]} />)
+    expect(screen.getByLabelText("Suggested Tier 3; confirmation required")).toBeVisible()
+    expect(screen.getByText("3")).toHaveClass("bg-tier3")
+    rerender(<FallbackTierBadge candidates={[{ class: 1, match_level: "other_group" }]} />)
+    expect(screen.getByText("-")).toBeVisible()
+  })
   it.each([
     [1, "Tier I", "Strong clinical significance"],
     [2, "Tier II", "Potential clinical significance"],

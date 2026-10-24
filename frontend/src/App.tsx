@@ -22,13 +22,14 @@ const TranslocationDetail = lazy(() => import("./pages/findings/TranslocationDet
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPasswordPage").then((module) => ({ default: module.ForgotPassword })))
 const ResetPassword = lazy(() => import("./pages/auth/ResetPasswordPage").then((module) => ({ default: module.ResetPassword })))
 const AdminHub = lazy(() => import("./pages/admin/AdminHubPage").then((module) => ({ default: module.AdminHubPage })))
-const AssaySubpanelsPage = lazy(() => import("./pages/admin/AssaySubpanelsPage").then((module) => ({ default: module.AssaySubpanelsPage })))
-const SubpanelDefinitionsPage = lazy(() => import("./pages/admin/SubpanelDefinitionsPage").then((module) => ({ default: module.SubpanelDefinitionsPage })))
+const AssayDiagnosesPage = lazy(() => import("./pages/admin/AssayDiagnosesPage").then((module) => ({ default: module.AssayDiagnosesPage })))
+const DiagnosisDefinitionsPage = lazy(() => import("./pages/admin/DiagnosisDefinitionsPage").then((module) => ({ default: module.DiagnosisDefinitionsPage })))
 const AssayGroupsPage = lazy(() => import("./pages/admin/AssayGroupsPage").then((module) => ({ default: module.AssayGroupsPage })))
 const AssayEditorPage = lazy(() => import("./pages/admin/assays/AssayEditorPage").then((module) => ({ default: module.AssayEditorPage })))
 const AssaysPage = lazy(() => import("./pages/admin/assays/AssaysPage").then((module) => ({ default: module.AssaysPage })))
 const AssayConfigurationEditorPage = lazy(() => import("./pages/admin/assay-configurations/AssayConfigurationEditorPage").then((module) => ({ default: module.AssayConfigurationEditorPage })))
 const AssayConfigurationsPage = lazy(() => import("./pages/admin/assay-configurations/AssayConfigurationsPage").then((module) => ({ default: module.AssayConfigurationsPage })))
+const ConfigurationProfilesPage = lazy(() => import("./pages/admin/ConfigurationProfilesPage").then((module) => ({ default: module.ConfigurationProfilesPage })))
 const GeneListEditorPage = lazy(() => import("./pages/admin/gene-lists/GeneListEditorPage").then((module) => ({ default: module.GeneListEditorPage })))
 const GeneListsPage = lazy(() => import("./pages/admin/gene-lists/GeneListsPage").then((module) => ({ default: module.GeneListsPage })))
 const UserEditorPage = lazy(() => import("./pages/admin/users/UserEditorPage").then((module) => ({ default: module.UserEditorPage })))
@@ -175,10 +176,11 @@ export default function App() {
             <Route path="/admin/query-rules/testing" element={withAdminPermission(<QueryRuleTestingPage />, "query_rules:test")} />
             <Route path="/admin/clinical-rules/testing" element={withAdminPermission(<ClinicalRuleTestingPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest)} />
             <Route path="/admin/assay-catalog" element={withAdminPermission(<PublicAssayCatalogPage />, "catalog:view")} />
-            <Route path="/admin/subpanels" element={withAdminPermission(<SubpanelDefinitionsPage />, "assay.panel:view")} />
+            <Route path="/admin/diagnoses" element={withAdminPermission(<DiagnosisDefinitionsPage />, "assay.panel:view")} />
             <Route path="/admin/assay-groups" element={withAdminPermission(<AssayGroupsPage />, "assay.panel:view")} />
-            <Route path="/admin/assay-subpanels" element={withAdminPermission(<AssaySubpanelsPage />, "assay.panel:view")} />
+            <Route path="/admin/assay-diagnoses" element={withAdminPermission(<AssayDiagnosesPage />, "assay.panel:view")} />
             <Route path="/admin/assay-setups" element={withRouteLoader(<AssaySetupPage />)} />
+            <Route path="/admin/configuration-profiles" element={withAdminPermission(<ConfigurationProfilesPage />, "assay.config:list")} />
             <Route path="/admin/asp/create" element={withRouteLoader(<AssaySetupPage />)} />
             <Route path="/admin/asp/:id/view" element={withRouteLoader(<AssayEditorPage mode="view" />)} />
             <Route path="/admin/asp/:id/edit" element={withRouteLoader(<AssayEditorPage mode="edit" />)} />

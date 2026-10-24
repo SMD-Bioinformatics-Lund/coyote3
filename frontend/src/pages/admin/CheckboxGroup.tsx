@@ -54,12 +54,12 @@ export function CheckboxGroup({
     if (next.length !== current.length) onChange(next)
   }, [allowed, dependent, disabled, field.options_from_field, formValues, onChange, value])
   if (!options.length) {
-    if (dependent) {
+    if (dependent || field.options_from_field) {
       return (
         <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
           {hasDependentValue
-            ? "No active options are available for the selected assay."
-            : "Select the assay to see the available options."}
+            ? "No options match the selected scope and inputs."
+            : "Select the related resource or inputs to see available options."}
         </div>
       )
     }

@@ -46,7 +46,7 @@ beforeEach(() => {
     updated_by: "author", content_editors: ["author"], review: {}, lifecycle: [] }
   workspace = { catalog: structuredClone(catalog), has_published: true, items: [version],
     sources: { asps: [{ asp_id: "assay", label: "Assay" }],
-      aspcs: [{ aspc_id: "assay_base", asp_id: "assay", subpanel_id: "base" }], gene_lists: [] },
+      aspcs: [{ aspc_id: "assay_base", asp_id: "assay", diagnosis_id: "base" }], gene_lists: [] },
     presets: { input_material: ["DNA", "RNA"], analysis: ["somatic", "germline"],
       sample_modes: ["Tumor-only"] },
     reviewers: [{ username: "reviewer", name: "Reviewer" }], publishers: [] }
@@ -155,7 +155,7 @@ describe("Public assay catalog governance", () => {
     await user.type(screen.getByLabelText("New input material"), "Custom material")
     await user.click(screen.getByRole("button", { name: "Add input material" }))
     expect(screen.getByRole("checkbox", { name: "Custom material" })).toBeChecked()
-    expect(within(screen.getByLabelText("Assay configuration")).getByRole("option", { name: "base" })).toBeVisible()
+    expect(within(screen.getByLabelText("Assay configuration")).getByRole("option", { name: /^base · / })).toBeVisible()
     expect(screen.queryByLabelText("Catalog identifier")).not.toBeInTheDocument()
   })
 

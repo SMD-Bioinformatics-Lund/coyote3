@@ -102,8 +102,8 @@ test("samples switch between live and reported records without a reload", async 
     if (path !== "/api/v1/samples") return
     return {
       json: {
-        live_samples: [{ name: "DNA_LIVE_001", case_id: "CASE_LIVE_001", environment: "production", asp_id: "hema_gmsv1", subpanel_id: "hem", ingest_status: "ready", data_counts: { snvs: 12 } }],
-        done_samples: [{ name: "DNA_REPORTED_001", case_id: "CASE_REPORTED_001", environment: "production", asp_id: "solid_gmsv3", subpanel_id: "colon", ingest_status: "ready", reported: true, data_counts: { snvs: 4 } }],
+        live_samples: [{ name: "DNA_LIVE_001", case_id: "CASE_LIVE_001", environment: "production", asp_id: "hema_gmsv1", diagnosis_id: "hem", ingest_status: "ready", data_counts: { snvs: 12 } }],
+        done_samples: [{ name: "DNA_REPORTED_001", case_id: "CASE_REPORTED_001", environment: "production", asp_id: "solid_gmsv3", diagnosis_id: "colon", ingest_status: "ready", reported: true, data_counts: { snvs: 4 } }],
       },
     }
   })

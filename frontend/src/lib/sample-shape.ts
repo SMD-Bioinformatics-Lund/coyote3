@@ -17,8 +17,8 @@ export function hasSampleFile(sample: any, key: string): boolean {
   return Boolean(sampleFilePath(sample, key))
 }
 
-export function sampleSubpanel(sample: any): string | undefined {
-  return sample?.subpanel_id || undefined
+export function sampleDiagnosis(sample: any): string | undefined {
+  return sample?.diagnosis_id || undefined
 }
 
 export function sampleReported(sample: any): boolean {

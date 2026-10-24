@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 const steps = [
   { name: "Assay", icon: Dna },
-  { name: "Scopes", icon: Layers },
+  { name: "Diagnoses", icon: Layers },
   { name: "Gene lists", icon: ListTree },
   { name: "Reporting rules", icon: FileCheck },
   { name: "Configurations", icon: Settings2 },

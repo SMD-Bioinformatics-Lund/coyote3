@@ -258,7 +258,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
                 <summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Report rule details</summary>
                 <p className="mt-2 break-words">
                   {ruleSource.rule_set_id} · v{ruleSource.content_version} · {ruleSource.language}
-                  {ruleSource.resolved_subpanel_id === "base" && ruleSource.requested_subpanel_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
+                  {ruleSource.resolved_diagnosis_id === "base" && ruleSource.requested_diagnosis_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
                 </p>
               </details>}
               </div>

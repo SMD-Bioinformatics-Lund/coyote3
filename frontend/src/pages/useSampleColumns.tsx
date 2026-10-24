@@ -5,7 +5,7 @@ import { valueBadgeClass } from "@/lib/badge-colors"
 import { fullDateTime } from "@/lib/detail-formatters"
 import { FILE_ANALYSIS_LABELS } from "@/lib/sample-artifact-ui"
 import { sampleDetailPath } from "@/lib/sample-routing"
-import { sampleSubpanel } from "@/lib/sample-shape"
+import { sampleDiagnosis } from "@/lib/sample-shape"
 import type { ColumnDef } from "@tanstack/react-table"
 import { FileText } from "lucide-react"
 import { useMemo } from "react"
@@ -76,10 +76,10 @@ export function useSampleColumns() {
       cell: ({ row }) => <span className="font-normal">{row.original.asp_id || "-"}</span>,
     },
     {
-      id: "subpanel",
-      header: "Subpanel",
-      accessorFn: (sample) => sampleSubpanel(sample) || "",
-      cell: ({ row }) => <span className="font-normal">{sampleSubpanel(row.original) || "-"}</span>,
+      id: "diagnosis",
+      header: "Diagnosis",
+      accessorFn: (sample) => sampleDiagnosis(sample) || "",
+      cell: ({ row }) => <span className="font-normal">{sampleDiagnosis(row.original) || "-"}</span>,
     },
     {
       id: "pipeline",
@@ -176,7 +176,7 @@ export function useSampleExportColumns(liveSamples: SampleListRow[], reportedSam
       { header: "Control Clarity", value: (sample) => sample.control?.clarity_id || "" },
       { header: "Profile", value: (sample) => sample.environment || "" },
       { header: "Assay", value: (sample) => sample.asp_id || "" },
-      { header: "Subpanel", value: (sample) => sampleSubpanel(sample) || "" },
+      { header: "Diagnosis", value: (sample) => sampleDiagnosis(sample) || "" },
       { header: "Pipeline", value: (sample) => sample.pipeline || "" },
       { header: "Pipeline version", value: (sample) => sample.pipeline_version ?? "" },
       { header: "Analysis status", value: (sample) => sample.ingest_status || "" },

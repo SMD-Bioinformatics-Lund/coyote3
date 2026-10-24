@@ -14,7 +14,7 @@ export function effectiveCatalogEntry(modality: Modality, key: string): Category
   }
   const fields = ["description", "subheading", "input_material", "sample_modes", "analysis",
     "report_sections", "clinical_indications", "tat", "limitations", "public_notes",
-    "asp_id", "aspc_id", "aspc_ids", "subpanel_id", "gene_lists", "no_gene_list"] as const
+    "asp_id", "aspc_id", "aspc_ids", "diagnosis_id", "gene_lists", "no_gene_list"] as const
   let result: Category = modality
   for (const node of path) {
     const inherited = Object.fromEntries(fields.filter((field) => !node.clear_fields?.includes(field)

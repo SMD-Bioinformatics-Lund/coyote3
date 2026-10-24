@@ -33,6 +33,15 @@ function renderWithQuery(ui: React.ReactNode) {
 }
 
 describe("finding detail cards", () => {
+  it("distinguishes reference tiers from the effective classification", () => {
+    renderWithQuery(<ClassificationsCard latest={{ class: 999 }} other={[
+      { class: 2, assay: "solid", diagnosis: "lung", effective: false, requires_retiering: true },
+    ]} />)
+    expect(screen.getByText("Not currently classified.")).toBeVisible()
+    expect(screen.getByText("solid · lung")).toBeVisible()
+    expect(screen.getByText(/Re-tier required/)).toBeVisible()
+    expect(screen.queryByText("Latest classification")).not.toBeInTheDocument()
+  })
   it("renders active comments and excludes hidden comments", () => {
     const { rerender } = renderWithQuery(<CommentsCard />)
     expect(screen.getByText("No comments available.")).toBeInTheDocument()

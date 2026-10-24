@@ -21,7 +21,7 @@ type SavedReportContext = {
   report_id: string
   report_name?: string | null
   asp_id?: string | null
-  subpanel_id?: string | null
+  diagnosis_id?: string | null
   environment?: string | null
   author?: string | null
   time_created?: string | null
@@ -140,7 +140,7 @@ export function SavedReportPage() {
                 <div>
                   <h2 className="text-base font-semibold">Reported findings</h2>
                   <p className="text-sm text-muted-foreground">
-                    {context.asp_id || "-"} / {context.subpanel_id || "-"} / {context.environment || "-"}
+                    {context.asp_id || "-"} / {context.diagnosis_id || "-"} / {context.environment || "-"}
                   </p>
                 </div>
                 <p className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">

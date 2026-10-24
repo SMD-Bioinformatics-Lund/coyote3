@@ -68,7 +68,7 @@ function visibleTabs(sample: any, context: any, modules?: any) {
     ))
   }
   const hasAnalysis = (...keys: string[]) => keys.some((key) => configured.has(key))
-  const omicsLayer = String(sample?.omics_layer || "").toLowerCase()
+  const omicsLayer = String(sample?.asp_category || "").toLowerCase()
   const analysisIntents = new Set(
     (Array.isArray(sample?.analysis_intents) ? sample.analysis_intents : ["somatic"])
       .map((intent: unknown) => String(intent).toLowerCase()),
@@ -78,7 +78,7 @@ function visibleTabs(sample: any, context: any, modules?: any) {
     if (["snvs", "germline-snvs", "cnvs", "translocations", "coverage"].includes(tab.id) && !moduleIsEnabled(modules, "dna_analysis")) return false
     if (["fusions", "rna-analysis"].includes(tab.id) && !moduleIsEnabled(modules, "rna_analysis")) return false
     if (tab.id === "coverage") {
-      const isDna = String(sample?.omics_layer || "").toLowerCase() === "dna"
+      const isDna = String(sample?.asp_category || "").toLowerCase() === "dna"
       const hasResource = hasSampleFile(sample, "cov") || hasSampleFile(sample, "coverage") || hasCount("cov") || hasCount("coverage")
       return isDna && hasResource && hasAnalysis("COVERAGE")
     }
@@ -131,7 +131,7 @@ export function SampleDetail() {
   const sample = data?.sample || {}
   const sampleRouteKey = sampleUrlKey(sample, id)
   const sampleReportType: "dna" | "rna" =
-    String(sample?.omics_layer || "").toLowerCase() === "rna" ? "rna" : "dna"
+    String(sample?.asp_category || "").toLowerCase() === "rna" ? "rna" : "dna"
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data, modulesQuery.data), [data, modulesQuery.data])
   const analysisLayout = analysisLayoutForUser(currentUserQuery.data)
   const modernViewTried = analysisModernViewTriedForUser(currentUserQuery.data)
@@ -179,11 +179,11 @@ export function SampleDetail() {
     && ["findings", "coverage"].includes(activeTab)
     && classicFilterSections.length > 0
   const showFilters = analysisLayout === "modern" && modernFilterTab
-  const suggestionPath = String(sample?.omics_layer || "").toLowerCase() === "rna"
+  const suggestionPath = String(sample?.asp_category || "").toLowerCase() === "rna"
     ? `/samples/${sampleRouteKey}/fusions/comment-suggestion`
     : `/samples/${sampleRouteKey}/small-variants/comment-suggestion`
   const commentSuggestion = useQuery({
-    queryKey: ["sample-comment-suggestion", sampleRouteKey, sample?.omics_layer, activeIntent],
+    queryKey: ["sample-comment-suggestion", sampleRouteKey, sample?.asp_category, activeIntent],
     queryFn: () => api.get(`${suggestionPath}?intent=${activeIntent}`).then((res) => res.data),
     enabled: false,
     staleTime: 60_000,

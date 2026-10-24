@@ -102,7 +102,7 @@ describe("public gene resources", () => {
       asp: { display_name: "Hematology GMSv1", asp_category: "dna", platform: "illumina", read_mode: "paired-end" },
       catalog: {
         title: "GMS-HEM", description: "<strong>Targeted</strong> hematology assay.", modality_label: "DNA",
-        family: "panel-dna", assay_group: "hematology", subpanel_id: "myeloid", input_material: ["DNA"],
+        family: "panel-dna", assay_group: "hematology", diagnosis_id: "myeloid", input_material: ["DNA"],
         sample_modes: ["tumor-normal"], tat: "21 days", analysis: ["SNV", "CNV"], report_sections: ["Somatic"],
         clinical_indications: ["AML"], limitations: "Validated regions only", public_notes: "Clinical use",
         gene_lists: [{ key: "myeloid", label: "Myeloid", tat: "21 days", analysis: ["SNV"], sample_modes: ["tumor-normal"] }],

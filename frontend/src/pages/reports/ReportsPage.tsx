@@ -20,7 +20,7 @@ type ReportLibraryItem = {
   report_name?: string | null
   sample_id: string
   asp_id?: string | null
-  subpanel_id?: string | null
+  diagnosis_id?: string | null
   environment?: string | null
   author?: string | null
   time_created?: string | null
@@ -107,11 +107,11 @@ export function ReportsPage() {
     {
       id: "assay",
       header: "Assay",
-      accessorFn: (row) => [row.asp_id, row.subpanel_id, row.environment].filter(Boolean).join(" / "),
+      accessorFn: (row) => [row.asp_id, row.diagnosis_id, row.environment].filter(Boolean).join(" / "),
       cell: ({ row }) => (
         <div className="space-y-0.5">
           <p className="type-table-cell text-foreground">
-            {[row.original.asp_id, row.original.subpanel_id].filter(Boolean).join(" / ") || "-"}
+            {[row.original.asp_id, row.original.diagnosis_id].filter(Boolean).join(" / ") || "-"}
           </p>
           {row.original.environment ? (
             <p className="type-label capitalize text-muted-foreground">{row.original.environment}</p>

@@ -20,7 +20,7 @@ export function SettingsCard({ title, tone: _tone, children, className = "" }: {
 }
 
 function targetOptions(sample: any) {
-  const omics = String(sample?.omics_layer || "").toLowerCase()
+  const omics = String(sample?.asp_category || "").toLowerCase()
   return omics === "rna"
     ? [{ value: "fusion", label: "Fusion lists" }]
     : [

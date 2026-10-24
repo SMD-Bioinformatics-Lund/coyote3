@@ -84,7 +84,7 @@ function sampleContext(overrides: Record<string, unknown> = {}) {
       asp_id: "hema_gmsv1",
       environment: "production",
       ingest_status: "ready",
-      omics_layer: "dna",
+      asp_category: "dna",
       analysis_intents: ["somatic", "germline"],
       data_counts: { snvs: 12, cnvs: 3, cov: true },
       ...overrides,
@@ -204,7 +204,7 @@ describe("SampleDetail", () => {
     mocks.context = {
       sample: {
         name: "RNA_001",
-        omics_layer: "rna",
+        asp_category: "rna",
         analysis_intents: ["somatic"],
         data_counts: { fusions: 4 },
       },
@@ -222,7 +222,7 @@ describe("SampleDetail", () => {
     mocks.context = {
       sample: {
         name: "RNA_001",
-        omics_layer: "rna",
+        asp_category: "rna",
         analysis_intents: ["somatic"],
         data_counts: { fusions: 4 },
       },
@@ -238,7 +238,7 @@ describe("SampleDetail", () => {
     mocks.context = {
       sample: {
         name: "WTS_001",
-        omics_layer: "rna",
+        asp_category: "rna",
         analysis_intents: ["somatic"],
         data_counts: { fusions: 4, rna_expression: true, rna_classification: true },
       },
@@ -255,7 +255,7 @@ describe("SampleDetail", () => {
     mocks.context = {
       sample: {
         name: "RNA_PANEL_001",
-        omics_layer: "rna",
+        asp_category: "rna",
         data_counts: { fusions: 2, rna_expression: true, rna_classification: true },
       },
       analysis_sections: ["FUSION"],
@@ -269,7 +269,7 @@ describe("SampleDetail", () => {
     mocks.context = {
       sample: {
         name: "WTS_001",
-        omics_layer: "rna",
+        asp_category: "rna",
         data_counts: { rna_expression: true, rna_classification: true },
       },
       analysis_sections: ["EXPRESSION", "CLASSIFICATION"],

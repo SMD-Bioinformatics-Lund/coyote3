@@ -24,6 +24,13 @@ export function routeErrorState(route: UiRouteAudit): string {
 
 export const uiRouteRegistry: UiRouteAudit[] = [
   {
+    path: "/admin/configuration-profiles",
+    page: "ConfigurationProfilesPage",
+    area: "admin",
+    api: ["GET /resources/configuration-profiles", "POST /resources/configuration-profiles", "POST /resources/configuration-profiles/{identity}/publish", "GET /resources/configuration-promotions", "POST /resources/configuration-promotions", "POST /resources/configuration-promotions/{identity}/approve"],
+    dataUsed: ["immutable source revisions", "reviewed candidate content", "validation evidence", "publication provenance"],
+  },
+  {
     path: "/admin/query-rules/testing",
     page: "QueryRuleTestingPage",
     area: "admin",
@@ -44,7 +51,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     area: "admin",
     api: ["GET /admin/assay-catalog", "GET /admin/assay-catalog/versions/{oid}",
       "GET /admin/assay-catalog/versions/{oid}/revisions", "POST /admin/assay-catalog/drafts",
-      "POST /admin/assay-catalog/imports", "POST /admin/assay-catalog/preview", "POST /admin/assay-catalog/preview/matrix", "PATCH /admin/assay-catalog/drafts/{oid}",
+      "POST /admin/assay-catalog/imports", "POST /admin/assay-catalog/preview", "POST /admin/assay-catalog/preview/offerings", "POST /admin/assay-catalog/preview/matrix", "PATCH /admin/assay-catalog/drafts/{oid}",
       "POST /admin/assay-catalog/drafts/{oid}/submit", "POST /admin/assay-catalog/drafts/{oid}/review",
       "POST /admin/assay-catalog/drafts/{oid}/publish", "DELETE /admin/assay-catalog/versions/{identifier}"],
     dataUsed: ["center-owned public catalog metadata", "modality JSON exports"],
@@ -98,7 +105,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     page: "Samples",
     area: "clinical",
     api: ["GET /samples"],
-    dataUsed: ["live_samples", "sample identity", "profile", "assay", "subpanel", "ingest_status", "time_added"],
+    dataUsed: ["live_samples", "sample identity", "profile", "assay", "diagnosis", "ingest_status", "time_added"],
   },
   {
     path: "/samples/:id",
@@ -114,6 +121,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /samples/:id/coverage",
       "POST /samples/:id/comments",
       "PUT /samples/:id/filters",
+      "GET /samples/:id/aspc/preview",
+      "POST /samples/:id/aspc/apply-latest",
     ],
     dataUsed: ["sample", "assay_config", "filters", "display_sections_data", "comments", "coverage payload", "report previews"],
   },
@@ -128,7 +137,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/samples/:id/cnv/:varId",
     page: "CNVDetail",
     area: "clinical",
-    api: ["GET /samples/:id/cnvs/:varId", "GET /public/filter-flags/metadata"],
+    api: ["GET /samples/:id/cnvs/:varId", "GET /public/filter-flags/metadata", "PATCH /samples/:id/classifications/tier"],
     dataUsed: ["cnv", "genes", "classifications", "artefact frequencies", "comments"],
   },
   {
@@ -142,7 +151,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/samples/:id/translocation/:varId",
     page: "TranslocationDetail",
     area: "clinical",
-    api: ["GET /samples/:id/translocations/:varId", "PATCH /samples/:id/translocations/:varId/selected-transcript"],
+    api: ["GET /samples/:id/translocations/:varId", "PATCH /samples/:id/translocations/:varId/selected-transcript", "PATCH /samples/:id/classifications/tier"],
     dataUsed: ["translocation", "genes", "breakpoints", "classifications", "comments"],
   },
   {
@@ -191,14 +200,14 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/public",
     page: "PublicCatalog",
     area: "public",
-    api: ["GET /public/assay-catalog/context", "GET /public/assay-catalog/genes.csv/context"],
+    api: ["GET /public/assay-catalog/offerings"],
     dataUsed: ["catalog panels", "gene list rows", "public navigation"],
   },
   {
     path: "/public/catalog",
     page: "PublicCatalog",
     area: "public",
-    api: ["GET /public/assay-catalog/context", "GET /public/assay-catalog/genes.csv/context"],
+    api: ["GET /public/assay-catalog/offerings"],
     dataUsed: ["catalog panels", "gene list rows", "download CSV payload"],
   },
   {
@@ -285,14 +294,14 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/asp/:id/edit",
     page: "AssayEditorPage",
     area: "admin",
-    api: ["GET /resources/asp/:id/context","PUT /resources/asp/:id","GET /resources/asp/{assay_panel_id}/subpanels","PATCH /resources/asp/{assay_panel_id}/subpanels/{subpanel_id}/status"],
+    api: ["GET /resources/asp/:id/context","PUT /resources/asp/:id","GET /resources/asp/{assay_panel_id}/diagnoses","PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
     dataUsed: ["form schema","record values","validation endpoints"],
   },
   {
     path: "/admin/asp/:id/view",
     page: "AssayEditorPage",
     area: "admin",
-    api: ["GET /resources/asp/:id/context","GET /resources/asp/{assay_panel_id}/subpanels"],
+    api: ["GET /resources/asp/:id/context","GET /resources/asp/{assay_panel_id}/diagnoses"],
     dataUsed: ["form schema","record values","validation endpoints"],
   },
   {
@@ -485,17 +494,17 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["group identifiers", "display metadata", "system ownership"],
   },
   {
-    path: "/admin/subpanels",
-    page: "SubpanelDefinitionsPage",
+    path: "/admin/diagnoses",
+    page: "DiagnosisDefinitionsPage",
     area: "admin",
-    api: ["GET /resources/asp", "GET /resources/subpanels", "POST /resources/subpanels", "PUT /resources/subpanels/{subpanel_id}"],
-    dataUsed: ["assay choices", "subpanel definitions", "revision and availability"],
+    api: ["GET /resources/asp", "GET /resources/diagnoses", "POST /resources/diagnoses", "PUT /resources/diagnoses/{diagnosis_id}"],
+    dataUsed: ["assay choices", "diagnosis definitions", "revision and availability"],
   },
   {
-    path: "/admin/assay-subpanels",
-    page: "AssaySubpanelsPage",
+    path: "/admin/assay-diagnoses",
+    page: "AssayDiagnosesPage",
     area: "admin",
-    api: ["GET /resources/asp", "GET /resources/asp/{assay_panel_id}/subpanels", "PATCH /resources/asp/{assay_panel_id}/subpanels/{subpanel_id}/status"],
+    api: ["GET /resources/asp", "GET /resources/asp/{assay_panel_id}/diagnoses", "PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
     dataUsed: ["assay choices", "shared definitions", "independent association status"],
   },
 
