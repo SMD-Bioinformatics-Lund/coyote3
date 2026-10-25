@@ -365,6 +365,11 @@ Coyote3 is developed and maintained by the bioinformatics team at the
 **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with
 clinical users and platform maintainers.
 
+Contributors:
+
+- Sailedra Pradhananga
+- Viktor Henmry
+
 The application uses the [COYOTE3 Free-Use Source-Available License 1.0](LICENSE.txt).
 Free use includes institutional and commercial use; protected code modifications
 and redistribution require written authorization as specified in the license.

@@ -2,6 +2,11 @@ Coyote3
 Copyright © 2026 Ram Nanduri. All rights reserved.
 
 Original developer: Ram Nanduri
+
+Contributors:
+- Sailedra Pradhananga
+- Viktor Henmry
+
 Affiliated organization: Section for Molecular Diagnostics, Lund,
 Region Skåne, Sweden
 
