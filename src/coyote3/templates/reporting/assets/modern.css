@@ -62,17 +62,18 @@ body thead { display: table-header-group; }
 body span.report_header { break-after: avoid; }
 body p, body li { orphans: 3; widows: 3; }
 .report-brand-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  display: table; width: 100%; table-layout: fixed; border-spacing: 0;
   padding-bottom: 20px; margin-bottom: 24px; border-bottom: 2px solid #d8ba8b;
   break-inside: avoid;
 }
-.report-product-brand { display: flex; align-items: center; gap: 12px; flex: 0 0 45%; }
+.report-product-brand { display: table-cell; width: 50%; vertical-align: middle; }
+.report-product-brand > div { display: inline-block; margin-left: 12px; vertical-align: middle; }
 .report-product-brand strong { display: block; color: #664678; font-size: 13pt; letter-spacing: .12em; white-space: nowrap; }
 .report-product-brand span { display: block; color: #716879; font-size: 8pt; }
-.report-coyote-logo { width: 72px; height: 48px; flex: 0 0 72px; object-fit: contain; }
-.report-center-brand { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex: 0 0 48%; max-width: 48%; }
-.report-center-brand span { width: 190px; max-width: 190px; color: #64556c; font-size: 8pt; line-height: 1.4; }
-.report-center-logo { width: 58px; height: 54px; flex: 0 0 58px; object-fit: contain; }
+.report-coyote-logo { width: 72px; height: 48px; vertical-align: middle; object-fit: contain; }
+.report-center-brand { display: table-cell; width: 50%; vertical-align: middle; text-align: right; }
+.report-center-brand span { display: block; max-width: 190px; margin-left: auto; color: #64556c; font-size: 8pt; line-height: 1.4; }
+.report-center-logo { display: block; width: 58px; height: 54px; margin: 0 0 6px auto; object-fit: contain; }
 .report-coyote-logo, .report-center-logo { color-scheme: light; }
 .report-metadata { margin: 4px 0 16px; padding: 6px 12px; background: #faf8fb; border: 1px solid #e4dce9; border-radius: 4px; }
 .report-metadata dl { margin: 0; }
@@ -87,7 +88,7 @@ body p, body li { orphans: 3; widows: 3; }
   body .page { margin: 0; padding: 22px 16px; }
   body td, body th { padding: 6px; }
   .report-metadata-field { width: 100%; padding-right: 0; }
-  .report-brand-header { gap: 12px; }
+  .report-product-brand > div { display: block; margin: 4px 0 0; }
   .report-center-brand span { max-width: 110px; }
 }
 @media print {

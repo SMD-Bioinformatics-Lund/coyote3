@@ -41,16 +41,24 @@ def test_center_can_select_a_local_logo_or_omit_it(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "template_name,layout", [("dna_report.html", "modern"), ("modern/dna_report.html", None)]
+    "template_name,layout,analyte",
+    [
+        ("dna_report.html", "modern", "dna"),
+        ("modern/dna_report.html", None, "dna"),
+        ("report_fusion.html", "modern", "rna"),
+        ("modern/report_fusion.html", None, "rna"),
+    ],
 )
-def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(template_name, layout):
+def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
+    template_name, layout, analyte
+):
     html = branding.render_branded_report_html(
         config={},
         layout=layout,
         organization_name="SYNTHETIC CENTER",
         generated_by="Synthetic reviewer",
         template_name=template_name,
-        analyte="dna",
+        analyte=analyte,
         preview=True,
         snapshot_rows=[],
         template_context={
@@ -63,10 +71,27 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(temp
     )
     assert html.count('src="data:image/svg+xml;base64,') == 2
     assert 'class="report-metadata"' in html and "<dl>" in html
-    assert "SYNTHETIC_CASE" in html and "SYNTHETIC CENTER" in html
+    assert ("SYNTHETIC_CASE" if analyte == "dna" else "SYNTHETIC_REPORT") in html
+    assert "SYNTHETIC CENTER" in html
     assert "Synthetic reviewer" in html
     document = HTML(string=html).render()
     assert len(document.pages) <= 2
+    first_page = document.pages[0]._page_box
+    center = next(
+        box
+        for box in first_page.descendants()
+        if box.element is not None and box.element.get("class") == "report-center-brand"
+    )
+    logo = next(box for box in center.descendants() if isinstance(box, ReplacedBox))
+    center_name = [box for box in center.descendants() if isinstance(box, TextBox)]
+    assert logo.border_box_x() + logo.width == pytest.approx(
+        first_page.content_box_x() + first_page.width, abs=1
+    )
+    assert center_name
+    assert min(box.position_y for box in center_name) >= logo.position_y + logo.height
+    assert max(box.position_x + box.width for box in center_name) == pytest.approx(
+        logo.border_box_x() + logo.width, abs=1
+    )
     for page in document.pages:
         bounds = page._page_box
         for box in bounds.descendants():
