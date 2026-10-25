@@ -27,6 +27,57 @@ from scripts.upgrade_from_v3.clinical_documents import (
     validate_document,
 )
 
+RELATED_COLLECTIONS = frozenset(
+    {
+        "cnvs",
+        "translocations",
+        "biomarkers",
+        "fusions",
+        "d4_coverage",
+        "rna_expression",
+        "rna_qc",
+        "rna_classification",
+    }
+)
+
+
+def selected_collections(version: int, stage: str, collections: set[str] | None) -> set[str] | None:
+    """Validate an explicit findings selection or the default related-data stage.
+
+    Args:
+        version: Legacy source major version.
+        stage: Complete, findings, samples or related migration stage.
+        collections: Optional canonical collection names; None selects stage defaults.
+
+    Returns:
+        Selected canonical findings, or None for an unrestricted complete/findings bundle.
+
+    Raises:
+        ValueError: Selection is empty, unsupported, or incompatible with the stage/source.
+    """
+    if version not in SAMPLE_COLLECTIONS or stage not in {
+        "findings",
+        "samples",
+        "related",
+        "complete",
+    }:
+        raise ValueError("Unsupported source version or sample migration stage")
+    supported = set(SAMPLE_COLLECTIONS[version].values()) - {"reported_variants"}
+    supported.update({"rna_expression", "rna_qc", "rna_classification"})
+    if version == 3:
+        supported.add("d4_coverage")
+    if collections is not None:
+        if stage not in {"findings", "related"} or not collections or collections - supported:
+            raise ValueError("Select supported collections only with findings or related stages")
+        if stage == "related" and "variants" in collections:
+            raise ValueError("Small variants belong to the findings stage")
+        return set(collections)
+    if stage == "related":
+        return supported & RELATED_COLLECTIONS
+    if stage == "samples":
+        return set()
+    return None
+
 
 def supplement(source: dict, review: dict | None) -> dict:
     """Add reviewed missing fields, bound to the exact original record digest.
@@ -416,11 +467,13 @@ def annotation_selected(document: dict, version: int) -> bool:
     return hematology if version == 3 else not hematology
 
 
-def _embedded_rna(sample: dict) -> dict[str, list[dict]]:
+def _embedded_rna(sample: dict, collections: set[str] | None = None) -> dict[str, list[dict]]:
     """Extract recorded RNA measurements without creating or averaging measurements.
 
     Args:
         sample: Prepared sample copy; embedded RNA payloads are removed in place.
+        collections: Selected canonical collections, or None to extract all RNA payloads.
+            Unselected payloads are removed only from the copy without validation.
 
     Returns:
         Current RNA collections with deterministic IDs for formerly embedded records.
@@ -436,6 +489,8 @@ def _embedded_rna(sample: dict) -> dict[str, list[dict]]:
         ("QC", "rna_qc"),
     ):
         payload = sample.pop(field, None)
+        if collections is not None and collection not in collections:
+            continue
         if payload in (None, {}, []):
             continue
         if field == "QC":
@@ -465,8 +520,9 @@ def sample_plan(
     stage: str = "complete",
     assay_id: str | None = None,
     assay_field: str | None = None,
+    collections: set[str] | None = None,
 ) -> dict[str, list[dict]]:
-    """Build one complete sample bundle, preserving related histories and snapshot links.
+    """Build one sample's selected migration stage with original ownership and history.
 
     Args:
         source: Prepared read-only export index of the selected major version.
@@ -474,18 +530,21 @@ def sample_plan(
         review: Mapping with sample, records, and optional coverage reconciliation.
         vep: Optional shared historical reference used for linked annotations and
             consistent vault records. None retains original sample-only VEP evidence.
-        stage: Complete bundle, findings before sample insertion, or samples/history only.
+        stage: Complete, findings, samples/history only, or related data after samples.
         assay_id: Optional operator-selected lowercase ASP identifier.
         assay_field: Explicit source field used to select the assay.
+        collections: Optional canonical findings to convert independently of other types.
 
     Returns:
-        Validated destination collections, including referenced clinical annotations.
+        Validated destination collections for the selected stage. Complete bundles
+        also validate referenced clinical annotations and saved report links.
 
     Raises:
         ValueError: A clinical dependency is missing, ambiguous, or not reconciled.
     """
-    if stage not in {"complete", "findings", "samples"}:
+    if stage not in {"complete", "findings", "samples", "related"}:
         raise ValueError("Unsupported sample migration stage")
+    selected = selected_collections(source.version, stage, collections)
     original = source.get("samples", sample_id)
     sample, metadata = prepare_sample(original, review.get("sample", {}))
     if assay_id is not None:
@@ -493,15 +552,21 @@ def sample_plan(
             raise ValueError("Assay selection requires the explicit source field")
         sample = prepare_scope(sample, metadata, assay_id=assay_id, field=assay_field)
     documents = {"samples": [sample]}
-    documents.update(_embedded_rna(sample))
+    documents.update(_embedded_rna(sample, selected))
     if stage == "samples":
         plan = build_plan({"samples": [sample]}, {sample_id: metadata})
         return plan
-    coverage = d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
+    coverage = (
+        d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
+        if selected is None or "d4_coverage" in selected
+        else []
+    )
     if coverage:
         documents["d4_coverage"] = coverage
     for physical, canonical in SAMPLE_COLLECTIONS[source.version].items():
-        if stage == "findings" and canonical == "reported_variants":
+        if stage in {"findings", "related"} and canonical == "reported_variants":
+            continue
+        if selected is not None and canonical not in selected:
             continue
         documents[canonical] = []
         for row in source.rows(physical, sample_id):
@@ -552,7 +617,7 @@ def sample_plan(
             and str(snapshot["sample_comment_oid"]) not in comments
         ):
             raise ValueError("Saved finding references an absent sample comment")
-    if stage == "findings":
+    if stage in {"findings", "related"}:
         for name in ("samples", "sample_comments", "reports"):
             plan.pop(name, None)
     return plan

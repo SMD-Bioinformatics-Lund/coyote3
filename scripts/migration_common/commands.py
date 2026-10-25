@@ -14,7 +14,13 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
-from scripts.migration_common.conversion import independent_plan, sample_plan, supplement
+from scripts.migration_common.conversion import (
+    RELATED_COLLECTIONS,
+    independent_plan,
+    sample_plan,
+    selected_collections,
+    supplement,
+)
 from scripts.migration_common.offline import (
     SOURCE_COLLECTIONS,
     RecordConversionError,
@@ -197,6 +203,7 @@ def sample_bundles(
     assay_id: str | None = None,
     assay_field: str | None = None,
     stage: str = "complete",
+    collections: set[str] | None = None,
 ) -> dict:
     """Build all sample-related collections in bounded per-sample bundles.
 
@@ -211,7 +218,8 @@ def sample_bundles(
             None converts all samples; empty or repeated selections are rejected.
         assay_id: Optional single supported assay, checked against its source version.
         assay_field: Exact historical field containing the assay identifier.
-        stage: Complete, findings, or samples-only conversion for the selected assay.
+        stage: Complete, findings, samples-only or related-data conversion.
+        collections: Optional canonical findings selected independently by collection.
 
     Returns:
         Completion manifest including aggregate collection counts and per-sample results.
@@ -220,6 +228,7 @@ def sample_bundles(
         RecordConversionError: A sample or related record cannot be reconciled.
         FileExistsError: The output already exists.
     """
+    selected_collections(source.version, stage, collections)
     if sample_ids is not None and (
         not isinstance(sample_ids, list)
         or not sample_ids
@@ -252,6 +261,7 @@ def sample_bundles(
                 stage=stage,
                 assay_id=assay_id,
                 assay_field=assay_field,
+                collections=collections,
             )
             validate_plan_scope(catalog, plan)
             folder = output / f"{number:06d}"
@@ -321,9 +331,15 @@ def run(version: int, operation: str) -> int:
         parser.add_argument("--assay-field", choices=("group", "assay", "asp_id"))
         parser.add_argument(
             "--stage",
-            choices=("findings", "samples", "complete"),
+            choices=("findings", "samples", "related", "complete"),
             default="complete",
-            help="Prepare findings first, samples/history second, complete snapshots last",
+            help="Prepare variants, samples, related data, then complete saved snapshots",
+        )
+        parser.add_argument(
+            "--collection",
+            action="append",
+            choices=sorted(RELATED_COLLECTIONS | {"variants"}),
+            help="Repeat to convert selected collections with findings/related stages",
         )
         parser.add_argument(
             "--sample-ids-file",
@@ -429,6 +445,7 @@ def run(version: int, operation: str) -> int:
                 stage=args.stage,
                 assay_id=args.assay_id.lower() if args.assay_id else None,
                 assay_field=args.assay_field,
+                selected_collections=sorted(set(args.collection)) if args.collection else None,
             )
             manifest = sample_bundles(
                 source,
@@ -441,6 +458,7 @@ def run(version: int, operation: str) -> int:
                 assay_id=args.assay_id,
                 assay_field=args.assay_field,
                 stage=args.stage,
+                collections=set(args.collection) if args.collection else None,
             )
             provenance["batch_counts"] = manifest["counts"]
             print(json.dumps(manifest["counts"]))
