@@ -97,8 +97,8 @@ describe("Assays page", () => {
       "href",
       "/admin/assay-setups?setup=new",
     );
-    expect(within(row).getByTitle("Edit")).toHaveAttribute("href", "/admin/asp/demo_dna/edit");
-    expect(within(row).getByTitle("Toggle active")).toBeEnabled();
+    expect(within(row).queryByTitle("Edit")).not.toBeInTheDocument();
+    expect(within(row).queryByTitle("Toggle active")).not.toBeInTheDocument();
     expect(within(row).queryByTitle("Delete")).not.toBeInTheDocument();
     const customRow = screen.getByText("demo_rna").closest("tr")!;
     expect(within(customRow).getByTitle("Delete")).toBeEnabled();

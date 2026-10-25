@@ -37,12 +37,15 @@ def test_finding_repositories_translate_invalid_ids_before_querying(repository_t
     collection.find_one.assert_not_called()
 
 
-def test_sample_replacement_restores_nested_ids_without_mutating_application_values():
+def test_sample_replacement_restores_nested_ids_without_mutating_application_values(monkeypatch):
     """Persistence retains BSON IDs and the existing version precondition after conversion."""
     collection = mongomock.MongoClient().app.samples
     sample_id = ObjectId("000000000000000000000001")
     nested_id = ObjectId("000000000000000000000002")
-    collection.insert_one({"_id": sample_id, "version": 3})
+    collection.insert_one({"_id": sample_id, "version": 3, "created_by": "original.author"})
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.samples.current_username", lambda default="": "editor"
+    )
     repository = SampleRepository(SimpleNamespace(samples_collection=collection))
     replacement = {
         "_id": sample_id,
@@ -57,6 +60,9 @@ def test_sample_replacement_restores_nested_ids_without_mutating_application_val
     assert collection.find_one({"_id": sample_id}) == {
         "_id": sample_id,
         "version": 4,
+        "created_by": "original.author",
+        "updated_by": "editor",
+        "system_installed": False,
         "nested": [{"_id": nested_id, "value": None}],
     }
     with pytest.raises(AppError) as failure:

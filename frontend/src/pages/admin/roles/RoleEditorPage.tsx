@@ -12,7 +12,7 @@ import {
 import { resource as spec } from "./resource"
 
 export function RoleEditorPage({ mode }: { mode: AdminFormMode }) {
-  const state = useAdminEditor({ spec, mode, documentKey: "role", requestBodyKey: "form_data", protectIdentity: true, copyIdentityKey: "name" })
+  const state = useAdminEditor({ spec, mode, documentKey: "role", requestBodyKey: "form_data", copyIdentityKey: "name" })
   const { effectiveMode, form, values, setValues, saveMutation, editorError, setEditorError, navigate } = state
   return (
     <PageShell eyebrow="Admin" title={(effectiveMode === "create" ? "Create " : effectiveMode === "view" ? "View " : "Edit ") + spec.title} description={spec.description} actions={<AdminEditorActions state={state} spec={spec} mode={mode} />}>

@@ -507,8 +507,8 @@ class ClinPgxPublicRepository(BaseRepository):
                         UpdateOne(
                             {"symbol": symbol},
                             {
-                                "$set": doc,
-                                "$setOnInsert": {"created_on": now},
+                                "$set": {**doc, "updated_by": "system"},
+                                "$setOnInsert": {"created_on": now, "created_by": "system"},
                             },
                             upsert=True,
                         )

@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
+from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
 from coyote3.application.reporting.clinical_rules.validation import (
@@ -609,6 +610,7 @@ class ClinicalRuleAuthoringService:
         changes = payload.model_dump(exclude={"revision"}, exclude_none=True, mode="python")
         changes.update({"updated_at": _now(), "updated_by": actor, "content_hash": None})
         candidate = self._document(document_id).model_dump(mode="python", by_alias=True)
+        reject_system_managed_change(candidate, resource="reporting rule")
         candidate.update({**deepcopy(changes), "revision": payload.revision + 1})
         ClinicalRuleSetDoc.model_validate(candidate)
         updated = self.repository.update_draft(
@@ -629,6 +631,7 @@ class ClinicalRuleAuthoringService:
     def delete_draft(self, document_id: str, *, expected_revision: int, actor: str) -> None:
         """Discard a pre-publication version while preserving released versions and audit."""
         document = self._document(document_id)
+        reject_system_managed_change(document.model_dump(), resource="reporting rule")
         if (
             document.status
             not in {
@@ -719,6 +722,10 @@ class ClinicalRuleAuthoringService:
             AppError: With status 409 when the conditional transition is refused.
         """
         now = _now()
+        stored = self.repository.get(document_id)
+        if stored is None:
+            raise api_error(404, "Clinical rule-set version was not found")
+        reject_system_managed_change(stored, resource="reporting rule")
         changes = {"status": status.value, "updated_at": now, **(extra or {})}
         event = {
             "action": status.value,
@@ -761,6 +768,7 @@ class ClinicalRuleAuthoringService:
         """
         document = self._document(document_id)
         validation = validate_rule_set(document, require_tests=True)
+        reject_system_managed_change(document.model_dump(), resource="clinical rule set")
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
         now = _now()
@@ -915,6 +923,7 @@ class ClinicalRuleAuthoringService:
         validation = validate_rule_set(document, require_tests=True)
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
+        reject_system_managed_change(document.model_dump(), resource="clinical rule set")
         if not document.review.clinical_reviewer:
             raise api_error(409, "Clinical approval is required before publication")
         if document.review.clinical_reviewer == document.updated_by:

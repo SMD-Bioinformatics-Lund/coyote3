@@ -67,6 +67,8 @@ class SampleCommentsRepository(BaseRepository):
         comment["sample_name"] = sample.get("name")
         comment.setdefault("hidden", 0)
         comment.setdefault("time_created", utc_now())
+        comment["created_by"] = current_username("") or comment.get("author")
+        comment["updated_by"] = comment["created_by"]
         self.get_collection().insert_one(comment)
         return comment_oid
 
@@ -85,6 +87,7 @@ class SampleCommentsRepository(BaseRepository):
             Hiding records the current username and UTC time. No match is a no-op.
         """
         update = {
+            "updated_by": current_username("") or None,
             "hidden": 1 if hidden else 0,
             "hidden_by": current_username() if hidden else None,
             "time_hidden": utc_now() if hidden else None,

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom"
 import { Power } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { RecordProvenance } from "./RecordProvenance"
-import type { RecordProvenanceData } from "./record-provenance"
 import { StatusBadge } from "./resource-list"
 import { DataTable } from "@/components/data-table/DataTable"
 import { TableBadge } from "@/components/ui/table-badge"
@@ -11,12 +10,15 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
-export type DiagnosisDefinition = RecordProvenanceData & {
+export type DiagnosisDefinition = {
   diagnosis_id: string
   display_name: string
   description: string
   is_active: boolean
   version: number
+  created_by?: string | null
+  updated_by: string
+  system_installed?: boolean
   associated_asp_ids?: string[]
 }
 type Association = DiagnosisDefinition & { definition_is_active: boolean }
@@ -61,11 +63,12 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
         { accessorKey: "display_name", header: "Diagnosis", cell: ({ row }) => <div className="max-w-80 break-words"><Link className="font-semibold text-primary underline-offset-4 hover:underline" to={`/admin/diagnoses?diagnosis=${encodeURIComponent(row.original.diagnosis_id)}`}>{row.original.display_name}</Link><div className="type-meta text-muted-foreground">{row.original.diagnosis_id}</div></div> },
         { accessorKey: "definition_is_active", header: "Shared status", cell: ({ row }) => <TableBadge className={row.original.definition_is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.definition_is_active ? "Available" : "Globally retired"}</TableBadge> },
         { accessorKey: "is_active", header: "Assay status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
-        { id: "record_provenance", header: "Installed by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+        { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
+        { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <span className="break-words">{row.original.updated_by}</span> },
         { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
           const association = row.original
           const active = association.is_active
-          return <Button variant="ghost" size="icon" className="text-validation" title={active ? "Deactivate association" : "Activate association"} aria-label={`${active ? "Deactivate" : "Activate"} ${association.display_name} for ${aspId}`} disabled={!canEdit || mutation.isPending || (!association.definition_is_active && !active)} onClick={() => mutation.mutate(association)}><Power className="h-4 w-4" aria-hidden="true" /></Button>
+          return <Button variant="ghost" size="icon" className="text-validation" title={active ? "Deactivate association" : "Activate association"} aria-label={`${active ? "Deactivate" : "Activate"} ${association.display_name} for ${aspId}`} disabled={!canEdit || association.system_installed || mutation.isPending || (!association.definition_is_active && !active)} onClick={() => mutation.mutate(association)}><Power className="h-4 w-4" aria-hidden="true" /></Button>
         } },
       ]}
     />}

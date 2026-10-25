@@ -83,7 +83,7 @@ def test_installed_germline_rules_are_group_scoped():
     assert not CLINICAL_QUERY_POLICY.snv.exceptions
     for row in rows:
         assert row["system_installed"] and row["version"] == row["revision"] == 1
-        assert row["created_by"] == row["updated_by"] == row["published_by"] == "installer"
+        assert row["created_by"] == row["updated_by"] == row["published_by"] == "system"
         assert not row.get("approved_by")
         assert all(set(e) == {"id", "mode", "condition"} for e in row["content"]["exceptions"])
 

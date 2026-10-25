@@ -25,6 +25,7 @@ from api.infra.mongo.repository_utils import generate_sample_cache_key
 from api.infra.mongo.transactions import run_transaction
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
 from coyote3.application.common.execution_context import current_username
+from coyote3.application.common.record_attribution import attribute_record
 from coyote3.contracts.operations import OperationResult
 from coyote3.contracts.schemas.samples import SampleAspcResolutionDoc
 from coyote3.domain.common.errors import api_error
@@ -616,7 +617,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         Raises:
             AppError: The sample is absent or its operation version changed.
         """
-        update = {"filters": filters}
+        update = {"filters": filters, "updated_by": current_username("") or None}
         if isinstance(aspc, dict):
             update["current_aspc_id"] = aspc.get("_id")
             update["current_aspc_name"] = aspc.get("display_name") or aspc["aspc_id"]
@@ -665,7 +666,16 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         Update sample document
         """
         expected_version = sample_doc["version"]
-        replacement = restore_object_ids({**sample_doc, "version": expected_version + 1})
+        previous = self.get_collection().find_one({"_id": sample_id, "version": expected_version})
+        if previous is None:
+            raise api_error(409, "Sample changed. Reload the sample before saving metadata.")
+        replacement = restore_object_ids(
+            attribute_record(
+                {**sample_doc, "version": expected_version + 1},
+                actor=current_username("") or sample_doc.get("updated_by"),
+                previous=previous,
+            )
+        )
         result = self.get_collection().replace_one(
             {"_id": sample_id, "version": expected_version}, replacement
         )

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.public.offering_snapshots import build_offering_snapshot
 from coyote3.application.public.published_catalog_views import (
     publication_context,
@@ -418,6 +419,7 @@ class PublicAssayCatalogManagementService:
             AppError: With status 404 for absence or 409 for stale revision/state.
         """
         doc = self.document(oid)
+        reject_system_managed_change(doc, resource="public assay catalog")
         if doc["revision"] != revision or doc["status"] != status:
             raise api_error(409, "Catalog state changed. Reload this version before continuing.")
         return doc
@@ -743,6 +745,7 @@ class PublicAssayCatalogManagementService:
         Raises:
             AppError: The version was published, changed, or does not exist.
         """
+        reject_system_managed_change(self.document(identifier), resource="public assay catalog")
         deleted = self.versions.delete_unpublished(identifier, revision, actor)
         if deleted is None:
             raise api_error(409, "Only an unchanged unpublished catalog version can be deleted")

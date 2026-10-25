@@ -9,7 +9,7 @@ const access = vi.hoisted(() => ({ permissions: ["assay.panel:list", "assay.pane
 vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof import("@/lib/access-control")>(), useCurrentUserAccess: () => ({ data: access, isLoading: false }) }))
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
-const row = { diagnosis_id: "myeloid", display_name: "Myeloid", description: "", is_active: true, version: 2, associated_asp_ids: ["panel-a"] }
+const row = { diagnosis_id: "myeloid", display_name: "Myeloid", description: "", is_active: true, version: 2, created_by: "original.creator", updated_by: "definition.editor", associated_asp_ids: ["panel-a"] }
 beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["assay.panel:list", "assay.panel:view", "assay.panel:edit"]
@@ -22,6 +22,13 @@ beforeEach(() => {
 function mount() {
   return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><DiagnosisDefinitionsPage /></QueryClientProvider></MemoryRouter>)
 }
+it("shows the recorded revision actor without claiming installer identity", async () => {
+  mount()
+  expect(await screen.findByRole("cell", { name: "definition.editor" })).toBeVisible()
+  expect(screen.getByRole("columnheader", { name: /Updated by/ })).toBeVisible()
+  expect(screen.queryByText("Unknown")).not.toBeInTheDocument()
+  expect(screen.queryByRole("columnheader", { name: "Installed by" })).not.toBeInTheDocument()
+})
 it("creates one definition with multiple selected assays", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "Create diagnosis" }))

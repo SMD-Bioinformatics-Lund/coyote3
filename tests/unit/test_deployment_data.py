@@ -112,9 +112,7 @@ def test_repository_preserves_records_captures_policy_revisions_and_audits(monke
     assert {row["action"] for row in application.query_rule_revisions.find()} == {
         "baseline_captured"
     }
-    assert {row["created_by"] for row in application.query_rule_sets.find()} == {
-        "authenticated.admin"
-    }
+    assert {row["created_by"] for row in application.query_rule_sets.find()} == {"system"}
     assert {row["source"] for row in knowledgebase.versions.find()} == {
         "vep_metadata",
         "vep_diagrams",
@@ -228,7 +226,7 @@ def test_first_installation_defaults_to_all_modules_and_system_provenance(fresh_
     assert application.query_rule_sets.count_documents({}) == 6
     assert databases["knowledgebase"].hgnc_genes.count_documents({}) == 1
     assert loader.call_args.kwargs["actor"] == "system"
-    demo.install_starter.assert_called_once_with("system", created_by="system")
+    demo.install_starter.assert_called_once_with("system")
 
 
 def test_existing_accounts_prevent_unauthenticated_additions_even_to_empty_modules(
@@ -350,7 +348,7 @@ def test_force_identity_repairs_grants_without_touching_users(monkeypatch):
     role = client.identity.roles.find_one({"role_id": "admin"})
     assert set(role["permissions"]) == {"center:extra", "bundled:grant"}
     assert role["is_active"] is False
-    assert role["updated_by"] == "authenticated.admin"
+    assert role["updated_by"] == "system"
     assert client.identity.roles.find_one({"role_id": "center"})["permissions"] == [
         "center:private"
     ]
@@ -411,7 +409,7 @@ def test_force_application_preserves_center_scopes_and_query_history(monkeypatch
     )
     assert len(history.list_for_version(str(retained[0]["_id"]))) == 2
     assert retained[1]["created_by"] == "system"
-    assert retained[1]["updated_by"] == "maintenance.admin"
+    assert retained[1]["updated_by"] == "system"
     assert (
         client.primary.assay_groups.find_one({"group_id": "center_only"})["display_name"] == "Keep"
     )

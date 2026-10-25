@@ -206,6 +206,7 @@ class ConfigurationProfileRepository(BaseRepository):
                         "status": "published",
                         "is_current": True,
                         "published_by": actor,
+                        "updated_by": actor,
                         "published_on": timestamp,
                     }
                 },

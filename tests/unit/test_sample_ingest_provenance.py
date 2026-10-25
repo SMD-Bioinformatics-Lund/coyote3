@@ -32,9 +32,14 @@ def test_sample_import_replaces_forged_actor_without_mutating_input():
     assert attribute_sample_import("samples", document, "operator") == {
         "ingested_by": "operator",
         "ingest_source": "collection_import",
+        "created_by": "operator",
+        "updated_by": "operator",
+        "system_installed": False,
     }
     assert document["ingested_by"] == "forged"
-    assert attribute_sample_import("variants", document, "operator") is document
+    variant = attribute_sample_import("variants", document, "operator")
+    assert variant["created_by"] == variant["updated_by"] == "operator"
+    assert variant is not document
 
 
 @pytest.mark.parametrize("existing", [None, {}, {"ingested_by": "first", "ingest_source": "api"}])

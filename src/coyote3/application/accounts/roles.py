@@ -140,6 +140,7 @@ class RoleManagementService:
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
         role["system_managed"] = False
+        role["system_installed"] = False
         role["role_id"] = role_id
         existing_role = self.roles_repository.get_role(role_id)
         if isinstance(existing_role, dict) and (
@@ -186,12 +187,13 @@ class RoleManagementService:
         existing_created_on = role.get("created_on")
         updated_role["updated_by"] = actor
         updated_role["updated_on"] = now
-        updated_role["created_by"] = existing_created_by or actor
+        updated_role["created_by"] = existing_created_by
         updated_role["created_on"] = existing_created_on or now
         updated_role["is_active"] = bool(role.get("is_active", True))
         updated_role["version"] = role.get("version", 1) + 1
         updated_role["role_id"] = role.get("role_id", role_id)
         updated_role["system_managed"] = bool(role.get("system_managed"))
+        updated_role["system_installed"] = bool(role.get("system_installed"))
         updated_role.pop("_id", None)
         try:
             updated_role = normalize_collection_document(self._spec.collection, updated_role)

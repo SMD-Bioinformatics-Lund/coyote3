@@ -61,6 +61,10 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
 
       <div className="grid gap-3 xl:grid-cols-5">
         <SettingsCard title="Sample Meta" tone="border-t-yellow-400" className="xl:col-span-1">
+          <dl className="mb-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 type-meta">
+            <dt className="text-muted-foreground">Created by</dt><dd className="break-words">{sample?.created_by || "Unknown"}</dd>
+            <dt className="text-muted-foreground">Updated by</dt><dd className="break-words">{sample?.updated_by || "Unknown"}</dd>
+          </dl>
           <div className="flex flex-wrap gap-2">
             {sample?.asp_category && <StatusPill tone="blue">{String(sample.asp_category).toUpperCase()}</StatusPill>}
             {sample?.platform && <StatusPill tone="green">{sample.platform}</StatusPill>}

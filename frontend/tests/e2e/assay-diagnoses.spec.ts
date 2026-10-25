@@ -9,7 +9,7 @@ for (const { width, theme } of [
 ]) {
   test(`shared definition and assay association pages at ${width}px in ${theme}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 })
-    const definitions: { diagnosis_id: string; display_name: string; description: string; is_active: boolean; version: number }[] = []
+    const definitions: { diagnosis_id: string; display_name: string; description: string; is_active: boolean; version: number; updated_by: string }[] = []
     let active = true
     await installApiFixtures(page, (path, _url, route) => {
       if (path === "/api/v1/auth/whoami") return { json: {
@@ -21,10 +21,10 @@ for (const { width, theme } of [
         if (route.request().method() === "POST") {
           const { asp_ids, ...definition } = route.request().postDataJSON()
           expect(asp_ids).toEqual(["assay_1"])
-          definitions.push({ ...definition, version: 1 })
+          definitions.push({ ...definition, version: 1, updated_by: "demo" })
           return { status: 201, json: {} }
         }
-        return { json: { diagnoses: [...definitions, { diagnosis_id: "unassociated", display_name: "Unassociated scope", description: "", is_active: true, version: 1 }] } }
+        return { json: { diagnoses: [...definitions, { diagnosis_id: "unassociated", display_name: "Unassociated scope", description: "", is_active: true, version: 1, updated_by: "demo" }] } }
       }
       if (path === "/api/v1/resources/asp/assay_1/diagnoses") return { json: { diagnoses: definitions.map((row) => ({ ...row, is_active: active, definition_is_active: true })) } }
       if (path.endsWith("/myeloid-review/status")) {

@@ -5,7 +5,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from coyote3.application.resources import asp, isgl
+from coyote3.application.resources import asp, aspc, isgl
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.mark.parametrize("resource", ["asp", "isgl"])
@@ -36,11 +37,50 @@ def test_creation_overrides_submitted_provenance(monkeypatch, resource):
         monkeypatch.setattr(service, "_validate_asp_scope", lambda config: None)
         monkeypatch.setattr(service, "_validate_diagnoses", lambda config: None)
         config = {"isgl_id": "demo_genes"}
-    config.update(created_by="forged_actor", created_on="forged_time", system_managed=True)
+    config.update(
+        created_by="forged_actor",
+        created_on="forged_time",
+        system_managed=True,
+        system_installed=True,
+    )
     service.create(payload={"config": config}, actor_username="request_actor")
     stored = create.call_args.args[0]
     assert stored["created_by"] == "authenticated_actor"
     assert stored["created_on"] == "server_time"
     assert stored["system_managed"] is False
+    assert stored["system_installed"] is False
     if resource == "asp":
         assert stored["asp_category"] == "rna"
+
+
+@pytest.mark.parametrize("resource", ["asp", "aspc", "isgl"])
+def test_installed_resource_status_cannot_be_changed(resource):
+    """Direct service calls cannot bypass the UI's installed-record lock."""
+    record = {"system_installed": True, "is_active": True}
+    repository = Mock()
+    if resource == "asp":
+        repository.get_asp.return_value = record
+        service = asp.AspService(assay_panel_repository=repository)
+        arguments = {"panel_id": "synthetic"}
+    elif resource == "aspc":
+        repository.get_aspc_with_id.return_value = record
+        service = aspc.AspcService(
+            assay_configuration_repository=repository,
+            assay_panel_repository=Mock(),
+            gene_list_repository=Mock(),
+            vep_metadata_repository=Mock(),
+            assay_diagnosis_repository=Mock(),
+        )
+        arguments = {"assay_id": "synthetic"}
+    else:
+        repository.get_isgl.return_value = record
+        service = isgl.IsglService(
+            gene_list_repository=repository,
+            assay_panel_repository=Mock(),
+            assay_diagnosis_repository=Mock(),
+        )
+        arguments = {"genelist_id": "synthetic"}
+    with pytest.raises(AppError) as error:
+        service.toggle(**arguments)
+    assert error.value.status_code == 409
+    assert len(repository.method_calls) == 1

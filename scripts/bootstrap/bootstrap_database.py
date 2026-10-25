@@ -278,7 +278,7 @@ def _install_initial_data(databases: dict, seed: dict, args: argparse.Namespace)
 
         result = build_demo_service(
             databases["primary"], databases["knowledgebase"]
-        ).install_starter("system", created_by="system")
+        ).install_starter("system")
         print(f"[{result['status']}] demo")
 
 

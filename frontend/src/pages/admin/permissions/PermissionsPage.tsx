@@ -27,7 +27,7 @@ export function PermissionsPage() {
         cellClassName: field === "permissions" ? "min-w-64" : undefined,
       },
     })),
-    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <AdminRowActions state={state} spec={spec} row={row.original} protectIdentity /> },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <AdminRowActions state={state} spec={spec} row={row.original} /> },
   ]
   return (
     <PageShell eyebrow="Admin" title={spec.title} description={spec.description} actions={<>

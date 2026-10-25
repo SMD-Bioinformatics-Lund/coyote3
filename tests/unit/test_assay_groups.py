@@ -141,9 +141,12 @@ def test_assay_cannot_select_unregistered_scope(registry):
     assert error.value.status_code == 422
 
 
-def test_system_group_status_changes_preserve_children_and_seed_reinstallation(registry):
+def test_custom_group_status_changes_preserve_children(registry):
     db, repository, panels = registry
     install(db, actor="operator", apply=True)
+    db.assay_groups.update_one(
+        {"group_id": "hematology"}, {"$set": {"system_managed": False, "system_installed": False}}
+    )
     db.assay_specific_panels.insert_many(
         [
             {"asp_id": "active", "asp_group": "hematology", "is_active": True},
@@ -169,7 +172,7 @@ def test_system_group_status_changes_preserve_children_and_seed_reinstallation(r
     assert list(db.assay_specific_panels.find()) == before
     install(db, actor="operator", apply=True)
     assert repository.get("hematology")["is_active"] is False
-    assert repository.get("hematology")["system_managed"] is True
+    assert repository.get("hematology")["system_managed"] is False
     assert repository.get("hematology")["updated_by"] == "admin"
     with pytest.raises(AppError) as error:
         service.change_status(

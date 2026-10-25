@@ -73,26 +73,15 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
 }
 
 export function SystemRecordNotice({ state }: { state: AdminEditorState }) {
-  const { systemPermission, systemManaged } = state
+  const { systemPermission } = state
   return <>
     {systemPermission && (
       <section className="surface-panel flex items-start gap-3 p-3">
         <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div>
-          <h2 className="text-sm font-semibold">System-installed identity record</h2>
-          <p className="text-xs text-muted-foreground">
-            This record is maintained by Coyote3 installation tools. Administrative edits, deactivation, and deletion are disabled. Account passwords use the dedicated password workflow.
-          </p>
-        </div>
-      </section>
-    )}
-    {systemManaged && !systemPermission && (
-      <section className="surface-panel flex items-start gap-3 p-3">
-        <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-        <div>
           <h2 className="text-sm font-semibold">System-installed record</h2>
           <p className="text-xs text-muted-foreground">
-            This record is installed with Coyote3 and cannot be deleted. Authorized users may edit it or deactivate it through the normal managed workflow.
+            This record is maintained by Coyote3 installation tools. Administrative edits, deactivation, and deletion are disabled. Account passwords use the dedicated password workflow.
           </p>
         </div>
       </section>

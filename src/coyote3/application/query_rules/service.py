@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Literal
 
+from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.query_rules.compilation import resolved_policy_snapshot
 from coyote3.config.clinical_query_policy import (
     CLINICAL_QUERY_POLICY,
@@ -538,6 +539,7 @@ class QueryRuleService:
         current = self.repository.get(identifier)
         if not current:
             raise api_error(404, "Query rule version not found")
+        reject_system_managed_change(current, resource="query rule")
         if current["scope_key"] != payload.scope.key():
             raise api_error(422, "An existing rule version cannot change scope")
         values = payload.model_dump(exclude={"expected_revision", "scope"})
@@ -570,6 +572,7 @@ class QueryRuleService:
         if not current:
             raise api_error(404, "Query rule version not found")
         QueryRuleDoc.model_validate(current)
+        reject_system_managed_change(current, resource="query rule")
         if action != "retire":
             self.validate_scope(QueryRuleScope.model_validate(current["scope"]))
             self.resolve(
@@ -630,6 +633,10 @@ class QueryRuleService:
         Returns:
             Deleted version; published and retired versions cannot be deleted.
         """
+        current = self.repository.get(identifier)
+        if current is None:
+            raise api_error(404, "Query rule version not found")
+        reject_system_managed_change(current, resource="query rule")
         return self.repository.delete_draft(
             identifier, payload.expected_revision, actor, payload.reason
         )

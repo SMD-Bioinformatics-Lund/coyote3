@@ -84,6 +84,7 @@ class SetupWorkspace:
         doc.update(
             is_active=True,
             system_managed=False,
+            system_installed=False,
             version=1,
             created_by=self.actor,
             updated_by=self.actor,

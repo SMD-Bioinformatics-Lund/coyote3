@@ -232,7 +232,10 @@ def _insert_batch(collection: Collection, batch: list[dict[str, Any]]) -> int:
         PyMongoError: Insertion fails; some documents may already have been written.
         TypeError: The batch is empty.
     """
-    collection.insert_many(batch, ordered=False)
+    collection.insert_many(
+        [{**document, "created_by": "system", "updated_by": "system"} for document in batch],
+        ordered=False,
+    )
     return len(batch)
 
 
@@ -355,6 +358,8 @@ def publish_release(
         "import_cpus": cpus,
         "collections": [],
         **(extra_metadata or {}),
+        "created_by": "system",
+        "updated_by": "system",
     }
     releases.replace_one({"_id": release_id}, manifest, upsert=True)
 

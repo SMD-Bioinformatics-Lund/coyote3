@@ -321,21 +321,21 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
         for document in documents:
             for field in ("created_by", "updated_by"):
                 if field in document:
-                    assert document[field] == actor, (collection, field)
+                    assert document[field] == "system", (collection, field)
             if collection in managed:
                 assert document["system_managed"] is True
                 assert document["version"] == 1
             if collection in {"diagnoses", "diagnosis_associations"}:
                 assert document["version"] == 1
-                assert document["updated_by"] == actor
+                assert document["updated_by"] == "system"
 
     for original, document in zip(original_rules, payload["clinical_rule_sets"], strict=True):
         assert document["content_version"] == document["revision"] == 1
-        assert document["published_by"] == actor
+        assert document["published_by"] == "system"
         assert document["published_at"] == document["created_at"]
-        assert document["review"]["submitted_by"] == actor
-        assert document["review"]["clinical_reviewer"] == actor
-        assert all(event["actor"] == actor for event in document["lifecycle"])
+        assert document["review"]["submitted_by"] == "system"
+        assert document["review"]["clinical_reviewer"] == "system"
+        assert all(event["actor"] == "system" for event in document["lifecycle"])
         model = ClinicalRuleSetDoc.model_validate(document)
         assert document["content_hash"] == original["content_hash"] == content_hash(model)
         assert validate_rule_set(model).valid

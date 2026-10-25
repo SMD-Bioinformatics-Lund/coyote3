@@ -8,6 +8,7 @@ from pydantic import Field, field_validator
 
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote3.contracts.schemas.base import (
+    _CollectionDocBase,
     _DocBase,
     _FindingDocBase,
     _StrictDocBase,
@@ -205,7 +206,7 @@ class ExpressionReferenceEntryDoc(_DocBase):
         return cleaned
 
 
-class RnaExpressionDoc(_DocBase):
+class RnaExpressionDoc(_CollectionDocBase):
     """Sample and reference gene-expression entries tied to an expression version."""
 
     sample: list[ExpressionSampleEntryDoc]
@@ -237,7 +238,7 @@ class ClassifierResultDoc(_DocBase):
         return self
 
 
-class RnaClassificationDoc(_DocBase):
+class RnaClassificationDoc(_CollectionDocBase):
     """Sample classifier results tied to the classifier version."""
 
     classifier_results: list[ClassifierResultDoc]
@@ -245,7 +246,7 @@ class RnaClassificationDoc(_DocBase):
     SAMPLE_ID: str
 
 
-class RnaQcDoc(_DocBase):
+class RnaQcDoc(_CollectionDocBase):
     """RNA alignment, splicing, gene-body coverage, and provider-genotype metrics."""
 
     tot_reads: int

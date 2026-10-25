@@ -49,7 +49,7 @@ class DemoInstallationService:
         self.identifier_factory = identifier_factory
 
     def configuration(self, actor: str) -> dict[str, list[dict[str, Any]]]:
-        """Validate packaged configuration and attach installer identity and current timestamps.
+        """Validate packaged configuration and attach system attribution and current timestamps.
 
         Args:
             actor: Authenticated operator username, or preview for a read-only plan.
@@ -77,9 +77,8 @@ class DemoInstallationService:
                     else self.identifier_factory(None)
                 )
                 row["system_installed"] = True
-                for field in ("created_by", "updated_by"):
-                    if field in row:
-                        row[field] = actor
+                row["created_by"] = "system"
+                row["updated_by"] = "system"
                 for field in ("created_on", "updated_on", "created_at", "updated_at"):
                     if field in row:
                         row[field] = now
@@ -123,15 +122,12 @@ class DemoInstallationService:
         """Return allowlisted positive manifests; negative fixtures cannot be installed."""
         return {path.stem: path for path in sorted((self.bundle / "manifests").glob("*.yaml"))}
 
-    def install_starter(
-        self, actor: str, *, force: bool = False, created_by: str | None = None
-    ) -> dict[str, Any]:
+    def install_starter(self, actor: str, *, force: bool = False) -> dict[str, Any]:
         """Install connected starter configuration and ingest DNA and RNA samples.
 
         Args:
             actor: Authenticated operator recorded in installation and ingest audits.
             force: Repair missing packaged configuration and refresh unreviewed system samples.
-            created_by: Creation identity for automated deployment data; None uses actor.
 
         Returns:
             Sample installation status. A retry resumes ingest after committed configuration.
@@ -139,17 +135,13 @@ class DemoInstallationService:
         Raises:
             AppError: A configuration identity conflicts or normal ingest fails.
         """
-        creator = created_by or actor
-        documents = self.configuration(creator)
+        documents = self.configuration(actor)
         if not self.repository.configuration_installed(documents, require_packaged=True):
             if force:
                 self.repository.repair_configuration(documents, actor)
             else:
                 self.repository.install(documents, actor)
-        results = [
-            self.install_sample(key, actor, force=force, created_by=creator)
-            for key in STARTER_SAMPLES
-        ]
+        results = [self.install_sample(key, actor, force=force) for key in STARTER_SAMPLES]
         return {
             "status": "already_installed"
             if all(row["status"] == "already_installed" for row in results)
@@ -200,16 +192,13 @@ class DemoInstallationService:
         self.repository.install(self.configuration(actor), actor)
         return {"status": "installed"}
 
-    def install_sample(
-        self, key: str, actor: str, *, force: bool = False, created_by: str | None = None
-    ) -> dict[str, Any]:
+    def install_sample(self, key: str, actor: str, *, force: bool = False) -> dict[str, Any]:
         """Ingest one allowlisted synthetic sample through the normal transactional parser.
 
         Args:
             key: Manifest key from the installation plan, never a filesystem path.
-            actor: Authenticated installer username for ingest provenance.
+            actor: Authenticated operator authorizing installation; records use system attribution.
             force: Reingest an unreviewed system-owned starter sample; preserve all other samples.
-            created_by: Initial submitter for automated deployment data; None uses actor.
 
         Returns:
             Installed or already_installed; existing samples are never updated.
@@ -248,7 +237,7 @@ class DemoInstallationService:
         self.ingest.ingest_sample_bundle(
             payload,
             allow_update=bool(existing),
-            ingested_by=created_by or actor,
+            ingested_by="system",
             ingest_source="api",
         )
         return {"status": "installed"}

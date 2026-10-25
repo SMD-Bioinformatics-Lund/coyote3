@@ -52,9 +52,7 @@ class DeploymentDataService:
             if module not in modules:
                 continue
             if module == "demo":
-                results["demo"] = self.demo.install_starter(
-                    user.username, force=force, created_by="system"
-                )["status"]
+                results["demo"] = self.demo.install_starter(user.username, force=force)["status"]
                 continue
             if not force and not self.repository.pending(module):
                 results.update(self.repository.skipped(module))

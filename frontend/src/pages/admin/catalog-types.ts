@@ -38,6 +38,7 @@ export type Catalog = {
 export type Version = {
   _id: string; revision: number; base_version: number; content_version: number | null
   status: "draft" | "submitted" | "approved" | "rejected" | "published"
+  system_installed?: boolean
   catalog: Catalog; created_by: string; updated_by: string; content_editors: string[]
   review: { reviewer?: string; publisher?: string; reviewer_reason?: string }
   lifecycle: { action: string; actor: string; occurred_at: string; reason?: string }[]

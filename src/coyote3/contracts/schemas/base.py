@@ -42,7 +42,21 @@ class _StrictDocBase(_DocBase):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-class _FindingDocBase(_DocBase):
+class _CollectionDocBase(_DocBase):
+    """Persisted record attribution assigned by trusted application workflows.
+
+    Null actors represent missing historical evidence, never an inferred user.
+    Creation attribution is retained when a record is revised.
+    Absent attribution defaults are omitted on serialization so reading historical
+    records does not change their persisted shape or immutable snapshot digests.
+    """
+
+    created_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    updated_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    system_installed: bool = Field(default=False, exclude_if=lambda value: not value)
+
+
+class _FindingDocBase(_CollectionDocBase):
     """Finding document base that prevents embedded comment persistence."""
 
     @model_validator(mode="before")
@@ -63,7 +77,9 @@ class _FindingDocBase(_DocBase):
         return normalized
 
 
-class _StrictCollectionDocBase(_StrictDocBase):
+class _StrictCollectionDocBase(_CollectionDocBase):
     """Strict base for top-level MongoDB collection documents."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     id_: Any | None = Field(default=None, alias="_id")

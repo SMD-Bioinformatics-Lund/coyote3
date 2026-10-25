@@ -288,8 +288,12 @@ class OncoKbPublicCacheRepository(BaseRepository):
             result = self.gene_collection.update_one(
                 {"gene": gene},
                 {
-                    "$set": update_fields,
-                    "$setOnInsert": {"gene": gene, "created_on": payload["created_on"]},
+                    "$set": {**update_fields, "updated_by": "system"},
+                    "$setOnInsert": {
+                        "gene": gene,
+                        "created_on": payload["created_on"],
+                        "created_by": "system",
+                    },
                 },
                 upsert=True,
                 session=session,
@@ -376,8 +380,12 @@ class OncoKbPublicCacheRepository(BaseRepository):
             result = self.cancer_gene_collection.update_one(
                 {"gene": gene},
                 {
-                    "$set": update_fields,
-                    "$setOnInsert": {"gene": gene, "created_on": payload["created_on"]},
+                    "$set": {**update_fields, "updated_by": "system"},
+                    "$setOnInsert": {
+                        "gene": gene,
+                        "created_on": payload["created_on"],
+                        "created_by": "system",
+                    },
                 },
                 upsert=True,
                 session=session,

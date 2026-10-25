@@ -7,6 +7,7 @@ from typing import Any
 import yaml  # type: ignore[import-untyped]
 
 from coyote3.application.common.protected_records import reject_system_managed_change
+from coyote3.application.common.record_attribution import attribute_record
 from coyote3.application.ingest.helpers import (
     _validate_yaml_manifest_minimum_fields,
     normalize_null_placeholders,
@@ -81,13 +82,12 @@ def upsert_collection_document(
     """
     if not isinstance(match, dict) or not match:
         raise ValueError("match must be a non-empty object")
-    if collection in {"users", "roles", "permissions"}:
-        existing = service.collection_gateway.find_document(collection, match, session=session)
-        if isinstance(existing, dict):
-            reject_system_managed_change(existing, resource=collection)
+    existing = service.collection_gateway.find_document(collection, match, session=session)
+    if isinstance(existing, dict):
+        reject_system_managed_change(existing, resource=collection)
+    document = attribute_record(document, actor=ingested_by, previous=existing)
     if collection == "samples":
-        existing = service.collection_gateway.find_document(collection, match, session=session)
-        document = attribute_sample_import(collection, document, ingested_by)
+        document = {**document, "ingested_by": ingested_by, "ingest_source": "collection_import"}
         if existing is not None:
             for field in ("ingested_by", "ingest_source"):
                 document[field] = existing.get(field)
@@ -105,16 +105,17 @@ def upsert_collection_document(
 def attribute_sample_import(
     collection: str, document: dict[str, Any], actor: str | None
 ) -> dict[str, Any]:
-    """Assign trusted initial attribution to a sample imported through collection APIs.
+    """Assign trusted record actors and initial sample attribution for collection imports.
 
     Args:
-        collection: Logical collection being imported; other collections are unchanged.
+        collection: Logical collection being imported.
         document: Client-supplied document, which is never mutated.
         actor: Authenticated submitter or None when no identity was recorded.
 
     Returns:
-        A sample copy with server-owned attribution, or the original non-sample document.
+        A copy with server-owned actors; samples also receive initial ingest attribution.
     """
+    document = attribute_record(document, actor=actor)
     if collection != "samples":
         return document
     return {**document, "ingested_by": actor, "ingest_source": "collection_import"}

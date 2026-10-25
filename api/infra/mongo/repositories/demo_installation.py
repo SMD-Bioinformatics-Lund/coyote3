@@ -207,7 +207,15 @@ class DemoInstallationRepository:
                             "reason": "Packaged synthetic demonstration catalog baseline",
                         }
                     ]
-                    live.insert_one(row["catalog"], session=session)
+                    live.insert_one(
+                        {
+                            **row["catalog"],
+                            "created_by": "system",
+                            "updated_by": "system",
+                            "system_installed": True,
+                        },
+                        session=session,
+                    )
             for name, rows in documents.items():
                 self.database[self.mapping[IDENTITIES[name][0]]].insert_many(rows, session=session)
             now = datetime.now(timezone.utc)

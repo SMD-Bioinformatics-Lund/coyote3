@@ -8,10 +8,10 @@ from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from coyote3.contracts.schemas.base import _DocBase
+from coyote3.contracts.schemas.base import _CollectionDocBase, _DocBase
 
 
-class BrcaExchangeDoc(_DocBase):
+class BrcaExchangeDoc(_CollectionDocBase):
     """BRCA Exchange alleles, ENIGMA interpretation, and retained source metadata."""
 
     id: str
@@ -101,7 +101,7 @@ class BrcaExchangeDoc(_DocBase):
         return v
 
 
-class CivicGenesDoc(_DocBase):
+class CivicGenesDoc(_CollectionDocBase):
     """CIViC gene record with review timestamp, aliases, and source identifiers."""
 
     gene_id: int
@@ -203,7 +203,7 @@ class CivicGenesDoc(_DocBase):
         return v
 
 
-class CivicVariantsDoc(_DocBase):
+class CivicVariantsDoc(_CollectionDocBase):
     """CIViC variant or fusion record with coordinates, HGVS, and review metadata."""
 
     variant_id: int
@@ -413,7 +413,7 @@ class CivicVariantsDoc(_DocBase):
         return v
 
 
-class CosmicDoc(_DocBase):
+class CosmicDoc(_CollectionDocBase):
     """COSMIC variant interval with named occurrence counts."""
 
     id: str
@@ -486,14 +486,14 @@ class CosmicDoc(_DocBase):
         return v
 
 
-class CosmicProductDoc(_DocBase):
+class CosmicProductDoc(_CollectionDocBase):
     """Common contract for a source-faithful non-variant COSMIC product record."""
 
     record_key: str
     source_row: int
 
 
-class KnowledgebaseReleaseDoc(_DocBase):
+class KnowledgebaseReleaseDoc(_CollectionDocBase):
     """Provenance and publication state for one imported knowledgebase snapshot."""
 
     source: str
@@ -517,7 +517,7 @@ class HgncAdditionalTranscriptInfoDoc(_DocBase):
     start_site: int
 
 
-class HgncGenesDoc(_DocBase):
+class HgncGenesDoc(_CollectionDocBase):
     """HGNC gene nomenclature with genomic, cross-reference, and transcript metadata."""
 
     hgnc_id: str
@@ -571,7 +571,7 @@ class HgncGenesDoc(_DocBase):
     )
 
 
-class HpaExprDoc(_DocBase):
+class HpaExprDoc(_CollectionDocBase):
     """Tissue expression values associated with an HPA transcript identifier."""
 
     tid: str
@@ -601,7 +601,7 @@ class HpaExprDoc(_DocBase):
         return v
 
 
-class IarcTp53Doc(_DocBase):
+class IarcTp53Doc(_CollectionDocBase):
     """TP53 variant evidence with functional annotations and cohort counts."""
 
     id: int
@@ -671,7 +671,7 @@ class IarcTp53Doc(_DocBase):
         return int(v)
 
 
-class ManeSelectDoc(_DocBase):
+class ManeSelectDoc(_CollectionDocBase):
     """Gene mapping between Ensembl and RefSeq MANE transcript identifiers."""
 
     gene: str
@@ -714,7 +714,7 @@ class ManeSelectDoc(_DocBase):
         return v
 
 
-class OncoKbActionableDoc(_DocBase):
+class OncoKbActionableDoc(_CollectionDocBase):
     """OncoKB alteration evidence with drug, cancer-type, and evidence-level fields."""
 
     RefSeq: str
@@ -750,14 +750,14 @@ class OncoKbActionableDoc(_DocBase):
         return int(v)
 
 
-class OncoKbGenesDoc(_DocBase):
+class OncoKbGenesDoc(_CollectionDocBase):
     """OncoKB gene name and descriptive text."""
 
     name: str
     description: str
 
 
-class OncoKbPublicDoc(_DocBase):
+class OncoKbPublicDoc(_CollectionDocBase):
     """Sample-independent public OncoKB query cache with provenance and response data."""
 
     query_hash: str
@@ -788,7 +788,7 @@ class OncoKbPublicDoc(_DocBase):
         return value
 
 
-class OncoKbGenesPublicDoc(_DocBase):
+class OncoKbGenesPublicDoc(_CollectionDocBase):
     """Public OncoKB gene summary, identifiers, aliases, and assembly-specific isoforms."""
 
     gene: str
@@ -813,7 +813,7 @@ class OncoKbGenesPublicDoc(_DocBase):
     alias_symbols: list[str] = Field(default_factory=list)
 
 
-class OncoKbCancerGenesPublicDoc(_DocBase):
+class OncoKbCancerGenesPublicDoc(_CollectionDocBase):
     """Public OncoKB cancer-gene list record from /utils/cancerGeneList."""
 
     gene: str
@@ -840,7 +840,7 @@ class OncoKbCancerGenesPublicDoc(_DocBase):
     grch38_isoform: str | None = None
 
 
-class ClinPgxGenesPublicDoc(_DocBase):
+class ClinPgxGenesPublicDoc(_CollectionDocBase):
     """Public ClinPGx gene cache record imported from genes.tsv."""
 
     pharmgkb_accession_id: str

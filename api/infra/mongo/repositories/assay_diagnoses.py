@@ -69,6 +69,8 @@ class AssayDiagnosisRepository(BaseRepository):
                     "diagnosis_id": definition["diagnosis_id"],
                     "is_active": definition["is_active"],
                     "updated_by": definition["updated_by"],
+                    "created_by": definition["updated_by"],
+                    "system_installed": definition.get("system_installed", False),
                     "updated_on": definition["updated_on"],
                 },
             )
@@ -284,6 +286,7 @@ class AssayDiagnosisRepository(BaseRepository):
                         "diagnosis_id": diagnosis_id,
                         "is_active": document["is_active"],
                         "updated_by": document["updated_by"],
+                        "created_by": document["updated_by"],
                         "updated_on": document["updated_on"],
                     },
                 )

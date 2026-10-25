@@ -7,11 +7,19 @@ import { MemoryRouter } from "react-router-dom"
 
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
-const row = { diagnosis_id: "myeloid", display_name: "Myeloid", description: "", is_active: true, definition_is_active: true, version: 2 }
+const row = { diagnosis_id: "myeloid", display_name: "Myeloid", description: "", is_active: true, definition_is_active: true, version: 2, created_by: "original.creator", updated_by: "association.editor" }
 function mount(canEdit = true) {
   return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AssayDiagnoses aspId="panel-a" canEdit={canEdit} /></QueryClientProvider></MemoryRouter>)
 }
 describe("Assay associations", () => {
+  it("shows the association revision actor even for a system-installed association", async () => {
+    vi.mocked(api.get).mockResolvedValue({ status: 200, data: { diagnoses: [{ ...row, system_installed: true }] } })
+    mount()
+    expect(await screen.findByRole("cell", { name: "association.editor" })).toBeVisible()
+    expect(screen.getByRole("columnheader", { name: /Updated by/ })).toBeVisible()
+    expect(screen.queryByText("Unknown")).not.toBeInTheDocument()
+    expect(screen.queryByRole("columnheader", { name: "Installed by" })).not.toBeInTheDocument()
+  })
   beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(api.get).mockResolvedValue({ status: 200, data: { diagnoses: [row] } })

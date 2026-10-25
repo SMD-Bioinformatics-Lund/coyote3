@@ -163,8 +163,9 @@ class ResourceSampleService:
             raise api_error(400, "Missing sample payload")
         updated_sample["updated_on"] = utc_now()
         updated_sample["updated_by"] = current_actor(actor_username)
-        for field in ("ingested_by", "ingest_source"):
+        for field in ("created_by", "ingested_by", "ingest_source"):
             updated_sample[field] = sample_doc.get(field)
+        updated_sample["system_installed"] = bool(sample_doc.get("system_installed"))
         if "current_aspc_id" in updated_sample and str(updated_sample["current_aspc_id"]) == str(
             sample_doc.get("current_aspc_id")
         ):

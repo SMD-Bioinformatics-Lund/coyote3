@@ -26,7 +26,14 @@ def record_reference_publication(
     ]
     collection.update_one(
         {"source": source, "release": release},
-        {"$set": {"status": "active", "published_at": datetime.now(timezone.utc)}},
+        {
+            "$set": {
+                "status": "active",
+                "published_at": datetime.now(timezone.utc),
+                "updated_by": "system",
+            },
+            "$setOnInsert": {"created_by": "system"},
+        },
         upsert=True,
         session=session,
     )

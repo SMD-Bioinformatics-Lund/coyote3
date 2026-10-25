@@ -3,6 +3,7 @@
 from typing import Any
 
 from coyote3.application.accounts.common import change_payload, utc_now
+from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.resources.helpers import require_new_identifier
 from coyote3.contracts.schemas.assay_groups import AssayGroupCreate, AssayGroupDoc, AssayGroupStatus
 from coyote3.domain.common.errors import api_error
@@ -28,6 +29,10 @@ class AssayGroupService:
 
     def change_status(self, group_id: str, payload: AssayGroupStatus, *, actor: str) -> dict:
         """Apply a confirmed status change and describe it for managed audit logging."""
+        group = self.repository.get(group_id)
+        if group is None:
+            raise api_error(404, "Assay group not found")
+        reject_system_managed_change(group, resource="assay group")
         previous = self.repository.change_status(
             group_id,
             expected_version=payload.expected_version,
@@ -60,7 +65,12 @@ class AssayGroupService:
         """
         require_new_identifier(payload.group_id, label="group_id")
         document = AssayGroupDoc(
-            **payload.model_dump(), system_managed=False, created_by=actor, created_on=utc_now()
+            **payload.model_dump(),
+            system_managed=False,
+            created_by=actor,
+            created_on=utc_now(),
+            updated_by=actor,
+            updated_on=utc_now(),
         )
         self.repository.create(document.model_dump(by_alias=True, exclude={"id_"}))
         return change_payload(resource="assay_group", resource_id=payload.group_id, action="create")

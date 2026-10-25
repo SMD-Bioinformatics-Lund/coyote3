@@ -42,7 +42,13 @@ def store_diagram(database, diagram: dict, session=None) -> dict:
     """
     descriptor, content = split_diagram(diagram)
     asset = VepDiagramAssetDoc.model_validate(
-        {"_id": descriptor["sha256"], "data": content, "mime_type": descriptor["mime_type"]}
+        {
+            "_id": descriptor["sha256"],
+            "data": content,
+            "mime_type": descriptor["mime_type"],
+            "created_by": "system",
+            "updated_by": "system",
+        }
     ).model_dump(by_alias=True)
     collection = load_collection_section("knowledgebase")["vep_diagrams_collection"]
     database[collection].update_one(

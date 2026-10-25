@@ -8,7 +8,12 @@ from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from coyote3.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
+from coyote3.contracts.schemas.base import (
+    _CollectionDocBase,
+    _DocBase,
+    _StrictCollectionDocBase,
+    _StrictDocBase,
+)
 from coyote3.contracts.schemas.normalizers import normalize_ampersand_terms
 from coyote3.domain.annotation_identity import (
     NOMENCLATURE_FIELDS,
@@ -157,7 +162,7 @@ class VepAnnoTranscriptDoc(_DocBase):
         return normalize_ampersand_terms(value)
 
 
-class AnnoVepDoc(_DocBase):
+class AnnoVepDoc(_CollectionDocBase):
     """Immutable transcript consequence vault keyed by variant identity and VEP version."""
 
     simple_id: str
@@ -276,7 +281,7 @@ class VepConsequenceDiagramDoc(_StrictDocBase):
     release: str
 
 
-class VepMetadataDoc(_DocBase):
+class VepMetadataDoc(_CollectionDocBase):
     """Versioned VEP database metadata, display translations, and consequence groups."""
 
     vep_id: str

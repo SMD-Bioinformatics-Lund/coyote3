@@ -9,6 +9,7 @@ from typing import Any, Dict, Literal, Optional
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
 from coyote3.contracts.schemas.base import (
+    _CollectionDocBase,
     _DocBase,
     _FindingDocBase,
     _StrictCollectionDocBase,
@@ -567,7 +568,7 @@ class BiomarkersTmbDoc(_DocBase):
     unit: Literal["mut/Mb"] = "mut/Mb"
 
 
-class BiomarkersDoc(_DocBase):
+class BiomarkersDoc(_CollectionDocBase):
     """Sample biomarker results with absent optional assays removed after validation."""
 
     SAMPLE_ID: str
@@ -603,7 +604,7 @@ class BiomarkersDoc(_DocBase):
         return self
 
 
-class PgxDoc(_DocBase):
+class PgxDoc(_CollectionDocBase):
     """Sample-scoped PGX payload preserved from the declared ingest result."""
 
     SAMPLE_ID: str
@@ -799,7 +800,7 @@ class GeneCoverageDoc(_DocBase):
     probes: Dict[str, ProbeRegionDoc] = Field(default_factory=dict)
 
 
-class D4CoverageDoc(_DocBase):
+class D4CoverageDoc(_CollectionDocBase):
     """D4-derived transcript, exon, CDS, and probe coverage for one sample."""
 
     genes: Dict[str, GeneCoverageDoc] = Field(default_factory=dict)
@@ -807,7 +808,7 @@ class D4CoverageDoc(_DocBase):
     sample: str
 
 
-class D4CoverageBlacklistDoc(_DocBase):
+class D4CoverageBlacklistDoc(_CollectionDocBase):
     """Gene or region excluded from D4 coverage evaluation for an assay group."""
 
     group: str = Field(min_length=1)

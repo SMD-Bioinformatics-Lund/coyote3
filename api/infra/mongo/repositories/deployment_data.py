@@ -171,7 +171,7 @@ class DeploymentDataRepository:
             collection: Configured physical collection name.
             name: Logical bundled catalog name.
             rows: Validated server-owned baseline records.
-            actor: Authenticated administrator for update provenance.
+            actor: Authenticated administrator authorizing repair; bundled updates use system.
             session: Owning transaction for application/identity writes, otherwise None.
 
         Returns:
@@ -224,7 +224,13 @@ class DeploymentDataRepository:
                 if grants != sorted(existing.get("permissions", [])):
                     target.update_one(
                         {"_id": existing["_id"]},
-                        {"$set": {"permissions": grants, "updated_by": actor, "updated_on": now}},
+                        {
+                            "$set": {
+                                "permissions": grants,
+                                "updated_by": "system",
+                                "updated_on": now,
+                            }
+                        },
                         session=session,
                     )
                     changed = True
@@ -237,7 +243,7 @@ class DeploymentDataRepository:
                     target.update_one(
                         {"_id": existing["_id"]},
                         {
-                            "$set": {**values, "updated_by": actor, "updated_on": now},
+                            "$set": {**values, "updated_by": "system", "updated_on": now},
                             "$inc": {"version": 1},
                         },
                         session=session,
@@ -257,7 +263,7 @@ class DeploymentDataRepository:
                     ),
                 }
                 if name != "vep_diagrams":
-                    replacement.update(updated_by=actor, updated_on=now)
+                    replacement.update(updated_by="system", updated_on=now)
                 target.replace_one({"_id": existing["_id"]}, replacement, session=session)
                 changed = True
         return "repaired" if changed else "preserved"
@@ -297,7 +303,7 @@ class DeploymentDataRepository:
             published.update(
                 status="retired",
                 revision=published["revision"] + 1,
-                updated_by=actor,
+                updated_by="system",
                 updated_on=datetime.now(timezone.utc),
                 reason="Superseded by authenticated bundled-data reinstallation",
             )
@@ -313,7 +319,7 @@ class DeploymentDataRepository:
             "revision": 1,
         }
         if versions:
-            document.update(updated_by=actor, published_by=actor)
+            document.update(updated_by="system", published_by="system")
         rules.insert_one(document, session=session)
         revisions.insert_one(build_query_revision(document, "system_installed"), session=session)
         return True

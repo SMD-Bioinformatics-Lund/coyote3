@@ -11,7 +11,10 @@ from coyote3.application.accounts.common import (
     current_actor,
     utc_now,
 )
-from coyote3.application.common.protected_records import reject_system_managed_delete
+from coyote3.application.common.protected_records import (
+    reject_system_managed_change,
+    reject_system_managed_delete,
+)
 from coyote3.application.resources.availability import require_active_group
 from coyote3.application.resources.helpers import _validated_doc, require_new_identifier
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
@@ -148,6 +151,7 @@ class AspService:
         panel = self.assay_panel_repository.get_asp(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
+        reject_system_managed_change(panel, resource="assay panel")
         updated = payload.get("config", {})
         if not updated:
             raise api_error(400, "Missing panel config payload")
@@ -162,8 +166,8 @@ class AspService:
         actor = current_actor(actor_username)
         now = utc_now()
         previous_version = int(panel.get("version") or 1)
-        updated_doc["created_by"] = actor
-        updated_doc["created_on"] = now
+        updated_doc["created_by"] = panel.get("created_by")
+        updated_doc["created_on"] = panel.get("created_on")
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
@@ -208,6 +212,7 @@ class AspService:
         panel = self.assay_panel_repository.get_asp(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
+        reject_system_managed_change(panel, resource="assay panel")
         new_status = not bool(panel.get("is_active"))
         if new_status:
             require_active_group(self.assay_panel_repository, panel["asp_group"])

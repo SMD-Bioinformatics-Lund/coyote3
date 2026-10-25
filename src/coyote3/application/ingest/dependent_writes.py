@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from coyote3.application.common.record_attribution import attribute_record
 from coyote3.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     INGEST_SINGLE_DOCUMENT_KEYS,
@@ -22,6 +23,7 @@ def write_dependents(
     sample_id: str,
     sample_name: str,
     session: Any | None = None,
+    actor: str | None = None,
 ) -> dict[str, int]:
     """Write all dependent analysis documents for a newly created sample."""
     sid = str(sample_id)
@@ -31,7 +33,9 @@ def write_dependents(
         logger.info(
             "Writing annotation vault: documents=%s (transaction pending)", len(anno_vep_docs)
         )
-        service.anno_vep_repository.upsert_many(list(anno_vep_docs), session=session)
+        service.anno_vep_repository.upsert_many(
+            [attribute_record(doc, actor=actor) for doc in anno_vep_docs], session=session
+        )
         logger.info("Annotation vault writes complete (transaction pending)")
     dependent_preload = {
         key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
@@ -45,7 +49,7 @@ def write_dependents(
         if key in INGEST_SINGLE_DOCUMENT_KEYS:
             if not isinstance(payload, dict):
                 raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
-            doc = dict(payload)
+            doc = attribute_record(payload, actor=actor)
             doc["SAMPLE_ID"] = sid
             if key == "cov":
                 doc["sample"] = sample_name
@@ -61,7 +65,7 @@ def write_dependents(
         for item in payload:
             if not isinstance(item, dict):
                 raise TypeError(f"{key} contains non-dict item")
-            doc = dict(item)
+            doc = attribute_record(item, actor=actor)
             doc["SAMPLE_ID"] = sid
             if key == "snvs":
                 doc = ensure_variant_identity_fields(doc)

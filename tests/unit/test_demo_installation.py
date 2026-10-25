@@ -59,6 +59,9 @@ def test_plan_install_and_collision_preserve_existing_configuration(installer):
         "diagnosis_associations",
     ):
         assert all(row["system_installed"] for row in database[name].find())
+        assert all(
+            row["created_by"] == row["updated_by"] == "system" for row in database[name].find()
+        )
     assert service.plan().configuration_installed
     assert {r["environment"] for r in database.asp_configs.find()} == {"testing", "production"}
     assert {r["status"] for r in database.clinical_rule_sets.find()} == {"published"}
@@ -83,6 +86,10 @@ def test_starter_links_all_resources_and_ingests_first_sample(installer):
     service, db, ingest = installer
     assert service.install_starter("demo.admin")["status"] == "installed"
     payload = ingest.ingest_sample_bundle.call_args_list[0].args[0]
+    assert all(
+        call.kwargs["ingested_by"] == "system"
+        for call in ingest.ingest_sample_bundle.call_args_list
+    )
     assert payload["name"] == "DEMO_STARTER_DNA"
     assert payload["asp_id"] == "demo-hematology-training"
     assert payload["diagnosis_id"] == "myeloid"
@@ -229,7 +236,7 @@ def test_starter_first_sample_uses_real_ingest(installer):
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
     )
-    service.install_starter("system", created_by="system")
+    service.install_starter("system")
     sample = db.samples.find_one({"name": "DEMO_STARTER_DNA"})
     assert (
         db.asp_configs.find_one({"_id": sample["current_aspc_id"]})["aspc_id"]
@@ -271,10 +278,7 @@ def test_starter_first_sample_uses_real_ingest(installer):
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(rule), require_tests=True)
         assert result.valid, result.errors
     assert sample["ingested_by"] == rna["ingested_by"] == "system"
-    assert (
-        service.install_starter("maintenance.admin", force=True, created_by="system")["status"]
-        == "installed"
-    )
+    assert service.install_starter("maintenance.admin", force=True)["status"] == "installed"
     assert db.samples.find_one({"name": "DEMO_STARTER_DNA"})["_id"] == sample["_id"]
     assert db.samples.find_one({"name": "DEMO_STARTER_RNA"})["_id"] == rna["_id"]
     assert db.samples.count_documents({}) == 2
@@ -297,7 +301,7 @@ def test_demo_samples_use_normal_ingest_and_never_update_existing(installer):
     service.install_sample("demo_group_dna", "demo.admin")
     call = ingest.ingest_sample_bundle.call_args
     assert call.kwargs == {
-        "ingested_by": "demo.admin",
+        "ingested_by": "system",
         "ingest_source": "api",
         "allow_update": False,
     }
@@ -340,7 +344,7 @@ def test_published_demo_rules_cannot_target_other_assays(installer, tmp_path):
 @pytest.mark.parametrize("protection", ["human", "report", "comment", "rna_classification"])
 def test_force_demo_preserves_human_provenance_and_review_artifacts(installer, protection):
     service, database, ingest = installer
-    service.install_starter("system", created_by="system")
+    service.install_starter("system")
     sample = {
         "name": "DEMO_STARTER_DNA",
         "asp_id": "demo-hematology-training",
@@ -367,10 +371,10 @@ def test_force_demo_preserves_human_provenance_and_review_artifacts(installer, p
 
 def test_force_demo_restores_missing_setup_without_replacing_rule_history(installer):
     service, database, _ = installer
-    service.install_starter("system", created_by="system")
+    service.install_starter("system")
     history = list(database.clinical_rule_revisions.find())
     database.diagnosis_associations.delete_one({"asp_id": "demo-hematology-training"})
-    service.install_starter("maintenance.admin", force=True, created_by="system")
+    service.install_starter("maintenance.admin", force=True)
     assert (
         database.diagnosis_associations.find_one({"asp_id": "demo-hematology-training"}) is not None
     )
@@ -381,6 +385,6 @@ def test_force_demo_still_requires_application_baseline(installer):
     service, database, ingest = installer
     database.assay_groups.delete_many({})
     with pytest.raises(AppError, match="baseline"):
-        service.install_starter("maintenance.admin", force=True, created_by="system")
+        service.install_starter("maintenance.admin", force=True)
     assert database.asp_configs.count_documents({}) == 0
     ingest.ingest_sample_bundle.assert_not_called()

@@ -121,6 +121,8 @@ class FindingCommentsRepository(BaseRepository):
         comment.setdefault("author", current_username())
         comment.setdefault("hidden", 0)
         comment.setdefault("time_created", utc_now())
+        comment["created_by"] = current_username("") or comment.get("author")
+        comment["updated_by"] = comment["created_by"]
         normalized = normalize_collection_document("finding_comments", comment)
         self.get_collection().insert_one(normalized)
         return comment["_id"]
@@ -165,6 +167,7 @@ class FindingCommentsRepository(BaseRepository):
                 "$set": {"hidden": 0},
                 "$unset": {"hidden_by": "", "time_hidden": ""},
             }
+        update.setdefault("$set", {})["updated_by"] = current_username("") or None
         self.get_collection().update_one(query, update)
 
     def has_hidden_comments(self, *, finding_oid: str, finding_type: FindingType) -> bool:

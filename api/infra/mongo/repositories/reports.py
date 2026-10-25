@@ -206,6 +206,7 @@ class ReportRepository(BaseRepository):
                         "reported": True,
                         "latest_report_id": report_oid,
                         "latest_report_on": now,
+                        "updated_by": created_by or doc["author"],
                     }
                 },
                 session=session,
@@ -222,6 +223,8 @@ class ReportRepository(BaseRepository):
                 raise AppError(
                     409, "Another report was saved. Refresh the report preview and retry."
                 )
+            doc["created_by"] = created_by or doc["author"]
+            doc["updated_by"] = doc["created_by"]
             self.get_collection().insert_one(doc, session=session)
             self.adapter.reported_variant_repository.bulk_upsert_from_snapshot_rows(
                 sample_name=sample.get("name"),

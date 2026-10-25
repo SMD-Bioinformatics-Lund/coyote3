@@ -73,6 +73,7 @@ def plan_diagnoses(
             diagnosis_id=diagnosis_id,
             display_name="Base" if diagnosis_id == DIAGNOSIS_BASE_ID else diagnosis_id,
             updated_by=actor,
+            created_by=actor,
             updated_on=now,
         ).model_dump(
             by_alias=True, exclude_none=True, exclude={"definition_version", "definition_is_active"}

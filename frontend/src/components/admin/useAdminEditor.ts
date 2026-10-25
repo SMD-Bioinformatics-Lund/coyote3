@@ -14,8 +14,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 const NO_INVALIDATIONS: string[][] = []
-export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, protectIdentity = false, usesSchema = true, schemaVariant = "", createQuery = "", importSchemaVariant, transformForm, copyIdentityKey, invalidateKeys = NO_INVALIDATIONS }: {
-  spec: AdminResourceSpec; mode: AdminFormMode; documentKey: string; requestBodyKey: string; protectIdentity?: boolean; usesSchema?: boolean; schemaVariant?: string; createQuery?: string; importSchemaVariant?: (document: Record<string, unknown>) => string | undefined; copyIdentityKey?: string; invalidateKeys?: string[][]; transformForm?: (form: FormSpec, user: CurrentUserAccess | undefined) => FormSpec
+export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSchema = true, schemaVariant = "", createQuery = "", importSchemaVariant, transformForm, copyIdentityKey, invalidateKeys = NO_INVALIDATIONS }: {
+  spec: AdminResourceSpec; mode: AdminFormMode; documentKey: string; requestBodyKey: string; usesSchema?: boolean; schemaVariant?: string; createQuery?: string; importSchemaVariant?: (document: Record<string, unknown>) => string | undefined; copyIdentityKey?: string; invalidateKeys?: string[][]; transformForm?: (form: FormSpec, user: CurrentUserAccess | undefined) => FormSpec
 }) {
   const { id = "" } = useParams()
   const location = useLocation()
@@ -57,8 +57,8 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, protec
     return source && transformForm ? transformForm(source, user) : source
   }, [contextQuery.data?.form, transformForm, user])
   const doc = contextQuery.data?.[documentKey] || null
-  const systemManaged = Boolean(doc?.system_managed)
-  const systemPermission = protectIdentity && systemManaged
+  const systemManaged = Boolean(doc?.system_managed || doc?.system_installed)
+  const systemPermission = systemManaged
   const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
 
   const stageImport = useCallback((source: unknown) => {

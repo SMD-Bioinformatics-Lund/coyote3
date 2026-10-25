@@ -12,7 +12,10 @@ from coyote3.application.accounts.common import (
     current_actor,
     utc_now,
 )
-from coyote3.application.common.protected_records import reject_system_managed_delete
+from coyote3.application.common.protected_records import (
+    reject_system_managed_change,
+    reject_system_managed_delete,
+)
 from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
 from coyote3.application.resources.availability import available_panels, require_active_group
 from coyote3.application.resources.configuration_profiles import (
@@ -592,6 +595,7 @@ class AspcService:
                 )
         updated_doc = {**assay_config, **updated_config}
         updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
+        reject_system_managed_change(assay_config, resource="assay configuration")
         updated_doc["system_managed"] = bool(assay_config.get("system_managed"))
         updated_doc["system_installed"] = bool(assay_config.get("system_installed"))
         updated_doc.pop("_id", None)
@@ -602,8 +606,8 @@ class AspcService:
         actor = current_actor(actor_username)
         now = utc_now()
         previous_version = int(assay_config.get("version") or 1)
-        updated_doc["created_by"] = actor
-        updated_doc["created_on"] = now
+        updated_doc["created_by"] = assay_config.get("created_by")
+        updated_doc["created_on"] = assay_config.get("created_on")
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
@@ -666,6 +670,7 @@ class AspcService:
         assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
+        reject_system_managed_change(assay_config, resource="assay configuration")
         new_status = not bool(assay_config.get("is_active"))
         if new_status:
             require_active_group(self.assay_panel_repository, assay_config["asp_group"])

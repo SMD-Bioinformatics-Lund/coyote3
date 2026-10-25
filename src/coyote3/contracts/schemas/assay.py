@@ -29,7 +29,11 @@ from coyote3.config.constants import (
     normalize_read_mode,
 )
 from coyote3.config.sequencing import derived_read_technology, validate_platform_read_mode
-from coyote3.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
+from coyote3.contracts.schemas.base import (
+    _CollectionDocBase,
+    _StrictCollectionDocBase,
+    _StrictDocBase,
+)
 from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote3.contracts.schemas.filter_profiles import DnaFilterProfilesDoc, RnaFilterProfilesDoc
 from coyote3.contracts.schemas.query_rules import CompiledQueryPoliciesDoc
@@ -44,7 +48,7 @@ RNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["rna"]
 ALL_EXPECTED_FILE_OPTIONS: tuple[str, ...] = ALL_SAMPLE_FILE_KEYS
 
 
-class AssayPanelToAssayGroupMappingDoc(_DocBase):
+class AssayPanelToAssayGroupMappingDoc(_CollectionDocBase):
     """One on One relationship between assay panel and assay group."""
 
     asp: str

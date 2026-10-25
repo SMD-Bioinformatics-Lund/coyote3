@@ -75,11 +75,11 @@ export function AdminListContent({ state, spec, children }: { state: AdminListSt
   </>
 }
 
-export function AdminRowActions({ state, spec, row, protectIdentity = false, allowInvite = false }: { state: AdminListState; spec: AdminResourceSpec; row: Record<string, unknown>; protectIdentity?: boolean; allowInvite?: boolean }) {
+export function AdminRowActions({ state, spec, row, allowInvite = false }: { state: AdminListState; spec: AdminResourceSpec; row: Record<string, unknown>; allowInvite?: boolean }) {
   const { canView, canEdit, canCreate, canDelete, setPendingAction, mutate } = state
   const id = rowId(row, spec)
-  const systemManaged = Boolean(row.system_managed)
-  const systemPermission = protectIdentity && systemManaged
+  const systemManaged = Boolean(row.system_managed || row.system_installed)
+  const systemPermission = systemManaged
   return (
     <div className="flex items-center gap-1">
       {canView && <Link

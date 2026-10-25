@@ -225,6 +225,7 @@ class ReportedVariantsRepository(BaseRepository):
             doc["diagnosis"] = diagnosis
             doc["environment"] = environment
             doc["created_by"] = created_by
+            doc["updated_by"] = created_by
 
             ReportedVariantsDoc.model_validate(doc)
 

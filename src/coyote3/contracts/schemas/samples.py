@@ -18,7 +18,7 @@ from coyote3.config.constants import (
 )
 from coyote3.config.database_versions import normalize_database_versions
 from coyote3.config.sequencing import derived_read_technology, validate_platform_read_mode
-from coyote3.contracts.schemas.base import _DocBase, _StrictDocBase
+from coyote3.contracts.schemas.base import _CollectionDocBase, _DocBase, _StrictDocBase
 from coyote3.contracts.schemas.filter_profiles import (
     CnvFiltersDoc,
     CoverageFiltersDoc,
@@ -89,7 +89,7 @@ class SampleFileDoc(_StrictDocBase):
         return value or None
 
 
-class SampleCommentRecordDoc(_DocBase):
+class SampleCommentRecordDoc(_CollectionDocBase):
     """Sample-level comment with authorship and hiding metadata."""
 
     sample_oid: Any
@@ -102,7 +102,7 @@ class SampleCommentRecordDoc(_DocBase):
     time_hidden: datetime | None = None
 
 
-class FindingCommentRecordDoc(_DocBase):
+class FindingCommentRecordDoc(_CollectionDocBase):
     """Finding-level comment with retained display identity and hiding metadata."""
 
     sample_oid: Any
@@ -164,7 +164,7 @@ class FindingCommentRecordDoc(_DocBase):
         return value
 
 
-class SampleReportRecordDoc(_DocBase):
+class SampleReportRecordDoc(_CollectionDocBase):
     """Saved report reference with sample scope and filter/configuration snapshots."""
 
     sample_oid: Any
@@ -221,7 +221,7 @@ class SampleAspcResolutionDoc(_StrictDocBase):
         )
 
 
-class SamplesDoc(_DocBase):
+class SamplesDoc(_CollectionDocBase):
     """Sample ingest contract linking clinical scope, files, filters, and case/control metadata."""
 
     name: str

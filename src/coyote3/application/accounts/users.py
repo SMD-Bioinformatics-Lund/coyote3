@@ -344,6 +344,7 @@ class UserManagementService:
             raise api_error(409, "Email already exists")
         user_data.setdefault("is_active", True)
         user_data["system_managed"] = False
+        user_data["system_installed"] = False
         user_data["email"] = email
         user_data["username"] = username
         user_data["auth_type"] = _normalize_allowed_auth_types(user_data.get("auth_type"))
@@ -462,6 +463,7 @@ class UserManagementService:
         updated_user["created_by"] = user_doc.get("created_by")
         updated_user["created_on"] = user_doc.get("created_on")
         updated_user["system_managed"] = bool(user_doc.get("system_managed"))
+        updated_user["system_installed"] = bool(user_doc.get("system_installed"))
         updated_user["email"] = lower(updated_user.get("email"))
         updated_user["username"] = str(user_doc.get("username") or user_id).strip().lower()
         try:

@@ -22,7 +22,7 @@ def prepare_query_rule_seeds(
     Args:
         catalog: Bundled group releases in the current query-rule contract.
         groups: Registered group seed documents, used to reject unresolved references.
-        actor: Initial administrator or installing operator recorded on all releases.
+        actor: Installing operator; bundled releases are attributed to system.
         policy_path: Application seed TOML; an explicit path supports offline fixture tests.
 
     Returns:
@@ -89,6 +89,7 @@ def prepare_query_rule_seeds(
                 rules = {entry["id"]: entry for entry in row["content"].get("exceptions") or []}
                 rules[exception.rule_id] = exception_payload(exception)
                 row["content"]["exceptions"] = list(rules.values())
+    actor = "system"
     now = datetime.now(timezone.utc)
     result = []
     for row in sorted(planned.values(), key=lambda item: item["scope_key"]):

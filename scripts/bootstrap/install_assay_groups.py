@@ -52,6 +52,7 @@ def install(db, *, actor: str, apply: bool = False) -> int:
                 group_id=identifier,
                 display_name=identifier,
                 created_by=actor,
+                updated_by=actor,
                 created_on=datetime.now(timezone.utc),
                 system_managed=False,
             )
@@ -61,7 +62,10 @@ def install(db, *, actor: str, apply: bool = False) -> int:
                 )
             planned.setdefault(identifier, candidate.model_dump(exclude={"id_"}))
     documents = [
-        AssayGroupDoc.model_validate(d).model_dump(exclude={"id_"}) for d in planned.values()
+        AssayGroupDoc.model_validate({**d, "updated_by": d.get("created_by")}).model_dump(
+            exclude={"id_"}
+        )
+        for d in planned.values()
     ]
     existing = set(collection.distinct("group_id"))
     missing = [d for d in documents if d["group_id"] not in existing]

@@ -24,7 +24,7 @@ def _normalize_permission_id(permission_id: Any) -> str:
 
 def _require_center_managed(permission: dict[str, Any], *, action: str) -> None:
     """Reject definition changes and deletion for application permissions."""
-    if bool(permission.get("system_managed", False)):
+    if permission.get("system_managed") or permission.get("system_installed"):
         raise api_error(
             409,
             f"System permission policies cannot be {action}",
@@ -129,6 +129,7 @@ class PermissionManagementService:
         form_data = payload.get("form_data", {}) or {}
         policy = normalize_managed_form_payload(self._spec, form_data)
         policy["system_managed"] = False
+        policy["system_installed"] = False
         policy.setdefault("is_active", True)
         policy_id = _normalize_permission_id(policy["permission_id"])
         policy["permission_id"] = policy_id
@@ -175,10 +176,11 @@ class PermissionManagementService:
         existing_created_on = permission.get("created_on")
         updated_permission["updated_on"] = now
         updated_permission["updated_by"] = actor
-        updated_permission["created_by"] = existing_created_by or actor
+        updated_permission["created_by"] = existing_created_by
         updated_permission["created_on"] = existing_created_on or now
         updated_permission["is_active"] = bool(permission.get("is_active", True))
         updated_permission["system_managed"] = False
+        updated_permission["system_installed"] = False
         updated_permission["version"] = permission.get("version", 1) + 1
         updated_permission["permission_id"] = str(
             _normalize_permission_id(updated_permission.get("permission_id"))

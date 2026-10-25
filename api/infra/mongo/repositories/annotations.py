@@ -532,6 +532,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         """
         document = {
             "author": current_username(),
+            "created_by": current_username("") or None,
+            "updated_by": current_username("") or None,
             "time_created": utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,

@@ -45,6 +45,9 @@ Required keys:
 - `vep_version` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `variant_class` (str | None)
 - `CSQ` (list[coyote3.contracts.schemas.variant_annotations.VepAnnoTranscriptDoc])
 
@@ -60,6 +63,9 @@ Required keys:
 - `nomenclature` (Literal['p', 'g', 'c', 'f', 'cn', 't'])
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `hgvsp` (str | None)
 - `hgvsc` (str | None)
@@ -79,6 +85,9 @@ Required keys:
 - None
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `control_id` (str)
 - `email` (EmailControlDoc)
@@ -87,7 +96,6 @@ Optional keys:
 - `modules` (ModuleControlDoc)
 - `curation` (CurationControlDoc)
 - `created_on` (datetime.datetime | None)
-- `updated_by` (str | None)
 - `updated_on` (datetime)
 
 ## `asp_configs`
@@ -103,12 +111,14 @@ Required keys:
 - `reporting` (AspcReportingDoc)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `diagnosis_id` (str)
 - `analysis_types` (list[str])
 - `analysis_intents` (list[str])
 - `system_managed` (bool)
-- `system_installed` (bool)
 - `is_active` (bool)
 - `description` (str | None)
 - `reference_genome` (str | None)
@@ -126,9 +136,7 @@ Optional keys:
 - `template_release` (dict[str, str] | None)
 - `promotion` (dict[str, Any] | None)
 - `version` (int)
-- `created_by` (str | None)
 - `created_on` (datetime)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 - `supersedes_id` (Any | None)
 - `retired_by` (str | None)
@@ -142,17 +150,21 @@ Required keys:
 - `asp_group` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `assay_groups`
 
 Required keys:
+- `created_by` (str)
 - `group_id` (str)
 - `display_name` (str)
-- `created_by` (str)
 - `created_on` (datetime)
 
 Optional keys:
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `description` (str)
 - `parent_group_id` (str | None)
@@ -160,7 +172,6 @@ Optional keys:
 - `is_active` (bool)
 - `version` (int)
 - `publication_serial` (int)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 - `status_reason` (str)
 
@@ -173,20 +184,24 @@ Required keys:
 - `document` (AssaySetupDoc)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 
 ## `assay_setups`
 
 Required keys:
+- `created_by` (str)
+- `updated_by` (str)
 - `asp_id` (str)
 - `content` (AssaySetupContent)
 - `content_editors` (list[str])
-- `created_by` (str)
 - `created_at` (datetime)
-- `updated_by` (str)
 - `updated_at` (datetime)
 
 Optional keys:
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `status` (Literal['draft', 'submitted', 'published'])
 - `revision` (int)
@@ -204,6 +219,9 @@ Required keys:
 - `display_name` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `supported_analyses` (list[str] | None)
 - `description` (str | None)
@@ -223,12 +241,9 @@ Optional keys:
 - `capture_method` (str | None)
 - `target_region_size` (int | None)
 - `system_managed` (bool)
-- `system_installed` (bool)
 - `is_active` (bool)
 - `version` (int)
-- `created_by` (str | None)
 - `created_on` (datetime)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 - `supersedes_id` (Any | None)
 - `retired_by` (str | None)
@@ -242,6 +257,9 @@ Required keys:
 - `name` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `MSIS` (coyote3.contracts.schemas.dna.BiomarkersMsiDoc | None)
 - `MSIP` (coyote3.contracts.schemas.dna.BiomarkersMsiDoc | None)
 - `HRD` (coyote3.contracts.schemas.dna.BiomarkersHrdDoc | None)
@@ -253,6 +271,9 @@ Required keys:
 - `pos` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `assay_group` (str | None)
 - `in_normal_perc` (float | None)
@@ -270,6 +291,9 @@ Required keys:
 - `enigma_clinsig_comment` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `chr38` (str | None)
 - `pos38` (int | None)
 - `ref38` (str | None)
@@ -292,6 +316,9 @@ Required keys:
 - `last_review_date` (datetime)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `entrez_id` (int | None)
 - `description` (str | None)
 - `feature_type` (str)
@@ -309,6 +336,9 @@ Required keys:
 - `last_review_date` (datetime)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `entrez_id` (int | None)
 - `gene` (str | None)
 - `summary` (str | None)
@@ -357,6 +387,9 @@ Required keys:
 - `document` (ClinicalRuleSetDoc)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `reason` (str | None)
 - `previous_revision_hash` (str | None)
@@ -364,6 +397,8 @@ Optional keys:
 ## `clinical_rule_sets`
 
 Required keys:
+- `created_by` (str)
+- `updated_by` (str)
 - `rule_set_id` (str)
 - `content_version` (int)
 - `revision` (int)
@@ -371,11 +406,10 @@ Required keys:
 - `name` (str)
 - `status` (ClinicalRuleStatus)
 - `created_at` (datetime)
-- `created_by` (str)
 - `updated_at` (datetime)
-- `updated_by` (str)
 
 Optional keys:
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `schema_version` (Literal[1])
 - `active` (bool)
@@ -385,7 +419,6 @@ Optional keys:
 - `test_cases` (list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase])
 - `references` (list[dict[str, Any]])
 - `provenance` (coyote3.contracts.schemas.clinical_rules.ClinicalRuleProvenance | None)
-- `system_installed` (bool)
 - `change_summary` (str)
 - `review` (ClinicalRuleReview)
 - `lifecycle` (list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleLifecycleEvent])
@@ -403,6 +436,9 @@ Required keys:
 - `symbol` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `ncbi_gene_id` (int | None)
 - `hgnc_id` (str | None)
 - `ensembl_id` (str | None)
@@ -435,6 +471,9 @@ Required keys:
 - `size` (int)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `ratio` (float | None)
 - `type` (str | None)
 - `nprobes` (int)
@@ -444,6 +483,7 @@ Optional keys:
 ## `configuration_profiles`
 
 Required keys:
+- `created_by` (str)
 - `profile_id` (str)
 - `name` (str)
 - `kind` (Literal['filters', 'reporting', 'clinical_rules', 'template'])
@@ -452,10 +492,11 @@ Required keys:
 - `reason` (str)
 - `version` (int)
 - `content_hash` (str)
-- `created_by` (str)
 - `created_on` (datetime)
 
 Optional keys:
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `status` (Literal['draft', 'published'])
 - `is_current` (bool)
@@ -465,6 +506,7 @@ Optional keys:
 ## `configuration_promotions`
 
 Required keys:
+- `created_by` (str)
 - `source_id` (str)
 - `source_hash` (str)
 - `candidate` (dict[str, Any])
@@ -472,10 +514,11 @@ Required keys:
 - `expected_target_version` (int)
 - `evidence` (list[str])
 - `reason` (str)
-- `created_by` (str)
 - `created_on` (datetime)
 
 Optional keys:
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `status` (Literal['pending', 'approved'])
 - `approved_by` (str | None)
@@ -492,7 +535,9 @@ Required keys:
 - `cnt` (Dict[str, int])
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_actionability`
 
@@ -501,7 +546,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_breakpoints`
 
@@ -510,7 +557,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_cancer_gene_census`
 
@@ -519,7 +568,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_census_gene_mutations`
 
@@ -528,7 +579,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_cgc_hallmarks`
 
@@ -537,7 +590,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_classification_papers`
 
@@ -546,7 +601,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_classifications`
 
@@ -555,7 +612,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_copy_number`
 
@@ -564,7 +623,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_fusions`
 
@@ -573,7 +634,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_gene_expression`
 
@@ -582,7 +645,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_genes`
 
@@ -591,7 +656,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_methylation`
 
@@ -600,7 +667,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_mutation_census`
 
@@ -609,7 +678,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_noncoding_variants`
 
@@ -621,7 +692,9 @@ Required keys:
 - `cnt` (Dict[str, int])
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_resistance_mutations`
 
@@ -630,7 +703,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_signature_dbs`
 
@@ -639,7 +714,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_signature_sbs`
 
@@ -648,7 +725,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_signature_sv`
 
@@ -657,7 +736,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_structural_variants`
 
@@ -666,7 +747,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_targeted_variants`
 
@@ -678,7 +761,9 @@ Required keys:
 - `cnt` (Dict[str, int])
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `cosmic_transcripts`
 
@@ -687,7 +772,9 @@ Required keys:
 - `source_row` (int)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `d4_coverage`
 
@@ -696,6 +783,9 @@ Required keys:
 - `sample` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `genes` (Dict[str, coyote3.contracts.schemas.dna.GeneCoverageDoc])
 
 ## `d4_coverage_blacklist`
@@ -706,38 +796,43 @@ Required keys:
 - `region` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `coord` (str | None)
 - `group_region_id` (str | None)
 
 ## `diagnoses`
 
 Required keys:
+- `updated_by` (str)
 - `display_name` (str)
 - `diagnosis_id` (str)
-- `updated_by` (str)
 - `updated_on` (datetime)
 
 Optional keys:
+- `created_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `description` (str)
 - `is_active` (bool)
 - `version` (int)
-- `system_installed` (bool)
 - `is_current` (bool)
 
 ## `diagnosis_associations`
 
 Required keys:
+- `updated_by` (str)
 - `asp_id` (str)
 - `diagnosis_id` (str)
-- `updated_by` (str)
 - `updated_on` (datetime)
 
 Optional keys:
+- `created_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `is_active` (bool)
 - `version` (int)
-- `system_installed` (bool)
 - `is_current` (bool)
 
 ## `finding_comments`
@@ -750,6 +845,9 @@ Required keys:
 - `text` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `sample_name` (str | None)
 - `nomenclature` (Literal['p', 'c', 'g', 'cn', 'f', 't'] | None)
 - `variant` (str | None)
@@ -776,6 +874,9 @@ Required keys:
 - `calls` (List[coyote3.contracts.schemas.rna.FusionCallDoc])
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `fp` (str | bool)
 - `irrelevant` (str | bool)
 - `interesting` (str | bool)
@@ -802,6 +903,9 @@ Required keys:
 - `ensembl_canonical` (bool)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `alias_symbol` (list[str])
 - `alias_name` (list[str])
 - `prev_symbol` (list[str])
@@ -829,6 +933,9 @@ Required keys:
 - `tid` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `expr` (dict[str, float])
 
 ## `iarc_tp53`
@@ -838,6 +945,9 @@ Required keys:
 - `var` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `polymorphism` (str | None)
 - `cpg` (str | None)
 - `splice` (str | None)
@@ -866,6 +976,9 @@ Required keys:
 - `submitted_by` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `kind` (Literal['sample_bundle', 'insert_document', 'insert_documents', 'upsert_document'])
 - `state` (Literal['pending', 'running', 'succeeded', 'failed'])
@@ -887,6 +1000,9 @@ Required keys:
 - `displayname` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `diagnosis` (list[str])
 - `aliases` (list[str])
@@ -894,15 +1010,12 @@ Optional keys:
 - `adhoc` (bool)
 - `is_public` (bool)
 - `system_managed` (bool)
-- `system_installed` (bool)
 - `is_active` (bool)
 - `asp_groups` (list[str])
 - `genes` (list[str])
 - `asp_ids` (list[str])
 - `version` (int)
-- `created_by` (str | None)
 - `created_on` (datetime)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 - `supersedes_id` (Any | None)
 - `retired_by` (str | None)
@@ -918,7 +1031,9 @@ Required keys:
 - `ensg` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `oncokb_actionable`
 
@@ -935,7 +1050,9 @@ Required keys:
 - `PMIDs_for_drug` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `oncokb_cancer_genes_public`
 
@@ -943,6 +1060,9 @@ Required keys:
 - `gene` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `source` (str | None)
 - `public_api` (bool)
 - `therapeutic_data_included` (bool)
@@ -972,7 +1092,9 @@ Required keys:
 - `description` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `oncokb_genes_public`
 
@@ -980,6 +1102,9 @@ Required keys:
 - `gene` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `source` (str | None)
 - `public_api` (bool)
 - `therapeutic_data_included` (bool)
@@ -1007,6 +1132,9 @@ Required keys:
 - `gene` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `alteration` (str | None)
 - `reference_genome` (str | None)
 - `public_api` (bool)
@@ -1030,15 +1158,16 @@ Required keys:
 - `category` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `description` (str | None)
 - `tags` (list[str])
 - `system_managed` (bool)
 - `is_active` (bool)
 - `version` (int)
-- `created_by` (str | None)
 - `created_on` (datetime)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 
 ## `pgx`
@@ -1047,7 +1176,9 @@ Required keys:
 - `SAMPLE_ID` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `public_assay_catalog`
 
@@ -1055,6 +1186,9 @@ Required keys:
 - None
 
 Optional keys:
+- `created_by` (str)
+- `updated_by` (str)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `catalog_id` (Literal['default'])
 - `schema_version` (Literal[1])
@@ -1067,9 +1201,7 @@ Optional keys:
 - `published_offerings` (list[coyote3.contracts.schemas.catalog_offerings.CatalogOfferingDoc])
 - `resource_revisions` (dict[str, dict[str, Any]])
 - `created_at` (datetime)
-- `created_by` (str)
 - `updated_at` (datetime)
-- `updated_by` (str)
 
 ## `public_assay_catalog_revisions`
 
@@ -1079,23 +1211,26 @@ Required keys:
 - `document` (PublicAssayCatalogVersionDoc)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 
 ## `public_assay_catalog_versions`
 
 Required keys:
+- `created_by` (str)
+- `updated_by` (str)
 - `revision` (int)
 - `status` (PublicCatalogStatus)
 - `catalog` (PublicAssayCatalogDoc)
 - `created_at` (datetime)
-- `created_by` (str)
 - `updated_at` (datetime)
-- `updated_by` (str)
 
 Optional keys:
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `catalog_key` (Literal['default'])
-- `system_installed` (bool)
 - `schema_version` (Literal[1])
 - `content_version` (int | None)
 - `base_version` (int)
@@ -1120,23 +1255,27 @@ Required keys:
 - `document` (QueryRuleDoc)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `previous_revision_hash` (str | None)
 
 ## `query_rule_sets`
 
 Required keys:
+- `created_by` (str)
+- `updated_by` (str)
 - `scope` (QueryRuleScope)
 - `content` (QueryRuleContent)
 - `reason` (str)
 - `scope_key` (str)
 - `version` (int)
-- `created_by` (str)
 - `created_on` (datetime)
-- `updated_by` (str)
 - `updated_on` (datetime)
 
 Optional keys:
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `name` (str)
 - `query_id` (str)
@@ -1145,11 +1284,11 @@ Optional keys:
 - `approved_by` (str | None)
 - `published_by` (str | None)
 - `published_on` (datetime.datetime | None)
-- `system_installed` (bool)
 
 ## `reported_variants`
 
 Required keys:
+- `created_by` (str)
 - `report_id` (str)
 - `sample_name` (str)
 - `report_oid` (Any)
@@ -1157,10 +1296,11 @@ Required keys:
 - `analysis_type` (str)
 - `simple_id` (str)
 - `simple_id_hash` (str)
-- `created_by` (str)
 - `created_on` (datetime)
 
 Optional keys:
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `report_num` (int | None)
 - `assay` (str | None)
@@ -1226,6 +1366,9 @@ Required keys:
 - `filepath` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `sample_name` (str | None)
 - `asp_id` (str | None)
 - `diagnosis_id` (str | None)
@@ -1248,7 +1391,9 @@ Required keys:
 - `SAMPLE_ID` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `rna_expression`
 
@@ -1259,7 +1404,9 @@ Required keys:
 - `SAMPLE_ID` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `rna_qc`
 
@@ -1280,7 +1427,9 @@ Required keys:
 - `SAMPLE_ID` (str)
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `roles`
 
@@ -1292,15 +1441,16 @@ Required keys:
 - `level` (int | float)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `description` (str | None)
 - `system_managed` (bool)
 - `is_active` (bool)
 - `permissions` (list[str])
 - `version` (int)
-- `created_by` (str | None)
 - `created_on` (datetime)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 
 ## `sample_comments`
@@ -1311,6 +1461,9 @@ Required keys:
 - `text` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `sample_name` (str | None)
 - `hidden` (int | bool)
 - `hidden_by` (str | None)
@@ -1330,6 +1483,9 @@ Required keys:
 - `pipeline` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `version` (int)
 - `diagnosis_id` (str | None)
 - `current_aspc_id` (Any | None)
@@ -1371,6 +1527,9 @@ Required keys:
 - `INFO` (TranslocationInfoDoc)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `END` (int | None)
 - `source_records` (list[coyote3.contracts.schemas.dna.TranslocationSourceDoc])
 - `FILTER` (list[str])
@@ -1392,6 +1551,9 @@ Required keys:
 - `job_title` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `id_` (Any | None)
 - `auth_type` (list[str])
 - `password` (str | None)
@@ -1411,9 +1573,7 @@ Optional keys:
 - `system_managed` (bool)
 - `is_active` (bool)
 - `version` (int)
-- `created_by` (str | None)
 - `created_on` (datetime)
-- `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 
 ## `variants`
@@ -1430,6 +1590,9 @@ Required keys:
 - `simple_id_hash` (str)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `QUAL` (float | None)
 - `FILTER` (list[str])
 - `GT` (list[coyote3.contracts.schemas.dna.VariantGtDoc])
@@ -1460,13 +1623,15 @@ Required keys:
 - `mime_type` (Literal['image/jpeg', 'image/png', 'image/svg+xml'])
 
 Optional keys:
-- None
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 
 ## `vep_metadata`
 
 Required keys:
-- `vep_id` (str)
 - `created_by` (str)
+- `vep_id` (str)
 - `created_on` (datetime)
 - `source` (str)
 - `vc_translation_source` (str)
@@ -1477,6 +1642,8 @@ Required keys:
 - `consequence_groups` (Dict[str, list[str]])
 
 Optional keys:
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `consequence_diagram` (coyote3.contracts.schemas.variant_annotations.VepConsequenceDiagramDoc | None)
 
 ## `versions`
@@ -1488,6 +1655,9 @@ Required keys:
 - `started_at` (datetime)
 
 Optional keys:
+- `created_by` (str | None)
+- `updated_by` (str | None)
+- `system_installed` (bool)
 - `import_cpus` (int)
 - `files` (list[dict[str, Any]])
 - `collections` (list[dict[str, Any]])

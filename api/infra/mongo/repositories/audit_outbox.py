@@ -77,6 +77,11 @@ def update_audited(collection: Any, selector: dict, update: dict) -> Any:
         PyMongo update result; unmatched writes do not create audit receipts.
     """
 
+    update = {
+        **update,
+        "$set": {**update.get("$set", {}), "updated_by": current_username("") or None},
+    }
+
     def change(session):
         """Resolve the resource identity inside the same transaction as its update."""
         previous = collection.find_one(selector, {"_id": 1}, session=session)

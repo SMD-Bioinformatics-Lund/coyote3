@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any
 
+from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
 from coyote3.application.reporting.report_renderer import template_content_hash
 from coyote3.application.reporting.report_service import REPORT_TEMPLATES
@@ -169,6 +170,7 @@ class ConfigurationProfileService:
         document = draft.model_dump(mode="json")
         document.update(
             created_by=actor,
+            updated_by=actor,
             created_on=datetime.now(timezone.utc),
             content_hash=profile_hash(document),
             status="draft",
@@ -183,6 +185,7 @@ class ConfigurationProfileService:
         document = self.repository.get(identity)
         if not document:
             raise api_error(404, "Configuration profile not found")
+        reject_system_managed_change(document, resource="configuration profile")
         if document["created_by"] == actor:
             raise api_error(403, "Another authorized user must review this profile")
         if document["status"] != "draft" or document["content_hash"] != content_hash:

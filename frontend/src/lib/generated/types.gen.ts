@@ -916,6 +916,10 @@ export type AssayDiagnosisDoc = {
      */
     asp_id: string;
     /**
+     * Created By
+     */
+    created_by?: string | null;
+    /**
      * Definition Is Active
      */
     definition_is_active?: boolean;
@@ -1031,6 +1035,10 @@ export type AssayGroupDoc = {
      * Status Reason
      */
     status_reason?: string;
+    /**
+     * System Installed
+     */
+    system_installed?: boolean;
     /**
      * System Managed
      */
@@ -1297,6 +1305,10 @@ export type AssaySetupDoc = {
      * Status
      */
     status?: 'draft' | 'submitted' | 'published';
+    /**
+     * System Installed
+     */
+    system_installed?: boolean;
     /**
      * Updated At
      */
@@ -2753,6 +2765,10 @@ export type ClinicalRuleRevisionDoc = {
      * Content Version
      */
     content_version: number;
+    /**
+     * Created By
+     */
+    created_by?: string | null;
     document: ClinicalRuleSetDoc;
     /**
      * Occurred At
@@ -2782,6 +2798,14 @@ export type ClinicalRuleRevisionDoc = {
      * Rule Set Oid
      */
     rule_set_oid: string;
+    /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
+     * Updated By
+     */
+    updated_by?: string | null;
 };
 
 /**
@@ -3616,6 +3640,14 @@ export type ConfigurationProfileDoc = {
      */
     status?: 'draft' | 'published';
     /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
+     * Updated By
+     */
+    updated_by?: string | null;
+    /**
      * Version
      */
     version: number;
@@ -3716,9 +3748,17 @@ export type ConfigurationPromotionDoc = {
      */
     status?: 'pending' | 'approved';
     /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
      * Target Id
      */
     target_id?: string | null;
+    /**
+     * Updated By
+     */
+    updated_by?: string | null;
 };
 
 /**
@@ -4041,6 +4081,10 @@ export type DiagnosisDefinitionView = {
      * Associated Asp Ids
      */
     associated_asp_ids?: Array<string>;
+    /**
+     * Created By
+     */
+    created_by?: string | null;
     /**
      * Description
      */
@@ -6544,6 +6588,10 @@ export type PublicAssayCatalogDoc = {
      */
     schema_version?: 1;
     /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
      * Updated At
      */
     updated_at?: string;
@@ -7215,11 +7263,23 @@ export type PublicCatalogRevisionDoc = {
      * Id
      */
     _id?: unknown | null;
+    /**
+     * Created By
+     */
+    created_by?: string | null;
     document: PublicAssayCatalogVersionDoc;
     /**
      * Revision
      */
     revision: number;
+    /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
+     * Updated By
+     */
+    updated_by?: string | null;
     /**
      * Version Id
      */
@@ -7957,6 +8017,10 @@ export type QueryRuleRevisionDoc = {
      * Actor
      */
     actor: string;
+    /**
+     * Created By
+     */
+    created_by?: string | null;
     document: QueryRuleDoc;
     /**
      * Occurred At
@@ -7982,6 +8046,14 @@ export type QueryRuleRevisionDoc = {
      * Scope Key
      */
     scope_key: string;
+    /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
+     * Updated By
+     */
+    updated_by?: string | null;
     /**
      * Version
      */
@@ -9042,6 +9114,10 @@ export type SamplesDoc = {
      */
     control_id?: string | null;
     /**
+     * Created By
+     */
+    created_by?: string | null;
+    /**
      * Current Aspc Id
      */
     current_aspc_id?: unknown | null;
@@ -9148,9 +9224,17 @@ export type SamplesDoc = {
      */
     sex?: 'female' | 'male' | 'unknown' | null;
     /**
+     * System Installed
+     */
+    system_installed?: boolean;
+    /**
      * Time Added
      */
     time_added?: string;
+    /**
+     * Updated By
+     */
+    updated_by?: string | null;
     /**
      * Version
      */

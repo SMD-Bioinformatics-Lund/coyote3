@@ -27,12 +27,12 @@ def build_seed_documents(
     actor: str,
     include_knowledgebase: bool = True,
 ) -> dict[str, list[dict]]:
-    """Prepare system catalogs as first versions attributed to the initial administrator.
+    """Prepare immutable system catalogs with system creation attribution.
 
     Args:
         rbac_dir: Directory containing bundled permission and role definitions.
         reference_dir: Directory containing bundled reference snapshots.
-        actor: Normalized username of the system administrator created at installation.
+        actor: Installation operator; catalog records themselves are attributed to system.
         include_knowledgebase: Load bundled HGNC/VEP snapshots when explicitly requested.
 
     Returns:
@@ -50,6 +50,7 @@ def build_seed_documents(
 
     canonicalize_seed_contract(payload)
     lower_business_keys(payload)
+    actor = "system"
     installed_at = datetime.now(timezone.utc).isoformat()
     stamp_docs(payload, actor, installed_at)
     payload["query_rule_sets"] = prepare_query_rule_seeds(
@@ -94,6 +95,10 @@ def build_seed_documents(
 
     normalized: dict[str, list[dict]] = {}
     for collection, documents in payload.items():
+        for document in documents:
+            document["created_by"] = "system"
+            document["updated_by"] = "system"
+            document["system_installed"] = collection not in {"samples", "app_controls"}
         normalized[collection] = [
             normalize_collection_document(collection, document) for document in documents
         ]

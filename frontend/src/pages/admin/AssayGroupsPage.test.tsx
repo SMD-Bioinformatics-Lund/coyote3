@@ -12,7 +12,7 @@ vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionErro
 beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["assay.panel:view", "assay.panel:edit"]
-  const group = { group_id: "solid", display_name: "Solid tumors", description: "", system_managed: true, is_active: true, version: 1 }
+  const group = { group_id: "solid", display_name: "Solid tumors", description: "", system_managed: false, is_active: true, version: 1 }
   vi.mocked(api.get).mockImplementation(async (path) => ({ status: 200, data: path.endsWith("/impact") ? { group, assays: ["panel-a"] } : { groups: [group] } }))
   vi.mocked(api.patch).mockResolvedValue({ status: 200, data: {} })
   vi.mocked(api.post).mockResolvedValue({ status: 201, data: {} })
@@ -21,8 +21,10 @@ function mount() {
   return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AssayGroupsPage /></QueryClientProvider></MemoryRouter>)
 }
 it("shows protected system entries without edit or delete actions", async () => {
+  vi.mocked(api.get).mockResolvedValue({ status: 200, data: { groups: [{ group_id: "solid", display_name: "Solid tumors", system_installed: true, created_by: "system" }] } })
   mount()
   expect(await screen.findByText("Solid tumors")).toBeVisible()
+  expect(screen.queryByRole("button", { name: /Deactivate/ })).not.toBeInTheDocument()
   const registry = screen.getByRole("region", { name: "Assay group registry" })
   expect(registry).toHaveClass("glass-card")
   expect(registry).toContainElement(screen.getByRole("textbox", { name: "Search assay groups" }))
@@ -68,7 +70,7 @@ it("limits viewers to the searchable registry", async () => {
   expect(screen.getByText("No assay groups found.")).toBeVisible()
 })
 
-it("shows affected assays and requires a reason before deactivating a system group", async () => {
+it("shows affected assays and requires a reason before deactivating a custom group", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "Deactivate Solid tumors" }))
   expect(await screen.findByText("panel-a")).toBeVisible()

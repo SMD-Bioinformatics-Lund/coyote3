@@ -11,6 +11,7 @@ import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import { downloadJson } from "@/lib/json-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { RecordProvenance } from "./RecordProvenance"
 import { CatalogBuilder } from "./CatalogBuilder"
 import type { Catalog, Version, Workspace } from "./catalog-types"
 import { CatalogPreview } from "./CatalogPreview"
@@ -66,7 +67,7 @@ export function PublicAssayCatalogPage() {
   const original = id ? version?.catalog : workspace.data?.catalog
   useEffect(() => { setDraft(original ? structuredClone(original) : null) }, [original])
   const dirty = Boolean(draft && original && JSON.stringify(draft) !== JSON.stringify(original))
-  const editable = Boolean(version?.status === "draft" && allowed("catalog:draft"))
+  const editable = Boolean(version?.status === "draft" && !version.system_installed && allowed("catalog:draft"))
   useEffect(() => {
     const beforeUnload = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault() }
     window.addEventListener("beforeunload", beforeUnload)
@@ -132,6 +133,7 @@ export function PublicAssayCatalogPage() {
   const independent = !editors.includes(username || "")
   const order = [...new Set([...draft.layout.order, ...Object.keys(draft.modalities)])].filter((key) => draft.modalities[key])
   return <PageShell className="rounded-lg bg-background" title="Assay Catalog" eyebrow="Administration" actions={<>
+    {version && <span>Created by <RecordProvenance record={version} /> · Updated by {version.updated_by || "Unknown"}</span>}
     <input aria-label="Import catalog file" ref={upload} type="file" accept=".json,application/json" className="hidden" onChange={importFile} />
     <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><FileUp /> Import draft</Button>
     <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", displayedCatalog)}><Download /> Export catalog</Button>
@@ -183,16 +185,16 @@ export function PublicAssayCatalogPage() {
         </fieldset> : <CatalogPreview catalog={displayedCatalog} />}
         {version && <section className="space-y-3 border-t border-border bg-muted/20 p-4">
           <h2 className="type-body font-semibold">Review and publication</h2>
-          {!snapshot && ["draft", "submitted", "approved", "rejected"].includes(version.status) && allowed("catalog:draft") && <Button variant="destructive" disabled={busy || dirty || deletion.isPending} onClick={() => setConfirmDelete(true)}>Delete unpublished version</Button>}
+          {!snapshot && !version.system_installed && ["draft", "submitted", "approved", "rejected"].includes(version.status) && allowed("catalog:draft") && <Button variant="destructive" disabled={busy || dirty || deletion.isPending} onClick={() => setConfirmDelete(true)}>Delete unpublished version</Button>}
           {snapshot && <p role="status" className="type-body font-semibold">Viewing historical revision {snapshot.revision}. Return to the current revision to continue the workflow.</p>}
-          {!snapshot && version.status === "draft" && allowed("catalog:submit") && <div className="flex flex-wrap gap-2">
+          {!snapshot && !version.system_installed && version.status === "draft" && allowed("catalog:submit") && <div className="flex flex-wrap gap-2">
             <select aria-label="Catalog reviewer" className="paper-inset rounded-lg p-2 type-body" value={reviewer} onChange={(e) => setReviewer(e.target.value)}>
               <option value="">Select reviewer</option>
               {data.reviewers.filter((v) => !editors.includes(v.username) && v.username !== username).map((v) => <option key={v.username} value={v.username}>{v.name}</option>)}
             </select>
             <Button disabled={dirty || busy || !reviewer || editing} onClick={() => mutation.mutate({ action: "submit" })}><Send /> Send for approval</Button>
           </div>}
-          {!snapshot && version.status === "submitted" && allowed("catalog:review") && independent && version.review.reviewer === username && <div className="space-y-2">
+          {!snapshot && !version.system_installed && version.status === "submitted" && allowed("catalog:review") && independent && version.review.reviewer === username && <div className="space-y-2">
             <textarea aria-label="Review reason" className="paper-inset w-full rounded-lg p-2 type-body" value={reason} onChange={(e) => setReason(e.target.value)} />
             <select aria-label="Catalog publisher" className="paper-inset rounded-lg p-2 type-body" value={publisher} onChange={(e) => setPublisher(e.target.value)}>
               <option value="">Select publisher</option>
@@ -201,7 +203,7 @@ export function PublicAssayCatalogPage() {
             <div className="flex gap-2"><Button disabled={busy || !publisher} onClick={() => mutation.mutate({ action: "review" })}><Check /> Approve</Button>
               <Button variant="outline" disabled={busy || !reason.trim()} onClick={() => mutation.mutate({ action: "reject" })}><X /> Reject</Button></div>
           </div>}
-          {!snapshot && version.status === "approved" && independent && allowed("catalog:publish") && version.review.publisher === username &&
+          {!snapshot && !version.system_installed && version.status === "approved" && independent && allowed("catalog:publish") && version.review.publisher === username &&
             <Button disabled={busy} onClick={() => setConfirmPublish(true)}>Publish catalog</Button>}
           <div className="type-body-sm">Reviewer: {version.review.reviewer || "Unassigned"} · Publisher: {version.review.publisher || "Unassigned"}</div>
           {version.review.reviewer_reason && <p className="type-body-sm">{version.review.reviewer_reason}</p>}

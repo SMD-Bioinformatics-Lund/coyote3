@@ -417,6 +417,7 @@ def fetch_release(
     document = {
         "vep_id": str(release),
         "created_by": actor,
+        "updated_by": actor,
         "created_on": datetime.now(UTC),
         **reference_links(release),
         "db_info": cache_metadata(sources["vep_cache.html"], release),
@@ -512,6 +513,9 @@ def install(collection, documents: list[dict], backup: Path) -> None:
             raise RuntimeError("Reference records changed after backup; rerun with a new backup")
         for row in documents:
             row = dict(row)
+            previous = next((item for item in original if item["vep_id"] == row["vep_id"]), None)
+            if previous is not None:
+                row["created_by"] = previous.get("created_by")
             if row.get("consequence_diagram"):
                 row["consequence_diagram"] = store_diagram(
                     collection.database, row["consequence_diagram"], session

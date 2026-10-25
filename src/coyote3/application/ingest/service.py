@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from coyote3.application.common.execution_context import current_username
+from coyote3.application.common.record_attribution import attribute_record
 from coyote3.application.ingest import collection_writes, dependent_writes, helpers, sample_updates
 from coyote3.application.ingest.file_policy import (
     assay_file_policy,
@@ -406,6 +408,7 @@ class InternalIngestService:
         sample_id: str,
         sample_name: str,
         session: Any | None = None,
+        actor: str | None = None,
     ) -> dict[str, int]:
         """Write parsed analysis data through the shared dependent-write workflow."""
         return dependent_writes.write_dependents(
@@ -414,6 +417,7 @@ class InternalIngestService:
             sample_id=sample_id,
             sample_name=sample_name,
             session=session,
+            actor=actor or current_username("") or None,
         )
 
     def _data_counts(self, preload: dict[str, Any]) -> dict[str, int | bool]:
@@ -557,6 +561,9 @@ class InternalIngestService:
 
         merged_doc = dict(current_doc)
         merged_doc.update(parsed_payload)
+        merged_doc = attribute_record(
+            merged_doc, actor=current_username("") or None, previous=current_doc
+        )
         merged_doc["version"] = int(current_doc["version"]) + 1
         for field in ("ingested_by", "ingest_source"):
             merged_doc[field] = current_doc.get(field)
@@ -744,6 +751,7 @@ class InternalIngestService:
         if uploaded_checksums:
             meta["uploaded_file_checksums"] = uploaded_checksums
         document = SamplesDoc.model_validate(meta).to_persistence_document()
+        document = attribute_record(document, actor=ingested_by or current_username("") or None)
         document["_id"] = self._provider_sample_id(sample_id)
 
         def create(session):
@@ -761,7 +769,11 @@ class InternalIngestService:
             """
             self.collection_gateway.create_sample(document, session=session)
             written = self._write_dependents(
-                preload=preload, sample_id=sample_id, sample_name=sample_name, session=session
+                preload=preload,
+                sample_id=sample_id,
+                sample_name=sample_name,
+                session=session,
+                actor=ingested_by,
             )
             self.collection_gateway.set_sample_fields(
                 {"_id": document["_id"]},

@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Added collection-level creator/updater attribution, preserved original creators
+  across edits, and made system-installed configuration read-only in administration
+  workflows. Added an explicit, dry-run-first historical attribution backfill.
+
 - Add a related-data migration stage and collection selectors for CNVs,
   translocations, biomarkers, v2 fusions, v3 D4 coverage and embedded RNA results.
   Allow these to migrate after samples without processing unrelated variants or QC.

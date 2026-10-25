@@ -16,7 +16,7 @@ export function valueLabel(value: unknown) {
 }
 
 export function titleize(value: string) {
-  if (value === "record_provenance") return "Installed by"
+  if (value === "record_provenance") return "Created by"
   const resourceLabels: Record<string, string> = {
     asp_id: "Assay ID",
     asp_ids: "Assays",
@@ -273,10 +273,10 @@ export function parseCellValue(value: string) {
 
 export function adminFields(preferred: string[], rows: any[]) {
   const seen = new Set<string>()
-  const hidden = new Set(["_id", "id", "version_history", "created_by", "installed_by", "system_managed", "system_installed", "record_provenance"])
+  const hidden = new Set(["_id", "id", "version_history", "created_by", "updated_by", "installed_by", "system_managed", "system_installed", "record_provenance"])
   const rowHas = (key: string) => rows.some((row) => row?.[key] !== undefined)
   const selected = preferred.filter((key) => !hidden.has(key) && rowHas(key) && !seen.has(key) && seen.add(key))
-  if (selected.length >= 5) return [...selected, "record_provenance"]
+  if (selected.length >= 5) return [...selected, "record_provenance", "updated_by"]
   for (const key of rows.flatMap((row) => Object.keys(row || {}))) {
     if (selected.length >= 8) break
     if (seen.has(key) || hidden.has(key) || key.startsWith("_rev")) continue
@@ -285,7 +285,7 @@ export function adminFields(preferred: string[], rows: any[]) {
       selected.push(key)
     }
   }
-  return [...selected, "record_provenance"]
+  return [...selected, "record_provenance", "updated_by"]
 }
 
 export function adminCell(

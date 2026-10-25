@@ -3,6 +3,8 @@
 from typing import Any
 
 from coyote3.application.accounts.common import change_payload, utc_now
+from coyote3.application.common.protected_records import reject_system_managed_change
+from coyote3.application.common.record_attribution import attribute_record
 from coyote3.application.resources.availability import require_active_group
 from coyote3.application.resources.helpers import require_new_identifier
 from coyote3.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier
@@ -70,8 +72,8 @@ class DiagnosisService:
         for asp_id in assays:
             require_active_group(self.panels, self.panels.get_asp(asp_id)["asp_group"])
         self.diagnoses.create_definition(
-            payload.model_dump(exclude={"asp_ids"})
-            | {"updated_by": actor, "updated_on": utc_now()},
+            attribute_record(payload.model_dump(exclude={"asp_ids"}), actor=actor)
+            | {"updated_on": utc_now()},
             assays,
         )
         result = change_payload(
@@ -129,13 +131,28 @@ class DiagnosisService:
         """
         if diagnosis_id == DIAGNOSIS_BASE_ID:
             raise api_error(409, "Base is implicit")
+        current = next(
+            (
+                row
+                for row in self.diagnoses.list_definitions()
+                if row["diagnosis_id"] == diagnosis_id
+            ),
+            None,
+        )
+        if current is None:
+            raise api_error(404, "Diagnosis definition not found")
+        reject_system_managed_change(current, resource="diagnosis definition")
         assays = [self._assay(asp_id) for asp_id in payload.add_asp_ids]
         for asp_id in assays:
             require_active_group(self.panels, self.panels.get_asp(asp_id)["asp_group"])
         self.diagnoses.revise_definition(
             diagnosis_id,
-            payload.model_dump(exclude={"expected_version", "add_asp_ids"})
-            | {"updated_by": actor, "updated_on": utc_now()},
+            attribute_record(
+                payload.model_dump(exclude={"expected_version", "add_asp_ids"}),
+                actor=actor,
+                previous=current,
+            )
+            | {"updated_on": utc_now()},
             expected_version=payload.expected_version,
             add_asp_ids=assays,
         )
@@ -181,6 +198,9 @@ class DiagnosisService:
             raise api_error(422, "Invalid diagnosis identifier") from exc
         if identity == DIAGNOSIS_BASE_ID:
             raise api_error(409, "Base is implicit and cannot be created, edited or retired")
+        current = self.diagnoses.get_current(asp_id, identity) if expected is not None else None
+        if current is not None:
+            reject_system_managed_change(current, resource="diagnosis association")
         document = {
             **values,
             "asp_id": asp_id,
@@ -190,6 +210,7 @@ class DiagnosisService:
             "updated_by": actor,
             "updated_on": utc_now(),
         }
+        document = attribute_record(document, actor=actor, previous=current)
         self.diagnoses.save(document, expected_version=expected)
         result = change_payload(
             resource="assay_diagnosis",
