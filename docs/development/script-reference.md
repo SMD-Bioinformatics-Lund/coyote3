@@ -38,8 +38,9 @@ the [v2 procedure](../migration_from_v2/migration-guide.md) and
 historical VEP metadata without writes. `build_anno_vep.py` requires that reference
 catalog before building shared transcript evidence from reviewed variant exports.
 Both version packages provide `migrate_samples.py --assay-id` with an explicit source
-field and `--stage findings`, `samples`, or `complete`: findings precede sample
-insertion, annotations follow, and saved snapshots are validated last. Samples retain
+field and `--stage findings`, `samples`, `related`, or `complete`: variants precede
+sample insertion, related data and annotations follow, and saved snapshots are validated
+last. Repeat `--collection` to select individual related types. Samples retain
 their original ObjectIds. These are offline conversion tools; applying bundles is a
 separate explicit operation against an isolated MongoDB target. SQLite files are
 local lookup indexes, not the migration destination.

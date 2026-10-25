@@ -173,7 +173,9 @@ validate their contents or availability.
 3. Build the shared `anno_vep` reference from the complete v2/v3 variant indexes,
    using reviewed historical release provenance and `--reference-catalog`.
 4. Select `--assay-id gmshem` or `--assay-id hema_gmsv1` and the explicit source
-   `--assay-field` with `migrate_samples.py --stage findings`, then `--stage samples`.
+   `--assay-field` with `migrate_samples.py --stage findings --collection variants`,
+   then `--stage samples`, then `--stage related`. Repeat `--collection` to select
+   related data types independently.
    Samples retain original ObjectIds; the installed ASP supplies `asp_group` and
    the recorded subpanel supplies lowercase `diagnosis_id`.
 5. Convert only hematology annotations against the completed VEP reference, then

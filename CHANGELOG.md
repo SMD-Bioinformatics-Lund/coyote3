@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Add a related-data migration stage and collection selectors for CNVs,
+  translocations, biomarkers, v2 fusions, v3 D4 coverage and embedded RNA results.
+  Allow these to migrate after samples without processing unrelated variants or QC.
+
 - Require installed HGNC/VEP metadata before shared VEP preparation. Add per-assay
   findings, sample and final snapshot migration stages, retain original sample
   ObjectIds, and split historical tumwgs samples into hema and solid ASPs.

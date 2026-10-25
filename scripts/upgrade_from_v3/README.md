@@ -9,7 +9,7 @@ write private files. Only the separately invoked target apply command writes to 
 
 Use the [numbered migration commands](../migration_common/README.md#migration-commands-in-order)
 for both versions: installed HGNC/VEP references, inventory, shared `anno_vep`,
-findings and samples selected by one `--assay-id`, annotations, and final saved
+variants, samples and related data selected by one `--assay-id`, annotations, and final saved
 finding snapshots. MongoDB application remains a separate explicit step.
 
 Follow the [v3 migration runbook](../../docs/migration_from_v3/migration-guide.md)

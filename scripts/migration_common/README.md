@@ -164,8 +164,8 @@ do not downgrade the application driver or connect to the live source.
 
 Run these commands yourself from the repository root after preparing consistent
 offline BSON exports with source-compatible tooling. The collection order is:
-**HGNC/VEP metadata → anno_vep and findings → samples → annotations → saved finding
-snapshots**. These scripts never connect to the legacy source databases. Reference
+**HGNC/VEP metadata → anno_vep and variants → samples → related sample data →
+annotations → saved finding snapshots**. These scripts never connect to the legacy source databases. Reference
 and target preflight read the isolated destination; conversion is offline. Only
 the explicit `apply_bundle.py --apply` commands write clinical records to MongoDB.
 Keep the destination application and workers offline until all stages are complete:
@@ -293,10 +293,10 @@ SOURCE="$V2"
 MIGRATOR=scripts/migrate_from_v2/migrate_samples.py
 ```
 
-Run the following command for the selected assay. It includes `variants` and
-other supported findings, finding comments, RNA results, D4 measurements and the
-matching shared `anno_vep` records. It excludes samples, reports and clinical
-annotations. The shared VEP build in step 4 still merges evidence across both
+Run the following command for the selected assay. `--collection variants` limits
+this stage to small variants, their finding comments and matching shared `anno_vep`
+records. It excludes samples, reports and clinical annotations. The shared VEP
+build in step 4 still merges evidence across both
 exports so overlapping genomic records remain consistent across assay batches.
 
 ```bash
@@ -304,7 +304,7 @@ exports so overlapping genomic records remain consistent across assay batches.
   --index "$SOURCE/source.sqlite" --schema-audit "$SOURCE/schema-audit" \
   --target-catalog "$TARGET_CATALOG" --review "$SOURCE/review.json" \
   --vep-index "$VEP" --assay-id "$ASSAY_ID" --assay-field "$ASSAY_FIELD" \
-  --stage findings --output "$SOURCE/$ASSAY_ID-findings" \
+  --stage findings --collection variants --output "$SOURCE/$ASSAY_ID-findings" \
   --issues "$SOURCE/$ASSAY_ID-findings-issues.json"
 ```
 
@@ -323,7 +323,57 @@ This stage contains `samples`, sample comments and report references, preserving
 the original sample `_id` and related identities. It does not convert annotations
 or saved finding snapshots. Findings continue to reference the original sample ID.
 
-### 7. Convert annotations after VEP evidence and samples are available
+### 7. Convert related sample data, together or one collection at a time
+
+After samples, prepare all supported related collections for the selected assay:
+
+```bash
+.venv/bin/python "$MIGRATOR" \
+  --index "$SOURCE/source.sqlite" --schema-audit "$SOURCE/schema-audit" \
+  --target-catalog "$TARGET_CATALOG" --review "$SOURCE/review.json" \
+  --vep-index "$VEP" --assay-id "$ASSAY_ID" --assay-field "$ASSAY_FIELD" \
+  --stage related --output "$SOURCE/$ASSAY_ID-related" \
+  --issues "$SOURCE/$ASSAY_ID-related-issues.json"
+```
+
+For one collection at a time, use a new output path and `--collection`. For example:
+
+```bash
+.venv/bin/python "$MIGRATOR" \
+  --index "$SOURCE/source.sqlite" --schema-audit "$SOURCE/schema-audit" \
+  --target-catalog "$TARGET_CATALOG" --review "$SOURCE/review.json" \
+  --vep-index "$VEP" --assay-id "$ASSAY_ID" --assay-field "$ASSAY_FIELD" \
+  --stage related --collection cnvs --output "$SOURCE/$ASSAY_ID-cnvs" \
+  --issues "$SOURCE/$ASSAY_ID-cnvs-issues.json"
+```
+
+Replace `cnvs` and the output/issue suffix with each desired canonical collection:
+
+| `--collection` | Legacy source |
+| --- | --- |
+| `cnvs` | v2 `cnvs_wgs`; v3 `cnvs` |
+| `translocations` | Both versions' `transloc` |
+| `biomarkers` | Both versions' `biomarkers` |
+| `fusions` | v2 `fusions` |
+| `d4_coverage` | v3 `panel_cov` and measurement-shaped `group_coverage` |
+| `rna_expression` | Recorded sample `expr` payload |
+| `rna_qc` | Recorded sample `QC` payload |
+| `rna_classification` | Recorded sample `classification` payload |
+
+Repeat `--collection` to select multiple types in one run. Only selected collections
+and their finding comments are converted; unrelated variants, RNA payloads and
+saved snapshots do not block a collection-specific run. Existing standalone record
+ObjectIds and sample ownership are retained. Formerly embedded RNA records receive
+deterministic IDs. Multiple recorded QC results still require explicit review.
+The samples-only stage leaves these payloads for their later migration stage.
+
+This stage excludes variants, sample documents, sample comments, reports, annotations
+and saved finding snapshots. Unsupported source/collection combinations fail rather
+than suggesting v3 fusion or v2 D4 data was imported. Legacy interval `coverage`
+remains in the immutable export until its destination model or archive is agreed;
+it is not a D4 collection.
+
+### 8. Convert annotations after VEP evidence and samples are available
 
 ```bash
 .venv/bin/python scripts/upgrade_from_v3/migrate_annotations.py \
@@ -344,7 +394,7 @@ directory. Filtering uses the mapped annotation ASP; it does not infer new annot
 ownership from sample assay names. Group-only annotations without an ASP need
 reviewed ASP attribution before they can be selected by this option.
 
-### 8. Convert blacklists
+### 9. Convert blacklists
 
 ```bash
 .venv/bin/python scripts/upgrade_from_v3/migrate_blacklist.py \
@@ -358,9 +408,9 @@ reviewed ASP attribution before they can be selected by this option.
 
 V3 actual coverage exclusions use `migrate_d4_coverage_blacklist.py` with the same
 index, audit, catalog and review arguments and a separate output directory. Sample
-coverage measurements are handled in step 5, not by the exclusion converter.
+coverage measurements are handled in step 7, not by the exclusion converter.
 
-### 9. Complete saved finding snapshots for the selected assay
+### 10. Complete saved finding snapshots for the selected assay
 
 ```bash
 .venv/bin/python "$MIGRATOR" \
@@ -397,7 +447,7 @@ Use `--sample-ids-file /private/selected-sample-ids.json`, a JSON array of sourc
 strings, to convert an explicit subset; default behavior converts every source sample.
 For one sample, use `migrate_sample.py --sample-id ID` with the same other arguments.
 
-### 10. Preflight each target bundle without writing
+### 11. Preflight each target bundle without writing
 
 ```bash
 .venv/bin/python scripts/migration_common/apply_bundle.py \
@@ -408,7 +458,7 @@ Inspect each completion manifest, issue report, counts and target preflight befo
 applying. Preflight is read-only; it does not prove a later concurrent target change
 will be acceptable. Application rechecks the target catalog and conflicts transactionally.
 
-### 11. Apply approved bundles to MongoDB, one stage at a time
+### 12. Apply approved bundles to MongoDB, one stage at a time
 
 These commands write to the isolated destination. They are not run automatically by
 conversion. First apply the VEP bundles:
@@ -425,12 +475,12 @@ conversion. First apply the VEP bundles:
 )
 ```
 
-Apply findings first, then samples, for the selected assay:
+Apply variants first, then samples, then related data for the selected assay:
 
 ```bash
 (
   set -e
-  for stage in findings samples; do
+  for stage in findings samples related; do
     test -f "$SOURCE/$ASSAY_ID-$stage/manifest.json"
     for bundle in "$SOURCE/$ASSAY_ID-$stage"/[0-9]*; do
       test -d "$bundle" || continue
@@ -440,6 +490,11 @@ Apply findings first, then samples, for the selected assay:
   done
 )
 ```
+
+If related data was prepared one collection at a time, apply each selected collection's
+numbered bundles individually instead of the combined `related` path. Preflight and
+review each collection before application; do not apply directories lacking a root
+completion manifest.
 
 Apply each reviewed source's annotations and blacklists after the sample stage.
 If annotations were prepared with `--assay-id`, replace the annotations bundle

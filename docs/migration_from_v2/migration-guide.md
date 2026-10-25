@@ -165,8 +165,9 @@ validate their contents or availability.
 3. Build the shared `anno_vep` reference from the complete v2/v3 variant indexes,
    using reviewed release provenance and `--reference-catalog`.
 4. Select one supported v2 `--assay-id` and its explicit `--assay-field` with
-   `migrate_samples.py --stage findings`, then `--stage samples`. Findings precede
-   samples; original sample ObjectIds are retained. The installed ASP supplies
+   `migrate_samples.py --stage findings --collection variants`, then `--stage samples`.
+   Use `--stage related` after samples, optionally with `--collection` for each data type.
+   Variants precede samples; original sample ObjectIds are retained. The installed ASP supplies
    `asp_group`, and the recorded subpanel supplies lowercase `diagnosis_id`.
 5. Convert non-hematology annotations against the completed VEP reference, then
    blacklist entries. Use `--stage complete` for final saved-reference validation.
