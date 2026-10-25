@@ -412,6 +412,7 @@ def test_complete_sample_includes_every_supported_related_collection(tmp_path, v
         coverage.update(_id=ObjectId(), SAMPLE_ID=str(owner["_id"]), sample=owner["name"])
         records["panel_cov"] = [coverage]
         original_annotation = annotation()
+        original_annotation["assay"] = "hematology"
         records["annotation"] = [original_annotation]
         records["reported_variants"] = [
             {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the offline v3 annotation migration step."""
+"""Convert only hematology annotations from the offline v3 source."""
 
 import sys
 from pathlib import Path

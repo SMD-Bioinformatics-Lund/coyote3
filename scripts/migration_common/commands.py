@@ -368,6 +368,11 @@ def run(version: int, operation: str) -> int:
         catalog = read_json(args.target_catalog)
         validate_snapshot(catalog)
         provenance.update(source_sha256=source.fingerprint(), target_sha256=catalog["sha256"])
+        if operation in {"annotation", "sample", "samples"}:
+            provenance["annotation_source_policy"] = {
+                "assay_group": "hematology",
+                "selection": "include" if version == 3 else "exclude",
+            }
         if args.vep_index:
             vep = VepReference(args.vep_index)
             if not any(item["source_sha256"] == source.fingerprint() for item in vep.sources):

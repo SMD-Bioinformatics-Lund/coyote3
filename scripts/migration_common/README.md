@@ -56,6 +56,23 @@ distinct identities remain in the bundle, and conflicting values require review.
 
 ### One-time annotation scope mappings
 
+Annotation ownership is split between the source versions:
+
+- **v3:** migrate only annotations whose assay group is `hematology`.
+- **v2:** migrate annotations from every other assay group; exclude `hematology`.
+
+Selection compares lowercase `assay`/`asp_group` after any digest-bound scope review,
+before VEP enrichment and annotation conversion. Excluded annotations are not copied
+or merged. Included annotations still require valid scopes and installed configuration.
+The selection policy is recorded in CLI-generated bundle provenance. It does not
+restrict which variants contribute evidence to the shared VEP reference.
+
+The same policy applies to annotations linked from saved reports. If a sample's
+saved report references an annotation excluded by this policy, conversion stops
+with a private issue for review. It does not drop the historical link, substitute
+an annotation from the other database, or reintroduce an excluded record. Such
+references need explicit reconciliation before that sample can be converted.
+
 The v2 and v3 annotation converters apply the following historical data mappings
 supplied by the operator. These rules exist only in migration scripts; they do not
 change application annotation behavior or sample scope mappings. They also apply

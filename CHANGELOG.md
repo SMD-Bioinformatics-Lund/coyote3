@@ -2,6 +2,9 @@
 
 ## v4.0.0
 
+- Select annotation sources explicitly: hematology from v3, all other groups from v2.
+  Block sample conversion when a saved report references an excluded annotation.
+
 - Apply operator-supplied historical annotation assay/ASP and solid-diagnosis mappings
   during v2/v3 migration, lowercase scope identifiers, and validate installed target scopes.
 

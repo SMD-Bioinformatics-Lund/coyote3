@@ -388,6 +388,32 @@ def scoped_record(source: dict, review: dict | None, kind: str) -> dict:
     return document
 
 
+def annotation_selected(document: dict, version: int) -> bool:
+    """Select v3 hematology annotations and v2 annotations from every other group.
+
+    Args:
+        document: Annotation after any digest-bound scope reconciliation.
+        version: Source major version, either 2 or 3.
+
+    Returns:
+        Whether this source is authoritative for the annotation's assay group.
+
+    Raises:
+        ValueError: The source version is unsupported or recorded group fields conflict.
+    """
+    if version not in (2, 3):
+        raise ValueError("Annotation selection requires source version 2 or 3")
+    groups = [
+        value.lower() if isinstance(value, str) else value
+        for key in ("assay", "asp_group")
+        if (value := document.get(key)) is not None
+    ]
+    if len(groups) == 2 and groups[0] != groups[1]:
+        raise ValueError("Conflicting legacy annotation assay groups")
+    hematology = bool(groups) and groups[0] == "hematology"
+    return hematology if version == 3 else not hematology
+
+
 def _embedded_rna(sample: dict) -> dict[str, list[dict]]:
     """Extract recorded RNA measurements without creating or averaging measurements.
 
@@ -471,14 +497,23 @@ def sample_plan(
         for key in ("annotation_oid", "annotation_text_oid")
         if row.get(key)
     }
-    documents["annotation"] = [
-        scoped_record(
-            source.get("annotation", identity),
-            review.get("records", {}).get("annotation", {}).get(identity),
-            "annotation",
-        )
-        for identity in sorted(annotation_ids)
-    ]
+    documents["annotation"] = []
+    for identity in sorted(annotation_ids):
+        original_annotation = source.get("annotation", identity)
+        try:
+            record = scoped_record(
+                original_annotation,
+                review.get("records", {}).get("annotation", {}).get(identity),
+                "annotation",
+            )
+            if not annotation_selected(record, source.version):
+                raise ValueError(
+                    "Saved report references an annotation excluded by the source policy; "
+                    "reconcile its historical reference before converting this sample"
+                )
+            documents["annotation"].append(record)
+        except (ValueError, TypeError, KeyError) as error:
+            raise RecordConversionError("annotation", original_annotation, error) from error
     if vep is not None:
         documents["annotation"] = [vep.enrich(row) for row in documents["annotation"]]
     plan = build_plan(documents, {sample_id: metadata})
@@ -527,6 +562,8 @@ def independent_plan(
         try:
             record = scoped_record(original, review.get(str(original["_id"])), kind)
             if kind == "annotation":
+                if not annotation_selected(record, source.version):
+                    continue
                 if vep is not None:
                     record = vep.enrich(record)
                 record = convert_annotation(record)

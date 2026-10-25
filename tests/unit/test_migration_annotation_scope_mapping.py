@@ -7,10 +7,11 @@ import pytest
 from bson import ObjectId
 
 from scripts.migration_common.clinical_plan import build_plan
-from scripts.migration_common.conversion import independent_plan
+from scripts.migration_common.conversion import independent_plan, sample_plan
+from scripts.migration_common.offline import RecordConversionError
 from scripts.migration_common.target_catalog import validate_plan_scope
 from scripts.upgrade_from_v3.clinical_documents import convert_annotation
-from tests.unit.test_offline_legacy_migrations import make_index
+from tests.unit.test_offline_legacy_migrations import make_index, review, sample
 
 
 def annotation(assay, subpanel):
@@ -92,6 +93,11 @@ def test_annotation_scope_mapping_for_both_exports(tmp_path, version, assay, asp
     source = make_index(tmp_path, version, {"annotation": originals})
     try:
         rows = independent_plan(source, "annotation", {})["annotation"]
+        if (version == 3) != (assay == "hematology"):
+            assert rows == []
+            for original in originals:
+                assert source.get("annotation", str(original["_id"])) == original
+            return
         by_id = {row["_id"]: row for row in rows}
         for original in originals:
             expected = deepcopy(original)
@@ -129,6 +135,45 @@ def test_uppercase_scope_and_explicit_asp_are_normalized_without_touching_conten
     source["asp_id"] = "different_panel"
     with pytest.raises(ValueError, match="conflicts"):
         convert_annotation(source)
+
+
+@pytest.mark.parametrize("version", [2, 3])
+def test_mixed_annotation_export_selects_only_authoritative_groups(tmp_path, version):
+    """Excluded records are skipped before clinical identity validation or enrichment."""
+    included_group, excluded_group = (
+        ("HEMATOLOGY", "solid") if version == 3 else ("solid", "HEMATOLOGY")
+    )
+    included = annotation(included_group, "base")
+    excluded = {"_id": ObjectId(), "assay": excluded_group}
+    source = make_index(tmp_path, version, {"annotation": [included, excluded]})
+    try:
+        rows = independent_plan(source, "annotation", {})["annotation"]
+        assert [row["_id"] for row in rows] == [included["_id"]]
+        assert source.get("annotation", str(excluded["_id"])) == excluded
+    finally:
+        source.close()
+
+
+@pytest.mark.parametrize("reference_field", ["annotation_oid", "annotation_text_oid"])
+def test_report_link_cannot_reintroduce_excluded_v3_annotations(tmp_path, reference_field):
+    """Excluded historical references stop conversion rather than becoming dangling links."""
+    owner = sample()
+    excluded = annotation("solid", "BC")
+    snapshot = {
+        "_id": ObjectId(),
+        "sample_oid": owner["_id"],
+        reference_field: excluded["_id"],
+    }
+    source = make_index(
+        tmp_path, 3, {"samples": [owner], "annotation": [excluded], "reported_variants": [snapshot]}
+    )
+    try:
+        with pytest.raises(RecordConversionError) as caught:
+            sample_plan(source, str(owner["_id"]), review())
+        assert "excluded by the source policy" in caught.value.issue["reason"]
+        assert source.get("reported_variants", str(snapshot["_id"])) == snapshot
+    finally:
+        source.close()
 
 
 def test_missing_annotation_scope_is_not_invented():
