@@ -18,6 +18,8 @@ export type DiagnosisDefinition = {
   version: number
   created_by?: string | null
   updated_by: string
+  created_on?: string | null
+  updated_on?: string | null
   system_installed?: boolean
   associated_asp_ids?: string[]
 }
@@ -102,7 +104,7 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
         { accessorKey: "definition_is_active", header: "Shared status", cell: ({ row }) => <TableBadge className={row.original.definition_is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.definition_is_active ? "Available" : "Globally retired"}</TableBadge> },
         { accessorKey: "is_active", header: "Assay status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
         { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
-        { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <span className="break-words">{row.original.updated_by}</span> },
+        { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
         { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
           const association = row.original
           const active = association.is_active

@@ -92,7 +92,7 @@ export function DiagnosisDefinitionsPage() {
           { id: "assays", header: "Associated assays", cell: ({ row }) => <div className="flex max-w-80 flex-wrap gap-2">{row.original.associated_asp_ids?.length ? row.original.associated_asp_ids.map((id) => <Link key={id} className="link-text" to={`/admin/assay-diagnoses?assay=${encodeURIComponent(id)}`}>{id}</Link>) : "None"}</div> },
           { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
           { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
-          { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <span className="break-words">{row.original.updated_by}</span> },
+          { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
           { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => canEdit && !row.system_installed && <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><Edit className="h-4 w-4" /></Button> },
         ]}
       />}

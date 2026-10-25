@@ -295,6 +295,7 @@ export function adminCell(
 ) {
   const value = row?.[field]
   if (field === "record_provenance") return <RecordProvenance record={row} />
+  if (field === "updated_by") return <RecordProvenance record={row} kind="updated" />
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) {
     return <TimeDisplay value={value} className="text-sm font-normal" />
   }

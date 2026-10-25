@@ -1,9 +1,31 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { RecordProvenance } from "./RecordProvenance"
 import { adminExportValue, adminFields } from "./resource-list"
 
 describe("Administrative record provenance", () => {
+  afterEach(() => vi.useRealTimers())
+  it("shows creation time beneath the creator with the exact time on hover", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-10-25T12:00:00Z"))
+    render(<RecordProvenance record={{ created_by: "author", created_on: "2026-10-25T11:59:00Z", updated_on: "2026-10-25T12:00:00Z" }} />)
+    expect(screen.getByText("author")).toBeVisible()
+    expect(screen.getByText("1 min ago").parentElement).toHaveAttribute("title")
+    expect(screen.getByText("1 min ago").parentElement).toHaveClass("text-muted-foreground", "type-meta")
+  })
+  it("shows the updater's timestamp independently of creation time", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-10-25T12:00:00Z"))
+    render(<RecordProvenance kind="updated" record={{ created_by: "author", updated_by: "editor", created_on: "2026-10-18T12:00:00Z", updated_on: "2026-10-25T11:00:00Z" }} />)
+    expect(screen.getByText("editor")).toBeVisible()
+    expect(screen.getByText("1 h ago")).toBeVisible()
+    expect(screen.queryByText("author")).not.toBeInTheDocument()
+  })
+  it("does not use modification time as an unknown creation time", () => {
+    render(<RecordProvenance record={{ created_by: "author", updated_on: "2026-10-25T11:00:00Z" }} />)
+    expect(screen.getByText("author")).toBeVisible()
+    expect(screen.queryByTitle(/2026/)).not.toBeInTheDocument()
+  })
   it("shows packaged origin without requiring protected system ownership", () => {
     render(<RecordProvenance record={{ system_installed: true, system_managed: false, created_by: "installer" }} />)
     expect(screen.getByRole("img", { name: "System installed" })).toBeVisible()

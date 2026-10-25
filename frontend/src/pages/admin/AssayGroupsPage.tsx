@@ -120,7 +120,7 @@ export function AssayGroupsPage() {
           { accessorKey: "parent_group_id", header: "Biological parent", cell: ({ row }) => row.original.parent_group_id ? (groups.data ?? []).find((group) => group.group_id === row.original.parent_group_id)?.display_name ?? row.original.parent_group_id : "Top-level group" },
           { accessorKey: "is_active", header: "Status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
           { id: "record_provenance", header: "Created by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
-          { accessorKey: "updated_by", header: "Updated by" },
+          { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
           { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
             const group = row.original
             return canCreate && !group.system_managed && !group.system_installed && <Button variant="ghost" size="icon" className="text-validation" title={group.is_active ? "Deactivate group" : "Activate group"} aria-label={`${group.is_active ? "Deactivate" : "Activate"} ${group.display_name}`} disabled={status.isPending} onClick={() => { setTarget(group); setReason(""); setReasonError(false); status.reset() }}><Power className="h-4 w-4" aria-hidden="true" /></Button>

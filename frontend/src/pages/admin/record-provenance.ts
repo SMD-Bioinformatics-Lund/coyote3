@@ -3,6 +3,10 @@ export type RecordProvenanceData = {
   system_installed?: boolean
   created_by?: string | null
   updated_by?: string | null
+  created_on?: unknown
+  created_at?: unknown
+  updated_on?: unknown
+  updated_at?: unknown
 }
 
 export function provenanceLabel(record: RecordProvenanceData) {
