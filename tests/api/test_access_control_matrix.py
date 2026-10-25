@@ -59,15 +59,7 @@ def _u(
     level: int = 1,
     permissions: list[str] | None = None,
 ) -> ApiUser:
-    """U.
-
-    Args:
-            role: Role. Keyword-only argument.
-            level: Level. Keyword-only argument.
-            permissions: Permissions. Keyword-only argument.
-    Returns:
-            The  u result.
-    """
+    """U."""
     return ApiUser(
         id="u",
         email="u@example.com",
@@ -86,11 +78,6 @@ def _u(
 
 
 def test_enforce_access_allows_matching_permission():
-    """Test enforce access allows matching permission.
-
-    Returns:
-        The function result.
-    """
     _enforce_access(_u(permissions=["report:preview"]), permission="report:preview")
 
 

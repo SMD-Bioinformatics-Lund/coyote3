@@ -15,23 +15,11 @@ class _LoggerStub:
     """Provide  LoggerStub behavior."""
 
     def error(self, msg: str, *args) -> None:
-        """Error.
-
-        Args:
-            msg (str): Value for ``msg``.
-
-        Returns:
-            None.
-        """
+        """Error."""
         self.last_error = msg % args if args else msg
 
 
 def test_validate_report_inputs_accepts_valid_payload():
-    """Test validate report inputs accepts valid payload.
-
-    Returns:
-        The function result.
-    """
     logger = _LoggerStub()
     validate_report_inputs(
         logger,
@@ -55,11 +43,6 @@ def test_validate_report_inputs_accepts_valid_payload():
 
 
 def test_validate_report_inputs_raises_on_missing_report_folder():
-    """Test validate report inputs raises on missing report folder.
-
-    Returns:
-        The function result.
-    """
     logger = _LoggerStub()
     with pytest.raises(AppError) as exc:
         validate_report_inputs(
@@ -85,11 +68,6 @@ def test_validate_report_inputs_raises_on_missing_report_folder():
 
 
 def test_validate_report_inputs_raises_on_missing_assay():
-    """Test validate report inputs raises on missing assay.
-
-    Returns:
-        The function result.
-    """
     logger = _LoggerStub()
     with pytest.raises(AppError) as exc:
         validate_report_inputs(
@@ -106,11 +84,6 @@ def test_validate_report_inputs_raises_on_missing_assay():
 
 
 def test_validate_rna_filter_inputs_raises_on_non_list_field():
-    """Test validate rna filter inputs raises on non list field.
-
-    Returns:
-        The function result.
-    """
     logger = _LoggerStub()
     with pytest.raises(AppError) as exc:
         validate_rna_filter_inputs(
@@ -123,11 +96,6 @@ def test_validate_rna_filter_inputs_raises_on_non_list_field():
 
 
 def test_validate_rna_filter_inputs_raises_on_non_integer_threshold():
-    """Test validate rna filter inputs raises on non integer threshold.
-
-    Returns:
-        The function result.
-    """
     logger = _LoggerStub()
     with pytest.raises(AppError) as exc:
         validate_rna_filter_inputs(

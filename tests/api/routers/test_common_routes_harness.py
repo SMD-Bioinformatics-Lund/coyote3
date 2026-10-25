@@ -13,14 +13,6 @@ from tests.fixtures.api.fake_store import build_fake_store
 
 
 def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
-    """Test common gene info read numeric path with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     fake_store = build_fake_store()
     service = CommonQueryService(
         hgnc_repository=SimpleNamespace(
@@ -83,14 +75,6 @@ def test_common_gene_info_read_resolves_previous_symbol(monkeypatch):
 
 
 def test_common_tiered_variant_context_read_with_fake_store(monkeypatch):
-    """Test common tiered variant context read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *_: fx.sample_doc())
     fake_store = build_fake_store()
     service = CommonQueryService(

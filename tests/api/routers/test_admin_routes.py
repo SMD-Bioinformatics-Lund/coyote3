@@ -12,14 +12,6 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_roles_read_success(monkeypatch):
-    """Test list roles read success.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
 
     service = type(
@@ -38,14 +30,6 @@ def test_list_roles_read_success(monkeypatch):
 
 
 def test_create_role_context_read_no_schema_raises_400(monkeypatch):
-    """Test create role context read no schema raises 400.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     service = type(
         "_Service",
         (),
@@ -72,14 +56,6 @@ def test_create_role_context_read_no_schema_raises_400(monkeypatch):
 
 
 def test_role_context_read_not_found_raises_404(monkeypatch):
-    """Test role context read not found raises 404.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     service = type(
         "_Service",
         (),

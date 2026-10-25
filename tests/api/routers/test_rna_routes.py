@@ -57,11 +57,6 @@ def _rna_service() -> RnaService:
 
 
 def test_change_payload_shape():
-    """Test change payload shape.
-
-    Returns:
-        The function result.
-    """
     payload = change_payload(sample_id="S1", resource="fusion", resource_id="F1", action="flag")
     assert payload["status"] == "ok"
     assert payload["resource"] == "fusion"
@@ -70,14 +65,6 @@ def test_change_payload_shape():
 
 @pytest.mark.parametrize("paginate", [True, False])
 def test_list_rna_fusions_success(monkeypatch, paginate):
-    """Test list rna fusions success.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = {**fx.sample_doc(), "asp_category": "rna"}
     assay_config = {
         **fx.assay_config_doc(asp_group="rna", asp_category="rna"),
@@ -218,14 +205,6 @@ def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
 
 
 def test_show_rna_fusion_not_found_raises_404(monkeypatch):
-    """Test show rna fusion not found raises 404.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     service = _rna_service()
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(store.fusion_repository, "get_fusion", lambda fusion_id: None)
@@ -243,11 +222,6 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
 
 
 def test_restful_rna_mutation_routes_are_registered():
-    """Test restful rna mutation routes are registered.
-
-    Returns:
-        The function result.
-    """
     paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive" in paths
     assert (

@@ -10,11 +10,7 @@ from coyote3.application.common.release_resources import capture_assay_resource,
 
 
 def user_doc() -> dict:
-    """User doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic administrator document with production assay access."""
     defaults = {
         "_id": "u1",
         "email": "tester@example.com",
@@ -33,11 +29,7 @@ def user_doc() -> dict:
 
 
 def api_user() -> ApiUser:
-    """Api user.
-
-    Returns:
-        ApiUser: The function result.
-    """
+    """Build the authenticated API actor from the synthetic administrator document."""
     doc = user_doc()
     return ApiUser(
         id=str(doc.get("_id") or "u1"),
@@ -60,11 +52,7 @@ def api_user() -> ApiUser:
 
 
 def sample_doc() -> dict:
-    """Sample doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic DNA sample with assay identifiers, filters, and report metadata."""
     defaults = {
         "_id": "s1",
         "version": 1,
@@ -149,11 +137,7 @@ def assay_config_doc(*, asp_group="dna", asp_category="dna") -> dict:
 
 
 def variant_doc() -> dict:
-    """Variant doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic SNV document for finding and reporting tests."""
     defaults = {
         "_id": "v1",
         "SAMPLE_ID": "s1",
@@ -178,11 +162,7 @@ def variant_doc() -> dict:
 
 
 def cnv_doc() -> dict:
-    """Cnv doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic copy-number finding document."""
     defaults = {
         "_id": "cnv1",
         "SAMPLE_ID": "s1",
@@ -194,11 +174,7 @@ def cnv_doc() -> dict:
 
 
 def fusion_doc() -> dict:
-    """Fusion doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic RNA fusion finding document."""
     defaults = {
         "_id": "fus1",
         "SAMPLE_ID": "s1",
@@ -213,11 +189,7 @@ def fusion_doc() -> dict:
 
 
 def reported_variant_doc() -> dict:
-    """Reported variant doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic saved-report finding document."""
     defaults = {
         "_id": "rv1",
         "sample_oid": "s1",
@@ -235,11 +207,7 @@ def reported_variant_doc() -> dict:
 
 
 def role_doc() -> dict:
-    """Role doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic administrator role with role-view and role-create grants."""
     defaults = {
         "_id": "admin",
         "role_id": "admin",
@@ -251,11 +219,7 @@ def role_doc() -> dict:
 
 
 def permission_doc() -> dict:
-    """Permission doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic permission document for administration tests."""
     defaults = {
         "_id": "role:view",
         "permission_id": "role:view",
@@ -267,11 +231,7 @@ def permission_doc() -> dict:
 
 
 def schema_doc() -> dict:
-    """Schema doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic form schema for the managed-resource test harness."""
     defaults = {
         "_id": "rbac_role_schema_v1",
         "schema_id": "rbac_role_schema_v1",
@@ -290,11 +250,7 @@ def schema_doc() -> dict:
 
 
 def isgl_doc() -> dict:
-    """Isgl doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic gene-list revision for assay and filter tests."""
     defaults = {
         "_id": "gl1",
         "isgl_id": "gl1",

@@ -29,11 +29,7 @@ _SKIP_METHODS = {"HEAD", "OPTIONS"}
 
 
 def _iter_api_routes() -> Iterable[tuple[str, str]]:
-    """Iter api routes.
-
-    Returns:
-            The  iter api routes result.
-    """
+    """Iter api routes."""
     for route in iter_route_contexts(app.routes):
         if not isinstance(route.original_route, APIRoute):
             continue
@@ -47,23 +43,11 @@ def _iter_api_routes() -> Iterable[tuple[str, str]]:
 
 
 def _is_open(path: str) -> bool:
-    """Is open.
-
-    Args:
-            path: Path.
-
-    Returns:
-            The  is open result.
-    """
+    """Is open."""
     return path in _OPEN_EXACT or path.startswith(_OPEN_PREFIX)
 
 
 def test_protected_routes_fail_closed_without_auth():
-    """Test protected routes fail closed without auth.
-
-    Returns:
-        The function result.
-    """
     unexpected: list[str] = []
     routes = list(_iter_api_routes())
     assert routes, "No API routes discovered for authorization verification"

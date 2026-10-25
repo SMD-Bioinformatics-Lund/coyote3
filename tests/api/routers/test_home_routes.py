@@ -43,27 +43,12 @@ def _sample_catalog_service() -> SampleCatalogService:
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
-    """Test home samples read returns live and done.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user = fx.api_user()
     calls = []
     service = _sample_catalog_service()
 
     def _get_samples_page(**kwargs):
-        """Get samples.
-
-        Args:
-                **kwargs: Kwargs. Additional keyword arguments.
-
-        Returns:
-                The  get samples result.
-        """
+        """Get samples."""
         calls.append(kwargs)
         if kwargs.get("report"):
             return {
@@ -118,27 +103,12 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
-    """Test home samples read always fetches both tables.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user = fx.api_user()
     calls = []
     service = _sample_catalog_service()
 
     def _get_samples_page(**kwargs):
-        """Get samples.
-
-        Args:
-                **kwargs: Kwargs. Additional keyword arguments.
-
-        Returns:
-                The  get samples result.
-        """
+        """Get samples."""
         calls.append(kwargs)
         return {"items": [{"_id": "d1", "reports": [{"time_created": 123}]}], "total": 1}
 
@@ -214,14 +184,6 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
-    """Test home apply isgl invalid payload raises 400.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(AppError) as exc:
@@ -304,14 +266,6 @@ def test_replace_sample_filters_rejects_snv_list_in_cnv_section(monkeypatch):
 
 
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
-    """Test home save adhoc genes mutation parses and sorts.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     calls = {}
     service = _sample_catalog_service()

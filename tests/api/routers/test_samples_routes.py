@@ -19,11 +19,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def _route_test_user() -> ApiUser:
-    """Route test user.
-
-    Returns:
-            The  route test user result.
-    """
+    """Route test user."""
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -48,11 +44,6 @@ def _route_test_user() -> ApiUser:
 
 
 def test_update_sample_filters_rejects_invalid_filters_payload():
-    """Test update sample filters rejects invalid filters payload.
-
-    Returns:
-        The function result.
-    """
     with pytest.raises(ValidationError) as exc:
         samples.SampleFiltersUpdateRequest.model_validate({"filters": "bad"})
 
@@ -299,14 +290,6 @@ def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):
 
 
 def test_reset_sample_filters_requires_assay_config(monkeypatch):
-    """Test reset sample filters requires assay config.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(sdk_fixtures, "configuration", lambda _sample: None)
@@ -408,14 +391,6 @@ def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
 
 
 def test_restful_sample_comment_route_creates_comment(monkeypatch):
-    """Test restful sample comment route creates comment.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["_id"] = "S1"
     calls = {}

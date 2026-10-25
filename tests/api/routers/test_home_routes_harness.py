@@ -29,14 +29,6 @@ def _catalog_service(fake_store) -> SampleCatalogService:
 
 
 def test_home_isgls_read_with_fake_store(monkeypatch):
-    """Test home isgls read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     fake_store = build_fake_store()
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
@@ -53,14 +45,6 @@ def test_home_isgls_read_with_fake_store(monkeypatch):
 
 
 def test_home_effective_genes_read_with_fake_store(monkeypatch):
-    """Test home effective genes read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     fake_store = build_fake_store()
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)

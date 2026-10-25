@@ -9,14 +9,6 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_roles_read_with_fake_store(monkeypatch):
-    """Test list roles read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",

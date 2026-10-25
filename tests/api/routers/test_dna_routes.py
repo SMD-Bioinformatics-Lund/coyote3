@@ -117,11 +117,6 @@ def _classification_service() -> ResourceClassificationService:
 
 
 def test_change_payload_shape():
-    """Test change payload shape.
-
-    Returns:
-        The function result.
-    """
     payload = change_payload(sample_id="S1", resource="variant", resource_id="V1", action="flag")
     assert payload["status"] == "ok"
     assert payload["sample_id"] == "S1"
@@ -203,14 +198,6 @@ def test_select_variant_transcript_uses_sample_vep_vault():
 
 
 def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
-    """Test load cnvs for sample uses collection shaped docs.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample_filters = sample["filters"]
     cnv_rows = [fx.cnv_doc()]
@@ -285,14 +272,6 @@ def test_measurement_routes_are_individual_and_module_gated():
 
 
 def test_show_dna_variant_not_found_raises_404(monkeypatch):
-    """Test show dna variant not found raises 404.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     service = _dna_service()
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda var_id: None)
@@ -493,14 +472,6 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
 
 
 def test_list_dna_variants_does_not_require_report_path(monkeypatch):
-    """Test list dna variants does not require report path.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     snv_filters = sample.setdefault("filters", {}).setdefault("somatic", {}).setdefault("snv", {})
     snv_filters.update(
@@ -590,14 +561,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
 
 
 def test_classify_variant_mutation_calls_insert(monkeypatch):
-    """Test classify variant mutation calls insert.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     captured: dict = {}
 
     monkeypatch.setattr(
@@ -640,14 +603,6 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
 
 
 def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
-    """Test set variant false positive bulk prefers json payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls: dict = {"mark": None, "unmark": None}
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
@@ -680,14 +635,6 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
 
 
 def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
-    """Test set variant irrelevant bulk remove uses json payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls: dict = {"mark": None, "unmark": None}
     monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
@@ -720,14 +667,6 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
 
 
 def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch):
-    """Test that Tier III bulk apply does not add text unless requested.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     captured: dict = {"docs": None}
@@ -809,14 +748,6 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
 
 
 def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypatch):
-    """Test removal of the requested classification.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     captured: list[dict] = []
@@ -874,11 +805,6 @@ def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypat
 
 
 def test_bulk_flag_routes_use_non_colliding_paths():
-    """Test bulk flag routes use non colliding paths.
-
-    Returns:
-        The function result.
-    """
     paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/samples/{sample_id}/small-variants/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant" in paths
@@ -895,11 +821,7 @@ def test_bulk_flag_routes_use_non_colliding_paths():
 
 
 def _route_test_user() -> ApiUser:
-    """Route test user.
-
-    Returns:
-            The  route test user result.
-    """
+    """Route test user."""
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -918,14 +840,6 @@ def _route_test_user() -> ApiUser:
 
 
 def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
-    """Test bulk fp endpoint dispatches in real http route.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(
         store.variant_repository,
         "get_variant",
@@ -959,14 +873,6 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
 
 
 def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
-    """Test bulk irrelevant endpoint dispatches in real http route.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(
         store.variant_repository,
         "get_variant",

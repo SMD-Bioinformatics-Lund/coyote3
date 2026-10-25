@@ -12,14 +12,6 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_permissions_read_groups_by_category(monkeypatch):
-    """Test list permissions read groups by category.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     permission = fx.permission_doc()
     monkeypatch.setattr(permissions.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
@@ -50,14 +42,6 @@ def test_list_permissions_read_groups_by_category(monkeypatch):
 
 
 def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
-    """Test create permission context read no schema raises 400.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     service = type(
         "_Service",
         (),
@@ -86,14 +70,6 @@ def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
 
 
 def test_toggle_permission_status_sets_is_active_meta(monkeypatch):
-    """Test toggle permission status sets is active meta.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(permissions.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",
@@ -127,14 +103,6 @@ def test_toggle_permission_status_sets_is_active_meta(monkeypatch):
 
 
 def test_toggle_permission_status_defaults_historical_doc_to_active(monkeypatch):
-    """Test toggle permission status defaults historical doc to active.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(permissions.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",

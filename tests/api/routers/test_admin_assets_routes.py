@@ -13,14 +13,6 @@ from tests.fixtures.api import application_sdk as sdk_fixtures
 
 
 def test_list_asp_read_returns_panels(monkeypatch):
-    """Test list asp read returns panels.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(asp.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",
@@ -42,11 +34,6 @@ def test_list_asp_read_returns_panels(monkeypatch):
 
 
 def test_create_genelist_context_surfaces_service_errors():
-    """Test create genelist context surfaces service errors.
-
-    Returns:
-        The function result.
-    """
     from tests.fixtures.api import mock_collections as fx
 
     service = type(
@@ -75,11 +62,6 @@ def test_create_genelist_context_surfaces_service_errors():
 
 
 def test_restful_admin_resource_routes_are_registered():
-    """Test restful admin resource routes are registered.
-
-    Returns:
-        The function result.
-    """
     paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/resources/asp" in paths
     assert "/api/v1/resources/asp/{assay_panel_id}" in paths

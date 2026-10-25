@@ -83,14 +83,6 @@ def _ingest_service_stub(**methods):
 
 
 def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
-    """Test get role levels internal returns id to level map.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls = {"token": 0}
 
     monkeypatch.setattr(
@@ -119,14 +111,6 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
 
 
 def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
-    """Test get isgl meta internal reads adhoc and display name.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls = {"token": 0}
 
     monkeypatch.setattr(

@@ -54,14 +54,6 @@ def _coverage_service() -> CoverageService:
 
 
 def test_coverage_sample_read_builds_payload(monkeypatch):
-    """Test coverage sample read builds payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
     sample["asp_id"] = "wgs"
@@ -132,11 +124,6 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
 
 
 def test_coverage_blacklisted_read_denies_non_member_group():
-    """Test coverage blacklisted read denies non member group.
-
-    Returns:
-        The function result.
-    """
     user = _route_test_user()
     user.asp_groups = ["rna"]
 
@@ -150,11 +137,7 @@ def test_coverage_blacklisted_read_denies_non_member_group():
 
 
 def _route_test_user() -> ApiUser:
-    """Route test user.
-
-    Returns:
-            The  route test user result.
-    """
+    """Route test user."""
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -173,14 +156,6 @@ def _route_test_user() -> ApiUser:
 
 
 def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
-    """Test coverage sample read validates cov table dict shape.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
     sample["asp_id"] = "wgs"

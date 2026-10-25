@@ -22,14 +22,7 @@ ALLOW_UNGUARDED_PREFIX = ("/api/v1/public/",)
 
 
 def _iter_route_decorators(py_file: Path):
-    """Iter route decorators.
-
-    Args:
-            py_file: Py file.
-
-    Returns:
-            The  iter route decorators result.
-    """
+    """Iter route decorators."""
     lines = py_file.read_text(encoding="utf-8").splitlines()
     for idx, line in enumerate(lines):
         match = ROUTE_RE.search(line)
@@ -38,15 +31,7 @@ def _iter_route_decorators(py_file: Path):
 
 
 def _is_guarded(lines: list[str], decorator_idx: int) -> bool:
-    """Is guarded.
-
-    Args:
-            lines: Lines.
-            decorator_idx: Decorator idx.
-
-    Returns:
-            The  is guarded result.
-    """
+    """Is guarded."""
     i = decorator_idx + 1
     while i < len(lines) and not DEF_RE.match(lines[i]):
         i += 1
@@ -57,11 +42,6 @@ def _is_guarded(lines: list[str], decorator_idx: int) -> bool:
 
 
 def test_non_public_api_routes_are_guarded():
-    """Test non public api routes are guarded.
-
-    Returns:
-        The function result.
-    """
     route_files = sorted(Path("api/interfaces/http").rglob("*.py"))
     unguarded: list[str] = []
 

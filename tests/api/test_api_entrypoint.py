@@ -8,11 +8,6 @@ from api.app.main import app
 
 
 def test_canonical_api_entrypoint_serves_health():
-    """Test canonical api entrypoint serves health.
-
-    Returns:
-        The function result.
-    """
     route = next(
         (
             entry

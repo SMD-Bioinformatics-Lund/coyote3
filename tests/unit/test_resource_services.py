@@ -19,25 +19,11 @@ class _AnnotationHandlerStub:
         self.deleted: list[dict] = []
 
     def add_anno_comment(self, comment: dict) -> None:
-        """Add anno comment.
-
-        Args:
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add anno comment."""
         self.global_comments.append(comment)
 
     def insert_annotation_bulk(self, docs: list[dict]) -> None:
-        """Insert annotation bulk.
-
-        Args:
-            docs (list[dict]): Value for ``docs``.
-
-        Returns:
-            None.
-        """
+        """Insert annotation bulk."""
         self.inserted_bulk = docs
 
     def delete_classified_variant(self, **kwargs) -> None:
@@ -60,26 +46,11 @@ class _FusionHandlerStub:
         self.comments: list[tuple[str, dict]] = []
 
     def add_fusion_comment(self, fusion_id: str, comment: dict) -> None:
-        """Add fusion comment.
-
-        Args:
-            fusion_id (str): Value for ``fusion_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add fusion comment."""
         self.comments.append((fusion_id, comment))
 
     def get_fusion(self, fusion_id: str) -> dict:
-        """Return fusion.
-
-        Args:
-            fusion_id (str): Value for ``fusion_id``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return fusion."""
         return {
             "_id": fusion_id,
             "SAMPLE_ID": "S1",
@@ -89,14 +60,7 @@ class _FusionHandlerStub:
         }
 
     def get_selected_fusioncall(self, fusion: dict) -> dict:
-        """Return selected fusioncall.
-
-        Args:
-            fusion (dict): Value for ``fusion``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return selected fusioncall."""
         return fusion["calls"][0]
 
 
@@ -108,26 +72,11 @@ class _CnvHandlerStub:
         self.comments: list[tuple[str, dict]] = []
 
     def add_cnv_comment(self, cnv_id: str, comment: dict) -> None:
-        """Add cnv comment.
-
-        Args:
-            cnv_id (str): Value for ``cnv_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add cnv comment."""
         self.comments.append((cnv_id, comment))
 
     def get_cnv(self, cnv_id: str) -> dict:
-        """Return cnv.
-
-        Args:
-            cnv_id (str): Value for ``cnv_id``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return cnv."""
         return {
             "_id": cnv_id,
             "SAMPLE_ID": "S1",
@@ -146,26 +95,11 @@ class _TranslocHandlerStub:
         self.comments: list[tuple[str, dict]] = []
 
     def add_transloc_comment(self, transloc_id: str, comment: dict) -> None:
-        """Add transloc comment.
-
-        Args:
-            transloc_id (str): Value for ``transloc_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add transloc comment."""
         self.comments.append((transloc_id, comment))
 
     def get_transloc(self, transloc_id: str) -> dict:
-        """Return transloc.
-
-        Args:
-            transloc_id (str): Value for ``transloc_id``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return transloc."""
         return {
             "_id": transloc_id,
             "SAMPLE_ID": "S1",
@@ -180,15 +114,7 @@ class _VariantHandlerStub:
     """Provide  VariantHandlerStub behavior."""
 
     def add_var_comment(self, variant_id: str, comment: dict) -> None:
-        """Add var comment.
-
-        Args:
-            variant_id (str): Value for ``variant_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add var comment."""
         self.variant_comment = (variant_id, comment)
 
     def get_variant(self, variant_id: str) -> dict:
@@ -269,46 +195,19 @@ class _RepoStub:
 
 
 def _nomenclature(form_data: dict) -> tuple[str, str]:
-    """Nomenclature.
-
-    Args:
-            form_data: Form data.
-
-    Returns:
-            The  nomenclature result.
-    """
+    """Nomenclature."""
     return form_data["nomenclature"], form_data["variant"]
 
 
 def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
-    """Comment doc.
-
-    Args:
-            form_data: Form data.
-            nomenclature: Nomenclature. Keyword-only argument.
-            variant: Variant. Keyword-only argument.
-
-    Returns:
-            The  comment doc result.
-    """
+    """Comment doc."""
     return {"text": form_data["text"], "nomenclature": nomenclature, "variant": variant}
 
 
 def _classification_doc(
     *, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
 ) -> dict:
-    """Classification doc.
-
-    Args:
-            variant: Variant. Keyword-only argument.
-            nomenclature: Nomenclature. Keyword-only argument.
-            class_num: Class num. Keyword-only argument.
-            variant_data: Variant data. Keyword-only argument.
-            **kwargs: Kwargs. Additional keyword arguments.
-
-    Returns:
-            The  classification doc result.
-    """
+    """Classification doc."""
     assert "source" not in kwargs
     return {
         "variant": variant,
@@ -385,11 +284,6 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
 
 
 def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatch):
-    """Test resource classification service supports fusion bulk tiering.
-
-    Returns:
-        The function result.
-    """
     repo = _RepoStub()
     service = _classification_service(repo)
 
@@ -583,11 +477,6 @@ def test_tier_removal_deletes_only_the_matching_classification():
 
 
 def test_resource_classification_service_supports_translocation_bulk_removal(monkeypatch):
-    """Test resource classification service supports translocation bulk removal.
-
-    Returns:
-        The function result.
-    """
     repo = _RepoStub()
     service = _classification_service(repo)
 

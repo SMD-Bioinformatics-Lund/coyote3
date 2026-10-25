@@ -15,14 +15,6 @@ from tests.fixtures.api import application_sdk as sdk_fixtures
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
-    """Test public genelist view context not found raises 404.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(
         PublicCatalogService, "genelist_view_context", lambda self, *_args, **_kwargs: None
     )
@@ -39,14 +31,6 @@ def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
 
 
 def test_public_asp_genes_read_success(monkeypatch):
-    """Test public asp genes read success.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(
         PublicCatalogService,
         "asp_genes_payload",
