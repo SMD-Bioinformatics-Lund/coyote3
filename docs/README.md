@@ -9,7 +9,7 @@ assay configuration, access management, integration, deployment, and operations.
 | Task | Start here |
 | --- | --- |
 | Evaluate Coyote3 locally | [Local quickstart](getting-started/local-quickstart.md) |
-| Install at a new center | [First installation](deployment/first-installation.md), then the [installation checklist](deployment/installation-checklist.md) |
+| Install at a new center | [First installation](deployment/first-installation.md), then the [deployment acceptance checklist](deployment/acceptance-checklist.md) |
 | Understand an environment file, setting or input format | [Configuration and file formats](configuration/README.md) |
 | Update or restart an existing installation | [Choose a procedure](deployment/production-deployment.md) |
 | Migrate an existing Coyote v2 database | [Migration from v2](migration_from_v2/README.md) |

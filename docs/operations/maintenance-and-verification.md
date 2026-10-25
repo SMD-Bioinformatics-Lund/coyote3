@@ -191,7 +191,7 @@ changes still need to be assessed against an approved non-production workload.
 
 Use these related documents for detailed procedures:
 
-- [Initial Deployment Checklist](../deployment/installation-checklist.md)
+- [Deployment Acceptance Checklist](../deployment/acceptance-checklist.md)
 - [Center Deployment Guide](../deployment/bootstrap-data-flow.md)
 - [Quality Engineering and Validation Standards](../testing/test-strategy-and-quality-gates.md)
 - [Browser And Release Validation](../testing/browser-and-release-validation.md)

@@ -2,6 +2,11 @@
 
 ## v4.0.0
 
+- Align the modern report's center logo to the right edge with the center name below
+  it in HTML and PDF. Preserve clinical content and the existing report format.
+- Consolidate deployment acceptance into one checklist, remove the pending-development
+  maintenance page, and correct source-build versus verified-artifact instructions.
+
 Version 4 replaces the Flask application with FastAPI and React while preserving
 its supported clinical workflows.
 

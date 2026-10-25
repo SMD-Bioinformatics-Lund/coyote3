@@ -54,7 +54,7 @@ commands, select [first installation, upgrade, or redeployment](production-deplo
 ## Scope
 
 - **Standard deployment**: Repeatable container-based release deployment.
-- **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](bootstrap-data-flow.md) and the [Initial Deployment Checklist](installation-checklist.md).
+- **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](bootstrap-data-flow.md) and the [Deployment Acceptance Checklist](acceptance-checklist.md).
 
 ## Release Metadata
 

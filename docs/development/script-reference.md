@@ -124,6 +124,7 @@ the default creates a review artifact without database access.
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
 | `deployment/compose-with-version.sh` | Operator entry point | Deployment documentation | Resolves the application version, validates environment secrets, and invokes Docker Compose consistently |
+| `deployment/python_runtime.sh` | Internal helper | Installer and Compose wrapper | Selects a supported host interpreter from `PYTHON_BIN`, the repository environment, or system Python; container commands use the image interpreter |
 | `deployment/prepare_host_directories.py` | Automated helper | Compose wrapper during deployment or explicit preflight preparation | Creates missing application storage from resolved Compose mounts and verifies container access without changing existing ownership |
 | `deployment/validate_env_secrets.sh` | Automated helper | compose wrapper and preflight | Rejects missing, empty, or placeholder runtime secrets; LDAP credentials remain login-time configuration |
 | `database/mongo_backup_archive.sh` | Manual or infrastructure-scheduled operation | MongoDB recovery runbook | Creates complete oplog-consistent timestamped MongoDB archives, verifies them, and publishes only complete files |

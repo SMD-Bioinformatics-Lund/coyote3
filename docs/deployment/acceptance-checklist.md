@@ -21,6 +21,26 @@ Prepare the following before starting:
 | Recovery target | Empty, isolated MongoDB instance or database that cannot affect the source environment |
 | Evidence location | Controlled ticket, validation record, or quality-management system |
 
+## Installation record
+
+For a new installation, also record these results before clinical acceptance:
+
+- Reviewed commit, image digests, private configuration location, Compose project,
+  external network, ordered overlays, and container UID/GID.
+- Four distinct database names, working endpoints, persistent data/log roots, and
+  retained reference data with reviewed versions.
+- Named administrator and emergency superuser identities, completed initial password
+  changes, and assigned recovery ownership.
+- Completed baseline and compatible index installation without unresolved errors.
+- Reviewed center configuration, assays, diagnoses, gene lists, query/reporting rules,
+  and active ASPC analyses, filters and report sections; no clinical use of demo settings.
+- Application, API and documentation access through the intended public origin, path
+  prefix and TLS ingress.
+
+Keep the operator, date, release and configuration revisions with the evidence below.
+This checklist is the acceptance record for both new installations and upgrades;
+the [first-installation guide](first-installation.md) owns installation commands.
+
 ## 1. Validate configuration
 
 Run preflight against the exact files used for deployment:

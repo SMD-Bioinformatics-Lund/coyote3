@@ -744,7 +744,7 @@ including its deliberate report save, is not a load-tested release; do not turn 
 clinical write checks into load loops. The load guide owns generator commands and
 excludes publication and finalization.
 
-- [Initial deployment checklist](../deployment/installation-checklist.md)
+- [Deployment acceptance checklist](../deployment/acceptance-checklist.md)
 - [MongoDB deployment and recovery](../deployment/mongodb-setup-and-recovery.md)
 - [Backup, restore, and snapshots](../operations/backup-and-recovery.md)
 - [Browser and release validation](browser-and-release-validation.md)

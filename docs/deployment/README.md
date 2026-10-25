@@ -15,10 +15,8 @@ account setup and resource validation. Legacy databases use separate
 | [First installation](first-installation.md) | Follow one ordered procedure from environment files through network creation, storage, bootstrap, startup and first sign-in. |
 | [First-time MongoDB provisioning](mongodb-first-setup.md) | Prepare a new Docker/host replica set and grants, then return to application installation. |
 | [Installation operations](installation-operations.md) | Select installer stages, opt in to knowledgebase operations, and run each operation independently. |
-| [Initial deployment checklist](installation-checklist.md) | Record completion evidence for the first-installation procedure. |
 | [Deployment acceptance checklist](acceptance-checklist.md) | Collect center-specific acceptance checks and evidence. |
 | [Upgrade an existing installation](application-upgrades.md) | Preserve recovery artifacts, validate the release, pause writes, back up, apply required maintenance and verify or roll back. |
-| [Pending release maintenance](release-maintenance.md) | Review current behavior changes, required index/retention operations and rollback limits. |
 | [Restart or redeploy](application-redeployment.md) | Start or replace containers using the same release, configuration and persistent state. |
 | [MongoDB deployment and recovery](mongodb-setup-and-recovery.md) | Initialize replica sets and verify database backup and recovery. |
 | [Container deployment and reverse proxy](containers-and-reverse-proxy.md) | Configure service limits, images, routing, proxies, and release deployment. |

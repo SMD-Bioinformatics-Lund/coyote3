@@ -56,9 +56,7 @@ nav:
           - "Choose a procedure": deployment/production-deployment.md
           - "Production requirements": deployment/production-requirements.md
           - "First installation": deployment/first-installation.md
-          - "Pending release maintenance": deployment/release-maintenance.md
           - "Installation operations": deployment/installation-operations.md
-          - "Installation checklist": deployment/installation-checklist.md
           - "Deployment acceptance": deployment/acceptance-checklist.md
           - "Upgrade an existing installation": deployment/application-upgrades.md
           - "Restart or redeploy": deployment/application-redeployment.md

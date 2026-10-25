@@ -57,7 +57,7 @@ Application bootstrap and test fixtures have separate ownership:
 | `tests/fixtures/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |
 
 The first-deployment flow and empty-collection protection are described in
-[Initial Deployment Checklist](../deployment/installation-checklist.md).
+[Deployment Acceptance Checklist](../deployment/acceptance-checklist.md).
 
 ### Validation Commands
 

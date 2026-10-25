@@ -232,7 +232,7 @@ development value `/coyote3_dev`, the standard endpoints are:
 For first deployment, baseline RBAC data, the initial superuser, demo
 configuration, and synthetic sample ingestion, follow the
 [Quickstart](docs/getting-started/local-quickstart.md). Production deployments must follow
-the [Initial Deployment Checklist](docs/deployment/installation-checklist.md).
+the [Deployment Acceptance Checklist](docs/deployment/acceptance-checklist.md).
 
 ## Configuration Model
 
@@ -305,7 +305,7 @@ SDK packages, HTTP compatibility and governed configuration revisions.
 | Clinical review | [Clinical Workflow](docs/user-guide/clinical-review-workflow.md) |
 | ASP, ASPC, ISGL, samples, and findings | [Core Concepts](docs/reference/clinical-concepts.md) |
 | System relationships | [System Overview](docs/reference/application-overview.md) |
-| Center deployment | [First installation](docs/deployment/first-installation.md) and [deployment checklist](docs/deployment/installation-checklist.md) |
+| Center deployment | [First installation](docs/deployment/first-installation.md) and [deployment checklist](docs/deployment/acceptance-checklist.md) |
 | Environment and secrets | [Environment and Secrets](docs/deployment/environments-and-secrets.md) |
 | Sample manifest and input contracts | [Sample YAML Manifest](docs/reference/sample-manifest.md) and [Sample Input Files](docs/reference/sample-file-formats.md) |
 | API organization and authentication | [API Organization](docs/api/route-groups.md) and [Authentication](docs/api/authentication.md) |

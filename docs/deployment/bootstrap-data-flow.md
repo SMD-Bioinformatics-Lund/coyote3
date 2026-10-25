@@ -3,7 +3,7 @@
 This page explains the data installed during bootstrap and the order in which
 services and clinical configuration become available. Follow
 [first installation](first-installation.md) for setup commands and the
-[installation checklist](installation-checklist.md) for the deployment handoff.
+[deployment acceptance checklist](acceptance-checklist.md) for the deployment handoff.
 
 For the purpose, format and ownership of each installed catalog, see
 [installed catalogs](../reference/operational-files.md#installed-catalogs).
@@ -40,7 +40,7 @@ It does not reset databases, replace populated seed collections or run data migr
 
 Use [first installation](first-installation.md) for the commands and execution
 order. It covers deployment files, storage, networking, bootstrap, startup and
-clinical configuration. The [installation checklist](installation-checklist.md)
+clinical configuration. The [deployment acceptance checklist](acceptance-checklist.md)
 records acceptance and handoff; it is not a second installation procedure.
 
 ## Required Baseline Collections
@@ -152,7 +152,7 @@ Start Coyote3 after database bootstrap:
 
 For environment-specific values and full verification gates, use:
 
-- [Initial Deployment Checklist](installation-checklist.md)
+- [Deployment Acceptance Checklist](acceptance-checklist.md)
 - [Maintenance And Quality](../operations/maintenance-and-verification.md)
 
 Operational defaults:

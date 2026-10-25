@@ -10,14 +10,16 @@ configuration, incomplete backup or missing migration procedure stops deployment
 There is no universal migration command: releases that change stored contracts
 must supply their own reviewed migration and recovery instructions.
 
-The pending release's required actions and rollback limits are listed in
-[release maintenance](release-maintenance.md).
+Review `CHANGELOG.md` in the target release checkout and follow the
+applicable maintenance procedures in step 6. Record acceptance and recovery evidence
+using the [deployment acceptance checklist](acceptance-checklist.md).
 
-Before rebuilding images, download the target release's tested SDK wheel and
-`release-record.json` into `.release/sdk`, or set an absolute
-`COYOTE3_SDK_ARTIFACT_DIR`. Export the target checkout's `GIT_COMMIT`. Follow the
-[SDK artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release);
-production builds verify these inputs instead of rebuilding the SDK.
+The normal application build packages the SDK inside Docker; it does not require a
+host `.release/sdk` directory. Only installations selecting
+`deploy/compose/docker-compose.release.yml` must supply the tested SDK wheel and
+`release-record.json` using the
+[verified-artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release).
+Export the target checkout's `GIT_COMMIT` before building either image variant.
 
 ## 1. Select the installation and maintenance record
 
@@ -242,6 +244,16 @@ Use the exact migration instructions supplied with the reviewed release. Review
 its dry-run/plan, scope, counts and recovery requirements before applying changes.
 If those instructions are missing for a changed stored contract, keep the old
 installation in service or restore it without applying the new release.
+
+For installations retaining the notification `expires_on` TTL index, follow the
+[notification retention procedure](../operations/email-and-notifications.md#existing-installations).
+Review the dry run before applying changes. It preserves remaining records but cannot
+recover notifications already removed by the old index.
+
+Application and identity indexes use the index tool's default `application` scope.
+For declared knowledgebase index changes, separately plan and apply
+`--scope knowledgebase` with the approved reference-maintenance connection. Keep
+runtime reference credentials unchanged.
 
 When the release adds system permissions or roles, review and apply its bundled
 catalog through the identity maintenance tool:
