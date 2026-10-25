@@ -116,6 +116,7 @@ nav:
           - "Installed group rules and demo defaults": administration/installed-defaults.md
           - "Creators and system-installed records": administration/record-attribution.md
       - Manage configuration changes:
+          - "Editing sessions and concurrent users": administration/document-editing.md
           - "Plan a change": administration/planning-configuration-changes.md
           - "Configuration profiles and promotion": administration/configuration-publication.md
           - "Resource fields and defaults": administration/clinical-resource-fields.md

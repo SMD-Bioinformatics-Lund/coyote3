@@ -114,7 +114,7 @@ Return the JSON error detail shape used by HTTP translation.
 ### `ApplicationRuntime`
 
 ```python
-ApplicationRuntime(*, authenticate: collections.abc.Callable[[], typing.Any | None], policy_factory: collections.abc.Callable[[typing.Any], coyote3.application.common.access.ScopePolicy], sample_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], assay_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], audit_access: collections.abc.Callable[[coyote3.application.operations.runtime.AccessEvent], None], correlation_id: str | None = None, project_result: collections.abc.Callable[[typing.Any], typing.Any] = <function deepcopy>, allowed_operations: frozenset[str] | None = None) -> None
+ApplicationRuntime(*, authenticate: collections.abc.Callable[[], typing.Any | None], policy_factory: collections.abc.Callable[[typing.Any], coyote3.application.common.access.ScopePolicy], sample_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], assay_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], audit_access: collections.abc.Callable[[coyote3.application.operations.runtime.AccessEvent], None], correlation_id: str | None = None, project_result: collections.abc.Callable[[typing.Any], typing.Any] = <function deepcopy>, allowed_operations: frozenset[str] | None = None, document_editing: coyote3.application.editing.DocumentEditing | None = None, editor_id: uuid.UUID | None = None) -> None
 ```
 
 ```text
@@ -128,7 +128,7 @@ not values accepted from an HTTP request or an untrusted Python script.
 #### `ApplicationRuntime.execute`
 
 ```python
-ApplicationRuntime.execute(self, operation: str, permissions: tuple[str, ...] | None, action: collections.abc.Callable[[typing.Any, dict[str, typing.Any] | None], ~Result], *, sample_id: str | None = None, sample_permissions: collections.abc.Callable[[dict[str, Any]], tuple[str, ...]] | None = None) -> ~Result
+ApplicationRuntime.execute(self, operation: str, permissions: tuple[str, ...] | None, action: collections.abc.Callable[[typing.Any, dict[str, typing.Any] | None], ~Result], *, sample_id: str | None = None, sample_permissions: collections.abc.Callable[[dict[str, Any]], tuple[str, ...]] | None = None, edit_resource: tuple[str, str] | None = None, editing_session_required: bool = True) -> ~Result
 ```
 
 ```text
@@ -143,6 +143,9 @@ Args:
     sample_id: Sample to reload and authorize, or None for a global operation.
     sample_permissions: Trusted resolver for additional grants on the loaded sample,
         such as production publication; None adds no conditional grants.
+    edit_resource: Canonical resource kind and lookup identity for an edited record.
+    editing_session_required: False for an immediate lifecycle action that takes
+        a temporary lease; True requires an already-open interactive editor.
 
 Returns:
     The service result, after execution under the authenticated actor.
@@ -6897,8 +6900,9 @@ Call this endpoint with HTTPX request arguments and content-aware decoding.
 
 Args:
     method: HTTP method, such as GET or POST.
-    **kwargs: HTTPX params, json, data, files or content; authentication
-        headers are owned by the client and cannot be overridden.
+    **kwargs: HTTPX params, json, data, files or content, plus an optional
+        edit_session UUID for document writes. Authentication headers are owned
+        by the client and cannot be overridden.
 
 Returns:
     JSON values, text for textual media types, bytes for files, or None for empty bodies.
@@ -6999,8 +7003,9 @@ Send one HTTP request with explicit HTTPX parameters and no automatic retries.
 
 Args:
     method: HTTP method, such as GET or POST.
-    **kwargs: HTTPX params, json, data, files or content. The client owns
-        authentication headers; callers cannot replace them.
+    **kwargs: HTTPX params, json, data, files or content, plus an optional
+        edit_session UUID for document writes. The client owns authentication
+        headers; callers cannot replace them.
 
 Returns:
     Decoded JSON, text, bytes, or None for an empty response.

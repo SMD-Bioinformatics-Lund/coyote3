@@ -24,6 +24,7 @@ from coyote3.application.operations.administration import (
 from coyote3.application.operations.clinical import ClinicalServices
 from coyote3.application.operations.clinical_rules import ClinicalRules
 from coyote3.application.operations.coverage import Coverage
+from coyote3.application.operations.editing import DocumentEditors, EditableResource
 from coyote3.application.operations.governance import (
     ConfigurationProfiles,
     ConfigurationPromotions,
@@ -47,6 +48,7 @@ from coyote3.application.operations.system import (
     OperationsServices,
     Traceability,
 )
+from coyote3.config.contracts.application import APP_CONTROLS_ID
 
 if TYPE_CHECKING:
     from coyote3.application.common.query_service import CommonQueryService
@@ -189,3 +191,97 @@ class CoyoteApplication:
         self.configuration_promotions = ConfigurationPromotions(
             runtime, services.configuration_promotions
         )
+        administration = services.administration
+        self.editing = DocumentEditors(
+            runtime,
+            {
+                "sample-filters": EditableResource(
+                    "sample:edit:own",
+                    lambda identity: runtime.sample_loader(identity) or {},
+                    "_id",
+                    sample_scoped=True,
+                ),
+                "diagnoses": EditableResource(
+                    "assay.panel:edit",
+                    lambda identity: administration.diagnoses().get_definition(identity),
+                    "diagnosis_id",
+                ),
+                "controls": EditableResource(
+                    "app.controls:edit",
+                    lambda identity: (
+                        {"_id": APP_CONTROLS_ID} if identity == APP_CONTROLS_ID else {}
+                    ),
+                    "_id",
+                ),
+                "samples": EditableResource(
+                    "sample:edit:global",
+                    lambda identity: administration.sample_administration().context_payload(
+                        sample_id=identity
+                    )["sample"],
+                    "_id",
+                ),
+                "users": EditableResource(
+                    "user:edit",
+                    lambda identity: administration.users().context_payload(user_id=identity)[
+                        "user_doc"
+                    ],
+                    "username",
+                ),
+                "roles": EditableResource(
+                    "role:edit",
+                    lambda identity: administration.roles().context_payload(role_id=identity)[
+                        "role"
+                    ],
+                    "role_id",
+                ),
+                "permissions": EditableResource(
+                    "permission.policy:edit",
+                    lambda identity: administration.permissions().context_payload(
+                        permission_id=identity
+                    )["permission"],
+                    "permission_id",
+                ),
+                "asp": EditableResource(
+                    "assay.panel:edit",
+                    lambda identity: administration.assays().context_payload(panel_id=identity)[
+                        "panel"
+                    ],
+                    "asp_id",
+                ),
+                "aspc": EditableResource(
+                    "assay.config:edit",
+                    lambda identity: administration.assay_configurations().context_payload(
+                        assay_id=identity
+                    )["assay_config"],
+                    "aspc_id",
+                ),
+                "genelists": EditableResource(
+                    "gene_list.insilico:edit",
+                    lambda identity: administration.gene_lists().context_payload(
+                        genelist_id=identity
+                    )["genelist"],
+                    "isgl_id",
+                ),
+                "assay-setups": EditableResource(
+                    "assay.panel:edit",
+                    lambda identity: administration.assay_setups().get(identity),
+                    "_id",
+                ),
+                "clinical-rules": EditableResource(
+                    "clinical_rules:draft",
+                    lambda identity: services.clinical_rules().get(identity),
+                    "_id",
+                ),
+                "query-rules": EditableResource(
+                    "query_rules:draft",
+                    lambda identity: services.query_rules().get(identity),
+                    "_id",
+                ),
+                "assay-catalog": EditableResource(
+                    "catalog:draft",
+                    lambda identity: administration.catalog_authoring().document(identity),
+                    "_id",
+                ),
+            },
+        )
+        runtime.edit_guard = self.editing.require_owner

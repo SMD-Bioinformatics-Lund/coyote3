@@ -81,7 +81,7 @@ describe("Assays page", () => {
   it("owns assay columns and filters without exposing account actions", async () => {
     mount();
     expect(await screen.findByText("demo_dna")).toBeVisible();
-    expect(screen.getByRole("columnheader", { name: /Assay ID/i })).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: /^Assay\s*(?:↕|↑|↓)?$/i })).toBeVisible();
     expect(screen.getByRole("columnheader", { name: /Actions/ })).toBeVisible();
     expect(screen.queryByTitle("Invite user")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Assay category"), { target: { value: "rna" } });

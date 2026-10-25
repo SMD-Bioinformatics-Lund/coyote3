@@ -2,6 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
+
+vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof import("@/lib/access-control")>(), useCurrentUserAccess: () => ({ data: { permissions: ["sample:edit:own"], roles: [] } }) }))
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -68,6 +71,7 @@ const context = {
 }
 
 function renderSidebar(props: Partial<React.ComponentProps<typeof FiltersSidebar>> = {}) {
+  installEditLeaseMock(mocks.post)
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -115,7 +119,7 @@ describe("FiltersSidebar", () => {
           ...sample.filters[intent].snv, exclude_flags: ["WARN_NOVAR"],
         } },
       },
-    }))
+    }, editSessionOptions))
   })
 
   it("shows the sampled ASPC and applies a newer revision only after confirmation", async () => {
@@ -149,7 +153,7 @@ describe("FiltersSidebar", () => {
 
     await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(
       "/samples/CASE_001/aspc/apply-latest",
-      { expected_version: 4, configuration_id: "release-3", reason: "Validated thresholds", retain_overrides: false },
+      { expected_version: 4, configuration_id: "release-3", reason: "Validated thresholds", retain_overrides: false }, editSessionOptions
     ))
   })
 
@@ -200,7 +204,7 @@ describe("FiltersSidebar", () => {
           coverage: { warn_cov: 300, error_cov: 100 },
         }),
       }),
-    }))
+    }, editSessionOptions))
   })
 
   it("merges edited values into the active intent and refreshes sample queries", async () => {
@@ -221,7 +225,7 @@ describe("FiltersSidebar", () => {
         }),
         germline: sample.filters.germline,
       }),
-    })
+    }, editSessionOptions)
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["sample", "CASE_001"] })
     expect(queryClient.refetchQueries).toHaveBeenCalledWith({ queryKey: ["sample-variants", "CASE_001"], type: "active" })
     expect(mocks.success).toHaveBeenCalledWith(
@@ -262,7 +266,7 @@ describe("FiltersSidebar", () => {
           translocation: { fusionlists: [] },
         }),
       }),
-    })
+    }, editSessionOptions)
   })
 
   it("filters RNA fusions by configured evidence-description terms", async () => {
@@ -293,7 +297,7 @@ describe("FiltersSidebar", () => {
           }),
         }),
       }),
-    })
+    }, editSessionOptions)
   })
 
   it("renders fusion caller choices from the API contract using canonical IDs", async () => {
@@ -322,7 +326,7 @@ describe("FiltersSidebar", () => {
     ))
 
     await user.click(screen.getByTitle("Reset filters"))
-    await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("/samples/CASE_001/filters"))
+    await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("/samples/CASE_001/filters", editSessionOptions))
     expect(mocks.success).toHaveBeenCalledWith(
       "Filters reset",
       expect.stringContaining("Default assay configuration filters were restored"),

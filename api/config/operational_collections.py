@@ -18,6 +18,7 @@ class OperationalCollectionContract:
     report_artifact_erasure: str = "report_artifact_erasure"
     notification_activity_progress: str = "notification_activity_progress"
     app_controls: str = "app_controls"
+    edit_leases: str = "edit_leases"
     app_controls_document_id: str = APP_CONTROLS_ID
 
 

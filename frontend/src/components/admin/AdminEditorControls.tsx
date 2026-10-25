@@ -1,4 +1,5 @@
 import { AppLoader } from "@/components/layout/AppLoader"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { downloadJson } from "@/lib/json-download"
 import {
   submitPayload
@@ -122,5 +123,5 @@ export function AdminEditorContent({ state, usesSchema = true, children }: { sta
       </section>
     )
   }
-  return <>{children}</>
+  return <><DocumentEditorNotice editor={state.documentEditor} />{children}</>
 }

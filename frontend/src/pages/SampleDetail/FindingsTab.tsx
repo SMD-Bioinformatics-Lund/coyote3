@@ -1,5 +1,8 @@
 import { ChevronLeft, Filter } from "lucide-react"
 import { useState } from "react"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { CNVTab } from "./CNVTab"
 import { FusionsTab } from "./FusionsTab"
 import { RnaAnalysisTab } from "./RnaAnalysisTabs"
@@ -73,6 +76,8 @@ export function ClassicAnalysisFiltersSidebar({
   sections: AnalysisFilterSection[]
 }) {
   const [isCollapsed, setIsCollapsed] = useState(true)
+  const access = useCurrentUserAccess()
+  const documentEditor = useDocumentEditor("sample-filters", sampleId, !isCollapsed && hasPermission(access.data, "sample:edit:own"))
   const filterableSections = sections.filter((section) => FILTERABLE_ANALYSIS_SECTIONS.has(section.id))
   if (filterableSections.length === 0) return null
 
@@ -107,6 +112,7 @@ export function ClassicAnalysisFiltersSidebar({
         </button>
       </div>
       <div className="min-h-0 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border">
+        <DocumentEditorNotice editor={documentEditor} />
         {filterableSections.map((section) => (
           <FiltersSidebar
             key={section.id}
@@ -115,6 +121,7 @@ export function ClassicAnalysisFiltersSidebar({
             sampleId={sampleId}
             sample={sample}
             context={context}
+            editor={documentEditor}
             activeTab={section.id}
             intent={section.id === "germline-snvs" ? "germline" : "somatic"}
           />

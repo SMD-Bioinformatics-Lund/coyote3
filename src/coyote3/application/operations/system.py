@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from coyote3.application.dashboard.cache import DASHBOARD_METRICS
 from coyote3.application.operations.runtime import ApplicationRuntime
+from coyote3.config.contracts.application import APP_CONTROLS_ID
 from coyote3.domain.common.errors import api_error
 
 if TYPE_CHECKING:
@@ -154,7 +155,12 @@ class Controls:
             service.update_controls(controls, actor=actor)
             return dict(service.payload())
 
-        return self._runtime.execute("controls.update", ("app.controls:edit",), save)
+        return self._runtime.execute(
+            "controls.update",
+            ("app.controls:edit",),
+            save,
+            edit_resource=("controls", APP_CONTROLS_ID),
+        )
 
     def maintenance(self) -> dict[str, Any]:
         """Queue retention cleanup with app.maintenance:run permission."""

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
+import { editLease, editSessionOptions } from "@/test/edit-lease"
 import { QueryRulesPage } from "./QueryRulesPage"
 
 const access = vi.hoisted(() => ({ permissions: ["query_rules:view", "query_rules:draft", "query_rules:publish"], roles: [] }))
@@ -16,7 +17,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["query_rules:view", "query_rules:draft", "query_rules:publish"]
   vi.mocked(api.get).mockImplementation(async path => ({ status: 200, data: path.endsWith("/options") ? { groups: [{ id: "example", name: "Example laboratory" }], assays: [{ id: "panel", group: "example", category: "dna", diagnoses: ["myeloid"] }] } : { items: [] } }))
-  vi.mocked(api.post).mockResolvedValue({ status: 200, data: { evidence_mode: "paired", exceptions: [], lineage: [{ source: "default", version: null }] } })
+  vi.mocked(api.post).mockImplementation(async (url) => ({ status: 200, data: url.startsWith("/editing/") ? editLease() : { evidence_mode: "paired", exceptions: [], lineage: [{ source: "default", version: null }] } }))
 })
 
 function mount(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
@@ -153,7 +154,7 @@ it("requires confirmation before discarding local conditions for inheritance", a
   })
   mount()
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
-  fireEvent.change(screen.getByLabelText("Exception list"), { target: { value: "inherit" } })
+  fireEvent.change(await screen.findByLabelText("Exception list"), { target: { value: "inherit" } })
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }))
   expect(screen.getByLabelText("Identifier")).toHaveValue("keep-me")
   expect(screen.getByLabelText("Exception list")).toHaveValue("replace")
@@ -171,10 +172,11 @@ it("deletes only a selected draft after a reason and confirmation", async () => 
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   expect(screen.getByRole("button", { name: "Delete version" })).toBeDisabled()
   fireEvent.change(screen.getByLabelText("Change or review reason"), { target: { value: "Unused" } })
+  await waitFor(() => expect(screen.queryByText("Opening editing session…")).not.toBeInTheDocument())
   fireEvent.click(screen.getByRole("button", { name: "Delete version" }))
   expect(api.delete).not.toHaveBeenCalled()
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }))
-  await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/admin/query-rule-sets/version-one", { body: JSON.stringify({ expected_revision: 2, reason: "Unused" }) }))
+  await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/admin/query-rule-sets/version-one", { ...editSessionOptions, body: JSON.stringify({ expected_revision: 2, reason: "Unused" }) }))
 })
 
 it("previews inherited fields separately from explicit empty exceptions", async () => {
@@ -206,7 +208,7 @@ it("requires confirmation and the inspected revision when publishing", async () 
   fireEvent.click(screen.getByRole("button", { name: "Publish" }))
   expect(vi.mocked(api.post).mock.calls.some(([path]) => path.endsWith("/publish"))).toBe(false)
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/version-one/publish", { expected_revision: 2, reason: "Validation complete" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/version-one/publish", { expected_revision: 2, reason: "Validation complete" }, {}))
   await waitFor(() => expect(client.getQueryState(["sample-variants", "SYNTHETIC"])?.isInvalidated).toBe(true))
   expect(client.getQueryState(["report-preview", "SYNTHETIC"])?.isInvalidated).toBe(true)
 })

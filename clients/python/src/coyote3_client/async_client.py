@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any, Generic, Literal, Self, TypeVar
+from uuid import UUID
 
 import httpx
 
@@ -36,6 +37,7 @@ from coyote3_client.models import (
     SessionUser,
 )
 from coyote3_client.resources import CoyoteClient
+from coyote3_client.transport import request_headers
 
 ModelT = TypeVar("ModelT", bound=ResourceMetadata)
 
@@ -64,8 +66,9 @@ class AsyncApiEndpoint:
 
         Args:
             method: HTTP method, such as GET or POST.
-            **kwargs: HTTPX params, json, data, files or content. The client owns
-                authentication headers; callers cannot replace them.
+            **kwargs: HTTPX params, json, data, files or content, plus an optional
+                edit_session UUID for document writes. The client owns authentication
+                headers; callers cannot replace them.
 
         Returns:
             Decoded JSON, text, bytes, or None for an empty response.
@@ -461,12 +464,29 @@ class AsyncCoyoteClient:
         self._token = token
         return self.user
 
-    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
-        """Send an authenticated request and preserve typed server errors and response values."""
+    async def _request(
+        self, method: str, path: str, *, edit_session: str | UUID | None = None, **kwargs: Any
+    ) -> Any:
+        """Send an authenticated request with optional per-document editing ownership.
+
+        Args:
+            method: HTTP operation.
+            path: API-relative encoded endpoint.
+            edit_session: Acquired editor UUID, or None for reads and independent actions.
+            **kwargs: HTTPX request arguments; authentication remains client-owned.
+
+        Returns:
+            The decoded successful response.
+
+        Raises:
+            RuntimeError: Login has not established a session.
+            ValueError: The editing-session identifier is invalid.
+            CoyoteAPIError: The server rejects the request.
+        """
         if not self._token:
             raise RuntimeError("Log in before accessing resources")
         response = await self._http.request(
-            method, f"api/v1/{path}", headers={"Authorization": f"Bearer {self._token}"}, **kwargs
+            method, f"api/v1/{path}", headers=request_headers(self._token, edit_session), **kwargs
         )
         raise_for_api_status(response)
         return CoyoteClient._decode(response)

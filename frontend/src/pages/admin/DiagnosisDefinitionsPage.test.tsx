@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
+import { editLease, editSessionOptions } from "@/test/edit-lease"
 import { DiagnosisDefinitionsPage } from "./DiagnosisDefinitionsPage"
 
 const access = vi.hoisted(() => ({ permissions: ["assay.panel:list", "assay.panel:view", "assay.panel:edit"], roles: [] }))
@@ -16,7 +17,7 @@ beforeEach(() => {
   vi.mocked(api.get).mockImplementation(async (url) => ({ status: 200, data: url === "/resources/diagnoses" ? { diagnoses: [row] } : {
     panels: [{ asp_id: "panel-a", display_name: "Panel A", is_active: true }, { asp_id: "panel-b", display_name: "Panel B", is_active: true }], pagination: { total: 2 },
   } }))
-  vi.mocked(api.post).mockResolvedValue({ status: 201, data: {} })
+  vi.mocked(api.post).mockImplementation(async (url) => ({ status: 201, data: url.startsWith("/editing/") ? editLease() : {} }))
   vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} })
 })
 function mount() {
@@ -49,7 +50,7 @@ it("lists a shared definition only once and edits global metadata separately", a
   expect(screen.getByRole("checkbox", { name: /Panel A/ })).toBeChecked()
   fireEvent.click(screen.getByRole("checkbox", { name: /Panel B/ }))
   fireEvent.click(screen.getByRole("button", { name: "Save diagnosis" }))
-  await waitFor(() => expect(api.put).toHaveBeenCalledWith("/resources/diagnoses/myeloid", expect.objectContaining({ expected_version: 2, add_asp_ids: ["panel-b"] })))
+  await waitFor(() => expect(api.put).toHaveBeenCalledWith("/resources/diagnoses/myeloid", expect.objectContaining({ expected_version: 2, add_asp_ids: ["panel-b"] }), editSessionOptions))
 })
 it("hides editing controls for viewers", async () => {
   access.permissions = ["assay.panel:list", "assay.panel:view"]

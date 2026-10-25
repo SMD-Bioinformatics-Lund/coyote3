@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { QueryConditionBuilder } from "./QueryConditionBuilder"
@@ -100,7 +102,8 @@ export function QueryRulesPage() {
   const options = useQuery({ queryKey: ["query-rule-options"], queryFn: () => api.get<Options>("/admin/query-rule-sets/options").then(r => r.data) })
   const [historyOpen, setHistoryOpen] = useState(false)
   const history = useQuery({ queryKey: ["query-rule-revisions", selected?._id, selected?.revision], enabled: historyOpen && !!selected, queryFn: () => api.get<{ revision: number; action: string; actor: string; occurred_at: string; document: Rule }[]>(`/admin/query-rule-sets/${selected!._id}/revisions`).then(r => r.data) })
-  const editable = hasPermission(access, "query_rules:draft") && !selected?.system_installed && (!selected || selected.status === "draft")
+  const documentEditor = useDocumentEditor("query-rules", selected?._id || "", Boolean(selected?.status === "draft" && !selected.system_installed && hasPermission(access, "query_rules:draft")))
+  const editable = documentEditor.owned && hasPermission(access, "query_rules:draft") && !selected?.system_installed && (!selected || selected.status === "draft")
   const change = (next: Draft) => { previewGeneration.current++; setDraft(next); setDirty(true); setPreview(undefined); setBaseline(undefined) }
   const choose = (rule: Rule | null) => { previewGeneration.current++; setSelected(rule); setActiveSection("scope"); setDraft(rule ? structuredClone({ name: rule.name, reason: "", scope: rule.scope, content: rule.content }) : initial()); setDirty(false); setPreview(undefined); setBaseline(undefined) }
   const selectVersion = (rule: Rule | null) => {
@@ -110,10 +113,10 @@ export function QueryRulesPage() {
   const mutation = useMutation({
     mutationFn: async (action: string) => {
       if (action === "save") return selected
-        ? (await api.put<Rule>(`/admin/query-rule-sets/${selected._id}`, { ...draft, expected_revision: selected.revision })).data
+        ? (await api.put<Rule>(`/admin/query-rule-sets/${selected._id}`, { ...draft, expected_revision: selected.revision }, documentEditor.options())).data
         : (await api.post<Rule>("/admin/query-rule-sets", draft)).data
       if (!selected) throw new Error("Select a saved version first")
-      return (await api.post<Rule>(`/admin/query-rule-sets/${selected._id}/${action}`, { expected_revision: selected.revision, reason: draft.reason })).data
+      return (await api.post<Rule>(`/admin/query-rule-sets/${selected._id}/${action}`, { expected_revision: selected.revision, reason: draft.reason }, documentEditor.options())).data
     },
     onSuccess: result => {
       choose(result)
@@ -128,7 +131,7 @@ export function QueryRulesPage() {
     onError: error => notifyActionError("Unable to save query policy", error, "Query rules"),
   })
   const deletion = useMutation({
-    mutationFn: () => api.delete(`/admin/query-rule-sets/${selected!._id}`, { body: JSON.stringify({ expected_revision: selected!.revision, reason: draft.reason }) }),
+    mutationFn: () => api.delete(`/admin/query-rule-sets/${selected!._id}`, { ...documentEditor.options(), body: JSON.stringify({ expected_revision: selected!.revision, reason: draft.reason }) }),
     onSuccess: () => { choose(null); void client.invalidateQueries({ queryKey: ["query-rules"] }); notifySuccess("Unpublished version deleted", "Published policies are unchanged.", "Query rules") },
     onError: error => notifyActionError("Unable to delete version", error, "Query rules"),
   })
@@ -165,6 +168,7 @@ export function QueryRulesPage() {
   })
   return <PageShell eyebrow="Finding selection" title="Query rules" description="Author, review and publish finding-selection policies for groups, assays and diagnoses."
     actions={<>{dirty && <Badge variant="outline">Unsaved</Badge>}{hasPermission(access, "query_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to={selected ? `/admin/query-rules/testing?version=${encodeURIComponent(selected._id)}` : "/admin/query-rules/testing"} />}><Beaker />Test rules</Button>}<Button variant="outline" onClick={() => selectVersion(null)} disabled={mutation.isPending || !hasPermission(access, "query_rules:draft")}><Plus />New scope version</Button></>}>
+    <DocumentEditorNotice editor={documentEditor} />
     {(list.isError || options.isError) && <p role="alert">Unable to load query rules. Refresh to retry.</p>}
     <div className={cn("query-rules-layout clinical-rules-workspace surface-panel overflow-hidden", listCollapsed && "is-rule-list-collapsed")} style={{ "--rule-list-width": `${listWidth}px`, "--preview-width": `${previewWidth}px` } as CSSProperties}>
       <aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0" aria-label="Query-rule navigation">

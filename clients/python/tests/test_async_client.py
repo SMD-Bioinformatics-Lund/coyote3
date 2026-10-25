@@ -1,6 +1,7 @@
 """Native async authentication, typed workflows, cancellation and transport errors."""
 
 import asyncio
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -15,6 +16,24 @@ from coyote3_client import (
     ResourceNotLoadedError,
     ResponseValidationError,
 )
+
+
+@pytest.mark.asyncio
+async def test_async_editor_session_preserves_authentication(wire):
+    """Forward a per-editor lease without replacing the authenticated API session."""
+    requests, _, transport = wire
+    async with AsyncCoyoteClient("https://example.test", transport=transport) as client:
+        await client.login_with_token("synthetic-token")
+        editor = uuid4()
+        await client.api.resources.genelists["synthetic"].put(
+            json={"config": {}}, edit_session=editor
+        )
+        assert requests[-1].headers["X-Edit-Session"] == str(editor)
+        assert requests[-1].headers["Authorization"] == "Bearer synthetic-token"
+        count = len(requests)
+        with pytest.raises(ValueError):
+            await client.api.resources.genelists["synthetic"].put(json={}, edit_session="invalid")
+        assert len(requests) == count
 
 
 @pytest.fixture

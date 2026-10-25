@@ -180,7 +180,8 @@ def test_finding_comments_repository_persists_hydrates_visibility_and_deletes(
         }
     ).inserted_id
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.finding_comments.current_username", lambda: "curator"
+        "api.infra.mongo.repositories.finding_comments.current_username",
+        lambda default="": "curator",
     )
 
     comment_id = repository.add_finding_comment(
@@ -279,7 +280,8 @@ def test_finding_comments_capture_typed_finding_identity(
     collection = adapter.coyote_db[collection_name]
     finding_id = collection.insert_one({**finding, "SAMPLE_ID": str(sample_id)}).inserted_id
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.finding_comments.current_username", lambda: "curator"
+        "api.infra.mongo.repositories.finding_comments.current_username",
+        lambda default="": "curator",
     )
 
     adapter.finding_comment_repository.add_finding_comment(

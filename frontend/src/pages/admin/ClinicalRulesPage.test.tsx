@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
 
 const mocks = vi.hoisted(() => ({
   delete: vi.fn(),
@@ -56,6 +57,7 @@ const existingDraft = {
 }
 
 function renderPage() {
+  installEditLeaseMock(mocks.post)
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -117,7 +119,7 @@ describe("ClinicalRulesPage", () => {
       `/admin/clinical-rule-sets/drafts/rule-version-1/${action}`,
       button === "Approve" ? { approve: true, reason: "Clinical content approved", publisher: "publisher" }
         : button === "Reject" ? { approve: false, reason: "Clinical changes required" }
-          : { reason: "Workflow transition" },
+          : { reason: "Workflow transition" }, {}
     )
   })
 
@@ -144,10 +146,11 @@ describe("ClinicalRulesPage", () => {
     })
     renderPage()
     await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
-    fireEvent.change(await screen.findByLabelText("Tumor-type wording"), { target: { value: "solida" } })
+    await waitFor(() => expect(screen.getByLabelText("Tumor-type wording")).toBeEnabled())
+    fireEvent.change(screen.getByLabelText("Tumor-type wording"), { target: { value: "solida" } })
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
       "/admin/clinical-rule-sets/drafts/rule-version-1",
-      expect.objectContaining({ terminology: { automatic_annotation_tumor_type: "solida" } }),
+      expect.objectContaining({ terminology: { automatic_annotation_tumor_type: "solida" } }), editSessionOptions
     ))
   })
 
@@ -275,7 +278,7 @@ describe("ClinicalRulesPage", () => {
     await user.click(within(confirmation).getByRole("button", { name: "Delete version" }))
 
     expect(mocks.delete).toHaveBeenCalledWith(
-      "/admin/clinical-rule-sets/drafts/rule-version-1?revision=1",
+      "/admin/clinical-rule-sets/drafts/rule-version-1?revision=1", editSessionOptions
     )
     expect(await screen.findByText("Select a rule set to inspect or edit.")).toBeVisible()
   })

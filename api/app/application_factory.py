@@ -183,24 +183,29 @@ def application_services() -> ApplicationServices:
     )
 
 
-def open_application(session_token: str, *, correlation_id: str | None = None) -> CoyoteApplication:
+def open_application(
+    session_token: str, *, correlation_id: str | None = None, editor_id: str | None = None
+) -> CoyoteApplication:
     """Bind SDK use cases to the host's revocable authenticated session.
 
     Args:
         session_token: Opaque token issued by existing authentication.
         correlation_id: Optional host request identity used by access auditing.
+        editor_id: UUID identifying one document editing session, or None for reads/creation.
 
     Returns:
         Application resources with current identity, grants and sample-scope enforcement.
     """
     return CoyoteApplication(
-        open_authenticated_runtime(session_token, correlation_id=correlation_id),
+        open_authenticated_runtime(
+            session_token, correlation_id=correlation_id, editor_id=editor_id
+        ),
         application_services(),
     )
 
 
 def open_authenticated_runtime(
-    session_token: str, *, correlation_id: str | None = None
+    session_token: str, *, correlation_id: str | None = None, editor_id: str | None = None
 ) -> ApplicationRuntime:
     """Bind a local application SDK to a revocable authenticated session.
 
@@ -208,6 +213,7 @@ def open_authenticated_runtime(
         session_token: Opaque session issued by existing authentication. It is resolved
             again on every operation; a username, role list or sample snapshot is insufficient.
         correlation_id: Optional host-generated correlation identity; None allocates one per call.
+        editor_id: UUID for the active form or SDK editor; None carries no editing lease.
 
     Returns:
         Shared authorization and audit runtime for SDK and host-owned operations.
@@ -222,6 +228,9 @@ def open_authenticated_runtime(
     """
     if not session_token.strip():
         raise ValueError("An authenticated session token is required")
+    from uuid import UUID
+
+    from api.app.container import store
     from api.app.deps.repositories import (
         get_assay_panel_repository,
         get_permissions_repository,
@@ -231,6 +240,7 @@ def open_authenticated_runtime(
     from api.app.deps.services import get_api_session_repository
     from api.infra.mongo.records import application_result
     from api.security.policy import build_access_policy
+    from coyote3.application.editing import DocumentEditing
 
     def authenticate() -> Any | None:
         """Reload an active session and its current user rather than retaining role claims."""
@@ -255,6 +265,8 @@ def open_authenticated_runtime(
         audit_access=record_application_access,
         correlation_id=correlation_id,
         project_result=application_result,
+        document_editing=DocumentEditing(store.edit_lease_repository),
+        editor_id=UUID(editor_id) if editor_id else None,
     )
     return runtime
 

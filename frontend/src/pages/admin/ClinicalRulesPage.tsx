@@ -7,6 +7,8 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Input } from "@/components/ui/input"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { cn } from "@/lib/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -95,21 +97,22 @@ export function ClinicalRulesPage() {
   const facts = useMemo(() => factsQuery.data?.items || [], [factsQuery.data?.items])
   const controlledValues = useMemo(() => optionsQuery.data?.condition_values || {}, [optionsQuery.data?.condition_values])
 
+  const documentEditor = useDocumentEditor("clinical-rules", draft?._id || "", Boolean(draft?.status === "draft" && !draft.system_installed && hasPermission(access.data, "clinical_rules:draft")))
   const saveMutation = useMutation({
-    mutationFn: ({ document, generation }: { document: ClinicalRuleSet; generation: number }) => api.patch<ClinicalRuleSet>(`/admin/clinical-rule-sets/drafts/${document._id}`, { revision: document.revision, name: document.name, analysis_declarations: document.analysis_declarations, terminology: document.terminology, blocks: document.blocks, test_cases: document.test_cases, references: document.references, change_summary: document.change_summary }).then((response) => ({ document: response.data, generation })),
+    mutationFn: ({ document, generation }: { document: ClinicalRuleSet; generation: number }) => api.patch<ClinicalRuleSet>(`/admin/clinical-rule-sets/drafts/${document._id}`, { revision: document.revision, name: document.name, analysis_declarations: document.analysis_declarations, terminology: document.terminology, blocks: document.blocks, test_cases: document.test_cases, references: document.references, change_summary: document.change_summary }, documentEditor.options()).then((response) => ({ document: response.data, generation })),
     onSuccess: ({ document, generation }) => { setDraft((current) => generation === editGeneration.current ? clone(document) : current ? { ...current, revision: document.revision } : current); if (generation === editGeneration.current) setDirty(false); queryClient.invalidateQueries({ queryKey: ["clinical-rule-sets"] }); queryClient.invalidateQueries({ queryKey: ["clinical-rule-revisions", document._id] }) },
   })
   const saveDraft = saveMutation.mutate
   const savePending = saveMutation.isPending
   useEffect(() => {
-    if (!dirty || draft?.status !== "draft" || savePending) return
+    if (!dirty || draft?.status !== "draft" || savePending || !documentEditor.owned) return
     const generation = editGeneration.current
     const timer = window.setTimeout(() => saveDraft({ document: draft, generation }), 800)
     return () => window.clearTimeout(timer)
-  }, [dirty, draft, saveDraft, savePending])
+  }, [dirty, draft, saveDraft, savePending, documentEditor.owned])
 
   const mutateDraft = (change: (document: ClinicalRuleSet) => void) => {
-    if (!hasPermission(access.data, "clinical_rules:draft")) return
+    if (!hasPermission(access.data, "clinical_rules:draft") || !documentEditor.owned) return
     setDraft((current) => { if (!current || current.status !== "draft") return current; const next = clone(current); change(next); return next })
     editGeneration.current += 1
     setDirty(true)
@@ -118,7 +121,7 @@ export function ClinicalRulesPage() {
   const metadataOutput = !!block && ["report_header_suffix", "clinical_question"].includes(block.section)
   const rule = block?.rules[selectedRule]
   const can = (permission: string) => hasPermission(access.data, permission)
-  const editableDraft = draft?.status === "draft" && !draft.system_installed && can("clinical_rules:draft")
+  const editableDraft = documentEditor.owned && draft?.status === "draft" && !draft.system_installed && can("clinical_rules:draft")
   const deletableVersion = draft && !draft.system_installed && ["draft", "submitted", "in_clinical_review", "approved", "rejected"].includes(draft.status) && can("clinical_rules:draft")
   const workflowReady = !dirty && !saveMutation.isPending
 
@@ -154,7 +157,7 @@ export function ClinicalRulesPage() {
     setSelectedRevision(null)
   }
 
-  const actionMutation = useMutation({ mutationFn: ({ path, body = {} }: { path: string; body?: Record<string, unknown> }) => api.post<ClinicalRuleSet>(path, body).then((response) => response.data), onSuccess: (document) => {
+  const actionMutation = useMutation({ mutationFn: ({ path, body = {} }: { path: string; body?: Record<string, unknown> }) => api.post<ClinicalRuleSet>(path, body, documentEditor.options()).then((response) => response.data), onSuccess: (document) => {
     setSelectedId(document._id); setDraft(clone(document)); setDirty(false); setCreating(false)
     void queryClient.invalidateQueries({ queryKey: ["clinical-rule-sets"] })
     void queryClient.invalidateQueries({ queryKey: ["clinical-rule-revisions", document._id] })
@@ -165,7 +168,7 @@ export function ClinicalRulesPage() {
     }
   } })
   const deleteDraftMutation = useMutation({
-    mutationFn: ({ documentId, revision }: { documentId: string; revision: number }) => api.delete(`/admin/clinical-rule-sets/drafts/${documentId}?revision=${revision}`),
+    mutationFn: ({ documentId, revision }: { documentId: string; revision: number }) => api.delete(`/admin/clinical-rule-sets/drafts/${documentId}?revision=${revision}`, documentEditor.options()),
     onSuccess: (_, { documentId }) => {
       setDeleteDraftOpen(false)
       setSelectedId(null)
@@ -226,6 +229,7 @@ export function ClinicalRulesPage() {
   if (listQuery.isLoading || factsQuery.isLoading || optionsQuery.isLoading) return <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets"><AppLoader label="Loading clinical rules" /></PageShell>
   return (
     <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets" description="Author, review, validate, and publish governed report wording." actions={<>{dirty || saveMutation.isPending ? <Badge variant="outline"><Save /> {saveMutation.isPending ? "Saving" : "Unsaved"}</Badge> : draft?.status === "draft" ? <Badge variant="outline"><Check /> Saved</Badge> : null}{can("clinical_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to="/admin/clinical-rules/testing" />}><Beaker /> Test rules</Button>}{can("clinical_rules:draft") && !creating && <Button variant="outline" disabled={!workflowReady} onClick={beginCreation}><Plus /> New rule set</Button>}{draft?.status !== "draft" && draft && can("clinical_rules:draft") && <Button onClick={createRevision}><CopyPlus /> Create revision</Button>}</>}>
+      <DocumentEditorNotice editor={documentEditor} />
       {creating && (
         <section className="surface-panel mb-3 p-4" aria-label="Create clinical rule set">
           <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Draft creation method">

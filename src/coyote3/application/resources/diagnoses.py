@@ -55,6 +55,30 @@ class DiagnosisService:
             ]
         }
 
+    def get_definition(self, diagnosis_id: str) -> dict:
+        """Resolve one shared definition for editing, rejecting unknown identifiers.
+
+        Args:
+            diagnosis_id: Stable shared diagnosis key.
+
+        Returns:
+            The current definition document.
+
+        Raises:
+            AppError: The requested diagnosis is not registered.
+        """
+        document = next(
+            (
+                row
+                for row in self.diagnoses.list_definitions()
+                if row["diagnosis_id"] == diagnosis_id
+            ),
+            None,
+        )
+        if document is None:
+            raise api_error(404, "Diagnosis definition not found")
+        return document
+
     def create_definition(self, payload: SharedDiagnosisCreate, *, actor: str) -> dict:
         """Create a shared scope after validating every selected assay.
 

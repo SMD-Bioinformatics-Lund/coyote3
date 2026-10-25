@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
+import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
 import { AssaySetupPage } from "./AssaySetupPage"
 
 const access = vi.hoisted(() => ({ username: "reviewer", permissions: [] as string[], roles: [] }))
@@ -21,13 +22,14 @@ beforeEach(() => {
   vi.mocked(api.put).mockResolvedValue({ status: 200, data: setup })
 })
 function mount() {
+  installEditLeaseMock(vi.mocked(api.post))
   render(<MemoryRouter initialEntries={["/admin/assay-setups?setup=setup-1"]}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AssaySetupPage /></QueryClientProvider></MemoryRouter>)
 }
 it("allows an independent reviewer to approve the loaded revision", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
   fireEvent.click(screen.getByRole("button", { name: "Approve and activate" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups/setup-1/publish", { revision: 3, reason: "" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups/setup-1/publish", { revision: 3, reason: "" }, {}))
 })
 it("does not offer self-approval to a content editor", async () => {
   access.username = "author"
@@ -43,7 +45,7 @@ it("allows an independent edit-only reviewer to return without publication permi
   expect(screen.queryByRole("button", { name: "Approve and activate" })).not.toBeInTheDocument()
   fireEvent.change(screen.getByLabelText("Review notes"), { target: { value: "Correct the scope" } })
   fireEvent.click(screen.getByRole("button", { name: "Return for changes" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups/setup-1/return", { revision: 3, reason: "Correct the scope" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups/setup-1/return", { revision: 3, reason: "Correct the scope" }, {}))
 })
 it("clears review notes when reopening a setup", async () => {
   mount()
@@ -68,7 +70,7 @@ it("preserves the reserved assay identifier when saving the assay form", async (
   mount()
   fireEvent.change(await screen.findByLabelText("Display name"), { target: { value: "Updated display name" } })
   fireEvent.click(screen.getByRole("button", { name: "Save and continue" }))
-  await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ revision: 3, content: expect.objectContaining({ panel: expect.objectContaining({ asp_id: "assay_1", display_name: "Updated display name" }) }) })))
+  await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ revision: 3, content: expect.objectContaining({ panel: expect.objectContaining({ asp_id: "assay_1", display_name: "Updated display name" }) }) }), editSessionOptions))
 })
 it("keeps gene lists and configurations in named workspaces with explicit empty states", async () => {
   setup.status = "draft"

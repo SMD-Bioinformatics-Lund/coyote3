@@ -452,7 +452,11 @@ class Sample:
             return SampleMutation(resource_id=str(sample["_id"]))
 
         return self._runtime.execute(
-            "sample.update_filters", ("sample:edit:own",), write, sample_id=self.id
+            "sample.update_filters",
+            ("sample:edit:own",),
+            write,
+            sample_id=self.id,
+            edit_resource=("sample-filters", self.id),
         )
 
     def reset_filters(self) -> SampleMutation:
@@ -475,7 +479,11 @@ class Sample:
             return SampleMutation(resource_id=str(sample["_id"]))
 
         return self._runtime.execute(
-            "sample.reset_filters", ("sample:edit:own",), write, sample_id=self.id
+            "sample.reset_filters",
+            ("sample:edit:own",),
+            write,
+            sample_id=self.id,
+            edit_resource=("sample-filters", self.id),
         )
 
     def preview_configuration(self, *, retain_overrides: bool = False) -> dict[str, Any]:
@@ -503,7 +511,12 @@ class Sample:
             return SampleMutation(resource_id=str(sample["_id"]), details={"applied_aspc": applied})
 
         return self._runtime.execute(
-            "sample.apply_configuration", ("sample:edit:own",), write, sample_id=self.id
+            "sample.apply_configuration",
+            ("sample:edit:own",),
+            write,
+            sample_id=self.id,
+            edit_resource=("sample-filters", self.id),
+            editing_session_required=False,
         )
 
     def report_context(self, report_id: str) -> dict[str, Any]:

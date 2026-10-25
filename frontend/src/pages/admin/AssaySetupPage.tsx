@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -83,11 +85,12 @@ export function AssaySetupPage() {
   const context = useQuery({ queryKey: ["assay-setup-context", selected], enabled: canView && Boolean(selected) && (!isNew || canWrite), queryFn: () => api.get<Context>(`/admin/assay-setups/${isNew ? "context" : `${encodeURIComponent(selected)}/context`}`).then((r) => r.data) })
   const setup = context.data?.setup
   const content = setup?.content
-  const readonly = !canWrite || (setup != null && setup.status !== "draft")
+  const documentEditor = useDocumentEditor("assay-setups", selected, canWrite && Boolean(setup) && setup?.status === "draft")
+  const readonly = !canWrite || !documentEditor.owned || (setup != null && setup.status !== "draft")
   const mutation = useMutation({
     mutationFn: ({ content: next, action }: { content?: Content; action?: string; nextStep?: number }) => action
-      ? api.post<Setup>(`/admin/assay-setups/${selected}/${action}`, { revision: setup?.revision, reason })
-      : isNew ? api.post<Setup>("/admin/assay-setups", next) : api.put<Setup>(`/admin/assay-setups/${selected}`, { revision: setup?.revision, content: next }),
+      ? api.post<Setup>(`/admin/assay-setups/${selected}/${action}`, { revision: setup?.revision, reason }, documentEditor.options())
+      : isNew ? api.post<Setup>("/admin/assay-setups", next) : api.put<Setup>(`/admin/assay-setups/${selected}`, { revision: setup?.revision, content: next }, documentEditor.options()),
     onSuccess: async (response, variables) => {
       setParams({ setup: response.data._id })
       setEditing(null)
@@ -109,7 +112,7 @@ export function AssaySetupPage() {
   })
   const choose = (identifier: string) => { navigate(`/admin/assay-setups${identifier ? `?setup=${encodeURIComponent(identifier)}` : ""}`); setStep(0); setEditing(null); setReason(""); mutation.reset() }
   const deletion = useMutation({
-    mutationFn: () => api.delete(`/admin/assay-setups/${selected}?revision=${setup!.revision}`),
+    mutationFn: () => api.delete(`/admin/assay-setups/${selected}?revision=${setup!.revision}`, documentEditor.options()),
     onSuccess: () => {
       setConfirmDelete(false); choose("")
       client.removeQueries({ queryKey: ["assay-setup-context", selected], type: "inactive" })
@@ -127,6 +130,7 @@ export function AssaySetupPage() {
   const reviewAllowed = hasPermission(user, "assay.panel:edit") && setup?.status === "submitted" && !setup.content_editors.includes(user?.username || "")
 
   return <PageShell className="min-w-0 [&>*]:min-w-0" eyebrow="Admin" title="Assay setup" actions={canWrite ? <Button disabled={mutation.isPending} onClick={() => choose("new")}><Plus />New assay setup</Button> : undefined}>
+    <DocumentEditorNotice editor={documentEditor} />
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
       <section className="surface-panel flex flex-wrap items-end gap-3 p-4">
         <label className="type-label min-w-0 flex-1">Saved setups<select aria-label="Saved setups" className="paper-inset mt-1 w-full rounded-md p-2" value={selected} disabled={mutation.isPending} onChange={(event) => choose(event.target.value)}><option value="">Select a setup</option>{isNew && <option value="new">New assay</option>}{(list.data || []).map((item) => <option key={item._id} value={item._id}>{item.asp_id} · {item.status} · r{item.revision}</option>)}</select></label>

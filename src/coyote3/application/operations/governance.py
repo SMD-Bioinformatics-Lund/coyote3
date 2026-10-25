@@ -235,6 +235,7 @@ class QueryRules:
             lambda actor, sample: deepcopy(
                 self._service().update(identity, update, actor.username)
             ),
+            edit_resource=("query-rules", identity),
         )
 
     def revisions(self, identity: str) -> builtins.list[dict[str, Any]]:
@@ -253,6 +254,8 @@ class QueryRules:
             lambda actor, sample: deepcopy(
                 self._service().transition(identity, "publish", transition, actor.username)
             ),
+            edit_resource=("query-rules", identity),
+            editing_session_required=False,
         )
 
     def approve(self, identity: str, transition: QueryRuleTransition) -> dict[str, Any]:
@@ -263,6 +266,8 @@ class QueryRules:
             lambda actor, sample: deepcopy(
                 self._service().transition(identity, "approve", transition, actor.username)
             ),
+            edit_resource=("query-rules", identity),
+            editing_session_required=False,
         )
 
     def retire(self, identity: str, transition: QueryRuleTransition) -> dict[str, Any]:
@@ -273,6 +278,8 @@ class QueryRules:
             lambda actor, sample: deepcopy(
                 self._service().transition(identity, "retire", transition, actor.username)
             ),
+            edit_resource=("query-rules", identity),
+            editing_session_required=False,
         )
 
     def delete_draft(self, identity: str, transition: QueryRuleTransition) -> dict[str, Any]:
@@ -283,4 +290,6 @@ class QueryRules:
             lambda actor, sample: deepcopy(
                 self._service().delete_draft(identity, transition, actor.username)
             ),
+            edit_resource=("query-rules", identity),
+            editing_session_required=False,
         )

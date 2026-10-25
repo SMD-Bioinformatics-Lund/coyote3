@@ -91,6 +91,7 @@ export type ApiOperations = {
   "GET /dashboard/metrics/resources": { request: T.Request_dashboardResourceMetricsApiV1DashboardMetricsResourcesGet; response: T.Response_dashboardResourceMetricsApiV1DashboardMetricsResourcesGet }
   "GET /dashboard/metrics/samples": { request: T.Request_dashboardSampleMetricsApiV1DashboardMetricsSamplesGet; response: T.Response_dashboardSampleMetricsApiV1DashboardMetricsSamplesGet }
   "GET /dashboard/metrics/top-tiered-genes": { request: T.Request_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGet; response: T.Response_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGet }
+  "POST /editing/{kind}/{identity}/{action}": { request: T.Request_editSessionApiV1EditingKindIdentityActionPost; response: T.Response_editSessionApiV1EditingKindIdentityActionPost }
   "GET /health": { request: T.Request_healthApiV1HealthGet; response: T.Response_healthApiV1HealthGet }
   "POST /internal/ingest/sample-bundle": { request: T.Request_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePost; response: T.Response_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePost }
   "POST /internal/ingest/sample-bundle/async": { request: T.Request_enqueueIngestSampleBundleInternalApiV1InternalIngestSampleBundleAsyncPost; response: T.Response_enqueueIngestSampleBundleInternalApiV1InternalIngestSampleBundleAsyncPost }

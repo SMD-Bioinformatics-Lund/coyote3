@@ -81,6 +81,7 @@ class MongoStore:
     # Statically declare repository attributes so type checkers and IDEs can
     # understand the runtime-populated store surface.
     annotation_repository: Any
+    edit_lease_repository: Any
     assay_configuration_repository: AssayConfigurationRepositoryProtocol
     assay_panel_repository: Any
     assay_diagnosis_repository: Any
@@ -162,6 +163,7 @@ class MongoStore:
         "hgnc_repository",
         "iarc_tp53_repository",
         "gene_list_repository",
+        "edit_lease_repository",
         "oncokb_repository",
         "permissions_repository",
         "notification_repository",

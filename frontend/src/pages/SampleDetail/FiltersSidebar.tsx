@@ -5,6 +5,9 @@ import { ConfigurationApplyButton, type ConfigurationApplication } from "./Confi
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { activeFilterSectionForTab, mergeSampleFilterSection, sampleFilterSection } from "@/lib/sample-shape"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
@@ -17,6 +20,7 @@ interface FiltersSidebarProps {
   inline?: boolean
   embedded?: boolean
   collapsedLabel?: string
+  editor?: ReturnType<typeof useDocumentEditor>
 }
 
 export function CollapsedFiltersRail({
@@ -281,8 +285,14 @@ export function FiltersSidebar({
   inline = false,
   embedded = false,
   collapsedLabel,
+  editor: sharedEditor,
 }: FiltersSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(!inline)
+  const access = useCurrentUserAccess()
+  const mayEdit = hasPermission(access.data, "sample:edit:own")
+  const localEditor = useDocumentEditor("sample-filters", sampleId, !sharedEditor && !isCollapsed && mayEdit)
+  const documentEditor = sharedEditor || localEditor
+  const canEdit = mayEdit && documentEditor.owned
   const activeSection = activeFilterSectionForTab(activeTab)
   const sampleName = String(sample?.name || sample?.case_id || sampleId)
   const [filters, setFilters] = useState(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
@@ -309,7 +319,7 @@ export function FiltersSidebar({
   const updateFilters = useMutation({
     mutationFn: (newFilters: any) => {
       const payload = activeSection ? mergeSampleFilterSection(sample, activeSection, newFilters, intent) : newFilters
-      return api.put(`/samples/${sampleId}/filters`, { filters: payload }).then((res) => res.data)
+      return api.put(`/samples/${sampleId}/filters`, { filters: payload }, documentEditor.options()).then((res) => res.data)
     },
     onSuccess: async () => {
       invalidateSampleQueries(queryClient, sampleId)
@@ -332,7 +342,7 @@ export function FiltersSidebar({
   })
 
   const resetFilters = useMutation({
-    mutationFn: () => api.delete(`/samples/${sampleId}/filters`).then((res) => res.data),
+    mutationFn: () => api.delete(`/samples/${sampleId}/filters`, documentEditor.options()).then((res) => res.data),
     onSuccess: async () => {
       invalidateSampleQueries(queryClient, sampleId)
       await refetchActiveTable(queryClient, activeTab, sampleId)
@@ -354,7 +364,7 @@ export function FiltersSidebar({
   })
 
   const applyLatestAspc = useMutation({
-    mutationFn: (request: ConfigurationApplication) => api.post(`/samples/${sampleId}/aspc/apply-latest`, request).then((res) => res.data),
+    mutationFn: (request: ConfigurationApplication) => api.post(`/samples/${sampleId}/aspc/apply-latest`, request, documentEditor.options()).then((res) => res.data),
     onSuccess: async (result) => {
       invalidateSampleQueries(queryClient, sampleId)
       await refetchActiveTable(queryClient, activeTab, sampleId)
@@ -403,7 +413,8 @@ export function FiltersSidebar({
         )}
       </div>
 
-      <div className={`${inline && !embedded ? "max-h-[34rem]" : "flex-1"} space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border`}>
+      {!sharedEditor && <DocumentEditorNotice editor={documentEditor} />}
+      <fieldset disabled={!canEdit} className={`${inline && !embedded ? "max-h-[34rem]" : "flex-1"} min-w-0 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border`}>
         {context?.aspc_update?.available && (
           <section className="rounded-lg border border-primary/25 bg-primary/5 p-2.5">
             <p className="text-xs font-semibold text-foreground">A newer assay configuration is available.</p>
@@ -536,12 +547,12 @@ export function FiltersSidebar({
             />
           </Section>
         )}
-      </div>
+      </fieldset>
 
       <div className="flex gap-2 border-t border-primary/10 bg-muted/25 p-2.5">
         <button
           onClick={() => resetFilters.mutate()}
-          disabled={resetFilters.isPending || updateFilters.isPending}
+          disabled={!canEdit || resetFilters.isPending || updateFilters.isPending}
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted disabled:opacity-50"
           title="Reset filters"
         >
@@ -549,7 +560,7 @@ export function FiltersSidebar({
         </button>
         <button
           onClick={() => updateFilters.mutate(filters)}
-          disabled={updateFilters.isPending || resetFilters.isPending}
+          disabled={!canEdit || updateFilters.isPending || resetFilters.isPending}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
         >
           {updateFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <Save className="h-4 w-4" />}

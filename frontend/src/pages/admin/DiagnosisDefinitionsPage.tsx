@@ -9,6 +9,8 @@ import { DiagnosisNavigation } from "./DiagnosisNavigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import type { DiagnosisDefinition } from "./AssayDiagnoses"
@@ -26,6 +28,7 @@ export function DiagnosisDefinitionsPage() {
   const canEdit = hasPermission(access.data, "assay.panel:edit")
   const client = useQueryClient()
   const [editing, setEditing] = useState<DiagnosisDefinition | "new" | null>(null)
+  const documentEditor = useDocumentEditor("diagnoses", editing && editing !== "new" ? editing.diagnosis_id : "", canEdit && Boolean(editing && editing !== "new"))
   const [values, setValues] = useState(empty)
   const [idEdited, setIdEdited] = useState(false)
   const [search, setSearch] = useState(params.get("diagnosis") || "")
@@ -53,7 +56,7 @@ export function DiagnosisDefinitionsPage() {
       return api.put(`/resources/diagnoses/${encodeURIComponent(editing.diagnosis_id)}`, {
         display_name: values.display_name, description: values.description, is_active: values.is_active, expected_version: editing.version,
         add_asp_ids: values.asp_ids,
-      })
+      }, documentEditor.options())
     },
     onSuccess: () => {
       setEditing(null)
@@ -70,6 +73,7 @@ export function DiagnosisDefinitionsPage() {
   const validId = editing !== "new" || /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(values.diagnosis_id) && values.diagnosis_id !== "base"
   const rows = (definitions.data ?? []).filter((row) => `${row.display_name} ${row.diagnosis_id}`.toLowerCase().includes(search.toLowerCase()))
   return <PageShell eyebrow="Admin" title="Diagnosis definitions" actions={<AdminHomeLink />}>
+    <DocumentEditorNotice editor={documentEditor} />
     <section aria-label="Diagnosis registry" className="glass-card min-w-0 space-y-3 p-3">
     <DiagnosisNavigation active="definitions" />
     {allowed && canEdit && <BulkInstall kind="diagnoses" />}
@@ -96,7 +100,7 @@ export function DiagnosisDefinitionsPage() {
           { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => canEdit && !row.system_installed && <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><Edit className="h-4 w-4" /></Button> },
         ]}
       />}
-      {canEdit && editing && <form className="grid gap-4 border-t border-border py-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (validId && values.display_name.trim()) mutation.mutate() }}>
+      {canEdit && editing && <form onSubmit={(event) => { event.preventDefault(); if (documentEditor.owned && validId && values.display_name.trim()) mutation.mutate() }}><fieldset disabled={!documentEditor.owned} className="grid gap-4 border-t border-border py-4 md:grid-cols-2">
         <h2 className="text-lg font-semibold md:col-span-2">{editing === "new" ? "New diagnosis" : "Edit shared definition"}</h2>
         {editing !== "new" && <p className="type-body md:col-span-2" role="status">Changes apply to every associated assay.</p>}
         <label className="type-label">Display name<Input autoFocus required maxLength={200} value={values.display_name} onChange={(event) => {
@@ -121,7 +125,7 @@ export function DiagnosisDefinitionsPage() {
         </fieldset>
         {mutation.error && <p role="alert" className="text-destructive md:col-span-2">{mutation.error.message}</p>}
         <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={mutation.isPending || !validId || !values.display_name.trim() || editing === "new" && (assays.isLoading || Boolean(assays.error))}><Save className="h-4 w-4" />Save diagnosis</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setEditing(null)}><X className="h-4 w-4" />Cancel</Button></div>
-      </form>}
+      </fieldset></form>}
     </>}
     </section>
   </PageShell>

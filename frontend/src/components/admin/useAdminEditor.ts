@@ -1,6 +1,7 @@
 import type { CurrentUserAccess } from "@/lib/access-control"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import {
   formStateFromSpec
@@ -44,6 +45,7 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
     queryKey: ["admin-resource-context", spec.key, mode, id, schemaVariant],
     enabled: allowed && (usesSchema || mode !== "create"),
     retry: false,
+    refetchOnWindowFocus: mode !== "edit",
     queryFn: () => {
       if (mode === "create") {
         return api.get(`${spec.endpoint}/create_context${createQuery}`).then((res) => res.data)
@@ -59,7 +61,11 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
   const doc = contextQuery.data?.[documentKey] || null
   const systemManaged = Boolean(doc?.system_managed || doc?.system_installed)
   const systemPermission = systemManaged
-  const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
+  const documentEditor = useDocumentEditor(spec.key, id, mode === "edit" && allowed && Boolean(doc) && !systemPermission, async () => {
+    const result = await contextQuery.refetch()
+    if (result.error) throw result.error
+  })
+  const effectiveMode: AdminFormMode = (systemPermission || !documentEditor.owned) && mode === "edit" ? "view" : mode
 
   const stageImport = useCallback((source: unknown) => {
     if (!source || typeof source !== "object" || Array.isArray(source)) {
@@ -114,7 +120,7 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
     mutationFn: (payload: any) => {
       const body = { [requestBodyKey]: payload }
       if (mode === "create") return api.post(spec.endpoint, body)
-      return api.put(`${spec.endpoint}/${encodeURIComponent(id)}`, body)
+      return api.put(`${spec.endpoint}/${encodeURIComponent(id)}`, body, documentEditor.options())
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-resource", spec.key] })
@@ -138,6 +144,6 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
     },
   })
 
-  return { id, accessQuery, user, requiredPermission, allowed, canEdit, navigate, values, setValues, editorError, setEditorError, importInputRef, handleImportFile, contextQuery, form, doc, systemManaged, systemPermission, effectiveMode, saveMutation }
+  return { id, accessQuery, user, requiredPermission, allowed, canEdit, navigate, values, setValues, editorError, setEditorError, importInputRef, handleImportFile, contextQuery, form, doc, systemManaged, systemPermission, effectiveMode, saveMutation, documentEditor }
 }
 export type AdminEditorState = ReturnType<typeof useAdminEditor>

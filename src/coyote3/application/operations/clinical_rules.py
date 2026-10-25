@@ -204,6 +204,7 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(
                 self._service().update_draft(identity, update, actor=actor.username)
             ),
+            edit_resource=("clinical-rules", identity),
         )
 
     def delete_draft(self, identity: str, *, expected_revision: int) -> None:
@@ -214,6 +215,8 @@ class ClinicalRules:
             lambda actor, sample: self._service().delete_draft(
                 identity, expected_revision=expected_revision, actor=actor.username
             ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
         )
 
     def validate(self, identity: str) -> dict[str, Any]:
@@ -240,6 +243,8 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(
                 self._service().submit(identity, transition, actor=actor.username)
             ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
         )
 
     def start_review(self, identity: str, transition: ClinicalRuleTransition) -> dict[str, Any]:
@@ -250,6 +255,8 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(
                 self._service().start_review(identity, transition, actor=actor.username)
             ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
         )
 
     def decide(self, identity: str, decision: ClinicalRuleDecision) -> dict[str, Any]:
@@ -260,6 +267,8 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(
                 self._service().clinical_decision(identity, decision, actor=actor.username)
             ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
         )
 
     def publish(self, identity: str, transition: ClinicalRuleTransition) -> dict[str, Any]:
@@ -270,6 +279,8 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(
                 self._service().publish(identity, transition, actor=actor.username)
             ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
         )
 
     def retire(self, identity: str, transition: ClinicalRuleTransition) -> dict[str, Any]:
@@ -280,4 +291,6 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(
                 self._service().retire(identity, transition, actor=actor.username)
             ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
         )

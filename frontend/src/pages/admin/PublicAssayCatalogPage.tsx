@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { downloadJson } from "@/lib/json-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { RecordProvenance } from "./RecordProvenance"
@@ -52,7 +54,7 @@ export function PublicAssayCatalogPage() {
         qc.cancelQueries({ queryKey: ["catalog-version", id] }),
         qc.cancelQueries({ queryKey: ["catalog-history", id] }),
       ])
-      return api.delete(`/admin/assay-catalog/versions/${id}?revision=${version!.revision}`)
+      return api.delete(`/admin/assay-catalog/versions/${id}?revision=${version!.revision}`, documentEditor.options())
     },
     onSuccess: () => {
       setConfirmDelete(false); setParams({}, { replace: true }); setDraft(null); setEditing(false)
@@ -67,7 +69,8 @@ export function PublicAssayCatalogPage() {
   const original = id ? version?.catalog : workspace.data?.catalog
   useEffect(() => { setDraft(original ? structuredClone(original) : null) }, [original])
   const dirty = Boolean(draft && original && JSON.stringify(draft) !== JSON.stringify(original))
-  const editable = Boolean(version?.status === "draft" && !version.system_installed && allowed("catalog:draft"))
+  const documentEditor = useDocumentEditor("assay-catalog", id, Boolean(version?.status === "draft" && !version.system_installed && allowed("catalog:draft")))
+  const editable = documentEditor.owned && Boolean(version?.status === "draft" && !version.system_installed && allowed("catalog:draft"))
   useEffect(() => {
     const beforeUnload = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault() }
     window.addEventListener("beforeunload", beforeUnload)
@@ -86,10 +89,10 @@ export function PublicAssayCatalogPage() {
       if (action === "create") return (await api.post<Version>(`${base}/drafts`)).data
       if (action === "import") return (await api.post<Version>(`${base}/imports`, { document })).data
       if (action === "save") return (await api.patch<Version>(`${base}/drafts/${id}`,
-        { revision: version?.revision, catalog: draft })).data
+        { revision: version?.revision, catalog: draft }, documentEditor.options())).data
       return (await api.post<Version>(`${base}/drafts/${id}/${action === "reject" ? "review" : action}`,
         { revision: version?.revision, assignee: action === "submit" ? reviewer : publisher,
-          approve: action !== "reject", reason })).data
+          approve: action !== "reject", reason }, documentEditor.options())).data
     },
     onSuccess: (saved, request) => {
       qc.setQueryData(["catalog-version", saved._id], saved)
@@ -134,6 +137,7 @@ export function PublicAssayCatalogPage() {
   const order = [...new Set([...draft.layout.order, ...Object.keys(draft.modalities)])].filter((key) => draft.modalities[key])
   return <PageShell className="flex-1" title="Assay Catalog" eyebrow="Administration" actions={<>
     {version && <span>Created by <RecordProvenance record={version} /> · Updated by {version.updated_by || "Unknown"}</span>}
+    <DocumentEditorNotice editor={documentEditor} />
     <input aria-label="Import catalog file" ref={upload} type="file" accept=".json,application/json" className="hidden" onChange={importFile} />
     <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><FileUp /> Import draft</Button>
     <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", displayedCatalog)}><Download /> Export catalog</Button>

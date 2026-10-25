@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any
 
 from coyote3.application.operations.runtime import ApplicationRuntime
@@ -187,6 +188,7 @@ class Users:
                 actor_username=actor.username,
                 actor_is_superuser=actor.is_superuser,
             ),
+            edit_resource=("users", user_id),
         )
 
     def delete_user(self, *, user_id: str) -> dict[str, Any]:
@@ -208,6 +210,8 @@ class Users:
             lambda actor, sample: self._service().delete_user(
                 user_id=user_id, actor_is_superuser=actor.is_superuser
             ),
+            edit_resource=("users", user_id),
+            editing_session_required=False,
         )
 
     def toggle_user_status(self, *, user_id: str) -> dict[str, Any]:
@@ -229,6 +233,8 @@ class Users:
             lambda actor, sample: self._service().toggle_user(
                 user_id=user_id, actor_is_superuser=actor.is_superuser
             ),
+            edit_resource=("users", user_id),
+            editing_session_required=False,
         )
 
     def invite_local_user(self, *, user_id: str) -> dict[str, Any]:
@@ -414,6 +420,7 @@ class Roles:
             lambda actor, sample: self._service().update_role(
                 role_id=role_id, payload=payload, actor_username=actor.username
             ),
+            edit_resource=("roles", role_id),
         )
 
     def toggle_role_status(self, *, role_id: str) -> dict[str, Any]:
@@ -433,6 +440,8 @@ class Roles:
             "roles.toggle_role_status",
             ("role:edit",),
             lambda actor, sample: self._service().toggle_role(role_id=role_id),
+            edit_resource=("roles", role_id),
+            editing_session_required=False,
         )
 
     def delete_role(self, *, role_id: str) -> dict[str, Any]:
@@ -452,6 +461,8 @@ class Roles:
             "roles.delete_role",
             ("role:delete",),
             lambda actor, sample: self._service().delete_role(role_id=role_id),
+            edit_resource=("roles", role_id),
+            editing_session_required=False,
         )
 
     def validate_role_id(self, *, payload: dict[str, Any]) -> bool:
@@ -593,6 +604,7 @@ class Permissions:
             lambda actor, sample: self._service().update_permission(
                 permission_id=perm_id, payload=payload, actor_username=actor.username
             ),
+            edit_resource=("permissions", perm_id),
         )
 
     def toggle_permission_status(self, *, perm_id: str) -> dict[str, Any]:
@@ -612,6 +624,8 @@ class Permissions:
             "permissions.toggle_permission_status",
             ("permission.policy:edit",),
             lambda actor, sample: self._service().toggle_permission(permission_id=perm_id),
+            edit_resource=("permissions", perm_id),
+            editing_session_required=False,
         )
 
     def delete_permission(self, *, perm_id: str) -> dict[str, Any]:
@@ -631,6 +645,8 @@ class Permissions:
             "permissions.delete_permission",
             ("permission.policy:delete",),
             lambda actor, sample: self._service().delete_permission(permission_id=perm_id),
+            edit_resource=("permissions", perm_id),
+            editing_session_required=False,
         )
 
     def validate_permission_id(self, *, payload: dict[str, Any]) -> bool:
@@ -768,6 +784,7 @@ class Assays:
             lambda actor, sample: self._service().update(
                 panel_id=assay_panel_id, payload=payload, actor_username=actor.username
             ),
+            edit_resource=("asp", assay_panel_id),
         )
 
     def toggle_asp(self, *, assay_panel_id: str) -> dict[str, Any]:
@@ -787,6 +804,8 @@ class Assays:
             "assays.toggle_asp",
             ("assay.panel:edit",),
             lambda actor, sample: self._service().toggle(panel_id=assay_panel_id),
+            edit_resource=("asp", assay_panel_id),
+            editing_session_required=False,
         )
 
     def delete_asp(self, *, assay_panel_id: str) -> dict[str, Any]:
@@ -806,6 +825,8 @@ class Assays:
             "assays.delete_asp",
             ("assay.panel:delete",),
             lambda actor, sample: self._service().delete(panel_id=assay_panel_id),
+            edit_resource=("asp", assay_panel_id),
+            editing_session_required=False,
         )
 
     def validate_asp_id(self, *, payload: dict[str, Any]) -> bool:
@@ -1021,6 +1042,7 @@ class Diagnoses:
             lambda actor, sample: self._service().revise_definition(
                 diagnosis_id, payload, actor=actor.username
             ),
+            edit_resource=("diagnoses", diagnosis_id),
         )
 
     def list_diagnoses(self, *, assay_panel_id: str) -> dict[str, Any]:
@@ -1204,6 +1226,7 @@ class AssayConfigurations:
             lambda actor, sample: self._service().update(
                 assay_id=assay_id, payload=payload, actor_username=actor.username
             ),
+            edit_resource=("aspc", assay_id),
         )
 
     def toggle_aspc(self, *, assay_id: str) -> dict[str, Any]:
@@ -1223,6 +1246,8 @@ class AssayConfigurations:
             "assay_configurations.toggle_aspc",
             ("assay.config:edit",),
             lambda actor, sample: self._service().toggle(assay_id=assay_id),
+            edit_resource=("aspc", assay_id),
+            editing_session_required=False,
         )
 
     def delete_aspc(self, *, assay_id: str) -> dict[str, Any]:
@@ -1242,6 +1267,8 @@ class AssayConfigurations:
             "assay_configurations.delete_aspc",
             ("assay.config:delete",),
             lambda actor, sample: self._service().delete(assay_id=assay_id),
+            edit_resource=("aspc", assay_id),
+            editing_session_required=False,
         )
 
     def validate_aspc_id(self, *, payload: dict[str, Any]) -> bool:
@@ -1406,6 +1433,7 @@ class GeneLists:
             lambda actor, sample: self._service().update(
                 genelist_id=genelist_id, payload=payload, actor_username=actor.username
             ),
+            edit_resource=("genelists", genelist_id),
         )
 
     def toggle_genelist(self, *, genelist_id: str) -> dict[str, Any]:
@@ -1425,6 +1453,8 @@ class GeneLists:
             "gene_lists.toggle_genelist",
             ("gene_list.insilico:edit",),
             lambda actor, sample: self._service().toggle(genelist_id=genelist_id),
+            edit_resource=("genelists", genelist_id),
+            editing_session_required=False,
         )
 
     def delete_genelist(self, *, genelist_id: str) -> dict[str, Any]:
@@ -1444,6 +1474,8 @@ class GeneLists:
             "gene_lists.delete_genelist",
             ("gene_list.insilico:delete",),
             lambda actor, sample: self._service().delete(genelist_id=genelist_id),
+            edit_resource=("genelists", genelist_id),
+            editing_session_required=False,
         )
 
     def validate_isgl_id(self, *, payload: dict[str, Any]) -> bool:
@@ -1561,6 +1593,7 @@ class SampleAdministration:
             lambda actor, sample: self._service().update(
                 sample_id=sample_id, payload=payload.model_dump(), actor_username=actor.username
             ),
+            edit_resource=("samples", sample_id),
         )
 
     def delete_sample(self, *, sample_id: str) -> dict[str, Any]:
@@ -1580,6 +1613,8 @@ class SampleAdministration:
             "sample_administration.delete_sample",
             ("sample:delete:global",),
             lambda actor, sample: self._service().delete(sample_id=sample_id),
+            edit_resource=("samples", sample_id),
+            editing_session_required=False,
         )
 
 
@@ -1617,6 +1652,8 @@ class AssaySetups:
             lambda actor, sample: self._service().delete_unpublished(
                 identifier, revision, actor=actor.username
             ),
+            edit_resource=("assay-setups", identifier),
+            editing_session_required=False,
         )
 
     def list_setups(self) -> dict[str, Any]:
@@ -1719,6 +1756,7 @@ class AssaySetups:
                 revision=payload.revision,
                 actor=actor.username,
             ),
+            edit_resource=("assay-setups", identifier),
         )
 
     def submit_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
@@ -1746,6 +1784,8 @@ class AssaySetups:
             lambda actor, sample: self._service().transition(
                 identifier, payload.revision, "submit", actor=actor.username
             ),
+            edit_resource=("assay-setups", identifier),
+            editing_session_required=False,
         )
 
     def publish_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
@@ -1771,6 +1811,8 @@ class AssaySetups:
                 "gene_list.insilico:create",
             ),
             lambda actor, sample: self._publish_with_gene_list_access(identifier, payload),
+            edit_resource=("assay-setups", identifier),
+            editing_session_required=False,
         )
 
     def _publish_with_gene_list_access(
@@ -1793,14 +1835,33 @@ class AssaySetups:
         permissions = (
             ("gene_list.insilico:edit",)
             if document["content"].get("existing_gene_list_ids")
-            else ()
+            else None
         )
+
+        def publish(actor: Any, _sample: Any) -> dict[str, Any]:
+            """Hold shared gene-list leases while applying their assay associations."""
+            with ExitStack() as leases:
+                if self._runtime.edit_guard is not None:
+                    for gene_list_id in sorted(
+                        document["content"].get("existing_gene_list_ids") or []
+                    ):
+                        release = self._runtime.edit_guard("genelists", gene_list_id, actor, False)
+                        if release is not None:
+                            leases.callback(release)
+                return dict(
+                    service.transition(
+                        identifier,
+                        payload.revision,
+                        "publish",
+                        actor=actor.username,
+                        reason=payload.reason,
+                    )
+                )
+
         return self._runtime.execute(
             "assay_setups.activate_associations",
             permissions,
-            lambda actor, sample: service.transition(
-                identifier, payload.revision, "publish", actor=actor.username, reason=payload.reason
-            ),
+            publish,
         )
 
     def return_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
@@ -1823,6 +1884,8 @@ class AssaySetups:
             lambda actor, sample: self._service().transition(
                 identifier, payload.revision, "return", actor=actor.username, reason=payload.reason
             ),
+            edit_resource=("assay-setups", identifier),
+            editing_session_required=False,
         )
 
 
@@ -1862,6 +1925,8 @@ class CatalogAuthoring:
             lambda actor, sample: self._service().delete_unpublished(
                 identifier, revision, actor=actor.username
             ),
+            edit_resource=("assay-catalog", identifier),
+            editing_session_required=False,
         )
 
     def workspace(self) -> dict[str, Any]:
@@ -2053,6 +2118,7 @@ class CatalogAuthoring:
             lambda actor, sample: self._service().update(
                 oid, payload.revision, payload.catalog, actor=actor.username
             ),
+            edit_resource=("assay-catalog", oid),
         )
 
     def submit(self, *, oid: str, payload: Transition) -> dict[str, Any]:
@@ -2075,6 +2141,8 @@ class CatalogAuthoring:
             lambda actor, sample: self._service().submit(
                 oid, payload.revision, payload.assignee, actor=actor.username
             ),
+            edit_resource=("assay-catalog", oid),
+            editing_session_required=False,
         )
 
     def review(self, *, oid: str, payload: Transition) -> dict[str, Any]:
@@ -2102,6 +2170,8 @@ class CatalogAuthoring:
                 publisher=payload.assignee,
                 reason=payload.reason,
             ),
+            edit_resource=("assay-catalog", oid),
+            editing_session_required=False,
         )
 
     def publish(self, *, oid: str, payload: Transition) -> dict[str, Any]:
@@ -2124,6 +2194,8 @@ class CatalogAuthoring:
             lambda actor, sample: self._service().publish(
                 oid, payload.revision, actor=actor.username
             ),
+            edit_resource=("assay-catalog", oid),
+            editing_session_required=False,
         )
 
 

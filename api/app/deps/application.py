@@ -1,8 +1,9 @@
 """HTTP composition for the authenticated in-process application SDK."""
 
 from typing import Any
+from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Header, Request
 
 from api.app.application_factory import (
     open_application,
@@ -52,17 +53,24 @@ from coyote3.application.operations.system import (
 )
 
 
-def get_application(request: Request) -> CoyoteApplication:
+def get_application(
+    request: Request, x_edit_session: UUID | None = Header(default=None)
+) -> CoyoteApplication:
     """Bind local SDK operations to the request's verified, revocable session.
 
     Args:
         request: Authenticated HTTP request; authentication remains an HTTP responsibility.
+        x_edit_session: Validated per-editor session token, never a substitute for login.
 
     Returns:
         Application resources that recheck current identity and grants before execution.
     """
     session = get_request_api_session(request)
-    return open_application(session.token, correlation_id=current_request_id())
+    return open_application(
+        session.token,
+        correlation_id=current_request_id(),
+        editor_id=str(x_edit_session) if x_edit_session else None,
+    )
 
 
 def get_public_pages() -> PublicPages:

@@ -62,6 +62,7 @@
       ],
       "environments": [],
       "gene_lists": [],
+      "existing_gene_list_ids": [],
       "configurations": []
     },
     "status": "draft",

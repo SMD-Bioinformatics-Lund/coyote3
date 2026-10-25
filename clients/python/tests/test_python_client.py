@@ -1,5 +1,7 @@
 """Resource client authentication, metadata access and transport behavior."""
 
+from uuid import uuid4
+
 import httpx
 import pytest
 from coyote3_client import CoyoteClient
@@ -69,6 +71,20 @@ def requests_and_client():
         transport=httpx.MockTransport(respond),
     ) as client:
         yield requests, client
+
+
+def test_editor_session_preserves_authentication_and_rejects_invalid_uuid(requests_and_client):
+    """Expose editing ownership without permitting authentication header replacement."""
+    requests, client = requests_and_client
+    client.login_with_token("synthetic-token")
+    editor = uuid4()
+    client.api.resources.genelists["synthetic"].put(json={"config": {}}, edit_session=editor)
+    assert requests[-1].headers["X-Edit-Session"] == str(editor)
+    assert requests[-1].headers["Authorization"] == "Bearer synthetic-token"
+    count = len(requests)
+    with pytest.raises(ValueError):
+        client.api.resources.genelists["synthetic"].put(json={}, edit_session="invalid")
+    assert len(requests) == count
 
 
 def test_password_login_and_list(requests_and_client):

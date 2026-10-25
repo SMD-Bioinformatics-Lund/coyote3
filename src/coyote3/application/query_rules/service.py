@@ -204,6 +204,23 @@ class QueryRuleService:
             ):
                 raise api_error(422, "Choose an active diagnosis associated with this scope")
 
+    def get(self, identifier: str) -> dict:
+        """Read one rule version for authoring and canonical editing-session identity.
+
+        Args:
+            identifier: Persisted rule version identifier.
+
+        Returns:
+            Stored rule document.
+
+        Raises:
+            AppError: No rule exists with this identity.
+        """
+        document = self.repository.get(identifier)
+        if not document:
+            raise api_error(404, "Query rule not found")
+        return document
+
     def list(self) -> dict:
         """Return retained versions without exposing persistence result objects.
 

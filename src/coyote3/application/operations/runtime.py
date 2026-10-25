@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from copy import deepcopy
 from typing import Any, TypeVar, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,6 +14,7 @@ from coyote3.application.common.execution_context import (
     set_current_request_id,
     set_current_user,
 )
+from coyote3.application.editing import DocumentEditing
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.exceptions import AppError
 
@@ -52,6 +53,8 @@ class ApplicationRuntime:
         correlation_id: str | None = None,
         project_result: Callable[[Any], Any] = deepcopy,
         allowed_operations: frozenset[str] | None = None,
+        document_editing: DocumentEditing | None = None,
+        editor_id: UUID | None = None,
     ) -> None:
         """Bind trusted authentication, authorization, storage and audit capabilities.
 
@@ -68,6 +71,8 @@ class ApplicationRuntime:
             allowed_operations: Optional host-imposed audience restriction. None permits
                 all declared operations subject to current grants; a fixed set limits
                 machine credentials to their designated application operations.
+            document_editing: Shared lease persistence; None is for isolated service tests.
+            editor_id: Per-form editing session, distinct from authenticated identity.
         """
         self.authenticate = authenticate
         self.policy_factory = policy_factory
@@ -77,6 +82,9 @@ class ApplicationRuntime:
         self.correlation_id = correlation_id
         self.project_result = project_result
         self.allowed_operations = allowed_operations
+        self.document_editing = document_editing
+        self.editor_id = editor_id
+        self.edit_guard: Callable[[str, str, Any, bool], Callable[[], None] | None] | None = None
 
     def execute(
         self,
@@ -86,6 +94,8 @@ class ApplicationRuntime:
         *,
         sample_id: str | None = None,
         sample_permissions: Callable[[dict[str, Any]], tuple[str, ...]] | None = None,
+        edit_resource: tuple[str, str] | None = None,
+        editing_session_required: bool = True,
     ) -> Result:
         """Authenticate, authorize, bind context and invoke one trusted operation.
 
@@ -98,6 +108,9 @@ class ApplicationRuntime:
             sample_id: Sample to reload and authorize, or None for a global operation.
             sample_permissions: Trusted resolver for additional grants on the loaded sample,
                 such as production publication; None adds no conditional grants.
+            edit_resource: Canonical resource kind and lookup identity for an edited record.
+            editing_session_required: False for an immediate lifecycle action that takes
+                a temporary lease; True requires an already-open interactive editor.
 
         Returns:
             The service result, after execution under the authenticated actor.
@@ -173,7 +186,20 @@ class ApplicationRuntime:
                     allowed=True,
                 )
             )
-            return cast(Result, self.project_result(action(actor, sample)))
+            release = None
+            if (
+                edit_resource is not None
+                and self.document_editing is not None
+                and self.edit_guard is None
+            ):
+                raise api_error(503, "Document editing is not configured")
+            if edit_resource is not None and self.edit_guard is not None:
+                release = self.edit_guard(*edit_resource, actor, editing_session_required)
+            try:
+                return cast(Result, self.project_result(action(actor, sample)))
+            finally:
+                if release is not None:
+                    release()
         finally:
             reset_current_request_id(request_token)
             reset_current_user(user_token)

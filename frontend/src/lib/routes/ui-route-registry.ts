@@ -629,4 +629,4 @@ export const uiRouteRegistry: UiRouteAudit[] = [
 ]
 
 // Shared navigation saves account preferences; the error boundary reports diagnostics.
-export const sharedUiApiDependencies = ["POST /client-errors", "PATCH /users/me/ui-settings"]
+export const sharedUiApiDependencies = ["POST /client-errors", "PATCH /users/me/ui-settings", "POST /editing/{kind}/{identity}/{action}"]

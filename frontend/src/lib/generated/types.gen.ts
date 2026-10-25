@@ -1187,6 +1187,10 @@ export type AssaySetupContent = {
      */
     environments?: Array<string>;
     /**
+     * Existing Gene List Ids
+     */
+    existing_gene_list_ids?: Array<string>;
+    /**
      * Gene Lists
      */
     gene_lists?: Array<{
@@ -5038,6 +5042,50 @@ export type DnaVariantsListPayload = {
      * Verification Sample Used
      */
     verification_sample_used?: string | null;
+};
+
+/**
+ * EditLeaseRequest
+ *
+ * Identify one browser editor session independently of the user's login.
+ */
+export type EditLeaseRequest = {
+    /**
+     * Editor Id
+     */
+    editor_id: string;
+};
+
+/**
+ * EditLeaseStatus
+ *
+ * Public ownership metadata without exposing another editor's lease token.
+ */
+export type EditLeaseStatus = {
+    /**
+     * Expires At
+     */
+    expires_at?: string | null;
+    /**
+     * Owned
+     */
+    owned?: boolean;
+    /**
+     * Owner
+     */
+    owner?: string | null;
+    /**
+     * Renew After Seconds
+     */
+    renew_after_seconds?: number;
+    /**
+     * Resource Id
+     */
+    resource_id: string;
+    /**
+     * Resource Type
+     */
+    resource_type: string;
 };
 
 /**
@@ -9646,6 +9694,12 @@ export type WhoamiPayload = {
 
 export type Request_workspaceApiV1AdminAssayCatalogGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-catalog';
@@ -9660,6 +9714,10 @@ export type WorkspaceApiV1AdminAssayCatalogGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -9687,6 +9745,12 @@ export type Response_workspaceApiV1AdminAssayCatalogGet = Responses_workspaceApi
 
 export type Request_createApiV1AdminAssayCatalogDraftsPost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-catalog/drafts';
@@ -9701,6 +9765,10 @@ export type CreateApiV1AdminAssayCatalogDraftsPostErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -9728,6 +9796,12 @@ export type Response_createApiV1AdminAssayCatalogDraftsPost = Responses_createAp
 
 export type Request_updateApiV1AdminAssayCatalogDraftsOidPatch = {
     body: PublicAssayCatalogUpdateRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Oid
@@ -9778,6 +9852,12 @@ export type Response_updateApiV1AdminAssayCatalogDraftsOidPatch = Responses_upda
 
 export type Request_publishApiV1AdminAssayCatalogDraftsOidPublishPost = {
     body: PublicAssayCatalogTransitionRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Oid
@@ -9828,6 +9908,12 @@ export type Response_publishApiV1AdminAssayCatalogDraftsOidPublishPost = Respons
 
 export type Request_reviewApiV1AdminAssayCatalogDraftsOidReviewPost = {
     body: PublicAssayCatalogTransitionRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Oid
@@ -9878,6 +9964,12 @@ export type Response_reviewApiV1AdminAssayCatalogDraftsOidReviewPost = Responses
 
 export type Request_submitApiV1AdminAssayCatalogDraftsOidSubmitPost = {
     body: PublicAssayCatalogTransitionRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Oid
@@ -9928,6 +10020,12 @@ export type Response_submitApiV1AdminAssayCatalogDraftsOidSubmitPost = Responses
 
 export type Request_importDraftApiV1AdminAssayCatalogImportsPost = {
     body: PublicAssayCatalogImportRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-catalog/imports';
@@ -9973,6 +10071,12 @@ export type Response_importDraftApiV1AdminAssayCatalogImportsPost = Responses_im
 
 export type Request_previewApiV1AdminAssayCatalogPreviewPost = {
     body: PublicAssayCatalogImportRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -10031,6 +10135,12 @@ export type Response_previewApiV1AdminAssayCatalogPreviewPost = Responses_previe
 
 export type Request_previewMatrixApiV1AdminAssayCatalogPreviewMatrixPost = {
     body: PublicAssayCatalogImportRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -10089,6 +10199,12 @@ export type Response_previewMatrixApiV1AdminAssayCatalogPreviewMatrixPost = Resp
 
 export type Request_previewOfferingsApiV1AdminAssayCatalogPreviewOfferingsPost = {
     body: PublicAssayCatalogImportRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-catalog/preview/offerings';
@@ -10134,6 +10250,12 @@ export type Response_previewOfferingsApiV1AdminAssayCatalogPreviewOfferingsPost 
 
 export type Request_deleteVersionApiV1AdminAssayCatalogVersionsIdentifierDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10189,6 +10311,12 @@ export type Response_deleteVersionApiV1AdminAssayCatalogVersionsIdentifierDelete
 
 export type Request_versionApiV1AdminAssayCatalogVersionsOidGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Oid
@@ -10239,6 +10367,12 @@ export type Response_versionApiV1AdminAssayCatalogVersionsOidGet = Responses_ver
 
 export type Request_revisionsApiV1AdminAssayCatalogVersionsOidRevisionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Oid
@@ -10289,6 +10423,12 @@ export type Response_revisionsApiV1AdminAssayCatalogVersionsOidRevisionsGet = Re
 
 export type Request_listSetupsApiV1AdminAssaySetupsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-setups';
@@ -10303,6 +10443,10 @@ export type ListSetupsApiV1AdminAssaySetupsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -10330,6 +10474,12 @@ export type Response_listSetupsApiV1AdminAssaySetupsGet = Responses_listSetupsAp
 
 export type Request_createSetupApiV1AdminAssaySetupsPost = {
     body: AssaySetupContent;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-setups';
@@ -10375,6 +10525,12 @@ export type Response_createSetupApiV1AdminAssaySetupsPost = Responses_createSetu
 
 export type Request_deleteSetupApiV1AdminAssaySetupsIdentifierDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10430,6 +10586,12 @@ export type Response_deleteSetupApiV1AdminAssaySetupsIdentifierDelete = Response
 
 export type Request_saveSetupApiV1AdminAssaySetupsIdentifierPut = {
     body: AssaySetupUpdate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10480,6 +10642,12 @@ export type Response_saveSetupApiV1AdminAssaySetupsIdentifierPut = Responses_sav
 
 export type Request_setupContextApiV1AdminAssaySetupsIdentifierContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10530,6 +10698,12 @@ export type Response_setupContextApiV1AdminAssaySetupsIdentifierContextGet = Res
 
 export type Request_publishSetupApiV1AdminAssaySetupsIdentifierPublishPost = {
     body: AssaySetupAction;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10580,6 +10754,12 @@ export type Response_publishSetupApiV1AdminAssaySetupsIdentifierPublishPost = Re
 
 export type Request_returnSetupApiV1AdminAssaySetupsIdentifierReturnPost = {
     body: AssaySetupAction;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10630,6 +10810,12 @@ export type Response_returnSetupApiV1AdminAssaySetupsIdentifierReturnPost = Resp
 
 export type Request_submitSetupApiV1AdminAssaySetupsIdentifierSubmitPost = {
     body: AssaySetupAction;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -10680,6 +10866,12 @@ export type Response_submitSetupApiV1AdminAssaySetupsIdentifierSubmitPost = Resp
 
 export type Request_newSetupContextApiV1AdminAssaySetupsContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/assay-setups/context';
@@ -10694,6 +10886,10 @@ export type NewSetupContextApiV1AdminAssaySetupsContextGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -10721,6 +10917,12 @@ export type Response_newSetupContextApiV1AdminAssaySetupsContextGet = Responses_
 
 export type Request_adminAuditReadApiV1AdminAuditGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -10771,6 +10973,12 @@ export type Response_adminAuditReadApiV1AdminAuditGet = Responses_adminAuditRead
 
 export type Request_listRuleSetsApiV1AdminClinicalRuleSetsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -10833,6 +11041,12 @@ export type Response_listRuleSetsApiV1AdminClinicalRuleSetsGet = Responses_listR
 
 export type Request_listRuleSetVersionsApiV1AdminClinicalRuleSetsRuleSetIdVersionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Rule Set Id
@@ -10883,6 +11097,12 @@ export type Response_listRuleSetVersionsApiV1AdminClinicalRuleSetsRuleSetIdVersi
 
 export type Request_clinicalRuleAuthoringOptionsApiV1AdminClinicalRuleSetsAuthoringOptionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/clinical-rule-sets/authoring-options';
@@ -10897,6 +11117,10 @@ export type ClinicalRuleAuthoringOptionsApiV1AdminClinicalRuleSetsAuthoringOptio
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -10924,6 +11148,12 @@ export type Response_clinicalRuleAuthoringOptionsApiV1AdminClinicalRuleSetsAutho
 
 export type Request_createRuleSetDraftApiV1AdminClinicalRuleSetsDraftsPost = {
     body: ClinicalRuleDraftCreate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/clinical-rule-sets/drafts';
@@ -10969,6 +11199,12 @@ export type Response_createRuleSetDraftApiV1AdminClinicalRuleSetsDraftsPost = Re
 
 export type Request_deleteRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11024,6 +11260,12 @@ export type Response_deleteRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentI
 
 export type Request_updateRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdPatch = {
     body: ClinicalRuleDraftUpdate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11074,6 +11316,12 @@ export type Response_updateRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentI
 
 export type Request_decideRuleSetClinicalReviewApiV1AdminClinicalRuleSetsDraftsDocumentIdClinicalReviewPost = {
     body: ClinicalRuleDecision;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11124,6 +11372,12 @@ export type Response_decideRuleSetClinicalReviewApiV1AdminClinicalRuleSetsDrafts
 
 export type Request_previewRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdPreviewPost = {
     body: ClinicalRulePreviewRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11174,6 +11428,12 @@ export type Response_previewRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocument
 
 export type Request_publishRuleSetApiV1AdminClinicalRuleSetsDraftsDocumentIdPublishPost = {
     body: ClinicalRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11224,6 +11484,12 @@ export type Response_publishRuleSetApiV1AdminClinicalRuleSetsDraftsDocumentIdPub
 
 export type Request_startRuleSetClinicalReviewApiV1AdminClinicalRuleSetsDraftsDocumentIdStartClinicalReviewPost = {
     body: ClinicalRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11274,6 +11540,12 @@ export type Response_startRuleSetClinicalReviewApiV1AdminClinicalRuleSetsDraftsD
 
 export type Request_submitRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdSubmitPost = {
     body: ClinicalRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11324,6 +11596,12 @@ export type Response_submitRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentI
 
 export type Request_validateRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdValidatePost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11374,6 +11652,12 @@ export type Response_validateRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumen
 
 export type Request_clinicalRuleFactsApiV1AdminClinicalRuleSetsFactsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/clinical-rule-sets/facts';
@@ -11388,6 +11672,10 @@ export type ClinicalRuleFactsApiV1AdminClinicalRuleSetsFactsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -11415,6 +11703,12 @@ export type Response_clinicalRuleFactsApiV1AdminClinicalRuleSetsFactsGet = Respo
 
 export type Request_importRuleSetDraftApiV1AdminClinicalRuleSetsImportsPost = {
     body: ClinicalRuleImportRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/clinical-rule-sets/imports';
@@ -11460,6 +11754,12 @@ export type Response_importRuleSetDraftApiV1AdminClinicalRuleSetsImportsPost = R
 
 export type Request_getRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11510,6 +11810,12 @@ export type Response_getRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocument
 
 export type Request_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExportGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11560,6 +11866,12 @@ export type Response_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocum
 
 export type Request_retireRuleSetApiV1AdminClinicalRuleSetsVersionsDocumentIdRetirePost = {
     body: ClinicalRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11610,6 +11922,12 @@ export type Response_retireRuleSetApiV1AdminClinicalRuleSetsVersionsDocumentIdRe
 
 export type Request_listRuleSetRevisionsApiV1AdminClinicalRuleSetsVersionsDocumentIdRevisionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11660,6 +11978,12 @@ export type Response_listRuleSetRevisionsApiV1AdminClinicalRuleSetsVersionsDocum
 
 export type Request_getRuleSetRevisionApiV1AdminClinicalRuleSetsVersionsDocumentIdRevisionsRevisionGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11714,6 +12038,12 @@ export type Response_getRuleSetRevisionApiV1AdminClinicalRuleSetsVersionsDocumen
 
 export type Request_searchClinicalRuleTestSamplesApiV1AdminClinicalRuleSetsVersionsDocumentIdTestSamplesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11781,6 +12111,12 @@ export type Response_searchClinicalRuleTestSamplesApiV1AdminClinicalRuleSetsVers
 
 export type Request_previewClinicalRuleWithSampleApiV1AdminClinicalRuleSetsVersionsDocumentIdTestSamplesSampleIdPreviewPost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Document Id
@@ -11840,6 +12176,12 @@ export type Response_previewClinicalRuleWithSampleApiV1AdminClinicalRuleSetsVers
 
 export type Request_adminControlsReadApiV1AdminControlsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/controls';
@@ -11854,6 +12196,10 @@ export type AdminControlsReadApiV1AdminControlsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -11881,6 +12227,12 @@ export type Response_adminControlsReadApiV1AdminControlsGet = Responses_adminCon
 
 export type Request_adminControlsUpdateApiV1AdminControlsPut = {
     body: AdminAppControlsUpdatePayload;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/controls';
@@ -11926,6 +12278,12 @@ export type Response_adminControlsUpdateApiV1AdminControlsPut = Responses_adminC
 
 export type Request_adminControlsPublicOncokbRefreshApiV1AdminControlsKnowledgebasesOncokbPublicRefreshPost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/controls/knowledgebases/oncokb-public/refresh';
@@ -11940,6 +12298,10 @@ export type AdminControlsPublicOncokbRefreshApiV1AdminControlsKnowledgebasesOnco
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -11967,6 +12329,12 @@ export type Response_adminControlsPublicOncokbRefreshApiV1AdminControlsKnowledge
 
 export type Request_adminControlsMaintenanceRunApiV1AdminControlsMaintenancePost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/controls/maintenance';
@@ -11981,6 +12349,10 @@ export type AdminControlsMaintenanceRunApiV1AdminControlsMaintenancePostErrors =
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -12008,6 +12380,12 @@ export type Response_adminControlsMaintenanceRunApiV1AdminControlsMaintenancePos
 
 export type Request_createIngestTokenApiV1AdminIngestTokensPost = {
     body: IngestTokenIssueRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/ingest-tokens';
@@ -12098,6 +12476,12 @@ export type Response_installDeploymentDataApiV1AdminInstallationDataPost = Respo
 
 export type Request_notificationBroadcastApiV1AdminNotificationsBroadcastPost = {
     body: NotificationBroadcastRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/notifications/broadcast';
@@ -12143,6 +12527,12 @@ export type Response_notificationBroadcastApiV1AdminNotificationsBroadcastPost =
 
 export type Request_notificationSentApiV1AdminNotificationsSentGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/notifications/sent';
@@ -12157,6 +12547,10 @@ export type NotificationSentApiV1AdminNotificationsSentGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -12184,6 +12578,12 @@ export type Response_notificationSentApiV1AdminNotificationsSentGet = Responses_
 
 export type Request_listRulesApiV1AdminQueryRuleSetsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/query-rule-sets';
@@ -12198,6 +12598,10 @@ export type ListRulesApiV1AdminQueryRuleSetsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -12225,6 +12629,12 @@ export type Response_listRulesApiV1AdminQueryRuleSetsGet = Responses_listRulesAp
 
 export type Request_createRuleApiV1AdminQueryRuleSetsPost = {
     body: QueryRuleDraft;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/query-rule-sets';
@@ -12270,6 +12680,12 @@ export type Response_createRuleApiV1AdminQueryRuleSetsPost = Responses_createRul
 
 export type Request_deleteRuleApiV1AdminQueryRuleSetsIdentifierDelete = {
     body: QueryRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -12320,6 +12736,12 @@ export type Response_deleteRuleApiV1AdminQueryRuleSetsIdentifierDelete = Respons
 
 export type Request_updateRuleApiV1AdminQueryRuleSetsIdentifierPut = {
     body: QueryRuleUpdate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -12370,6 +12792,12 @@ export type Response_updateRuleApiV1AdminQueryRuleSetsIdentifierPut = Responses_
 
 export type Request_approveRuleApiV1AdminQueryRuleSetsIdentifierApprovePost = {
     body: QueryRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -12420,6 +12848,12 @@ export type Response_approveRuleApiV1AdminQueryRuleSetsIdentifierApprovePost = R
 
 export type Request_publishRuleApiV1AdminQueryRuleSetsIdentifierPublishPost = {
     body: QueryRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -12470,6 +12904,12 @@ export type Response_publishRuleApiV1AdminQueryRuleSetsIdentifierPublishPost = R
 
 export type Request_retireRuleApiV1AdminQueryRuleSetsIdentifierRetirePost = {
     body: QueryRuleTransition;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -12520,6 +12960,12 @@ export type Response_retireRuleApiV1AdminQueryRuleSetsIdentifierRetirePost = Res
 
 export type Request_ruleRevisionsApiV1AdminQueryRuleSetsIdentifierRevisionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identifier
@@ -12572,6 +13018,12 @@ export type Response_ruleRevisionsApiV1AdminQueryRuleSetsIdentifierRevisionsGet 
 
 export type Request_ruleOptionsApiV1AdminQueryRuleSetsOptionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/query-rule-sets/options';
@@ -12586,6 +13038,10 @@ export type RuleOptionsApiV1AdminQueryRuleSetsOptionsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -12613,6 +13069,12 @@ export type Response_ruleOptionsApiV1AdminQueryRuleSetsOptionsGet = Responses_ru
 
 export type Request_previewRulesApiV1AdminQueryRuleSetsPreviewPost = {
     body: QueryRulePreview;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/query-rule-sets/preview';
@@ -12658,6 +13120,12 @@ export type Response_previewRulesApiV1AdminQueryRuleSetsPreviewPost = Responses_
 
 export type Request_testConditionApiV1AdminQueryRuleSetsTestConditionPost = {
     body: QueryConditionTest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/query-rule-sets/test-condition';
@@ -12703,6 +13171,12 @@ export type Response_testConditionApiV1AdminQueryRuleSetsTestConditionPost = Res
 
 export type Request_searchTestSamplesApiV1AdminQueryRuleSetsTestSamplesPost = {
     body: QueryRuleSampleSearch;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/admin/query-rule-sets/test-samples';
@@ -12748,6 +13222,12 @@ export type Response_searchTestSamplesApiV1AdminQueryRuleSetsTestSamplesPost = R
 
 export type Request_previewSampleApiV1AdminQueryRuleSetsTestSamplesSampleIdPreviewPost = {
     body: QueryRulePreview;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -12798,6 +13278,12 @@ export type Response_previewSampleApiV1AdminQueryRuleSetsTestSamplesSampleIdPrev
 
 export type Request_adminSchemasReadApiV1AdminSchemasGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -12848,6 +13334,12 @@ export type Response_adminSchemasReadApiV1AdminSchemasGet = Responses_adminSchem
 
 export type Request_changePasswordApiV1AuthPasswordChangePost = {
     body: ApiPasswordChangeRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/password/change';
@@ -12967,6 +13459,12 @@ export type Response_requestPasswordResetApiV1AuthPasswordResetRequestPost = Res
 
 export type Request_updateCurrentProfileApiV1AuthProfilePatch = {
     body: ApiProfileUpdateRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/profile';
@@ -13197,6 +13695,12 @@ export type Response_whoamiApiV1AuthWhoamiGet = Responses_whoamiApiV1AuthWhoamiG
 
 export type Request_commonGeneCohortReadApiV1CommonGeneGeneIdCohortSummaryGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -13296,6 +13800,12 @@ export type Response_commonGeneInfoReadApiV1CommonGeneGeneIdInfoGet = Responses_
 
 export type Request_commonTieredVariantContextReadApiV1CommonReportedVariantsVariantVariantIdTierGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Variant Id
@@ -13350,6 +13860,12 @@ export type Response_commonTieredVariantContextReadApiV1CommonReportedVariantsVa
 
 export type Request_commonTieredVariantSearchReadApiV1CommonSearchTieredVariantsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -13424,6 +13940,12 @@ export type Response_commonTieredVariantSearchReadApiV1CommonSearchTieredVariant
 
 export type Request_createCoverageBlacklistEntryApiV1CoverageBlacklistEntriesPost = {
     body: CoverageBlacklistUpdateRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/coverage/blacklist/entries';
@@ -13469,6 +13991,12 @@ export type Response_createCoverageBlacklistEntryApiV1CoverageBlacklistEntriesPo
 
 export type Request_deleteCoverageBlacklistEntryApiV1CoverageBlacklistEntriesObjIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Obj Id
@@ -13519,6 +14047,12 @@ export type Response_deleteCoverageBlacklistEntryApiV1CoverageBlacklistEntriesOb
 
 export type Request_coverageBlacklistedReadApiV1CoverageBlacklistedGroupGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Group
@@ -13569,6 +14103,12 @@ export type Response_coverageBlacklistedReadApiV1CoverageBlacklistedGroupGet = R
 
 export type Request_dashboardAdminInsightsApiV1DashboardAdminInsightsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/admin-insights';
@@ -13583,6 +14123,10 @@ export type DashboardAdminInsightsApiV1DashboardAdminInsightsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13610,6 +14154,12 @@ export type Response_dashboardAdminInsightsApiV1DashboardAdminInsightsGet = Resp
 
 export type Request_dashboardClinicalConfigurationMetricsApiV1DashboardMetricsClinicalConfigurationGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/clinical-configuration';
@@ -13624,6 +14174,10 @@ export type DashboardClinicalConfigurationMetricsApiV1DashboardMetricsClinicalCo
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13651,6 +14205,12 @@ export type Response_dashboardClinicalConfigurationMetricsApiV1DashboardMetricsC
 
 export type Request_dashboardFindingMetricsApiV1DashboardMetricsFindingsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/findings';
@@ -13665,6 +14225,10 @@ export type DashboardFindingMetricsApiV1DashboardMetricsFindingsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13692,6 +14256,12 @@ export type Response_dashboardFindingMetricsApiV1DashboardMetricsFindingsGet = R
 
 export type Request_dashboardPanelMetricsApiV1DashboardMetricsPanelsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/panels';
@@ -13706,6 +14276,10 @@ export type DashboardPanelMetricsApiV1DashboardMetricsPanelsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13733,6 +14307,12 @@ export type Response_dashboardPanelMetricsApiV1DashboardMetricsPanelsGet = Respo
 
 export type Request_refreshDashboardMetricCacheApiV1DashboardMetricsRefreshPost = {
     body: DashboardMetricRefreshRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/refresh';
@@ -13778,6 +14358,12 @@ export type Response_refreshDashboardMetricCacheApiV1DashboardMetricsRefreshPost
 
 export type Request_dashboardResourceMetricsApiV1DashboardMetricsResourcesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/resources';
@@ -13792,6 +14378,10 @@ export type DashboardResourceMetricsApiV1DashboardMetricsResourcesGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13819,6 +14409,12 @@ export type Response_dashboardResourceMetricsApiV1DashboardMetricsResourcesGet =
 
 export type Request_dashboardSampleMetricsApiV1DashboardMetricsSamplesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/samples';
@@ -13833,6 +14429,10 @@ export type DashboardSampleMetricsApiV1DashboardMetricsSamplesGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13860,6 +14460,12 @@ export type Response_dashboardSampleMetricsApiV1DashboardMetricsSamplesGet = Res
 
 export type Request_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/dashboard/metrics/top-tiered-genes';
@@ -13874,6 +14480,10 @@ export type DashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGetE
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -13898,6 +14508,72 @@ export type Responses_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTiere
 };
 
 export type Response_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGet = Responses_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGet[keyof Responses_dashboardTopTieredGeneMetricsApiV1DashboardMetricsTopTieredGenesGet];
+
+export type Request_editSessionApiV1EditingKindIdentityActionPost = {
+    body: EditLeaseRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Kind
+         */
+        kind: string;
+        /**
+         * Identity
+         */
+        identity: string;
+        /**
+         * Action
+         */
+        action: 'acquire' | 'renew' | 'release';
+    };
+    query?: never;
+    url: '/api/v1/editing/{kind}/{identity}/{action}';
+};
+
+export type EditSessionApiV1EditingKindIdentityActionPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type EditSessionApiV1EditingKindIdentityActionPostError = EditSessionApiV1EditingKindIdentityActionPostErrors[keyof EditSessionApiV1EditingKindIdentityActionPostErrors];
+
+export type Responses_editSessionApiV1EditingKindIdentityActionPost = {
+    /**
+     * Response Edit Session Api V1 Editing  Kind   Identity   Action  Post
+     *
+     * Successful Response
+     */
+    200: EditLeaseStatus | null;
+};
+
+export type Response_editSessionApiV1EditingKindIdentityActionPost = Responses_editSessionApiV1EditingKindIdentityActionPost[keyof Responses_editSessionApiV1EditingKindIdentityActionPost];
 
 export type Request_healthApiV1HealthGet = {
     body?: never;
@@ -13986,6 +14662,12 @@ export type Response_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePo
 
 export type Request_enqueueIngestSampleBundleInternalApiV1InternalIngestSampleBundleAsyncPost = {
     body: InternalIngestSampleBundleRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/async';
@@ -14078,6 +14760,12 @@ export type Response_ingestSampleBundleUploadInternalApiV1InternalIngestSampleBu
 
 export type Request_enqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost = {
     body: BodyEnqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/upload/async';
@@ -14123,6 +14811,12 @@ export type Response_enqueueIngestSampleBundleUploadInternalApiV1InternalIngestS
 
 export type Request_getInternalTaskStatusApiV1InternalTasksTaskIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Task Id
@@ -14173,6 +14867,12 @@ export type Response_getInternalTaskStatusApiV1InternalTasksTaskIdGet = Response
 
 export type Request_knowledgebaseBrcaExchangeGeneReadApiV1KnowledgebasesBrcaExchangeGeneGeneIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -14223,6 +14923,12 @@ export type Response_knowledgebaseBrcaExchangeGeneReadApiV1KnowledgebasesBrcaExc
 
 export type Request_knowledgebaseBrcaExchangeVariantEvidenceReadApiV1KnowledgebasesBrcaExchangeVariantEvidenceGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query: {
         /**
@@ -14305,6 +15011,12 @@ export type Response_knowledgebaseBrcaExchangeVariantEvidenceReadApiV1Knowledgeb
 
 export type Request_knowledgebaseCivicGeneReadApiV1KnowledgebasesCivicGeneGeneIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -14355,6 +15067,12 @@ export type Response_knowledgebaseCivicGeneReadApiV1KnowledgebasesCivicGeneGeneI
 
 export type Request_knowledgebaseCivicVariantEvidenceReadApiV1KnowledgebasesCivicVariantEvidenceGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query: {
         /**
@@ -14437,6 +15155,12 @@ export type Response_knowledgebaseCivicVariantEvidenceReadApiV1KnowledgebasesCiv
 
 export type Request_knowledgebaseClinpgxGeneReadApiV1KnowledgebasesClinpgxGeneGeneIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -14487,6 +15211,12 @@ export type Response_knowledgebaseClinpgxGeneReadApiV1KnowledgebasesClinpgxGeneG
 
 export type Request_cancerGeneCensusSummaryReadApiV1KnowledgebasesCosmicCancerGeneCensusSummaryGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/knowledgebases/cosmic/cancer-gene-census/summary';
@@ -14501,6 +15231,10 @@ export type CancerGeneCensusSummaryReadApiV1KnowledgebasesCosmicCancerGeneCensus
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -14528,6 +15262,12 @@ export type Response_cancerGeneCensusSummaryReadApiV1KnowledgebasesCosmicCancerG
 
 export type Request_knowledgebaseGeneReadApiV1KnowledgebasesGeneGeneIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -14578,6 +15318,12 @@ export type Response_knowledgebaseGeneReadApiV1KnowledgebasesGeneGeneIdGet = Res
 
 export type Request_knowledgebaseIarcTp53GeneReadApiV1KnowledgebasesIarcTp53GeneGeneIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -14628,6 +15374,12 @@ export type Response_knowledgebaseIarcTp53GeneReadApiV1KnowledgebasesIarcTp53Gen
 
 export type Request_knowledgebaseIarcTp53VariantEvidenceReadApiV1KnowledgebasesIarcTp53VariantEvidenceGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query: {
         /**
@@ -14710,6 +15462,12 @@ export type Response_knowledgebaseIarcTp53VariantEvidenceReadApiV1Knowledgebases
 
 export type Request_knowledgebaseOncokbGeneReadApiV1KnowledgebasesOncokbGeneGeneIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Gene Id
@@ -14760,6 +15518,12 @@ export type Response_knowledgebaseOncokbGeneReadApiV1KnowledgebasesOncokbGeneGen
 
 export type Request_knowledgebaseStatisticsReadApiV1KnowledgebasesStatisticsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/knowledgebases/statistics';
@@ -14774,6 +15538,10 @@ export type KnowledgebaseStatisticsReadApiV1KnowledgebasesStatisticsGetErrors = 
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -14801,6 +15569,12 @@ export type Response_knowledgebaseStatisticsReadApiV1KnowledgebasesStatisticsGet
 
 export type Request_knowledgebaseVariantEvidenceReadApiV1KnowledgebasesVariantEvidenceGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query: {
         /**
@@ -14883,6 +15657,12 @@ export type Response_knowledgebaseVariantEvidenceReadApiV1KnowledgebasesVariantE
 
 export type Request_listPermissionsReadApiV1PermissionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -14946,6 +15726,12 @@ export type Request_createPermissionApiV1PermissionsPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/permissions';
@@ -14991,6 +15777,12 @@ export type Response_createPermissionApiV1PermissionsPost = Responses_createPerm
 
 export type Request_deletePermissionApiV1PermissionsPermIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Perm Id
@@ -15046,6 +15838,12 @@ export type Request_updatePermissionApiV1PermissionsPermIdPut = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Perm Id
@@ -15096,6 +15894,12 @@ export type Response_updatePermissionApiV1PermissionsPermIdPut = Responses_updat
 
 export type Request_permissionContextReadApiV1PermissionsPermIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Perm Id
@@ -15146,6 +15950,12 @@ export type Response_permissionContextReadApiV1PermissionsPermIdContextGet = Res
 
 export type Request_togglePermissionStatusApiV1PermissionsPermIdStatusPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Perm Id
@@ -15196,6 +16006,12 @@ export type Response_togglePermissionStatusApiV1PermissionsPermIdStatusPatch = R
 
 export type Request_createPermissionContextReadApiV1PermissionsCreateContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/permissions/create_context';
@@ -15210,6 +16026,10 @@ export type CreatePermissionContextReadApiV1PermissionsCreateContextGetErrors = 
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -15241,6 +16061,12 @@ export type Request_validatePermissionIdChangeApiV1PermissionsValidatePermission
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path?: never;
     query?: never;
@@ -15881,6 +16707,12 @@ export type Responses_publicVepDiagramReadApiV1PublicVepReleaseDiagramGet = {
 
 export type Request_listSavedReportsApiV1ReportsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -15939,6 +16771,12 @@ export type Response_listSavedReportsApiV1ReportsGet = Responses_listSavedReport
 
 export type Request_listAspReadApiV1ResourcesAspGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -16002,6 +16840,12 @@ export type Request_createAspChangeApiV1ResourcesAspPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/asp';
@@ -16047,6 +16891,12 @@ export type Response_createAspChangeApiV1ResourcesAspPost = Responses_createAspC
 
 export type Request_deleteAspChangeApiV1ResourcesAspAssayPanelIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16102,6 +16952,12 @@ export type Request_updateAspChangeApiV1ResourcesAspAssayPanelIdPut = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16152,6 +17008,12 @@ export type Response_updateAspChangeApiV1ResourcesAspAssayPanelIdPut = Responses
 
 export type Request_aspContextReadApiV1ResourcesAspAssayPanelIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16202,6 +17064,12 @@ export type Response_aspContextReadApiV1ResourcesAspAssayPanelIdContextGet = Res
 
 export type Request_listDiagnosesApiV1ResourcesAspAssayPanelIdDiagnosesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16252,6 +17120,12 @@ export type Response_listDiagnosesApiV1ResourcesAspAssayPanelIdDiagnosesGet = Re
 
 export type Request_createDiagnosisApiV1ResourcesAspAssayPanelIdDiagnosesPost = {
     body: DiagnosisCreate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16302,6 +17176,12 @@ export type Response_createDiagnosisApiV1ResourcesAspAssayPanelIdDiagnosesPost =
 
 export type Request_updateDiagnosisApiV1ResourcesAspAssayPanelIdDiagnosesDiagnosisIdPut = {
     body: DiagnosisUpdate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16356,6 +17236,12 @@ export type Response_updateDiagnosisApiV1ResourcesAspAssayPanelIdDiagnosesDiagno
 
 export type Request_changeDiagnosisAssociationStatusApiV1ResourcesAspAssayPanelIdDiagnosesDiagnosisIdStatusPatch = {
     body: DiagnosisAssociationUpdate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16410,6 +17296,12 @@ export type Response_changeDiagnosisAssociationStatusApiV1ResourcesAspAssayPanel
 
 export type Request_assayFieldReadApiV1ResourcesAspAssayPanelIdFieldsFieldGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16466,6 +17358,12 @@ export type Response_assayFieldReadApiV1ResourcesAspAssayPanelIdFieldsFieldGet =
 
 export type Request_assayMetadataReadApiV1ResourcesAspAssayPanelIdMetadataGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16516,6 +17414,12 @@ export type Response_assayMetadataReadApiV1ResourcesAspAssayPanelIdMetadataGet =
 
 export type Request_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Panel Id
@@ -16566,6 +17470,12 @@ export type Response_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch = R
 
 export type Request_createAspContextReadApiV1ResourcesAspCreateContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/asp/create_context';
@@ -16580,6 +17490,10 @@ export type CreateAspContextReadApiV1ResourcesAspCreateContextGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -16611,6 +17525,12 @@ export type Request_validateAspIdChangeApiV1ResourcesAspValidateAspIdPost = {
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path?: never;
     query?: never;
@@ -16657,6 +17577,12 @@ export type Response_validateAspIdChangeApiV1ResourcesAspValidateAspIdPost = Res
 
 export type Request_listAspcReadApiV1ResourcesAspcGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -16720,6 +17646,12 @@ export type Request_createAspcChangeApiV1ResourcesAspcPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/aspc';
@@ -16765,6 +17697,12 @@ export type Response_createAspcChangeApiV1ResourcesAspcPost = Responses_createAs
 
 export type Request_aspcFieldReadApiV1ResourcesAspcAspcIdFieldsFieldGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Aspc Id
@@ -16821,6 +17759,12 @@ export type Response_aspcFieldReadApiV1ResourcesAspcAspcIdFieldsFieldGet = Respo
 
 export type Request_aspcMetadataReadApiV1ResourcesAspcAspcIdMetadataGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Aspc Id
@@ -16871,6 +17815,12 @@ export type Response_aspcMetadataReadApiV1ResourcesAspcAspcIdMetadataGet = Respo
 
 export type Request_deleteAspcChangeApiV1ResourcesAspcAssayIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Id
@@ -16926,6 +17876,12 @@ export type Request_updateAspcChangeApiV1ResourcesAspcAssayIdPut = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Id
@@ -16976,6 +17932,12 @@ export type Response_updateAspcChangeApiV1ResourcesAspcAssayIdPut = Responses_up
 
 export type Request_aspcContextReadApiV1ResourcesAspcAssayIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Id
@@ -17026,6 +17988,12 @@ export type Response_aspcContextReadApiV1ResourcesAspcAssayIdContextGet = Respon
 
 export type Request_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Assay Id
@@ -17076,6 +18044,12 @@ export type Response_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch = Resp
 
 export type Request_createAspcContextReadApiV1ResourcesAspcCreateContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -17131,6 +18105,12 @@ export type Request_validateAspcIdChangeApiV1ResourcesAspcValidateAspcIdPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/aspc/validate_aspc_id';
@@ -17176,6 +18156,12 @@ export type Response_validateAspcIdChangeApiV1ResourcesAspcValidateAspcIdPost = 
 
 export type Request_listAssayGroupsApiV1ResourcesAssayGroupsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/assay-groups';
@@ -17190,6 +18176,10 @@ export type ListAssayGroupsApiV1ResourcesAssayGroupsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -17217,6 +18207,12 @@ export type Response_listAssayGroupsApiV1ResourcesAssayGroupsGet = Responses_lis
 
 export type Request_createAssayGroupApiV1ResourcesAssayGroupsPost = {
     body: AssayGroupCreate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/assay-groups';
@@ -17262,6 +18258,12 @@ export type Response_createAssayGroupApiV1ResourcesAssayGroupsPost = Responses_c
 
 export type Request_assayGroupFieldReadApiV1ResourcesAssayGroupsGroupIdFieldsFieldGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Group Id
@@ -17318,6 +18320,12 @@ export type Response_assayGroupFieldReadApiV1ResourcesAssayGroupsGroupIdFieldsFi
 
 export type Request_assayGroupImpactApiV1ResourcesAssayGroupsGroupIdImpactGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Group Id
@@ -17368,6 +18376,12 @@ export type Response_assayGroupImpactApiV1ResourcesAssayGroupsGroupIdImpactGet =
 
 export type Request_assayGroupMetadataReadApiV1ResourcesAssayGroupsGroupIdMetadataGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Group Id
@@ -17418,6 +18432,12 @@ export type Response_assayGroupMetadataReadApiV1ResourcesAssayGroupsGroupIdMetad
 
 export type Request_changeAssayGroupStatusApiV1ResourcesAssayGroupsGroupIdStatusPatch = {
     body: AssayGroupStatus;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Group Id
@@ -17468,6 +18488,12 @@ export type Response_changeAssayGroupStatusApiV1ResourcesAssayGroupsGroupIdStatu
 
 export type Request_listProfilesApiV1ResourcesConfigurationProfilesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/configuration-profiles';
@@ -17482,6 +18508,10 @@ export type ListProfilesApiV1ResourcesConfigurationProfilesGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -17511,6 +18541,12 @@ export type Response_listProfilesApiV1ResourcesConfigurationProfilesGet = Respon
 
 export type Request_createProfileApiV1ResourcesConfigurationProfilesPost = {
     body: ConfigurationProfileDraft;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/configuration-profiles';
@@ -17556,6 +18592,12 @@ export type Response_createProfileApiV1ResourcesConfigurationProfilesPost = Resp
 
 export type Request_publishProfileApiV1ResourcesConfigurationProfilesIdentityPublishPost = {
     body: ProfilePublication;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identity
@@ -17606,6 +18648,12 @@ export type Response_publishProfileApiV1ResourcesConfigurationProfilesIdentityPu
 
 export type Request_listPromotionsApiV1ResourcesConfigurationPromotionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/configuration-promotions';
@@ -17620,6 +18668,10 @@ export type ListPromotionsApiV1ResourcesConfigurationPromotionsGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -17649,6 +18701,12 @@ export type Response_listPromotionsApiV1ResourcesConfigurationPromotionsGet = Re
 
 export type Request_proposePromotionApiV1ResourcesConfigurationPromotionsPost = {
     body: ConfigurationPromotionRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/configuration-promotions';
@@ -17694,6 +18752,12 @@ export type Response_proposePromotionApiV1ResourcesConfigurationPromotionsPost =
 
 export type Request_approvePromotionApiV1ResourcesConfigurationPromotionsIdentityApprovePost = {
     body: ProfilePublication;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Identity
@@ -17744,6 +18808,12 @@ export type Response_approvePromotionApiV1ResourcesConfigurationPromotionsIdenti
 
 export type Request_listSharedDiagnosesApiV1ResourcesDiagnosesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/diagnoses';
@@ -17758,6 +18828,10 @@ export type ListSharedDiagnosesApiV1ResourcesDiagnosesGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -17785,6 +18859,12 @@ export type Response_listSharedDiagnosesApiV1ResourcesDiagnosesGet = Responses_l
 
 export type Request_createSharedDiagnosisApiV1ResourcesDiagnosesPost = {
     body: SharedDiagnosisCreate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/diagnoses';
@@ -17830,6 +18910,12 @@ export type Response_createSharedDiagnosisApiV1ResourcesDiagnosesPost = Response
 
 export type Request_reviseSharedDiagnosisApiV1ResourcesDiagnosesDiagnosisIdPut = {
     body: SharedDiagnosisUpdate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Diagnosis Id
@@ -17880,6 +18966,12 @@ export type Response_reviseSharedDiagnosisApiV1ResourcesDiagnosesDiagnosisIdPut 
 
 export type Request_diagnosisFieldReadApiV1ResourcesDiagnosesDiagnosisIdFieldsFieldGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Diagnosis Id
@@ -17936,6 +19028,12 @@ export type Response_diagnosisFieldReadApiV1ResourcesDiagnosesDiagnosisIdFieldsF
 
 export type Request_diagnosisMetadataReadApiV1ResourcesDiagnosesDiagnosisIdMetadataGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Diagnosis Id
@@ -17986,6 +19084,12 @@ export type Response_diagnosisMetadataReadApiV1ResourcesDiagnosesDiagnosisIdMeta
 
 export type Request_listGenelistsReadApiV1ResourcesGenelistsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -18049,6 +19153,12 @@ export type Request_createGenelistChangeApiV1ResourcesGenelistsPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/genelists';
@@ -18094,6 +19204,12 @@ export type Response_createGenelistChangeApiV1ResourcesGenelistsPost = Responses
 
 export type Request_deleteGenelistChangeApiV1ResourcesGenelistsGenelistIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18149,6 +19265,12 @@ export type Request_updateGenelistChangeApiV1ResourcesGenelistsGenelistIdPut = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18199,6 +19321,12 @@ export type Response_updateGenelistChangeApiV1ResourcesGenelistsGenelistIdPut = 
 
 export type Request_genelistContextReadApiV1ResourcesGenelistsGenelistIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18249,6 +19377,12 @@ export type Response_genelistContextReadApiV1ResourcesGenelistsGenelistIdContext
 
 export type Request_genelistFieldReadApiV1ResourcesGenelistsGenelistIdFieldsFieldGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18305,6 +19439,12 @@ export type Response_genelistFieldReadApiV1ResourcesGenelistsGenelistIdFieldsFie
 
 export type Request_genelistMetadataReadApiV1ResourcesGenelistsGenelistIdMetadataGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18355,6 +19495,12 @@ export type Response_genelistMetadataReadApiV1ResourcesGenelistsGenelistIdMetada
 
 export type Request_toggleGenelistChangeApiV1ResourcesGenelistsGenelistIdStatusPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18405,6 +19551,12 @@ export type Response_toggleGenelistChangeApiV1ResourcesGenelistsGenelistIdStatus
 
 export type Request_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Genelist Id
@@ -18460,6 +19612,12 @@ export type Response_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdVie
 
 export type Request_createGenelistContextReadApiV1ResourcesGenelistsCreateContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/resources/genelists/create_context';
@@ -18474,6 +19632,10 @@ export type CreateGenelistContextReadApiV1ResourcesGenelistsCreateContextGetErro
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -18505,6 +19667,12 @@ export type Request_validateIsglIdChangeApiV1ResourcesGenelistsValidateIsglIdPos
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path?: never;
     query?: never;
@@ -18551,6 +19719,12 @@ export type Response_validateIsglIdChangeApiV1ResourcesGenelistsValidateIsglIdPo
 
 export type Request_listAdminSamplesReadApiV1ResourcesSamplesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -18617,6 +19791,12 @@ export type Response_listAdminSamplesReadApiV1ResourcesSamplesGet = Responses_li
 
 export type Request_deleteSampleChangeApiV1ResourcesSamplesSampleIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -18667,6 +19847,12 @@ export type Response_deleteSampleChangeApiV1ResourcesSamplesSampleIdDelete = Res
 
 export type Request_updateSampleChangeApiV1ResourcesSamplesSampleIdPut = {
     body: AdminSampleUpdatePayload;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -18717,6 +19903,12 @@ export type Response_updateSampleChangeApiV1ResourcesSamplesSampleIdPut = Respon
 
 export type Request_adminSampleContextReadApiV1ResourcesSamplesSampleIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -18767,6 +19959,12 @@ export type Response_adminSampleContextReadApiV1ResourcesSamplesSampleIdContextG
 
 export type Request_listRolesReadApiV1RolesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -18830,6 +20028,12 @@ export type Request_createRoleApiV1RolesPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/roles';
@@ -18875,6 +20079,12 @@ export type Response_createRoleApiV1RolesPost = Responses_createRoleApiV1RolesPo
 
 export type Request_deleteRoleApiV1RolesRoleIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Role Id
@@ -18930,6 +20140,12 @@ export type Request_updateRoleApiV1RolesRoleIdPut = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Role Id
@@ -18980,6 +20196,12 @@ export type Response_updateRoleApiV1RolesRoleIdPut = Responses_updateRoleApiV1Ro
 
 export type Request_roleContextReadApiV1RolesRoleIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Role Id
@@ -19030,6 +20252,12 @@ export type Response_roleContextReadApiV1RolesRoleIdContextGet = Responses_roleC
 
 export type Request_toggleRoleStatusApiV1RolesRoleIdStatusPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Role Id
@@ -19080,6 +20308,12 @@ export type Response_toggleRoleStatusApiV1RolesRoleIdStatusPatch = Responses_tog
 
 export type Request_createRoleContextReadApiV1RolesCreateContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/roles/create_context';
@@ -19094,6 +20328,10 @@ export type CreateRoleContextReadApiV1RolesCreateContextGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -19125,6 +20363,12 @@ export type Request_validateRoleIdChangeApiV1RolesValidateRoleIdPost = {
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path?: never;
     query?: never;
@@ -19171,6 +20415,12 @@ export type Response_validateRoleIdChangeApiV1RolesValidateRoleIdPost = Response
 
 export type Request_listSamplesReadApiV1SamplesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -19285,6 +20535,12 @@ export type Response_listSamplesReadApiV1SamplesGet = Responses_listSamplesReadA
 
 export type Request_sampleClearAdhocGenesChangeApiV1SamplesSampleIdAdhocGenesDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19344,6 +20600,12 @@ export type Request_sampleSaveAdhocGenesChangeApiV1SamplesSampleIdAdhocGenesPut 
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path: {
         /**
@@ -19405,6 +20667,12 @@ export type Request_addVariantCommentChangeApiV1SamplesSampleIdAnnotationsPost =
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19455,6 +20723,12 @@ export type Response_addVariantCommentChangeApiV1SamplesSampleIdAnnotationsPost 
 
 export type Request_applyLatestSampleAspcApiV1SamplesSampleIdAspcApplyLatestPost = {
     body: ConfigurationApplyRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19505,6 +20779,12 @@ export type Response_applyLatestSampleAspcApiV1SamplesSampleIdAspcApplyLatestPos
 
 export type Request_previewSampleAspcApiV1SamplesSampleIdAspcPreviewGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19565,6 +20845,12 @@ export type Request_removeClassifiedResourceChangeApiV1SamplesSampleIdClassifica
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19619,6 +20905,12 @@ export type Request_classifyResourceChangeApiV1SamplesSampleIdClassificationsPos
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path: {
         /**
@@ -19675,6 +20967,12 @@ export type Request_setResourceTierBulkApiV1SamplesSampleIdClassificationsTierPa
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19725,6 +21023,12 @@ export type Response_setResourceTierBulkApiV1SamplesSampleIdClassificationsTierP
 
 export type Request_listDnaCnvsApiV1SamplesSampleIdCnvsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19775,6 +21079,12 @@ export type Response_listDnaCnvsApiV1SamplesSampleIdCnvsGet = Responses_listDnaC
 
 export type Request_showDnaCnvApiV1SamplesSampleIdCnvsCnvIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19829,6 +21139,12 @@ export type Response_showDnaCnvApiV1SamplesSampleIdCnvsCnvIdGet = Responses_show
 
 export type Request_unhideCnvCommentApiV1SamplesSampleIdCnvsCnvIdCommentsCommentIdHiddenDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19887,6 +21203,12 @@ export type Response_unhideCnvCommentApiV1SamplesSampleIdCnvsCnvIdCommentsCommen
 
 export type Request_hideCnvCommentApiV1SamplesSampleIdCnvsCnvIdCommentsCommentIdHiddenPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19945,6 +21267,12 @@ export type Response_hideCnvCommentApiV1SamplesSampleIdCnvsCnvIdCommentsCommentI
 
 export type Request_unmarkFalsePositiveCnvApiV1SamplesSampleIdCnvsCnvIdFlagsFalsePositiveDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -19999,6 +21327,12 @@ export type Response_unmarkFalsePositiveCnvApiV1SamplesSampleIdCnvsCnvIdFlagsFal
 
 export type Request_markFalsePositiveCnvApiV1SamplesSampleIdCnvsCnvIdFlagsFalsePositivePatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20053,6 +21387,12 @@ export type Response_markFalsePositiveCnvApiV1SamplesSampleIdCnvsCnvIdFlagsFalse
 
 export type Request_unmarkInterestingCnvApiV1SamplesSampleIdCnvsCnvIdFlagsInterestingDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20107,6 +21447,12 @@ export type Response_unmarkInterestingCnvApiV1SamplesSampleIdCnvsCnvIdFlagsInter
 
 export type Request_markInterestingCnvApiV1SamplesSampleIdCnvsCnvIdFlagsInterestingPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20161,6 +21507,12 @@ export type Response_markInterestingCnvApiV1SamplesSampleIdCnvsCnvIdFlagsInteres
 
 export type Request_unmarkNoteworthyCnvApiV1SamplesSampleIdCnvsCnvIdFlagsNoteworthyDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20215,6 +21567,12 @@ export type Response_unmarkNoteworthyCnvApiV1SamplesSampleIdCnvsCnvIdFlagsNotewo
 
 export type Request_markNoteworthyCnvApiV1SamplesSampleIdCnvsCnvIdFlagsNoteworthyPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20269,6 +21627,12 @@ export type Response_markNoteworthyCnvApiV1SamplesSampleIdCnvsCnvIdFlagsNotewort
 
 export type Request_exportCnvCsvContextApiV1SamplesSampleIdCnvsExportsContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20319,6 +21683,12 @@ export type Response_exportCnvCsvContextApiV1SamplesSampleIdCnvsExportsContextGe
 
 export type Request_createSampleCommentApiV1SamplesSampleIdCommentsPost = {
     body: SampleCommentCreateRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20369,6 +21739,12 @@ export type Response_createSampleCommentApiV1SamplesSampleIdCommentsPost = Respo
 
 export type Request_unhideSampleCommentApiV1SamplesSampleIdCommentsCommentIdHiddenDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20423,6 +21799,12 @@ export type Response_unhideSampleCommentApiV1SamplesSampleIdCommentsCommentIdHid
 
 export type Request_hideSampleCommentApiV1SamplesSampleIdCommentsCommentIdHiddenPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20477,6 +21859,12 @@ export type Response_hideSampleCommentApiV1SamplesSampleIdCommentsCommentIdHidde
 
 export type Request_coverageSampleReadApiV1SamplesSampleIdCoverageGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20532,6 +21920,12 @@ export type Response_coverageSampleReadApiV1SamplesSampleIdCoverageGet = Respons
 
 export type Request_sampleEditContextReadApiV1SamplesSampleIdEditContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20582,6 +21976,12 @@ export type Response_sampleEditContextReadApiV1SamplesSampleIdEditContextGet = R
 
 export type Request_sampleEffectiveGenesReadApiV1SamplesSampleIdEffectiveGenesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20637,6 +22037,12 @@ export type Response_sampleEffectiveGenesReadApiV1SamplesSampleIdEffectiveGenesG
 
 export type Request_sampleFieldReadApiV1SamplesSampleIdFieldsFieldGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20693,6 +22099,12 @@ export type Response_sampleFieldReadApiV1SamplesSampleIdFieldsFieldGet = Respons
 
 export type Request_resetSampleFiltersApiV1SamplesSampleIdFiltersDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20743,6 +22155,12 @@ export type Response_resetSampleFiltersApiV1SamplesSampleIdFiltersDelete = Respo
 
 export type Request_updateSampleFiltersApiV1SamplesSampleIdFiltersPut = {
     body: SampleFiltersUpdateRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20793,6 +22211,12 @@ export type Response_updateSampleFiltersApiV1SamplesSampleIdFiltersPut = Respons
 
 export type Request_listRnaFusionsApiV1SamplesSampleIdFusionsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20843,6 +22267,12 @@ export type Response_listRnaFusionsApiV1SamplesSampleIdFusionsGet = Responses_li
 
 export type Request_showRnaFusionApiV1SamplesSampleIdFusionsFusionIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20897,6 +22327,12 @@ export type Response_showRnaFusionApiV1SamplesSampleIdFusionsFusionIdGet = Respo
 
 export type Request_unhideFusionCommentApiV1SamplesSampleIdFusionsFusionIdCommentsCommentIdHiddenDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -20955,6 +22391,12 @@ export type Response_unhideFusionCommentApiV1SamplesSampleIdFusionsFusionIdComme
 
 export type Request_hideFusionCommentApiV1SamplesSampleIdFusionsFusionIdCommentsCommentIdHiddenPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21013,6 +22455,12 @@ export type Response_hideFusionCommentApiV1SamplesSampleIdFusionsFusionIdComment
 
 export type Request_unmarkBlacklistedFusionApiV1SamplesSampleIdFusionsFusionIdFlagsBlacklistedDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21067,6 +22515,12 @@ export type Response_unmarkBlacklistedFusionApiV1SamplesSampleIdFusionsFusionIdF
 
 export type Request_markBlacklistedFusionApiV1SamplesSampleIdFusionsFusionIdFlagsBlacklistedPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21121,6 +22575,12 @@ export type Response_markBlacklistedFusionApiV1SamplesSampleIdFusionsFusionIdFla
 
 export type Request_unmarkFalsePositiveFusionApiV1SamplesSampleIdFusionsFusionIdFlagsFalsePositiveDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21175,6 +22635,12 @@ export type Response_unmarkFalsePositiveFusionApiV1SamplesSampleIdFusionsFusionI
 
 export type Request_markFalsePositiveFusionApiV1SamplesSampleIdFusionsFusionIdFlagsFalsePositivePatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21229,6 +22695,12 @@ export type Response_markFalsePositiveFusionApiV1SamplesSampleIdFusionsFusionIdF
 
 export type Request_unmarkInterestingFusionApiV1SamplesSampleIdFusionsFusionIdFlagsInterestingDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21283,6 +22755,12 @@ export type Response_unmarkInterestingFusionApiV1SamplesSampleIdFusionsFusionIdF
 
 export type Request_markInterestingFusionApiV1SamplesSampleIdFusionsFusionIdFlagsInterestingPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21337,6 +22815,12 @@ export type Response_markInterestingFusionApiV1SamplesSampleIdFusionsFusionIdFla
 
 export type Request_unmarkIrrelevantFusionApiV1SamplesSampleIdFusionsFusionIdFlagsIrrelevantDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21391,6 +22875,12 @@ export type Response_unmarkIrrelevantFusionApiV1SamplesSampleIdFusionsFusionIdFl
 
 export type Request_markIrrelevantFusionApiV1SamplesSampleIdFusionsFusionIdFlagsIrrelevantPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21445,6 +22935,12 @@ export type Response_markIrrelevantFusionApiV1SamplesSampleIdFusionsFusionIdFlag
 
 export type Request_pickFusionCallApiV1SamplesSampleIdFusionsFusionIdSelectionCallidxNumCallsPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21507,6 +23003,12 @@ export type Response_pickFusionCallApiV1SamplesSampleIdFusionsFusionIdSelectionC
 
 export type Request_rnaSampleCommentSuggestionApiV1SamplesSampleIdFusionsCommentSuggestionGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21557,6 +23059,12 @@ export type Response_rnaSampleCommentSuggestionApiV1SamplesSampleIdFusionsCommen
 
 export type Request_exportRnaFusionsContextApiV1SamplesSampleIdFusionsExportsContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21607,6 +23115,12 @@ export type Response_exportRnaFusionsContextApiV1SamplesSampleIdFusionsExportsCo
 
 export type Request_setFusionBlacklistedBulkApiV1SamplesSampleIdFusionsFlagsBlacklistedPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21666,6 +23180,12 @@ export type Response_setFusionBlacklistedBulkApiV1SamplesSampleIdFusionsFlagsBla
 
 export type Request_setFusionFalsePositiveBulkApiV1SamplesSampleIdFusionsFlagsFalsePositivePatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21725,6 +23245,12 @@ export type Response_setFusionFalsePositiveBulkApiV1SamplesSampleIdFusionsFlagsF
 
 export type Request_setFusionIrrelevantBulkApiV1SamplesSampleIdFusionsFlagsIrrelevantPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21784,6 +23310,12 @@ export type Response_setFusionIrrelevantBulkApiV1SamplesSampleIdFusionsFlagsIrre
 
 export type Request_sampleGenelistsReadApiV1SamplesSampleIdGenelistsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21844,6 +23376,12 @@ export type Request_sampleApplyGenelistsChangeApiV1SamplesSampleIdGenelistsSelec
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21899,6 +23437,12 @@ export type Response_sampleApplyGenelistsChangeApiV1SamplesSampleIdGenelistsSele
 
 export type Request_listDnaHrdApiV1SamplesSampleIdHrdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21949,6 +23493,12 @@ export type Response_listDnaHrdApiV1SamplesSampleIdHrdGet = Responses_listDnaHrd
 
 export type Request_sampleMetadataReadApiV1SamplesSampleIdMetadataGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -21999,6 +23549,12 @@ export type Response_sampleMetadataReadApiV1SamplesSampleIdMetadataGet = Respons
 
 export type Request_listDnaMsiApiV1SamplesSampleIdMsiGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22049,6 +23605,12 @@ export type Response_listDnaMsiApiV1SamplesSampleIdMsiGet = Responses_listDnaMsi
 
 export type Request_samplePlotReadApiV1SamplesSampleIdPlotsFilenameGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22106,6 +23668,12 @@ export type Responses_samplePlotReadApiV1SamplesSampleIdPlotsFilenameGet = {
 
 export type Request_sampleReportContextReadApiV1SamplesSampleIdReportsReportIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22160,6 +23728,12 @@ export type Response_sampleReportContextReadApiV1SamplesSampleIdReportsReportIdC
 
 export type Request_sampleReportDownloadReadApiV1SamplesSampleIdReportsReportIdDownloadGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22212,6 +23786,12 @@ export type Responses_sampleReportDownloadReadApiV1SamplesSampleIdReportsReportI
 
 export type Request_sampleReportHtmlReadApiV1SamplesSampleIdReportsReportIdHtmlGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22266,6 +23846,12 @@ export type Response_sampleReportHtmlReadApiV1SamplesSampleIdReportsReportIdHtml
 
 export type Request_sampleReportPdfDownloadReadApiV1SamplesSampleIdReportsReportIdPdfGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22318,6 +23904,12 @@ export type Responses_sampleReportPdfDownloadReadApiV1SamplesSampleIdReportsRepo
 
 export type Request_saveReportApiV1SamplesSampleIdReportsReportTypePost = {
     body: ReportSaveRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22372,6 +23964,12 @@ export type Response_saveReportApiV1SamplesSampleIdReportsReportTypePost = Respo
 
 export type Request_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22435,6 +24033,12 @@ export type Response_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGe
 
 export type Request_previewReportPdfApiV1SamplesSampleIdReportsReportTypePreviewPdfGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22492,6 +24096,12 @@ export type Responses_previewReportPdfApiV1SamplesSampleIdReportsReportTypePrevi
 
 export type Request_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22546,6 +24156,12 @@ export type Response_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet 
 
 export type Request_readRnaAnalysisApiV1SamplesSampleIdRnaAnalysisGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22596,6 +24212,12 @@ export type Response_readRnaAnalysisApiV1SamplesSampleIdRnaAnalysisGet = Respons
 
 export type Request_listDnaVariantsApiV1SamplesSampleIdSmallVariantsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22646,6 +24268,12 @@ export type Response_listDnaVariantsApiV1SamplesSampleIdSmallVariantsGet = Respo
 
 export type Request_showDnaVariantApiV1SamplesSampleIdSmallVariantsVarIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22700,6 +24328,12 @@ export type Response_showDnaVariantApiV1SamplesSampleIdSmallVariantsVarIdGet = R
 
 export type Request_addVariantToBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesPost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22754,6 +24388,12 @@ export type Response_addVariantToBlacklistApiV1SamplesSampleIdSmallVariantsVarId
 
 export type Request_showDnaVariantPublicClinpgxApiV1SamplesSampleIdSmallVariantsVarIdClinpgxPublicGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22808,6 +24448,12 @@ export type Response_showDnaVariantPublicClinpgxApiV1SamplesSampleIdSmallVariant
 
 export type Request_unhideVariantCommentApiV1SamplesSampleIdSmallVariantsVarIdCommentsCommentIdHiddenDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22866,6 +24512,12 @@ export type Response_unhideVariantCommentApiV1SamplesSampleIdSmallVariantsVarIdC
 
 export type Request_hideVariantCommentApiV1SamplesSampleIdSmallVariantsVarIdCommentsCommentIdHiddenPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22924,6 +24576,12 @@ export type Response_hideVariantCommentApiV1SamplesSampleIdSmallVariantsVarIdCom
 
 export type Request_unmarkFalseVariantApiV1SamplesSampleIdSmallVariantsVarIdFlagsFalsePositiveDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -22978,6 +24636,12 @@ export type Response_unmarkFalseVariantApiV1SamplesSampleIdSmallVariantsVarIdFla
 
 export type Request_markFalseVariantApiV1SamplesSampleIdSmallVariantsVarIdFlagsFalsePositivePatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23032,6 +24696,12 @@ export type Response_markFalseVariantApiV1SamplesSampleIdSmallVariantsVarIdFlags
 
 export type Request_unmarkInterestingVariantApiV1SamplesSampleIdSmallVariantsVarIdFlagsInterestingDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23086,6 +24756,12 @@ export type Response_unmarkInterestingVariantApiV1SamplesSampleIdSmallVariantsVa
 
 export type Request_markInterestingVariantApiV1SamplesSampleIdSmallVariantsVarIdFlagsInterestingPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23140,6 +24816,12 @@ export type Response_markInterestingVariantApiV1SamplesSampleIdSmallVariantsVarI
 
 export type Request_unmarkIrrelevantVariantApiV1SamplesSampleIdSmallVariantsVarIdFlagsIrrelevantDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23194,6 +24876,12 @@ export type Response_unmarkIrrelevantVariantApiV1SamplesSampleIdSmallVariantsVar
 
 export type Request_markIrrelevantVariantApiV1SamplesSampleIdSmallVariantsVarIdFlagsIrrelevantPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23248,6 +24936,12 @@ export type Response_markIrrelevantVariantApiV1SamplesSampleIdSmallVariantsVarId
 
 export type Request_clearVariantBlacklistOverrideApiV1SamplesSampleIdSmallVariantsVarIdFlagsOverrideBlacklistDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23302,6 +24996,12 @@ export type Response_clearVariantBlacklistOverrideApiV1SamplesSampleIdSmallVaria
 
 export type Request_overrideVariantBlacklistApiV1SamplesSampleIdSmallVariantsVarIdFlagsOverrideBlacklistPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23356,6 +25056,12 @@ export type Response_overrideVariantBlacklistApiV1SamplesSampleIdSmallVariantsVa
 
 export type Request_showDnaVariantPublicOncokbApiV1SamplesSampleIdSmallVariantsVarIdOncokbPublicGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23410,6 +25116,12 @@ export type Response_showDnaVariantPublicOncokbApiV1SamplesSampleIdSmallVariants
 
 export type Request_selectDnaVariantTranscriptApiV1SamplesSampleIdSmallVariantsVarIdSelectedTranscriptPatch = {
     body: DnaTranscriptSelectionRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23464,6 +25176,12 @@ export type Response_selectDnaVariantTranscriptApiV1SamplesSampleIdSmallVariants
 
 export type Request_dnaSampleCommentSuggestionApiV1SamplesSampleIdSmallVariantsCommentSuggestionGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23514,6 +25232,12 @@ export type Response_dnaSampleCommentSuggestionApiV1SamplesSampleIdSmallVariants
 
 export type Request_exportSnvCsvContextApiV1SamplesSampleIdSmallVariantsExportsSnvsContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23568,6 +25292,12 @@ export type Request_setVariantFalsePositiveBulkApiV1SamplesSampleIdSmallVariants
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path: {
         /**
@@ -23633,6 +25363,12 @@ export type Request_setVariantIrrelevantBulkApiV1SamplesSampleIdSmallVariantsFla
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23692,6 +25428,12 @@ export type Response_setVariantIrrelevantBulkApiV1SamplesSampleIdSmallVariantsFl
 
 export type Request_dnaPlotContextApiV1SamplesSampleIdSmallVariantsPlotContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23742,6 +25484,12 @@ export type Response_dnaPlotContextApiV1SamplesSampleIdSmallVariantsPlotContextG
 
 export type Request_listTieredDnaVariantsApiV1SamplesSampleIdSmallVariantsTieredGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23792,6 +25540,12 @@ export type Response_listTieredDnaVariantsApiV1SamplesSampleIdSmallVariantsTiere
 
 export type Request_listDnaTmbApiV1SamplesSampleIdTmbGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23842,6 +25596,12 @@ export type Response_listDnaTmbApiV1SamplesSampleIdTmbGet = Responses_listDnaTmb
 
 export type Request_listDnaTranslocationsApiV1SamplesSampleIdTranslocationsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23892,6 +25652,12 @@ export type Response_listDnaTranslocationsApiV1SamplesSampleIdTranslocationsGet 
 
 export type Request_showDnaTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -23946,6 +25712,12 @@ export type Response_showDnaTranslocationApiV1SamplesSampleIdTranslocationsTrans
 
 export type Request_unhideTranslocationCommentApiV1SamplesSampleIdTranslocationsTranslocIdCommentsCommentIdHiddenDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24004,6 +25776,12 @@ export type Response_unhideTranslocationCommentApiV1SamplesSampleIdTranslocation
 
 export type Request_hideTranslocationCommentApiV1SamplesSampleIdTranslocationsTranslocIdCommentsCommentIdHiddenPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24062,6 +25840,12 @@ export type Response_hideTranslocationCommentApiV1SamplesSampleIdTranslocationsT
 
 export type Request_unmarkBlacklistedTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsBlacklistedDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24116,6 +25900,12 @@ export type Response_unmarkBlacklistedTranslocationApiV1SamplesSampleIdTransloca
 
 export type Request_markBlacklistedTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsBlacklistedPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24170,6 +25960,12 @@ export type Response_markBlacklistedTranslocationApiV1SamplesSampleIdTranslocati
 
 export type Request_unmarkFalsePositiveTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsFalsePositiveDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24224,6 +26020,12 @@ export type Response_unmarkFalsePositiveTranslocationApiV1SamplesSampleIdTranslo
 
 export type Request_markFalsePositiveTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsFalsePositivePatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24278,6 +26080,12 @@ export type Response_markFalsePositiveTranslocationApiV1SamplesSampleIdTransloca
 
 export type Request_unmarkInterestingTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsInterestingDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24332,6 +26140,12 @@ export type Response_unmarkInterestingTranslocationApiV1SamplesSampleIdTransloca
 
 export type Request_markInterestingTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsInterestingPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24386,6 +26200,12 @@ export type Response_markInterestingTranslocationApiV1SamplesSampleIdTranslocati
 
 export type Request_unmarkIrrelevantTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsIrrelevantDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24440,6 +26260,12 @@ export type Response_unmarkIrrelevantTranslocationApiV1SamplesSampleIdTranslocat
 
 export type Request_markIrrelevantTranslocationApiV1SamplesSampleIdTranslocationsTranslocIdFlagsIrrelevantPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24494,6 +26320,12 @@ export type Response_markIrrelevantTranslocationApiV1SamplesSampleIdTranslocatio
 
 export type Request_selectTranslocationTranscriptApiV1SamplesSampleIdTranslocationsTranslocIdSelectedTranscriptPatch = {
     body: DnaStructuralTranscriptSelectionRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24548,6 +26380,12 @@ export type Response_selectTranslocationTranscriptApiV1SamplesSampleIdTranslocat
 
 export type Request_exportTranslocCsvContextApiV1SamplesSampleIdTranslocationsExportsContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Id
@@ -24598,6 +26436,12 @@ export type Response_exportTranslocCsvContextApiV1SamplesSampleIdTranslocationsE
 
 export type Request_sampleBamFilesReadApiV1SamplesSampleNameBamFilesGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Sample Name
@@ -24648,6 +26492,12 @@ export type Response_sampleBamFilesReadApiV1SamplesSampleNameBamFilesGet = Respo
 
 export type Request_sampleNavigationCountsReadApiV1SamplesNavigationCountsGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -24698,6 +26548,12 @@ export type Response_sampleNavigationCountsReadApiV1SamplesNavigationCountsGet =
 
 export type Request_listUsersReadApiV1UsersGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -24761,6 +26617,12 @@ export type Request_createUserApiV1UsersPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/users';
@@ -24806,6 +26668,12 @@ export type Response_createUserApiV1UsersPost = Responses_createUserApiV1UsersPo
 
 export type Request_deleteUserApiV1UsersUserIdDelete = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * User Id
@@ -24861,6 +26729,12 @@ export type Request_updateUserApiV1UsersUserIdPut = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * User Id
@@ -24911,6 +26785,12 @@ export type Response_updateUserApiV1UsersUserIdPut = Responses_updateUserApiV1Us
 
 export type Request_userContextReadApiV1UsersUserIdContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * User Id
@@ -24961,6 +26841,12 @@ export type Response_userContextReadApiV1UsersUserIdContextGet = Responses_userC
 
 export type Request_inviteLocalUserApiV1UsersUserIdInvitePost = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * User Id
@@ -25011,6 +26897,12 @@ export type Response_inviteLocalUserApiV1UsersUserIdInvitePost = Responses_invit
 
 export type Request_toggleUserStatusApiV1UsersUserIdStatusPatch = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * User Id
@@ -25061,6 +26953,12 @@ export type Response_toggleUserStatusApiV1UsersUserIdStatusPatch = Responses_tog
 
 export type Request_createUserContextReadApiV1UsersCreateContextGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/users/create_context';
@@ -25075,6 +26973,10 @@ export type CreateUserContextReadApiV1UsersCreateContextGetErrors = {
      * Forbidden
      */
     403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
     /**
      * Wait before retrying. Follow Retry-After when provided.
      */
@@ -25102,6 +27004,12 @@ export type Response_createUserContextReadApiV1UsersCreateContextGet = Responses
 
 export type Request_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch = {
     body: ApiUiSettingsUpdateRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/users/me/ui-settings';
@@ -25152,6 +27060,12 @@ export type Request_validateEmailChangeApiV1UsersValidateEmailPost = {
     body?: {
         [key: string]: unknown;
     };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/users/validate_email';
@@ -25201,6 +27115,12 @@ export type Request_validateUsernameChangeApiV1UsersValidateUsernamePost = {
      */
     body?: {
         [key: string]: unknown;
+    };
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
     };
     path?: never;
     query?: never;

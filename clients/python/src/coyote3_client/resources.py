@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from types import TracebackType
 from typing import Any, Generic, Self, TypeVar
+from uuid import UUID
 
 import httpx
 
@@ -27,6 +28,7 @@ from coyote3_client.metadata import (
 )
 from coyote3_client.models import Page, SessionResponse, SessionUser
 from coyote3_client.pagination import iter_pages
+from coyote3_client.transport import request_headers
 
 MetadataT = TypeVar("MetadataT", bound=ResourceMetadata)
 
@@ -364,12 +366,15 @@ class CoyoteClient:
         self.user = user
         return user
 
-    def _request(self, method: str, path: str, **kwargs: Any) -> Any:
+    def _request(
+        self, method: str, path: str, *, edit_session: str | UUID | None = None, **kwargs: Any
+    ) -> Any:
         """Send an authenticated request and preserve server errors and JSON values.
 
         Args:
             method: HTTP method for the operation.
             path: API-relative path controlled by the resource wrappers.
+            edit_session: Per-editor lease UUID for document writes, or None.
             **kwargs: HTTPX request parameters such as query parameters.
 
         Returns:
@@ -377,6 +382,7 @@ class CoyoteClient:
 
         Raises:
             RuntimeError: If no authenticated session is available.
+            ValueError: The editing-session identifier is not a UUID.
             httpx.HTTPStatusError: For any unsuccessful API response.
         """
         if not self._token:
@@ -384,7 +390,7 @@ class CoyoteClient:
         response = self._http.request(
             method,
             f"api/v1/{path}",
-            headers={"Authorization": f"Bearer {self._token}"},
+            headers=request_headers(self._token, edit_session),
             **kwargs,
         )
         raise_for_api_status(response)

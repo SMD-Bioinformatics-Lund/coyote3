@@ -191,6 +191,7 @@ follow_imports = "skip"
 ignore_missing_imports = true
 files = [
     "src/coyote3/application/operations",
+    "src/coyote3/application/editing.py",
     "src/coyote3/application/common/access.py",
     "api/app/application_factory.py",
     "api/app/deps/application.py",

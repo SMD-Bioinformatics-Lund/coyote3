@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -31,6 +32,7 @@ import { AdminIngestPage } from "./AdminIngestPage"
 import AdminSchemasPage from "./AdminSchemasPage"
 
 function renderPage(page: ReactNode) {
+  installEditLeaseMock(mocks.post)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
@@ -126,7 +128,7 @@ describe("AdminControlsPage", () => {
         modules: expect.objectContaining({ dna_analysis_enabled: true, reports_enabled: true }),
         retention: expect.objectContaining({ audit_event_days: 730 }),
       }),
-    }))
+    }, editSessionOptions))
     expect(mocks.success).toHaveBeenCalledWith(expect.stringContaining("saved"), expect.any(String), "Admin controls")
   })
 
@@ -148,7 +150,7 @@ describe("AdminControlsPage", () => {
     await user.click(screen.getByRole("button", { name: "Save controls" }))
     await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/admin/controls", {
       controls: expect.objectContaining({ email: { enabled: false }, modules: controlsPayload.controls.modules }),
-    }))
+    }, editSessionOptions))
   })
 
   it("queues one HGNC-backed public OncoKB refresh through operational maintenance", async () => {

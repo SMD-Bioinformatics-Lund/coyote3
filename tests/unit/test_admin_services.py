@@ -1070,7 +1070,7 @@ def test_admin_genelist_form_filters_asps_by_selected_groups(monkeypatch):
     form = payload["form"]
 
     assert "diagnosis_id" not in form["fields"]
-    assert form["fields"]["diagnosis"]["label"] == "Diagnosis / Diagnosis IDs"
+    assert form["fields"]["diagnosis"]["label"] == "Diagnoses"
     assert form["fields"]["asp_ids"]["options_by_field"] == {
         "field": "asp_groups",
         "values": {

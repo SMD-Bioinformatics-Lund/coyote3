@@ -41,6 +41,7 @@ from api.infra.mongo.repositories.configuration_profiles import ConfigurationPro
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
 from api.infra.mongo.repositories.d4_coverage import D4CoverageRepository
 from api.infra.mongo.repositories.d4_coverage_blacklist import D4CoverageBlacklistRepository
+from api.infra.mongo.repositories.edit_leases import MongoEditLeaseRepository
 from api.infra.mongo.repositories.expression import ExpressionRepository
 from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
@@ -71,6 +72,7 @@ from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
 from api.infra.observability.prometheus_metrics import observe_operation
 
 CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
+    ("edit_lease_repository", MongoEditLeaseRepository, "edit_leases"),
     ("configuration_profile_repository", ConfigurationProfileRepository, "configuration_profiles"),
     ("translocation_repository", TranslocsRepository, "translocs"),
     ("copy_number_variant_repository", CNVsRepository, "cnvs"),

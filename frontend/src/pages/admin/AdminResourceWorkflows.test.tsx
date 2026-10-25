@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -91,6 +92,7 @@ function renderResource(resource: string, children?: ReactNode) {
 }
 
 function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "", copiedDocument?: Record<string, unknown>) {
+  installEditLeaseMock(mocks.post)
   const ResourcePage = resourceEditors[resource]
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -198,7 +200,7 @@ describe("Managed admin resource workflows", () => {
     expect(await screen.findByRole("heading", { name: "Permission Categories" })).toBeVisible()
     expect(screen.getByRole("link", { name: "sample:view" })).toHaveAttribute("href", "/admin/permissions/sample%3Aview/view")
     expect(screen.getByRole("link", { name: "custom:review" })).toHaveAttribute("href", "/admin/permissions/custom%3Areview/edit")
-    const systemRow = screen.getByTitle("sample:view").closest("tr")
+    const systemRow = screen.getByText("View samples").closest("tr")
     expect(systemRow).not.toBeNull()
     expect(within(systemRow as HTMLElement).getByRole("img", { name: "System installed" })).toBeVisible()
     expect(within(systemRow as HTMLElement).queryByTitle("Toggle active")).not.toBeInTheDocument()
@@ -590,6 +592,8 @@ describe("Managed admin resource workflows", () => {
     const user = userEvent.setup()
     renderEditor("users", "edit", "reviewer")
 
+    await screen.findByRole("button", { name: "Save" })
+
     const email = await screen.findByLabelText(/Email/)
     await user.clear(email)
     await user.type(email, "new@example.org")
@@ -597,7 +601,7 @@ describe("Managed admin resource workflows", () => {
 
     await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/users/reviewer", {
       form_data: { email: "new@example.org" },
-    }))
+    }, editSessionOptions))
   })
 
   it("imports a configuration JSON file into a create form without saving it", async () => {
@@ -654,13 +658,15 @@ describe("Managed admin resource workflows", () => {
     } })
     renderEditor("roles", "edit", "reviewer")
 
+    await screen.findByRole("button", { name: "Save" })
+
     fireEvent.change(await screen.findByLabelText("Color picker"), { target: { value: "#dc2626" } })
     expect(screen.getByLabelText("Color hex value")).toHaveValue("#dc2626")
     await userEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/roles/reviewer", {
       form_data: { color: "#dc2626" },
-    }))
+    }, editSessionOptions))
   })
 
   it("renders view mode read-only and forces system permissions out of edit mode", async () => {
@@ -703,6 +709,8 @@ describe("Managed admin resource workflows", () => {
     const user = userEvent.setup()
     renderEditor("samples", "edit", "507f191e810c19729de860ea")
 
+    await screen.findByRole("button", { name: "Save sample" })
+
     const editor = await screen.findByRole("textbox", { name: "Sample JSON" })
     expect(screen.getByText("Valid JSON object")).toBeVisible()
     expect(screen.getByRole("button", { name: "Save sample" })).toBeDisabled()
@@ -718,7 +726,7 @@ describe("Managed admin resource workflows", () => {
 
     await waitFor(() => expect(mocks.put).toHaveBeenCalledWith(
       "/resources/samples/507f191e810c19729de860ea",
-      { sample: editedSample },
+      { sample: editedSample }, editSessionOptions
     ))
   })
 

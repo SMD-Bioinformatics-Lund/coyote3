@@ -39,6 +39,7 @@ from api.interfaces.http.v1.operations.auth import (
 from api.interfaces.http.v1.operations.auth import router as auth_router
 from api.interfaces.http.v1.operations.client_errors import router as client_errors_router
 from api.interfaces.http.v1.operations.dashboard import router as dashboard_router
+from api.interfaces.http.v1.operations.editing import router as editing_router
 from api.interfaces.http.v1.operations.health import router as health_router
 from api.interfaces.http.v1.operations.internal import router as internal_router
 from api.interfaces.http.v1.operations.notifications import router as notifications_router
@@ -54,6 +55,7 @@ class RouterRegistration:
 
 
 ROUTERS = (
+    RouterRegistration(editing_router),
     RouterRegistration(health_router, include_in_schema=False),
     RouterRegistration(client_errors_router, include_in_schema=False),
     RouterRegistration(auth_router),

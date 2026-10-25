@@ -31,6 +31,11 @@ export async function installApiFixtures(page: Page, resolver?: ApiResolver) {
       return
     }
 
+    if (path.startsWith("/api/v1/editing/")) {
+      await route.fulfill({ json: { owned: true, owner: "coyote3.admin", expires_at: new Date(Date.now() + 90_000).toISOString(), renew_after_seconds: 30 } })
+      return
+    }
+
     if (path === "/api/v1/auth/whoami") {
       await route.fulfill({
         json: {

@@ -84,8 +84,9 @@ class ApiEndpoint:
 
         Args:
             method: HTTP method, such as GET or POST.
-            **kwargs: HTTPX params, json, data, files or content; authentication
-                headers are owned by the client and cannot be overridden.
+            **kwargs: HTTPX params, json, data, files or content, plus an optional
+                edit_session UUID for document writes. Authentication headers are owned
+                by the client and cannot be overridden.
 
         Returns:
             JSON values, text for textual media types, bytes for files, or None for empty bodies.

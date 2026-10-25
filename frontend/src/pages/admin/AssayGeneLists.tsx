@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import { withDocumentEditor } from "@/hooks/useDocumentEditor"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError } from "@/lib/notifications"
 
@@ -30,13 +31,13 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
     ).then((response) => response.data),
   })
   const mutation = useMutation({
-    mutationFn: (row: GeneList) => api.put(`/resources/genelists/${encodeURIComponent(row.isgl_id)}`, {
+    mutationFn: (row: GeneList) => withDocumentEditor("genelists", row.isgl_id, (options) => api.put(`/resources/genelists/${encodeURIComponent(row.isgl_id)}`, {
       expected_version: row.version,
       config: {
         asp_ids: row.asp_ids.includes(aspId) ? row.asp_ids.filter((id) => id !== aspId) : [...row.asp_ids, aspId],
         asp_groups: [...new Set([...row.asp_groups, aspGroup])],
       },
-    }),
+    }, options)),
     onSuccess: async () => {
       await Promise.all([["assay-gene-lists"], ["admin-resource"], ["admin-resource-context"], ["assay-setup-context"]]
         .map((queryKey) => client.invalidateQueries({ queryKey })))

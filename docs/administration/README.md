@@ -28,6 +28,8 @@ You do not need to read every reference before starting.
 
 ## Other administration tasks
 
+- **Edit a document another user may be working on:** read [editing sessions](document-editing.md).
+
 - **Manage users or access:** start with [permissions and access control](permissions-and-access.md).
 - **Change an existing clinical configuration:** start with [planning configuration changes](planning-configuration-changes.md).
 - **Change an application setting:** use [application controls](application-controls.md).

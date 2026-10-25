@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
+vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof import("@/lib/access-control")>(), useCurrentUserAccess: () => ({ data: { permissions: [], roles: [] } }) }))
+
 import { ClassicAnalysisFiltersSidebar, FindingsTab } from "./FindingsTab"
 
 vi.mock("./FiltersSidebar", () => ({

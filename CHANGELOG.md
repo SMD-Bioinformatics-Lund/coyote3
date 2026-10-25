@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Add shared, expiring document-editing sessions for administration, governed drafts
+  and sample filters. Saves require the owning form's session; competing editors
+  remain read-only, and delete/publication actions respect active sessions.
+
 - Add permission-controlled JSON/YAML bulk creation for diagnoses, assay groups,
   assays, gene lists and assay configurations, with example files, a paste editor
   with live validation, preview and per-record installation results.

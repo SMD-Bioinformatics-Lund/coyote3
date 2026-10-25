@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Catalog, Version, Workspace } from "./catalog-types"
+import { editLease, editSessionOptions } from "@/test/edit-lease"
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn(),
@@ -54,7 +55,7 @@ beforeEach(() => {
     data: path.endsWith("/versions/draft-one") ? version : workspace,
   }))
   mocks.post.mockImplementation((path: string, body?: { document?: Catalog }) =>
-    Promise.resolve({ data: path.endsWith("/preview") ? body?.document : version }))
+    Promise.resolve({ data: path.startsWith("/editing/") ? editLease() : path.endsWith("/preview") ? body?.document : version }))
   mocks.patch.mockImplementation((_path: string, body: { catalog: Catalog }) => {
     version = { ...version, catalog: structuredClone(body.catalog), revision: version.revision + 1 }
     return Promise.resolve({ data: version })
@@ -104,7 +105,7 @@ describe("Public assay catalog governance", () => {
     const dialog = screen.getByRole("alertdialog")
     await user.click(within(dialog).getByRole("button", { name: "Delete version" }))
     await screen.findByRole("button", { name: "Edit published catalog" })
-    expect(mocks.delete).toHaveBeenCalledWith("/admin/assay-catalog/versions/draft-one?revision=1")
+    expect(mocks.delete).toHaveBeenCalledWith("/admin/assay-catalog/versions/draft-one?revision=1", editSessionOptions)
     expect(readsAfterDelete).toEqual([])
   })
   it("lets a center remove a starter modality in its first draft", async () => {
@@ -173,6 +174,7 @@ describe("Public assay catalog governance", () => {
     await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(
       "/admin/assay-catalog/drafts/draft-one/submit",
       expect.objectContaining({ revision: 2, assignee: "reviewer" }),
+      editSessionOptions,
     ))
   })
 

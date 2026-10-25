@@ -10,6 +10,8 @@ import {
   useCurrentUserAccess,
 } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { appControlHelp } from "@/lib/app-control-metadata"
 import { APPLICATION_MODULES_QUERY_KEY } from "@/lib/app-module-state"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -104,7 +106,9 @@ type AppControlsRuntime = {
 export function AdminControlsPage() {
   const queryClient = useQueryClient()
   const accessQuery = useCurrentUserAccess()
-  const canEdit = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.controlsEdit)
+  const mayEdit = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.controlsEdit)
+  const documentEditor = useDocumentEditor("controls", "default", mayEdit)
+  const canEdit = mayEdit && documentEditor.owned
   const canRunMaintenance = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.maintenanceRun)
   const [draft, setDraft] = useState<AppControls | null>(null)
   const controlsQuery = useQuery({
@@ -119,7 +123,7 @@ export function AdminControlsPage() {
   const runtime = (controlsQuery.data?.runtime || {}) as AppControlsRuntime
 
   const saveControls = useMutation({
-    mutationFn: (controlsPayload: AppControls) => api.put("/admin/controls", { controls: controlsPayload }).then((res) => res.data),
+    mutationFn: (controlsPayload: AppControls) => api.put("/admin/controls", { controls: controlsPayload }, documentEditor.options()).then((res) => res.data),
     onSuccess: (data) => {
       setDraft(data.controls)
       controlsQuery.refetch()
@@ -194,6 +198,7 @@ export function AdminControlsPage() {
         </div>
       }
     >
+      <DocumentEditorNotice editor={documentEditor} />
       {controlsQuery.error ? (
         <ModuleNotice>{controlsQuery.error instanceof Error ? controlsQuery.error.message : "Unable to load application controls."}</ModuleNotice>
       ) : controlsQuery.isLoading || !controls ? (
