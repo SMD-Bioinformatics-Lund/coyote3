@@ -57,7 +57,12 @@ def verify_runtime_audit_permissions(client: Any, database: str) -> None:
     """
     info = client.admin.command("connectionStatus", showPrivileges=True)["authInfo"]
     if not info.get("authenticatedUsers"):
-        raise ValueError("Identity runtime connection must authenticate to MongoDB")
+        raise ValueError(
+            "Identity runtime connection must authenticate to MongoDB. Configure "
+            "IDENTITY_MONGO_URI (or its COYOTE3_MONGO_URI fallback) with runtime "
+            "authentication, enable MongoDB authorization, and provision the restricted "
+            "identity role. See docs/operations/audit-and-logging.md."
+        )
     audit = load_collection_section("identity")["audit_events_collection"]
     destructive = {
         "anyAction",

@@ -441,6 +441,14 @@ can continue using the original installer command without the additional option.
 Production/staging installation checks reject unauthenticated identity connections
 and effective privileges that can mutate retained audit history. Adding a custom
 role while retaining broad `readWrite` access does not remove the broad grant.
+The installer detects an obviously anonymous identity URI before building images.
+An empty `IDENTITY_MONGO_URI` inherits `COYOTE3_MONGO_URI`; an explicitly anonymous
+identity URI does not inherit credentials from the shared URI. Configure an
+authenticated runtime connection and provision MongoDB authorization and its
+restricted role before retrying installation. `authSource` selects where an
+existing MongoDB user authenticates; it does not create that user or enable server
+authorization. The identity maintenance option upgrades existing role assignments;
+it does not create runtime credentials or enable MongoDB authentication.
 The check also explains an impossible update in query-planner mode and requires
 an authorization denial. Explain does not modify documents; this detects a server
 that accepts credentials while authorization enforcement is disabled.

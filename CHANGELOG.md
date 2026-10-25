@@ -64,6 +64,9 @@ its supported clinical workflows.
 
 ### Deployment and maintenance
 
+- Reject obviously anonymous production identity connections before image builds
+  and explain runtime credential, server authorization, and role prerequisites.
+
 - Added container deployment, backup and restore tooling, automated tests,
   and operator and clinical documentation.
 - Build the application wheel inside the normal Docker installation, without

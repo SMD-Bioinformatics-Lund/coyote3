@@ -153,6 +153,8 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
                 "environment": {
                     "COYOTE3_DB": "synthetic",
                     "IDENTITY_DB": "synthetic_identity",
+                    "ENV_NAME": "production",
+                    "COYOTE3_MONGO_URI": "mongodb://synthetic-runtime:synthetic-secret@synthetic.invalid/?authSource=admin",
                     "PUBLIC_BASE_URL": "http://synthetic.invalid:6802",
                     "SCRIPT_NAME": "/coyote3",
                 }
@@ -210,6 +212,53 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
         "emergency@example.test",
     ]
     return command, env, log
+
+
+@pytest.mark.parametrize(
+    "environment,shared_uri,identity_uri,fails",
+    [
+        ("production", "mongodb://synthetic.invalid", "", True),
+        (
+            "stage",
+            "mongodb://synthetic:private-value@synthetic.invalid",
+            "mongodb://identity.invalid",
+            True,
+        ),
+        (
+            "production",
+            "mongodb://synthetic.invalid",
+            "mongodb://runtime:private-value@identity.invalid",
+            False,
+        ),
+        ("production", "mongodb://runtime:private-value@synthetic.invalid", "", False),
+        ("production", "mongodb://synthetic.invalid/?authMechanism=MONGODB-X509", "", False),
+        ("dev", "mongodb://synthetic.invalid", "", False),
+        ("test", "mongodb://synthetic.invalid", "", False),
+    ],
+)
+def test_anonymous_identity_is_reported_before_build_or_database_operations(
+    fake_installation, environment, shared_uri, identity_uri, fails
+):
+    """Catch anonymous production settings early without exposing URIs or denying external auth."""
+    command, env, log = fake_installation
+    path = Path(env["INSTALL_TEST_CONFIG"])
+    config = json.loads(path.read_text())
+    config["services"]["api"]["environment"].update(
+        ENV_NAME=environment, COYOTE3_MONGO_URI=shared_uri, IDENTITY_MONGO_URI=identity_uri
+    )
+    path.write_text(json.dumps(config))
+    result = subprocess.run(
+        command, env={**env, "INSTALL_TEST_STATE": "existing"}, text=True, capture_output=True
+    )
+    assert result.returncode == (1 if fails else 0), result.stderr
+    assert "private-value" not in result.stdout + result.stderr
+    if fails:
+        assert "Identity MongoDB connection is anonymous" in result.stderr
+        assert "IDENTITY_MONGO_URI" in result.stderr
+        calls = log.read_text()
+        assert " build" not in calls
+        assert "network inspect" not in calls
+        assert "installation_checks state" not in calls
 
 
 @pytest.mark.parametrize("failure", [False, True])
