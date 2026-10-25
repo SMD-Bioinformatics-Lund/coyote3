@@ -25,11 +25,15 @@ from typing import Any, Dict, List
 
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
-from api.contracts.operations import OperationResult
-from api.contracts.schemas.dna import ReportedVariantsDoc
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from api.infra.mongo.persistence import to_provider_id
+from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import literal_text_query
+from api.infra.mongo.selection import compile_selection
+from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.dna import ReportedVariantsDoc
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote3.domain.selection import Selection
 
 
 def _reported_variant_search_query(
@@ -244,11 +248,38 @@ class ReportedVariantsRepository(BaseRepository):
             self.invalidate_dashboard_metrics()
         return int(res.upserted_count or 0)
 
-    def list_reported_variants(self, query: dict) -> list:
+    def list_reported_variants(self, query: Selection) -> list:
         """
         List reported variant snapshot documents matching the given Mongo query.
         """
-        return list(self.get_collection().find(query).sort("time_created", -1))
+        return [
+            application_record(record)
+            for record in self.get_collection()
+            .find(compile_selection(query))
+            .sort("time_created", -1)
+        ]
+
+    def list_for_report(self, *, sample_id: str, report_id: str) -> list[dict[str, Any]]:
+        """Read one sample's immutable finding snapshots for an exact saved report.
+
+        Args:
+            sample_id: Canonical sample identifier, serialized by the application.
+            report_id: Canonical saved-report identifier, serialized by the application.
+
+        Returns:
+            Detached snapshots in the established newest-first order.
+        """
+        return [
+            application_record(record)
+            for record in self.get_collection()
+            .find(
+                {
+                    "sample_oid": to_provider_id(sample_id),
+                    "report_oid": to_provider_id(report_id),
+                }
+            )
+            .sort("time_created", -1)
+        ]
 
     def summarize_reports(self, report_oids: list[Any]) -> dict[str, dict[str, Any]]:
         """Return finding totals and analysis-type counts for report object ids."""

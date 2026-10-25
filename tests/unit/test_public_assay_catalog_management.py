@@ -7,12 +7,15 @@ from unittest.mock import Mock
 import pytest
 from bson import ObjectId
 
-from api.application.public.catalog import PublicCatalogService
-from api.application.public.published_catalog_views import publication_context, publication_matrix
-from api.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
-from api.config.constants import DNA_ANALYSIS_TYPE_OPTIONS, RNA_ANALYSIS_TYPE_OPTIONS
-from api.contracts.public import PublicAssayCatalogAdminPayload
-from api.domain.core.exceptions import AppError as ApiError
+from coyote3.application.public.catalog import PublicCatalogService
+from coyote3.application.public.published_catalog_views import (
+    publication_context,
+    publication_matrix,
+)
+from coyote3.application.resources.public_assay_catalog import PublicAssayCatalogManagementService
+from coyote3.config.constants import DNA_ANALYSIS_TYPE_OPTIONS, RNA_ANALYSIS_TYPE_OPTIONS
+from coyote3.contracts.public import PublicAssayCatalogAdminPayload
+from coyote3.domain.exceptions import AppError as ApiError
 
 
 def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(service):

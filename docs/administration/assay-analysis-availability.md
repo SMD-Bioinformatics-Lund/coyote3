@@ -2,7 +2,7 @@
 
 An assay's `supported_analyses`, `expected_files`, modality and technical family
 determine which ASPC analyses can be enabled. Implemented capabilities and their
-input mappings are defined in `api/config/clinical_capabilities.toml`.
+input mappings are defined in `src/coyote3/config/clinical_capabilities.toml`.
 The [supported capabilities reference](supported-capabilities.md) lists the current
 workflows. DNA fusion evidence uses `TRANSLOCATION`; `FUSION` is RNA-only.
 

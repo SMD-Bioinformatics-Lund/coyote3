@@ -1,395 +1,225 @@
-"""Behavior tests for report API routes (preview/save)."""
+"""Report HTTP/SDK parity, authorization, snapshots and preview concurrency."""
 
-from __future__ import annotations
+from copy import deepcopy
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
-from fastapi.routing import iter_route_contexts
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from api.app.main import app as api_app
-from api.application.reporting.preview_consistency import preview_fingerprint
-from api.contracts.reports import ReportSaveRequest
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical.reporting import reports
-from api.security.access import ApiUser
-from tests.fixtures.api import mock_collections as fx
+from api.app.deps.application import get_application
+from api.app.main import app_error_handler
+from api.interfaces.http.v1.clinical.reporting import reports
+from coyote3.application.common.release_resources import capture_assay_resource
+from coyote3.application.operations import ApplicationRuntime, ReportingServices
+from coyote3.application.operations.reporting import Reports
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api.mock_collections import api_user
 
 
-def _user(username: str = "tester", role: str = "admin") -> ApiUser:
-    """User.
-
-    Args:
-            username: Username. Optional argument.
-            role: Role. Optional argument.
-
-    Returns:
-            The  user result.
-    """
-    return ApiUser(
-        id="u1",
-        email="tester@example.com",
-        fullname="Test User",
-        username=username,
-        role=role,
-        roles=[role],
-        access_level=99,
-        permissions=["report:preview", "report:create", "report:view"],
-        asp_ids=["WGS"],
-        asp_groups=["dna", "rna"],
-        envs=["dev"],
-        asp_map={},
-        auth_type=["local"],
+@pytest.fixture
+def boundary():
+    actor = api_user()
+    actor.roles = ["synthetic-reviewer"]
+    actor.must_change_password = False
+    actor.asp_groups = []
+    grants = {"report:preview", "report:create", "report:view"}
+    policy = SimpleNamespace(
+        permission_allowed=lambda user, permission, **kwargs: permission in grants,
+        scope_allowed=lambda *args: True,
     )
-
-
-def test_report_validation_rejects_analyte_that_does_not_match_sample_modality():
-    """Reject a DNA report request for an RNA sample before workflow rendering."""
-    with pytest.raises(AppError) as exc_info:
-        reports._validate_report_inputs(
-            "dna",
-            {"name": "RNA_SAMPLE", "asp_category": "rna"},
-            {"analysis_types": ["FUSION"]},
-        )
-
-    assert exc_info.value.status_code == 422
-    assert "RNA report endpoint" in str(exc_info.value.details)
-
-
-def test_list_saved_reports_returns_access_scoped_library(monkeypatch):
-    """Return the report-library service payload without invoking report generation."""
-
-    class StubService:
-        def list_payload(self, **kwargs):
-            assert kwargs["search"] == "TP53"
-            assert kwargs["page"] == 2
-            assert kwargs["per_page"] == 15
-            assert kwargs["user"].username == "tester"
-            return {
-                "reports": [],
-                "total": 16,
-                "page": 2,
-                "per_page": 15,
-                "has_next": False,
-            }
-
-    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-
-    payload = reports.list_saved_reports(
-        search="TP53",
-        page=2,
-        per_page=15,
-        user=_user(role="user"),
-        service=StubService(),
+    sample = {
+        "_id": "synthetic-sample",
+        "name": "SYNTHETIC_001",
+        "asp_id": "synthetic",
+        "asp_category": "dna",
+        "environment": "testing",
+    }
+    panel = {"asp_id": "synthetic", "asp_group": "synthetic-group"}
+    config = {**panel, "assay_resource_release": capture_assay_resource(panel)}
+    context = {"sample": deepcopy(sample), "assay_config": config}
+    rows = [{"resource_id": "synthetic-finding", "analysis": "snv"}]
+    workflow = Mock()
+    workflow.build_report_payload.side_effect = lambda **kwargs: (
+        "dna_report.html" if kwargs["sample"]["asp_category"] == "dna" else "report_fusion.html",
+        deepcopy(context),
+        deepcopy(rows),
     )
-
-    assert payload["total"] == 16
-    assert payload["reports"] == []
-
-
-def test_dna_report_contract_failure_is_returned_as_validation_error(monkeypatch):
-    class FailingDnaWorkflow:
-        @staticmethod
-        def build_report_payload(**_kwargs):
-            raise ValueError("No clinical rule source exists for ASP 'assay_1'")
-
-    monkeypatch.setattr(reports, "get_dna_workflow_service", FailingDnaWorkflow)
-
-    with pytest.raises(AppError) as exc_info:
-        reports._build_preview_report(
-            "dna",
-            {"name": "demo_dna_sample"},
-            {"asp_id": "assay_1"},
-            save=False,
-            include_snapshot=True,
-        )
-
-    assert exc_info.value.status_code == 422
-    assert exc_info.value.message == "DNA report data does not satisfy the reporting contract"
-    assert "No clinical rule source" in str(exc_info.value.details)
-
-
-def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
-    """Test preview report success includes snapshot when requested.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(
-        reports,
-        "_load_report_context",
-        lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "asp_id": "WGS", "environment": "prod"},
-            {"x": 1},
+    workflow.next_report_num.return_value = 3
+    workflow.build_report_location.return_value = ("synthetic-report", "reports", "synthetic.html")
+    workflow.persist_report.return_value = ("synthetic-report-storage", "synthetic.pdf")
+    library = Mock()
+    library.list_payload.return_value = {
+        "reports": [],
+        "total": 0,
+        "page": 1,
+        "per_page": 30,
+        "has_next": False,
+    }
+    authenticate = Mock(return_value=actor)
+    sample_loader = Mock(return_value=sample)
+    render = Mock(return_value="<p>Synthetic report</p>")
+    pdf = Mock(return_value=b"synthetic-pdf")
+    runtime = ApplicationRuntime(
+        authenticate=authenticate,
+        policy_factory=lambda user: policy,
+        sample_loader=sample_loader,
+        assay_loader=Mock(),
+        audit_access=Mock(),
+    )
+    sdk = Reports(
+        runtime,
+        ReportingServices(
+            workflow=lambda analyte: workflow,
+            configuration=lambda sample: config,
+            render_html=render,
+            organization_name="Synthetic",
+            reports_base_path="reports",
+            logger=Mock(),
+            library=lambda: library,
+            render_pdf=pdf,
+            render_trial_html=lambda **inputs: f"<article>{render(**inputs)}</article>",
         ),
     )
-    monkeypatch.setattr(
-        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
-    )
-    monkeypatch.setattr(
-        reports,
-        "_build_preview_report",
-        lambda analyte, sample, assay_config, save, include_snapshot: (
-            "dna_report.html",
-            {"foo": "bar"},
-            [{"var": "v1"}],
-        ),
-    )
-    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-    rendered = {}
-    monkeypatch.setitem(reports.runtime_app.config, "ORGANIZATION_NAME", "Synthetic laboratory")
-    monkeypatch.setattr(
-        reports,
-        "render_report_html",
-        lambda **kwargs: rendered.update(kwargs) or "<html>preview</html>",
-    )
-
-    payload = reports.preview_report(
-        sample_id="S1",
-        report_type="dna",
-        include_snapshot=True,
-        save=False,
-        user=_user(role="user"),
-    )
-
-    assert payload["sample"]["id"] == "s1"
-    assert payload["meta"]["snapshot_count"] == 1
-    assert payload["report"]["template"] == "dna_report.html"
-    assert payload["report"]["html"] == "<html>preview</html>"
-    assert payload["report"]["snapshot_rows"] == [{"var": "v1"}]
-    assert rendered["organization_name"] == "Synthetic laboratory"
-    assert rendered["generated_by"] == "Test User"
-
-
-def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
-    """Test preview report hides snapshot when not requested.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(
-        reports,
-        "_load_report_context",
-        lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "asp_id": "WGS", "environment": "prod"},
-            {"x": 1},
-        ),
-    )
-    monkeypatch.setattr(
-        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
-    )
-    monkeypatch.setattr(
-        reports,
-        "_build_preview_report",
-        lambda analyte, sample, assay_config, save, include_snapshot: (
-            "dna_report.html",
-            {"foo": "bar"},
-            [{"var": "v1"}],
-        ),
-    )
-    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>preview</html>")
-
-    payload = reports.preview_report(
-        sample_id="S1",
-        report_type="dna",
-        include_snapshot=False,
-        save=False,
-        user=_user(role="user"),
-    )
-
-    assert payload["meta"]["snapshot_count"] == 1
-    assert payload["report"]["snapshot_rows"] == []
-
-
-def test_save_report_rejects_stale_preview_before_any_write(monkeypatch):
-    """A changed preview must not allocate a number, create files or persist a report."""
-    monkeypatch.setattr(reports, "_load_report_context", lambda *_: ({}, {}))
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda *_: None)
-    monkeypatch.setattr(
-        reports,
-        "_build_preview_report",
-        lambda *args, **kwargs: ("dna_report.html", {"sample": {"tier": 2}}, []),
-    )
-
-    def unexpected(*args, **kwargs):
-        pytest.fail("Stale preview reached report output creation")
-
-    for name in (
-        "_next_report_num",
-        "_build_report_location",
-        "_prepare_report_output",
-        "_persist_report",
-        "render_report_html",
-    ):
-        monkeypatch.setattr(reports, name, unexpected)
-    with pytest.raises(AppError, match="Refresh and review"):
-        reports.save_report(
-            sample_id="DEMO",
-            report_type="dna",
-            user=_user(),
-            payload=ReportSaveRequest(preview_fingerprint="0" * 64),
+    app = FastAPI()
+    app.add_exception_handler(AppError, app_error_handler)
+    app.include_router(reports.router)
+    app.dependency_overrides[get_application] = lambda: SimpleNamespace(reports=sdk)
+    for route in reports.router.routes:
+        for dependency in route.dependant.dependencies:
+            if dependency.name == "user":
+                app.dependency_overrides[dependency.call] = lambda: actor
+    with TestClient(app) as client:
+        yield SimpleNamespace(
+            client=client,
+            sdk=sdk,
+            actor=actor,
+            grants=grants,
+            sample=sample,
+            context=context,
+            workflow=workflow,
+            library=library,
+            authenticate=authenticate,
+            sample_loader=sample_loader,
+            render=render,
+            pdf=pdf,
+            config=config,
         )
 
 
-def test_save_report_success(monkeypatch):
-    """Test save report success.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(
-        reports,
-        "_load_report_context",
-        lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "asp_id": "WGS", "environment": "prod", "report_num": 2},
-            {"x": 1},
-        ),
+@pytest.mark.parametrize("include", [True, False])
+def test_http_preview_uses_sdk_results_and_retains_snapshot_contract(boundary, include):
+    direct = boundary.sdk.preview("synthetic-sample", "dna", include_snapshot=include)
+    response = boundary.client.get(
+        "/api/v1/samples/synthetic-sample/reports/dna/preview",
+        params={"include_snapshot": str(include).lower()},
     )
-    monkeypatch.setattr(
-        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["report"]["html"] == direct.html
+    assert payload["meta"]["preview_fingerprint"] == direct.fingerprint
+    assert payload["meta"]["snapshot_count"] == direct.snapshot_count == 1
+    assert payload["report"]["snapshot_rows"] == direct.snapshot_rows
+    assert bool(direct.snapshot_rows) is include
+
+
+def test_save_presentation_preview_does_not_persist(boundary):
+    response = boundary.client.get("/api/v1/samples/synthetic-sample/reports/dna/preview?save=true")
+    assert response.status_code == 200
+    assert boundary.workflow.build_report_payload.call_args.kwargs["save"] == 1
+    assert boundary.render.call_args.kwargs["preview"] is False
+    boundary.workflow.persist_report.assert_not_called()
+
+
+def test_trial_returns_matching_temporary_outputs_and_never_allocates_a_report(boundary):
+    from base64 import b64decode
+
+    response = boundary.client.get("/api/v1/samples/synthetic-sample/reports/dna/try-new")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    result = response.json()
+    assert result["html"] == "<article><p>Synthetic report</p></article>"
+    assert b64decode(result["pdf_base64"]) == b"synthetic-pdf"
+    boundary.pdf.assert_called_once_with(result["html"])
+    boundary.workflow.next_report_num.assert_not_called()
+    boundary.workflow.build_report_location.assert_not_called()
+    boundary.workflow.prepare_report_output.assert_not_called()
+    boundary.workflow.persist_report.assert_not_called()
+    boundary.grants.remove("report:preview")
+    denied = boundary.client.get("/api/v1/samples/synthetic-sample/reports/dna/try-new")
+    assert denied.status_code == 403
+    assert boundary.pdf.call_count == 1
+
+
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_saved_report_preserves_author_snapshot_and_resolution_receipt(boundary, analyte):
+    boundary.sample["asp_category"] = analyte
+    preview = boundary.sdk.preview("synthetic-sample", analyte)
+    response = boundary.client.post(
+        f"/api/v1/samples/synthetic-sample/reports/{analyte}",
+        json={"preview_fingerprint": preview.fingerprint},
     )
-    monkeypatch.setattr(
-        reports,
-        "_build_report_location",
-        lambda analyte, sample, assay_config: ("RID3", "/tmp", "/tmp/RID3.html"),
+    assert response.status_code == 201
+    assert response.json()["report"]["oid"] == "synthetic-report-storage"
+    values = boundary.workflow.persist_report.call_args.kwargs
+    assert values["created_by"] == boundary.actor.username
+    assert values["snapshot_rows"][0]["resource_id"] == "synthetic-finding"
+    assert values["resolution_snapshot"]["configuration"] == boundary.config
+    assert response.json()["report"]["snapshot_count"] == 1
+
+
+def test_stale_preview_fails_before_any_artifact_or_number_allocation(boundary):
+    preview = boundary.sdk.preview("synthetic-sample", "dna")
+    boundary.context["sample"]["version"] = 2
+    response = boundary.client.post(
+        "/api/v1/samples/synthetic-sample/reports/dna",
+        json={"preview_fingerprint": preview.fingerprint},
     )
-    monkeypatch.setattr(
-        reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
-    )
-    monkeypatch.setattr(reports, "_next_report_num", lambda analyte, sample: 3)
-    monkeypatch.setattr(
-        reports,
-        "_build_preview_report",
-        lambda analyte, sample, assay_config, save, include_snapshot: (
-            "dna_report.html",
-            {"sample": sample, "assay_config": fx.assay_config_doc(), "report_sections_data": {}},
-            [{"v": 1}],
-        ),
-    )
-    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>ready</html>")
-    monkeypatch.setattr(
-        reports, "_persist_report", lambda analyte, **kwargs: ("oid-123", "/tmp/RID3.pdf")
-    )
-    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-
-    payload = reports.save_report(
-        sample_id="S1",
-        report_type="dna",
-        payload=ReportSaveRequest(
-            preview_fingerprint=preview_fingerprint(
-                *reports._build_preview_report(
-                    "dna", reports._load_report_context("S1", _user())[0], {}, True, True
-                )[:2]
-            )
-        ),
-        user=_user(role="admin"),
-    )
-
-    assert payload["report"]["id"] == "RID3"
-    assert payload["report"]["oid"] == "oid-123"
-    assert payload["report"]["pdf_file"] == "/tmp/RID3.pdf"
-    assert payload["report"]["snapshot_count"] == 1
-    assert payload["meta"]["status"] == "saved"
+    assert response.status_code == 409
+    boundary.workflow.next_report_num.assert_not_called()
+    boundary.workflow.prepare_report_output.assert_not_called()
+    boundary.workflow.persist_report.assert_not_called()
 
 
-def test_save_report_calls_rna_persist_path(monkeypatch):
-    """Test save report calls rna persist path.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    calls: dict[str, str] = {}
-
-    monkeypatch.setattr(
-        reports,
-        "_load_report_context",
-        lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "asp_id": "RNA", "environment": "prod", "report_num": 5},
-            {"x": 1},
-        ),
-    )
-    monkeypatch.setattr(
-        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
-    )
-    monkeypatch.setattr(
-        reports,
-        "_build_report_location",
-        lambda analyte, sample, assay_config: ("RID6", "/tmp", "/tmp/RID6.html"),
-    )
-    monkeypatch.setattr(
-        reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
-    )
-    monkeypatch.setattr(reports, "_next_report_num", lambda analyte, sample: 6)
-    monkeypatch.setattr(
-        reports,
-        "_build_preview_report",
-        lambda analyte, sample, assay_config, save, include_snapshot: (
-            "report_fusion.html",
-            {
-                "sample": sample,
-                "assay_config": fx.assay_config_doc(asp_category="rna"),
-                "report_sections_data": {},
-            },
-            [],
-        ),
-    )
-    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>rna</html>")
-
-    def _persist(analyte, **kwargs):
-        """Persist.
-
-        Args:
-                analyte: Analyte.
-                **kwargs: Kwargs. Additional keyword arguments.
-
-        Returns:
-                The  persist result.
-        """
-        calls["analyte"] = analyte
-        calls["report_id"] = kwargs["report_id"]
-        return "oid-rna", "/tmp/RID6.pdf"
-
-    monkeypatch.setattr(reports, "_persist_report", _persist)
-    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-
-    payload = reports.save_report(
-        sample_id="S1",
-        report_type="rna",
-        payload=ReportSaveRequest(
-            preview_fingerprint=preview_fingerprint(
-                *reports._build_preview_report(
-                    "rna", reports._load_report_context("S1", _user())[0], {}, True, True
-                )[:2]
-            )
-        ),
-        user=_user(role="admin"),
-    )
-
-    assert calls["analyte"] == "rna"
-    assert calls["report_id"] == "RID6"
-    assert payload["report"]["oid"] == "oid-rna"
-    assert payload["report"]["pdf_file"] == "/tmp/RID6.pdf"
+@pytest.mark.parametrize("status", [401, 403, 404, 422])
+def test_denials_stop_report_generation(boundary, status):
+    if status == 401:
+        boundary.authenticate.return_value = None
+    elif status == 403:
+        boundary.grants.clear()
+    elif status == 404:
+        boundary.sample_loader.return_value = None
+    else:
+        boundary.sample["asp_category"] = "rna"
+    response = boundary.client.get("/api/v1/samples/synthetic-sample/reports/dna/preview")
+    assert response.status_code == status
+    boundary.workflow.build_report_payload.assert_not_called()
+    boundary.render.assert_not_called()
 
 
-def test_restful_report_routes_are_registered():
-    """Test restful report routes are registered.
+def test_report_contract_errors_are_safe_validation_responses(boundary):
+    boundary.workflow.build_report_payload.side_effect = ValueError("Synthetic invalid rule source")
+    response = boundary.client.get("/api/v1/samples/synthetic-sample/reports/dna/preview")
+    assert response.status_code == 422
+    assert response.json()["error"] == "DNA report data does not satisfy the reporting contract"
 
-    Returns:
-        The function result.
-    """
-    paths = {route.path for route in iter_route_contexts(api_app.routes)}
-    assert "/api/v1/reports" in paths
-    assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview" in paths
-    assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf" in paths
-    assert "/api/v1/samples/{sample_id}/reports/{report_type}" in paths
+
+def test_library_uses_the_sdk_scope_and_does_not_generate_reports(boundary):
+    response = boundary.client.get("/api/v1/reports?q=ignored&search=GENE&page=2&per_page=15")
+    assert response.status_code == 200
+    boundary.library.list_payload.assert_called_once()
+    values = boundary.library.list_payload.call_args.kwargs
+    assert values["user"] is boundary.actor
+    assert values["search"] == "GENE" and values["page"] == 2 and values["per_page"] == 15
+    boundary.workflow.build_report_payload.assert_not_called()
+
+
+def test_pdf_is_an_http_attachment_of_the_authorized_sdk_artifact(boundary):
+    response = boundary.client.get("/api/v1/samples/synthetic-sample/reports/dna/preview/pdf")
+    assert response.status_code == 200
+    assert response.content == b"synthetic-pdf"
+    assert response.headers["content-type"] == "application/pdf"
+    assert "SYNTHETIC_001_dna_preview.pdf" in response.headers["content-disposition"]
+    boundary.pdf.assert_called_once_with("<p>Synthetic report</p>")
+    boundary.workflow.persist_report.assert_not_called()

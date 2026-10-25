@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 from pymongo import MongoClient
 
-from api.config.loaders.collections import load_collection_mapping
+from api.config.collections import load_collection_mapping
 from api.config.mongo import mongo_endpoints, mongo_uri
 from api.infra.mongo.connections import MongoConnections
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway

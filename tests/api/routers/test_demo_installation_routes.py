@@ -7,9 +7,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.app.deps.services import get_demo_installation_service
-from api.interfaces.http.admin.operations import router
+from api.app.deps.application import get_installation
+from api.interfaces.http.v1.admin.operations import router
 from api.security import access
+from api.services.installation import Installation
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api.mock_collections import api_user
 
 
@@ -50,7 +52,9 @@ def test_demo_routes_require_permission_and_are_not_documented(monkeypatch, meth
     service.install_sample.return_value = {"status": "installed"}
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[get_demo_installation_service] = lambda: service
+    app.dependency_overrides[get_installation] = lambda: sdk_fixtures.authorized_operations(
+        Installation, service, user
+    )
     with TestClient(app) as client:
         assert client.request(method, "/api/v1/admin/demo-installation" + path).status_code == 403
         assert not service.method_calls
@@ -68,7 +72,7 @@ def test_only_installation_roles_receive_demo_permission():
     import json
     from pathlib import Path
 
-    path = Path(__file__).resolve().parents[3] / "api/config/bootstrap/rbac/roles.seed.ndjson"
+    path = Path(__file__).resolve().parents[3] / "api/bootstrap/catalogs/rbac/roles.seed.ndjson"
     roles = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     assert {role["role_id"] for role in roles if "demo:install" in role["permissions"]} == {
         "demo_installer",

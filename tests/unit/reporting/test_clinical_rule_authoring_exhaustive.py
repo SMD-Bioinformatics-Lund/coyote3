@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.contracts.schemas.clinical_rules import (
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -16,7 +16,7 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleStatus,
     ClinicalRuleTransition,
 )
-from api.domain.core.exceptions import AppError
+from coyote3.domain.exceptions import AppError
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 

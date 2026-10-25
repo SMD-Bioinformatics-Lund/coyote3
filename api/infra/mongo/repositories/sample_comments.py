@@ -6,10 +6,10 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
-from api.infra.request_context import current_username
+from coyote3.application.common.execution_context import current_username
+from coyote3.contracts.operations import OperationResult
 
 
 class SampleCommentsRepository(BaseRepository):

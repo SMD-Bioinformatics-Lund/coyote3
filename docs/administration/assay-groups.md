@@ -103,7 +103,7 @@ grant access, add report wording or introduce group-specific clinical query rule
 ## Installation
 
 New database bootstrap includes
-`api/config/bootstrap/reference/assay_groups.seed.ndjson`: `hematology`, `myeloid`,
+`api/bootstrap/catalogs/reference/assay_groups.seed.ndjson`: `hematology`, `myeloid`,
 `lymphoid`, `solid` and `pgx`, with
 `system_managed: true`.
 

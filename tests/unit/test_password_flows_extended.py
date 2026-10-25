@@ -272,7 +272,7 @@ def test_change_local_password_checks_current_password_and_updates(password_runt
     )
     monkeypatch.setattr(password_flows, "get_user_repository", lambda: repository)
 
-    from api.domain.core.models.user import UserModel
+    from api.security.models import UserModel
 
     monkeypatch.setattr(UserModel, "validate_login", lambda _stored, current: current == "old")
     assert (
@@ -301,7 +301,7 @@ def test_password_change_conflict_does_not_send_success_notification(password_ru
         {"username": "synthetic", "password": "old-hash", "is_active": True, "auth_type": ["local"]}
     )
     monkeypatch.setattr(password_flows, "get_user_repository", lambda: repository)
-    from api.domain.core.models.user import UserModel
+    from api.security.models import UserModel
 
     monkeypatch.setattr(UserModel, "validate_login", lambda *_: True)
     monkeypatch.setattr(password_flows.util.common, "hash_password", lambda _: "new-hash")

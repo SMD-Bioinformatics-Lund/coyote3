@@ -6,9 +6,10 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
-from api.application.query_rules.compilation import compile_query_policies
-from api.application.query_rules.service import QueryRuleService
-from api.contracts.schemas.query_rules import (
+from api.infra.mongo.repositories import query_rules as persistence
+from api.infra.mongo.selection import compile_selection
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.contracts.schemas.query_rules import (
     QueryRuleContent,
     QueryRuleDoc,
     QueryRuleDraft,
@@ -17,9 +18,8 @@ from api.contracts.schemas.query_rules import (
     QueryRuleTransition,
     QueryRuleUpdate,
 )
-from api.domain.core.exceptions import AppError
-from api.domain.query_conditions import condition_catalog
-from api.infra.mongo.repositories import query_rules as persistence
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.query_conditions import condition_catalog
 
 
 def test_condition_choices_expose_references_without_loading_or_copying_values():
@@ -52,6 +52,7 @@ def service(monkeypatch):
     monkeypatch.setattr(persistence, "enqueue_audit", lambda *args, **kwargs: None)
     return QueryRuleService(
         repository,
+        selection_renderer=repository.describe_selection,
         groups=SimpleNamespace(get=lambda key: {"group_id": key} if key == "example" else None),
         assays=SimpleNamespace(
             get_all_asps=lambda **kwargs: [
@@ -63,7 +64,12 @@ def service(monkeypatch):
                 }
             ],
             get_asp=lambda key: (
-                {"asp_id": key, "asp_group": "example", "asp_category": "dna"}
+                {
+                    "asp_id": key,
+                    "asp_group": "example",
+                    "asp_category": "dna",
+                    "asp_family": "panel-dna",
+                }
                 if key == "panel"
                 else None
             ),
@@ -111,29 +117,21 @@ def release(service, selected=None, **content):
     )
 
 
-def compiled_sample(service, analysis):
-    """Bind a synthetic sample to compiled policies from its current source publications."""
-    configuration = {
-        "asp_id": "panel",
-        "asp_group": "example",
-        "diagnosis_id": "base",
-        "environment": "testing",
-        "analysis_types": [analysis.upper()],
-        "analysis_intents": ["somatic"],
-    }
-    panel = {
-        "asp_category": "rna" if analysis == "fusion" else "dna",
-        "asp_family": "panel-rna" if analysis == "fusion" else "panel-dna",
-    }
-    configuration["query_policy_release"] = compile_query_policies(configuration, panel, service)
-    service.configurations = SimpleNamespace(
-        get_aspc_revision_no_meta=lambda identifier: configuration
-    )
+def scoped_sample(service, analysis):
+    """Provide sample scope independently of any configuration revision."""
+    if analysis == "fusion":
+        service.assays.get_asp = lambda key: {
+            "asp_id": key,
+            "asp_group": "example",
+            "asp_category": "rna",
+            "asp_family": "panel-rna",
+        }
     return {
         "_id": "sample-one",
         "asp_id": "panel",
         "environment": "testing",
-        "current_aspc_id": "revision-one",
+        "diagnosis_id": "base",
+        "current_aspc_id": "historical-aspc",
     }
 
 
@@ -393,37 +391,75 @@ def test_family_binding_cannot_be_authored_as_redundant_assay_scope(service):
         service.create(draft(scope(asp_id="panel", modality="dna", family="panel-dna")), "author")
 
 
-def test_compiled_sample_policy_survives_new_publication_and_assay_edits(service):
-    """New rules and current assay metadata cannot change an already pinned sample."""
+def test_sample_policy_adopts_publications_without_updating_aspc(service):
+    """Subsequent requests adopt published rules even with the same historical ASPC."""
     release(service, evidence_mode="case_only", exceptions=[])
-    sample = compiled_sample(service, "snv")
+    sample = scoped_sample(service, "snv")
     before = service.policy_for_sample(sample=sample, analysis="snv")
     release(service, evidence_mode="exception_only", exceptions=[])
-    service.assays.get_asp = lambda identifier: pytest.fail("Runtime read mutable assay metadata")
     after = service.policy_for_sample(sample=sample, analysis="snv")
-    assert before == after
-    assert after.policy_for(assay_group="example", intent="somatic") == "case_only"
+    assert before.policy_for(assay_group="example", intent="somatic") == "case_only"
+    assert after.policy_for(assay_group="example", intent="somatic") == "exception_only"
+    assert sample["current_aspc_id"] == "historical-aspc"
 
 
-def test_compiled_policy_rejects_corruption_missing_revision_and_cross_environment(service):
-    """Runtime must fail closed without consulting mutable source policies."""
-    sample = compiled_sample(service, "snv")
-    with pytest.raises(AppError, match="scope does not match"):
-        service.policy_for_sample(sample={**sample, "environment": "production"}, analysis="snv")
-    with pytest.raises(AppError, match="does not enable"):
-        service.policy_for_sample(sample=sample, analysis="fusion")
-    configuration = service.configurations.get_aspc_revision_no_meta("revision-one")
-    configuration["query_policy_release"]["policies"]["somatic.snv"]["evidence_mode"] = "case_only"
-    with pytest.raises(AppError, match="integrity"):
-        service.policy_for_sample(sample=sample, analysis="snv")
-    service.configurations.get_aspc_revision_no_meta = lambda identifier: None
-    with pytest.raises(AppError, match="unavailable"):
-        service.policy_for_sample(sample=sample, analysis="snv")
+def test_sample_policy_respects_diagnosis_environment_and_group(service):
+    """A Base ASPC cannot hide diagnosis-specific publications or cross environments."""
+    sample = scoped_sample(service, "snv") | {"diagnosis_id": "myeloid"}
+    release(
+        service,
+        scope(asp_id="panel", diagnosis_id="myeloid", environment="testing"),
+        evidence_mode="exception_only",
+        exceptions=[],
+    )
+    assert (
+        service.policy_for_sample(sample=sample, analysis="snv").policy_for(
+            assay_group="example", intent="somatic"
+        )
+        == "exception_only"
+    )
+    assert (
+        service.policy_for_sample(
+            sample=sample | {"environment": "production"}, analysis="snv"
+        ).policy_for(assay_group="example", intent="somatic")
+        == "paired"
+    )
+    with pytest.raises(AppError, match="group does not match"):
+        service.policy_for_sample(sample=sample, analysis="snv", assay_group="other")
 
 
-def test_compiled_policy_requires_a_sample_revision(service):
-    with pytest.raises(AppError, match="exact configuration revision"):
+def test_sample_policy_does_not_require_an_aspc_revision(service):
+    sample = scoped_sample(service, "snv")
+    sample.pop("current_aspc_id")
+    assert service.policy_for_sample(sample=sample, analysis="snv")
+    with pytest.raises(AppError, match="registered assay and environment"):
         service.policy_for_sample(sample={"asp_id": "panel"}, analysis="snv")
+
+
+def test_report_query_resolution_is_stable_within_one_build_and_refreshes_next_build(service):
+    """Publication cannot mix policy versions inside one report or freeze future requests."""
+    from coyote3.application.query_rules.compilation import capture_query_policies
+
+    sample = scoped_sample(service, "snv")
+    release(service, evidence_mode="case_only", exceptions=[])
+    with capture_query_policies() as captured:
+        first = service.policy_for_sample(sample=sample, analysis="snv")
+        release(service, evidence_mode="exception_only", exceptions=[])
+        repeated = service.policy_for_sample(sample=sample, analysis="snv")
+        assert first == repeated
+        assert len(captured) == 1
+        assert next(iter(captured.values())).evidence_mode == "case_only"
+    with capture_query_policies() as refreshed:
+        latest = service.policy_for_sample(sample=sample, analysis="snv")
+        assert latest != first
+        assert next(iter(refreshed.values())).evidence_mode == "exception_only"
+
+
+def test_unpublished_query_changes_do_not_affect_samples(service):
+    sample = scoped_sample(service, "snv")
+    before = service.policy_for_sample(sample=sample, analysis="snv")
+    service.create(draft(evidence_mode="exception_only", exceptions=[]), "author")
+    assert service.policy_for_sample(sample=sample, analysis="snv") == before
 
 
 @pytest.mark.parametrize(
@@ -440,7 +476,7 @@ def test_query_scope_rejects_invalid_dimensions(values):
 
 
 def test_compiled_policy_preserves_scoping_and_literal_exceptions(service):
-    from api.domain.core.dna.varqueries import build_query
+    from coyote3.domain.dna.varqueries import build_query
 
     release(
         service,
@@ -519,7 +555,7 @@ def test_retirement_remains_possible_after_registry_deactivation(service):
 def test_cnv_workflow_uses_published_policy_and_keeps_sample_identity(service):
     from unittest.mock import Mock
 
-    from api.application.dna.structural_variants import DnaStructuralService
+    from coyote3.application.dna.structural_variants import DnaStructuralService
 
     release(
         service,
@@ -539,7 +575,7 @@ def test_cnv_workflow_uses_published_policy_and_keeps_sample_identity(service):
         query_rule_service=service,
     )
     workflow.load_cnvs_for_sample(
-        sample=compiled_sample(service, "cnv"),
+        sample=scoped_sample(service, "cnv"),
         sample_filters={
             "cnv_loss_cutoff": 0.5,
             "cnv_gain_cutoff": 1.5,
@@ -549,7 +585,7 @@ def test_cnv_workflow_uses_published_policy_and_keeps_sample_identity(service):
         filter_genes=[],
         assay_group="example",
     )
-    query = repository.get_sample_cnvs.call_args.args[0]
+    query = compile_selection(repository.get_sample_cnvs.call_args.args[0])
     assert query["SAMPLE_ID"] == "sample-one"
     assert "TP53" in str(query) and "$nor" in str(query)
 
@@ -584,27 +620,29 @@ def test_condition_tree_survives_publication_inheritance_and_preview(service):
 
 
 def test_rna_workflow_uses_published_policy_and_keeps_sample_identity(service):
-    from api.application.reporting.rna_workflow import RNAWorkflowService
+    from coyote3.application.reporting.rna_workflow import RNAWorkflowService
 
     release(
         service,
         QueryRuleScope(assay_group="example", analysis="fusion"),
         exceptions=[{"id": "exclude", "mode": "exclude", "genes": ["TP53"]}],
     )
-    query = RNAWorkflowService.build_fusion_list_query(
-        "example",
-        "sample-one",
-        {},
-        {
-            "fusion_effects": [],
-            "fusion_callers": [],
-            "fusion_descriptions": [],
-            "checked_fusionlists": [],
-            "filter_genes": [],
-            "restrict_to_genes": False,
-        },
-        sample=compiled_sample(service, "fusion"),
-        query_rule_service=service,
+    query = compile_selection(
+        RNAWorkflowService.build_fusion_list_query(
+            "example",
+            "sample-one",
+            {},
+            {
+                "fusion_effects": [],
+                "fusion_callers": [],
+                "fusion_descriptions": [],
+                "checked_fusionlists": [],
+                "filter_genes": [],
+                "restrict_to_genes": False,
+            },
+            sample=scoped_sample(service, "fusion"),
+            query_rule_service=service,
+        )
     )
     assert query["SAMPLE_ID"] == "sample-one"
     assert "TP53" in str(query) and "$nor" in str(query)

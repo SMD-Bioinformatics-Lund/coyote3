@@ -1,0 +1,82 @@
+{% extends "legacy/report.html" %}
+{% block title %}RNA Report{% endblock %}
+{% block body %}
+
+{% if pdf != 1 %}
+<div class="report-preview-card">
+  <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
+  <b>*** PREVIEW OF REPORT ***</b><br><br>
+</div>
+{% endif %}
+
+<span class="report_header">{{ report_header }} - {{ sample.name }}</span>
+
+{% include 'components/rna/sample_information.html' %}
+
+<span class="report_header">Analysresultat</span>
+{% include 'components/rna/variant_table.html' %}
+
+{% if "PGX" in report_sections %}
+  <span class="report_header">Farmakogenomiska resultat</span>
+  <table class="variant_table">
+    <tr><th>Gen</th><th>Resultat</th></tr>
+    {% for result in pgx %}
+      <tr>
+        <td>{{ result.gene or result.symbol or result.hugo_symbol or "-" }}</td>
+        <td>{{ result.result or result.phenotype or result.diplotype or result.records or "-" }}</td>
+      </tr>
+    {% else %}
+      <tr><td>Inga rapporterbara farmakogenomiska resultat</td><td></td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+<span class="report_header">Slutsats</span>
+<div class="conclusion">
+  <div class="results_summary">
+    {% if latest_sample_comment_text %}{{ latest_sample_comment_text|format_comment|safe }}{% endif %}
+  </div>
+</div>
+
+<p style="page-break-before: always;"></p>
+<br>
+
+<span class="report_header">Detekterade fusioner</span>
+{% for var in fusions|sort(attribute='classification.class') %}
+  {% set selected_calls = var.report_selected_calls %}
+  {% set sel_fus = selected_calls[0] %}
+  <div class=report_div style="page-break-inside:avoid;">
+    <table class='report_variant'>
+      <tr><th class="report_variant_header" colspan=6>{{ var.gene1 }} - {{ var.gene2 }}</th></tr>
+      <tr>
+        <td class="report_key">Gener</td><td class="var_report_val">{{ var.gene1 }} - {{ var.gene2 }}</td>
+        <td class="report_key">Effekt</td><td class="var_report_val">{% if sel_fus.spanpairs|int > 0 %}{{ sel_fus.effect }}{% else %}NA{% endif %}</td>
+        <td class="report_key">Fusionspunkter</td><td class="var_report_val">{% if sel_fus.spanpairs|int > 0 %}{{ sel_fus.breakpoint1 }} {{ sel_fus.breakpoint2 }}{% else %}NA{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="report_key">Antal läsningar</td><td class="var_report_val">{{ sel_fus.spanreads }}</td>
+        <td class="report_key">Antal läs-par</td><td class="var_report_val">{{ sel_fus.spanpairs }}</td>
+        <td class="report_key">Längsta ankarsekvens</td><td class="var_report_val">{% if sel_fus.longestanchor %}{{ sel_fus.longestanchor }} bp{% else %}NA{% endif %}</td>
+      </tr>
+      {% if var.classification.class != 999 %}
+        <tr><td class="report_key">Klassificering</td><td class="report_annotation" colspan=5>{{ var.classification.class|format_tier }} - {{ class_desc[var.classification.class] }}<br></td></tr>
+      {% endif %}
+      {% if var.global_annotations|length > 0 %}
+        <tr><td class="report_key">Kommentar</td>{% set sorted_annos = var.global_annotations|sort(attribute="time_created", reverse=True) %}<td class="report_annotation" colspan=5>{{ sorted_annos[0].text|format_comment|safe }}</td></tr>
+      {% endif %}
+    </table>
+  </div>
+{% else %}
+  <tr><td>Inga detekterade fusioner</td><td></td></tr>
+{% endfor %}
+
+<span class="report_header">Analysbeskrivning</span>
+<div class="analysis_description">
+  {{ assay_config.reporting.report_description|sanitize_report_html|safe }}
+  <p><b>Tabell: Förklaring av klassificering</b></p>
+  {% include 'components/rna/classification.html' %}
+  <p><b>Referenser</b></p>
+  <p>[1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.</p>
+</div>
+
+{% endblock %}

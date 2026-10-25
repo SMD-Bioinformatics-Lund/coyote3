@@ -7,11 +7,11 @@ from uuid import uuid4
 import pytest
 from pymongo import MongoClient
 
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.assay_setup import (
     AssaySetupRepository,
     AssaySetupRevisionRepository,
 )
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture

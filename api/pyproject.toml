@@ -1,0 +1,5 @@
+# The root Coyote3 distribution includes this server. Dependencies are authoritative
+# in ../pyproject.toml under project.optional-dependencies.api.
+[tool.coyote3]
+installation = "Coyote3[api]"
+asgi = "api.app.main:app"

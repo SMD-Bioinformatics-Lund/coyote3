@@ -11,8 +11,8 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.application.reporting.artifact_inventory import inspect_report_artifacts  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
+from coyote3.application.reporting.artifact_inventory import inspect_report_artifacts  # noqa: E402
 
 
 def main():

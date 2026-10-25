@@ -19,8 +19,8 @@ beforeEach(() => {
   vi.mocked(api.post).mockResolvedValue({ status: 200, data: { evidence_mode: "paired", exceptions: [], lineage: [{ source: "default", version: null }] } })
 })
 
-function mount() {
-  return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><QueryRulesPage /></QueryClientProvider></MemoryRouter>)
+function mount(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return render(<MemoryRouter><QueryClientProvider client={client}><QueryRulesPage /></QueryClientProvider></MemoryRouter>)
 }
 
 it("separates policy preview and authorized sample testing from the editor", async () => {
@@ -191,10 +191,13 @@ it("previews inherited fields separately from explicit empty exceptions", async 
 })
 
 it("requires confirmation and the inspected revision when publishing", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  client.setQueryData(["sample-variants", "SYNTHETIC"], { variants: [] })
+  client.setQueryData(["report-preview", "SYNTHETIC"], { html: "Reviewed preview" })
   const original = vi.mocked(api.get).getMockImplementation()!
   vi.mocked(api.get).mockImplementation(async (path, options) => path.endsWith("/options") ? original(path, options) : { status: 200, data: { items: [rule] } })
   vi.mocked(api.post).mockImplementation(async path => ({ status: 200, data: path.endsWith("/preview") ? { evidence_mode: "paired", exceptions: [], lineage: [] } : { ...rule, status: "published", revision: 3 } }))
-  mount()
+  mount(client)
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   expect(screen.getByRole("region", { name: "Saved query definition" })).toHaveTextContent("example__all__base__somatic_snvs")
   expect(screen.queryByLabelText("Query ID")).not.toBeInTheDocument()
@@ -204,6 +207,8 @@ it("requires confirmation and the inspected revision when publishing", async () 
   expect(vi.mocked(api.post).mock.calls.some(([path]) => path.endsWith("/publish"))).toBe(false)
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/version-one/publish", { expected_revision: 2, reason: "Validation complete" }))
+  await waitFor(() => expect(client.getQueryState(["sample-variants", "SYNTHETIC"])?.isInvalidated).toBe(true))
+  expect(client.getQueryState(["report-preview", "SYNTHETIC"])?.isInvalidated).toBe(true)
 })
 
 it("does not expose saving to a viewer", async () => {

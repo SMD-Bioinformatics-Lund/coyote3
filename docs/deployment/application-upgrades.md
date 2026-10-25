@@ -13,6 +13,12 @@ must supply their own reviewed migration and recovery instructions.
 The pending release's required actions and rollback limits are listed in
 [release maintenance](release-maintenance.md).
 
+Before rebuilding images, download the target release's tested SDK wheel and
+`release-record.json` into `.release/sdk`, or set an absolute
+`COYOTE3_SDK_ARTIFACT_DIR`. Export the target checkout's `GIT_COMMIT`. Follow the
+[SDK artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release);
+production builds verify these inputs instead of rebuilding the SDK.
+
 ## 1. Select the installation and maintenance record
 
 Run from the current deployed checkout, in one Bash shell. Select the existing
@@ -61,6 +67,11 @@ rollback restrictions. Agree on the maintenance window and recovery plan.
 For center files that still declare families, manifest keys, analysis bindings or
 base query settings, follow the [application-owned definitions upgrade](center-configuration.md#application-owned-definitions)
 before validating the new configuration release.
+The bundled center defaults now live under `config/examples/center/`. If an
+installation explicitly points `COYOTE3_CENTER_CONFIG_HOST_DIR` at the former
+`api/config/center/` checkout path, update it before building. Preserve external
+center directories and their reviewed content. Rebuild API and worker images
+together so they use the installed application library from the same release.
 For configuration-only changes, retain the current reviewed commit throughout.
 
 Use the installation's recorded file list, including private storage overrides and
@@ -150,8 +161,8 @@ API or workers or writing to MongoDB:
 
 ```bash
 coyote_compose run --rm --no-deps -T api python3 -c '
-from api.config.loaders.filter_flags import load_filter_flag_metadata
-from api.config.loaders.contact import load_contact_config
+from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
+from api.config.contact import load_contact_config
 from api.config.paths import CONTACT_CONFIG_PATH
 load_filter_flag_metadata()
 load_contact_config(CONTACT_CONFIG_PATH, organization_name="Validation", public_base_url="", script_name="")

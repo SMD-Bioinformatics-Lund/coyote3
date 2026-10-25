@@ -3,10 +3,8 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from api.application.reporting.clinical_rules.validation import content_hash
-from api.application.resources.release_compilation import compile_bundle_configurations
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from api.contracts.schemas.registry import normalize_collection_document
+from api.bootstrap.compilation import compile_bundle_configurations
+from api.bootstrap.paths import BOOTSTRAP_ROOT
 from api.infra.seed.bundle import (
     canonicalize_seed_contract,
     load_reference_seed_pack,
@@ -14,8 +12,10 @@ from api.infra.seed.bundle import (
     stamp_docs,
 )
 from api.infra.seed.query_rules import prepare_query_rule_seeds
+from coyote3.application.reporting.clinical_rules.validation import content_hash
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.contracts.schemas.registry import normalize_collection_document
 
-BOOTSTRAP_ROOT = Path(__file__).resolve().parents[2] / "config" / "bootstrap"
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
 DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
 

@@ -36,10 +36,26 @@ jobs:
       ADMIN_USERNAME: coyote3.admin
       ADMIN_EMAIL: admin@center.local
       ADMIN_PASSWORD: ci-admin-password
+      GIT_COMMIT: ${{ github.sha }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.7"
+
+      - name: Prepare and test the SDK artifact used by the application image
+        run: |
+          sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
+          python -m pip install -r requirements-dev.txt
+          python scripts/release/build_sdk.py --output-dir .release/sdk
+          python -m pip install --no-deps .release/sdk/coyote3-*.whl ./clients/python
+          PYTHONPATH=. python -m pytest -q tests/unit/test_application_sdk.py \
+            tests/unit/test_python_sdk_contracts.py tests/unit/test_configuration_resource_receipts.py
+          python scripts/release/check_release.py --production \
+            --wheel .release/sdk/coyote3-*.whl --output .release/sdk/release-record.json
 
       - name: Prepare disposable storage and stage environment
         run: |
@@ -117,6 +133,7 @@ jobs:
           ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            -f deploy/compose/docker-compose.release.yml \
             build api
           ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
@@ -151,6 +168,7 @@ jobs:
           ./scripts/deployment/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            -f deploy/compose/docker-compose.release.yml \
             up -d --build
 
       - name: Wait for proxied API health
@@ -173,7 +191,7 @@ jobs:
             exec -T -e CI_USERNAME="${ADMIN_USERNAME}" -e CI_PASSWORD="${ADMIN_PASSWORD}" api python3 - <<'PYCODE'
           import os
           import httpx
-          from api.client.auth import login_with_password
+          from coyote3_client.auth import login_with_password
           password = os.environ["CI_PASSWORD"]
           session = login_with_password(base_url="http://127.0.0.1:8001",
               username=os.environ["CI_USERNAME"], password=password, provider="local")

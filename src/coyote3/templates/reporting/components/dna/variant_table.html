@@ -1,0 +1,13 @@
+<table class="variant_table">
+    <tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
+    {% for var in variants %}
+      <tr>
+        <td>{{ var.symbol }}</td>
+        <td>{% if var.indel_size > 20 %}{{ var.cdna }}{% else %}{{ var.variant|unesc }}{% endif %}</td>
+        <td>{{ var.af|perc_no_dec }}</td>
+        <td>{{ var.class_short_desc }}</td>
+      </tr>
+    {% else %}
+      <tr><td>Inga detekterade mutationer</td></tr>
+    {% endfor %}
+  </table>

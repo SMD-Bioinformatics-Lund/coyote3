@@ -6,8 +6,8 @@ from typing import Any
 
 from bson import ObjectId
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.config.security import get_audit_events_collection_name
 
 

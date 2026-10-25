@@ -19,36 +19,34 @@ import mongomock
 from bson import ObjectId
 from bson.json_util import dumps, loads
 
+from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote3.domain.annotation_identity import primary_small_variant_identity
+from coyote3.domain.annotation_scope import annotation_namespace
+
 ROOT = Path(__file__).resolve().parents[2] / "demo_data/clinical_workflows"
+FIXTURES = Path(__file__).resolve().parents[2] / "tests/fixtures/clinical_workflows"
 sys.path.insert(0, str(ROOT.parents[1]))
 
-from api.application.common.release_resources import (  # noqa: E402
-    capture_assay_resource,
-    capture_gene_lists,
-)
-from api.application.ingest.service import InternalIngestService  # noqa: E402
-from api.application.query_rules.compilation import compile_query_policies  # noqa: E402
-from api.application.query_rules.service import QueryRuleService  # noqa: E402
-from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator  # noqa: E402
-from api.application.reporting.clinical_rules.preparation import (  # noqa: E402
-    prepare_report_context,
-)
-from api.application.reporting.clinical_rules.resolution import (  # noqa: E402
-    resolve_published_rule_set,
-)
-from api.application.resources.release_compilation import (  # noqa: E402
-    BundleClinicalRules,
-    BundleQueryPolicies,
-)
-from api.config.constants import ALL_SAMPLE_FILE_KEYS  # noqa: E402
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
-from api.contracts.schemas.registry import (  # noqa: E402
-    INGEST_DEPENDENT_COLLECTIONS,
-    normalize_collection_document,
-)
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway  # noqa: E402
 from api.infra.seed.bundle import load_reference_seed_pack  # noqa: E402
 from api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
+from coyote3.application.common.release_resources import (  # noqa: E402
+    capture_assay_resource,
+    capture_gene_lists,
+)
+from coyote3.application.ingest.service import InternalIngestService  # noqa: E402
+from coyote3.application.reporting.clinical_rules.evaluator import (  # noqa: E402
+    ClinicalRuleEvaluator,
+)
+from coyote3.application.reporting.clinical_rules.preparation import (  # noqa: E402
+    prepare_report_context,
+)
+from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS  # noqa: E402
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote3.contracts.schemas.registry import (  # noqa: E402
+    INGEST_DEPENDENT_COLLECTIONS,
+    normalize_collection_document,
+)
 
 
 class MemoryGateway(IngestCollectionGateway):
@@ -84,15 +82,13 @@ def replay():
     """
     db = mongomock.MongoClient().synthetic_demo
     # Use the same bundled HGNC reference as deployment, without inventing MANE flags.
-    reference = ROOT.parents[1] / "api/config/bootstrap/reference/hgnc_genes.seed.ndjson.gz"
+    reference = BOOTSTRAP_ROOT / "reference/hgnc_genes.seed.ndjson.gz"
     with gzip.open(reference, "rt") as source:
         genes = [json.loads(line) for line in source]
     db.hgnc_genes.insert_many(
         [row for row in genes if row.get("hgnc_symbol") in {"BCR", "ABL1", "TP53", "CEBPA"}]
     )
-    catalog = load_reference_seed_pack(
-        ROOT.parents[1] / "api/config/bootstrap/reference", include_knowledgebase=False
-    )
+    catalog = load_reference_seed_pack(BOOTSTRAP_ROOT / "reference", include_knowledgebase=False)
     db.assay_groups.insert_many(
         [normalize_collection_document("assay_groups", row) for row in catalog["assay_groups"]]
     )
@@ -107,24 +103,12 @@ def replay():
         ]
         if documents:
             db[path.stem].insert_many(documents)
-    query_service = QueryRuleService(BundleQueryPolicies(list(db.query_rule_sets.find()), None))
     for configuration in db.asp_configs.find():
         panel = db.assay_specific_panels.find_one({"asp_id": configuration["asp_id"]})
-        clinical_rules = resolve_published_rule_set(
-            BundleClinicalRules(list(db.clinical_rule_sets.find())),
-            asp_id=configuration["asp_id"],
-            diagnosis_id=configuration["diagnosis_id"],
-            analyte=configuration["asp_category"],
-            language=configuration["reporting"]["language"],
-        ).model_dump(mode="python", by_alias=True)
         db.asp_configs.update_one(
             {"_id": configuration["_id"]},
             {
                 "$set": {
-                    "query_policy_release": compile_query_policies(
-                        configuration, panel, query_service
-                    ),
-                    "clinical_rule_release": clinical_rules,
                     "assay_resource_release": capture_assay_resource(panel),
                     "gene_list_release": capture_gene_lists(
                         list(
@@ -229,7 +213,7 @@ def review_examples(db):
     """
     now = datetime(2026, 1, 1, tzinfo=timezone.utc)
     scenario = {
-        row["id"]: row for row in json.loads((ROOT / "scenarios/variants.json").read_text())
+        row["id"]: row for row in json.loads((FIXTURES / "scenarios/variants.json").read_text())
     }
     previews = {}
     for name in (
@@ -262,20 +246,26 @@ def review_examples(db):
                     hgvsp=csq.get("HGVSp"),
                     hgvsc=csq.get("HGVSc"),
                 )
+                nomenclature, identity["variant"] = primary_small_variant_identity(identity)
                 annotation = dict(
                     identity,
-                    assay=asp["asp_group"],
-                    diagnosis="base",
+                    asp_group=asp["asp_group"],
+                    asp_id=sample["asp_id"],
+                    diagnosis_id=sample["diagnosis_id"],
+                    namespace=annotation_namespace(sample["environment"]),
                     author="demo.reviewer",
-                    nomenclature="g",
+                    nomenclature=nomenclature,
                     time_created=now,
                 )
                 if not db.annotation.find_one(
                     {
-                        "assay": asp["asp_group"],
-                        "diagnosis": "base",
-                        "nomenclature": "g",
-                        "variant": variant["simple_id"],
+                        "asp_group": asp["asp_group"],
+                        "asp_id": sample["asp_id"],
+                        "diagnosis_id": sample["diagnosis_id"],
+                        "namespace": annotation["namespace"],
+                        "nomenclature": nomenclature,
+                        "variant": identity["variant"],
+                        "gene": identity["gene"],
                     }
                 ):
                     db.annotation.insert_one(
@@ -290,7 +280,7 @@ def review_examples(db):
                             sample_name=name,
                             finding_oid=str(variant["_id"]),
                             finding_type="small_variant",
-                            nomenclature="g",
+                            nomenclature=nomenclature,
                             author="demo.reviewer",
                             text=f"Synthetic tier {tier} review exercise; not a clinical assessment.",
                             time_created=now,
@@ -356,7 +346,7 @@ def main():
         },
         "report_previews": previews,
     }
-    output = ROOT / "expected"
+    output = FIXTURES / "expected"
     if not args.check:
         output.mkdir(parents=True, exist_ok=True)
     for name, rows in artifacts.items():
@@ -364,7 +354,7 @@ def main():
         path = output / f"{name}.json"
         if args.check:
             if not path.exists() or path.read_text() != text:
-                raise SystemExit(f"Snapshot differs: {path.relative_to(ROOT)}")
+                raise SystemExit(f"Snapshot differs: {path.relative_to(FIXTURES)}")
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text)

@@ -216,7 +216,8 @@ def _find_violations(path: str, content: bytes) -> list[str]:
     Returns:
         Violation descriptions, possibly repeated, or an empty list. Private design
         paths and blocked names are rejected before binary-suffix exclusions;
-        decode OSError and UnicodeError failures become diagnostics.
+        decode OSError and UnicodeError failures become diagnostics. Unquoted YAML
+        null scalars represent absent metadata, not identifiers.
 
     Raises:
         EOFError: A gzip stream is truncated.
@@ -249,6 +250,11 @@ def _find_violations(path: str, content: bytes) -> list[str]:
     fixture_suffixes = (".json", ".ndjson", ".toml", ".yaml", ".yml", ".gz")
     if path.startswith("tests/") and path.lower().endswith(fixture_suffixes):
         for match in SAMPLE_FIELD.finditer(text):
+            if path.lower().endswith((".yaml", ".yml")):
+                remainder = text[match.end() :].split("\n", 1)[0]
+                raw_value = match.group(0).split(":", 1)[1] + remainder
+                if raw_value.split("#", 1)[0].strip().lower() in {"null", "~"}:
+                    continue
             if not _is_synthetic(match.group(1)):
                 violations.append(f"non-synthetic sample metadata: {match.group(0).strip()}")
 

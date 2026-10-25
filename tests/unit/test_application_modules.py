@@ -1,4 +1,4 @@
-from api.config.application_modules import modules_for_api_path
+from coyote3.config.application_modules import modules_for_api_path
 
 
 def _keys(path: str) -> set[str]:

@@ -3,9 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
-from api.application.resources.aspc import AspcService
-from api.contracts.schemas.assay import AssaySpecificPanelsDoc
-from api.domain.core.exceptions import AppError
+from coyote3.application.resources.aspc import AspcService
+from coyote3.contracts.schemas.assay import AssaySpecificPanelsDoc
+from coyote3.domain.exceptions import AppError
 
 
 def assay(**changes):

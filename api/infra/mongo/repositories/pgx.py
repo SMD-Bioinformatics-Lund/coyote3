@@ -1,7 +1,7 @@
 """Repository for sample-scoped pharmacogenomic results."""
 
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.contracts.operations import OperationResult
 
 
 class PgxRepository(BaseRepository):

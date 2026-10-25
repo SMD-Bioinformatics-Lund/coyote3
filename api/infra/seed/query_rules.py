@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from itertools import product
 from pathlib import Path
 
-from api.config.clinical_query_policy import exception_payload, load_clinical_query_policy
-from api.config.paths import CLINICAL_QUERY_SEED_PATH
-from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope
+from api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH
+from coyote3.config.clinical_query_policy import exception_payload, load_clinical_query_policy
+from coyote3.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope
 
 
 def prepare_query_rule_seeds(

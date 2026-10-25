@@ -11,8 +11,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from bson.objectid import ObjectId
-
+from api.infra.mongo.persistence import require_object_id
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -130,7 +129,7 @@ class D4CoverageBlacklistRepository(BaseRepository):
 
     def get_blacklist_entry(self, obj_id: str) -> dict | None:
         """Return a blacklist entry by ObjectId."""
-        return self.get_collection().find_one({"_id": ObjectId(obj_id)})
+        return self.get_collection().find_one({"_id": require_object_id(obj_id)})
 
     def is_region_blacklisted(self, gene: str, region: str, coord: str, assay: str) -> bool:
         """
@@ -188,5 +187,5 @@ class D4CoverageBlacklistRepository(BaseRepository):
         Returns:
             int: Number of deleted entries.
         """
-        result = self.get_collection().delete_one({"_id": ObjectId(obj_id)})
+        result = self.get_collection().delete_one({"_id": require_object_id(obj_id)})
         return int(getattr(result, "deleted_count", 0) or 0)

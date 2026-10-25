@@ -15,15 +15,24 @@ from assay group names. See [report metadata outputs](clinical-reporting-rules.m
 
 ## Annotation scope and report eligibility
 
-Annotation `assay` identifies an assay group, not an ASP identifier. For a sample
-with a named `diagnosis_id`, effective classifications and annotation text match
-that group, exact diagnosis, assay and environment. Base matches Base only.
-The annotation's `resource_context` retains the configuration, family and modality
-used when the interpretation was recorded. Other contexts can be displayed for
-reference with `requires_retiering`; they do not supply an effective report tier.
-Production annotations use the `clinical` namespace. Non-production annotations
-use `sandbox` and match their own sample environment. Ordering is by `time_created`,
-then MongoDB `_id` to break timestamp ties. Transcript classifications use the same scope.
+Classifications and text annotations share the same identity and scope fields:
+`asp_group`, `diagnosis_id`, `asp_id` and `namespace`. Each record contains exactly
+one of `class` or `text`. A null `asp_id` denotes a group-scoped interpretation.
+For SNVs and indels, `variant` uses HGVSp first, then HGVSc, then genomic identity;
+`nomenclature` is respectively `p`, `c` or `g`. The other available identities remain
+on the record for matching.
+
+Production writes `clinical` records and reads only that namespace. Development,
+testing and validation write `sandboxed` records and can read both namespaces.
+Annotation records do not store an environment or duplicate configuration context.
+
+An effective classification matches the sample's group, assay and diagnosis.
+Broader classifications, including parent-group evidence and Base diagnoses, require
+re-tiering before reporting. Text is resolved independently: the most specific eligible
+scope wins, followed by the newest record within that scope. A broader text can explain
+an exact classification without being copied into every assay. There are no rationale
+record links. Ordering uses `time_created`, then MongoDB `_id` to break timestamp ties.
+Saved report artifacts retain their original tier and text.
 
 The effective ASPC's `reporting.reportable_tiers` selects report candidates:
 
@@ -48,7 +57,7 @@ needs its tier-4 terminology and any tier-specific conditions authored and teste
 
 The saved `resolution_snapshot` records the applied configuration content, exact
 assay and gene-list snapshots, target/intent gene scopes, effective filters,
-compiled query and clinical rules, reference versions, template hash and software
+runtime-resolved query and clinical rules with source provenance, reference versions, template hash and software
 version. It includes input-file metadata, pipeline identity/version, reference assembly,
 and each effective filter value that differs from the configuration default.
 Artifact records include SHA-256 checksums. Saving checks the prepared

@@ -35,10 +35,10 @@ function renderWithQuery(ui: React.ReactNode) {
 describe("finding detail cards", () => {
   it("distinguishes reference tiers from the effective classification", () => {
     renderWithQuery(<ClassificationsCard latest={{ class: 999 }} other={[
-      { class: 2, assay: "solid", diagnosis: "lung", effective: false, requires_retiering: true },
+      { class: 2, asp_group: "solid", asp_id: "demo-solid", diagnosis_id: "lung", namespace: "clinical", effective: false, requires_retiering: true },
     ]} />)
     expect(screen.getByText("Not currently classified.")).toBeVisible()
-    expect(screen.getByText("solid · lung")).toBeVisible()
+    expect(screen.getByText("solid · demo-solid · lung · clinical")).toBeVisible()
     expect(screen.getByText(/Re-tier required/)).toBeVisible()
     expect(screen.queryByText("Latest classification")).not.toBeInTheDocument()
   })

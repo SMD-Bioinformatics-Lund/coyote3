@@ -8,7 +8,7 @@ inspection requires `internal.task:view`. `superuser` still bypasses RBAC checks
 
 `superuser` is always allowed. Other roles must satisfy the mapped permission or route requirement directly.
 Permission IDs in this page are the same IDs shipped in the out-of-the-box seed file:
-`api/config/bootstrap/rbac/permissions.seed.ndjson`.
+`api/bootstrap/catalogs/rbac/permissions.seed.ndjson`.
 
 ## Request fields, requirements and defaults
 

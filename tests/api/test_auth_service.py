@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.domain.core.models.user import UserModel
 from api.security import auth_service
+from api.security.models import UserModel
 
 
 class _FakeRepo:

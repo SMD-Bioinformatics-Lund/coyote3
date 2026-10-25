@@ -7,6 +7,12 @@ Coyote3 is a clinical workflow platform used in molecular diagnostics. Contribut
 ## Scope and ownership
 
 Coyote3 is maintained by the Section for Molecular Diagnostics (SMD), Lund.
+The application uses the COYOTE3 Free-Use Source-Available License 1.0.
+Obtain written authorization from the applicable copyright holders before
+modifying protected application code or submitting such modifications.
+Submission does not transfer copyright or grant unagreed redistribution or
+relicensing rights; establish the necessary contributor permissions separately.
+The independent Python HTTP client retains Apache 2.0. See [LICENSING.md](LICENSING.md).
 
 - External public contributions may be limited.
 - Internal contributors should follow this guide for all code and documentation changes.

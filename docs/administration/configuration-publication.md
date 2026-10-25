@@ -14,8 +14,9 @@ it does not change sample configuration or the published profile selection.
 
 The author records a reason and submits the exact content for independent review.
 A different user with `configuration:publish` publishes the reviewed content hash.
-Publication selects that version for future configuration compilation and retains
-previous revisions. Existing configuration releases and sample pins remain unchanged.
+Publication selects settings/template profiles for future configuration compilation
+and clinical-rule profiles for subsequent report evaluation. Previous revisions
+remain available. Existing configuration releases and sample pins remain unchanged.
 
 ### Scope and precedence
 
@@ -41,16 +42,18 @@ For example, a filter profile can bind to `{"asp_group": "solid"}` and supply
 `asp_id`, such as `solid_GMSv3`, with its group. Use the keys actually registered
 at the center; names in this example do not create resources.
 
-Each compiled configuration captures selected profile identities, versions, hashes,
+Each compiled configuration captures selected settings/template profile identities, versions, hashes,
 bindings' precedence and content in `profile_sources`. Runtime resolution uses the
-sample's exact configuration release rather than looking up today's profiles.
+sample's exact configuration release for these settings. Clinical-rule profiles
+resolve separately from current published bindings when a report runs.
 
 ### Reporting components
 
 Reporting profiles supply validated reporting fields. Clinical-rule profiles contain
 explicit `replace_blocks` and `disable_blocks` operations against a published base
 rule release. Unknown block identifiers and invalid compiled rules are rejected.
-The configuration retains both the base rule release and the compiled rule artifact.
+The report resolution receipt retains the selected base rule, applied profile
+sources and effective rule content. These are not attached to ASPC revisions.
 When an override changes expected report text or matches, `replace_tests` supplies
 reviewed replacements for the affected existing test cases. Other tests remain in
 place, and the complete compiled test suite must pass. Unknown test identifiers are
@@ -72,8 +75,8 @@ replace the approved template.
 4. Approval atomically retires the previous active target configuration and publishes
    the new target revision. A changed source or target requires a new proposal.
 
-Promotion retains the source's compiled resource and rule releases. Query policy
-scope is explicitly assigned to the target environment. It does not copy sample
+Promotion retains the source's assay resources, gene lists and settings. Query and
+reporting rules resolve independently for the sample's runtime scope. It does not copy sample
 findings or annotations, and it does not rebind existing samples. Apply a new
 configuration through the sample configuration workflow when appropriate.
 

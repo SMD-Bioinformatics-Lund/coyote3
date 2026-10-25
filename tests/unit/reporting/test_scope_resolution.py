@@ -5,11 +5,11 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.resolution import resolve_published_rule_set
-from api.application.reporting.clinical_rules.service import ClinicalRuleService
-from api.application.reporting.clinical_rules.validation import content_hash
 from api.infra.mongo.repositories.clinical_rule_sets import ClinicalRuleSetRepository
+from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.resolution import resolve_published_rule_set
+from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
+from coyote3.application.reporting.clinical_rules.validation import content_hash
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 
@@ -111,7 +111,7 @@ def test_ambiguous_selected_scope_fails_closed(scope):
         resolve([release(scope), release(scope)])
 
 
-def test_published_exact_release_requires_new_configuration_and_preserves_prior_source():
+def test_published_exact_release_applies_without_configuration_update_and_preserves_prior_source():
     rows = [release()]
     service = ClinicalRuleService(
         SimpleNamespace(list_active_for_assay=lambda _asp, **_scope: rows)
@@ -125,15 +125,18 @@ def test_published_exact_release_requires_new_configuration_and_preserves_prior_
     }
     prior = service.evaluate(aspc=configuration, context=context)
     rows.append(release("named"))
-    unchanged = service.evaluate(aspc=configuration, context=context)
-    assert unchanged.source.content_hash == prior.source.content_hash
-    configuration = {**configuration, "diagnosis_id": "named", "clinical_rule_release": rows[-1]}
     current = service.evaluate(aspc=configuration, context=context)
     assert prior.source.rule_set_id == "assay_1__base__sv"
     assert prior.source.resolved_diagnosis_id == "base"
     assert current.source.rule_set_id == "assay_1__named__sv"
     assert current.source.requested_diagnosis_id == "named"
     assert current.source.content_hash == rows[-1]["content_hash"]
+    assert configuration["clinical_rule_release"]["scope"]["diagnosis_id"] == "base"
+    rows[-1]["active"] = False
+    assert (
+        service.evaluate(aspc=configuration, context=context).source.resolved_diagnosis_id == "base"
+    )
+    assert current.source.resolved_diagnosis_id == "named"
 
 
 def test_corrupt_exact_release_never_falls_back_to_valid_base():
@@ -144,6 +147,34 @@ def test_corrupt_exact_release_never_falls_back_to_valid_base():
         ClinicalRuleService(
             SimpleNamespace(list_active_for_assay=lambda _asp, **_scope: rows)
         ).resolve(context=context)
+
+
+@pytest.mark.parametrize("assays", [None, SimpleNamespace(get_asp=lambda _asp: None)])
+def test_clinical_profiles_require_a_registered_assay(assays):
+    """A profile cannot be applied without an authoritative assay binding."""
+    service = ClinicalRuleService(
+        SimpleNamespace(list_active_for_assay=lambda _asp, **_scope: [release()]),
+        profiles=object(),
+        assays=assays,
+    )
+    with pytest.raises(ValueError, match="require a registered assay"):
+        service.resolve(context=_context())
+
+
+def test_annotation_rejects_a_non_dna_release_from_the_resolver(monkeypatch):
+    """Automatic DNA annotation still rejects an incompatible resolved release."""
+    from coyote3.application.reporting.clinical_rules import service as service_module
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+
+    incompatible = ClinicalRuleSetDoc.model_validate(release(analyte="rna"))
+    monkeypatch.setattr(
+        service_module, "resolve_published_rule_set", lambda *_a, **_k: incompatible
+    )
+    with pytest.raises(ValueError, match="requires a DNA configuration"):
+        ClinicalRuleService(None).annotation_tumor_type(
+            aspc={"reporting": {"language": "sv"}},
+            sample={"asp_id": "assay_1", "asp_category": "dna"},
+        )
 
 
 @pytest.mark.parametrize("diagnosis", [None, "", "base"])

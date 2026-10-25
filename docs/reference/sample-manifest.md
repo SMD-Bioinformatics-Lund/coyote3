@@ -255,7 +255,7 @@ and its [HTTP command implementation](https://github.com/igvteam/igv/blob/main/s
 ## Pipeline file declaration format
 
 The concrete keys below are the current center profile from
-`api/config/center/clinical_vocabulary.toml`. A deployment may use different names;
+`config/examples/center/clinical_vocabulary.toml`. A deployment may use different names;
 the authoritative configured DNA/RNA keys, family requirements, and
 analysis-to-file bindings are documented in
 [Center Vocabulary Configuration](../administration/clinical-vocabulary.md).
@@ -453,7 +453,7 @@ Notes:
   gene-list predicate when either `gene1` or `gene2` occurs in the effective
   selected list. With no selected fusion ISGL, the ASP covered genes apply; if
   the resolved scope is empty, no fusions pass the gene-list predicate.
-- A repo-local example is available at `demo_data/ingest/generic_rna_sample.yaml`.
+- A repo-local example is available at `tests/fixtures/ingest/generic_rna_sample.yaml`.
 - The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [Sample Input Files](sample-file-formats.md#rna-raw-input-files).
 
 ## Database-version extraction and override behavior

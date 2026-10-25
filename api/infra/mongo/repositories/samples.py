@@ -17,16 +17,17 @@ from typing import Any
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 
-from api.contracts.operations import OperationResult
-from api.contracts.schemas.samples import SampleAspcResolutionDoc
-from api.domain.common.errors import api_error
+from api.infra.mongo.persistence import restore_object_ids
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.sample_statistics import SampleStatisticsMixin
 from api.infra.mongo.repository_utils import generate_sample_cache_key
 from api.infra.mongo.transactions import run_transaction
-from api.infra.request_context import current_username
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
+from coyote3.application.common.execution_context import current_username
+from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.samples import SampleAspcResolutionDoc
+from coyote3.domain.common.errors import api_error
 
 SAMPLE_LIST_SORT_FIELDS: dict[str, str] = {
     "sample": "name",
@@ -664,7 +665,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         Update sample document
         """
         expected_version = sample_doc["version"]
-        replacement = {**sample_doc, "version": expected_version + 1}
+        replacement = restore_object_ids({**sample_doc, "version": expected_version + 1})
         result = self.get_collection().replace_one(
             {"_id": sample_id, "version": expected_version}, replacement
         )

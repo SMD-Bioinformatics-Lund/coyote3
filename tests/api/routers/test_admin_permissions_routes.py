@@ -5,7 +5,9 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.interfaces.http.admin import permissions
+from api.interfaces.http.v1.admin import permissions
+from coyote3.application.operations import administration as sdk_administration
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -33,7 +35,13 @@ def test_list_permissions_read_groups_by_category(monkeypatch):
         },
     )()
 
-    payload = permissions.list_permissions_read(user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        permissions.list_permissions_read,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.Permissions, service, fx.api_user()
+        ),
+    )
 
     assert payload["permission_policies"][0]["_id"] == permission["_id"]
     assert "Uncategorized" not in payload["grouped_permissions"]
@@ -65,7 +73,13 @@ def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
     )()
 
     with pytest.raises(HTTPException) as exc:
-        permissions.create_permission_context_read(user=fx.api_user(), service=service)
+        sdk_fixtures.invoke_route(
+            permissions.create_permission_context_read,
+            user=fx.api_user(),
+            service=sdk_fixtures.authorized_operations(
+                sdk_administration.Permissions, service, fx.api_user()
+            ),
+        )
 
     assert exc.value.status_code == 400
     assert exc.value.detail["error"] == "No active permission schemas found"
@@ -98,7 +112,14 @@ def test_toggle_permission_status_sets_is_active_meta(monkeypatch):
         },
     )()
 
-    payload = permissions.toggle_permission_status("perm.read", user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        permissions.toggle_permission_status,
+        "perm.read",
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.Permissions, service, fx.api_user()
+        ),
+    )
 
     assert payload["status"] == "ok"
     assert payload["action"] == "toggle"
@@ -132,8 +153,13 @@ def test_toggle_permission_status_defaults_historical_doc_to_active(monkeypatch)
         },
     )()
 
-    payload = permissions.toggle_permission_status(
-        "perm.historical", user=fx.api_user(), service=service
+    payload = sdk_fixtures.invoke_route(
+        permissions.toggle_permission_status,
+        "perm.historical",
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.Permissions, service, fx.api_user()
+        ),
     )
 
     assert payload["meta"]["is_active"] is False

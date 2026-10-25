@@ -17,18 +17,18 @@ from bson import ObjectId
 from pymongo import cursor
 from pymongo.errors import DuplicateKeyError
 
-from api.config.constants import (
+from api.infra.mongo.repositories.audit_outbox import insert_audited, update_audited
+from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
+from coyote3.config.constants import (
     DEFAULT_ENVIRONMENT,
     DIAGNOSIS_BASE_ID,
     normalize_clinical_identifier,
     normalize_environment,
     validate_identifier,
 )
-from api.contracts.operations import OperationResult
-from api.domain.common.errors import api_error
-from api.infra.mongo.repositories.audit_outbox import insert_audited, update_audited
-from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.common.errors import api_error
 
 
 # -------------------------------------------------------------------------

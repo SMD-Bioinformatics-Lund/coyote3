@@ -9,11 +9,14 @@ from uuid import uuid4
 import pytest
 from pymongo import MongoClient
 
-from api.contracts.schemas.public_catalog import PublicAssayCatalogDoc, PublicAssayCatalogVersionDoc
 from api.infra.mongo.repositories.public_assay_catalog import PublicAssayCatalogRepository
 from api.infra.mongo.repositories.public_assay_catalog_versions import (
     PublicAssayCatalogRevisionRepository,
     PublicAssayCatalogVersionRepository,
+)
+from coyote3.contracts.schemas.public_catalog import (
+    PublicAssayCatalogDoc,
+    PublicAssayCatalogVersionDoc,
 )
 
 

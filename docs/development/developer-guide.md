@@ -51,12 +51,21 @@ Use synthetic samples for local verification and browser fixtures.
 | --- | --- |
 | `api/app/` | FastAPI composition, lifecycle, middleware and dependency wiring. |
 | `api/interfaces/http/` | HTTP routes, transport contracts and access dependencies. |
-| `api/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
-| `api/domain/` | Domain rules, identity logic, query policies and repository protocols. |
-| `api/contracts/` | Request, response, collection and managed-resource contracts. |
+| `src/coyote3/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
+| `src/coyote3/domain/` | Domain rules, identity logic, query policies and repository protocols. |
+| `src/coyote3/contracts/` | Request, response, collection and managed-resource contracts. |
 | `api/infra/` | MongoDB persistence, cache, integrations, notifications and observability. |
 | `api/security/` | Authentication, authorization and password workflows. |
-| `api/config/` | Runtime settings, center configuration, software constants and bootstrap catalogs. |
+| `src/coyote3/config/` | Typed center inputs, software constants and policy validation. |
+| `api/bootstrap/` | Host installation catalogs and catalog assembly. |
+| `api/services/` | Authorized demo/deployment installation and public-page composition. |
+| `api/contracts/` | Host-only HTTP, session, diagnostic and installation contracts. |
+| `api/presentation/` | Host selection of packaged report presentation. |
+| `src/coyote3/templates/reporting/` | Legacy/modern Jinja layouts, components and embedded CSS. |
+| `clients/python/` | Independent typed sync/async HTTP client distribution and tests. |
+| `api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
+| `config/examples/center/` | Examples for an external reviewed center directory. |
+| `docs/sdk/` | SDK installation, usage, development, generated reference and version compatibility. |
 | `api/tasks/` | Celery task entry points. |
 | `frontend/src/pages/` | Route-level React views. |
 | `frontend/src/components/` | Shared layouts, forms, tables and clinical display components. |
@@ -107,7 +116,7 @@ invoke application services without an HTTP request context.
 | Configuration | Runtime source |
 | --- | --- |
 | Database endpoints, credentials, service URLs and host mounts | Deployment environment. |
-| Contacts, clinical vocabulary and query policy | Supported files under `api/config/center/`. |
+| Contacts and clinical presentation policy | External center profile initialized from `config/examples/center/`. Query rules remain governed database resources. |
 | Assay groups, diagnosis definitions and assay associations | MongoDB registries. |
 | Assays, assay configurations and gene lists | Versioned ASP, ASPC and ISGL documents. |
 | Clinical reporting rules | Governed rule-set documents in the application database. |
@@ -143,7 +152,7 @@ filesystem paths.
 
 ### Contracts and transactions
 
-Collection models are registered in `api/contracts/schemas/registry.py`.
+Collection models are registered in `src/coyote3/contracts/schemas/registry.py`.
 The [collection reference](../reference/mongodb-collections.md) describes their fields.
 Request validation, application normalization and collection validation serve
 different boundaries; a valid HTTP request does not by itself establish that a
@@ -167,7 +176,7 @@ retain prior revisions so existing references can be resolved independently of
 the currently active revision.
 
 Sample configuration resolution is implemented in
-`api/application/common/assay_config.py`. When `current_aspc_id` is present,
+`src/coyote3/application/common/assay_config.py`. When `current_aspc_id` is present,
 normal resolution uses that exact revision. Active configuration lookup applies
 to ingestion, unassigned samples and explicit configuration updates. Saved report
 snapshots are not reconstructed from the current active configuration.
@@ -239,13 +248,19 @@ behavior. Parser input formats are specified in
 
 ## Reporting
 
+The **Try new report** feature renders the established clinical inputs through
+the alternate Jinja layout in `src/coyote3/templates/reporting/modern/`. The authorized
+`Reports.try_new` operation returns matching HTML/PDF content in memory without
+report numbering or persistence. See the [user workflow](../user-guide/try-new-report.md)
+and [package boundaries](../sdk/package-boundaries.md).
+
 ![Reporting workflow](../assets/diagrams/report-generation-flow.svg)
 
 Clinical rule sets are stored in MongoDB and follow the authoring, review and
 publication workflow. Publishing approved rule content does not require a new
 application build.
 
-`api/application/reporting/clinical_rules/resolution.py` selects an active published
+`src/coyote3/application/reporting/clinical_rules/resolution.py` selects an active published
 release using the assay, sample diagnosis, analyte and reporting language. An exact
 diagnosis release takes precedence; assay Base is used only when no exact release
 exists. Selection does not cross assays, analytes or languages. Ambiguous releases,
@@ -279,7 +294,7 @@ the session CSRF token. Supported bearer authentication is handled at the API bo
 Roles bundle permissions. API access checks combine the required permission with
 applicable assay and environment scope. Frontend visibility is not an authorization
 decision. Bootstrap permissions and roles are installed from
-`api/config/bootstrap/rbac/`; MongoDB holds runtime assignments.
+`api/bootstrap/catalogs/rbac/`; MongoDB holds runtime assignments.
 
 System-managed identity definitions are protected by their resource policies.
 Password changes, session state and user preferences use their dedicated operations.
@@ -408,11 +423,11 @@ Run commands from the repository root with the development dependencies installe
 ```bash
 # Backend tests and coverage
 PYTHONPATH=. .venv/bin/python -m pytest -q tests/unit tests/api tests/integration \
-  --cov=api --cov-config=.coveragerc --cov-report=term-missing
+  --cov=api --cov=coyote3 --cov-config=.coveragerc --cov-report=term-missing
 
 # Python lint, formatting and configured type-check scope
-PYTHONPATH=. .venv/bin/python -m ruff check api tests scripts
-PYTHONPATH=. .venv/bin/python -m ruff format --check api tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff check src api tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff format --check src api tests scripts
 PYTHONPATH=. .venv/bin/python -m mypy
 
 # Frontend verification

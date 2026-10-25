@@ -7,18 +7,18 @@ from types import SimpleNamespace
 
 import pytest
 
-import api.application.ingest.helpers as ingest_helpers
-import api.application.ingest.parsers as ingest_parsers
-import api.application.ingest.sample_updates as sample_updates
-import api.application.ingest.service as ingest
-from api.application.common.release_resources import capture_assay_resource
-from api.contracts.schemas.rna import FusionsDoc
-from api.domain.core.dna.transcript_payloads import (
+import coyote3.application.ingest.helpers as ingest_helpers
+import coyote3.application.ingest.parsers as ingest_parsers
+import coyote3.application.ingest.sample_updates as sample_updates
+import coyote3.application.ingest.service as ingest
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
+from coyote3.application.common.release_resources import capture_assay_resource
+from coyote3.contracts.schemas.rna import FusionsDoc
+from coyote3.domain.dna.transcript_payloads import (
     annotate_transcript_provenance,
     compact_selected_csq,
     feature_without_version,
 )
-from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 
 
 class _Col:
@@ -218,8 +218,12 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
         )
         if panel is not None:
             configuration["assay_resource_release"] = capture_assay_resource(panel)
-    monkeypatch.setattr(ingest, "_provider_sample_id", lambda sample_id: sample_id)
-    monkeypatch.setattr(ingest, "_new_sample_id", lambda: new_sample_id)
+    monkeypatch.setattr(
+        IngestCollectionGateway, "provider_sample_id", staticmethod(lambda sample_id: sample_id)
+    )
+    monkeypatch.setattr(
+        IngestCollectionGateway, "new_sample_id", staticmethod(lambda: new_sample_id)
+    )
     monkeypatch.setattr(
         IngestCollectionGateway, "run_transaction", lambda self, operation: operation(None)
     )
@@ -931,8 +935,8 @@ def test_aspc_enabled_analysis_does_not_add_asp_file_requirements(tmp_path, monk
     "score,expected", [(3.4, "3.4"), (0, "0"), (12, "12"), ("3.40", "3.40"), (None, None)]
 )
 def test_ingest_normalizes_cadd_score_for_selected_csq(score, expected):
-    from api.contracts.schemas.dna import VariantCsqDoc
-    from api.domain.core.dna.transcript_payloads import compact_selected_csq
+    from coyote3.contracts.schemas.dna import VariantCsqDoc
+    from coyote3.domain.dna.transcript_payloads import compact_selected_csq
 
     transcripts = ingest_parsers._parse_transcripts(
         [{"Feature": "ENST_SYNTHETIC", "CADD_PHRED": score}]
@@ -1057,7 +1061,7 @@ def test_upload_preflight_runs_before_archive_and_file_policy(tmp_path):
 
     from fastapi import UploadFile
 
-    from api.application.ingest.upload_bundle import prepare_uploaded_bundle
+    from coyote3.application.ingest.upload_bundle import prepare_uploaded_bundle
 
     def reject(payload):
         assert payload["name"] == "CASE"
@@ -1190,7 +1194,7 @@ def test_normalize_historical_transloc_doc():
 
 
 def test_normalize_translocation_preserves_missing_ur_and_qual():
-    from api.application.ingest.parsers import _normalize_transloc_doc
+    from coyote3.application.ingest.parsers import _normalize_transloc_doc
 
     out = _normalize_transloc_doc(
         {
@@ -1450,7 +1454,7 @@ def test_write_and_ingest_dependents(monkeypatch):
     service = _use_store(monkeypatch, stub)
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
     monkeypatch.setattr(
-        "api.application.ingest.dependent_writes.ensure_variant_identity_fields",
+        "coyote3.application.ingest.dependent_writes.ensure_variant_identity_fields",
         lambda doc: {**doc, "simple_id_hash": "ok"},
     )
 

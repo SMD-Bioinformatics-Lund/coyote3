@@ -7,7 +7,7 @@ from bson import BSON, json_util
 from bson.codec_options import CodecOptions
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.infra.mongo.transactions import run_transaction
 
 GENESIS_HASH = "0" * 64

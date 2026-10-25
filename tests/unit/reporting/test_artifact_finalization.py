@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting.artifact_finalization import (
+from coyote3.application.reporting.artifact_finalization import (
     finalize_artifacts,
     finalize_pending_reports,
 )

@@ -22,6 +22,7 @@ import { downloadBlob } from "@/lib/browser-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { apiPath } from "@/lib/runtime-paths"
 import { AnalysisTableCard } from "./AnalysisTableCard"
+import { TryNewReport } from "./TryNewReport"
 import "@/styles/report-workspace.css"
 
 export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId: string; reportType?: ReportType }) {
@@ -29,6 +30,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   const [selectedReportType, setSelectedReportType] = useState<ReportType>("dna")
   const [includeSnapshot, setIncludeSnapshot] = useState(true)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [tryingNewReport, setTryingNewReport] = useState(false)
   const reportType = fixedReportType ?? selectedReportType
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -115,6 +117,8 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   const sampleName = data?.sample?.name || sampleId
   const ruleSource = data?.report?.context?.clinical_rule_evaluation?.source
 
+  if (tryingNewReport) return <TryNewReport sampleId={sampleId} reportType={reportType} onClose={() => setTryingNewReport(false)} />
+
   return (
     <AnalysisTableCard className="report-workspace">
       <header className="report-toolbar">
@@ -126,6 +130,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
           </div>
         </div>
         <div className="report-actions">
+            <Button variant="outline" onClick={() => setTryingNewReport(true)}>Try new report</Button>
             <span className="report-ready type-meta">
               {isLoading ? <Activity className="size-3 animate-spin" /> : hasRenderedHtml
                 ? <CheckCircle2 className="size-3 text-pass" /> : <AlertTriangle className="size-3 text-warn" />}

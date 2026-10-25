@@ -5,12 +5,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.ingest.collection_writes import (
+from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
+from coyote3.application.ingest.collection_writes import (
     attribute_sample_import,
     upsert_collection_document,
 )
-from api.application.ingest.jobs import sample_entry_source
-from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
+from coyote3.application.ingest.jobs import sample_entry_source
 from scripts.upgrade_from_v3.backfill_sample_ingest_provenance import plan_backfill
 
 
@@ -45,7 +45,7 @@ def test_sample_replacement_preserves_initial_attribution(monkeypatch, existing)
         matched_count=1, modified_count=1, upserted_id=None
     )
     monkeypatch.setattr(
-        "api.application.ingest.collection_writes.normalize_collection_document",
+        "coyote3.application.ingest.collection_writes.normalize_collection_document",
         lambda name, document: document,
     )
     upsert_collection_document(

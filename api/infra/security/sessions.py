@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from api.config.constants import DEFAULT_AUTH_PROVIDER
 from api.security.tokens import issue_opaque_token, token_hash
+from coyote3.config.constants import DEFAULT_AUTH_PROVIDER
 
 
 @dataclass(frozen=True, slots=True)

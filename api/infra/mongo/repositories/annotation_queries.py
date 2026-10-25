@@ -9,22 +9,19 @@ from api.infra.mongo.repository_utils import literal_text_query
 
 
 def annotation_visibility_query(environment: str | None) -> dict[str, Any]:
-    """Restrict reusable interpretations to clinical records and the selected sandbox lane.
+    """Select namespaces permitted by the sample environment.
 
     Args:
         environment: Sample environment; production or None permits clinical records only.
 
     Returns:
-        MongoDB predicate preventing cross-environment sandbox reuse.
+        Production reads clinical records; nonproduction reads both namespaces.
     """
     if environment in (None, "production"):
         return {"namespace": "clinical"}
-    return {
-        "$or": [
-            {"namespace": "clinical"},
-            {"namespace": "sandbox", "resource_context.environment": environment},
-        ]
-    }
+    if environment not in {"development", "testing", "validation"}:
+        raise ValueError("Unrecognized annotation lookup environment")
+    return {"namespace": {"$in": ["clinical", "sandboxed"]}}
 
 
 def _annotation_object_id(oid: object) -> ObjectId | None:
@@ -86,7 +83,7 @@ def _annotation_search_query(
     elif mode == "author":
         query = {"author": contains}
     elif mode == "diagnosis":
-        query = {"diagnosis": diagnosis_exact}
+        query = {"diagnosis_id": diagnosis_exact}
     elif mode == "annotation":
         query = {"text": contains}
     elif mode == "all":
@@ -95,7 +92,7 @@ def _annotation_search_query(
                 {"gene": gene_exact},
                 {"transcript": exact},
                 {"author": contains},
-                {"diagnosis": diagnosis_exact},
+                {"diagnosis_id": diagnosis_exact},
                 {"text": contains},
                 {"gene1": gene_exact},
                 {"gene2": gene_exact},
@@ -110,7 +107,7 @@ def _annotation_search_query(
         query_parts.append({"$or": [{"text": {"$exists": False}}, {"text": None}, {"text": ""}]})
 
     if asp_ids:
-        query_parts.append({"assay": {"$in": asp_ids}})
+        query_parts.append({"asp_group": {"$in": asp_ids}})
     if nomenclatures:
         query_parts.append({"nomenclature": {"$in": nomenclatures}})
 
@@ -159,11 +156,17 @@ def _classification_text_lookup_query(annotation: dict[str, Any]) -> dict[str, A
         "text": {"$exists": True, "$type": "string", "$ne": ""},
     }
 
-    for key in ("gene", "gene1", "gene2", "transcript", "assay", "diagnosis", "namespace"):
+    for key in (
+        "gene",
+        "gene1",
+        "gene2",
+        "transcript",
+        "asp_group",
+        "diagnosis_id",
+        "asp_id",
+        "namespace",
+    ):
         if annotation.get(key) is not None:
             query[key] = annotation.get(key)
-    if annotation.get("resource_context"):
-        for key in ("assay_id", "environment"):
-            query[f"resource_context.{key}"] = annotation["resource_context"].get(key)
 
     return query

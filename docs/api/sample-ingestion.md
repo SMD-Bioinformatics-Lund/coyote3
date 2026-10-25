@@ -594,10 +594,10 @@ Behavior:
 
 Seed source policy for a new deployment:
 
-- The application-owned RBAC catalog is `api/config/bootstrap/rbac`. It installs
+- The application-owned RBAC catalog is `api/bootstrap/catalogs/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
   direct bootstrap or explicit catalog synchronization.
-- `api/config/bootstrap/demo_center` provides synthetic ASP, ASPC, and ISGL
+- `api/bootstrap/catalogs/demo_center` provides synthetic ASP, ASPC, and ISGL
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
 - HGNC and VEP metadata are bundled release snapshots. The optional
@@ -617,8 +617,8 @@ Validate assay consistency before ingesting sample bundles:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/config/bootstrap/demo_center \
-  --yaml demo_data/ingest/generic_case_control.yaml
+  --seed-file api/bootstrap/catalogs/demo_center \
+  --yaml tests/fixtures/ingest/generic_case_control.yaml
 ```
 
 This validator checks:
@@ -738,7 +738,7 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   "yaml_content": $(${PYTHON_BIN:-python} - <<'PY'
 import json
 from pathlib import Path
-print(json.dumps(Path("demo_data/ingest/generic_case_control.yaml").read_text(encoding="utf-8")))
+print(json.dumps(Path("tests/fixtures/ingest/generic_case_control.yaml").read_text(encoding="utf-8")))
 PY
   ),
   "update_existing": false
@@ -756,14 +756,14 @@ Command (multipart upload mode):
 
 ```bash
 zip -j sample_bundle.zip \
-  demo_data/ingest/generic_case_control.final.filtered.vcf \
-  demo_data/ingest/generic_case_control.cnvs.merged.json \
-  demo_data/ingest/generic_case_control.cov.json \
-  demo_data/ingest/generic_case_control.modeled.png
+  tests/fixtures/ingest/generic_case_control.final.filtered.vcf \
+  tests/fixtures/ingest/generic_case_control.cnvs.merged.json \
+  tests/fixtures/ingest/generic_case_control.cov.json \
+  tests/fixtures/ingest/generic_case_control.modeled.png
 
 curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  -F "yaml_file=@demo_data/ingest/generic_case_control.yaml;type=text/yaml" \
+  -F "yaml_file=@tests/fixtures/ingest/generic_case_control.yaml;type=text/yaml" \
   -F "data_archive=@sample_bundle.zip;type=application/zip" \
   -F "increment=true" \
   -F "update_existing=false"
@@ -874,7 +874,7 @@ Use this as the minimum deployment contract:
 
 Managed-admin form source:
 
-- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`api/contracts/managed_ui_schemas.py`).
+- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`src/coyote3/contracts/authoring/forms.py`).
 - ASP, ASPC, and ISGL start at `version: 1`. Each edit writes a successor
   document with the same business identifier and the next version, then retires
   the previous active revision. Users, roles, and permissions instead update in
@@ -986,8 +986,8 @@ belong to [administration](../administration/administration-guide.md).
 
 ## Test fixtures for ingestion
 
-- `demo_data/ingest/*`
-- `demo_data/collections/all_collections_dummy` (automated tests only; not a deployment seed)
+- `tests/fixtures/ingest/*`
+- `tests/fixtures/collections/all_collections_dummy` (automated tests only; not a deployment seed)
 
 ## Client example (Python)
 
@@ -1001,7 +1001,7 @@ base = os.environ["PUBLIC_BASE_URL"].rstrip("/")
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {
-    "yaml_content": Path("demo_data/ingest/generic_case_control.yaml").read_text(),
+    "yaml_content": Path("tests/fixtures/ingest/generic_case_control.yaml").read_text(),
     "update_existing": False,
     "increment": False,
 }

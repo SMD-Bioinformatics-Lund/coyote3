@@ -5,13 +5,14 @@ from __future__ import annotations
 import pytest
 
 from api.app.container import store
-from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
-from api.application.sample import coverage as coverage_service_module
-from api.application.sample.coverage import CoverageService
-from api.contracts.coverage import CoverageSamplePayload
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical.dna import coverage
+from api.interfaces.http.v1.clinical.dna import coverage
 from api.security.access import ApiUser
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.application.sample import coverage as coverage_service_module
+from coyote3.application.sample.coverage import CoverageService
+from coyote3.contracts.coverage import CoverageSamplePayload
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -70,7 +71,7 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     requested_diagnoses: list[str] = []
     requested_gene_scopes: list[list[str]] = []
 
-    monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.assay_configuration_repository,
         "get_aspc_no_meta",
@@ -116,7 +117,10 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     monkeypatch.setattr(coverage.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = coverage.coverage_sample_read(
-        "S1", cov_cutoff=500, user=fx.api_user(), service=service
+        "S1",
+        cov_cutoff=500,
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(service, fx.api_user()),
     )
 
     assert payload["cov_cutoff"] == 500
@@ -137,7 +141,9 @@ def test_coverage_blacklisted_read_denies_non_member_group():
     user.asp_groups = ["rna"]
 
     with pytest.raises(AppError) as exc:
-        coverage.coverage_blacklisted_read("dna", user=user, service=_coverage_service())
+        coverage.coverage_blacklisted_read(
+            "dna", user=user, service=sdk_fixtures.coverage_operations(_coverage_service(), user)
+        )
 
     assert exc.value.status_code == 403
     assert "outside your scope" in exc.value.detail["error"]
@@ -183,7 +189,7 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
     sample["_id"] = "S1"
 
     service = _coverage_service()
-    monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.assay_configuration_repository,
         "get_aspc_no_meta",
@@ -230,7 +236,7 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
         "S1",
         cov_cutoff=500,
         user=_route_test_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, _route_test_user()),
     )
     CoverageSamplePayload.model_validate(body)
     assert isinstance(body["cov_table"], dict)

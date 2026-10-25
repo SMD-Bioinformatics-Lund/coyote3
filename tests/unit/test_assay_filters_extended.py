@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from api.domain.common import assay_filters
-from api.domain.common.assay_filters import get_case_and_control_sample_ids
+from coyote3.domain.common import assay_filters
+from coyote3.domain.common.assay_filters import get_case_and_control_sample_ids
 
 
 def test_filter_gene_list_normalization() -> None:

@@ -1,0 +1,223 @@
+"""Service-level DNA translocation query builders."""
+
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from coyote3.config.clinical_query_policy import (
+    CLINICAL_QUERY_POLICY,
+    FindingQueryException,
+    FindingQueryPolicy,
+)
+from coyote3.domain.selection import (
+    Operator,
+    RecordField,
+    Selection,
+    select,
+)
+
+
+def _gene_token_clause(gene: str) -> Selection:
+    """Build a case-insensitive exact gene-token predicate for structural annotations.
+
+    Args:
+        gene: Literal gene symbol to match within ampersand-delimited gene names.
+
+    Returns:
+        An OR predicate over INFO.MANE_ANN.Gene_Name and INFO.ANN.Gene_Name,
+        with regex metacharacters in the gene escaped.
+    """
+    token = re.escape(gene)
+    predicate = {Operator.PATTERN: rf"(?:^|&){token}(?:&|$)", Operator.PATTERN_OPTIONS: "i"}
+    return select(
+        {
+            Operator.ANY: [
+                {"INFO.MANE_ANN.Gene_Name": predicate},
+                {"INFO.ANN.Gene_Name": predicate},
+            ]
+        }
+    )
+
+
+def _translocation_exception_clause(
+    exception: FindingQueryException, filter_values: dict[str, Any] | None = None
+) -> Selection:
+    """Translate translocation exception criteria into stored-field predicates.
+
+    Args:
+        exception: Validated policy exception with chromosome, SV type, gene,
+            and/or gene-pair criteria.
+        filter_values: Prepared sample settings for reference operands, or None
+            when the condition contains only literal values.
+
+    Returns:
+        The sole predicate or an AND of predicates. Gene pairs include both
+        orientations; entries without the double-hyphen separator are ignored.
+    """
+    criteria = exception.criteria
+    clauses: list[Any] = []
+    if criteria.get("condition") is not None:
+        from coyote3.domain.query_conditions import compile_condition
+
+        clauses.append(
+            compile_condition(criteria["condition"], "translocation", filter_values=filter_values)
+        )
+    if criteria.get("chromosomes"):
+        clauses.append({"CHROM": {Operator.IN: list(criteria["chromosomes"])}})
+    if criteria.get("svtypes"):
+        clauses.append({"INFO.SVTYPE": {Operator.IN: list(criteria["svtypes"])}})
+    if criteria.get("genes"):
+        clauses.append({Operator.ANY: [_gene_token_clause(gene) for gene in criteria["genes"]]})
+    if criteria.get("gene_pairs"):
+        pairs: list[str] = []
+        for value in criteria["gene_pairs"]:
+            gene1, separator, gene2 = str(value).partition("--")
+            if separator:
+                pairs.extend((f"{gene1}&{gene2}", f"{gene2}&{gene1}"))
+        clauses.append(
+            {
+                Operator.ANY: [
+                    {"INFO.MANE_ANN.Gene_Name": {Operator.IN: pairs}},
+                    {"INFO.ANN.Gene_Name": {Operator.IN: pairs}},
+                ]
+            }
+        )
+    return select(clauses[0] if len(clauses) == 1 else {Operator.ALL: clauses})
+
+
+def build_transloc_query(
+    sample_id: str,
+    settings: dict[str, Any] | None = None,
+    *,
+    policy: FindingQueryPolicy = CLINICAL_QUERY_POLICY.translocation,
+) -> Selection:
+    """Build translocation query for a sample."""
+    settings = settings or {}
+    scope = {
+        "assay_group": str(settings.get("assay_group") or "").strip().lower(),
+        "asp_id": str(settings.get("asp_id") or "").strip().lower(),
+        "diagnosis_id": str(settings.get("diagnosis_id") or "base").strip().lower(),
+        "intent": str(settings.get("intent") or "somatic").strip().lower(),
+    }
+    exclusions = [
+        _translocation_exception_clause(exception, settings)
+        for exception in policy.exceptions_for(**scope, mode="exclude")
+    ]
+    clauses: list[Any] = []
+    if exclusions:
+        clauses.append({Operator.NONE: exclusions})
+    return select({RecordField.SAMPLE: sample_id, **({Operator.ALL: clauses} if clauses else {})})
+
+
+def translocation_genes(translocation: dict[str, Any]) -> list[str]:
+    """Return normalized gene symbols carried by a translocation document."""
+    gene_values: list[str] = []
+    genes = translocation.get("genes")
+    if isinstance(genes, list):
+        for gene in genes:
+            if isinstance(gene, dict):
+                gene_values.append(str(gene.get("gene") or gene.get("symbol") or ""))
+            elif gene:
+                gene_values.append(str(gene))
+    gene_values.extend(
+        str(gene)
+        for gene in (
+            translocation.get("gene1") or translocation.get("GENE1"),
+            translocation.get("gene2") or translocation.get("GENE2"),
+        )
+        if gene
+    )
+
+    info = translocation.get("INFO") or {}
+    if isinstance(info, list):
+        info = next((item for item in info if isinstance(item, dict)), {})
+    if isinstance(info, dict):
+        annotations: list[dict[str, Any]] = []
+        mane = info.get("MANE_ANN")
+        if isinstance(mane, dict):
+            annotations.append(mane)
+        annotations.extend(item for item in (info.get("ANN") or []) if isinstance(item, dict))
+        for annotation in annotations:
+            raw_names = annotation.get("Gene_Name") or annotation.get("SYMBOL") or ""
+            gene_values.extend(str(raw_names).replace("::", "&").split("&"))
+
+    return list(dict.fromkeys(value.strip().upper() for value in gene_values if str(value).strip()))
+
+
+def filter_translocations_by_genes(
+    translocations: list[dict[str, Any]],
+    *,
+    filter_genes: list[str],
+    restricted: bool,
+    settings: dict[str, Any] | None = None,
+    policy: FindingQueryPolicy = CLINICAL_QUERY_POLICY.translocation,
+) -> list[dict[str, Any]]:
+    """Apply gene scope plus typed admissions and exclusions to translocations."""
+    settings = settings or {}
+    scope = {
+        "assay_group": str(settings.get("assay_group") or "").strip().lower(),
+        "asp_id": str(settings.get("asp_id") or "").strip().lower(),
+        "diagnosis_id": str(settings.get("diagnosis_id") or "base").strip().lower(),
+        "intent": str(settings.get("intent") or "somatic").strip().lower(),
+    }
+    admissions = policy.exceptions_for(**scope, mode="admit")
+    exclusions = policy.exceptions_for(**scope, mode="exclude")
+    allowed = {str(gene).strip().upper() for gene in filter_genes if str(gene).strip()}
+
+    def matches_exception(translocation: dict[str, Any], exception: FindingQueryException) -> bool:
+        """Check a translocation against every populated exception criterion.
+
+        Args:
+            translocation: Finding with gene annotations, CHROM, and optional INFO.
+            exception: Policy exception with normalized gene, pair, SV type, or chromosome criteria.
+
+        Returns:
+            True when every populated criterion matches. Gene-pair matching requires
+            exactly two distinct observed genes and ignores their order.
+        """
+        criteria = exception.criteria
+        if criteria.get("condition") is not None:
+            from coyote3.domain.query_conditions import matches_condition
+
+            if not matches_condition(
+                criteria["condition"],
+                "translocation",
+                translocation,
+                filter_values={**settings, "filter_genes": filter_genes},
+            ):
+                return False
+        genes = set(translocation_genes(translocation))
+        if criteria.get("genes") and not genes.intersection(criteria["genes"]):
+            return False
+        if criteria.get("gene_pairs"):
+            pairs = {
+                "--".join(sorted(pair.split("--")))
+                for pair in criteria["gene_pairs"]
+                if "--" in pair
+            }
+            observed = "--".join(sorted(genes)) if len(genes) == 2 else ""
+            if observed not in pairs:
+                return False
+        info = translocation.get("INFO") or {}
+        if isinstance(info, list):
+            info = next((item for item in info if isinstance(item, dict)), {})
+        if criteria.get("svtypes") and str(info.get("SVTYPE") or "").upper() not in set(
+            criteria["svtypes"]
+        ):
+            return False
+        if criteria.get("chromosomes") and str(translocation.get("CHROM") or "").upper() not in set(
+            criteria["chromosomes"]
+        ):
+            return False
+        return True
+
+    result: list[dict[str, Any]] = []
+    for translocation in translocations:
+        genes = set(translocation_genes(translocation))
+        baseline_match = not restricted or bool(allowed & genes)
+        admitted = any(matches_exception(translocation, rule) for rule in admissions)
+        excluded = any(matches_exception(translocation, rule) for rule in exclusions)
+        if (baseline_match or admitted) and not excluded:
+            result.append(translocation)
+    return result

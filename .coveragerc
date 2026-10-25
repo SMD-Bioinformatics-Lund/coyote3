@@ -2,6 +2,7 @@
 branch = True
 source =
     api
+    coyote3
 omit =
     */tests/*
     */__pycache__/*

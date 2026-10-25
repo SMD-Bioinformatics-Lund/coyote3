@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.common.assay_config import get_formatted_assay_config
-from api.application.common.assay_context import build_assay_context
-from api.application.common.release_resources import capture_assay_resource
-from api.domain.core.exceptions import AppError
+from coyote3.application.common.assay_config import get_formatted_assay_config
+from coyote3.application.common.assay_context import build_assay_context
+from coyote3.application.common.release_resources import capture_assay_resource
+from coyote3.domain.exceptions import AppError
 
 
 def _repos(

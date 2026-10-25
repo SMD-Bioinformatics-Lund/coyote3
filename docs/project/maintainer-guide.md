@@ -43,7 +43,7 @@ explains where each responsibility belongs.
 ## Local verification
 
 ```bash
-PYTHONPATH=. ruff check api tests scripts
+PYTHONPATH=. ruff check src api tests scripts
 PYTHONPATH=. pytest -q
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 npm --prefix frontend run lint

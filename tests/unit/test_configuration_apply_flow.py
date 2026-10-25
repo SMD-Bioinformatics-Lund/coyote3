@@ -6,10 +6,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.common.assay_context import build_assay_context
-from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
-from api.application.sample.catalog import SampleCatalogService
-from api.domain.core.exceptions import AppError
+from coyote3.application.common.assay_context import build_assay_context
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.application.sample.catalog import SampleCatalogService
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture

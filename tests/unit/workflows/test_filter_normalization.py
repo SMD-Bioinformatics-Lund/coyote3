@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.domain.core.workflows import filter_normalization as norm
+from coyote3.domain.filtering import normalization as norm
 
 
 def test_coerce_nonnegative_int_handles_valid_invalid_and_negative_values():

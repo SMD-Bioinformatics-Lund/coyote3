@@ -55,6 +55,23 @@ cryptographically proven history. Do not rewrite existing events to hide this bo
 
 ## Runtime changes
 
+- Query policies and clinical reporting rules now resolve current published scopes
+  for subsequent requests, independently of the sample's ASPC revision. Before
+  rollout, review the active publications for every deployed scope: current rules
+  may differ from historical ASPC captures. New ASPC writes exclude rule captures;
+  retained historical fields are ignored and need no destructive migration. Saved
+  reports and their original receipts are preserved. A rule publication after a
+  report preview requires reviewing a fresh preview before saving.
+
+- Application identity comes from `release.toml`; SDK identity comes from
+  `pyproject.toml`. Retain the selected SDK wheel and its SHA-256 release record.
+  See [versions and compatibility](../sdk/compatibility.md). Existing development
+  installations must reinstall the library after this layout change.
+- Center examples now live in `config/examples/center/`. Keep deployed center
+  directories external and update any explicit paths pointing into the old SDK
+  or `api/config/center/` location. API and workers select the same profile before
+  importing vocabulary-dependent contracts; changing profiles requires restart.
+
 - Deploy matching API/frontend images and both workers, beat and monitor. The
   ingest worker consumes `ingest`; `maintenance-worker` consumes `default` for
   audit replay, notifications and maintenance. Stop older combined-queue workers.

@@ -6,15 +6,8 @@ from typing import Any
 
 from werkzeug.security import generate_password_hash
 
-from api.app.runtime_state import current_username
 from api.app.utilities import serialization
-from api.application.interpretation.report_summary import get_tier_classification
-from api.domain.common import assay_filters as domain_assay_filters
-from api.domain.common.reporting import utc_now
-from api.domain.core.annotation_identity import (
-    annotation_context_fields,
-    annotation_identity_fields,
-)
+from coyote3.domain.common import assay_filters as domain_assay_filters
 
 
 class CommonUtility:
@@ -101,72 +94,6 @@ class CommonUtility:
             falsy identifiers are omitted.
         """
         return domain_assay_filters.get_case_and_control_sample_ids(sample_doc)
-
-    @staticmethod
-    def create_classified_variant_doc(
-        variant: str,
-        nomenclature: str,
-        class_num: int,
-        variant_data: dict,
-        **kwargs,
-    ) -> Any:
-        """Build a classification or annotation dictionary without inserting it.
-
-        Args:
-            variant: Primary display identity for the finding.
-            nomenclature: Identity category, normally p, c, g, cn, f, or t; passed
-                to the canonical context and identity helpers without validation here.
-            class_num: Classification stored as class only when text is not supplied.
-            variant_data: Source for assay_group, diagnosis, and nomenclature-specific
-                gene, transcript, and alternate identity fields. Missing assay_group
-                and diagnosis values become None.
-            **kwargs: Only text is used. Its presence, even with None or an empty
-                value, stores text instead of class; other keywords are ignored.
-
-        Returns:
-            A new dictionary with current request author (falling back to "api"),
-            timezone-aware UTC creation time, and canonical context/identity fields.
-            The input is not mutated and no database write is performed.
-        """
-        document = {
-            "author": current_username(),
-            "time_created": utc_now(),
-            "variant": variant,
-            "nomenclature": nomenclature,
-            "assay": variant_data.get("assay_group", None),
-            "diagnosis": variant_data.get("diagnosis", None),
-            "resource_context": variant_data.get("resource_context"),
-        }
-
-        if "text" in kwargs:
-            document["text"] = kwargs["text"]
-        else:
-            document["class"] = class_num
-
-        document.update(annotation_context_fields(nomenclature=nomenclature, source=variant_data))
-
-        document.update(
-            annotation_identity_fields(
-                variant=variant,
-                nomenclature=nomenclature,
-                source=variant_data,
-            )
-        )
-
-        return document
-
-    @staticmethod
-    def get_tier_classification(data: dict) -> int:
-        """Return the highest-numbered tier whose value is not None.
-
-        Args:
-            data: Variant document with optional tier1 through tier4 values.
-                Falsy values such as False, zero, or empty strings still count.
-
-        Returns:
-            The last matching tier number (1-4), or zero when all are absent/null.
-        """
-        return get_tier_classification(data)
 
     @staticmethod
     def get_sample_effective_genes(

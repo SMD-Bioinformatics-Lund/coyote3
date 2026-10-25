@@ -2,8 +2,8 @@
 
 from types import SimpleNamespace
 
-from api.application.sample.catalog import SampleCatalogService
-from api.config.constants import DEFAULT_ENVIRONMENT
+from coyote3.application.sample.catalog import SampleCatalogService
+from coyote3.config.constants import DEFAULT_ENVIRONMENT
 
 
 def test_navigation_uses_accessible_registry_assays_even_without_samples():

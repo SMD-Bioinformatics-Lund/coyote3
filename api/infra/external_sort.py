@@ -64,6 +64,8 @@ def sorted_page(
         OSError: Temporary storage is unavailable or full. Temporary files are removed
             on both successful and failed requests; no partial page is returned.
     """
+    if end <= SORT_CHUNK_ROWS:
+        return heapq.nsmallest(end, items, key=key)[start:end]
     with TemporaryDirectory(prefix="coyote-table-") as directory:
         root = Path(directory)
         runs = []

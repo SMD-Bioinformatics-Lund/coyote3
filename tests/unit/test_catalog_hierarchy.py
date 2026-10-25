@@ -5,8 +5,8 @@ from copy import deepcopy
 import pytest
 from pydantic import ValidationError
 
-from api.contracts.schemas.public_catalog import PublicCatalogModalityDoc
-from api.domain.catalog_hierarchy import resolve_catalog_categories
+from coyote3.contracts.schemas.public_catalog import PublicCatalogModalityDoc
+from coyote3.domain.catalog_hierarchy import resolve_catalog_categories
 
 
 def test_nearest_parent_inheritance_preserves_local_identity_and_explicit_empty():

@@ -83,7 +83,8 @@ not copies of assay documents. Effective scope depends on selected lists and
 the selected assay's validated gene coverage.
 
 Samples pin exact configuration revisions with native ObjectIds. Configurations
-capture assay, gene-list, query-policy and report-rule releases. MPN panel and
+capture assay resources and gene lists. Query policies and report rules resolve
+independently from current published scopes. MPN panel and
 WGS reporting rules have distinct assay scopes. Classification reuse and report
 eligibility follow the annotation context, not a shared gene-list name.
 
@@ -156,7 +157,7 @@ including its configured prefix and port. Then upload one sample first:
 ```
 
 After its terminal success acknowledgement, ingest the remaining manifests in the
-same way. Do not send files under `negative/` in the normal batch. All resource
+same way. Do not send files under `tests/fixtures/clinical_workflows/negative/` in the normal batch. All resource
 paths resolve relative to each manifest. The manifest format and raw field
 contracts are documented in [Sample manifest](../reference/sample-manifest.md)
 and [Raw ingest formats](../reference/ingest-files/README.md).
@@ -175,14 +176,14 @@ and [Raw ingest formats](../reference/ingest-files/README.md).
 | `DEMO_GROUP_RNA` | `solid` group WTS sample with fusions, expression, classification and QC. |
 
 Inspect the data-status tooltip, sample metadata, selected transcript and annotation
-vault. Compare shapes with `expected/after_ingest/`, allowing for real IDs, times,
+vault. Compare shapes with `tests/fixtures/clinical_workflows/expected/after_ingest/`, allowing for real IDs, times,
 paths and HGNC-dependent transcript provenance. The CNV profile PNG is a placeholder
 for file handling and display, not a computed profile. The PGX object exercises the
 current flexible data contract, not a validated diplotype interpretation pipeline.
 
 ## 5. Verify query rules and filters
 
-Use `scenarios/variants.json` to locate each finding by its exact `simple_id`.
+Use `tests/fixtures/clinical_workflows/scenarios/variants.json` to locate each finding by its exact `simple_id`.
 VCF IDs are human-readable labels; the application uses its derived finding identity.
 With no selected diagnosis list, the base filters admit six ordinary records: `baseline_pass`, the three
 `tier*_candidate` records, `depth_boundary` and `alt_reads_boundary`.
@@ -231,7 +232,7 @@ selection hierarchy.
 
 ### Query authoring and inheritance
 
-`scenarios/query_drafts.json` contains validated request examples. Use the `request`
+`tests/fixtures/clinical_workflows/scenarios/query_drafts.json` contains validated request examples. Use the `request`
 object for authoring; `scenario` is a fixture label, not an API field. Test one
 alternative at a time against the matching sample:
 
@@ -262,7 +263,7 @@ nomenclature for this exercise so the synthetic HGVS labels cannot accidentally
 share a protein-level annotation. Add a sample comment and a finding comment,
 hide a second comment, and verify author/time/hiding metadata and scope.
 
-`expected/after_review/` illustrates those document contracts using the parsed
+`tests/fixtures/clinical_workflows/expected/after_review/` illustrates those document contracts using the parsed
 finding identities. Classification annotations are group/diagnosis scoped and can
 be shared by matching findings in other samples. Finding comments remain
 sample-specific. The example annotations for the full and missing-result myeloid
@@ -284,7 +285,7 @@ tier-4 NFKBIE candidate receives none. Present CNV, translocation, HRD, MSI and 
 evidence enables its corresponding synthetic section. The missing-result sample
 has no HRD/MSI/TMB section. RNA rules produce a synthetic fusion summary.
 
-`expected/report_previews.json` contains real engine output for these constructed
+`tests/fixtures/clinical_workflows/expected/report_previews.json` contains real engine output for these constructed
 review contexts. It does not prove report preparation selected the same findings;
 verify that through the live preview. Coverage, PGX, RNA expression/classification
 and QC are available for their analysis views but have no custom narrative logic
@@ -298,7 +299,7 @@ saved report, publication approval or audit trail is seeded to bypass this proce
 
 ## 8. Exercise rejected and repeated ingestion
 
-Run the three `negative/` manifests individually after recording the sample count:
+Run the three `tests/fixtures/clinical_workflows/negative/` manifests individually after recording the sample count:
 
 | Manifest | Expected rejection |
 | --- | --- |

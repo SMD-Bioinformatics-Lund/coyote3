@@ -6,13 +6,13 @@ from typing import Any
 
 from bson import ObjectId
 
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
 from api.contracts.deployment_data import DeploymentDataScope
-from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.knowledgebase_publications import record_reference_publication
 from api.infra.mongo.repositories.query_rule_revisions import build_query_revision
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.common.errors import api_error
 
 DEPLOYMENT_COLLECTIONS = {
     "identity": {"permissions": "permissions_collection", "roles": "roles_collection"},

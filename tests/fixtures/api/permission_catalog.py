@@ -11,7 +11,7 @@ class PermissionCatalog:
         """Return bundled permissions matching the requested activation state."""
         path = (
             Path(__file__).resolve().parents[3]
-            / "api/config/bootstrap/rbac/permissions.seed.ndjson"
+            / "api/bootstrap/catalogs/rbac/permissions.seed.ndjson"
         )
         return [
             document

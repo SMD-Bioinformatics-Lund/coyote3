@@ -2,11 +2,11 @@
 
 import pytest
 
-from api.application.resources.aspc import AspcService
-from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.assay import AssaySpecificPanelsDoc
-from api.domain.core.exceptions import AppError
+from coyote3.application.resources.aspc import AspcService
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import managed_resource_spec
+from coyote3.contracts.schemas.assay import AssaySpecificPanelsDoc
+from coyote3.domain.exceptions import AppError
 
 
 def test_saved_empty_file_selection_does_not_reenable_analyses():

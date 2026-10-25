@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
 
 
 def record_reference_publication(

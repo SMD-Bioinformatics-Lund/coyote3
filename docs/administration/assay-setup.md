@@ -15,10 +15,14 @@ diagnosis and analysis-specific gene-list selections. Selected and ad-hoc genes
 are bounded by assay eligibility for every sequencing family. An empty resolved
 scope selects no findings; there is no unrestricted-scope switch or approval field.
 
-ASPC source-profile receipts, compiled clinical-rule bases, template releases and
+ASPC settings-profile receipts, template releases and
 promotion records are system-managed. Edit filter and reporting settings through
 their structured controls and manage reusable resources through their dedicated
 administration pages.
+
+Query policies and clinical reporting rules resolve from their current published
+scopes. Their publication takes effect on subsequent matching requests without
+creating or applying an ASPC revision. Saved reports retain their original rules.
 
 Configuration scope is fixed at creation: assay, diagnosis and environment cannot
 be edited. Use **Copy as new** to create another scope. Resolution selects the named

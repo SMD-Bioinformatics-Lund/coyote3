@@ -75,7 +75,7 @@ describe("TieredVariantContext", () => {
         reported_on: "2026-08-01T10:00:00Z",
         var_oid: "VAR_OID_1",
       },
-      { sample: { name: "SAMPLE_B" }, annotation: { assay: "solid_gmsv3" }, tier: 2, hgvsc: "c.524G>A" },
+      { sample: { name: "SAMPLE_B" }, annotation: { asp_id: "solid_gmsv3" }, tier: 2, hgvsc: "c.524G>A" },
     ]
     mocks.get.mockResolvedValue({ data: {
       tier: 2,

@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from api.config.constants import ALL_SAMPLE_FILE_KEYS, DIAGNOSIS_BASE_ID, normalize_environment
+from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS, DIAGNOSIS_BASE_ID, normalize_environment
 
 
 def _normalize_permission_id(permission_id) -> str:

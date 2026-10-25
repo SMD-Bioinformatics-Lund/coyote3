@@ -4,8 +4,8 @@ import base64
 import hashlib
 from pathlib import Path
 
-from api.config.loaders.collections import load_collection_section
-from api.contracts.schemas.variant_annotations import (
+from api.config.collections import load_collection_section
+from coyote3.contracts.schemas.variant_annotations import (
     VepDiagramAssetDoc,
 )
 

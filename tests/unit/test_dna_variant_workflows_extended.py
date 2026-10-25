@@ -6,16 +6,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.dna.variant_analysis import DnaService
-from api.application.dna.variant_state import (
+from coyote3.application.dna.variant_analysis import DnaService
+from coyote3.application.dna.variant_state import (
     blacklist_variant,
-    coerce_bool,
     require_variant_for_sample,
     set_variant_bulk_flag,
     set_variant_comment_hidden,
 )
-from api.contracts.operations import OperationResult
-from api.domain.core.exceptions import AppError
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.common.coercion import coerce_bool
+from coyote3.domain.exceptions import AppError
 
 
 class Recorder:
@@ -58,21 +58,21 @@ def _variant(variant_id: str, *, sample_id: str = "sample-1", **csq) -> dict:
 
 def test_variant_state_load_require_and_repository_delegates(monkeypatch) -> None:
     monkeypatch.setattr(
-        "api.application.dna.variant_analysis.build_cnv_query",
+        "coyote3.application.dna.variant_analysis.build_cnv_query",
         lambda sample_id, **kwargs: {"sample": sample_id, **kwargs},
     )
     monkeypatch.setattr(
-        "api.application.dna.variant_analysis.include_normal_cnvs", lambda sample: True
+        "coyote3.application.dna.variant_analysis.include_normal_cnvs", lambda sample: True
     )
     monkeypatch.setattr(
-        "api.application.dna.variant_analysis.create_cnveffectlist", lambda values: ["gain"]
+        "coyote3.application.dna.variant_analysis.create_cnveffectlist", lambda values: ["gain"]
     )
     monkeypatch.setattr(
-        "api.application.dna.variant_analysis.cnvtype_variant",
+        "coyote3.application.dna.variant_analysis.cnvtype_variant",
         lambda rows, effects: [{**rows[0], "effects": effects}],
     )
     monkeypatch.setattr(
-        "api.application.dna.variant_analysis.cnv_organizegenes",
+        "coyote3.application.dna.variant_analysis.cnv_organizegenes",
         lambda rows: [{**rows[0], "organized": True}],
     )
     variants = Recorder(get_variant=lambda variant_id: _variant(variant_id))

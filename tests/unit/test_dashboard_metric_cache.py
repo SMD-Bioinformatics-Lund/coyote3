@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from api.infra.dashboard_metric_cache import (
+from coyote3.application.dashboard.cache import (
     DashboardMetricCache,
     invalidate_dashboard_metrics,
 )

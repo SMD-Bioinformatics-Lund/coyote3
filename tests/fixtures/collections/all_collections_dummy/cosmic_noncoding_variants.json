@@ -1,0 +1,13 @@
+[
+  {
+    "id": "COSV-DEMO-NONCODING",
+    "chr": "17",
+    "start": 1000,
+    "end": 1000,
+    "cnt": {"samples": 1},
+    "record_key": "demo-cosmic-noncoding",
+    "source_row": 1,
+    "ref": "A",
+    "alt": "G"
+  }
+]

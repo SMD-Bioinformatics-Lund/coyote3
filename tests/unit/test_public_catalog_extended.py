@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.public.catalog import PublicCatalogService
+from coyote3.application.public.catalog import PublicCatalogService
 
 
 class _AspRepository:

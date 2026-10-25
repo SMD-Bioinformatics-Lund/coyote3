@@ -20,8 +20,8 @@ from pymongo.uri_parser import parse_uri
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS  # noqa: E402
 from scripts.migration_common.offline import digest, read_json  # noqa: E402
 from scripts.migration_common.run_report import write_report  # noqa: E402
 from scripts.migration_common.target_catalog import (  # noqa: E402

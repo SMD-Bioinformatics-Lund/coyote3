@@ -115,7 +115,16 @@ export function QueryRulesPage() {
       if (!selected) throw new Error("Select a saved version first")
       return (await api.post<Rule>(`/admin/query-rule-sets/${selected._id}/${action}`, { expected_revision: selected.revision, reason: draft.reason })).data
     },
-    onSuccess: result => { choose(result); void client.invalidateQueries({ queryKey: ["query-rules"] }); notifySuccess("Query policy saved", `${result.name} · ${result.status}`, "Query rules") },
+    onSuccess: result => {
+      choose(result)
+      void client.invalidateQueries({ queryKey: ["query-rules"] })
+      if (result.status === "published" || result.status === "retired") {
+        for (const key of ["sample-variants", "sample-cnvs", "sample-fusions", "sample-translocations", "sample-rna-analysis", "sample-comment-suggestion", "report-preview"]) {
+          void client.invalidateQueries({ queryKey: [key] })
+        }
+      }
+      notifySuccess("Query policy saved", `${result.name} · ${result.status}`, "Query rules")
+    },
     onError: error => notifyActionError("Unable to save query policy", error, "Query rules"),
   })
   const deletion = useMutation({

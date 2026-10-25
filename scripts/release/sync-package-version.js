@@ -2,13 +2,13 @@ var fs = require("fs");
 var path = require("path");
 
 var repoRoot = path.resolve(__dirname, "../..");
-var versionPyPath = path.join(repoRoot, "api", "version.py");
+var releasePath = path.join(repoRoot, "release.toml");
 
-var versionPy = fs.readFileSync(versionPyPath, "utf8");
-var match = versionPy.match(/__version__\s*=\s*"([^"]+)"/);
+var release = fs.readFileSync(releasePath, "utf8");
+var match = release.match(/^application_version\s*=\s*"([^"]+)"/m);
 
 if (!match) {
-  console.error("Could not parse __version__ from api/version.py");
+  console.error("Could not parse application_version from release.toml");
   process.exit(1);
 }
 

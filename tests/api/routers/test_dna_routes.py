@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from types import SimpleNamespace
 
 import pytest
@@ -10,22 +11,33 @@ from starlette.requests import Request
 
 from api.app.container import store
 from api.app.main import app as api_app
-from api.application.common.change_payload import change_payload
-from api.application.dna import variant_analysis as dna_service_module
-from api.application.dna.variant_analysis import DnaService
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical.dna import biomarkers as biomarker_router
-from api.interfaces.http.clinical.dna import classifications as classification_router
-from api.interfaces.http.clinical.dna import small_variants as dna
-from api.interfaces.http.clinical.dna import translocations as translocation_router
+from api.interfaces.http.v1.clinical.dna import biomarkers as biomarker_router
+from api.interfaces.http.v1.clinical.dna import classifications as classification_router
+from api.interfaces.http.v1.clinical.dna import small_variants as dna
+from api.interfaces.http.v1.clinical.dna import translocations as translocation_router
 from api.security import access
 from api.security.access import ApiUser
+from coyote3.application.biomarker.biomarker_lookup import BiomarkerService
+from coyote3.application.classification.tiering import ResourceClassificationService
+from coyote3.application.common.assay_config import get_formatted_assay_config
+from coyote3.application.common.change_payload import change_payload
+from coyote3.application.dna import variant_analysis as dna_service_module
+from coyote3.application.dna.variant_analysis import DnaService
+from coyote3.application.interpretation import report_summary
+from coyote3.domain.dna import dna_variants
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
 def _dna_service() -> DnaService:
     """Build a DNA service for route tests."""
     return DnaService(
+        configuration_resolver=partial(
+            get_formatted_assay_config,
+            assay_panel_repository=store.assay_panel_repository,
+            assay_configuration_repository=store.assay_configuration_repository,
+        ),
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
         variant_repository=store.variant_repository,
@@ -60,16 +72,16 @@ def _dna_service() -> DnaService:
     )
 
 
-def _biomarker_service() -> biomarker_router.BiomarkerService:
+def _biomarker_service() -> BiomarkerService:
     """Build a biomarker service for route tests."""
-    return biomarker_router.BiomarkerService(
+    return BiomarkerService(
         biomarker_repository=store.biomarker_repository,
         assay_panel_repository=store.assay_panel_repository,
         assay_configuration_repository=store.assay_configuration_repository,
     )
 
 
-def _classification_service() -> classification_router.ResourceClassificationService:
+def _classification_service() -> ResourceClassificationService:
     """Build a classification service for route tests."""
     assay_configuration_repository = SimpleNamespace(
         get_aspc_no_meta=lambda assay, profile, diagnosis: {
@@ -92,7 +104,7 @@ def _classification_service() -> classification_router.ResourceClassificationSer
             "version": 1,
         }
     )
-    return classification_router.ResourceClassificationService(
+    return ResourceClassificationService(
         annotation_repository=store.annotation_repository,
         variant_repository=store.variant_repository,
         fusion_repository=store.fusion_repository,
@@ -151,6 +163,11 @@ def test_select_variant_transcript_uses_sample_vep_vault():
 
     variant_repo = _VariantRepo()
     service = DnaService(
+        configuration_resolver=partial(
+            get_formatted_assay_config,
+            assay_panel_repository=store.assay_panel_repository,
+            assay_configuration_repository=store.assay_configuration_repository,
+        ),
         assay_panel_repository=None,
         gene_list_repository=None,
         variant_repository=variant_repo,
@@ -234,11 +251,11 @@ def test_individual_measurement_route_success(monkeypatch, analysis):
     ]
     service = _biomarker_service()
     monkeypatch.setattr(
-        "api.application.biomarker.biomarker_lookup.get_formatted_assay_config",
+        "coyote3.application.biomarker.biomarker_lookup.get_formatted_assay_config",
         lambda *args, **kwargs: {"analysis_types": [analysis]},
     )
 
-    monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         store.biomarker_repository,
         "get_sample_biomarkers",
@@ -249,7 +266,9 @@ def test_individual_measurement_route_success(monkeypatch, analysis):
     )
 
     handler = getattr(biomarker_router, f"list_dna_{analysis.lower()}")
-    payload = handler("S1", user=fx.api_user(), service=service)
+    payload = handler(
+        "S1", user=fx.api_user(), service=sdk_fixtures.sample_operations(service, fx.api_user())
+    )
     assert payload["meta"]["count"] == 1
     field = "MSIS" if analysis == "MSI" else analysis
     assert set(payload[analysis.lower()][0]) == {"name", field}
@@ -257,7 +276,7 @@ def test_individual_measurement_route_success(monkeypatch, analysis):
 
 def test_measurement_routes_are_individual_and_module_gated():
     """No aggregate or dynamic endpoint bypasses the DNA module gate."""
-    from api.config.application_modules import APPLICATION_MODULES
+    from coyote3.config.application_modules import APPLICATION_MODULES
 
     paths = {route.path for route in biomarker_router.router.routes}
     assert paths == {f"/api/v1/samples/{{sample_id}}/{key}" for key in ("hrd", "msi", "tmb")}
@@ -275,11 +294,16 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
         The function result.
     """
     service = _dna_service()
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda var_id: None)
 
     with pytest.raises(AppError) as exc:
-        dna.show_dna_variant("S1", "V404", user=fx.api_user(), service=service)
+        dna.show_dna_variant(
+            "S1",
+            "V404",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+        )
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Variant not found"
@@ -296,14 +320,19 @@ def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
         query_params={},
     )
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(store.assay_panel_repository, "get_asp", lambda assay_name: None)
     monkeypatch.setattr(
         store.assay_configuration_repository, "get_aspc_no_meta", lambda *args: None
     )
 
     with pytest.raises(AppError) as exc:
-        dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
+        dna.list_dna_variants(
+            request=request,
+            sample_id="S1",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+        )
 
     assert exc.value.status_code == 422
     assert "ASPC not registered for assay 'unknown_assay'" in exc.value.detail["error"]
@@ -315,21 +344,21 @@ def test_dna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
     captured = {}
     service = SimpleNamespace(
         list_variants_payload=lambda **kwargs: (
-            captured.update(kwargs) or {"ai_text": "Filtered clinical summary"}
+            captured.update(kwargs) or {"sample": sample, "ai_text": "Filtered clinical summary"}
         )
     )
     request = SimpleNamespace(
         url=SimpleNamespace(path="/api/v1/samples/S1/small-variants/comment-suggestion"),
         query_params={},
     )
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = dna.dna_sample_comment_suggestion(
         request=request,
         sample_id="S1",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
     )
 
     assert captured["paginate"] is False
@@ -353,7 +382,7 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
         query_params={},
     )
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         store.assay_panel_repository,
         "get_asp",
@@ -366,7 +395,12 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     )
 
     with pytest.raises(AppError) as exc:
-        dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
+        dna.list_dna_variants(
+            request=request,
+            sample_id="S1",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+        )
 
     assert exc.value.status_code == 422
     assert (
@@ -398,10 +432,8 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     captured: dict = {"hgvsp": None}
     service = _dna_service()
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(
-        dna.http, "get_formatted_assay_config", lambda _sample: fx.assay_config_doc()
-    )
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    monkeypatch.setattr(service, "configuration_resolver", lambda _sample: fx.assay_config_doc())
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda var_id: variant)
     monkeypatch.setattr(
         store.blacklist_repository,
@@ -420,7 +452,9 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
         "get_latest_transcript_classifications",
         lambda *args, **kwargs: {},
     )
-    monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, diagnosis, **kwargs: var)
+    monkeypatch.setattr(
+        dna_service_module, "add_alt_class", lambda var, assay_group, diagnosis, **kwargs: var
+    )
     monkeypatch.setattr(store.expression_repository, "get_expression_data", lambda transcripts: {})
     monkeypatch.setattr(store.civic_repository, "get_civic_data", lambda variant, desc: {})
     monkeypatch.setattr(store.civic_repository, "get_civic_gene_info", lambda symbol: {})
@@ -447,7 +481,12 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     monkeypatch.setattr(store.assay_panel_repository, "get_asp", lambda **kwargs: {})
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)
+    payload = dna.show_dna_variant(
+        "S1",
+        "v1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+    )
 
     assert payload["variant"]["_id"] == "v1"
     assert captured["hgvsp"] == ["Truncating Mutations"]
@@ -485,16 +524,19 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     }
 
     service = _dna_service()
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(dna.http, "get_formatted_assay_config", lambda _sample: assay_config)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    monkeypatch.setattr(service, "configuration_resolver", lambda _sample: assay_config)
     monkeypatch.setattr(
         store.assay_panel_repository, "get_asp", lambda asp_name: {"asp_name": asp_name}
     )
     monkeypatch.setattr(store.gene_list_repository, "get_isgl_by_ids", lambda ids: {})
     monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda *a, **kw: ([], []))
-    monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values, vep_version=None: [])
+    monkeypatch.setattr(dna_service_module, "get_filter_conseq_terms", lambda *args: [])
     monkeypatch.setattr(
-        dna,
+        store.vep_metadata_repository, "get_consequence_group_map", lambda _version: {}
+    )
+    monkeypatch.setattr(
+        dna_service_module,
         "build_query",
         lambda assay_group, params, **kwargs: {"assay_group": assay_group, **params, **kwargs},
     )
@@ -510,7 +552,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         lambda variants, assay_group: variants,
     )
     monkeypatch.setattr(
-        dna,
+        dna_service_module,
         "add_global_annotations",
         lambda variants, assay_group, diagnosis, annotation_repository=None, **kwargs: (
             variants,
@@ -536,7 +578,12 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
         query_params={},
     )
-    payload = dna.list_dna_variants(req, "S1", user=fx.api_user(), service=service)
+    payload = dna.list_dna_variants(
+        req,
+        "S1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+    )
 
     assert payload["sample"]["name"] == sample["name"]
     assert payload["meta"]["count"] == 0
@@ -559,14 +606,10 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
         lambda identity: {"_id": identity, "SAMPLE_ID": str(fx.sample_doc()["_id"])},
     )
 
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(report_summary, "get_tier_classification", lambda form_data: 3)
     monkeypatch.setattr(
-        classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc()
-    )
-    monkeypatch.setattr(
-        classification_router.util.common, "get_tier_classification", lambda form_data: 3
-    )
-    monkeypatch.setattr(
-        classification_router, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H")
+        dna_variants, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H")
     )
     monkeypatch.setattr(
         store.annotation_repository,
@@ -588,7 +631,7 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
         "S1",
         payload={"id": "V1", "form_data": {"tier3": "on"}},
         user=fx.api_user(),
-        service=_classification_service(),
+        service=sdk_fixtures.sample_operations(_classification_service(), fx.api_user()),
     )
 
     assert payload["status"] == "ok"
@@ -606,7 +649,7 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
         The function result.
     """
     calls: dict = {"mark": None, "unmark": None}
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         store.variant_repository,
         "get_variant",
@@ -625,7 +668,7 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
         resource_ids=["ignored-query-id"],
         payload={"apply": True, "resource_ids": ["V1", "V2"]},
         user=fx.api_user(),
-        service=_dna_service(),
+        service=sdk_fixtures.finding_operations(_dna_service(), "small_variant", fx.api_user()),
     )
 
     assert payload["status"] == "ok"
@@ -646,7 +689,7 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
         The function result.
     """
     calls: dict = {"mark": None, "unmark": None}
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         store.variant_repository,
         "get_variant",
@@ -665,7 +708,7 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
         resource_ids=["ignored-query-id"],
         payload={"apply": False, "resource_ids": ["V9"]},
         user=fx.api_user(),
-        service=_dna_service(),
+        service=sdk_fixtures.finding_operations(_dna_service(), "small_variant", fx.api_user()),
     )
 
     assert payload["status"] == "ok"
@@ -705,12 +748,10 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
         },
     }
 
-    monkeypatch.setattr(
-        classification_router, "_get_sample_for_api", lambda sample_id, user: sample
-    )
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
-        classification_router.util.common,
+        report_summary,
         "create_classified_variant_doc",
         lambda variant, nomenclature, class_num, variant_data, **kwargs: (
             pytest.fail("Classification annotations must not store a source field")
@@ -744,7 +785,7 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
             "tier": 3,
         },
         user=fx.api_user(),
-        service=_classification_service(),
+        service=sdk_fixtures.sample_operations(_classification_service(), fx.api_user()),
     )
 
     assert payload["status"] == "ok"
@@ -752,9 +793,10 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
     assert len(captured["docs"]) == 1
     assert any(doc.get("class") == 3 for doc in captured["docs"])
     assert set(captured["docs"][0]["variant_data"]) == {
-        "resource_context",
-        "assay_group",
-        "diagnosis",
+        "asp_group",
+        "asp_id",
+        "namespace",
+        "diagnosis_id",
         "gene",
         "transcript",
         "hgvsp",
@@ -795,9 +837,7 @@ def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypat
         },
     }
 
-    monkeypatch.setattr(
-        classification_router, "_get_sample_for_api", lambda sample_id, user: sample
-    )
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
         store.annotation_repository,
@@ -824,7 +864,7 @@ def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypat
             "tier": 3,
         },
         user=fx.api_user(),
-        service=_classification_service(),
+        service=sdk_fixtures.sample_operations(_classification_service(), fx.api_user()),
     )
 
     assert payload["status"] == "ok"
@@ -886,9 +926,18 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
     Returns:
         The function result.
     """
+    monkeypatch.setattr(
+        store.variant_repository,
+        "get_variant",
+        lambda identity: {
+            **fx.variant_doc(),
+            "_id": identity,
+            "SAMPLE_ID": str(fx.sample_doc()["_id"]),
+        },
+    )
     captured: dict = {}
     service = _dna_service()
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         service,
         "set_variant_bulk_flag",
@@ -902,7 +951,7 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
         "S1",
         payload={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
         user=_route_test_user(),
-        service=service,
+        service=sdk_fixtures.finding_operations(service, "small_variant", _route_test_user()),
     )
 
     assert payload["status"] == "ok"
@@ -918,9 +967,18 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
     Returns:
         The function result.
     """
+    monkeypatch.setattr(
+        store.variant_repository,
+        "get_variant",
+        lambda identity: {
+            **fx.variant_doc(),
+            "_id": identity,
+            "SAMPLE_ID": str(fx.sample_doc()["_id"]),
+        },
+    )
     captured: dict = {}
     service = _dna_service()
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         service,
         "set_variant_bulk_flag",
@@ -934,7 +992,7 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
         "S1",
         payload={"apply": True, "resource_ids": ["V5"], "resource_type": "small_variant"},
         user=_route_test_user(),
-        service=service,
+        service=sdk_fixtures.finding_operations(service, "small_variant", _route_test_user()),
     )
 
     assert payload["status"] == "ok"
@@ -963,7 +1021,7 @@ def _download_test_user() -> ApiUser:
 def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
     """SNV export context endpoint returns generated CSV content and filename."""
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         DnaService,
         "list_variants_payload",
@@ -1011,7 +1069,9 @@ def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
         request=request,
         sample_id="S1",
         user=_download_test_user(),
-        service=_dna_service(),
+        service=sdk_fixtures.finding_operations(
+            _dna_service(), "small_variant", _download_test_user()
+        ),
     )
     assert body["filename"].endswith(".filtered.snvs.csv")
     assert "hgvsp" in body["content"]
@@ -1021,9 +1081,7 @@ def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
 def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
     """Translocation export context endpoint returns generated CSV content and filename."""
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
-    monkeypatch.setattr(
-        translocation_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc()
-    )
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         DnaService,
         "list_variants_payload",
@@ -1069,7 +1127,9 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
         request=request,
         sample_id="S1",
         user=_download_test_user(),
-        service=_dna_service(),
+        service=sdk_fixtures.finding_operations(
+            _dna_service(), "translocation", _download_test_user()
+        ),
     )
     assert body["filename"].endswith(".filtered.translocs.csv")
     assert "gene_1" in body["content"]
@@ -1078,18 +1138,19 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
 
 def test_override_variant_blacklist_updates_variant(monkeypatch):
     """Override blacklist should update the per-sample variant flag."""
+    monkeypatch.setattr(
+        store.variant_repository,
+        "get_variant",
+        lambda identity: {
+            **fx.variant_doc(),
+            "_id": identity,
+            "SAMPLE_ID": str(fx.sample_doc()["_id"]),
+        },
+    )
     calls: dict[str, object] = {}
     service = _dna_service()
-    monkeypatch.setattr(
-        "api.security.access._get_sample_for_api", lambda sample_id, user: fx.sample_doc()
-    )
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(
-        dna,
-        "_require_variant_for_sample",
-        lambda sample_id, var_id, user, service: (fx.sample_doc(), fx.variant_doc()),
-    )
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         service,
         "set_variant_override_blacklist",
@@ -1097,7 +1158,12 @@ def test_override_variant_blacklist_updates_variant(monkeypatch):
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.override_variant_blacklist("S1", "v1", user=fx.api_user(), service=service)
+    payload = dna.override_variant_blacklist(
+        "S1",
+        "v1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+    )
 
     assert calls == {"var_id": "v1", "override": True}
     assert payload["action"] == "override_blacklist"
@@ -1105,18 +1171,19 @@ def test_override_variant_blacklist_updates_variant(monkeypatch):
 
 def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
     """Removing a blacklist override should restore the default blacklist behavior."""
+    monkeypatch.setattr(
+        store.variant_repository,
+        "get_variant",
+        lambda identity: {
+            **fx.variant_doc(),
+            "_id": identity,
+            "SAMPLE_ID": str(fx.sample_doc()["_id"]),
+        },
+    )
     calls: dict[str, object] = {}
     service = _dna_service()
-    monkeypatch.setattr(
-        "api.security.access._get_sample_for_api", lambda sample_id, user: fx.sample_doc()
-    )
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(
-        dna,
-        "_require_variant_for_sample",
-        lambda sample_id, var_id, user, service: (fx.sample_doc(), fx.variant_doc()),
-    )
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         service,
         "set_variant_override_blacklist",
@@ -1124,7 +1191,12 @@ def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.clear_variant_blacklist_override("S1", "v1", user=fx.api_user(), service=service)
+    payload = dna.clear_variant_blacklist_override(
+        "S1",
+        "v1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+    )
 
     assert calls == {"var_id": "v1", "override": False}
     assert payload["action"] == "clear_override_blacklist"

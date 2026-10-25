@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from api.application.common.assay_context import build_assay_context
-from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
 from api.security.access import ApiUser
+from coyote3.application.common.assay_context import build_assay_context
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
 
 
 def user_doc() -> dict:

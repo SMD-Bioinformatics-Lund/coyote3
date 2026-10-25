@@ -272,7 +272,7 @@ transcript.
 ### Released SNV policies and exceptions
 
 Published `query_rule_sets` provide the live selection policy. Installation imports
-application-owned criteria from `api/config/clinical_query_seed.toml`; subsequent changes use the editor.
+application-owned criteria from `api/bootstrap/catalogs/reference/clinical_query_seed.toml`; subsequent changes use the editor.
 These rules are separate from ASPCs and cannot contain arbitrary MongoDB syntax. The application supports
 only the following baseline policies:
 
@@ -347,7 +347,7 @@ typed policy vocabulary; no example represents raw MongoDB syntax.
 ### Analysis-specific query-policy blocks
 
 The query-rule editor manages live policy. Its exception grammar also applies to
-the application seed file `api/config/clinical_query_seed.toml`. Neither contains sample
+the application seed file `api/bootstrap/catalogs/reference/clinical_query_seed.toml`. Neither contains sample
 documents, ASPC filters, selected ISGLs, UI tabs, or request parameters. Those
 values are persisted and resolved at runtime. The policy file supplies the SNV
 evidence model and narrowly typed, analysis-specific exception branches under
@@ -562,5 +562,5 @@ is reset. The selected list identifiers are stored with the sample context so
 that filtering and report generation use the same gene scope.
 
 Application baseline evidence modes and population-field names are defined in
-`api/config/clinical_query_defaults.toml`. Centers manage scoped exceptions and
+`src/coyote3/config/clinical_query_defaults.toml`. Centers manage scoped exceptions and
 supported evidence-mode overrides through database query rules, not TOML files.

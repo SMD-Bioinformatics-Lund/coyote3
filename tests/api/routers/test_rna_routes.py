@@ -10,11 +10,13 @@ from fastapi.routing import iter_route_contexts
 
 from api.app.container import store
 from api.app.main import app as api_app
-from api.application.common.change_payload import change_payload
-from api.application.rna import expression_analysis as rna_service_module
-from api.application.rna.expression_analysis import RnaService
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical.rna import fusions as rna
+from api.interfaces.http.v1.clinical.common.analysis_query import analysis_query_from_request
+from api.interfaces.http.v1.clinical.rna import fusions as rna
+from coyote3.application.common.change_payload import change_payload
+from coyote3.application.rna import expression_analysis as rna_service_module
+from coyote3.application.rna.expression_analysis import RnaService
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -27,6 +29,7 @@ class _Req:
         path = "/api/v1/samples/S1/fusions"
 
     url = _URL()
+    query_params = {}
 
 
 def _rna_service() -> RnaService:
@@ -89,7 +92,7 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     fusions = [fx.fusion_doc()]
     service = _rna_service()
 
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         rna_service_module, "get_formatted_assay_config", lambda s, **kwargs: assay_config
     )
@@ -153,7 +156,7 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = service.list_fusions_payload(
-        request=_Req(), sample=sample, util_module=rna.util, paginate=paginate
+        query=analysis_query_from_request(_Req()), sample=sample, paginate=paginate
     )
     assert payload["meta"]["count"] == 1
     assert payload["fusions"][0]["gene1"] == fusions[0]["gene1"]
@@ -161,9 +164,8 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     evaluator.assert_not_called()
     with pytest.raises(ValueError, match="No active published clinical rule set"):
         service.list_fusions_payload(
-            request=_Req(),
+            query=analysis_query_from_request(_Req()),
             sample=sample,
-            util_module=rna.util,
             paginate=False,
             include_report_context=True,
         )
@@ -172,10 +174,15 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
 def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
     """RNA fusion endpoints return a clear client error for DNA samples."""
     service = _rna_service()
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(AppError) as exc:
-        rna.list_rna_fusions(_Req(), "S1", user=fx.api_user(), service=service)
+        rna.list_rna_fusions(
+            _Req(),
+            "S1",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
+        )
 
     assert exc.value.status_code == 422
     assert exc.value.detail["error"] == "RNA fusion analysis is unavailable for this sample"
@@ -187,17 +194,17 @@ def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
     captured = {}
     service = SimpleNamespace(
         list_fusions_payload=lambda **kwargs: (
-            captured.update(kwargs) or {"ai_text": "Filtered fusion summary"}
+            captured.update(kwargs) or {"sample": sample, "ai_text": "Filtered fusion summary"}
         )
     )
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = rna.rna_sample_comment_suggestion(
         request=_Req(),
         sample_id="S1",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
     )
 
     assert captured["paginate"] is False
@@ -220,11 +227,16 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
         The function result.
     """
     service = _rna_service()
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(store.fusion_repository, "get_fusion", lambda fusion_id: None)
 
     with pytest.raises(AppError) as exc:
-        rna.show_rna_fusion("S1", "F404", user=fx.api_user(), service=service)
+        rna.show_rna_fusion(
+            "S1",
+            "F404",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
+        )
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Fusion not found"
@@ -262,10 +274,14 @@ def test_read_rna_analysis_returns_independent_records(monkeypatch):
             "quality": {"mapped_pct": 97.4},
         }
     )
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = rna.read_rna_analysis("RNA_1", user=fx.api_user(), service=service)
+    payload = rna.read_rna_analysis(
+        "RNA_1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
+    )
 
     assert payload["sample_id"] == "sample-oid"
     assert payload["expression"]["sample"][0]["hgnc_symbol"] == "CD19"

@@ -6,19 +6,22 @@ from copy import deepcopy
 
 import pytest
 
-from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.registry import (
+from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.registry import (
     fact_catalog_payload,
     validate_fact_path,
 )
-from api.application.reporting.clinical_rules.service import ClinicalRuleService, rendered_summary
-from api.application.reporting.clinical_rules.validation import (
+from coyote3.application.reporting.clinical_rules.service import (
+    ClinicalRuleService,
+    rendered_summary,
+)
+from coyote3.application.reporting.clinical_rules.validation import (
     MAX_CONDITION_DEPTH,
     _validate_condition,
     content_hash,
     validate_rule_set,
 )
-from api.contracts.schemas.clinical_rules import (
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalMessageOutput,
     ClinicalRuleCollectionMatch,
     ClinicalRuleNot,
@@ -63,7 +66,15 @@ def test_service_from_store_and_resolution_failure_matrix() -> None:
 
     assert isinstance(
         ClinicalRuleService.from_store(
-            type("Store", (), {"clinical_rule_set_repository": Repository(valid.model_dump())})()
+            type(
+                "Store",
+                (),
+                {
+                    "clinical_rule_set_repository": Repository(valid.model_dump()),
+                    "configuration_profile_repository": None,
+                    "assay_panel_repository": None,
+                },
+            )()
         ),
         ClinicalRuleService,
     )
@@ -143,12 +154,21 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
 
 
 @pytest.mark.parametrize("snapshot", [None, [], "release-id"])
-def test_reporting_rejects_missing_compiled_rule_content(snapshot) -> None:
+def test_reporting_ignores_historical_compiled_content_and_uses_live_rules(snapshot) -> None:
     context = _context()
     configuration = _configuration(_document(status="published", active=True), context)
     configuration["clinical_rule_release"] = snapshot
-    with pytest.raises(ValueError, match="no compiled clinical rule release"):
-        ClinicalRuleService(None).evaluate(aspc=configuration, context=context)
+    document = _document(status="published", active=True)
+    repository = type(
+        "Repository",
+        (),
+        {
+            "list_active_for_assay": lambda *args, **kwargs: [
+                document.model_dump(mode="python", by_alias=True)
+            ]
+        },
+    )()
+    assert ClinicalRuleService(repository).evaluate(aspc=configuration, context=context).sections
 
 
 @pytest.mark.parametrize("field", ["asp_id", "environment", "aspc_id"])
@@ -167,7 +187,9 @@ def test_automatic_variant_annotation_rejects_rna_configuration() -> None:
     configuration = _configuration(document)
     configuration["asp_category"] = "rna"
     with pytest.raises(ValueError, match="requires a DNA configuration"):
-        ClinicalRuleService(None).annotation_tumor_type(aspc=configuration)
+        ClinicalRuleService(None).annotation_tumor_type(
+            aspc=configuration, sample={"asp_category": "rna"}
+        )
 
 
 def test_validation_reports_structural_condition_and_embedded_case_failures(monkeypatch) -> None:

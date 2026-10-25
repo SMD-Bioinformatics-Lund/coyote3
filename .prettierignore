@@ -1,0 +1,3 @@
+# Report whitespace participates in approved content hashes and PDF regression checks.
+src/coyote3/templates/reporting/**
+tests/fixtures/report-templates/**

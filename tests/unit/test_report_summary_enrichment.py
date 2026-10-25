@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from bson import ObjectId
 
-from api.application.interpretation import report_summary
+from coyote3.application.interpretation import report_summary
 
 
 class _FakeAnnotationHandler:

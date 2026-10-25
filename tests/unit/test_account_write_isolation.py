@@ -6,10 +6,10 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.application.accounts.users import UserManagementService
-from api.contracts.schemas.governance import UsersDoc
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.users import UsersRepository
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.contracts.schemas.governance import UsersDoc
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture
@@ -36,6 +36,8 @@ def account(monkeypatch):
     collection.insert_one(document)
     repo = UsersRepository(SimpleNamespace(users_collection=collection))
     service = UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=repo,
         roles_repository=None,
         permissions_repository=None,
@@ -44,7 +46,6 @@ def account(monkeypatch):
         ),
         common_util=None,
     )
-    monkeypatch.setattr("api.application.accounts.users.notify_user_change", lambda **_: {})
     return collection, repo, service
 
 

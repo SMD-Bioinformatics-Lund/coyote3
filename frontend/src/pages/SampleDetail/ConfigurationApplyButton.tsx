@@ -56,7 +56,7 @@ export function ConfigurationApplyButton({ sampleId, pending, apply }: {
         setOpen(false)
         setReason("")
       }} description={<div className="space-y-3">
-        <p>Review the new release and settings. Saved reports retain their original configuration.</p>
+        <p>Review assay settings and filter defaults. Query and reporting rules resolve independently from published scopes. Saved reports retain their original configuration and rules.</p>
         <label className="flex items-center gap-2"><input type="checkbox" checked={retain}
           disabled={pending} onChange={event => setRetain(event.target.checked)} />Retain compatible sample overrides</label>
         {preview.isFetching && <p role="status">Preparing configuration preview…</p>}
@@ -66,7 +66,6 @@ export function ConfigurationApplyButton({ sampleId, pending, apply }: {
           <p>Analyses: {preview.data.configuration.analysis_types.join(", ")}</p>
           <p>Changed resources: {preview.data.changed_components.map(key => ({
             assay_resource_release: "assay eligibility", gene_list_release: "gene lists",
-            query_policy_release: "query policy", clinical_rule_release: "report rules",
           }[key] ?? key)).join(", ") || "None"}</p>
           <div className="max-h-64 overflow-auto">
             {changes.length ? changes.map(change => <div key={change.name} className="border-b border-border py-2">

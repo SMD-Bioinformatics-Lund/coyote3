@@ -115,7 +115,7 @@ x-api-image: &api-image
 
 x-app-volumes: &app-volumes
   - type: bind
-    source: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}
+    source: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../config/examples/center}
     target: /app/center-config
     read_only: true
     bind:
@@ -153,7 +153,7 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.docs
       additional_contexts:
-        center_config: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}
+        center_config: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../config/examples/center}
       network: host
       args:
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
@@ -169,7 +169,7 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile
       network: host
-      target: coyote3_api
+      target: coyote3_source_api
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}

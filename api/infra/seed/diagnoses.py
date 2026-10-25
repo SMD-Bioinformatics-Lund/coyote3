@@ -2,8 +2,8 @@
 
 from datetime import datetime, timezone
 
-from api.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier
-from api.contracts.schemas.diagnoses import AssayDiagnosisDoc
+from coyote3.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier
+from coyote3.contracts.schemas.diagnoses import AssayDiagnosisDoc
 
 
 def plan_diagnoses(

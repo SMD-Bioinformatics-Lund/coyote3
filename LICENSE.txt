@@ -1,201 +1,411 @@
-Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
+# COYOTE3 FREE-USE SOURCE-AVAILABLE LICENSE
 
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+**Version 1.0 — October 2026**
 
-   1. Definitions.
+**Software:** COYOTE3
 
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
+**Original Developer and Attribution:** Ram Nanduri
+**Affiliated Organization:** Section for Molecular Diagnostics, Lund, Region Skåne, Sweden
 
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
+**Copyright © 2026 Ram Nanduri and Region Skåne. All rights reserved.**
 
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
+This License is effective for software distributed with a notice identifying it as subject to the COYOTE3 Free-Use Source-Available License, Version 1.0.
 
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
+## 1. Definitions
 
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
+**1.1. "Software"** means the original COYOTE3 computer software, including applicable source code, object code, application components, APIs, backend services, frontend components, reporting systems, database schemas, configuration frameworks, scripts, templates, and associated materials expressly distributed under this License.
 
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
+**1.2. "Licensor"** means the legal copyright holder or holders of the applicable Software, or a person or organization duly authorized by them to grant this License.
 
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
+**1.3. "Licensee" or "You"** means the individual or legal entity exercising rights granted under this License.
 
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
+**1.4. "Modification"** means any change, adaptation, translation, alteration, or preparation of a derivative work involving the Software's protected source code, object code, implementation, or other copyrightable elements, excluding Permitted Configuration.
 
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
+**1.5. "Permitted Configuration"** means changes made through documented or intended configuration mechanisms without changing protected Software code. This includes supported environment settings, database connection settings, application preferences, authorized clinical configurations, report parameters, diagnostic definitions, gene lists, filters, and report templates supplied as user-editable configuration resources.
 
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
+**1.6. "Redistribution"** means providing, transferring, publishing, sublicensing, selling copies of, or otherwise making the Software available to another legal entity, whether in source-code, object-code, container-image, or other distributable form.
 
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
+**1.7. "Authorized Modification"** means a Modification expressly permitted by a separate written authorization issued by the applicable Licensor.
 
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
+**1.8. "Third-Party Components"** means software, libraries, frameworks, dependencies, datasets, or other materials included in or used with COYOTE3 that are owned by third parties and distributed under their own terms.
 
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
+## 2. Grant of Free-Use License
 
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
+Subject to compliance with this License, the Licensor grants the Licensee a worldwide, non-exclusive, non-transferable, royalty-free license to:
 
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
+a. Download and obtain authorized copies of the Software.
 
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
+b. Install, execute, operate, and use unmodified copies of the Software.
 
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
+c. Use the Software for personal, academic, educational, research, institutional, governmental, clinical, and commercial purposes.
 
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
+d. Deploy the Software within infrastructure owned or controlled by the Licensee, including servers, workstations, containers, virtual machines, and cloud environments.
 
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
+e. Permit employees, authorized contractors, and other users acting on behalf of the Licensee to access and operate the Software within the Licensee's authorized deployment, provided the Licensee remains responsible for compliance with this License.
 
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
+f. Make copies reasonably necessary for installation, authorized deployment, maintenance, backup, recovery, and secure operation.
 
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
+g. Perform Permitted Configuration, including adaptation of user-editable clinical and operational settings to local institutional requirements.
 
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
+No payment, royalty, recurring subscription, or license fee is required for the uses expressly permitted by this Section.
 
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
+This License does not include an obligation for the Licensor to provide hosting, professional services, support, updates, or maintenance free of charge.
 
-   END OF TERMS AND CONDITIONS
+## 3. Ownership and Intellectual Property
 
-   APPENDIX: How to apply the Apache License to your work.
+3.1. All copyright, title, and other intellectual property rights in the original Software remain with their respective legal owners.
 
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
+3.2. This License grants limited permission to use the Software. It does not constitute an assignment, transfer, or sale of any copyright or other intellectual property right.
 
-   Copyright 2026 Coyote3 Authors
+3.3. Authorship and development attribution shall identify Ram Nanduri and the affiliated organization as stated in the applicable project notices, to the extent factually accurate and authorized.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+3.4. Attribution does not, by itself, establish or transfer copyright ownership.
 
-       http://www.apache.org/licenses/LICENSE-2.0
+3.5. Nothing in this License authorizes the Licensee to claim authorship or ownership of original COYOTE3 code created by another rights holder.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+3.6. Rights in Third-Party Components remain with their respective owners.
+
+3.7. Any rights not expressly granted under this License are reserved by the applicable rights holder.
+
+## 4. Restrictions on Modification
+
+4.1. Except as expressly permitted under this License or applicable mandatory law, the Licensee shall not modify, adapt, translate, alter, or create derivative works of protected Software code without prior written authorization from the applicable Licensor.
+
+4.2. Prohibited unauthorized modifications include, without limitation:
+
+a. Changing application source code.
+
+b. Altering protected backend, frontend, API, or SDK implementations.
+
+c. Creating modified distributions of protected Software components.
+
+d. Removing, bypassing, or materially altering implemented authorization controls by modifying the Software.
+
+e. Incorporating protected Software code into derivative applications without the required authorization.
+
+4.3. Requests for modification authorization must identify the relevant Software components, proposed changes, intended use, and any intended distribution.
+
+4.4. Authorization must be issued in writing by the applicable Licensor or an authorized representative. Authorization from a person without the necessary rights is insufficient.
+
+4.5. An authorization to modify does not automatically include authorization to redistribute modified versions, sublicense code, or transfer copyright.
+
+4.6. The Licensor may provide additional permissions through a separate written agreement.
+
+## 5. Permitted Configuration and Institutional Customization
+
+5.1. The Licensee may configure the Software through documented and intended configuration mechanisms without obtaining separate modification authorization.
+
+5.2. Permitted Configuration may include:
+
+a. Environment variables and deployment parameters.
+
+b. Database connections, network settings, and supported integrations.
+
+c. User accounts, roles, and permissions through supported administration interfaces.
+
+d. Clinical diagnostic groups, diagnoses, assays, and test configurations.
+
+e. Gene lists, variant filters, annotation settings, and reporting rules through supported configuration interfaces.
+
+f. Report branding, layouts, and user-editable report templates designated for customization.
+
+g. Reference datasets, institutional terminology, and other supported operational content.
+
+5.3. Configuring the Software through supported mechanisms does not grant permission to change protected implementation code.
+
+5.4. Institution-created configuration data remains subject to the rights of its respective creator or owner, except insofar as it incorporates separately protected Software materials.
+
+5.5. The Licensee remains responsible for validating the clinical, scientific, and operational correctness of its configurations.
+
+## 6. Redistribution and Sublicensing
+
+6.1. Except as expressly permitted by this License, the Licensee may not redistribute the Software to another legal entity without prior written authorization from the applicable Licensor.
+
+6.2. The Licensee may reproduce and deploy the Software within its own organization as reasonably necessary for authorized use, subject to applicable law and the other terms of this License.
+
+6.3. The Licensee may not sell copies of, sublicense, relicense, or independently distribute protected Software components without written authorization.
+
+6.4. The Licensee may not upload the protected Software to a public package registry, public container registry, or third-party distribution platform for redistribution without authorization.
+
+6.5. Ordinary remote access to a Software instance operated by the Licensee does not, by itself, constitute Redistribution of a copy of the Software.
+
+6.6. Any written Redistribution authorization must specify the permitted scope and applicable conditions.
+
+## 7. Commercial and Institutional Use
+
+7.1. Commercial use of unmodified Software is expressly permitted without a licensing fee.
+
+7.2. The Software may be used within commercial, academic, healthcare, research, and governmental organizations.
+
+7.3. Authorized use may include the provision of the Licensee's ordinary professional, research, analytical, or clinical services using the Software.
+
+7.4. Charging fees for services performed using the Software does not, by itself, violate this License.
+
+7.5. Selling, sublicensing, or redistributing the Software itself remains subject to Section 6.
+
+7.6. The Licensee shall not represent itself as the owner, official publisher, or authorized licensor of COYOTE3 without appropriate authorization.
+
+## 8. Copyright and Attribution Notices
+
+8.1. The Licensee shall retain all existing copyright, license, ownership, and attribution notices included with the Software.
+
+8.2. The Licensee shall not remove, falsify, or intentionally misrepresent notices identifying the original developers or applicable copyright holders.
+
+8.3. Where the Software displays an existing attribution notice, the Licensee shall not intentionally remove that notice through unauthorized modification.
+
+8.4. This License does not require an institution to place COYOTE3 branding on independently authored reports or results unless separately required by an applicable written agreement.
+
+8.5. Use of names, logos, trademarks, and institutional insignia is governed by applicable rights and is not granted by this License except where necessary for truthful attribution.
+
+## 9. Third-Party Components and Separate Module Licenses
+
+9.1. Components expressly identified as subject to a separate license are governed by that separate license.
+
+9.2. Third-Party Components retain their applicable licensing terms, including any required attribution, redistribution, or source-code obligations.
+
+9.3. Nothing in this License restricts rights independently granted under valid third-party licenses.
+
+9.4. The Licensee is responsible for complying with the licenses applicable to Third-Party Components it uses or redistributes.
+
+9.5. A separate license notice applying to a specific COYOTE3 module prevails over this License for that module to the extent of the stated licensing scope.
+
+9.6. The presence of a separately licensed component does not automatically change the licensing terms of independently copyrightable COYOTE3 components.
+
+9.7. Where applicable third-party license obligations are incompatible with a proposed distribution, the relevant distribution must not proceed until the conflict is resolved.
+
+## 10. Contributions and Authorized Changes
+
+10.1. No person is required or authorized by this License to submit modifications to COYOTE3.
+
+10.2. Contributions, including code changes submitted through pull requests, are subject to separate contributor terms or a written agreement where necessary.
+
+10.3. Submission of a contribution does not automatically transfer copyright ownership to the original COYOTE3 rights holders.
+
+10.4. The Licensor may accept, reject, or request changes to proposed contributions at its discretion.
+
+10.5. Rights to use, distribute, and relicense accepted contributions must be established through applicable contributor permissions or agreements.
+
+## 11. Data Ownership and Confidentiality
+
+11.1. This License does not transfer ownership of patient data, clinical records, research data, laboratory results, institutional configurations, or other data supplied by the Licensee.
+
+11.2. The Licensee remains responsible for determining and complying with applicable data protection, privacy, confidentiality, retention, and information-security requirements.
+
+11.3. This License does not authorize the Licensor to access, collect, disclose, or process the Licensee's data.
+
+11.4. Any data processing, support access, telemetry, or remote services requiring additional legal arrangements must be governed by separate applicable terms.
+
+## 12. Clinical and Research Use Disclaimer
+
+12.1. The Software may contain functionality relevant to clinical genomics, molecular diagnostics, bioinformatics, variant assessment, and reporting.
+
+12.2. The provision of Software under this License does not constitute certification, regulatory approval, or a representation that the Software is suitable for any particular clinical or diagnostic purpose.
+
+12.3. The Licensee is responsible for assessing the Software's intended use, technical validation, clinical validation, regulatory status, and fitness for its particular applications.
+
+12.4. Where applicable, the Licensee must comply with relevant medical-device, laboratory-accreditation, data-protection, and healthcare regulations.
+
+12.5. The Licensee is responsible for qualified professional review and appropriate verification of clinical outputs.
+
+12.6. Nothing in this Section excludes obligations or liabilities that cannot lawfully be excluded.
+
+## 13. Warranty Disclaimer
+
+13.1. To the maximum extent permitted by applicable law, the Software is provided "AS IS" and "AS AVAILABLE".
+
+13.2. The Licensor makes no express or implied warranty regarding uninterrupted operation, freedom from defects, accuracy, reliability, security, compatibility, merchantability, fitness for a particular purpose, or non-infringement, except where such disclaimer is prohibited by law.
+
+13.3. No warranty is made that the Software will meet any specific diagnostic, clinical, regulatory, or institutional requirement.
+
+13.4. Separate written support or warranty agreements may establish additional obligations.
+
+## 14. Limitation of Liability
+
+14.1. To the maximum extent permitted by applicable law, the Licensor shall not be liable for indirect, incidental, special, consequential, or punitive damages resulting from the installation, use, inability to use, malfunction, or operation of the Software.
+
+14.2. This limitation includes, where legally permissible, loss of profits, operational interruption, loss of data, and other consequential economic losses.
+
+14.3. Nothing in this License excludes or limits liability for intentional misconduct, gross negligence, personal injury, or any other matter to the extent such exclusion or limitation is prohibited by applicable law.
+
+14.4. Rights and liabilities established under a separate written agreement remain governed by that agreement.
+
+## 15. Compliance and Termination
+
+15.1. The rights granted under this License continue unless terminated in accordance with this Section.
+
+15.2. The License automatically terminates if the Licensee materially violates its terms and fails to cure a remediable violation within thirty (30) days after receiving written notice describing the breach.
+
+15.3. A violation that cannot reasonably be cured may result in termination to the extent permitted by applicable law.
+
+15.4. Following termination, the Licensee must cease exercising rights granted exclusively by this License and discontinue unauthorized use of protected Software.
+
+15.5. The Licensee must cease unauthorized redistribution and remove unauthorized copies to the extent legally required, without prejudice to mandatory retention obligations.
+
+15.6. Termination does not extinguish independently granted third-party license rights or rights that cannot legally be terminated.
+
+15.7. Provisions concerning ownership, attribution, confidentiality, warranty, liability, and applicable law survive termination to the extent necessary and legally enforceable.
+
+## 16. No Implied Rights or Endorsement
+
+16.1. No patent, trademark, design, trade-secret, or other intellectual property license is granted except to the extent expressly stated or necessarily required for the authorized use of the Software.
+
+16.2. This License does not grant permission to use Region Skåne's name, logos, seals, or marks in a manner suggesting sponsorship, certification, approval, or endorsement.
+
+16.3. Attribution identifying the actual origin of the Software is permitted where lawful and accurate.
+
+16.4. This License does not grant authority to represent or bind the Licensor or any affiliated organization.
+
+## 17. Mandatory Legal Rights
+
+17.1. Nothing in this License limits rights that applicable mandatory law does not permit the Licensor to exclude.
+
+17.2. This includes applicable statutory rights relating to necessary backup copies, observation or testing of program functionality, and qualifying interoperability activities.
+
+17.3. Where a provision conflicts with mandatory applicable law, that provision shall be interpreted or limited only to the extent necessary to comply with such law.
+
+## 18. Governing Law and Disputes
+
+18.1. Subject to applicable mandatory rules, this License shall be governed by the substantive laws of Sweden.
+
+18.2. The parties shall first attempt to resolve disputes through good-faith discussion.
+
+18.3. Any dispute that cannot be resolved amicably shall be submitted to a competent Swedish court, subject to mandatory jurisdiction and venue requirements.
+
+18.4. This provision does not remove non-waivable rights or remedies available under applicable law.
+
+## 19. Severability
+
+If any provision is held invalid or unenforceable by a competent authority, the remaining provisions shall remain effective to the extent legally permissible.
+
+## 20. Entire License and Additional Permissions
+
+20.1. This License governs the rights expressly granted for Software distributed under it, unless supplemented or superseded by a valid written agreement.
+
+20.2. Additional permissions may be granted separately by the applicable Licensor.
+
+20.3. Any amendment to the rights of an existing Licensee requires a legally effective agreement or another applicable legal basis.
+
+20.4. Publishing a revised license version does not automatically replace the version already applicable to a previously licensed copy.
+
+20.5. Rights granted under separate third-party licenses remain unaffected.
+
+## 21. License Identification and Contact
+
+**License Name:** COYOTE3 Free-Use Source-Available License
+**License Version:** 1.0
+**Software:** COYOTE3
+**Development Attribution:** Ram Nanduri
+**Affiliated Organization:** Section for Molecular Diagnostics, Lund, Region Skåne, Sweden
+
+Requests for modification, redistribution, sublicensing, or other additional permissions should be directed to the legal copyright holder(s) or their designated authorized representative through the project's published licensing contact.
+
+**END OF LICENSE**
+
+# COYOTE3 — Risk, Warranty and Liability Provisions
+
+## 12. Use at Your Own Risk and User Responsibility
+
+**12.1. Assumption of Risk**
+
+THE SOFTWARE IS PROVIDED FREE OF CHARGE AND IS USED ENTIRELY AT THE LICENSEE'S OWN RISK.
+
+By installing, accessing, deploying, or operating the Software, the Licensee acknowledges that software may contain defects, errors, vulnerabilities, inaccuracies, or unexpected behavior.
+
+**12.2. Sole Responsibility for Use**
+
+The Licensee assumes responsibility for evaluating the Software's suitability, configuring it appropriately, validating its operation, and determining whether its outputs are appropriate for the intended purpose.
+
+**12.3. Clinical and Diagnostic Use**
+
+The Software may be used in molecular diagnostics, clinical genomics, bioinformatics, variant interpretation, and medical reporting.
+
+The Licensee is solely responsible for establishing appropriate clinical validation, quality assurance, professional oversight, regulatory compliance, and procedures for verifying results.
+
+No output generated by the Software should be regarded as independently validated or clinically authorized merely because it was generated by COYOTE3.
+
+**12.4. No Guarantee of Accuracy**
+
+The Licensor does not guarantee the accuracy, completeness, reliability, reproducibility, or clinical suitability of any calculation, analysis, annotation, classification, variant interpretation, or report produced by the Software.
+
+**12.5. Operational and Security Responsibility**
+
+The Licensee is responsible for maintaining appropriate backups, access controls, infrastructure security, data protection, disaster recovery, monitoring, and operational procedures.
+
+## 13. Disclaimer of All Warranties
+
+**13.1. AS-IS Provision**
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS", "AS AVAILABLE", AND "WITH ALL FAULTS", WITHOUT WARRANTY OF ANY KIND.
+
+**13.2. No Express or Implied Warranties**
+
+To the maximum extent permitted by law, the Licensor expressly disclaims all warranties, whether express, implied, statutory, or otherwise, including warranties of:
+
+- Merchantability and satisfactory quality.
+- Fitness for a particular purpose.
+- Accuracy, completeness, and reliability.
+- Non-infringement.
+- Security and freedom from vulnerabilities.
+- Compatibility with particular systems.
+- Uninterrupted or error-free operation.
+- Clinical, diagnostic, scientific, or regulatory suitability.
+
+**13.3. No Maintenance Obligation**
+
+Unless otherwise expressly agreed in writing, the Licensor has no obligation to provide technical support, updates, security patches, bug fixes, maintenance, or continued availability.
+
+**13.4. No Reliance on Representations**
+
+Documentation, examples, demonstrations, or statements concerning the Software shall not constitute warranties unless expressly established in a binding written agreement.
+
+## 14. Exclusion and Limitation of Liability
+
+**14.1. General Exclusion**
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSOR, COPYRIGHT HOLDERS, AUTHORS, CONTRIBUTORS, DEVELOPERS, MAINTAINERS, AND THEIR RESPECTIVE AUTHORIZED REPRESENTATIVES SHALL NOT BE LIABLE FOR DAMAGES, LOSSES, CLAIMS, COSTS, OR EXPENSES ARISING FROM OR CONNECTED WITH THE USE, MISUSE, INSTALLATION, CONFIGURATION, OPERATION, FAILURE, OR INABILITY TO USE THE SOFTWARE.
+
+**14.2. Specific Categories of Loss**
+
+To the maximum extent permitted by applicable law, this limitation applies to claims concerning:
+
+- Incorrect scientific or bioinformatics calculations.
+- Inaccurate variant annotations, classifications, or interpretations.
+- Incorrect, incomplete, or misleading clinical reports.
+- Errors in diagnosis, clinical decision-making, or laboratory workflows.
+- Loss, corruption, disclosure, or unauthorized access to data.
+- Cybersecurity incidents, vulnerabilities, and unauthorized system access.
+- Service interruptions, system failures, and operational downtime.
+- Financial losses, lost profits, and business interruption.
+- Indirect, incidental, consequential, special, or punitive damages.
+
+**14.3. Legal Basis of Claims**
+
+These exclusions and limitations apply, to the extent legally permissible, regardless of whether a claim is based on contract, tort, negligence, statute, or another legal theory, even where the possibility of such damage has been communicated.
+
+**14.4. Mandatory Liability Exceptions**
+
+Nothing in this License excludes or limits liability where such exclusion or limitation is prohibited by applicable law.
+
+In particular, this License does not purport to exclude liability for intentional misconduct, gross negligence, personal injury, mandatory product liability, or other non-excludable obligations to the extent applicable law prohibits their exclusion.
+
+**14.5. Separate Agreements**
+
+Any expressly agreed warranties, support obligations, indemnities, or liability arrangements contained in a separate valid written agreement shall be governed by that agreement.
+
+## 14A. Acknowledgment of User Responsibility
+
+By exercising the rights granted under this License, the Licensee acknowledges that:
+
+a. The Software is supplied without a guarantee of correctness, safety, availability, or fitness for the Licensee's intended purposes.
+
+b. The Licensee is responsible for testing and validating the Software before operational or clinical deployment.
+
+c. The Licensee accepts the foreseeable risks associated with relying on software systems and automated analytical outputs.
+
+d. The Licensee is responsible for implementing appropriate organizational, technical, clinical, and regulatory safeguards.
+
+e. The Licensor does not assume responsibility for the Licensee's clinical decisions, operational practices, institutional configurations, or use of generated results, except where responsibility cannot lawfully be excluded.
+
+f. The Licensee understands that free-of-charge licensing does not imply certification, regulatory approval, professional endorsement, or an assurance of fitness for clinical use.
+
+**All acknowledgments and exclusions in this Section operate only to the maximum extent permitted by applicable law.**

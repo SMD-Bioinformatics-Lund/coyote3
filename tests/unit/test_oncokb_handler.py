@@ -3,9 +3,6 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from api.application.ingest.oncokb_public import (
-    refresh_public_oncokb_gene_cache,
-)
 from api.infra.knowledgebase.brcaexchange import BRCARepository
 from api.infra.knowledgebase.civic import CivicRepository
 from api.infra.knowledgebase.oncokb import OnkoKBRepository
@@ -13,6 +10,9 @@ from api.infra.knowledgebase.public_oncokb import (
     PublicOncoKbClient,
     analysis_context_from_sample,
     genomic_location_from_variant,
+)
+from coyote3.application.ingest.oncokb_public import (
+    refresh_public_oncokb_gene_cache,
 )
 
 

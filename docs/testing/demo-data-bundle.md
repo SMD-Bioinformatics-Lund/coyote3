@@ -12,24 +12,29 @@ into an isolated deployment. All sample identities and measurements are syntheti
 
 | Path within the bundle | Content | Consumer |
 | --- | --- | --- |
-| `starter/manifests/` | Connected starter DNA and RNA sample manifests | Initial installation and the demo installation page |
+| `starter/` | Connected starter DNA and RNA sample manifests | Initial installation and the demo installation page |
 | `manifests/` | Additional DNA/RNA workflow manifests | Demo installation page and offline replay |
 | `raw/` | VCF, JSON and image inputs referenced by the manifests | Normal ingest parsers |
 | `setup/` | One shared bundle of assays, diagnoses, configurations, gene lists, catalog offerings and published rules | Default installation and additional demo scenarios |
-| `negative/` | Invalid bundles for rejection cases | Tests only |
-| `scenarios/` | Finding labels and query draft requests | Review exercises and regression assertions |
-| `expected/after_ingest/` | Generated, portable collection snapshots | Snapshot comparison and persisted-shape examples |
-| `expected/after_review/` | Illustrative classifications and comments | Review assertions and contract examples |
-| `expected/report_previews.json` | Generated report section output | Reporting regression assertions |
+
+Test-only resources live under `tests/fixtures/clinical_workflows/`:
+
+| Path within the test fixtures | Content |
+| --- | --- |
+| `negative/` | Invalid manifests for rejection cases |
+| `scenarios/` | Finding labels and query draft requests |
+| `expected/after_ingest/` | Generated collection snapshots |
+| `expected/after_review/` | Illustrative classifications and comments |
+| `expected/report_previews.json` | Generated report section output |
 
 Keep source inputs in this bundle when adding scenarios. Tests that need parsed
 clinical evidence replay the manifests; expected snapshots are comparison outputs.
-Collection-level schema examples remain in `demo_data/collections/` and are not
+Collection-level schema examples remain in `tests/fixtures/collections/` and are not
 installation inputs.
 
 ## Sample manifest format
 
-This is the packaged `starter/manifests/rna_fusion.yaml` input. Paths are relative
+This is the packaged `starter/rna_fusion.yaml` input. Paths are relative
 to that manifest within the bundle; the demo installer resolves them to allowlisted
 files inside the package before calling ingest.
 
@@ -56,8 +61,8 @@ case_ffpe: false
 case_sequencing_run: DEMO_RUN
 case_reads: 1000000
 case_purity: null
-fusion_files: ../../raw/fusions.json
-qc: ../../raw/qc.json
+fusion_files: ../raw/fusions.json
+qc: ../raw/qc.json
 case_bam: null
 case_bai: null
 control_bam: null

@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from api.contracts.managed_resources import aspc_spec_for_category
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.dna import DnaFiltersDoc
-from api.contracts.schemas.rna import RnaFiltersDoc
-from api.domain.common.assay_filters import (
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import aspc_spec_for_category
+from coyote3.contracts.schemas.dna import DnaFiltersDoc
+from coyote3.contracts.schemas.rna import RnaFiltersDoc
+from coyote3.domain.common.assay_filters import (
     format_assay_config,
     get_sample_effective_genes,
 )
-from api.domain.common.sample_filters import normalize_sample_filters
+from coyote3.domain.common.sample_filters import normalize_sample_filters
 
 
 def test_format_assay_config_excludes_meta_keys_from_filters_section() -> None:

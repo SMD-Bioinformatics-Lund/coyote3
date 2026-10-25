@@ -118,7 +118,7 @@ filter uses the same categories: **In-frame** matches exact `in-frame`, while
 truncated UTR/CDS descriptions.
 
 Description terms are split on commas and rendered using the exact importance
-groups configured in `api/config/center/clinical_vocabulary.toml`. Important
+groups configured in `config/examples/center/clinical_vocabulary.toml`. Important
 cancer-reference terms are green, not-important or artifact-associated terms
 are red, and contextual terms are gray. Unknown terms remain visible with
 neutral styling so upstream vocabulary changes are not hidden. Selected

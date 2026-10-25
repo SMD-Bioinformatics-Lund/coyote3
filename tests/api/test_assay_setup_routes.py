@@ -7,9 +7,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.app.deps.services import get_assay_setup_service
-from api.interfaces.http.admin.resources.assay_setup import router
+from api.app.deps.application import get_assay_setups
+from api.interfaces.http.v1.admin.resources.assay_setup import router
 from api.security.access import ApiUser
+from coyote3.application.operations.administration import AssaySetups
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -72,7 +74,9 @@ def client(monkeypatch):
     )
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[get_assay_setup_service] = lambda: service
+    app.dependency_overrides[get_assay_setups] = lambda: sdk_fixtures.authorized_operations(
+        AssaySetups, service, user
+    )
     with TestClient(app) as http:
         yield http, user, doc
 

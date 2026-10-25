@@ -115,11 +115,11 @@ PYTHONPATH=. python -m pytest -q
 
 # Generate the unified backend coverage report
 PYTHONPATH=. python -m pytest -q \
-  --cov=api --cov-config=.coveragerc \
+  --cov=api --cov=coyote3 --cov-config=.coveragerc \
   --cov-report=term-missing --cov-report=xml:coverage.xml
 
 # Execute static analysis and linting
-PYTHONPATH=. python -m ruff check api tests scripts
+PYTHONPATH=. python -m ruff check src api tests scripts
 
 # Check the strict typed security/account boundary
 PYTHONPATH=. python -m mypy
@@ -210,8 +210,8 @@ Coverage checks enforce minimum thresholds for key logic families.
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 ```
 
-The system applies a **75% minimum** to `api/domain/core`, with separate
-thresholds for `api/application` and `api/interfaces/http`. It also enforces a
+The system applies a **75% minimum** to `src/coyote3/domain`, with separate
+thresholds for `src/coyote3/application` and `api/interfaces/http`. It also enforces a
 **75% minimum** over the clinical query-policy modules: DNA SNV, CNV, and
 translocation query builders and the RNA fusion query builder. This is a
 combined branch-aware gate, not a line-count exclusion. It protects the code
@@ -300,7 +300,7 @@ protecting clinical and security boundaries:
 | Superseded commits | A newer commit cancels the running quality job for the same pull request or branch. |
 | Backend changes | Run Python lint, formatting, strict typing, the complete backend suite once, family coverage gates, and repository contract checks. |
 | Frontend changes | Run frontend lint, Vitest coverage, the production build, and Playwright Chromium workflows. |
-| API contract changes | Changes under `api/contracts/` or `api/interfaces/http/` also run frontend checks because they can change consumed payloads or routes. |
+| API contract changes | Changes under `src/coyote3/contracts/` or `api/interfaces/http/` also run frontend checks because they can change consumed payloads or routes. |
 | Deployment changes | Compose, proxy, and container build changes run all scopes because they can alter every runtime surface. |
 | Documentation changes | Run Markdown lint, internal-link validation, and a strict MkDocs build. |
 | Workflow changes | Run all scopes so CI changes validate the complete execution path. |
@@ -359,7 +359,7 @@ npm --prefix frontend run test:e2e:real
 
 ## Standards for New Feature Development
 
-- **Logic Separation**: Pure algorithmic logic within `api/domain/core` must maintain 100% test coverage through isolated unit tests.
+- **Logic Separation**: Cover clinical decisions in `src/coyote3/domain` with focused positive, negative and regression cases; the configured family coverage gate applies.
 - **Boundary Mocking**: API and integration tests should isolate external network dependencies with focused fixtures.
 - **Payload Alignment**: Validation fixtures must reflect the current Pydantic
   contracts and use deterministic, de-identified payloads. They must not rely

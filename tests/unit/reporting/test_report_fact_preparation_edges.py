@@ -1,6 +1,6 @@
 """Edge coverage for deterministic clinical-report fact preparation."""
 
-from api.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
 
 
 def test_prepare_report_context_normalizes_every_supported_finding_family() -> None:

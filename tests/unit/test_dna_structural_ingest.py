@@ -4,12 +4,12 @@ from copy import deepcopy
 
 import pytest
 
-from api.application.dna.export import build_transloc_export_rows
-from api.application.ingest.parsers import DnaIngestParser
-from api.application.reporting.snapshot_rows import build_translocation_snapshot_rows
-from api.contracts.schemas.dna import TranslocationsDoc
-from api.domain.core.dna.structural_annotations import select_structural_annotation
-from api.domain.core.dna.structural_identity import translocation_annotation_identity
+from coyote3.application.dna.export import build_transloc_export_rows
+from coyote3.application.ingest.parsers import DnaIngestParser
+from coyote3.application.reporting.snapshot_rows import build_translocation_snapshot_rows
+from coyote3.contracts.schemas.dna import TranslocationsDoc
+from coyote3.domain.dna.structural_annotations import select_structural_annotation
+from coyote3.domain.dna.structural_identity import translocation_annotation_identity
 
 HEADER = """##fileformat=VCFv4.2
 ##contig=<ID=1,length=1000000>

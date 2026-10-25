@@ -62,7 +62,7 @@ def main(argv: list[str]) -> int:
         Password mode creates a session; token mode validates an existing token.
         The session token is printed only with ``--print-token``.
     """
-    from api.client.auth import login_with_password, login_with_token
+    from coyote3_client.auth import login_with_password, login_with_token
 
     args = build_parser().parse_args(argv)
     if args.mode == "password":

@@ -16,8 +16,7 @@ from bson.json_util import dumps  # noqa: E402
 from dotenv import dotenv_values  # noqa: E402
 from pymongo import MongoClient  # noqa: E402
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
 from api.infra.mongo.repositories.query_rule_revisions import (  # noqa: E402
     QueryRuleRevisionRepository,
@@ -25,6 +24,7 @@ from api.infra.mongo.repositories.query_rule_revisions import (  # noqa: E402
 )
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope  # noqa: E402
 
 
 def upgrade(db, *, actor: str, backup: Path | None = None, apply: bool = False) -> dict:

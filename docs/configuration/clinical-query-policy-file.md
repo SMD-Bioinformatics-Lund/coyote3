@@ -5,7 +5,7 @@ using the [registered field/operator catalog](../reference/query-condition-field
 Within an exception, a tree and the additional criteria documented below are joined
 with AND. A condition tree does not replace mandatory sample or access boundaries.
 
-The application-owned `api/config/clinical_query_seed.toml` supplies installation criteria for
+The application-owned `api/bootstrap/catalogs/reference/clinical_query_seed.toml` supplies installation criteria for
 [database-managed finding query rules](../administration/query-rules.md). Bootstrap
 combines these criteria with the bundled group catalog and stores published versions.
 Runtime queries read application defaults and published database rules, not this file.
@@ -20,7 +20,7 @@ Editing or restarting with a changed file does not update an installed policy.
 | Routine clinical policy changes | Use **Administration → Query rules** to draft, review and publish database versions. Editing this file does not update existing rules. |
 | Live finding retrieval | Not read. Retrieval uses application-owned defaults, published database policies and sample filters. |
 
-Python bootstrap tools load this file from the application package. It is not
+Python bootstrap tools load this file from the API host's installation catalogs. It is not
 editable center configuration, cannot be redirected through the center directory,
 and has no installer command-line override. Database publications are the supported
 way to change clinical selection criteria after installation.
@@ -66,7 +66,7 @@ PGX finding query is introduced.
 ## Required values and defaults
 
 The seed file is packaged with the application; centers do not supply it. Application baseline settings come from
-`api/config/clinical_query_defaults.toml`. All five seed analysis tables are required. A missing table
+`src/coyote3/config/clinical_query_defaults.toml`. All five seed analysis tables are required. A missing table
 or invalid key fails configuration validation. A default below means loader behavior, not a
 clinically approved center choice.
 

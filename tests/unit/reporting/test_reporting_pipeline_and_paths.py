@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting import persistence as pipeline
-from api.domain.core.exceptions import AppError
-from api.domain.core.reporting import report_paths
-from api.domain.core.reporting.errors import ReportCommitUncertain
+from coyote3.application.reporting import persistence as pipeline
+from coyote3.application.reporting import report_paths
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.reporting.errors import ReportCommitUncertain
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import pytest
 from bson import ObjectId
 
-from api.application.reporting.clinical_rules.evaluator import (
+from coyote3.application.reporting.clinical_rules.evaluator import (
     _collection_items,
     _compare,
     _format_value,
@@ -18,9 +18,9 @@ from api.application.reporting.clinical_rules.evaluator import (
     render_rule,
     resolve_path,
 )
-from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.application.reporting.clinical_rules.validation import content_hash
-from api.contracts.schemas.clinical_rules import (
+from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
+from coyote3.application.reporting.clinical_rules.validation import content_hash
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalFactOutput,
     ClinicalListOutput,
     ClinicalMessageOutput,
@@ -385,7 +385,7 @@ def test_renderer_output_source_defaults_and_explicit_source(monkeypatch) -> Non
         observed.append((name, source, scope, terminology))
         return name
 
-    monkeypatch.setattr("api.application.reporting.clinical_rules.evaluator.render_named", fake)
+    monkeypatch.setattr("coyote3.application.reporting.clinical_rules.evaluator.render_named", fake)
     scope = {"findings": [1], "aggregates": {"tier_summaries": [2]}, "custom": [3]}
     for node in (
         ClinicalRendererOutput(name="fusion_summary"),
@@ -414,7 +414,7 @@ def test_render_rule_and_collection_item_filtering() -> None:
 
 
 def test_evaluator_modes_strategies_disabled_rules_and_analysis_gates() -> None:
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     blocks = [
         _block(analysis="CNV", section="Skipped"),
@@ -476,7 +476,7 @@ def test_evaluator_modes_strategies_disabled_rules_and_analysis_gates() -> None:
     ],
 )
 def test_evaluator_rejects_invalid_match_cardinality(strategy, rules, message) -> None:
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     with pytest.raises(ValueError, match=message):
         ClinicalRuleEvaluator().evaluate(
@@ -489,7 +489,7 @@ def test_evaluator_rejects_invalid_match_cardinality(strategy, rules, message) -
 @pytest.mark.parametrize("strategy", ["exactly_one", "at_most_one"])
 def test_strict_matching_counts_blank_outputs(strategy):
     """True conditions cannot evade exclusivity by producing whitespace."""
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     rules = [_rule("blank", "   "), {**_rule("text", "Text"), "order": 20}]
     with pytest.raises(ValueError, match="found 2.*blank.*text"):
@@ -502,7 +502,7 @@ def test_strict_matching_counts_blank_outputs(strategy):
 
 def test_exactly_one_rejects_blank_only_match():
     """A required conclusion must not silently disappear."""
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     with pytest.raises(ValueError, match="produced blank text"):
         ClinicalRuleEvaluator().evaluate(
@@ -514,15 +514,15 @@ def test_exactly_one_rejects_blank_only_match():
 
 def test_optional_conflict_group_preserves_existing_content_hash():
     """Absent conflict groups must not invalidate stored rule content hashes."""
-    from api.application.reporting.clinical_rules.validation import canonical_content
+    from coyote3.application.reporting.clinical_rules.validation import canonical_content
 
     document = _document([_block()])
     assert "conflict_group" not in canonical_content(document)["blocks"][0]
 
 
 def test_conflict_failure_in_embedded_case_blocks_validation():
-    from api.application.reporting.clinical_rules.validation import validate_rule_set
-    from api.contracts.schemas.clinical_rules import ClinicalRuleTestCase
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleTestCase
 
     blocks = [
         {
@@ -549,7 +549,7 @@ def test_conflict_failure_in_embedded_case_blocks_validation():
 @pytest.mark.parametrize("mode", ["once", "each_finding", "each_item"])
 def test_conflict_groups_reject_cross_block_matches(mode):
     """Alternative conclusions conflict even across report sections."""
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     blocks = [
         {
@@ -564,7 +564,7 @@ def test_conflict_groups_reject_cross_block_matches(mode):
 
 def test_conflict_groups_do_not_conflict_across_findings_or_excluded_analyses():
     """Each finding has its own conflict boundary, and excluded analyses emit nothing."""
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     blocks = [
         {
@@ -592,8 +592,8 @@ def test_conflict_groups_do_not_conflict_across_findings_or_excluded_analyses():
     "mode,strategy", [("once", "first_match"), ("each_finding", "at_most_one")]
 )
 def test_conflict_group_validation_rejects_unsafe_configuration(mode, strategy):
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
-    from api.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
 
     blocks = [
         {
@@ -614,7 +614,7 @@ def test_conflict_group_validation_rejects_unsafe_configuration(mode, strategy):
 
 
 def test_strict_alternatives_warn_when_conditions_overlap():
-    from api.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
 
     document = _document(
         [
@@ -632,7 +632,7 @@ def test_strict_alternatives_warn_when_conditions_overlap():
 
 
 def test_evaluator_rejects_mixed_heading_modes_at_runtime() -> None:
-    from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 
     first = _block(section="First", heading=True, rules=[_rule("first", "First")])
     second = _block(section="Second", heading=False, rules=[_rule("second", "Second")])

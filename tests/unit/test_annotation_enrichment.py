@@ -7,8 +7,8 @@ import mongomock
 import pytest
 from bson import ObjectId
 
-from api.application.interpretation.annotation_enrichment import add_alt_class
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
+from coyote3.application.interpretation.annotation_enrichment import add_alt_class
 
 SAMPLE_CONTEXT = {"assay_id": "synthetic_assay", "environment": "production"}
 
@@ -17,7 +17,7 @@ SAMPLE_CONTEXT = {"assay_id": "synthetic_assay", "environment": "production"}
     "scope,namespace,visible",
     [
         ({"assay_id": "another_assay", "environment": "production"}, "clinical", True),
-        ({"assay_id": "synthetic_assay", "environment": "testing"}, "sandbox", False),
+        ({"assay_id": "synthetic_assay", "environment": "testing"}, "sandboxed", False),
     ],
 )
 def test_other_assay_is_reference_only_and_sandbox_is_not_visible(scope, namespace, visible):
@@ -28,11 +28,11 @@ def test_other_assay_is_reference_only_and_sandbox_is_not_visible(scope, namespa
             "variant": "p.Arg1Gly",
             "hgvsp": "p.Arg1Gly",
             "nomenclature": "p",
-            "assay": "solid",
-            "diagnosis": "breast",
+            "asp_group": "solid",
+            "diagnosis_id": "breast",
             "class": 1,
             "text": None,
-            "resource_context": scope,
+            "asp_id": scope["assay_id"],
             "namespace": namespace,
         }
     )
@@ -86,11 +86,11 @@ def test_global_annotations_treat_null_class_as_text_annotation():
                 "gene": "FLT3",
                 "variant": "p.Val1Ala",
                 "nomenclature": "p",
-                "assay": "hematology",
-                "diagnosis": "base",
+                "asp_group": "hematology",
+                "diagnosis_id": "base",
                 "class": None,
                 "text": "review note",
-                "resource_context": SAMPLE_CONTEXT,
+                "asp_id": SAMPLE_CONTEXT["assay_id"],
                 "namespace": "clinical",
             }
         ]
@@ -151,15 +151,15 @@ def test_add_alt_class_ignores_null_classification():
 def test_annotation_scope_is_consistent_across_all_assay_groups(group, diagnosis, expected):
     docs = [
         {
-            "assay": group,
-            "diagnosis": scope,
+            "asp_group": group,
+            "diagnosis_id": scope,
             "class": tier,
-            "resource_context": SAMPLE_CONTEXT,
+            "asp_id": SAMPLE_CONTEXT["assay_id"],
             "namespace": "clinical",
         }
         for scope, tier in [("named", 1), ("base", 2), ("other", 3)]
     ]
-    docs.append({"assay": "unrelated", "diagnosis": "named", "class": 4, "text": "4"})
+    docs.append({"asp_group": "unrelated", "diagnosis_id": "named", "class": 4, "text": "4"})
     variant = {"INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}}}
     _, classification, _, interesting = AnnotationsRepository.get_global_annotations(
         _AnnotationRepo(docs), variant, group, diagnosis, sample_context=SAMPLE_CONTEXT
@@ -179,8 +179,8 @@ def test_annotation_queries_use_latest_tier_not_later_null_text(diagnosis, expec
             {
                 "_id": ObjectId(f"{index:024x}"),
                 "time_created": now,
-                "assay": "demo",
-                "diagnosis": scope,
+                "asp_group": "demo",
+                "diagnosis_id": scope,
                 "gene": "TP53",
                 "transcript": "NM_SYNTHETIC",
                 "variant": "p.Arg1Gly",
@@ -188,7 +188,7 @@ def test_annotation_queries_use_latest_tier_not_later_null_text(diagnosis, expec
                 "nomenclature": "p",
                 "class": tier,
                 "text": "Note" if tier is None else None,
-                "resource_context": SAMPLE_CONTEXT,
+                "asp_id": SAMPLE_CONTEXT["assay_id"],
                 "namespace": "clinical",
             }
         )
@@ -238,10 +238,10 @@ def test_fusion_annotations_use_scope_and_ignore_other_groups(diagnosis, expecte
                 "nomenclature": "f",
                 "gene1": "ETV6",
                 "gene2": "RUNX1",
-                "assay": group,
-                "diagnosis": scope,
+                "asp_group": group,
+                "diagnosis_id": scope,
                 "class": tier,
-                "resource_context": SAMPLE_CONTEXT,
+                "asp_id": SAMPLE_CONTEXT["assay_id"],
                 "namespace": "clinical",
                 "time_created": index,
             }

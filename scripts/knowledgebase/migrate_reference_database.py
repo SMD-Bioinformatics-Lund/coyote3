@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
 from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
     assert_distinct_databases,

@@ -6,8 +6,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.public import routes as public
+from api.app.deps import services
+from api.app.runtime_state import app as runtime_app
+from api.interfaces.http.v1.public import routes as public
+from coyote3.application.public.catalog import PublicCatalogService
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
@@ -20,11 +24,15 @@ def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
         The function result.
     """
     monkeypatch.setattr(
-        public.PublicCatalogService, "genelist_view_context", lambda self, *_args, **_kwargs: None
+        PublicCatalogService, "genelist_view_context", lambda self, *_args, **_kwargs: None
     )
 
     with pytest.raises(AppError) as exc:
-        public.public_genelist_view_context_read("missing")
+        sdk_fixtures.invoke_route(
+            public.public_genelist_view_context_read,
+            "missing",
+            service=sdk_fixtures.public_operations(),
+        )
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Genelist not found"
@@ -40,7 +48,7 @@ def test_public_asp_genes_read_success(monkeypatch):
         The function result.
     """
     monkeypatch.setattr(
-        public.PublicCatalogService,
+        PublicCatalogService,
         "asp_genes_payload",
         lambda self, asp_id: {
             "asp_id": asp_id,
@@ -50,7 +58,9 @@ def test_public_asp_genes_read_success(monkeypatch):
     )
     monkeypatch.setattr(public.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = public.public_asp_genes_read("WGS")
+    payload = sdk_fixtures.invoke_route(
+        public.public_asp_genes_read, "WGS", service=sdk_fixtures.public_operations()
+    )
     assert payload["asp_id"] == "WGS"
     assert payload["gene_details"][0]["symbol"] == "TP53"
     assert payload["germline_gene_symbols"] == ["BRCA1"]
@@ -59,7 +69,7 @@ def test_public_asp_genes_read_success(monkeypatch):
 def test_public_contact_read_uses_runtime_config(monkeypatch):
     """Test public contact metadata is served from runtime configuration."""
     monkeypatch.setattr(
-        public.runtime_app,
+        runtime_app,
         "config",
         {
             "ORGANIZATION_NAME": "Center Genomics",
@@ -75,7 +85,9 @@ def test_public_contact_read_uses_runtime_config(monkeypatch):
     )
     monkeypatch.setattr(public.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = public.public_contact_read()
+    payload = sdk_fixtures.invoke_route(
+        public.public_contact_read, service=sdk_fixtures.public_pages()
+    )
 
     assert payload["organization"]["name"] == "Center Genomics"
     assert payload["organization"]["department"] == "Molecular Pathology"
@@ -85,10 +97,19 @@ def test_public_contact_read_uses_runtime_config(monkeypatch):
 
 def test_public_assay_catalog_context_empty_installation_has_landing_page(monkeypatch):
     """An unconfigured installation keeps its landing page but rejects missing entries."""
-    monkeypatch.setattr(public.PublicCatalogService, "_load_catalog_document", lambda self: {})
-    assert public.public_assay_catalog_context_read()["order"] == []
+    monkeypatch.setattr(PublicCatalogService, "_load_catalog_document", lambda self: {})
+    assert (
+        sdk_fixtures.invoke_route(
+            public.public_assay_catalog_context_read, service=sdk_fixtures.public_operations()
+        )["order"]
+        == []
+    )
     with pytest.raises(AppError) as exc:
-        public.public_assay_catalog_context_read(mod="dna")
+        sdk_fixtures.invoke_route(
+            public.public_assay_catalog_context_read,
+            mod="dna",
+            service=sdk_fixtures.public_operations(),
+        )
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Published offering not found"
@@ -102,13 +123,17 @@ def test_catalog_matrix_passes_pagination_and_gene_filter(monkeypatch):
         return {"genes": []}
 
     monkeypatch.setattr(
-        public,
+        services,
         "get_public_catalog_service",
         lambda: SimpleNamespace(published_matrix=matrix),
     )
-    assert public.public_assay_catalog_matrix_context_read(page=2, per_page=20, gene="TP53") == {
-        "genes": []
-    }
+    assert sdk_fixtures.invoke_route(
+        public.public_assay_catalog_matrix_context_read,
+        page=2,
+        per_page=20,
+        gene="TP53",
+        service=sdk_fixtures.public_operations(),
+    ) == {"genes": []}
     assert calls == {"page": 2, "per_page": 20, "gene": "TP53"}
 
 
@@ -120,18 +145,23 @@ def test_catalog_csv_exports_selected_genes(monkeypatch, category):
             "genes": [{"symbol": "TP53"}],
         },
     )
-    monkeypatch.setattr(public, "get_public_catalog_service", lambda: service)
-    payload = public.public_assay_catalog_genes_csv_context_read("wgs", cat=category)
+    monkeypatch.setattr(services, "get_public_catalog_service", lambda: service)
+    payload = sdk_fixtures.invoke_route(
+        public.public_assay_catalog_genes_csv_context_read,
+        "wgs",
+        cat=category,
+        service=sdk_fixtures.public_operations(),
+    )
     assert ",TP53," in payload["content"]
     assert payload["filename"].endswith(".genes.csv")
 
 
 @pytest.mark.parametrize("category", [None, "missing"])
 def test_catalog_csv_rejects_unknown_selection(monkeypatch, category):
-    from api.application.public.published_catalog_views import publication_context
+    from coyote3.application.public.published_catalog_views import publication_context
 
     monkeypatch.setattr(
-        public,
+        services,
         "get_public_catalog_service",
         lambda: SimpleNamespace(
             published_context=lambda *args: publication_context(
@@ -140,6 +170,11 @@ def test_catalog_csv_rejects_unknown_selection(monkeypatch, category):
         ),
     )
     with pytest.raises(AppError) as exc:
-        public.public_assay_catalog_genes_csv_context_read("wgs", cat=category)
+        sdk_fixtures.invoke_route(
+            public.public_assay_catalog_genes_csv_context_read,
+            "wgs",
+            cat=category,
+            service=sdk_fixtures.public_operations(),
+        )
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Published offering not found"

@@ -4,7 +4,7 @@ import { gunzipSync } from "node:zlib"
 import { installApiFixtures } from "./support/api-fixtures"
 import type { VepReference } from "../../src/pages/static/VepReferencePage"
 
-const references: VepReference[] = gunzipSync(readFileSync("../api/config/bootstrap/reference/vep_metadata.seed.ndjson.gz")).toString().trim().split("\n").map(line => JSON.parse(line) as VepReference)
+const references: VepReference[] = gunzipSync(readFileSync("../api/bootstrap/catalogs/reference/vep_metadata.seed.ndjson.gz")).toString().trim().split("\n").map(line => JSON.parse(line) as VepReference)
 
 for (const width of [1440, 390]) {
   test(`VEP references and diagrams fit ${width}px`, async ({ page }) => {
@@ -21,7 +21,7 @@ for (const width of [1440, 390]) {
       const release = new URL(route.request().url()).pathname.split("/").at(-2)
       const diagram = references.find(row => row.vep_id === release)?.consequence_diagram
       if (!diagram) return route.fulfill({ status: 404 })
-      await route.fulfill({ contentType: diagram.mime_type, body: readFileSync(`../api/config/bootstrap/reference/vep_diagrams/${diagram.sha256}`) })
+      await route.fulfill({ contentType: diagram.mime_type, body: readFileSync(`../api/bootstrap/catalogs/reference/vep_diagrams/${diagram.sha256}`) })
     })
     await page.goto("/about/vep")
     await expect(page.getByRole("heading", { name: "VEP Reference", exact: true })).toBeVisible()

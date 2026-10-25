@@ -20,6 +20,12 @@ os.environ.setdefault("IDENTITY_DB", "coyote3_identity_test")
 os.environ.setdefault("KNOWLEDGEBASE_DB", "coyote3_knowledgebase_test")
 os.environ.setdefault("BAM_DB", "bam_test")
 
+# Tests are a trusted host for direct application helpers as well as SDK operations.
+from api.infra.mongo.resource_integrity import resource_content_hash  # noqa: E402
+from coyote3.contracts.resource_integrity import configure_resource_hasher  # noqa: E402
+
+configure_resource_hasher(resource_content_hash)
+
 
 def pytest_collection_modifyitems(config, items):  # noqa: ARG001
     """Apply suite markers by top-level tests directory."""

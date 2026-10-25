@@ -23,16 +23,25 @@ The system consists of:
 | Path | Purpose |
 | --- | --- |
 | `api/app/` | FastAPI composition, lifecycle, dependency wiring, and runtime setup. |
-| `api/interfaces/http/` | Thin HTTP routers grouped by clinical or operational responsibility. |
-| `api/application/` | Use-case and workflow services. |
-| `api/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
-| `api/contracts/` | Pydantic request, response, and collection schemas. |
+| `src/coyote3/` | Core application library; never imports `api` or the external client. |
+| `src/coyote3/templates/reporting/` | Packaged Jinja report layouts, components and embedded stylesheets. |
+| `clients/python/` | Independently installable HTTP-only `coyote3-client` distribution and tests. |
+| `api/interfaces/http/v1/` | Version-one HTTP routers grouped by clinical or operational responsibility. |
+| `src/coyote3/application/` | Use-case and workflow services. |
+| `src/coyote3/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
+| `src/coyote3/contracts/` | Pydantic request, response, and collection schemas. |
 | `api/infra/` | MongoDB repositories, integrations, observability, and infrastructure adapters. |
-| `api/config/` | Software defaults, bootstrap catalogs, and center configuration loading. |
+| `src/coyote3/config/` | Typed policy inputs, software defaults and validation. |
+| `api/bootstrap/` | Installation catalogs and host-owned catalog assembly. |
+| `api/services/` | Host installation operations and public-page composition. |
+| `api/presentation/` | Host selection of packaged report presentation. |
+| `api/config/` | Host environment loading, API security, storage paths and database settings. |
+| `config/examples/center/` | Center examples copied into an external reviewed deployment directory. |
+| `docs/sdk/` | SDK installation, usage, host development, generated reference and release compatibility. |
 | `api/tasks/` | Celery task entry points. |
 | `frontend/src/` | React pages, reusable components, hooks, libraries, styles, and unit tests. |
 | `frontend/tests/e2e/` | Playwright browser tests. |
-| `api/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
+| `src/coyote3/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
 | `tests/` | Backend unit, API, integration, contract, and fixture coverage. |
 | `tests/load/` | Optional Locust HTTP workloads, target checks and synthetic smoke server. |
 | `deploy/` | Dockerfiles, Compose definitions, proxy configuration, and environment examples. |
@@ -59,8 +68,8 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 
 - API images target Python 3.14.7; retain Python 3.12-compatible syntax for shared
   scripts and security tooling. Use type annotations for public interfaces and nontrivial logic.
-- Use Ruff for linting/import ordering and Ruff format with double-quoted strings. Black
-  compatibility is configured at a 100-character line length.
+- Use Ruff for linting/import ordering and Ruff format with double-quoted strings
+  and a 100-character line length.
 - Use Google-style docstrings for Python modules, classes, public functions and
   nontrivial private helpers. When changing a callable, review its docstring against
   the implementation; do not generate descriptions from its name alone.
@@ -105,8 +114,16 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 
 ## Architecture rules
 
+- The installable library never imports `api`. Select center configuration explicitly
+  before importing vocabulary-dependent contracts; one process uses one immutable profile.
+- SDK release identity belongs to `pyproject.toml`; application identity and its exact
+  SDK selection belong to `release.toml`. Keep HTTP and clinical configuration revisions separate.
+- The Coyote3 wheel includes root-level API modules and server assets; `[api]`
+  enables their dependencies. The core must import without those dependencies.
+  Client code lives in its own distribution and imports neither core nor API.
+
 - HTTP routers declare paths, permissions, dependencies, and response contracts, then
-  delegate behavior to `api/application` services.
+  delegate behavior to `src/coyote3/application` services.
 - Business and clinical rules belong in application/domain modules, not route handlers,
   React pages, or MongoDB repositories.
 - MongoDB access belongs in `api/infra/mongo/repositories`. Depend on repository protocols
@@ -158,8 +175,8 @@ scripts/quality/run_quality_suite.sh
 
 # Backend tests, lint, formatting, and configured type-check boundary
 PYTHONPATH=. .venv/bin/pytest -q tests/unit tests/api tests/integration
-PYTHONPATH=. .venv/bin/ruff check api tests scripts
-PYTHONPATH=. .venv/bin/ruff format --check api tests scripts
+PYTHONPATH=. .venv/bin/ruff check src api tests scripts
+PYTHONPATH=. .venv/bin/ruff format --check src api tests scripts
 PYTHONPATH=. .venv/bin/mypy
 
 # Frontend development and verification
@@ -238,7 +255,7 @@ Do not manually edit or commit:
 - Nextflow `work/` directories or pipeline result trees if they are present locally.
 - Private scratch directories such as `.design/`, `.internal/`, `.agents/`, `.codex/`, and
   `.claude/`.
-- Generated documentation such as `docs/reference/mongodb-collections.md` and
+- Generated documentation such as `docs/sdk/reference.md`, `docs/reference/mongodb-collections.md` and
   `docs/administration/permission-catalog.md`; change their source and run the repository
   generator instead.
 - Dependency lockfiles unless the dependency graph intentionally changes.

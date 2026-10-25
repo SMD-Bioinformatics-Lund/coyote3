@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 from pymongo import MongoClient  # noqa: E402
 from pymongo.errors import PyMongoError  # noqa: E402
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.config.mongo import mongo_uri  # noqa: E402
 from api.config.security import get_audit_events_collection_name  # noqa: E402
 from api.infra.mongo.repositories.audit_integrity import verify_chain  # noqa: E402

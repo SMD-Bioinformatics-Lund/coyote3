@@ -9,7 +9,7 @@ from typing import Any
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import PyMongoError
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.config.security import (
     get_api_sessions_collection_name,
     get_audit_events_collection_name,

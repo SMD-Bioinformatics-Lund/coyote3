@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from api.application.coverage.processing import CoverageProcessingService
+from coyote3.application.coverage.processing import CoverageProcessingService
 
 
 class _D4CoverageBlacklistRepository:

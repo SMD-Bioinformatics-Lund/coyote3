@@ -52,6 +52,13 @@ COPY scripts/ ./scripts/
 COPY tests/ ./tests/
 COPY demo_data/ ./demo_data/
 COPY CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./
+COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
+COPY src/ ./src/
+COPY clients/python/ ./clients/python/
+COPY pyproject.toml build_support.py MANIFEST.in ./
+COPY release.toml ./
+COPY config/examples/ ./config/examples/
+RUN pip install --no-cache-dir --no-deps -e . -e clients/python
 
 USER coyote3:coyote3
 

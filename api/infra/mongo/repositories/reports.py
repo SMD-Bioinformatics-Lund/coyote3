@@ -8,15 +8,15 @@ from typing import Any
 from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
 
-from api.contracts.operations import OperationResult
-from api.domain.core.exceptions import AppError
-from api.domain.core.reporting.errors import ReportCommitUncertain
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.mongo.transactions import run_transaction
-from api.infra.request_context import current_username
 from api.infra.samples_cache import invalidate_samples_cache
+from coyote3.application.common.execution_context import current_username
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.reporting.errors import ReportCommitUncertain
 
 
 class ReportRepository(BaseRepository):

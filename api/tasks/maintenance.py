@@ -7,21 +7,8 @@ from typing import Any
 from celery.utils.log import get_task_logger
 from filelock import FileLock, Timeout
 
-from api.app.container import store
-from api.app.deps.services import (
-    get_activity_notification_service,
-    get_app_controls_service,
-    get_audit_service,
-    get_dashboard_service,
-    get_notification_service,
-    get_public_oncokb_refresh_service,
-)
-from api.application.reporting.artifact_finalization import finalize_pending_reports
+from api.app.application_factory import maintenance_executor
 from api.celery_app import celery_app
-from api.config.paths import REPORTS_BASE_PATH
-from api.infra.dashboard_metric_cache import DASHBOARD_METRICS
-from api.infra.mongo.repositories.report_artifact_erasure import erase_pending_reports
-from api.security.access import api_user_from_user_doc
 from api.tasks.controls import disabled_result, task_family_enabled
 from api.tasks.ingest import _ensure_worker_runtime, _serializable
 
@@ -33,21 +20,14 @@ DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote3-dashboard-metrics-refresh.lock"
 def erase_deleted_sample_reports() -> dict[str, int]:
     """Complete up to 100 report-file erasures authorized by committed sample deletions."""
     _ensure_worker_runtime()
-    repository = store.report_repository
-    return erase_pending_reports(
-        repository.get_collection(),
-        root=repository.app.config.get("REPORTS_BASE_PATH", REPORTS_BASE_PATH),
-    )
+    return maintenance_executor(logger).erase_reports()
 
 
 @celery_app.task(name="api.tasks.maintenance.finalize_report_artifacts")
 def finalize_report_artifacts() -> dict[str, int]:
     """Resume checksum-verified publication of committed report files."""
     _ensure_worker_runtime()
-    repository = store.report_repository
-    return finalize_pending_reports(
-        repository, root=repository.app.config.get("REPORTS_BASE_PATH", REPORTS_BASE_PATH)
-    )
+    return maintenance_executor(logger).finalize_reports()
 
 
 @celery_app.task(name="api.tasks.maintenance.replay_audit_events")
@@ -58,10 +38,7 @@ def replay_audit_events() -> dict[str, Any]:
         Audit delivery count and up to 100 activity notifications processed this run.
     """
     _ensure_worker_runtime()
-    service = get_audit_service()
-    delivered = service.replay_pending() if service is not None else 0
-    notifications = get_activity_notification_service().deliver()
-    return {"delivered": delivered, "notifications": notifications}
+    return maintenance_executor(logger).replay_audit()
 
 
 @celery_app.task(name="api.tasks.maintenance.deliver_notification_emails")
@@ -72,7 +49,7 @@ def deliver_notification_emails() -> dict[str, Any]:
         Counts by terminal outcome, or not_configured when SMTP is unavailable.
     """
     _ensure_worker_runtime()
-    return get_notification_service().deliver_emails(limit=10)
+    return maintenance_executor(logger).deliver_emails()
 
 
 @celery_app.task(name="api.tasks.maintenance.run_retention_maintenance", bind=True)
@@ -82,7 +59,7 @@ def run_retention_maintenance(self) -> dict[str, Any]:
     if not task_family_enabled("maintenance"):
         return disabled_result("maintenance")
     logger.info("celery_retention_maintenance_started task_id=%s", self.request.id)
-    result = get_app_controls_service().run_maintenance()
+    result = maintenance_executor(logger).retention()
     logger.info("celery_retention_maintenance_finished task_id=%s", self.request.id)
     return _serializable(result)
 
@@ -94,7 +71,7 @@ def refresh_public_oncokb(self) -> dict[str, Any]:
     if not task_family_enabled("maintenance"):
         return disabled_result("maintenance")
     logger.info("celery_public_oncokb_refresh_started task_id=%s", self.request.id)
-    result = get_public_oncokb_refresh_service().refresh()
+    result = maintenance_executor(logger).refresh_public_oncokb()
     logger.info("celery_public_oncokb_refresh_finished task_id=%s", self.request.id)
     return _serializable(result)
 
@@ -111,75 +88,17 @@ def refresh_dashboard_metrics(
     lock = FileLock(DASHBOARD_REFRESH_LOCK_PATH)
     try:
         with lock.acquire(timeout=0):
-            service = get_dashboard_service()
-            user_docs = service.user_repository.get_all_users()
-            eligible_user_docs = [
-                user_doc
-                for user_doc in user_docs
-                if user_doc.get("is_active") is not False
-                and (
-                    not username
-                    or str(user_doc.get("username") or user_doc.get("_id") or "") == username
-                )
-            ]
-            selected_metrics = sorted(set(metrics or DASHBOARD_METRICS) & DASHBOARD_METRICS)
-            refreshed = 0
-            skipped = 0
-            failures: list[dict[str, str]] = []
-            refreshed_scopes: set[tuple[str, str]] = set()
-            skipped += len(user_docs) - len(eligible_user_docs)
-            for user_doc in eligible_user_docs:
-                stored_username = str(user_doc.get("username") or user_doc.get("_id") or "")
-                try:
-                    api_user = api_user_from_user_doc(user_doc)
-                except Exception as exc:  # pragma: no cover - invalid stored user guard
-                    logger.exception(
-                        "celery_dashboard_metrics_user_failed task_id=%s username=%s",
-                        self.request.id,
-                        stored_username,
-                    )
-                    failures.append({"username": stored_username, "error": type(exc).__name__})
-                    continue
-                for metric in selected_metrics:
-                    scope_key = service.metric_scope_key(metric, user=api_user)
-                    refresh_key = (metric, scope_key)
-                    if refresh_key in refreshed_scopes:
-                        skipped += 1
-                        continue
-                    try:
-                        service.metric_payload(metric, user=api_user, force=True)
-                        refreshed_scopes.add(refresh_key)
-                        refreshed += 1
-                    except Exception as exc:  # pragma: no cover - task integration guard
-                        logger.exception(
-                            "celery_dashboard_metric_refresh_failed task_id=%s username=%s metric=%s",
-                            self.request.id,
-                            stored_username,
-                            metric,
-                        )
-                        failures.append(
-                            {
-                                "username": stored_username,
-                                "metric": metric,
-                                "error": type(exc).__name__,
-                            }
-                        )
-                    finally:
-                        service.release_metric_refresh(metric, user=api_user)
+            result = maintenance_executor(logger).refresh_dashboard(
+                username=username, metrics=metrics, task_id=self.request.id
+            )
     except Timeout:
         logger.info("celery_dashboard_metrics_refresh_skipped reason=already_running")
         return {"status": "skipped", "reason": "already_running"}
 
-    result = {
-        "status": "completed" if not failures else "completed_with_errors",
-        "refreshed": refreshed,
-        "skipped": skipped,
-        "failures": failures,
-    }
     logger.info(
         "celery_dashboard_metrics_refresh_finished task_id=%s refreshed=%s failures=%s",
         self.request.id,
-        refreshed,
-        len(failures),
+        result["refreshed"],
+        len(result["failures"]),
     )
     return _serializable(result)

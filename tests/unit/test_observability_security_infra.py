@@ -7,7 +7,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from api.application.audit.service import AuditService
 from api.infra.mongo.repositories.audit import AuditRepository
 from api.infra.observability.logging import (
     JsonFormatter,
@@ -19,6 +18,7 @@ from api.infra.observability.logging import (
 from api.infra.security.sessions import MongoApiSessionRepository
 from api.security import audit_events
 from api.security.tokens import token_hash
+from coyote3.application.audit.service import AuditService
 
 
 def test_log_identity_uses_resolved_client_not_raw_forwarded_header():

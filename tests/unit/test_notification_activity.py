@@ -9,13 +9,14 @@ import pytest
 from bson import ObjectId
 from pymongo.errors import AutoReconnect
 
-from api.application.notifications.access import SampleNotificationAccess
-from api.application.notifications.activity import ActivityNotificationService
-from api.application.notifications.service import NotificationService
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.notification_activity import NotificationActivityRepository
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.samples import SampleRepository
+from api.security.policy import build_access_policy
+from coyote3.application.notifications.access import SampleNotificationAccess
+from coyote3.application.notifications.activity import ActivityNotificationService
+from coyote3.application.notifications.service import NotificationService
+from coyote3.domain.exceptions import AppError
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -75,7 +76,12 @@ def fixture():
     }
     roles = Mock()
     roles.get_all_roles.return_value = [{"role_id": "reader", "permissions": ["sample:view"]}]
-    access = SampleNotificationAccess(samples=samples, roles=roles, permissions=PermissionCatalog())
+    access = SampleNotificationAccess(
+        samples=samples,
+        roles=roles,
+        permissions=PermissionCatalog(),
+        policy_factory=build_access_policy,
+    )
     notifications = NotificationService(
         notification_repository=repo,
         user_repository=users,

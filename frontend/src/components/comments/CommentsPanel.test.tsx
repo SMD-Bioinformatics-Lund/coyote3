@@ -133,8 +133,8 @@ describe("CommentsPanel", () => {
         hgvsc: "c.265A>G",
         hgvsp: "p.Met89Val",
         genomic: "17_76736896_T_C",
-        assay_group: "hematology",
-        diagnosis: "hem",
+        asp_group: "hematology",
+        diagnosis_id: "hem",
       }),
     }))
   })

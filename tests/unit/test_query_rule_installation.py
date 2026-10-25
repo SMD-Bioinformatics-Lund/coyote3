@@ -10,11 +10,12 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.application.query_rules.service import QueryRuleService
-from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
-from api.domain.core.dna.varqueries import _exception_clause
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from api.infra.mongo.selection import compile_selection
 from api.infra.seed.query_rules import prepare_query_rule_seeds
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
+from coyote3.domain.dna.varqueries import _exception_clause
 from scripts.bootstrap import install_query_rules
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def seed_rows(name):
     """Read public reference records without connecting to a deployment."""
-    path = ROOT / f"api/config/bootstrap/reference/{name}.seed.ndjson"
+    path = ROOT / f"api/bootstrap/catalogs/reference/{name}.seed.ndjson"
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
@@ -40,7 +41,7 @@ def test_installed_germline_rules_are_group_scoped():
             )
         )
     )
-    from api.contracts.schemas.query_rules import QueryRuleScope
+    from coyote3.contracts.schemas.query_rules import QueryRuleScope
 
     for group in ("hematology", "myeloid"):
         policy = service.resolve(QueryRuleScope(assay_group=group, analysis="snv"))
@@ -89,7 +90,7 @@ def test_installed_germline_rules_are_group_scoped():
 
 def test_fresh_bootstrap_loads_complete_query_catalog():
     """First installation includes catalog-only rules as well as TOML criteria."""
-    from api.contracts.schemas.query_rules import QueryRuleContent
+    from coyote3.contracts.schemas.query_rules import QueryRuleContent
     from scripts.bootstrap.bootstrap_database import (
         DEFAULT_RBAC_DIR,
         DEFAULT_REFERENCE_DIR,
@@ -163,15 +164,17 @@ def test_installed_trees_preserve_legacy_matching_and_condition_order():
     for row in rows:
         for rule in row["content"]["exceptions"]:
             old = {"id": rule["id"], "mode": rule["mode"], **legacy[rule["id"]]}
-            old_clause = _exception_clause(resolved_query_policy("snv", None, [old]).exceptions[0])
+            old_clause = compile_selection(
+                _exception_clause(resolved_query_policy("snv", None, [old]).exceptions[0])
+            )
             expected = {d["_id"] for d in collection.find(old_clause)}
             children = rule["condition"].get("children")
             for order in permutations(children) if children else [None]:
                 changed = deepcopy(rule)
                 if order:
                     changed["condition"]["children"] = list(order)
-                clause = _exception_clause(
-                    resolved_query_policy("snv", None, [changed]).exceptions[0]
+                clause = compile_selection(
+                    _exception_clause(resolved_query_policy("snv", None, [changed]).exceptions[0])
                 )
                 assert {d["_id"] for d in collection.find(clause)} == expected
 
@@ -183,7 +186,9 @@ def test_installed_gene_exception_matches_nonselected_annotated_gene():
     )
     row = next(row for row in rows if row["query_id"] == "hematology__all__base__somatic_snvs")
     rule = next(rule for rule in row["content"]["exceptions"] if rule["id"] == "flt3_svtype")
-    clause = _exception_clause(resolved_query_policy("snv", None, [rule]).exceptions[0])
+    clause = compile_selection(
+        _exception_clause(resolved_query_policy("snv", None, [rule]).exceptions[0])
+    )
     collection = mongomock.MongoClient().synthetic.variants
     collection.insert_many(
         [
@@ -264,7 +269,7 @@ def test_repair_installs_missing_biological_scopes(monkeypatch):
 
 
 def test_query_roles_separate_lifecycle_grants():
-    path = ROOT / "api/config/bootstrap/rbac/roles.seed.ndjson"
+    path = ROOT / "api/bootstrap/catalogs/rbac/roles.seed.ndjson"
     roles = {
         row["name"]: row
         for line in path.read_text().splitlines()

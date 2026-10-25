@@ -6,7 +6,7 @@ SNV flag-filter choices in sample review, assay configurations, finding query ru
 and clinical report rules. Changing the metadata alone does not exclude any finding
 or change tiering logic.
 
-The bundled file is `api/config/center/filter_flag_metadata.yaml`. When
+The bundled file is `config/examples/center/filter_flag_metadata.yaml`. When
 `COYOTE3_CENTER_CONFIG_DIR` is set, the application reads `filter_flag_metadata.yaml`
 from that directory instead. Selectable flag keys come from this file rather than
 a frontend constant.
@@ -55,6 +55,9 @@ configuration release and recreate the consuming application processes.
 
 ## SNV flag filtering and rule conditions
 
+The demo ASPCs explicitly include empty `exclude_flags` lists. Choices in the admin
+configuration editor and sample sidebar come from this configured metadata file.
+
 Somatic and germline SNV profiles each support one `exclude_flags` list, empty by
 default. It is stored alongside the other SNV values at
 `filters.somatic.snv.exclude_flags` or `filters.germline.snv.exclude_flags` in both
@@ -81,6 +84,14 @@ rules expose `finding.filter_flags` for each SNV and `item.filter_flags` inside 
 findings collection condition. Use `contains` for one exact flag or `overlaps` for
 any selected flag, and wrap the condition in an exclusion when appropriate. These
 facts retain raw flags in the prepared report context, including hidden flags.
+
+## RNA caller annotations
+
+RNA fusion configurations expose `filters.somatic.fusion.fusion_descriptions`
+under **Caller annotations**. Its choices use the same configured fusion
+annotation vocabulary as the sample sidebar. Selected terms match caller-provided
+fusion descriptions; an empty selection imposes no description filter.
+These terms are separate from DNA VCF `FILTER` exclusion flags.
 
 For caller-specific definitions, see [Caller registries and flag descriptions](../administration/clinical-vocabulary.md#caller-registries-and-flag-descriptions).
 Within a scope, matching order is: full `terms` match, full `exact` match, first matching

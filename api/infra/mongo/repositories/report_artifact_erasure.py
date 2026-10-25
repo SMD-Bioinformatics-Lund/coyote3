@@ -7,10 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
-from api.domain.core.exceptions import AppError
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.infra.mongo.repositories.audit_outbox import audit_route, enqueue_audit
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.exceptions import AppError
 
 logger = logging.getLogger(__name__)
 

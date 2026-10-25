@@ -1,11 +1,11 @@
 """Behavior tests for immutable clinical filter helper functions."""
 
-from api.domain.core.filter_capabilities import (
+from coyote3.domain.filtering.capabilities import (
     filter_keys,
     filter_section_for_analysis,
     select_filter_values,
 )
-from api.domain.core.rna.helpers import (
+from coyote3.domain.rna.helpers import (
     create_fusioncallers,
     create_fusioneffectlist,
     get_fusion_callers,

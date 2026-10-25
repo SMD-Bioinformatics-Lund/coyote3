@@ -76,7 +76,7 @@ def test_invalid_revision_checksum_prevents_all_configuration_writes():
 def test_obsolete_binding_is_not_an_accepted_reporting_fact():
     from pydantic import ValidationError
 
-    from api.application.reporting.clinical_rules.facts import PreparedAspcReportingFacts
+    from coyote3.application.reporting.clinical_rules.facts import PreparedAspcReportingFacts
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         PreparedAspcReportingFacts.model_validate({"clinical_rule_set_id": "obsolete"})
@@ -156,12 +156,12 @@ def test_missing_active_reporting_scope_blocks_preflight():
 def test_migrates_embedded_facts_and_revision_hash_chain(monkeypatch):
     from datetime import datetime, timezone
 
-    from api.application.reporting.clinical_rules.validation import content_hash
-    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
     from api.infra.mongo.repositories.clinical_rule_sets import (
         build_revision_snapshot,
         verify_revision_snapshot,
     )
+    from coyote3.application.reporting.clinical_rules.validation import content_hash
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
     from tests.unit.reporting.test_clinical_rules import _context, _document
 
     db = mongomock.MongoClient(tz_aware=True).test

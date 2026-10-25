@@ -1,6 +1,6 @@
 """Aggregate sample workload and observed provenance without loading sample cohorts."""
 
-from api.config.constants import DEFAULT_ENVIRONMENT
+from coyote3.config.constants import DEFAULT_ENVIRONMENT
 
 
 class SampleStatisticsMixin:

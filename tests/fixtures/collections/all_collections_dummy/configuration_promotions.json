@@ -1,0 +1,21 @@
+[
+  {
+    "source_id": "507f1f77bcf86cd799439011",
+    "source_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "candidate": {
+      "aspc_id": "synthetic_testing"
+    },
+    "content_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+    "expected_target_version": 0,
+    "evidence": [
+      "Synthetic validation record"
+    ],
+    "reason": "Synthetic promotion fixture",
+    "created_by": "fixture.author",
+    "created_on": "2026-01-01T00:00:00+00:00",
+    "status": "pending",
+    "approved_by": null,
+    "approved_on": null,
+    "target_id": null
+  }
+]

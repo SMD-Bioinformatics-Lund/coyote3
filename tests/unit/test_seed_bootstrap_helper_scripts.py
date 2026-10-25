@@ -277,11 +277,14 @@ def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center
 
 def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monkeypatch):
     """Seed export revisions become fresh baselines without altering clinical content."""
-    from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
-    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
     from api.infra.seed.bundle import load_seed
+    from coyote3.application.reporting.clinical_rules.validation import (
+        content_hash,
+        validate_rule_set,
+    )
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
-    source = load_seed(ROOT_DIR / "api/config/bootstrap/demo_center")
+    source = load_seed(ROOT_DIR / "api/bootstrap/catalogs/demo_center")
     original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
     for collection, documents in source.items():
         for document in documents:

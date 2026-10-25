@@ -15,8 +15,8 @@ This page summarizes how to contribute safely and efficiently.
 ## Required checks before PR
 
 ```bash
-PYTHONPATH=. .venv/bin/ruff check api tests scripts
-PYTHONPATH=. .venv/bin/ruff format --check api tests scripts
+PYTHONPATH=. .venv/bin/ruff check src api tests scripts
+PYTHONPATH=. .venv/bin/ruff format --check src api tests scripts
 scripts/quality/run_quality_suite.sh
 ```
 

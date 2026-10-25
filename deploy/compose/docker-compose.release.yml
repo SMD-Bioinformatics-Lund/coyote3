@@ -1,0 +1,7 @@
+# Optional immutable-artifact build for release CI and deployments using tested wheels.
+services:
+  api:
+    build:
+      target: coyote3_api
+      additional_contexts:
+        sdk_artifact: ${COYOTE3_SDK_ARTIFACT_DIR:-../../.release/sdk}

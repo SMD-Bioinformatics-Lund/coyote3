@@ -10,19 +10,23 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 
 from bson.objectid import ObjectId
 
-from api.contracts.operations import OperationResult
-from api.domain.core.dna.variant_identity import (
+from api.infra.mongo.persistence import require_object_id
+from api.infra.mongo.records import application_record
+from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
+from api.infra.mongo.selection import compile_selection
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     ensure_variant_identity_fields,
     normalize_simple_id,
 )
-from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
+from coyote3.domain.selection import Selection
 
 
 # -------------------------------------------------------------------------
@@ -126,19 +130,20 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             },
         )
 
-    def get_case_variants(self, query: dict):
+    def get_case_variants(self, query: Selection) -> Iterator[dict[str, Any]]:
         """
         Retrieve variants based on a constructed query.
 
         This method executes a query on the variants collection and returns the matching variants.
 
         Args:
-            query (dict): A dictionary representing the query to execute.
+            query: Immutable clinical selection translated by this storage adapter.
 
         Returns:
-            pymongo.cursor.Cursor: A cursor to the documents that match the query.
+            Matching application records with string identities, consumed lazily.
         """
-        return self.get_collection().find(query)
+        cursor = self.get_collection().find(compile_selection(query))
+        return (application_record(row) for row in cursor)
 
     @staticmethod
     def _simple_id_identity_query(simple_id: str) -> dict[str, str]:
@@ -149,7 +154,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             "simple_id": normalized,
         }
 
-    def get_variant(self, id: str) -> dict:
+    def get_variant(self, id: str) -> dict[str, Any] | None:
         """
         Retrieve a variant by its unique ID.
 
@@ -160,9 +165,13 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             id (str): The unique identifier of the variant.
 
         Returns:
-            dict: A dictionary representing the variant document, or None if not found.
+            Application record with string identities, or None when not found.
         """
-        return self._hydrate_finding_comments(self.get_collection().find_one({"_id": ObjectId(id)}))
+        return application_record(
+            self._hydrate_finding_comments(
+                self.get_collection().find_one({"_id": require_object_id(id)})
+            )
+        )
 
     def update_selected_transcript(
         self,

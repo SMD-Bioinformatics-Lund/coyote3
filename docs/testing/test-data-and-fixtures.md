@@ -6,15 +6,16 @@ Use synthetic fixtures to test ingestion, API responses and collection contracts
 
 Test data lives in these directories:
 
-- `demo_data/clinical_workflows/`: Portable raw evidence, setup records, expected collections
-  and [clinical workflow exercises](clinical-workflow-demo.md).
-- `demo_data/ingest/`: Synthetic input files for ingest tests.
-- `demo_data/collections/`: Example documents for collection contract tests.
+- `demo_data/clinical_workflows/`: Installable setup resources, raw evidence and sample manifests.
+- `tests/fixtures/clinical_workflows/`: Negative cases, scenario assertions and generated
+  expectations for the [clinical workflow exercises](clinical-workflow-demo.md).
+- `tests/fixtures/ingest/`: Synthetic input files for ingest tests.
+- `tests/fixtures/collections/`: Example documents for collection contract tests.
 - `tests/fixtures/api/`: API fixtures and payload snapshots.
 
 ## Canonical Ingestion Datasets
 
-The `demo_data/ingest` directory contains synthetic ingest inputs:
+The `tests/fixtures/ingest` directory contains synthetic ingest inputs:
 
 - VCF files for small variants.
 - JSON files for copy-number and coverage data.
@@ -49,11 +50,11 @@ Application bootstrap and test fixtures have separate ownership:
 
 | Location | Purpose | Production bootstrap |
 | --- | --- | --- |
-| `api/config/bootstrap/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
-| `api/config/bootstrap/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
-| `api/config/bootstrap/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
-| `demo_data/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |
-| `demo_data/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |
+| `api/bootstrap/catalogs/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
+| `api/bootstrap/catalogs/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
+| `api/bootstrap/catalogs/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
+| `tests/fixtures/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |
+| `tests/fixtures/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |
 
 The first-deployment flow and empty-collection protection are described in
 [Initial Deployment Checklist](../deployment/installation-checklist.md).

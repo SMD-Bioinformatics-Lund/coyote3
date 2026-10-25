@@ -1,6 +1,6 @@
 """Tests for canonical server-side table state parsing."""
 
-from api.application.common.table_state import (
+from coyote3.application.common.table_state import (
     numeric_value,
     parse_sort_specs,
     search_items,

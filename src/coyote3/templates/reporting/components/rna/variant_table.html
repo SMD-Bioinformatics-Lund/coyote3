@@ -1,0 +1,8 @@
+<table class="variant_table">
+  <tr><th>Fusion</th><th>Klassificering</th></tr>
+  {% for var in fusions|sort(attribute='classification.class') %}
+    <tr><td>{{ var.gene1 }} - {{ var.gene2 }}</td><td>{{ class_desc_short[var.classification.class] }}</td></tr>
+  {% else %}
+    <tr><td>Inga detekterade fusioner</td><td></td></tr>
+  {% endfor %}
+</table>

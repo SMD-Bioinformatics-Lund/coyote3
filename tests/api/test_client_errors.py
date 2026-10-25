@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from api.interfaces.http.operations.client_errors import router
+from api.interfaces.http.v1.operations.client_errors import router
 
 
 def test_client_errors_require_authentication_and_validate_payload(monkeypatch, caplog):

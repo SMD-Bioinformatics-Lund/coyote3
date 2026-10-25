@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.transactions import run_transaction
+from coyote3.contracts.operations import OperationResult
 
 
 def rotate_active_revision(

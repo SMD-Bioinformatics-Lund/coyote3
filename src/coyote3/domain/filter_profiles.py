@@ -1,0 +1,230 @@
+"""Typed, intent-aware clinical filter profiles.
+
+The filter vocabulary is owned by the application.  ASPCs and samples may set
+values only for the groups represented here; arbitrary keys are rejected.
+"""
+
+from __future__ import annotations
+
+from typing import Any, cast
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
+
+
+class ClinicalFilterProfile(BaseModel):
+    """Reject undeclared clinical filter fields while accepting named model fields."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class SnvFlagFiltersDoc(ClinicalFilterProfile):
+    """Optional exclusions matching exact VCF FILTER names within an SNV profile."""
+
+    exclude_flags: list[str] = Field(default_factory=list, max_length=100)
+
+    @field_validator("exclude_flags")
+    @classmethod
+    def _validate_flags(cls, values: list[str]) -> list[str]:
+        """Trim and deduplicate literal flag names without changing their case.
+
+        Args:
+            values: Validated list of pipeline FILTER names.
+
+        Returns:
+            Nonempty flag names in selection order.
+
+        Raises:
+            ValueError: A flag is blank or exceeds 200 characters.
+        """
+        flags = list(dict.fromkeys(value.strip() for value in values))
+        if any(not flag or len(flag) > 200 for flag in flags):
+            raise ValueError("Flag names must contain 1–200 characters")
+        return flags
+
+
+class SnvFiltersDoc(SnvFlagFiltersDoc):
+    """Somatic SNV frequency, read-support, consequence, flag, and gene-scope filters."""
+
+    max_freq: float = Field(default=1.0, ge=0.0, le=1.0)
+    min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
+    max_control_freq: float = Field(default=0.05, ge=0.0, le=0.5)
+    max_popfreq: float = Field(default=0.05, ge=0.0, le=0.5)
+    min_depth: int = Field(default=100, ge=0)
+    min_alt_reads: int = Field(default=5, ge=0)
+    vep_consequences: list[str] = Field(default_factory=list)
+    snvlists: list[str] = Field(default_factory=list)
+    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _validate_read_depth(self) -> "SnvFiltersDoc":
+        """Check that the depth threshold can accommodate alternate reads.
+
+        Returns:
+            This SNV profile unchanged.
+
+        Raises:
+            ValueError: If minimum alternate reads exceed minimum total depth.
+        """
+        if self.min_depth < self.min_alt_reads:
+            raise ValueError("min_depth must be greater than or equal to min_alt_reads")
+        return self
+
+
+class GermlineSnvFiltersDoc(SnvFlagFiltersDoc):
+    """SNV filter profile for constitutional review.
+
+    ``max_control_freq`` is intentionally absent. A tumour-normal exclusion
+    threshold is not a germline filtering concept.
+    """
+
+    max_freq: float = Field(default=1.0, ge=0.0, le=1.0)
+    min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
+    max_popfreq: float = Field(default=0.05, ge=0.0, le=0.5)
+    min_depth: int = Field(default=100, ge=0)
+    min_alt_reads: int = Field(default=5, ge=0)
+    vep_consequences: list[str] = Field(default_factory=list)
+    snvlists: list[str] = Field(default_factory=list)
+    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _validate_read_depth(self) -> "GermlineSnvFiltersDoc":
+        """Check that the depth threshold can accommodate alternate reads.
+
+        Returns:
+            This germline SNV profile unchanged.
+
+        Raises:
+            ValueError: If minimum alternate reads exceed minimum total depth.
+        """
+        if self.min_depth < self.min_alt_reads:
+            raise ValueError("min_depth must be greater than or equal to min_alt_reads")
+        return self
+
+
+class CnvFiltersDoc(ClinicalFilterProfile):
+    """CNV size bounds, gain/loss thresholds, effects, and gene-scope filters."""
+
+    min_cnv_size: int = Field(default=100, ge=0)
+    max_cnv_size: int = Field(default=50_000_000, ge=0)
+    cnv_loss_cutoff: float = Field(default=-0.3)
+    cnv_gain_cutoff: float = Field(default=0.3)
+    cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
+    cnvlists: list[str] = Field(default_factory=list)
+    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _validate_consistency(self) -> "CnvFiltersDoc":
+        """Check size bounds, gain/loss threshold ordering, and allowed effects.
+
+        Returns:
+            This CNV profile unchanged.
+
+        Raises:
+            ValueError: If sizes are reversed, loss is not below gain, or an
+                effect is neither gain nor loss.
+        """
+        if self.min_cnv_size > self.max_cnv_size:
+            raise ValueError("min_cnv_size must be less than or equal to max_cnv_size")
+        if self.cnv_loss_cutoff >= self.cnv_gain_cutoff:
+            raise ValueError("cnv_loss_cutoff must be less than cnv_gain_cutoff")
+        invalid = [effect for effect in self.cnveffects if effect not in {"gain", "loss"}]
+        if invalid:
+            raise ValueError("cnveffects may contain only gain and loss")
+        return self
+
+
+class CoverageFiltersDoc(ClinicalFilterProfile):
+    """Read-depth thresholds for coverage warnings and errors."""
+
+    warn_cov: int = Field(default=100, ge=0)
+    error_cov: int = Field(default=10, ge=0)
+
+    @model_validator(mode="after")
+    def _validate_consistency(self) -> "CoverageFiltersDoc":
+        """Check that the error threshold does not exceed the warning threshold.
+
+        Returns:
+            This coverage profile unchanged.
+
+        Raises:
+            ValueError: If error_cov exceeds warn_cov.
+        """
+        if self.error_cov > self.warn_cov:
+            raise ValueError("error_cov must be less than or equal to warn_cov")
+        return self
+
+
+class FusionFiltersDoc(ClinicalFilterProfile):
+    """RNA fusion caller, annotation, read-support, and gene-scope filters."""
+
+    fusion_callers: list[str] = Field(default_factory=list)
+    fusion_descriptions: list[str] = Field(default_factory=list)
+    fusion_effects: list[str] = Field(default_factory=list)
+    fusionlists: list[str] = Field(default_factory=list)
+    min_spanning_pairs: int = Field(default=0, ge=0)
+    min_spanning_reads: int = Field(default=0, ge=0)
+    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("fusion_callers", mode="before")
+    @classmethod
+    def _normalize_fusion_callers(cls, value: Any) -> list[str]:
+        """Resolve caller selections through the clinical vocabulary.
+
+        Args:
+            value: Caller selection; falsey input is treated as an empty list.
+
+        Returns:
+            Caller names normalized by the clinical vocabulary.
+
+        Raises:
+            ValueError: If a caller is not supported by the vocabulary.
+        """
+        return cast(list[str], CLINICAL_VOCABULARY.normalize_fusion_callers(value or []))
+
+
+class TranslocationFiltersDoc(ClinicalFilterProfile):
+    """Gene scope for DNA fusion/translocation review.
+
+    DNA translocations reuse fusion-compatible ISGLs because both represent
+    gene-pair findings. RNA-only spanning-read and caller thresholds do not
+    apply to the DNA VCF contract.
+    """
+
+    fusionlists: list[str] = Field(default_factory=list)
+    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+
+class SomaticDnaFiltersDoc(ClinicalFilterProfile):
+    """Optional SNV, CNV, translocation, and coverage profiles for somatic DNA."""
+
+    snv: SnvFiltersDoc | None = None
+    cnv: CnvFiltersDoc | None = None
+    translocation: TranslocationFiltersDoc | None = None
+    coverage: CoverageFiltersDoc | None = None
+
+
+class GermlineDnaFiltersDoc(ClinicalFilterProfile):
+    """Current germline capability: SNV only."""
+
+    snv: GermlineSnvFiltersDoc | None = None
+
+
+class DnaFilterProfilesDoc(ClinicalFilterProfile):
+    """DNA filters partitioned into optional somatic and germline profiles."""
+
+    somatic: SomaticDnaFiltersDoc | None = None
+    germline: GermlineDnaFiltersDoc | None = None
+
+
+class SomaticRnaFiltersDoc(ClinicalFilterProfile):
+    """Optional fusion filtering profile for somatic RNA analysis."""
+
+    fusion: FusionFiltersDoc | None = None
+
+
+class RnaFilterProfilesDoc(ClinicalFilterProfile):
+    """RNA filters restricted to the supported somatic analysis intent."""
+
+    somatic: SomaticRnaFiltersDoc | None = None

@@ -4,34 +4,35 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
-import api.application.accounts.permissions as admin_permission_service_module
-import api.application.accounts.roles as admin_role_service_module
-import api.application.accounts.users as admin_user_service_module
-import api.application.resources.asp as admin_asp_service_module
-import api.application.resources.aspc as admin_aspc_service_module
-import api.application.resources.isgl as admin_isgl_service_module
-import api.application.resources.sample as admin_resource_service_module
+import coyote3.application.accounts.permissions as admin_permission_service_module
+import coyote3.application.accounts.roles as admin_role_service_module
+import coyote3.application.accounts.users as admin_user_service_module
+import coyote3.application.resources.asp as admin_asp_service_module
+import coyote3.application.resources.aspc as admin_aspc_service_module
+import coyote3.application.resources.isgl as admin_isgl_service_module
+import coyote3.application.resources.sample as admin_resource_service_module
 from api.app.container import util as shared_util
-from api.application.accounts.permissions import PermissionManagementService
-from api.application.accounts.roles import RoleManagementService
-from api.application.accounts.users import UserManagementService
-from api.application.resources.asp import AspService
-from api.application.resources.aspc import AspcService
-from api.application.resources.isgl import IsglService
-from api.application.resources.sample import ResourceSampleService
-from api.config.constants import (
+from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote3.application.accounts.permissions import PermissionManagementService
+from coyote3.application.accounts.roles import RoleManagementService
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.application.resources.asp import AspService
+from coyote3.application.resources.aspc import AspcService
+from coyote3.application.resources.isgl import IsglService
+from coyote3.application.resources.sample import ResourceSampleService
+from coyote3.config.constants import (
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
     PLATFORM_OPTIONS,
     SAMPLE_FILE_KEYS,
 )
-from api.config.contracts.governance import PERMISSION_CATALOG
-from api.contracts.operations import OperationResult
-from api.domain.core.exceptions import AppError
-from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote3.config.contracts.governance import PERMISSION_CATALOG
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.exceptions import AppError
 
 
 class _AdminRepoStub:
@@ -960,6 +961,8 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
 def _user_service(repo: _AdminRepoStub) -> UserManagementService:
     store = _build_store(repo)
     return UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=store.user_repository,
         roles_repository=store.roles_repository,
         permissions_repository=store.permissions_repository,
@@ -1008,7 +1011,6 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
         vep_metadata_repository=store.vep_metadata_repository,
-        clinical_rule_set_repository=store.clinical_rule_set_repository,
     )
 
 
@@ -1016,26 +1018,12 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
     store = _build_store(repo)
     return ResourceSampleService(
         sample_repository=store.sample_repository,
-        variant_repository=store.variant_repository,
-        copy_number_variant_repository=store.copy_number_variant_repository,
-        d4_coverage_repository=store.d4_coverage_repository,
-        translocation_repository=store.translocation_repository,
-        fusion_repository=store.fusion_repository,
-        biomarker_repository=store.biomarker_repository,
-        rna_expression_repository=store.rna_expression_repository,
-        rna_classification_repository=store.rna_classification_repository,
-        rna_quality_repository=store.rna_quality_repository,
-        pgx_repository=store.pgx_repository,
-        sample_comment_repository=store.sample_comment_repository,
-        finding_comment_repository=store.finding_comment_repository,
-        report_repository=store.report_repository,
-        reported_variant_repository=store.reported_variant_repository,
         assay_panel_repository=store.assay_panel_repository,
+        sample_deleter=Mock(),
     )
 
 
 def _patch_admin_stores(monkeypatch, repo: _AdminRepoStub) -> None:
-    monkeypatch.setattr(admin_user_service_module, "notify_user_change", lambda **_: {})
     store = _build_store(repo)
     for module in (
         admin_user_service_module,
@@ -1061,9 +1049,11 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _user_service(repo)
-    monkeypatch.setattr("api.application.accounts.users.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc)
+        "coyote3.application.accounts.users.current_actor", lambda username: username
+    )
+    monkeypatch.setattr(
+        "coyote3.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc)
     )
     monkeypatch.setattr(
         shared_util,
@@ -1090,6 +1080,8 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
         raising=False,
     )
     service = UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=service.user_repository,
         roles_repository=service.roles_repository,
         permissions_repository=service.permissions_repository,
@@ -1263,7 +1255,9 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _role_service(repo)
-    monkeypatch.setattr("api.application.accounts.roles.current_actor", lambda username: username)
+    monkeypatch.setattr(
+        "coyote3.application.accounts.roles.current_actor", lambda username: username
+    )
     monkeypatch.setattr(
         admin_role_service_module,
         "normalize_managed_form_payload",
@@ -1668,9 +1662,11 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _resource_sample_service(repo)
-    monkeypatch.setattr("api.application.resources.sample.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc)
+        "coyote3.application.resources.sample.current_actor", lambda username: username
+    )
+    monkeypatch.setattr(
+        "coyote3.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc)
     )
     payload = service.update(
         sample_id="S1",

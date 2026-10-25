@@ -6,14 +6,14 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
-from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
-from api.application.reporting.clinical_rules.service import rendered_summary
-from api.application.reporting.clinical_rules.validation import validate_rule_set
-from api.application.reporting.dna_report_payload import filter_variants_for_report
-from api.application.reporting.eligibility import reportable_tiers
-from api.application.reporting.report_renderer import _template_defaults
-from api.contracts.schemas.assay import ReportableTiersDoc
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+from coyote3.application.reporting.clinical_rules.service import rendered_summary
+from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+from coyote3.application.reporting.dna_report_payload import filter_variants_for_report
+from coyote3.application.reporting.eligibility import reportable_tiers
+from coyote3.application.reporting.report_context import prepare_render_context
+from coyote3.contracts.schemas.assay import ReportableTiersDoc
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from scripts.upgrade_from_v3 import migrate_reporting_policy
 from scripts.upgrade_from_v3.migrate_reporting_policy import metadata_draft
 from tests.unit.reporting.test_clinical_rules import _context, _document
@@ -122,7 +122,7 @@ def test_renderer_does_not_mutate_aspc_or_duplicate_metadata_in_summary():
         },
     }
     original = deepcopy(context)
-    prepared = _template_defaults(context, analyte="dna", preview=True)
+    prepared = prepare_render_context(context, analyte="dna", preview=True)
     assert prepared["assay_config"]["reporting"]["report_header"] == "Report: paired"
     assert prepared["report_header"] == "Report: paired"
     assert context == original

@@ -91,10 +91,11 @@ exact published scope and can use the assay's published Base scope when no exact
 published release exists. A rule must declare each configured report analysis.
 Draft and unapproved content does not satisfy a published-release lookup.
 
-In the setup workflow, every selected ASPC must resolve a published rule before
-activation. In individual ASPC administration, the reporting compatibility check
-applies to active configurations with report sections. These checks are distinct;
-leaving sections empty does not bypass setup publication requirements.
+In the setup workflow, readiness checks published reporting rules for the selected
+scopes. Individual ASPC creation and editing are independent of rule publication.
+Each report preview resolves the current published rules and validates their
+compatibility with the configured report sections. Missing, ambiguous or invalid
+rules block that report; they do not require rewriting the ASPC.
 
 ## Access and historical records
 

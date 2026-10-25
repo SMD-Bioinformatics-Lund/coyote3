@@ -9,8 +9,13 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from api.interfaces.http.operations import auth as auth_router
-from api.interfaces.http.operations import health as health_router
+from api.app.application_factory import open_password_recovery
+from api.interfaces.http.v1.operations import auth as auth_router
+from api.interfaces.http.v1.operations import health as health_router
+from api.security import password_flows
+from coyote3.application.operations.account import Account
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -124,7 +129,7 @@ def test_current_user_can_update_analysis_layout():
     payload = auth_router.update_current_ui_settings(
         auth_router.ApiUiSettingsUpdateRequest(analysis_layout="modern"),
         user=user,
-        service=service,
+        service=sdk_fixtures.authorized_operations(Account, service, user),
     )
 
     assert payload == {"status": "ok", "ui_settings": {"analysis_layout": "modern"}}
@@ -143,7 +148,9 @@ def test_current_user_can_update_theme(theme):
     result = auth_router.update_current_ui_settings(
         auth_router.ApiUiSettingsUpdateRequest(theme=theme),
         user=user,
-        service=SimpleNamespace(update_own_ui_settings=update),
+        service=sdk_fixtures.authorized_operations(
+            Account, SimpleNamespace(update_own_ui_settings=update), user
+        ),
     )
     assert calls == [{"username": user.username, "payload": {"theme": theme}}]
     assert result["ui_settings"]["theme"] == theme
@@ -366,13 +373,11 @@ def test_auth_session_serializes_user(monkeypatch):
 def test_change_password_rejects_weak_password():
     """Weak new password should fail validation."""
     user = fx.api_user()
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         auth_router.change_password(
-            auth_router.ApiPasswordChangeRequest(
-                current_password="old",
-                new_password="weak",
-            ),
+            auth_router.ApiPasswordChangeRequest(current_password="old", new_password="weak"),
             user=user,
+            service=sdk_fixtures.authorized_operations(Account, None, user),
         )
     assert exc.value.status_code == 400
 
@@ -386,13 +391,13 @@ def test_change_password_calls_local_change_flow(monkeypatch):
         calls["kwargs"] = kwargs
         return {"status": "ok"}
 
-    monkeypatch.setattr(auth_router, "change_local_password", _change_local_password)
+    monkeypatch.setattr(password_flows, "change_local_password", _change_local_password)
     payload = auth_router.change_password(
         auth_router.ApiPasswordChangeRequest(
-            current_password="OldGood!123",
-            new_password="NewGood!123",
+            current_password="OldGood!123", new_password="NewGood!123"
         ),
         user=user,
+        service=sdk_fixtures.authorized_operations(Account, None, user),
     )
     assert payload["status"] == "ok"
     assert calls["kwargs"]["user_id"] == user.username
@@ -407,10 +412,10 @@ def test_password_reset_request_always_ok(monkeypatch):
         return {"status": "ok"}
 
     monkeypatch.setattr(
-        auth_router, "issue_password_token_for_user", _issue_password_token_for_user
+        password_flows, "issue_password_token_for_user", _issue_password_token_for_user
     )
     payload = auth_router.request_password_reset(
-        auth_router.ApiPasswordResetRequest(username="tester")
+        auth_router.ApiPasswordResetRequest(username="tester"), service=open_password_recovery()
     )
     assert payload["status"] == "ok"
     assert calls["kwargs"]["purpose"] == "reset"
@@ -419,16 +424,14 @@ def test_password_reset_request_always_ok(monkeypatch):
 def test_password_reset_confirm_raises_on_invalid_token(monkeypatch):
     """Confirm endpoint maps flow errors to HTTP 400."""
     monkeypatch.setattr(
-        auth_router,
+        password_flows,
         "consume_password_token_and_set_password",
         lambda **_: {"status": "error", "error": "bad token"},
     )
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         auth_router.confirm_password_reset(
-            auth_router.ApiPasswordResetConfirmRequest(
-                token="bad",
-                new_password="NewGood!123",
-            )
+            auth_router.ApiPasswordResetConfirmRequest(token="bad", new_password="NewGood!123"),
+            service=open_password_recovery(),
         )
     assert exc.value.status_code == 400
 

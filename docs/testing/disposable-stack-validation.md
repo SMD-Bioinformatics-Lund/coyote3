@@ -55,6 +55,16 @@ that external component.
 
 ## Prerequisites
 
+Compiled API images require a retained SDK wheel and release record. Follow
+[artifact preparation](../sdk/compatibility.md#build-and-record-an-application-release)
+before building this stack. Use clean release artifacts for release acceptance;
+validation of uncommitted changes requires the explicit development artifact build
+argument described there. Development Compose overlays install editable source.
+
+For SDK checks against the running proxy, use the deployment's configured
+`API_SESSION_COOKIE_NAME` as `CoyoteClient(..., cookie_name=...)`. After initial
+login, complete the required password change before requesting sample resources.
+
 Run the commands from the repository root. The host must provide:
 
 - Docker Engine with the Compose v2 plugin;
@@ -354,7 +364,7 @@ it is not exposed on external host interfaces.
 
 ## 5. Build the immutable application images
 
-Use the version-aware wrapper so image tags always use `api/version.py`:
+Use the version-aware wrapper so image tags use the application release in `release.toml`:
 
 ```bash
 bash scripts/deployment/compose-with-version.sh \
@@ -469,7 +479,7 @@ curl -fsS "$VALIDATION_PUBLIC_URL/api/v1/docs" >/dev/null
 
 The generic fixture below targets legacy `assay_1` configuration rather than the
 default starter assays. Provision its ASP, ASPC and ISGL definitions from
-`api/config/bootstrap/demo_center` through managed administration before submitting it;
+`api/bootstrap/catalogs/demo_center` through managed administration before submitting it;
 see the [bundled configuration examples](../administration/installed-defaults.md#low-level-bootstrap-configuration-examples).
 
 Create one sample bundle through the running worker, which owns the mounted
@@ -491,15 +501,15 @@ docker exec "$VALIDATION_WORKER_CONTAINER_ID" \
   mkdir -p "$VALIDATION_DNA_BUNDLE"
 
 for resource in \
-  demo_data/ingest/generic_case_control.final.filtered.vcf \
-  demo_data/ingest/generic_case_control.cnvs.merged.json \
-  demo_data/ingest/generic_case_control.modeled.png \
-  demo_data/ingest/generic_case_control.cov.json; do
+  tests/fixtures/ingest/generic_case_control.final.filtered.vcf \
+  tests/fixtures/ingest/generic_case_control.cnvs.merged.json \
+  tests/fixtures/ingest/generic_case_control.modeled.png \
+  tests/fixtures/ingest/generic_case_control.cov.json; do
   docker cp "$resource" \
     "$VALIDATION_WORKER_CONTAINER_ID:$VALIDATION_DNA_BUNDLE/$(basename "$resource")"
 done
 
-docker cp demo_data/ingest/generic_case_control.yaml \
+docker cp tests/fixtures/ingest/generic_case_control.yaml \
   "$VALIDATION_WORKER_CONTAINER_ID:$VALIDATION_DNA_BUNDLE/coyote3.yaml"
 ```
 
@@ -574,7 +584,7 @@ first-login password change, then record the following results.
 
 ### Optional RNA extension
 
-`demo_data/ingest/generic_rna_sample.yaml` is a synthetic WTS contract fixture.
+`tests/fixtures/ingest/generic_rna_sample.yaml` is a synthetic WTS contract fixture.
 Use it only after importing or creating a matching active `assay_rna_1` ASP and
 production ASPC through the supported administration workflow. Validate the
 Fusion, Expression, Classification, and QC tabs selected by that ASPC. A
@@ -594,7 +604,7 @@ PYTHON_BIN=.venv/bin/python bash scripts/deployment/center_check.sh \
     --username coyote3.admin \
     --password "$VALIDATION_ADMIN_PASSWORD" \
     --provider local \
-    --yaml-file demo_data/ingest/generic_case_control.yaml
+    --yaml-file tests/fixtures/ingest/generic_case_control.yaml
 ```
 
 The disposable bootstrap creates `coyote3.admin` as a local account, so this

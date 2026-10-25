@@ -1,6 +1,6 @@
 """Report ordering preserves unavailable structural-variant allele fractions."""
 
-from api.application.reporting.dna_report_payload import (
+from coyote3.application.reporting.dna_report_payload import (
     get_simple_variants_for_report,
     sort_by_class_and_af,
 )

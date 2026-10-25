@@ -43,11 +43,11 @@ const tierMeta: Record<number, { roman: string; short: string; description: stri
   4: { ...TIER_LABELS[4], severity: "pass" },
 }
 
-export function FallbackTierBadge({ candidates = [] }: { candidates?: Array<{ class?: number; match_level?: string; fallback_eligible?: boolean; assay?: string; diagnosis?: string }> }) {
+export function FallbackTierBadge({ candidates = [] }: { candidates?: Array<{ class?: number; match_level?: string; fallback_eligible?: boolean; asp_group?: string; diagnosis_id?: string }> }) {
   const candidate = candidates.find((item) => item.fallback_eligible)
     ?? candidates.find((item) => ["same_assay", "same_group", "parent_group"].includes(item.match_level || ""))
   if (!candidate) return <TierBadge tier={999} />
-  return <span className="inline-flex items-center gap-1" title={`Tier from ${candidate.assay} / ${candidate.diagnosis}. Confirmation required before reporting.`} aria-label={`Suggested Tier ${candidate.class}; confirmation required`}>
+  return <span className="inline-flex items-center gap-1" title={`Tier from ${candidate.asp_group} / ${candidate.diagnosis_id}. Confirmation required before reporting.`} aria-label={`Suggested Tier ${candidate.class}; confirmation required`}>
     {candidate.match_level === "same_assay" ? <TierBadge tier={candidate.class} /> : <TableBadge className="bg-muted text-muted-foreground">{candidate.class}</TableBadge>}
     <CircleHelp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
   </span>

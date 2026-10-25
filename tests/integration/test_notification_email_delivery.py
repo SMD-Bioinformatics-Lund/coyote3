@@ -10,10 +10,10 @@ import pytest
 from pydantic import ValidationError
 from pymongo import MongoClient
 
-from api.application.notifications.service import NotificationService
-from api.contracts.notifications import NotificationBroadcastRequest
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.notifications import NotificationsRepository
+from coyote3.application.notifications.service import NotificationService
+from coyote3.contracts.notifications import NotificationBroadcastRequest
+from coyote3.domain.exceptions import AppError
 from scripts.maintenance.migrate_notification_retention import migrate
 
 

@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.common.release_resources import capture_assay_resource
-from api.application.dna import payloads
-from api.application.reporting.dna_report_payload import hotspot_variant
-from api.domain.core.exceptions import AppError
+from coyote3.application.common.release_resources import capture_assay_resource
+from coyote3.application.dna import payloads
+from coyote3.application.reporting.dna_report_payload import hotspot_variant
+from coyote3.domain.exceptions import AppError
 
 
 def _selected_variant(**overrides):
@@ -364,7 +364,6 @@ def test_variant_context_rejects_missing_foreign_and_configuration_errors() -> N
                 sample=sample,
                 var_id="variant-1",
                 add_alt_class_fn=lambda *args: args[0],
-                util_module=SimpleNamespace(),
                 assay_config_getter=lambda value: config,
             )
         assert exc.value.status_code == 404
@@ -374,7 +373,6 @@ def test_variant_context_rejects_missing_foreign_and_configuration_errors() -> N
             sample=sample,
             var_id="variant-1",
             add_alt_class_fn=lambda *args: args[0],
-            util_module=SimpleNamespace(),
             assay_config_getter=lambda value: None,
         )
     assert exc.value.status_code == 422
@@ -383,6 +381,7 @@ def test_variant_context_rejects_missing_foreign_and_configuration_errors() -> N
 def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     variant = _selected_variant()
     sample = {
+        "case_id": "C1",
         "_id": "sample-1",
         "name": "SAMPLE_1",
         "asp_id": "demo-solid_gmsv3",
@@ -394,9 +393,6 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
         sample=sample,
         var_id="variant-1",
         add_alt_class_fn=lambda row, group, diagnosis, **kwargs: {**row, "alternative": True},
-        util_module=SimpleNamespace(
-            common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {"case": "C1"})
-        ),
         assay_config_getter=lambda value: _detail_configuration(
             "hematology" if value.get("asp_id") == "hema_gmsv1" else "solid"
         ),
@@ -465,9 +461,6 @@ def test_variant_context_derives_transcript_badges_from_current_hgnc() -> None:
         sample=sample,
         var_id="variant-1",
         add_alt_class_fn=lambda row, group, diagnosis, **kwargs: row,
-        util_module=SimpleNamespace(
-            common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {"case": "C1"})
-        ),
         assay_config_getter=lambda value: _detail_configuration("solid"),
     )
 
@@ -507,9 +500,6 @@ def test_variant_context_sets_special_clinical_descriptions(
         sample=sample,
         var_id="variant-1",
         add_alt_class_fn=lambda row, group, diagnosis, **kwargs: row,
-        util_module=SimpleNamespace(
-            common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {})
-        ),
         assay_config_getter=lambda value: _detail_configuration("hematology"),
     )
     assert observed["civic"]["description"] == expected

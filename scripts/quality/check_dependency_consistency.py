@@ -89,10 +89,11 @@ def main() -> int:
     config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = config["project"]
     optional = project["optional-dependencies"]
+    api_dependencies = optional["api"]
 
     errors = _check(
         "requirements.txt",
-        _declared(project["dependencies"]),
+        _declared([*project["dependencies"], *api_dependencies]),
         _read_requirements(ROOT / "requirements.txt"),
     )
     errors.extend(

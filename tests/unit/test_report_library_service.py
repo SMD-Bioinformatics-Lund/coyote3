@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from bson import ObjectId
 
-from api.application.reporting.report_library import ReportLibraryService
+from coyote3.application.reporting.report_library import ReportLibraryService
 
 
 class ReportRepositoryStub:

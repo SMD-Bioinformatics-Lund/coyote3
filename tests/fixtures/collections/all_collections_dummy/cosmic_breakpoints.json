@@ -1,0 +1,11 @@
+[
+  {
+    "record_key": "demo-cosmic-breakpoint",
+    "source_row": 1,
+    "cosmic_structural_id": "COST-DEMO",
+    "chrom_from": "1",
+    "location_from_min": 1000,
+    "chrom_to": "2",
+    "location_to_min": 2000
+  }
+]

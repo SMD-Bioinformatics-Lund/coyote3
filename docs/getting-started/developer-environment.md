@@ -14,6 +14,7 @@ source .venv/bin/activate
 # Install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
+python -m pip install --no-deps -e .
 python -m pip install -r requirements-docs.txt
 ```
 
@@ -23,7 +24,7 @@ Run these commands from the activated environment:
 
 ```bash
 # Linting and static checks
-python -m ruff check api tests scripts
+python -m ruff check src api tests scripts
 
 # Tests
 python -m pytest -q
@@ -38,7 +39,7 @@ If you want to debug outside Docker, you can run the main services directly:
 
 ```bash
 # API
-PYTHONPATH=. python -m uvicorn api.app.main:app --reload --port 8001
+PYTHONPATH=. python -m uvicorn api.app.main:app --reload --reload-dir api --reload-dir src --port 8001
 
 # Web UI
 npm --prefix frontend ci

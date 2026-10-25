@@ -47,8 +47,8 @@ function resourceFormData(
 ) {
   const data: Record<string, any> = {
     text,
-    assay_group: context.assayGroup,
-    diagnosis: context.diagnosis,
+    asp_group: context.assayGroup,
+    diagnosis_id: context.diagnosis,
   }
   if (global) data.global = "global"
 

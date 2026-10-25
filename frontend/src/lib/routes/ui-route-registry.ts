@@ -122,6 +122,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "POST /samples/:id/comments",
       "PUT /samples/:id/filters",
       "GET /samples/:id/aspc/preview",
+      "GET /samples/:id/reports/:report_type/try-new",
       "POST /samples/:id/aspc/apply-latest",
     ],
     dataUsed: ["sample", "assay_config", "filters", "display_sections_data", "comments", "coverage payload", "report previews"],

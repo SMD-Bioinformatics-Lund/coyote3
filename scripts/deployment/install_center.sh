@@ -23,6 +23,8 @@ Existing deployments preserve all data; later additions/repairs use deployment/m
 --setup-center selects all stages; cannot combine with --steps.
 Knowledgebase indexes remain a separate opt-in. Maintenance credentials may seed a fresh knowledgebase.
 Steps run in the listed canonical order; validation and startup safety gates remain mandatory.
+Image builds package the application inside Docker; no host SDK preparation is required.
+The optional release Compose overlay verifies a supplied tested wheel and release record.
 No database is dropped, restored, reset or migrated. Index conflicts stop installation.
 USAGE
 }
@@ -84,6 +86,7 @@ if [[ -n "$maintenance_file" && "$kb_seeds" == 0 && "$kb_indexes" == 0 ]]; then
 fi
 [[ -f "$env_file" && -n "$project" && ${#compose_files[@]} -gt 0 ]] || { usage; exit 2; }
 cd "$ROOT_DIR"
+export GIT_COMMIT="${GIT_COMMIT:-$(git rev-parse HEAD)}"
 if selected health; then command -v curl >/dev/null; fi
 docker compose version >/dev/null
 bash scripts/deployment/validate_env_secrets.sh --env-file "$env_file"
@@ -94,6 +97,10 @@ trap 'rm -rf "$scratch_dir"; unset COYOTE_INSTALL_KB_URI' EXIT
 
 # Resolve only nonsecret orchestration values from Compose, never source/eval an env file.
 compose config --format json > "$scratch_dir/compose.json"
+if selected build && [[ "$skip_build" == 0 ]]; then
+  python3 scripts/release/verify_sdk_artifact.py \
+    --compose-config "$scratch_dir/compose.json" --release "$ROOT_DIR/release.toml"
+fi
 python3 - "$scratch_dir/compose.json" > "$scratch_dir/settings" <<'PY'
 import json
 import sys

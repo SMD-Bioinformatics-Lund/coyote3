@@ -5,11 +5,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
-from api.application.reporting.clinical_rules.service import ClinicalRuleService
-from api.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from api.domain.core.exceptions import AppError
+from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
+from coyote3.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.domain.exceptions import AppError
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 
@@ -58,11 +58,11 @@ def test_from_store_builds_read_only_workflows(monkeypatch) -> None:
     dna = object()
     rna = object()
     monkeypatch.setattr(
-        "api.application.reporting.clinical_rules.testing.DNAWorkflowService.from_store",
+        "coyote3.application.reporting.clinical_rules.testing.DNAWorkflowService.from_store",
         lambda store: dna,
     )
     monkeypatch.setattr(
-        "api.application.reporting.clinical_rules.testing.RNAWorkflowService.from_store",
+        "coyote3.application.reporting.clinical_rules.testing.RNAWorkflowService.from_store",
         lambda store: rna,
     )
     store = SimpleNamespace(
@@ -170,7 +170,7 @@ def test_preview_uses_selected_rule_version_without_persistence(monkeypatch, ana
     )
     testing = service(document=document, evaluation=evaluation)
     monkeypatch.setattr(
-        "api.application.reporting.clinical_rules.testing.get_formatted_assay_config",
+        "coyote3.application.reporting.clinical_rules.testing.get_formatted_assay_config",
         lambda sample, **kwargs: {"reporting": {"report_sections": ["SNV"]}},
     )
 
@@ -198,7 +198,7 @@ def test_preview_can_request_detailed_condition_trace(monkeypatch) -> None:
     )
     testing = service(evaluation=evaluation)
     monkeypatch.setattr(
-        "api.application.reporting.clinical_rules.testing.get_formatted_assay_config",
+        "coyote3.application.reporting.clinical_rules.testing.get_formatted_assay_config",
         lambda sample, **kwargs: {"reporting": {"report_sections": ["SNV"]}},
     )
 
@@ -217,7 +217,7 @@ def test_preview_rejects_wrong_assay_and_missing_evaluation(monkeypatch) -> None
         testing.preview(document_id="rule", sample={"asp_id": "other"})
 
     monkeypatch.setattr(
-        "api.application.reporting.clinical_rules.testing.get_formatted_assay_config",
+        "coyote3.application.reporting.clinical_rules.testing.get_formatted_assay_config",
         lambda sample, **kwargs: {},
     )
     with pytest.raises(AppError, match="did not produce"):

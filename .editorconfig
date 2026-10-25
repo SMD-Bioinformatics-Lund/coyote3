@@ -19,6 +19,9 @@ max_line_length = 100
 indent_style = space
 indent_size = 2
 
+[tests/fixtures/report-templates/*.html]
+trim_trailing_whitespace = false
+
 [*.{yml,yaml,json,md,toml}]
 indent_style = space
 indent_size = 2

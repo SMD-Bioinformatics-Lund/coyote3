@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from api.app.utilities.common import CommonUtility
-from api.domain.core.repository_protocols import (
+from api.infra.integrations.ldap import LdapManager
+from coyote3.domain.repository_protocols import (
     AssayConfigurationRepositoryProtocol,
     SampleRepositoryProtocol,
     VariantsRepositoryProtocol,
 )
-from api.infra.integrations.ldap import LdapManager
 
 
 class Utility:

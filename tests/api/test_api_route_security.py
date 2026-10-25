@@ -82,7 +82,7 @@ def test_declared_route_permissions_exist_in_seed_catalog():
     for route_file in Path("api/interfaces/http").rglob("*.py"):
         declared.update(permission_pattern.findall(route_file.read_text(encoding="utf-8")))
 
-    with Path("api/config/bootstrap/rbac/permissions.seed.ndjson").open(
+    with Path("api/bootstrap/catalogs/rbac/permissions.seed.ndjson").open(
         "rt", encoding="utf-8"
     ) as handle:
         catalog = {
@@ -96,7 +96,7 @@ def test_declared_route_permissions_exist_in_seed_catalog():
 
 def test_seeded_role_grants_reference_known_permissions():
     """Built-in roles must not contain grants absent from the permission catalog."""
-    with Path("api/config/bootstrap/rbac/permissions.seed.ndjson").open(
+    with Path("api/bootstrap/catalogs/rbac/permissions.seed.ndjson").open(
         "rt", encoding="utf-8"
     ) as handle:
         catalog = {
@@ -104,7 +104,9 @@ def test_seeded_role_grants_reference_known_permissions():
             for line in handle
             if line.strip()
         }
-    with Path("api/config/bootstrap/rbac/roles.seed.ndjson").open("rt", encoding="utf-8") as handle:
+    with Path("api/bootstrap/catalogs/rbac/roles.seed.ndjson").open(
+        "rt", encoding="utf-8"
+    ) as handle:
         role_docs = [json.loads(line) for line in handle if line.strip()]
 
     unknown = {

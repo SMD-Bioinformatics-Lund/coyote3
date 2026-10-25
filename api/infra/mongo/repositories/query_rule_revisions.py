@@ -7,8 +7,8 @@ from bson import BSON
 from bson.codec_options import CodecOptions
 from bson.json_util import CANONICAL_JSON_OPTIONS, dumps
 
-from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleRevisionDoc
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleRevisionDoc
 
 
 def build_query_revision(document: dict, action: str, previous_hash: str | None = None) -> dict:

@@ -6,9 +6,9 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-from api.application.reporting.clinical_rules.validation import validate_rule_set
-from api.application.reporting.pdf_resources import ReportResourceFetcher
-from api.application.reporting.report_renderer import render_pdf_bytes
+from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+from coyote3.application.reporting.pdf_resources import ReportResourceFetcher
+from coyote3.application.reporting.report_renderer import render_pdf_bytes
 from tests.unit.reporting.test_clinical_rules import _document
 
 

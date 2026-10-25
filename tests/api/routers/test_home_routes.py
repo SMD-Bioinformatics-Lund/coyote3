@@ -8,11 +8,12 @@ from types import SimpleNamespace
 import pytest
 
 from api.app.container import store
-from api.application.common.release_resources import capture_gene_lists
-from api.application.sample import catalog as sample_catalog_service_module
-from api.application.sample.catalog import SampleCatalogService
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical import samples
+from api.interfaces.http.v1.clinical import samples
+from coyote3.application.common.release_resources import capture_gene_lists
+from coyote3.application.sample import catalog as sample_catalog_service_module
+from coyote3.application.sample.catalog import SampleCatalogService
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -79,7 +80,8 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 
     added_from = datetime(2026, 8, 1, tzinfo=timezone.utc)
     added_until = datetime(2026, 8, 4, tzinfo=timezone.utc)
-    payload = samples.list_samples_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.list_samples_read,
         status="live",
         search_mode="both",
         page=2,
@@ -94,7 +96,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         live_sort="",
         reported_sort="latest_reported:desc",
         user=user,
-        service=service,
+        service=sdk_fixtures.sample_catalog_operations(service, user),
     )
     assert len(payload["live_samples"]) == 1
     assert len(payload["done_samples"]) == 1
@@ -146,7 +148,8 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     )
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.list_samples_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.list_samples_read,
         status="live",
         search_mode="live",
         page=1,
@@ -159,7 +162,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         live_sort="",
         reported_sort="",
         user=user,
-        service=service,
+        service=sdk_fixtures.sample_catalog_operations(service, user),
     )
 
     assert payload["sample_view"] == "all"
@@ -187,7 +190,8 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
     monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.list_samples_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.list_samples_read,
         status="live",
         search_mode="both",
         page=1,
@@ -200,7 +204,7 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
         live_sort="",
         reported_sort="",
         user=user,
-        service=service,
+        service=sdk_fixtures.sample_catalog_operations(service, user),
     )
 
     assert payload["profile_scope"] == "all"
@@ -218,11 +222,15 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
     Returns:
         The function result.
     """
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(AppError) as exc:
-        samples.sample_apply_genelists_change(
-            "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=_sample_catalog_service()
+        sdk_fixtures.invoke_route(
+            samples.sample_apply_genelists_change,
+            "S1",
+            payload={"isgl_ids": "bad"},
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(_sample_catalog_service(), fx.api_user(), "S1"),
         )
 
     assert exc.value.status_code == 400
@@ -308,7 +316,7 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     calls = {}
     service = _sample_catalog_service()
 
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
 
     def _update_sample_filters(sample_id, filters, *, expected_version):
         assert expected_version == sample["version"]
@@ -326,11 +334,12 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     monkeypatch.setattr(service.sample_repository, "update_sample_filters", _update_sample_filters)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.sample_save_adhoc_genes_change(
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_save_adhoc_genes_change,
         "S1",
         payload={"genes": "NPM1 TP53\nIDH1", "label": "focus", "list_type": "cnv"},
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, fx.api_user(), "S1"),
     )
 
     assert payload["action"] == "save_adhoc_genes"

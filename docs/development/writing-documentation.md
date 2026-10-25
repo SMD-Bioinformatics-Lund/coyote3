@@ -122,8 +122,8 @@ width. Visual correctness does not establish that a relationship is clinically c
 
 | Page | Authoritative source | Generator |
 | --- | --- | --- |
-| [MongoDB collection contracts](../reference/mongodb-collections.md) | `api/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
-| [System permission catalog](../administration/permission-catalog.md) | `api/config/bootstrap/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
+| [MongoDB collection contracts](../reference/mongodb-collections.md) | `src/coyote3/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
+| [System permission catalog](../administration/permission-catalog.md) | `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
 
 Change the authoritative source or generator and regenerate these pages. Do not
 edit their generated field or permission listings manually.

@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.resources.isgl import IsglService
-from api.domain.core.exceptions import AppError
+from coyote3.application.resources.isgl import IsglService
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture

@@ -16,6 +16,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  python-client:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.14.7"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build and install only the independent client
+        run: |
+          python -m pip wheel --no-deps --wheel-dir /tmp/coyote3-client ./clients/python
+          python -m pip install /tmp/coyote3-client/coyote3_client-*.whl pytest==9.0.3 pytest-asyncio==1.3.0 ruff==0.15.10 mypy==1.20.1
+      - name: Verify isolated client imports and behavior
+        run: |
+          python -c "import importlib.util; assert importlib.util.find_spec('coyote3') is None; assert importlib.util.find_spec('fastapi') is None"
+          python -m pytest -q clients/python/tests
+          ruff check clients/python
+          ruff format --check clients/python
+          mypy --follow-imports=silent --ignore-missing-imports clients/python/src/coyote3_client
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coyote3-client-${{ matrix.python-version }}
+          path: /tmp/coyote3-client/
+
   mongo-transactions:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -31,7 +59,9 @@ jobs:
         with:
           python-version: "3.14.7"
       - name: Install transaction test dependencies
-        run: python -m pip install -r requirements-dev.txt
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --no-deps -e . -e clients/python
       - name: Start isolated disposable replica set
         run: |
           for port in 27017 27018; do
@@ -122,9 +152,21 @@ jobs:
       - name: Install native reporting libraries
         run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
       - name: Install runtime test dependencies
-        run: python -m pip install -r requirements-dev.txt
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python scripts/release/build_sdk.py --output-dir /tmp/coyote3-sdk
+          python scripts/release/check_release.py \
+            --production \
+            --wheel /tmp/coyote3-sdk/coyote3-*.whl \
+            --output /tmp/coyote3-sdk/release-record.json
+          python -m pip install --no-deps /tmp/coyote3-sdk/coyote3-*.whl ./clients/python
       - name: Test API runtime
         run: PYTHONPATH=. python -m pytest -q tests/unit tests/api tests/integration --no-cov
+      - name: Retain tested SDK artifact and release record
+        uses: actions/upload-artifact@v4
+        with:
+          name: tested-coyote3-sdk
+          path: /tmp/coyote3-sdk/
 
   lint-and-test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
@@ -186,7 +228,12 @@ jobs:
                   frontend=true
                   docs=true
                   ;;
-                api/contracts/*|api/interfaces/http/*)
+                release.toml|api/version.py|config/*)
+                  backend=true
+                  frontend=true
+                  docs=true
+                  ;;
+                src/coyote3/contracts/*|api/interfaces/http/*)
                   backend=true
                   frontend=true
                   ;;
@@ -199,7 +246,7 @@ jobs:
                   backend=true
                   docs=true
                   ;;
-                api/*|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|requirements*.txt|.coveragerc)
+                src/*|api/*|clients/*|build_support.py|MANIFEST.in|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|requirements*.txt|.coveragerc)
                   backend=true
                   ;;
                 frontend/*)
@@ -244,7 +291,9 @@ jobs:
 
       - name: Install backend quality dependencies
         if: steps.scope.outputs.backend == 'true'
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          python -m pip install --no-deps -e . -e clients/python
 
       - name: Install documentation dependencies
         if: steps.scope.outputs.docs == 'true'
@@ -252,11 +301,11 @@ jobs:
 
       - name: Ruff check
         if: steps.scope.outputs.backend == 'true'
-        run: PYTHONPATH=. ruff check api tests scripts
+        run: PYTHONPATH=. ruff check src api tests scripts
 
       - name: Ruff format check
         if: steps.scope.outputs.backend == 'true'
-        run: PYTHONPATH=. ruff format --check api tests scripts
+        run: PYTHONPATH=. ruff format --check src api tests scripts
 
       - name: Strict type check
         if: steps.scope.outputs.backend == 'true'
@@ -271,7 +320,7 @@ jobs:
         if: steps.scope.outputs.backend == 'true'
         run: >-
           PYTHONPATH=. pytest -q tests/unit tests/api tests/integration
-          --cov=api
+          --cov=api --cov=coyote3
           --cov-config=.coveragerc
           --cov-report=term-missing
           --cov-report=xml:coverage.xml
@@ -378,6 +427,7 @@ jobs:
           retention-days: 7
 
   container-scan:
+    needs: python-runtime
     if: >-
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
@@ -390,8 +440,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download the SDK wheel verified by runtime tests
+        uses: actions/download-artifact@v4
+        with:
+          name: tested-coyote3-sdk
+          path: /tmp/coyote3-sdk
+
       - name: Build API image for scanning
-        run: docker build -f docker/Dockerfile --target coyote3_api -t coyote3-api:scan .
+        run: >-
+          docker build -f docker/Dockerfile --target coyote3_api
+          --build-context sdk_artifact=/tmp/coyote3-sdk
+          --build-arg GIT_COMMIT=${{ github.sha }} -t coyote3-api:scan .
 
       - name: Scan API image
         uses: aquasecurity/trivy-action@0.33.1

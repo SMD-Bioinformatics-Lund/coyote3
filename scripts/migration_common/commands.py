@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 from scripts.migration_common.conversion import independent_plan, sample_plan, supplement
 from scripts.migration_common.offline import (
     SOURCE_COLLECTIONS,
@@ -246,7 +246,7 @@ def run(version: int, operation: str) -> int:
                         {"collection": item["collection"], "record_id": item["document"]["_id"]}
                         for item in candidates
                     ]
-                from api.config.constants import ALL_SAMPLE_FILE_KEYS
+                from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
 
                 evidence["files_source_sha256"] = digest(
                     {key: original[key] for key in ALL_SAMPLE_FILE_KEYS if key in original}

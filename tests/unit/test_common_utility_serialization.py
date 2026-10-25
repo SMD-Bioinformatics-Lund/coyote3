@@ -4,7 +4,7 @@ from bson import ObjectId
 from pydantic import BaseModel
 
 from api.app.utilities.serialization import convert_to_serializable
-from api.domain.common.reporting import nl_join
+from coyote3.domain.common.reporting import nl_join
 
 
 class _PayloadModel(BaseModel):

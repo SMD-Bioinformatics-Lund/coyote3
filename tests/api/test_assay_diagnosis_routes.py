@@ -4,8 +4,11 @@ from types import SimpleNamespace
 
 from starlette.requests import Request
 
-from api.contracts.schemas.diagnoses import DiagnosisCreate, DiagnosisUpdate
-from api.interfaces.http.admin.resources.asp import create_diagnosis, update_diagnosis
+from api.interfaces.http.v1.admin.resources.asp import create_diagnosis, update_diagnosis
+from coyote3.application.operations import administration as sdk_administration
+from coyote3.contracts.schemas.diagnoses import DiagnosisCreate, DiagnosisUpdate
+from tests.fixtures.api import application_sdk as sdk_fixtures
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_mutation_routes_attach_scoped_audit_identity():
@@ -16,7 +19,8 @@ def test_mutation_routes_attach_scoped_audit_identity():
         return {"resource_id": "panel-a/myeloid", "meta": {"revision": {"new_version": 2}}}
 
     service = SimpleNamespace(save=save)
-    user = SimpleNamespace(username="reviewer")
+    user = fx.api_user()
+    user.username = "reviewer"
     for operation, payload, extra in [
         (create_diagnosis, DiagnosisCreate(diagnosis_id="myeloid", display_name="Myeloid"), {}),
         (
@@ -31,7 +35,7 @@ def test_mutation_routes_attach_scoped_audit_identity():
             assay_panel_id="panel-a",
             payload=payload,
             user=user,
-            service=service,
+            service=sdk_fixtures.authorized_operations(sdk_administration.Diagnoses, service, user),
             **extra,
         )
         assert request.state.audit_resource["id"] == "panel-a/myeloid"

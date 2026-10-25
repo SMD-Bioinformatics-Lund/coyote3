@@ -8,11 +8,16 @@ from types import SimpleNamespace
 import mongomock
 from pymongo.errors import OperationFailure
 
-from api.config.security import get_api_sessions_collection_name, get_audit_events_collection_name
+from api.app.deps import services
+from api.config.security import (
+    get_api_sessions_collection_name,
+    get_audit_events_collection_name,
+)
 from api.infra.mongo.index_management import _ContractCollection
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.notifications import email
 from api.infra.security.indexes import _create_index, ensure_security_indexes
+from api.security import access
 from api.tasks import maintenance
 
 
@@ -213,7 +218,7 @@ def test_retention_task_disabled_and_enabled(monkeypatch) -> None:
 
     service = SimpleNamespace(run_maintenance=lambda: {"removed": 4})
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
-    monkeypatch.setattr(maintenance, "get_app_controls_service", lambda: service)
+    monkeypatch.setattr(services, "get_app_controls_service", lambda: service)
     monkeypatch.setattr(maintenance, "_serializable", lambda value: {**value, "serialized": True})
     assert maintenance.run_retention_maintenance.run() == {"removed": 4, "serialized": True}
 
@@ -227,7 +232,7 @@ def test_public_oncokb_refresh_task_obeys_maintenance_gate(monkeypatch) -> None:
 
     service = SimpleNamespace(refresh=lambda: {"status": "ok", "curated_genes_upserted": 8})
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
-    monkeypatch.setattr(maintenance, "get_public_oncokb_refresh_service", lambda: service)
+    monkeypatch.setattr(services, "get_public_oncokb_refresh_service", lambda: service)
     monkeypatch.setattr(maintenance, "_serializable", lambda value: {**value, "serialized": True})
     assert maintenance.refresh_public_oncokb.run() == {
         "status": "ok",
@@ -260,9 +265,9 @@ def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch,
         ),
         release_metric_refresh=lambda metric, *, user: released.append((user.username, metric)),
     )
-    monkeypatch.setattr(maintenance, "get_dashboard_service", lambda: service)
+    monkeypatch.setattr(services, "get_dashboard_service", lambda: service)
     monkeypatch.setattr(
-        maintenance,
+        access,
         "api_user_from_user_doc",
         lambda doc: SimpleNamespace(username=doc["username"]),
     )

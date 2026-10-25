@@ -16,9 +16,12 @@ from typing import Any
 import pymongo
 from bson.objectid import ObjectId
 
-from api.contracts.operations import OperationResult
-from api.infra.dashboard_metric_cache import invalidate_dashboard_metrics
+from api.infra.mongo.records import application_record
+from api.infra.mongo.selection import compile_selection
 from api.infra.mongo.transactions import run_transaction
+from coyote3.application.dashboard.cache import invalidate_dashboard_metrics
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.selection import Selection
 
 
 # -------------------------------------------------------------------------
@@ -43,31 +46,35 @@ class BaseRepository:
         self.repository_collection = collection
 
     def preview_sample_findings(
-        self, sample_id: str, query: dict, limit: int = 10001
+        self, sample_id: str, query: Selection, limit: int = 10001
     ) -> list[dict]:
         """Read bounded finding candidates for a non-persisting rule comparison.
 
         Args:
             sample_id: Authorized sample identity, independently enforced on the query.
-            query: Application-compiled finding predicate; never raw client Mongo syntax.
+            query: Database-independent clinical selection; never raw storage syntax.
             limit: Maximum candidates including the overflow sentinel; defaults to 10001.
 
         Returns:
-            Finding documents without comment hydration. No records are changed.
+            Application records with string identities, without comment hydration.
+            No stored records are changed.
 
         Raises:
             PyMongoError: MongoDB fails or exceeds the five-second query limit.
         """
-        return list(
-            self.get_collection()
-            .find(
-                {"$and": [{"SAMPLE_ID": str(sample_id)}, query]},
-                {"comments": 0},
+        return [
+            application_record(record)
+            for record in (
+                self.get_collection()
+                .find(
+                    {"$and": [{"SAMPLE_ID": str(sample_id)}, compile_selection(query)]},
+                    {"comments": 0},
+                )
+                .sort("_id", 1)
+                .limit(limit)
+                .max_time_ms(5000)
             )
-            .sort("_id", 1)
-            .limit(limit)
-            .max_time_ms(5000)
-        )
+        ]
 
     def get_collection(self) -> pymongo.collection.Collection:
         """Return the MongoDB collection bound to this repository."""

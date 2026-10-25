@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from api.application.reporting.clinical_rules.renderers import (
+from coyote3.application.reporting.clinical_rules.renderers import (
     render_dna_report_intro,
     render_fusion_summary,
     render_named,
     render_tier_summary,
 )
-from api.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
+from coyote3.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
 from tests.fixtures.report_terminology import DNA_TERMINOLOGY, FUSION_TERMINOLOGY
 
 

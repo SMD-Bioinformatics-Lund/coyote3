@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-hallmark",
+    "source_row": 1,
+    "gene_symbol": "GENE1",
+    "hallmark": "synthetic hallmark",
+    "impact": "promotes"
+  }
+]

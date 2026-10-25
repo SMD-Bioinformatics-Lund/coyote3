@@ -8,16 +8,17 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.query_rules import testing
-from api.contracts.schemas.query_rules import (
+from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from coyote3.application.query_rules import testing
+from coyote3.contracts.schemas.query_rules import (
     QueryRuleDoc,
     QueryRulePreview,
     QueryRuleSampleResult,
     QueryRuleScope,
 )
-from api.domain.core.exceptions import AppError
-from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.selection import select
 
 
 @pytest.fixture
@@ -262,7 +263,7 @@ def test_search_intersects_access_and_never_treats_empty_assays_as_unrestricted(
 def test_repository_forces_sample_scope_even_for_a_broad_predicate(context):
     service, db, _, _ = context
     db.variant.insert_many([{"SAMPLE_ID": "sample"}, {"SAMPLE_ID": "other"}])
-    assert len(service.store.variant_repository.preview_sample_findings("sample", {})) == 1
+    assert len(service.store.variant_repository.preview_sample_findings("sample", select({}))) == 1
 
 
 def test_candidate_overflow_rejects_partial_comparison(context):

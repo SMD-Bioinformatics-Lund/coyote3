@@ -12,10 +12,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import httpx  # noqa: E402
+from coyote3_client.auth import login_with_password  # noqa: E402
 
-from api.client.auth import login_with_password  # noqa: E402
-from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
-from api.contracts.deployment_data import DeploymentDataModule, DeploymentDataRequest  # noqa: E402
+from api.contracts.deployment_data import (  # noqa: E402
+    DeploymentDataModule,
+    DeploymentDataRequest,
+)
+from coyote3.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
 
 
 def manage_data(

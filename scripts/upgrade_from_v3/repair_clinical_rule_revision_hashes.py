@@ -15,7 +15,7 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
     verify_revision_snapshot,

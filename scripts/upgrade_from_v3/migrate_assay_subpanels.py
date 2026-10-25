@@ -15,11 +15,11 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier  # noqa: E402
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
 from api.infra.seed.diagnoses import plan_diagnoses  # noqa: E402
+from coyote3.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier  # noqa: E402
 
 
 def normalize_diagnosis_associations(lists: list[dict]) -> tuple[list[dict], list[dict]]:

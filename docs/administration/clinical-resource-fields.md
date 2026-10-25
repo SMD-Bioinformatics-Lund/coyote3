@@ -42,6 +42,12 @@ sample evidence. Changing display text does not change the stable assay identity
 An ASPC binds review and reporting settings to an assay, diagnosis and clinical
 environment. Full contract: [`asp_configs`](../reference/mongodb-collections.md#asp_configs).
 
+Query policies and clinical reporting rules resolve current published scopes at
+execution time. Historical `query_policy_release`, `clinical_rule_release` and
+`clinical_rule_base` fields remain readable in retained records but are ignored by
+runtime resolution and excluded from new ASPC writes. Saved report receipts retain
+the actual rules used; no ASPC update is needed to adopt a new rule publication.
+
 | Field | Requirement / omission behavior | Meaning and effect |
 | --- | --- | --- |
 | `aspc_id`, `asp_id`, `asp_group`, `asp_category`, `environment`, `display_name` | Required; no default | Configuration identity, parent assay and clinical scope. Related identities must agree. |

@@ -1,0 +1,243 @@
+{% extends "legacy/report.html" %}
+{% block title %}DNA Variant Report{% endblock %}
+{% block body %}
+
+{% if save != 1 %}
+  <div class="report-preview-card">
+    <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
+  </div>
+{% endif %}
+
+<span class="report_header">{{ assay_config.reporting.report_header }} - {{ sample.name }}</span>
+
+{% include 'components/dna/sample_information.html' %}
+
+<span class="report_header">Analysresultat</span>
+{% if "SNV" in report_sections %}
+  {% set variants = report_sections_data.snvs %}
+  <span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
+  {% include 'components/dna/variant_table.html' %}
+  {% if report_sections_data.get('germline_snvs') is not none %}
+    {% set germline_variants = report_sections_data.germline_snvs %}
+    <span class="report_header">Kliniskt relevanta germline-SNVs och små INDELs</span>
+    <table class="variant_table">
+      <tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
+      {% for var in germline_variants %}
+        <tr>
+          <td>{{ var.symbol }}</td>
+          <td>{% if var.indel_size > 20 %}{{ var.cdna }}{% else %}{{ var.variant|unesc }}{% endif %}</td>
+          <td>{{ var.af|perc_no_dec }}</td>
+          <td>{{ var.class_short_desc }}</td>
+        </tr>
+      {% else %}
+        <tr><td>Inga detekterade germline-mutationer</td></tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+{% endif %}
+
+<p>Note: p = protein, c = cDNA, g = genomic</p>
+
+{% if "CNV" in report_sections %}
+  {% set cnvs = report_sections_data.cnvs %}
+  <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
+  <table class="variant_table">
+    <tr><th>Gen(er)</th><th>Storlek</th><th>Typ</th><th>Kopietal</th></tr>
+    {% for cnv in cnvs %}
+      <tr>
+        <td>
+          {% set non_panel_genes = [0] %}
+          {% for gene in cnv.genes %}
+            {% if gene.class %}{{ gene.gene }}{% else %}{% if non_panel_genes.append(non_panel_genes.pop()+1) %}{% endif %}{% endif %}
+          {% endfor %}
+          {% if non_panel_genes[0] > 0 %}<font color='#888'>+ {{ non_panel_genes[0] }} other genes</font>{% endif %}
+        </td>
+        <td>{{ cnv.size }} bp</td>
+        <td>{% if cnv.ratio > 1 %}AMP{% elif cnv.ratio > 0 %}DUP{% else %}DEL{% endif %}</td>
+        <td>{{ 2*(2**cnv.ratio)|round(2) }}</td>
+      </tr>
+    {% else %}
+      <tr><td>Inga detekterade kopietalsförändringar.</td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+{% if "TRANSLOCATION" in report_sections %}
+  {% set translocs = report_sections_data.translocs %}
+  <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
+  <table class="variant_table">
+    <tr><th>Gen 1</th><th>Gen 2</th><th>HGVS.p</th></tr>
+    {% for tl in translocs %}
+      {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+      {% set genes = sel_ann.Gene_Name.split('&') %}
+      <tr><td>{{ genes[0] }}</td><td>{{ genes[1] }}</td><td>{{ sel_ann.HGVSp|unesc }}</td></tr>
+    {% else %}
+      <tr><td>Inga detekterade fusioner</td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+{% for analysis in ["HRD", "MSI", "TMB", "BIOMARKER"] %}
+{% if analysis in report_sections %}
+  {% set biomarkers = report_sections_data.biomarkers if analysis == "BIOMARKER" else report_sections_data[analysis|lower] %}
+  <span class="report_header">{{ "Kliniskt relevanta biomarkörer" if analysis == "BIOMARKER" else analysis }}</span>
+  <table class="variant_table">
+    <tr><th>Biomarkör</th><th>Resultat</th></tr>
+    {% for biomarker in biomarkers %}
+      <tr>
+        <td>{{ biomarker.name or biomarker.biomarker or "Biomarkör" }}</td>
+        <td>
+          {% if analysis == "HRD" %}
+            {{ biomarker.HRD.sum }} (TAI: {{ biomarker.HRD.tai }};
+            HRD: {{ biomarker.HRD.hrd }}; LST: {{ biomarker.HRD.lst }})
+          {% elif analysis == "MSI" %}
+            {% for method in ["MSIS", "MSIP"] %}
+              {% if biomarker.get(method) %}
+                <b>{{ method }}</b>: {{ biomarker[method].per }}%
+                ({{ biomarker[method].som }}/{{ biomarker[method].tot }})<br>
+              {% endif %}
+            {% endfor %}
+          {% elif analysis == "TMB" %}
+            {{ biomarker[analysis].value }} mut/Mb
+          {% else %}
+          {% for key, value in biomarker.items() %}
+            {% if key not in ["_id", "SAMPLE_ID", "name", "biomarker"] %}
+              <b>{{ key }}</b>: {{ value }}{% if not loop.last %}<br>{% endif %}
+            {% endif %}
+          {% endfor %}
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td>Inga rapporterbara biomarkörresultat</td><td></td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+{% endfor %}
+
+{% if "PGX" in report_sections %}
+  {% set pgx_results = report_sections_data.pgx %}
+  <span class="report_header">Farmakogenomiska resultat</span>
+  <table class="variant_table">
+    <tr><th>Gen</th><th>Resultat</th></tr>
+    {% for result in pgx_results %}
+      <tr>
+        <td>{{ result.gene or result.symbol or result.hugo_symbol or "-" }}</td>
+        <td>{{ result.result or result.phenotype or result.diplotype or result.records or "-" }}</td>
+      </tr>
+    {% else %}
+      <tr><td>Inga rapporterbara farmakogenomiska resultat</td><td></td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+<span class="report_header">Slutsats</span>
+<div class="conclusion">
+  <div class="results_summary">
+    {% if latest_sample_comment_text %}{{ latest_sample_comment_text|format_comment|safe }}{% endif %}
+  </div>
+</div>
+
+<p style="page-break-before: always;"></p>
+<br>
+
+{% if report_sections_data.get('cnv_profile_base64') %}
+  <span class="report_header">Kopietalsprofil, genomisk översikt</span>
+  <div style="transform:rotate(90deg);">
+    <img style="width:900px; height:auto; padding:30px;" src="data:image/png;base64,{{ report_sections_data.cnv_profile_base64 }}">
+  </div>
+  <p style="page-break-after: always;"></p>
+{% endif %}
+
+{% if variants %}
+  <span class="report_header">Detekterade mutationer</span>
+  {% for var in variants %}
+    <div class=report_div style="page-break-inside:avoid;">
+      <table class='report_variant'>
+        <tr>
+          <th class="report_variant_header" colspan=6>
+            {% if var.variant %}
+              <span class="report_variant_header">{{ var.symbol }}:
+                {% if var.variant|unesc|length < 30 %}{{ var.variant|unesc }}</span><br>{% else %}{{ var.cdna }}{% endif %}
+            {% endif %}
+          </th>
+        </tr>
+        <tr>
+          <td class="report_key">Gen</td><td class="var_report_val">{{ var.symbol }}</td>
+          <td class="report_key">Typ</td><td class="var_report_val">{{ var.class_type }} {{ var.variant_class }}</td>
+          <td class="report_key">Transkript</td><td class="var_report_val">{{ var.feature }}{% if var.exon %}, exon {{ var.exon[0] }}{% elif var.intron %}, intron {{ var.intron[0] }}{% endif %}</td>
+        </tr>
+        <tr>
+          <td class="report_key">Konsekvens</td><td class="var_report_val">{{ var.consequence }}</td>
+          <td class="report_key">cDNA-förändring</td>
+          {% if var.var_type == "snv" %}<td class="var_report_val"><div class="wrapping">{{ var.cdna|unesc }}</div></td>{% else %}<td class="var_report_val">{{ var.cdna }}</td>{% endif %}
+          <td class="report_key">Proteinförändring</td>
+          <td class="var_report_val">
+            {% if var.indel_size < 20 %}
+              {% if var.protein_changes %}{% for p_change in var.protein_changes %}{{ p_change }}<br>{% endfor %}{% endif %}
+            {% else %}
+              {{ var.cdna }}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="report_key">Kromosom</td><td class="var_report_val">chr{{ var.chr }}</td>
+          <td class="report_key">Position (hg38)</td><td class="var_report_val">{{ var.pos }}</td>
+          <td class="report_key">Frekvens</td><td class="var_report_val">{{ var.af|perc_no_dec }}</td>
+        </tr>
+        {% if var.class != 999 %}
+          <tr><td class="report_key">Klassificering</td><td class="report_annotation" colspan=5>{{ var.class|format_tier }} - {{ var.class_long_desc }}<br></td></tr>
+        {% endif %}
+        {% if var.global_annotations|length > 0 %}
+          <tr>
+            <td class="report_key">Kommentar</td>
+            {% if var.annotations_interesting|length > 0 %}
+              {% for assay_sub, key in var.annotations_interesting.items() %}
+                <td class="report_annotation" colspan=5>{{ key.text|format_comment|safe }}</td>
+              {% endfor %}
+            {% else %}
+              {% set sorted_annos = var.global_annotations|sort(attribute="time_created", reverse=True) %}
+              <td class="report_annotation" colspan=5>{{ sorted_annos[0].text|format_comment|safe }}</td>
+            {% endif %}
+          </tr>
+        {% endif %}
+      </table>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<span class="report_header">Analysbeskrivning</span>
+<div class="analysis_description">
+  {{ assay_config.reporting.report_description|sanitize_report_html|safe }}
+
+  {% set ns = namespace(table_no=1) %}
+  <div>
+    {% for genelist_name, genelist_values in genes_covered_in_panel.items() %}
+      {% if genelist_name != sample.asp_id %}
+        <p><b>Tabell {{ ns.table_no }}: Gener inkluderade i <i>{{ genelist_name }}</i> insilico-panel</b></p>
+        <div>
+          <table class="genetable" id="snvs-table">
+            <tbody>
+              {% for i in range(0, genelist_values.covered | length, 15) %}
+                <tr>
+                  {% for gene in genelist_values.covered[i:i+15] %}<td>{{ gene }}</td>{% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% set ns.table_no = ns.table_no + 1 %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if not germline %}
+    <p><b>Tabell {{ ns.table_no }}: Förklaring av klassificering</b></p>
+    {% include 'components/dna/classification.html' %}
+    <p><b>Referenser</b></p>
+    <p>[1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

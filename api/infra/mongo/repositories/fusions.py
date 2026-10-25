@@ -11,13 +11,18 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from collections.abc import Iterator
 from typing import Any, Dict, List
 
 from bson.objectid import ObjectId
 
-from api.contracts.operations import OperationResult
+from api.infra.mongo.persistence import require_object_id
+from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
+from api.infra.mongo.selection import compile_selection
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.selection import Selection
 
 
 # -------------------------------------------------------------------------
@@ -72,7 +77,7 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
             background=True,
         )
 
-    def get_sample_fusions(self, query: dict) -> Any:
+    def get_sample_fusions(self, query: Selection) -> Iterator[dict[str, Any]]:
         """
         Retrieve fusions based on a constructed query.
 
@@ -80,12 +85,13 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
         query dictionary to retrieve matching fusion records.
 
         Args:
-            query (dict): A dictionary representing the query to filter fusion records.
+            query: Immutable clinical selection translated by this storage adapter.
 
         Returns:
-            Any: A cursor object containing the matching fusion records.
+            Matching application records with string identities, consumed lazily.
         """
-        return self.adapter.fusions_collection.find(query)
+        cursor = self.adapter.fusions_collection.find(compile_selection(query))
+        return (application_record(row) for row in cursor)
 
     def get_selected_fusioncall(self, fusion: list) -> dict:
         """
@@ -144,7 +150,7 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
 
         return list(out.values())
 
-    def get_fusion(self, id: str) -> dict:
+    def get_fusion(self, id: str) -> dict[str, Any] | None:
         """
         Retrieve a fusion variant by its ID.
 
@@ -155,9 +161,13 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
             id (str): The ObjectId of the fusion variant to retrieve.
 
         Returns:
-            dict: The fusion variant document if found, otherwise None.
+            Application record with string identities, or None when not found.
         """
-        return self._hydrate_finding_comments(self.get_collection().find_one({"_id": ObjectId(id)}))
+        return application_record(
+            self._hydrate_finding_comments(
+                self.get_collection().find_one({"_id": require_object_id(id)})
+            )
+        )
 
     def get_total_fusion_count(self) -> int:
         """

@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.classification.tiering import ResourceClassificationService
-from api.application.classification.variant_annotation import ResourceAnnotationService
-from api.application.common.release_resources import capture_assay_resource
+from coyote3.application.classification.tiering import ResourceClassificationService
+from coyote3.application.classification.variant_annotation import ResourceAnnotationService
+from coyote3.application.common.release_resources import capture_assay_resource
 
 
 class _AnnotationHandlerStub:
@@ -410,9 +410,10 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     assert docs[0]["variant_data"]["gene1"] == "EML4"
     assert docs[0]["variant_data"]["gene2"] == "ALK"
     assert set(docs[0]["variant_data"]) == {
-        "resource_context",
-        "assay_group",
-        "diagnosis",
+        "asp_group",
+        "asp_id",
+        "namespace",
+        "diagnosis_id",
         "gene1",
         "gene2",
     }
@@ -449,7 +450,7 @@ def test_tiering_uses_requested_diagnosis_when_configuration_resolves_to_base(mo
     repo = _RepoStub()
     service = _classification_service(repo)
     monkeypatch.setattr(
-        "api.application.classification.tiering.get_formatted_assay_config",
+        "coyote3.application.classification.tiering.get_formatted_assay_config",
         lambda *args, **kwargs: {
             "asp_group": "solid",
             "diagnosis_id": "base",
@@ -457,14 +458,19 @@ def test_tiering_uses_requested_diagnosis_when_configuration_resolves_to_base(mo
         },
     )
     service.set_tier_bulk(
-        sample={"_id": "S1", "asp_id": "assay", "diagnosis_id": "lung"},
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "diagnosis_id": "lung",
+            "environment": "production",
+        },
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
         class_num=2,
         create_classified_variant_doc_fn=_classification_doc,
     )
-    assert repo.annotation_repository.inserted_bulk[0]["variant_data"]["diagnosis"] == "lung"
+    assert repo.annotation_repository.inserted_bulk[0]["variant_data"]["diagnosis_id"] == "lung"
 
 
 def test_resource_classification_service_adds_automatic_tier_three_text_when_requested(
@@ -480,9 +486,10 @@ def test_resource_classification_service_adds_automatic_tier_three_text_when_req
         service,
         "classification_context",
         lambda _sample: {
-            "assay_group": "hematology",
-            "diagnosis": "base",
-            "resource_context": {"group_id": "hematology", "diagnosis_id": "base"},
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "assay",
+            "namespace": "clinical",
             "configuration": {"asp_id": "assay", "environment": "production"},
         },
     )
@@ -514,9 +521,10 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
         service,
         "classification_context",
         lambda _sample: {
-            "assay_group": "hematology",
-            "diagnosis": "base",
-            "resource_context": {"group_id": "hematology", "diagnosis_id": "base"},
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "assay",
+            "namespace": "clinical",
         },
     )
 
@@ -536,7 +544,7 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
 
 def test_automatic_annotation_requires_published_terminology(monkeypatch):
     """Missing terminology rejects explicit automatic text before any write."""
-    from api.domain.core.exceptions import AppError
+    from coyote3.domain.exceptions import AppError
 
     repo = _RepoStub()
     service = _classification_service(repo)

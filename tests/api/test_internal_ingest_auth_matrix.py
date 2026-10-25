@@ -13,11 +13,16 @@ import pytest
 from fastapi import HTTPException, UploadFile
 from starlette.requests import Request
 
-from api.application.ingest.service import InternalIngestService
+from api.app.deps import repositories as host_repositories
 from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
-from api.interfaces.http.operations import internal as internal_router
+from api.interfaces.http.v1.operations import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
+from api.tasks import ingest as ingest_tasks
+from coyote3.application.ingest.service import InternalIngestService
+from coyote3.application.ingest.upload_bundle import prepare_uploaded_bundle
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 
 
 @pytest.fixture(autouse=True)
@@ -25,7 +30,7 @@ def ingest_jobs(monkeypatch):
     jobs = IngestJobsRepository(
         SimpleNamespace(ingest_jobs_collection=mongomock.MongoClient().test.ingest_jobs)
     )
-    monkeypatch.setattr(internal_router, "get_ingest_jobs_repository", lambda: jobs)
+    monkeypatch.setattr(host_repositories, "get_ingest_jobs_repository", lambda: jobs)
     return jobs
 
 
@@ -41,7 +46,7 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
         permissions=list(permissions or []),
         asp_ids=["assay_1"],
         asp_groups=["hematology"],
-        envs=["production"],
+        envs=["testing", "production"],
         asp_map={},
         auth_type=["local"],
     )
@@ -98,15 +103,16 @@ def test_collection_upload_accepts_content_at_limit(monkeypatch, compressed):
 
 
 def test_truncated_collection_gzip_is_rejected_and_closed(monkeypatch):
-    monkeypatch.setattr(internal_router, "_enforce_collection_permission", lambda **kwargs: None)
     upload = UploadFile(filename="synthetic.json.gz", file=io.BytesIO(gzip.compress(b"{}")[:-5]))
     with pytest.raises(HTTPException) as failure:
         internal_router.ingest_collection_upload_internal(
             collection="samples",
             mode="insert",
             documents_file=upload,
-            user=_user(role="developer", level=50),
-            ingest_service=SimpleNamespace(),
+            user=_user(role="superuser", level=100),
+            ingest_service=sdk_fixtures.ingestion_operations(
+                SimpleNamespace(), _user(role="superuser", level=100)
+            ),
         )
     assert failure.value.status_code == 400
     assert upload.file.closed
@@ -123,15 +129,16 @@ def test_collection_permissions_are_checked_before_reading_upload(monkeypatch):
     def deny(**kwargs):
         raise HTTPException(403, "Forbidden")
 
-    monkeypatch.setattr(internal_router, "_enforce_collection_permission", deny)
     upload = UploadFile(filename="synthetic.json", file=UnreadableUpload(b"{}"))
-    with pytest.raises(HTTPException) as failure:
+    with pytest.raises(AppError) as failure:
         internal_router.ingest_collection_upload_internal(
             collection="samples",
             mode="insert",
             documents_file=upload,
             user=_user(role="developer", level=50),
-            ingest_service=SimpleNamespace(),
+            ingest_service=sdk_fixtures.ingestion_operations(
+                SimpleNamespace(), _user(role="developer", level=50)
+            ),
         )
     assert failure.value.status_code == 403
     assert not reads
@@ -158,7 +165,6 @@ def test_collection_permissions_are_checked_before_reading_upload(monkeypatch):
 def test_remote_async_collection_rejected_before_acceptance(
     monkeypatch, ingest_jobs, route, request_type
 ):
-    monkeypatch.setattr(internal_router, "_enforce_collection_permission", lambda **kwargs: None)
 
     def reject_target(name):
         raise ValueError("Target requires synchronous ingestion")
@@ -174,7 +180,10 @@ def test_remote_async_collection_rejected_before_acceptance(
         route(
             payload=request_type(**values),
             user=_user(role="superuser", level=100),
-            ingest_service=SimpleNamespace(validate_async_collection=reject_target),
+            ingest_service=sdk_fixtures.ingestion_operations(
+                SimpleNamespace(validate_async_collection=reject_target),
+                _user(role="superuser", level=100),
+            ),
         )
     assert exc.value.status_code == 400
     assert ingest_jobs.get_collection().count_documents({}) == 0
@@ -270,7 +279,6 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     )
     monkeypatch.setattr(access, "_enforce_access", lambda *_args, **_kwargs: None)
     user = next(dep(request))
-    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     ingest_service = SimpleNamespace(
         insert_collection_document=lambda **_: {
             "status": "ok",
@@ -278,11 +286,11 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
             "inserted_count": 1,
         }
     )
-    with pytest.raises(HTTPException) as identity_error:
+    with pytest.raises(AppError) as identity_error:
         internal_router.ingest_collection_document_internal(
             payload=payload,
             user=user,
-            ingest_service=ingest_service,
+            ingest_service=sdk_fixtures.ingestion_operations(ingest_service, user),
         )
     assert identity_error.value.status_code == 403
 
@@ -296,7 +304,9 @@ def test_internal_ingest_collection_status_reports_empty_and_rejects_unknown_col
     result = internal_router.get_ingest_collection_status_internal(
         collection="hgnc_genes",
         user=user,
-        ingest_service=SimpleNamespace(collection_document_count=lambda _collection: 0),
+        ingest_service=sdk_fixtures.ingestion_operations(
+            SimpleNamespace(collection_document_count=lambda _collection: 0), user
+        ),
     )
 
     assert result == {
@@ -313,7 +323,9 @@ def test_internal_ingest_collection_status_reports_empty_and_rejects_unknown_col
         internal_router.get_ingest_collection_status_internal(
             collection="unknown",
             user=user,
-            ingest_service=SimpleNamespace(collection_document_count=_unsupported),
+            ingest_service=sdk_fixtures.ingestion_operations(
+                SimpleNamespace(collection_document_count=_unsupported), user
+            ),
         )
     assert exc_info.value.status_code == 400
 
@@ -353,30 +365,29 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
         update_existing=True,
     )
 
-    monkeypatch.setattr(
-        internal_router,
-        "_enforce_access",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(HTTPException(status_code=403)),
-    )
-    with pytest.raises(HTTPException) as missing_perm_exc:
+    with pytest.raises(AppError) as missing_perm_exc:
         internal_router.ingest_sample_bundle_internal(
             payload=payload,
             user=_user(role="developer", level=50, permissions=[]),
-            ingest_service=SimpleNamespace(
-                parse_yaml_payload=lambda raw: raw,
-                ingest_sample_bundle=_ingest,
+            ingest_service=sdk_fixtures.ingestion_operations(
+                SimpleNamespace(
+                    parse_yaml_payload=lambda raw: raw,
+                    ingest_sample_bundle=_ingest,
+                ),
+                _user(role="developer", level=50, permissions=[]),
             ),
         )
     assert missing_perm_exc.value.status_code == 403
 
-    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
-
     response = internal_router.ingest_sample_bundle_internal(
         payload=payload,
         user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
-        ingest_service=SimpleNamespace(
-            parse_yaml_payload=lambda raw: raw,
-            ingest_sample_bundle=_ingest,
+        ingest_service=sdk_fixtures.ingestion_operations(
+            SimpleNamespace(
+                parse_yaml_payload=lambda raw: raw,
+                ingest_sample_bundle=_ingest,
+            ),
+            _user(role="developer", level=50, permissions=["sample:edit:own"]),
         ),
     )
     assert response["status"] == "ok"
@@ -393,9 +404,8 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
         return SimpleNamespace(id="task-123")
 
     monkeypatch.setattr(
-        internal_router.insert_collection_document_task, "apply_async", _fake_apply_async
+        ingest_tasks.insert_collection_document_task, "apply_async", _fake_apply_async
     )
-    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     payload = internal_router.InternalCollectionInsertRequest(
         collection="users",
         document={"username": "new.user", "email": "new.user@example.org"},
@@ -405,7 +415,9 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
     response = internal_router.enqueue_ingest_collection_document_internal(
         payload=payload,
         user=operator,
-        ingest_service=SimpleNamespace(validate_async_collection=lambda name: None),
+        ingest_service=sdk_fixtures.ingestion_operations(
+            SimpleNamespace(validate_async_collection=lambda name: None), operator
+        ),
     )
 
     assert response == {
@@ -431,8 +443,7 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch, 
         captured["queue"] = queue
         return SimpleNamespace(id="task-sample")
 
-    monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
-    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(ingest_tasks.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
     payload = internal_router.InternalIngestSampleBundleRequest(
         yaml_content="name: SAMPLE_1\nassay: assay_1\n",
         update_existing=True,
@@ -441,12 +452,15 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch, 
     response = internal_router.enqueue_ingest_sample_bundle_internal(
         payload=payload,
         user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
-        ingest_service=SimpleNamespace(
-            parse_yaml_payload=lambda raw: {
-                "name": "SAMPLE_1",
-                "asp_id": "assay_1",
-                "environment": "production",
-            }
+        ingest_service=sdk_fixtures.ingestion_operations(
+            SimpleNamespace(
+                parse_yaml_payload=lambda raw: {
+                    "name": "SAMPLE_1",
+                    "asp_id": "assay_1",
+                    "environment": "production",
+                }
+            ),
+            _user(role="developer", level=50, permissions=["sample:edit:own"]),
         ),
     )
 
@@ -475,8 +489,7 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(
         return SimpleNamespace(id="task-upload")
 
     monkeypatch.setattr(internal_router, "INGEST_STAGING_DIR", tmp_path)
-    monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
-    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(ingest_tasks.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
     yaml_upload = _Upload(
         filename="sample.yaml",
         content=b"name: SAMPLE_1\nassay: assay_1\nvcf_files: case.vcf\n",
@@ -500,7 +513,9 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(
         update_existing=False,
         increment=False,
         user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
-        ingest_service=service,
+        ingest_service=sdk_fixtures.ingestion_operations(
+            service, _user(role="developer", level=50, permissions=["sample:edit:own"])
+        ),
     )
 
     assert response["status"] == "accepted"
@@ -524,7 +539,7 @@ def test_upload_ignores_excluded_file_without_resolving_it(tmp_path):
         },
         _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
     )
-    result = internal_router.prepare_uploaded_bundle(
+    result = prepare_uploaded_bundle(
         yaml_file=_Upload(filename="sample.yaml", content=b"synthetic"),
         data_archive=None,
         staging_dir=tmp_path,
@@ -546,6 +561,7 @@ def test_internal_task_status_payload_success(ingest_jobs):
     response = internal_router.get_internal_task_status(
         task_id=identity,
         _user=_user(role="developer", level=50),
+        ingest_service=sdk_fixtures.ingestion_operations(None, _user(role="developer", level=50)),
     )
 
     assert response == {
@@ -561,21 +577,29 @@ def test_internal_task_status_payload_success(ingest_jobs):
 @pytest.mark.parametrize("role,level", [("developer", 50), ("superuser", 100)])
 def test_task_status_requires_durable_job(role, level):
     """Unknown task IDs cannot bypass ownership through the Celery result backend."""
-    with pytest.raises(HTTPException) as error:
+    with pytest.raises(AppError) as error:
         internal_router.get_internal_task_status(
-            task_id="untracked-task", _user=_user(role=role, level=level)
+            task_id="untracked-task",
+            _user=_user(role=role, level=level),
+            ingest_service=sdk_fixtures.ingestion_operations(None, _user(role=role, level=level)),
         )
     assert error.value.status_code == 404
 
 
 def test_durable_job_status_is_limited_to_submitter_or_superuser(ingest_jobs):
     identity = ingest_jobs.submit(source_payload={}, submitted_by="another.user")
-    with pytest.raises(HTTPException) as error:
+    with pytest.raises(AppError) as error:
         internal_router.get_internal_task_status(
-            task_id=identity, _user=_user(role="developer", level=50)
+            task_id=identity,
+            _user=_user(role="developer", level=50),
+            ingest_service=sdk_fixtures.ingestion_operations(
+                None, _user(role="developer", level=50)
+            ),
         )
     assert error.value.status_code == 403
     response = internal_router.get_internal_task_status(
-        task_id=identity, _user=_user(role="superuser", level=100)
+        task_id=identity,
+        _user=_user(role="superuser", level=100),
+        ingest_service=sdk_fixtures.ingestion_operations(None, _user(role="superuser", level=100)),
     )
     assert response["state"] == "PENDING"

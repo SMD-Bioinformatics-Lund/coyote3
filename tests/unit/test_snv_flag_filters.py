@@ -7,25 +7,26 @@ import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
-from api.application.common.release_resources import capture_gene_lists
-from api.application.query_rules.service import QueryRuleService
-from api.application.reporting.clinical_rules.evaluator import _predicate_matches
-from api.application.reporting.clinical_rules.facts import PreparedFindingFacts
-from api.application.reporting.clinical_rules.preparation import _snv_fact
-from api.application.reporting.clinical_rules.registry import (
+from api.infra.mongo.repositories.samples import SampleRepository
+from api.infra.mongo.selection import compile_selection
+from coyote3.application.common.release_resources import capture_gene_lists
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.application.reporting.clinical_rules.evaluator import _predicate_matches
+from coyote3.application.reporting.clinical_rules.facts import PreparedFindingFacts
+from coyote3.application.reporting.clinical_rules.preparation import _snv_fact
+from coyote3.application.reporting.clinical_rules.registry import (
     fact_catalog_payload,
     validate_fact_path,
 )
-from api.application.reporting.dna_report_payload import _build_variant_query
-from api.application.sample.catalog import SampleCatalogService
-from api.config.loaders import filter_flags
-from api.config.loaders.filter_flags import filter_flag_options
-from api.contracts.schemas.clinical_rules import ClinicalRulePredicate
-from api.domain.common.sample_filters import normalize_sample_filters
-from api.domain.core.dna.varqueries import build_query
-from api.domain.core.exceptions import AppError
-from api.domain.query_conditions import compile_condition
-from api.infra.mongo.repositories.samples import SampleRepository
+from coyote3.application.reporting.dna_report_payload import _build_variant_query
+from coyote3.application.sample.catalog import SampleCatalogService
+from coyote3.config.loaders import filter_flags
+from coyote3.config.loaders.filter_flags import filter_flag_options
+from coyote3.contracts.schemas.clinical_rules import ClinicalRulePredicate
+from coyote3.domain.common.sample_filters import normalize_sample_filters
+from coyote3.domain.dna.varqueries import build_query
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.query_conditions import compile_condition
 from tests.unit.test_dna_varqueries import _settings
 
 
@@ -139,7 +140,7 @@ def test_invalid_flag_selections_are_rejected(invalid):
 
 @pytest.mark.parametrize("intent", ["somatic", "germline"])
 def test_flags_restrict_even_admission_exceptions_and_use_exact_membership(intent):
-    from api.config.clinical_query_policy import resolved_query_policy
+    from coyote3.config.clinical_query_policy import resolved_query_policy
 
     policy = resolved_query_policy(
         "snv",
@@ -160,16 +161,21 @@ def test_flags_restrict_even_admission_exceptions_and_use_exact_membership(inten
             row["FILTER"] = flags
         collection.insert_one(row)
     settings = _settings(exclude_flags=["FAIL_NVAF"])
-    query = build_query("demo", settings, intent=intent, policy=policy)
+    query = compile_selection(build_query("demo", settings, intent=intent, policy=policy))
     assert [row["POS"] for row in collection.find(query)] == [1, 3, 4, 5]
     settings["exclude_flags"] = ["PASS"]
     assert [
         row["POS"]
-        for row in collection.find(build_query("demo", settings, intent=intent, policy=policy))
+        for row in collection.find(
+            compile_selection(build_query("demo", settings, intent=intent, policy=policy))
+        )
     ] == [3, 4, 5]
     settings["exclude_flags"] = []
     assert (
-        collection.count_documents(build_query("demo", settings, intent=intent, policy=policy)) == 5
+        collection.count_documents(
+            compile_selection(build_query("demo", settings, intent=intent, policy=policy))
+        )
+        == 5
     )
 
 
@@ -180,26 +186,28 @@ def test_query_conditions_resolve_active_flag_filters():
         "operator": "nin",
         "value": {"source": "sample.filters", "key": "exclude_flags"},
     }
-    assert compile_condition(node, "snv", filter_values={"exclude_flags": ["PASS"]}) == {
-        "FILTER": {"$nin": ["PASS"]}
-    }
+    assert compile_selection(
+        compile_condition(node, "snv", filter_values={"exclude_flags": ["PASS"]})
+    ) == {"FILTER": {"$nin": ["PASS"]}}
     with pytest.raises(ValueError, match="context"):
-        compile_condition(node, "snv")
+        compile_selection(compile_condition(node, "snv"))
     with pytest.raises(ValueError, match="Unknown cnv field"):
-        compile_condition(node, "cnv", filter_values={"exclude_flags": ["PASS"]})
+        compile_selection(compile_condition(node, "cnv", filter_values={"exclude_flags": ["PASS"]}))
 
 
 @pytest.mark.parametrize("intent", ["somatic", "germline"])
 def test_report_query_preserves_flag_filters(intent):
-    query = _build_variant_query(
-        "demo",
-        {"_id": "SAMPLE_1"},
-        {intent: {"snv": {"exclude_flags": ["WARN_NOVAR"]}}},
-        [],
-        [],
-        [],
-        False,
-        intent=intent,
+    query = compile_selection(
+        _build_variant_query(
+            "demo",
+            {"_id": "SAMPLE_1"},
+            {intent: {"snv": {"exclude_flags": ["WARN_NOVAR"]}}},
+            [],
+            [],
+            [],
+            False,
+            intent=intent,
+        )
     )
     assert {"FILTER": {"$nin": ["WARN_NOVAR"]}} in query["$and"]
 

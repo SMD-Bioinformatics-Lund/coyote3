@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
+from bson.errors import InvalidId
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
@@ -64,9 +66,51 @@ def to_provider_id(value: str) -> Any:
     return value
 
 
+def require_object_id(value: str) -> ObjectId:
+    """Resolve a document identifier without leaking BSON exceptions above persistence.
+
+    Args:
+        value: Serialized document identifier.
+
+    Returns:
+        Validated MongoDB identifier.
+
+    Raises:
+        ValueError: The identifier is not a supported provider identifier.
+    """
+    try:
+        return ObjectId(value)
+    except (InvalidId, TypeError) as exc:
+        raise ValueError("Invalid document identifier") from exc
+
+
 def new_object_id() -> ObjectId:
     """Return a new provider-native object id."""
     return ObjectId()
+
+
+def restore_object_ids(value: Any) -> Any:
+    """Copy a validated replacement and restore its serialized document identifiers.
+
+    Args:
+        value: Nested replacement data with provider identifiers under _id keys.
+
+    Returns:
+        Independent data with those keys converted to ObjectId values.
+
+    Raises:
+        InvalidId: A serialized _id is invalid; no database write has occurred.
+    """
+    if isinstance(value, dict):
+        return {
+            key: ObjectId(item)
+            if key == "_id" and isinstance(item, str)
+            else restore_object_ids(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [restore_object_ids(item) for item in value]
+    return deepcopy(value)
 
 
 def new_object_id_str() -> str:

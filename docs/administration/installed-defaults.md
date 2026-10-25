@@ -137,13 +137,13 @@ are included in the standard seed; their implemented base queries remain active.
 Use [Finding query rules](query-rules.md) for inherit, extend and replace semantics,
 independent review, sample testing and effective-policy previews. Published seed
 sets are changed through that governed workflow. Seed sources are
-`api/config/bootstrap/reference/query_rule_sets.seed.ndjson` and
-`api/config/clinical_query_seed.toml`; the latter supplies installation criteria,
+`api/bootstrap/catalogs/reference/query_rule_sets.seed.ndjson` and
+`api/bootstrap/catalogs/reference/clinical_query_seed.toml`; the latter supplies installation criteria,
 not a runtime center-editable policy.
 
 ## Low-level bootstrap configuration examples
 
-`api/config/bootstrap/demo_center/` contains configuration fixtures for isolated
+`api/bootstrap/catalogs/demo_center/` contains configuration fixtures for isolated
 bootstrap and collection-import checks. These fixtures are not installed by the
 starter demo workflow and do not describe its catalog.
 
@@ -192,7 +192,7 @@ See [Clinical vocabulary](clinical-vocabulary.md),
 
 Center setup (`--setup-center`) loads the bundled HGNC snapshot and VEP releases
 98–116, including their diagram assets. Source attribution and release hashes are
-recorded under `api/config/bootstrap/reference/`. These snapshots do not install
+recorded under `api/bootstrap/catalogs/reference/`. These snapshots do not install
 every external knowledgebase used by the application; follow the relevant
 [knowledgebase operations guides](../operations/README.md) for separate updates.
 

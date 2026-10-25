@@ -41,9 +41,9 @@ Validate seed data and cross-collection assay relationships before using them.
 ```bash
 # Validate core seed structures and assay relations
 .venv/bin/python scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/config/bootstrap/demo_center \
-  --reference-seed-data api/config/bootstrap/rbac \
-  --reference-seed-data api/config/bootstrap/reference \
+  --seed-file api/bootstrap/catalogs/demo_center \
+  --reference-seed-data api/bootstrap/catalogs/rbac \
+  --reference-seed-data api/bootstrap/catalogs/reference \
   --validate-all-contracts
 ```
 

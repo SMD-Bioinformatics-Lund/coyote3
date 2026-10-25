@@ -6,14 +6,19 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.knowledgebase import common
+from api.app.deps.services import get_common_query_service
+from api.infra.mongo.selection import compile_selection
+from api.interfaces.http.v1.knowledgebase import common
+from coyote3.application.common.query_service import CommonQueryService
+from coyote3.application.operations import knowledgebase as sdk_knowledgebase
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
-def _knowledgebase_service() -> common.CommonQueryService:
+def _knowledgebase_service() -> CommonQueryService:
     """Build a common service with external knowledgebase fakes."""
-    return common.CommonQueryService(
+    return CommonQueryService(
         hgnc_repository=SimpleNamespace(
             get_metadata_by_symbol_or_alias=lambda symbol: {
                 "hgnc_symbol": symbol,
@@ -66,7 +71,7 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
     Returns:
         The function result.
     """
-    service = common.get_common_query_service()
+    service = get_common_query_service()
     monkeypatch.setattr(
         service.hgnc_repository,
         "get_metadata_by_symbol_or_alias",
@@ -75,7 +80,11 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
     monkeypatch.setattr(service.oncokb_repository, "get_oncokb_gene", lambda symbol: {})
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.common_gene_info_read("TP53", service=service)
+    payload = sdk_fixtures.invoke_route(
+        common.common_gene_info_read,
+        "TP53",
+        service=sdk_fixtures.public_gene_operations(service),
+    )
     assert payload["gene"]["symbol"] == "TP53"
 
 
@@ -104,7 +113,12 @@ def test_common_gene_cohort_read_applies_user_scope(monkeypatch):
     user.role = "user"
     user.asp_ids = ["demo-solid_gmsv3"]
     user.envs = ["production"]
-    common.common_gene_cohort_read("TP53", user=user, service=service)
+    sdk_fixtures.invoke_route(
+        common.common_gene_cohort_read,
+        "TP53",
+        user=user,
+        service=sdk_fixtures.authorized_operations(sdk_knowledgebase.Knowledgebase, service, user),
+    )
     assert captured == {
         "gene_id": "TP53",
         "visible_asp_ids": ["demo-solid_gmsv3"],
@@ -134,8 +148,14 @@ def test_common_gene_cohort_read_can_include_report_history(monkeypatch):
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    common.common_gene_cohort_read(
-        "TP53", include_history=True, user=fx.api_user(), service=service
+    sdk_fixtures.invoke_route(
+        common.common_gene_cohort_read,
+        "TP53",
+        include_history=True,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
 
     assert captured["include_history"] is True
@@ -159,7 +179,13 @@ def test_knowledgebase_statistics_read_returns_aggregate_sources(monkeypatch):
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.knowledgebase_statistics_read(user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        common.knowledgebase_statistics_read,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
+    )
 
     assert payload["sources"][0]["total"] == 42
 
@@ -169,7 +195,14 @@ def test_knowledgebase_gene_read_returns_external_sources(monkeypatch):
     service = _knowledgebase_service()
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.knowledgebase_gene_read("TP53", user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        common.knowledgebase_gene_read,
+        "TP53",
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
+    )
 
     assert payload["query"]["resolved_symbol"] == "TP53"
     assert payload["sources"]["oncokb_public"]["gene"] == "TP53"
@@ -187,7 +220,13 @@ def test_cancer_gene_census_summary_read_returns_repository_aggregate(monkeypatc
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.cancer_gene_census_summary_read(user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        common.cancer_gene_census_summary_read,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
+    )
 
     assert payload["available"] is True
     assert payload["total_genes"] == 1
@@ -198,7 +237,8 @@ def test_knowledgebase_variant_evidence_read_returns_variant_sources(monkeypatch
     service = _knowledgebase_service()
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.knowledgebase_variant_evidence_read(
+    payload = sdk_fixtures.invoke_route(
+        common.knowledgebase_variant_evidence_read,
         chrom="17",
         pos=76736896,
         ref="T",
@@ -206,7 +246,9 @@ def test_knowledgebase_variant_evidence_read_returns_variant_sources(monkeypatch
         gene="SRSF2",
         hgvsp="p.Met89Val",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
 
     assert payload["query"]["gene"] == "SRSF2"
@@ -219,14 +261,32 @@ def test_source_specific_knowledgebase_routes_filter_sources(monkeypatch):
     service = _knowledgebase_service()
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    civic_gene = common.knowledgebase_civic_gene_read("TP53", user=fx.api_user(), service=service)
-    brca_gene = common.knowledgebase_brca_exchange_gene_read(
-        "BRCA1", user=fx.api_user(), service=service
+    civic_gene = sdk_fixtures.invoke_route(
+        common.knowledgebase_civic_gene_read,
+        "TP53",
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
-    iarc_gene = common.knowledgebase_iarc_tp53_gene_read(
-        "TP53", user=fx.api_user(), service=service
+    brca_gene = sdk_fixtures.invoke_route(
+        common.knowledgebase_brca_exchange_gene_read,
+        "BRCA1",
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
-    civic_variant = common.knowledgebase_civic_variant_evidence_read(
+    iarc_gene = sdk_fixtures.invoke_route(
+        common.knowledgebase_iarc_tp53_gene_read,
+        "TP53",
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
+    )
+    civic_variant = sdk_fixtures.invoke_route(
+        common.knowledgebase_civic_variant_evidence_read,
         chrom="17",
         pos=76736896,
         ref="T",
@@ -234,9 +294,12 @@ def test_source_specific_knowledgebase_routes_filter_sources(monkeypatch):
         gene="SRSF2",
         hgvsp="p.Met89Val",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
-    brca_variant = common.knowledgebase_brca_exchange_variant_evidence_read(
+    brca_variant = sdk_fixtures.invoke_route(
+        common.knowledgebase_brca_exchange_variant_evidence_read,
         chrom="17",
         pos=76736896,
         ref="T",
@@ -244,9 +307,12 @@ def test_source_specific_knowledgebase_routes_filter_sources(monkeypatch):
         gene="BRCA1",
         hgvsp="p.Met89Val",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
-    iarc_variant = common.knowledgebase_iarc_tp53_variant_evidence_read(
+    iarc_variant = sdk_fixtures.invoke_route(
+        common.knowledgebase_iarc_tp53_variant_evidence_read,
         chrom="17",
         pos=76736896,
         ref="T",
@@ -254,7 +320,9 @@ def test_source_specific_knowledgebase_routes_filter_sources(monkeypatch):
         gene="TP53",
         hgvsp="p.Met89Val",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
 
     assert set(civic_gene["sources"]) == {"civic_gene"}
@@ -274,15 +342,18 @@ def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
     Returns:
         The function result.
     """
-    service = common.get_common_query_service()
+    service = get_common_query_service()
     monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: None)
 
     with pytest.raises(AppError) as exc:
-        common.common_tiered_variant_context_read(
+        sdk_fixtures.invoke_route(
+            common.common_tiered_variant_context_read,
             "missing",
             2,
             user=fx.api_user(),
-            service=service,
+            service=sdk_fixtures.authorized_operations(
+                sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+            ),
         )
 
     assert exc.value.status_code == 404
@@ -298,7 +369,7 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
     Returns:
         The function result.
     """
-    monkeypatch.setattr(common, "_get_sample_for_api", lambda *_: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *_: fx.sample_doc())
     variant = {
         "_id": "v1",
         "SAMPLE_ID": "s1",
@@ -306,15 +377,18 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
         "simple_id": None,
         "simple_id_hash": None,
     }
-    service = common.get_common_query_service()
+    service = get_common_query_service()
     monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.common_tiered_variant_context_read(
+    payload = sdk_fixtures.invoke_route(
+        common.common_tiered_variant_context_read,
         "v1",
         3,
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
     assert payload["docs"] == []
     assert payload["tier"] == 3
@@ -323,7 +397,7 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
 
 def test_common_tiered_variant_context_uses_master_style_identity_lookup(monkeypatch):
     """Exact identity lookup should match historical reported-variant behavior."""
-    monkeypatch.setattr(common, "_get_sample_for_api", lambda *_: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *_: fx.sample_doc())
     variant = {
         "_id": "v1",
         "SAMPLE_ID": "s1",
@@ -337,28 +411,31 @@ def test_common_tiered_variant_context_uses_master_style_identity_lookup(monkeyp
         captured["query"] = query
         return []
 
-    service = common.get_common_query_service()
+    service = get_common_query_service()
     monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
         service.reported_variant_repository,
         "list_reported_variants",
         _list_reported_variants,
     )
-    monkeypatch.setattr(common, "get_common_query_service", lambda: service)
     monkeypatch.setattr(
-        "api.application.common.query_service.enrich_reported_variant_docs", lambda docs, **_: docs
+        "coyote3.application.common.query_service.enrich_reported_variant_docs",
+        lambda docs, **_: docs,
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = common.common_tiered_variant_context_read(
+    payload = sdk_fixtures.invoke_route(
+        common.common_tiered_variant_context_read,
         "v1",
         2,
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.authorized_operations(
+            sdk_knowledgebase.Knowledgebase, service, fx.api_user()
+        ),
     )
 
     assert payload["error"] is None
-    assert captured["query"] == {
+    assert compile_selection(captured["query"]) == {
         "gene": "TP53",
         "$or": [{"simple_id_hash": "862b46287a08e369aa99f8f3777f44b9"}],
     }

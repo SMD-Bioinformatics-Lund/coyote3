@@ -8,12 +8,14 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.application.resources.aspc import AspcService
-from api.application.resources.diagnoses import DiagnosisService
-from api.contracts.schemas.assay import InsilicoGenelistsDoc
-from api.contracts.schemas.clinical_rules import ClinicalRuleDraftCreate
-from api.contracts.schemas.diagnoses import (
+from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
+from api.infra.mongo.repositories.gene_lists import ISGLRepository
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.application.resources.aspc import AspcService
+from coyote3.application.resources.diagnoses import DiagnosisService
+from coyote3.contracts.schemas.assay import InsilicoGenelistsDoc
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleDraftCreate
+from coyote3.contracts.schemas.diagnoses import (
     AssayDiagnosisDoc,
     DiagnosisAssociationUpdate,
     DiagnosisCreate,
@@ -21,9 +23,7 @@ from api.contracts.schemas.diagnoses import (
     SharedDiagnosisCreate,
     SharedDiagnosisUpdate,
 )
-from api.domain.core.exceptions import AppError
-from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
-from api.infra.mongo.repositories.gene_lists import ISGLRepository
+from coyote3.domain.exceptions import AppError
 from scripts.upgrade_from_v3.migrate_assay_subpanels import (
     migrate,
     normalize_diagnosis_associations,
@@ -262,7 +262,6 @@ def test_new_aspc_requires_registry_not_gene_list():
         assay_panel_repository=Mock(),
         gene_list_repository=Mock(),
         vep_metadata_repository=Mock(),
-        clinical_rule_set_repository=Mock(),
         assay_diagnosis_repository=SimpleNamespace(
             list_for_assay=lambda *_a, **_k: [{"diagnosis_id": "registered"}]
         ),

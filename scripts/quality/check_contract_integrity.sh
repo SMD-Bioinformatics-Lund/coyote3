@@ -21,47 +21,49 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 echo "[check] forbid deprecated db_documents imports"
-if rg -n "api\\.contracts\\.db_documents|from api\\.contracts import db_documents" api scripts tests >/dev/null; then
+if rg -n "coyote3\\.contracts\\.db_documents|from coyote3\\.contracts import db_documents" src api scripts tests >/dev/null; then
   echo "ERROR: deprecated db_documents import path found." >&2
-  rg -n "api\\.contracts\\.db_documents|from api\\.contracts import db_documents" api scripts tests >&2
+  rg -n "coyote3\\.contracts\\.db_documents|from coyote3\\.contracts import db_documents" src api scripts tests >&2
   exit 1
 fi
 
 echo "[check] forbid stdout debug prints in runtime code"
-if rg -n "^[[:space:]]*print\\(" api \
+if rg -n "^[[:space:]]*print\\(" src api \
   --glob '**/*.py' >/dev/null; then
   echo "ERROR: runtime code contains print() statements; use structured logging instead." >&2
-  rg -n "^[[:space:]]*print\\(" api --glob '**/*.py' >&2
+  rg -n "^[[:space:]]*print\\(" src api --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] forbid generic catch-all log messages"
-if rg -n "An error occurred" api --glob '**/*.py' >/dev/null; then
+if rg -n "An error occurred" src api --glob '**/*.py' >/dev/null; then
   echo "ERROR: generic error log message found; include operation/collection context." >&2
-  rg -n "An error occurred" api --glob '**/*.py' >&2
+  rg -n "An error occurred" src api --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] forbid hardcoded user-home paths in runtime code"
-if rg -n "/home/[A-Za-z0-9._-]+/" api \
+if rg -n "/home/[A-Za-z0-9._-]+/" src api \
   --glob '**/*.py' \
   --glob '!**/tests/**' >/dev/null; then
   echo "ERROR: hardcoded user-home path found in runtime code." >&2
-  rg -n "/home/[A-Za-z0-9._-]+/" api \
+  rg -n "/home/[A-Za-z0-9._-]+/" src api \
     --glob '**/*.py' \
     --glob '!**/tests/**' >&2
   exit 1
 fi
 
 echo "[check] flag prohibited transitional markers in runtime code"
-if rg -n "hidden bridging layer|fallback transitional helper" api --glob '**/*.py' >/dev/null; then
+if rg -n "hidden bridging layer|fallback transitional helper" src api --glob '**/*.py' >/dev/null; then
   echo "ERROR: transitional marker found in runtime code." >&2
-  rg -n "hidden bridging layer|fallback transitional helper" api --glob '**/*.py' >&2
+  rg -n "hidden bridging layer|fallback transitional helper" src api --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] dependency exports match pyproject.toml"
 "$PYTHON_BIN" scripts/quality/check_dependency_consistency.py
+"$PYTHON_BIN" scripts/release/check_release.py
+"$PYTHON_BIN" scripts/docs/export_sdk_reference.py --check
 
 echo "[check] shell script static analysis"
 bash scripts/quality/check_shell_quality.sh

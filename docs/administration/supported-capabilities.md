@@ -19,7 +19,7 @@ support does not establish clinical validation of a center's assay.
 | Modalities, sequencing families and analyses | Application release | Define implemented workflows and their permitted combinations. |
 | Input contracts and supported parsers | Application release | Define which pipeline results the application can consume. |
 
-`api/config/clinical_capabilities.toml` is the application capability registry.
+`src/coyote3/config/clinical_capabilities.toml` is the application capability registry.
 Center vocabulary configuration cannot override it. A new group or assay can reuse
 implemented analyses through configuration. A new analysis requires software
 implementation and a release; adding its name to a configuration is insufficient.
@@ -72,7 +72,7 @@ follow the [raw file contracts](../reference/ingest-files/README.md).
 Somatic review is available for the supported DNA/RNA workflows. Germline intent
 is implemented for DNA SNVs only. It has separate filters and report context.
 The query resolver also composes effective germline exceptions into somatic SNV
-policies; see [query-rule composition](query-rules.md#configuration-release-binding).
+policies; see [query-rule composition](query-rules.md#runtime-scope-resolution).
 Review intent does not establish a finding's biological origin.
 
 Supported RNA fusion caller identifiers are `arriba`, `fusioncatcher` and

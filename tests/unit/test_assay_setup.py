@@ -8,18 +8,18 @@ import mongomock
 import pytest
 from bson import ObjectId
 
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.application.reporting.clinical_rules.validation import content_hash
-from api.application.resources.assay_setup import AssaySetupService
-from api.contracts.schemas.assay_setup import AssaySetupContent
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
 from api.infra.mongo.repositories.assay_setup import (
     AssaySetupRepository,
     AssaySetupRevisionRepository,
 )
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.application.reporting.clinical_rules.validation import content_hash
+from coyote3.application.resources.assay_setup import AssaySetupService
+from coyote3.contracts.schemas.assay_setup import AssaySetupContent
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture

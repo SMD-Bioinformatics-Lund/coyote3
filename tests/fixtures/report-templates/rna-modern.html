@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <title>RNA Report</title>
+  <meta charset="utf-8">
+  <style>
+    @page {
+      @top-right{
+    font-size: 10px;
+    font-family: arial;
+    content: "Sida " counter(page) " av " counter(pages);
+      }
+    }
+
+    body
+    {
+        margin: 0 0 0 0;
+        font-size:11px;
+    }
+
+    span.neg {
+        color:#0a0;
+        font-weight:bold;
+    }
+    span.pos {
+        color:#f00;
+        font-weight:bold;
+    }
+
+    img.logo {
+        width:110px;
+        height:auto;
+        position:relative;
+        left:80%;
+        top:20px;
+    }
+
+    div.results_summary{
+        border: 1px solid #885;
+        padding:10px;
+        font-size:14px;
+        background:#ffc;
+        margin-bottom:15px;
+    }
+
+    table {
+        border-collapse: collapse;
+    }
+
+    div.page {
+        font-family: arial;
+        margin: 20px;
+        width:90%;
+        position:relative;
+        top:-30px;
+    }
+
+    table.report_general {
+        width: 580px;
+        margin-bottom:20px;
+        background-color:#f3f3ff;
+        border-top: 2px solid #000;
+        border-bottom: 2px solid #000;
+        font-size:12px;
+    }
+    table.report_variant {
+        width: 600px;
+        margin-bottom:40px;
+        background-color:#fafafa;
+        border: 2px solid #000;
+        font-size:10px;
+    }
+
+    span.report_medium {
+        font-size: 12px;
+    }
+
+    span.report_text {
+        font-size: 11px;
+    }
+
+    span.report_header {
+        font-size: 20px;
+        font-weight: bold;
+        padding-bottom: 7px;
+        padding-top: 15px;
+        display: block;
+    }
+
+    th.report_variant_header {
+        border-bottom: 1px solid #000;
+        height:23px;
+        background-color: #000;
+    }
+
+    span.report_variant_header {
+        font-size: 14px;
+        font-weight: bold;
+        padding-left:4px;
+        color: #FFF;
+    }
+
+    td.report_annotation p {
+      margin: 2px;
+    }
+
+    th.top_report {
+        border:0;
+        text-align:left;
+        border-bottom: 2px solid #000;
+        padding:6px;
+        font-weight:bold;
+    }
+
+    td.report_key {
+        width: 83px;
+        border-bottom: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        padding:4px;
+        margin:0;
+        font-weight:bold;
+    }
+
+    td.top_report_key {
+        width: 130px;
+        border-bottom: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        padding:5px;
+        margin:0;
+        font-weight:bold;
+    }
+
+    td.report_val {
+        background-color: #fff;
+        border-bottom: 1px solid #ccc;
+        width:105px;
+        padding:4px;
+    }
+
+    td.var_report_val {
+        background-color: #fff;
+        border-bottom: 1px solid #ccc;
+        border-right: 2px solid #000;
+        width:105px;
+        padding:4px;
+    }
+
+    td.top_report_val {
+        background-color: #fff;
+        border-bottom: 1px solid #ccc;
+        padding:5px;
+    }
+
+    td.report_comment {
+        background-color: #FFF6DA;
+        padding: 1px 4px;
+        border: 1px solid #ccc;
+        font-size:14px;
+    }
+
+    td.report_annotation {
+        background-color: #FFC;
+        padding:1px 4px;
+        border: 1px solid #ccc;
+    }
+
+    li{
+        margin: 4px 0 4px 0;
+    }
+
+    table.info td {
+        padding:5px;
+        font-size:11px;
+        border:1px solid #aaa;
+    }
+
+    table.genetable td {
+        padding:3px 1px;
+        text-align:center;
+        font-size:8px;
+        border:1px solid #aaa;
+    }
+
+    div.wrapping {
+        width:105px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    div.analysis_description {
+        max-width:800px;
+        padding:0;
+        text-align: justify;
+    }
+    div.conclusion {
+        font-size:14px;
+        max-width:800px;
+    }
+
+    table.variant_table {
+        margin:10px 2px;
+        border-top: 2px solid #000;
+        border-bottom: 2px solid #000;
+    }
+
+    table.variant_table td {
+        border-bottom: 1px solid #aaa;
+        padding:5px 12px;
+        font-size:12px;
+    }
+
+    table.variant_table th {
+        border-bottom: 2px solid #000;
+        padding:5px 12px;
+        font-size:12px;
+        text-align:left;
+        font-weight:bold;
+        background-color:#f3f3ff;
+    }
+
+    .report-preview-card {
+        max-width: 768px;
+        padding: 1.5rem 0 1.5rem 0;
+        background-color: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 1rem;
+        text-align: center;
+    }
+
+    .report-heading {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #3730a3;
+        margin-bottom: 1rem;
+        letter-spacing: 0.03em;
+    }
+
+    .report-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1.25rem;
+        background-color: #4f46e5;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        text-decoration: none;
+    }
+
+    #genelist-form,
+    #genelist-form * {
+      display: none !important;
+      visibility: hidden !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+    }
+  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><style id="modern-report-style">
+@page {
+  size: A4; margin: 18mm 15mm 20mm;
+  @top-right { content: none; }
+  @bottom-left { content: "Coyote3 · Try new report"; color: #536574; font: 8pt sans-serif; }
+  @bottom-right { content: counter(page) " / " counter(pages); color: #536574; font: 8pt sans-serif; }
+}
+html { background: #edf1f4; }
+body { margin: 0; color: #192e3d; font: 10pt/1.55 Arial, Helvetica, sans-serif; overflow-wrap: anywhere; }
+body .page {
+  box-sizing: border-box; position: static; top: auto; width: auto;
+  max-width: 900px; margin: 32px auto; padding: 36px 42px;
+  background: white; border-top: 6px solid #246875; box-shadow: 0 8px 32px #203b4814;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.trial-notice { margin: 0 0 24px; color: #536574; font-size: 9pt; letter-spacing: .06em; }
+.report-preview-card { display: none; }
+body span.report_header {
+  margin: 28px 0 12px; padding: 0 0 8px; border-bottom: 1px solid #dce4e8;
+  color: #185464; font-size: 14pt; font-weight: 600; line-height: 1.35;
+}
+.page > span.report_header:first-of-type {
+  margin-top: 0; border: 0; padding: 0 0 12px; color: #192e3d; font-size: 23pt;
+}
+body table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9pt; }
+body table.report_general { width: 100%; margin: 0 0 24px; border: 1px solid #dce4e8; background: #f5f8fa; }
+body table.report_variant { width: 100%; margin: 16px 0 24px; border: 1px solid #dce4e8; background: white; }
+body table.variant_table { margin: 12px 0 24px; border: 1px solid #dce4e8; }
+body table.variant_table td, body table.variant_table th {
+  padding: 8px 10px; border: 1px solid #dce4e8; font-size: 9pt;
+}
+body table.variant_table th { background: #e6eff2; color: #192e3d; }
+body table.variant_table:has(th:nth-child(4)) th:nth-child(2) { width: 40%; }
+body td.report_comment, body td.report_annotation {
+  padding: 10px; background: #f5f8fa; border: 1px solid #dce4e8;
+}
+body td, body th { padding: 8px 10px; vertical-align: top; overflow-wrap: anywhere; }
+body td.top_report_key, body td.report_key {
+  width: auto; background: #f0f5f7; color: #365461; border: 1px solid #dce4e8;
+  font-size: 8pt; font-weight: 600;
+}
+body td.top_report_val, body td.report_val, body td.var_report_val {
+  width: auto; background: white; border: 1px solid #dce4e8;
+}
+body th.top_report, body th.report_variant_header {
+  padding: 9px 10px; border: 0; background: #e6eff2; color: #192e3d; text-align: left;
+}
+body span.report_variant_header { color: #192e3d; font-size: 10pt; padding: 0; }
+body .results_summary {
+  padding: 16px 20px; border: 1px solid #c8dce2; border-left: 4px solid #246875;
+  border-radius: 3px; background: #f1f7f8; font-size: 10pt;
+}
+body .report_text, body .report_medium { font-size: inherit; }
+body .wrapping { width: auto; overflow-wrap: anywhere; white-space: normal; }
+body pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+body table.info td:first-child { width: 14%; }
+body table.report_general td.top_report_key { width: 26%; }
+body img { max-width: 100%; height: auto; }
+body a { color: #185464; text-decoration: underline; }
+body tr { break-inside: avoid; }
+body thead { display: table-header-group; }
+body span.report_header { break-after: avoid; }
+body p, body li { orphans: 3; widows: 3; }
+@media (max-width: 650px) {
+  body .page { margin: 0; padding: 22px 16px; }
+  body td, body th { padding: 6px; }
+}
+@media print {
+  html, body { background: white; }
+  body .page { margin: 0; padding: 0; max-width: none; border-top: 0; box-shadow: none; }
+  .trial-notice { margin-bottom: 14px; }
+  body table.variant_table { break-inside: avoid; }
+  body .report_div { break-inside: auto !important; }
+  body table.report_variant { display: block; }
+  body table.report_variant > tbody { display: block; }
+  body table.report_variant tr { display: table; width: 100%; table-layout: fixed; }
+  body table.report_variant tr:first-child { break-after: avoid; }
+  body table.report_variant tr:has(td.report_annotation),
+  body table.report_variant tr:has(td.report_comment) { display: block; break-inside: auto; }
+  body table.report_variant td.report_annotation,
+  body table.report_variant td.report_comment { display: block; width: auto; break-inside: auto; }
+  body table.report_variant tr:has(td.report_annotation) > td.report_key,
+  body table.report_variant tr:has(td.report_comment) > td.report_key { display: block; width: auto; }
+  /* The legacy image is rotated and padded for its fixed-width layout. */
+  body .page div:has(> img[src^="data:image/"]) { transform: none !important; }
+  body .page img[src^="data:image/"] {
+    box-sizing: border-box; position: static; max-width: 100% !important;
+    max-height: 215mm; width: auto !important; height: auto !important; padding: 0 !important;
+    object-fit: contain; break-inside: avoid;
+  }
+}
+</style></head>
+
+<body>
+
+<div class="page"><p class="trial-notice">TRY NEW REPORT · TEMPORARY PREVIEW</p>
+  
+
+
+<div class="report-preview-card">
+  <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
+  <b>*** PREVIEW OF REPORT ***</b><br><br>
+</div>
+
+
+<span class="report_header">Synthetic report - SYNTHETIC_EXTRACTION</span>
+
+<div class="report_div">
+  <table class='report_general'>
+    <tr><td class="top_report_key">Patientnamn</td><td class="top_report_val">&lt;PATIENT_NAME&gt;</td></tr>
+    <tr><td class="top_report_key">Personnummer</td><td class="top_report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td></tr>
+    <tr><td class="top_report_key">Prov-ID</td><td class="top_report_val">SYNTHETIC_EXTRACTION</td></tr>
+    <tr><td class="top_report_key">Registreringsdatum</td><td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td></tr>
+    <tr><td class="top_report_key">Provtyp</td><td class="top_report_val">&lt;SAMPLE_TYPE&gt; / RNA</td></tr>
+    
+    <tr><td class="top_report_key">Rapportdatum</td><td class="top_report_val"></td></tr>
+    <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val"></td></tr>
+    
+    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">Unknown</td></tr>
+    <tr><td class="top_report_key">Rapport-ID</td><td class="top_report_val">SYNTHETIC_EXTRACTION.1</td></tr>
+  </table>
+</div>
+
+<span class="report_header">Analysresultat</span>
+<table class="variant_table">
+  <tr><th>Fusion</th><th>Klassificering</th></tr>
+  
+    <tr><td>Inga detekterade fusioner</td><td></td></tr>
+  
+</table>
+
+
+
+<span class="report_header">Slutsats</span>
+<div class="conclusion">
+  <div class="results_summary">
+    
+  </div>
+</div>
+
+<p style="page-break-before: always;"></p>
+<br>
+
+<span class="report_header">Detekterade fusioner</span>
+
+  <tr><td>Inga detekterade fusioner</td><td></td></tr>
+
+
+<span class="report_header">Analysbeskrivning</span>
+<div class="analysis_description">
+  
+  <p><b>Tabell: Förklaring av klassificering</b></p>
+  <table class="info">
+    <tr><td>Tier I</td><td>Variant av stark klinisk signifikans (innefattar varianter i gener som finns med i internationella/nationella riktlinjer)</td></tr>
+    <tr><td>Tier II</td><td>Variant av potentiell klinisk signifikans (innefattar varianter i gener som finns med i publikationer)</td></tr>
+    <tr><td>Tier III</td><td>Variant av oklar klinisk signifikans (innefattar varianter i gener i få eller inga publikationer)</td></tr>
+    <tr><td>Tier IV</td><td>Variant bedömd som benign eller sannolikt benign</td></tr>
+  </table>
+  <p><b>Referenser</b></p>
+  <p>[1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.</p>
+</div>
+
+
+</div>
+
+</body>
+</html>

@@ -4,11 +4,11 @@ from copy import deepcopy
 
 import pytest
 
-from api.application.reporting.preview_consistency import (
+from coyote3.application.reporting.preview_consistency import (
     preview_fingerprint,
     require_current_preview,
 )
-from api.domain.core.exceptions import AppError
+from coyote3.domain.exceptions import AppError
 
 
 def test_generation_metadata_does_not_change_reviewed_content():
@@ -32,6 +32,9 @@ def test_generation_metadata_does_not_change_reviewed_content():
         "sample",
         "assay_config",
         "clinical_rule_evaluation",
+        "query_policy_resolution",
+        "clinical_rule_resolution",
+        "clinical_rule_sources",
         "report_sections_data",
         "latest_sample_comment_text",
     ],

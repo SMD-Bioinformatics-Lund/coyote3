@@ -27,6 +27,10 @@ export function AssayConfigurationEditorPage({ mode }: { mode: AdminFormMode }) 
     <PageShell eyebrow="Admin" title={(effectiveMode === "create" ? "Create " : effectiveMode === "view" ? "View " : "Edit ") + spec.title} description={spec.description} actions={<AdminEditorActions state={state} spec={spec} mode={mode} supportsConfigurationTransfer />}>
       <AdminEditorContent state={state}>
         <SystemRecordNotice state={state} />
+        <p className="type-body-sm text-muted-foreground">
+          Query policies and clinical reporting rules resolve from their published scopes when
+          analyses and report previews run. Publishing rules does not require a configuration update.
+        </p>
         {mode === "create" && (
           <div className="surface-panel flex items-center justify-between gap-3 p-3">
             <div>

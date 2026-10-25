@@ -6,10 +6,10 @@ import math
 from copy import deepcopy
 from pathlib import Path
 
-from api.application.ingest.parsers import _parse_transcripts
-from api.config.constants import ALL_SAMPLE_FILE_KEYS
-from api.contracts.schemas.dna import VariantCsqDoc
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote3.application.ingest.parsers import _parse_transcripts
+from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
+from coyote3.contracts.schemas.dna import VariantCsqDoc
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from scripts.migration_common.clinical_plan import build_plan
 from scripts.migration_common.offline import (
     SAMPLE_COLLECTIONS,

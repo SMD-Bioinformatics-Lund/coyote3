@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.dashboard.analytics import DashboardService
-from api.domain.common.dashboard import (
+from coyote3.application.dashboard.analytics import DashboardService
+from coyote3.domain.common.dashboard import (
     format_panel_gene_stats,
     panel_asp_ids,
     summarize_panel_gene_stats,
@@ -303,7 +303,7 @@ def test_metric_builders_calculate_dashboard_values(monkeypatch):
     )
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(
-        "api.application.dashboard.analytics.util",
+        "coyote3.application.dashboard.analytics.util",
         SimpleNamespace(
             dashboard=SimpleNamespace(format_asp_gene_stats=lambda rows: {"formatted": rows})
         ),

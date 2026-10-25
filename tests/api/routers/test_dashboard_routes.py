@@ -5,10 +5,13 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 
-from api.contracts.dashboard import DashboardMetricRefreshRequest
-from api.interfaces.http.operations import dashboard
+from api.interfaces.http.v1.operations import dashboard
+from api.tasks import maintenance
+from coyote3.application.operations import system as sdk_operations
+from coyote3.contracts.dashboard import DashboardMetricRefreshRequest
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -40,9 +43,13 @@ def test_dashboard_metric_routes_return_only_the_requested_metric(monkeypatch, r
         ),
         acquire_metric_refresh=lambda requested, *, user: False,
     )
-    monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda value: value)
 
-    payload = route(user=fx.api_user(), service=service)
+    payload = route(
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_operations.Dashboard, service, fx.api_user()
+        ),
+    )
 
     assert calls == [metric]
     assert payload["metric_meta"]["metric"] == metric
@@ -64,14 +71,19 @@ def test_stale_metric_is_returned_and_queues_its_own_refresh(monkeypatch):
         },
         acquire_metric_refresh=lambda requested, *, user: True,
     )
-    monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda value: value)
     monkeypatch.setattr(
-        dashboard.refresh_dashboard_metrics,
+        maintenance.refresh_dashboard_metrics,
         "delay",
-        lambda *, username, metrics: queued.append((username, metrics)),
+        lambda *, username, metrics: (
+            queued.append((username, metrics)) or SimpleNamespace(id="refresh-task")
+        ),
     )
 
-    payload = dashboard.dashboard_finding_metrics(user=user, service=service)
+    payload = sdk_fixtures.invoke_route(
+        dashboard.dashboard_finding_metrics,
+        user=user,
+        service=sdk_fixtures.authorized_operations(sdk_operations.Dashboard, service, user),
+    )
 
     assert payload["value"] == 7
     assert queued == [(user.username, ["findings"])]
@@ -86,14 +98,19 @@ def test_fresh_metric_does_not_queue_refresh(monkeypatch):
             "a fresh metric must not acquire a refresh lock"
         ),
     )
-    monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda value: value)
     monkeypatch.setattr(
-        dashboard.refresh_dashboard_metrics,
+        maintenance.refresh_dashboard_metrics,
         "delay",
         lambda **_kwargs: pytest.fail("a fresh metric must not queue work"),
     )
 
-    dashboard.dashboard_sample_metrics(user=fx.api_user(), service=service)
+    sdk_fixtures.invoke_route(
+        dashboard.dashboard_sample_metrics,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_operations.Dashboard, service, fx.api_user()
+        ),
+    )
 
 
 def test_dashboard_refresh_queues_selected_metrics(monkeypatch):
@@ -103,14 +120,17 @@ def test_dashboard_refresh_queues_selected_metrics(monkeypatch):
         id = "dashboard-task-1"
 
     monkeypatch.setattr(
-        dashboard.refresh_dashboard_metrics,
+        maintenance.refresh_dashboard_metrics,
         "delay",
         lambda *, username, metrics: queued.append((username, metrics)) or _Result(),
     )
     user = fx.api_user()
 
-    payload = dashboard.refresh_dashboard_metric_cache(
-        DashboardMetricRefreshRequest(metrics=["samples", "findings"]), user=user
+    payload = sdk_fixtures.invoke_route(
+        dashboard.refresh_dashboard_metric_cache,
+        DashboardMetricRefreshRequest(metrics=["samples", "findings"]),
+        user=user,
+        service=sdk_fixtures.authorized_operations(sdk_operations.Dashboard, None, user),
     )
 
     assert payload == {"status": "queued", "task_id": "dashboard-task-1"}
@@ -118,9 +138,14 @@ def test_dashboard_refresh_queues_selected_metrics(monkeypatch):
 
 
 def test_dashboard_refresh_rejects_unknown_metric():
-    with pytest.raises(HTTPException) as exc_info:
-        dashboard.refresh_dashboard_metric_cache(
-            DashboardMetricRefreshRequest(metrics=["not_a_metric"]), user=fx.api_user()
+    with pytest.raises(AppError) as exc_info:
+        sdk_fixtures.invoke_route(
+            dashboard.refresh_dashboard_metric_cache,
+            DashboardMetricRefreshRequest(metrics=["not_a_metric"]),
+            user=fx.api_user(),
+            service=sdk_fixtures.authorized_operations(
+                sdk_operations.Dashboard, None, fx.api_user()
+            ),
         )
 
     assert exc_info.value.status_code == 422
@@ -129,8 +154,13 @@ def test_dashboard_refresh_rejects_unknown_metric():
 
 def test_dashboard_admin_insights_returns_service_payload(monkeypatch):
     service = SimpleNamespace(build_admin_insights=lambda: {"counts": {"users_total": 12}})
-    monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda value: value)
 
-    payload = dashboard.dashboard_admin_insights(user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        dashboard.dashboard_admin_insights,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_operations.Dashboard, service, fx.api_user()
+        ),
+    )
 
     assert payload == {"counts": {"users_total": 12}}

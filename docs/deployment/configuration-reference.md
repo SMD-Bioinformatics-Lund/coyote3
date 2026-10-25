@@ -341,8 +341,8 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `COYOTE3_GID` | No | Positive integer | `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days | `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | None; a nonempty value is required | Host data root mounted into containers at `/data`. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Yes for a center deployment | Absolute host directory | `../../api/config/center` | Persistent center files mounted read-only into API, worker, beat, and monitor; also supplied to the docs build. Bundled examples are the development fallback. |
-| `COYOTE3_CENTER_CONFIG_DIR` | Host-run tools only | Directory path | Host process: bundled `api/config/center`; Compose: fixed `/app/center-config` | Selects external center files outside Compose. Compose sets this to `/app/center-config`; it is not a database or secrets directory. |
+| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Yes for a center deployment | Absolute host directory | `../../config/examples/center` | Persistent center files mounted read-only into API, worker, beat, and monitor; also supplied to the docs build. Bundled examples are the development fallback. |
+| `COYOTE3_CENTER_CONFIG_DIR` | Host-run tools only | Directory path | Host process: bundled `config/examples/center`; Compose: fixed `/app/center-config` | Selects external center files outside Compose. Compose sets this to `/app/center-config`; it is not a database or secrets directory. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Wrapper: selected `LOG_LEVEL` | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer | `2` | Celery worker process concurrency. |
 | `CELERY_MAINTENANCE_CONCURRENCY` | No | Positive integer | `2` | Maintenance worker process concurrency, independent of ingestion. |
@@ -399,8 +399,10 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 
 | Key | Requirement/default | Meaning and edit policy |
 | --- | --- | --- |
-| `COYOTE3_IMAGE_TAG` | Set by the version-aware wrapper | Version from `api/version.py`, with environment suffix outside production. Not a center setting. |
-| `GIT_COMMIT`, `BUILD_TIME` | Optional build values; `unknown` when omitted | Release provenance embedded in the API image; supplied by the release build. |
+| `COYOTE3_IMAGE_TAG` | Set by the version-aware wrapper | Application version from `release.toml`, with environment suffix outside production. Not a center setting. |
+| `COYOTE3_SDK_ARTIFACT_DIR` | Optional build context; repository `.release/sdk` when omitted | Absolute directory containing the tested SDK wheel and release record. Unused by editable development builds. |
+| `GIT_COMMIT` | Required for production API image builds | Exact reviewed commit matching the retained production SDK release record. Export from the release checkout. |
+| `BUILD_TIME` | Optional build value; `unknown` when omitted | Build timestamp embedded in the API image. |
 | `CACHE_REDIS_URL` | Compose constructs authenticated Redis database `/0` | Cache connection. Setting this in the private env file alone does not override the Compose value. |
 | `CELERY_BROKER_URL` | Compose constructs authenticated Redis database `/1` | Job queue connection; same override restriction. |
 | `CELERY_RESULT_BACKEND` | Compose constructs authenticated Redis database `/2` | Task result connection; same override restriction. |
@@ -491,7 +493,7 @@ The following values are intentionally derived or internal:
 
 | Value | Source |
 | --- | --- |
-| Application version | `api/version.py`; compose wrappers export this transiently for image names. |
+| Application version | `release.toml`, read by `api/version.py`; compose wrappers export this transiently for image names. |
 | Git commit and build time | Build metadata injected by CI or compose wrappers, not hand-edited env values. |
 | Redis URLs and Celery broker/result URLs | Internal Compose wiring through `redis`: cache uses database 0, broker database 1, and task results database 2. |
 | API health path | Fixed endpoint `/api/v1/health`. |
@@ -572,9 +574,9 @@ email = "clinical-support@example.org"
 
 ## Configuration Boundaries
 
-API-owned configuration lives under `api/config/`:
+API-owned configuration lives under `src/coyote3/config/`:
 
-- `app_config.py` selects runtime settings.
+- `runtime_settings.py` selects runtime settings.
 - `constants.py` defines product vocabularies.
 - `runtime.py` exposes backend helper functions.
 - `collections.toml` maps repository collection names.

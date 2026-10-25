@@ -10,8 +10,10 @@ in the [data reference](../reference/README.md).
 | Guide | Use it to |
 | --- | --- |
 | [API Authentication](authentication.md) | Authenticate with sessions, bearer tokens, and supported credentials. |
+| [Python SDK](../sdk/python-client.md) | Use typed resources, sample workflows, pagination and SDK errors. |
 | [API routes and workflows](routes-and-workflows.md) | Follow request workflows and their route responsibilities. |
 | [API route groups and visibility](route-groups.md) | Find route prefixes, API groups, and OpenAPI visibility rules. |
+| [Individual resource fields](resource-fields.md) | Retrieve one permitted metadata key from a resource. |
 | [Ingestion API](sample-ingestion.md) | Submit sample bundles, uploads, queued jobs, and updates. |
 | [Collection imports and permissions](collection-imports.md) | Import collection documents with the required permissions. |
 | [API versioning and compatibility](versioning-and-compatibility.md) | Check API compatibility and runtime support commitments. |

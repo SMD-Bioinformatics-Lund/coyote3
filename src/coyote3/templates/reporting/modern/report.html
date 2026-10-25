@@ -1,0 +1,3 @@
+{% extends legacy_template %}
+{% block format_head %}{% include "components/header.html" %}{% endblock %}
+{% block format_notice %}{% if save != 1 %}{% include "components/footer.html" %}{% endif %}{% endblock %}

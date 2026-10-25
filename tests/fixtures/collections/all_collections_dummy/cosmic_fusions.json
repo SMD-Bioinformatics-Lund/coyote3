@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-fusion",
+    "source_row": 1,
+    "cosmic_fusion_id": "COSF-DEMO",
+    "five_prime_gene_symbol": "GENE1",
+    "three_prime_gene_symbol": "GENE2"
+  }
+]

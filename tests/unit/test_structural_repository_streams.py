@@ -6,6 +6,7 @@ import pytest
 
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
 from api.infra.mongo.repositories.translocations import TranslocsRepository
+from coyote3.domain.selection import RecordField, select
 
 
 @pytest.mark.parametrize(
@@ -35,7 +36,7 @@ def test_comment_hydration_consumes_only_one_batch_at_a_time(repository_type, me
     repository = object.__new__(repository_type)
     monkeypatch.setattr(repository, "get_collection", lambda: SimpleNamespace(find=documents))
     monkeypatch.setattr(repository, "hydrate_finding_comments_many", hydrate)
-    stream = getattr(repository, method)({"SAMPLE_ID": "synthetic"}, stream=True)
+    stream = getattr(repository, method)(select({RecordField.SAMPLE: "synthetic"}), stream=True)
     assert not consumed
     first = next(stream)
     assert len(consumed) == 100

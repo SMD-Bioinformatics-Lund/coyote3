@@ -7,9 +7,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.app.deps.services import get_query_rule_service, get_query_rule_testing_service
-from api.interfaces.http.admin.query_rules import router
+from api.app.deps.application import get_query_rules
+from api.infra.mongo.selection import compile_selection
+from api.interfaces.http.v1.admin.query_rules import router
 from api.security import access
+from coyote3.application.operations import ApplicationRuntime, QueryRules
 from tests.fixtures.api.mock_collections import api_user
 
 
@@ -37,8 +39,7 @@ def boundary(monkeypatch):
     service.options.return_value = {"groups": [], "assays": []}
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[get_query_rule_service] = lambda: service
-    app.dependency_overrides[get_query_rule_testing_service] = lambda: service
+    app.dependency_overrides[get_query_rules] = lambda: service
     with TestClient(app) as client:
         yield client, user, service
 
@@ -84,11 +85,13 @@ def test_invalid_draft_preview_returns_422_without_service_call(boundary):
 
 
 def test_synthetic_condition_testing_uses_no_repository(boundary):
-    from api.application.query_rules.service import QueryRuleService
+    from coyote3.application.query_rules.service import QueryRuleService
 
     client, user, service = boundary
     user.permissions = ["query_rules:view"]
-    service.test_condition.side_effect = QueryRuleService(None).test_condition
+    service.test_condition.side_effect = QueryRuleService(
+        None, selection_renderer=compile_selection
+    ).test_condition
     response = client.post(
         "/api/v1/admin/query-rule-sets/test-condition",
         json={
@@ -128,6 +131,18 @@ def test_condition_operator_injection_is_rejected_at_http_boundary(boundary):
 def test_sample_search_forwards_access_scope(boundary):
     client, user, service = boundary
     user.permissions = ["query_rules:test"]
+    runtime = ApplicationRuntime(
+        authenticate=lambda: user,
+        policy_factory=lambda actor: SimpleNamespace(
+            permission_allowed=lambda *args, **kwargs: True
+        ),
+        sample_loader=Mock(),
+        assay_loader=Mock(),
+        audit_access=Mock(),
+    )
+    client.app.dependency_overrides[get_query_rules] = lambda: QueryRules(
+        runtime, lambda: service, lambda: service
+    )
     service.search_samples.return_value = {"items": [], "total": 0, "page": 1, "per_page": 20}
     result = client.post(
         "/api/v1/admin/query-rule-sets/test-samples", json={"scope": {"analysis": "snv"}}
@@ -137,10 +152,8 @@ def test_sample_search_forwards_access_scope(boundary):
     assert service.search_samples.call_args.kwargs["allowed_environments"] == user.envs
 
 
-def test_sample_preview_checks_access_before_running_comparison(boundary, monkeypatch):
+def test_sample_preview_checks_access_before_running_comparison(boundary):
     from fastapi import HTTPException
-
-    from api.interfaces.http.admin import query_rules
 
     client, user, service = boundary
     user.permissions = ["query_rules:test"]
@@ -148,7 +161,18 @@ def test_sample_preview_checks_access_before_running_comparison(boundary, monkey
     def denied(*args):
         raise HTTPException(403, "Forbidden sample")
 
-    monkeypatch.setattr(query_rules, "_get_sample_for_api", denied)
+    runtime = ApplicationRuntime(
+        authenticate=lambda: user,
+        policy_factory=lambda actor: SimpleNamespace(
+            permission_allowed=lambda *args, **kwargs: True
+        ),
+        sample_loader=denied,
+        assay_loader=Mock(),
+        audit_access=Mock(),
+    )
+    client.app.dependency_overrides[get_query_rules] = lambda: QueryRules(
+        runtime, lambda: service, lambda: service
+    )
     result = client.post(
         "/api/v1/admin/query-rule-sets/test-samples/blocked/preview",
         json={"scope": {"analysis": "snv"}, "content": {"exceptions": []}},

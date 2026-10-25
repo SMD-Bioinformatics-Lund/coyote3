@@ -13,10 +13,10 @@ from bson.errors import InvalidId
 from bson.json_util import CANONICAL_JSON_OPTIONS, dumps
 from pymongo import ReturnDocument
 
-from api.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 
 
 def _object_id(value: Any) -> ObjectId | None:

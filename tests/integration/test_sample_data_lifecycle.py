@@ -9,13 +9,13 @@ import pytest
 from bson import ObjectId
 from pymongo import MongoClient
 
-from api.application.ingest.service import InternalIngestService
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 from api.infra.mongo.repositories.sample_deletion import delete_all_sample_traces
+from coyote3.application.ingest.service import InternalIngestService
 
 
 def test_bulk_update_failure_aborts_all_documents(database, monkeypatch):

@@ -18,7 +18,7 @@ Example:
     --api-base-url http://localhost:6816 \
     --username "admin@your-center.org" \
     --password "CHANGE_ME" \
-    --yaml-file demo_data/ingest/generic_case_control.yaml
+    --yaml-file tests/fixtures/ingest/generic_case_control.yaml
 USAGE
 }
 

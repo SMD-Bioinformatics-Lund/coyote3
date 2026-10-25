@@ -9,7 +9,7 @@ knowledgebases, public catalog, admin operations, access control, and internal
 ingest/maintenance.
 
 Python router modules are physically grouped under
-`api/interfaces/http/{clinical,admin,public,operations,knowledgebase}`. The
+`api/interfaces/http/v1/{clinical,admin,public,operations,knowledgebase}`. The
 OpenAPI groups describe the product API and are intentionally kept stable even
 if Python module names change. See [API Organization](route-groups.md) for
 the full grouping model.
@@ -130,7 +130,7 @@ For write operations:
 When adding or changing routes:
 
 1. Pick a canonical OpenAPI tag from `api/interfaces/http/tags.py`.
-2. Implement or extend typed request and response schemas in `api/contracts/`.
+2. Implement or extend typed request and response schemas in `src/coyote3/contracts/`.
 3. Add the endpoint to the appropriate FastAPI router and apply its explicit
    authentication and permission dependencies.
 4. Put use-case coordination in an application service and inject its

@@ -113,7 +113,7 @@ x-api-image: &api-image
   image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
 
 x-app-volumes: &app-volumes
-  - ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../api/config/center}:/app/center-config:ro
+  - ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../config/examples/center}:/app/center-config:ro
   - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
   - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
 

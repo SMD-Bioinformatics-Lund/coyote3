@@ -11,6 +11,8 @@ repos:
         exclude: ^(deploy/compose/docker-compose\.dev\.yml|mkdocs\.yml)$
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+        # These snapshots assert byte-for-byte compatibility with rendered reports.
+        exclude: ^tests/fixtures/report-templates/.*\.html$
     -   id: check-toml
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit

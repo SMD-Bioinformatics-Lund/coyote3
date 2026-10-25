@@ -5,9 +5,9 @@ from unittest.mock import Mock
 import pytest
 from pydantic import ValidationError
 
-from api.application.common.alignment_files import alignment_files_payload
-from api.application.ingest.helpers import build_sample_meta_dict
-from api.contracts.schemas.samples import SampleCaseControlDoc
+from coyote3.application.common.alignment_files import alignment_files_payload
+from coyote3.application.ingest.helpers import build_sample_meta_dict
+from coyote3.contracts.schemas.samples import SampleCaseControlDoc
 
 
 @pytest.mark.parametrize("value", [None, "", "  "])
@@ -165,14 +165,14 @@ def test_asp_uses_fallback_only_for_missing_filenames_and_can_omit_bed():
     ],
 )
 def test_asp_igv_rejects_unsafe_relative_paths(path):
-    from api.contracts.schemas.assay import AspIgvDoc
+    from coyote3.contracts.schemas.assay import AspIgvDoc
 
     with pytest.raises(ValidationError):
         AspIgvDoc(base_folder=path)
 
 
 def test_asp_igv_allows_empty_optional_subfolder_and_bed():
-    from api.contracts.schemas.assay import AspIgvDoc
+    from coyote3.contracts.schemas.assay import AspIgvDoc
 
     assert AspIgvDoc(base_folder="panel").model_dump() == {
         "base_folder": "panel",

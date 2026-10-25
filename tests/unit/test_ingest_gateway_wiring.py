@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 import mongomock
 
-from api.config.loaders.collections import load_collection_mapping
-from api.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
+from api.config.collections import load_collection_mapping
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.runtime_adapter import MongoAdapter
+from coyote3.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
 
 
 def test_runtime_gateway_covers_all_dependent_analysis_collections():

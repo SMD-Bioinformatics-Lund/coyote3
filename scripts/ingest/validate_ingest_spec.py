@@ -64,9 +64,9 @@ def main() -> int:
         Relative input paths resolve against the YAML file's directory. File existence
         is checked only with ``--check-files``; no API or database writes occur.
     """
-    from api.application.ingest.collection_writes import parse_yaml_payload
-    from api.config.constants import ALL_SAMPLE_FILE_KEYS
-    from api.contracts.schemas.samples import SamplesDoc
+    from coyote3.application.ingest.collection_writes import parse_yaml_payload
+    from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
+    from coyote3.contracts.schemas.samples import SamplesDoc
 
     args = parse_args()
     spec_path = Path(args.yaml)

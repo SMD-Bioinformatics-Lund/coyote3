@@ -7,12 +7,14 @@ from unittest.mock import Mock
 
 import pytest
 
-import api.application.dna.structural_variants as service_module
-from api.application.common.change_payload import change_payload
-from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
-from api.application.dna.structural_variants import DnaStructuralService
-from api.contracts.dna import DnaTranslocationContextPayload, DnaTranslocationsPayload
-from api.domain.core.exceptions import AppError
+import coyote3.application.dna.structural_variants as service_module
+from api.infra.mongo.selection import compile_selection
+from api.interfaces.http.v1.clinical.common.analysis_query import analysis_query_from_request
+from coyote3.application.common.change_payload import change_payload
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.application.dna.structural_variants import DnaStructuralService
+from coyote3.contracts.dna import DnaTranslocationContextPayload, DnaTranslocationsPayload
+from coyote3.domain.exceptions import AppError
 
 
 class _CnvHandlerStub:
@@ -132,7 +134,7 @@ def _release(repo: _RepoStub) -> dict:
 
 
 def _request(path: str):
-    return SimpleNamespace(url=SimpleNamespace(path=path))
+    return SimpleNamespace(query_params={}, url=SimpleNamespace(path=path))
 
 
 def _service_from_repo(repo: _RepoStub) -> DnaStructuralService:
@@ -187,7 +189,8 @@ def test_list_cnvs_payload_uses_selected_cnvlists_for_effective_genes(monkeypatc
     repo = _RepoStub()
     captured: dict[str, object] = {}
 
-    repo.gene_lists = {"GL1": {"genes": ["TP53"], "list_type": ["cnv"]}}
+    repo.asp_doc["covered_genes"] = ["TP53"]
+    repo.gene_lists = {"GL1": {"genes": ["TP53"], "is_active": True, "list_type": ["cnv"]}}
     repo.gene_list_repository = SimpleNamespace(
         get_isgl_by_ids=Mock(side_effect=AssertionError("Sample reads must use captured lists"))
     )
@@ -217,7 +220,7 @@ def test_list_cnvs_payload_uses_selected_cnvlists_for_effective_genes(monkeypatc
     monkeypatch.setattr(service, "load_cnvs_for_sample", _load_cnvs_for_sample)
 
     service.list_cnvs_payload(
-        request=_request("/api/v1/cnvs/S1"), sample=sample, util_module=_UtilModule
+        query=analysis_query_from_request(_request("/api/v1/cnvs/S1")), sample=sample
     )
 
     repo.gene_list_repository.get_isgl_by_ids.assert_not_called()
@@ -233,7 +236,7 @@ def test_list_cnvs_payload_raises_when_assay_config_missing(monkeypatch):
 
     with pytest.raises(AppError) as exc:
         service.list_cnvs_payload(
-            request=_request("/api/v1/cnvs/S1"), sample=_sample(), util_module=_UtilModule
+            query=analysis_query_from_request(_request("/api/v1/cnvs/S1")), sample=_sample()
         )
 
     assert exc.value.status_code == 422
@@ -252,7 +255,7 @@ def test_list_cnvs_payload_returns_count(monkeypatch):
     )
 
     payload = service.list_cnvs_payload(
-        request=_request("/api/v1/cnvs/S1"), sample=_sample(), util_module=_UtilModule
+        query=analysis_query_from_request(_request("/api/v1/cnvs/S1")), sample=_sample()
     )
 
     assert payload["meta"]["count"] == 2
@@ -269,7 +272,7 @@ def test_show_cnv_payload_rejects_cross_sample(monkeypatch):
     )
 
     with pytest.raises(AppError) as exc:
-        service.show_cnv_payload(sample=_sample(), cnv_id="cnv1", util_module=_UtilModule)
+        service.show_cnv_payload(sample=_sample(), cnv_id="cnv1")
 
     assert exc.value.status_code == 404
 
@@ -281,7 +284,7 @@ def test_show_cnv_payload_returns_detail(monkeypatch):
         service_module, "get_formatted_assay_config", lambda _sample, **kwargs: _release(repo)
     )
 
-    payload = service.show_cnv_payload(sample=_sample(), cnv_id="cnv1", util_module=_UtilModule)
+    payload = service.show_cnv_payload(sample=_sample(), cnv_id="cnv1")
 
     assert payload["sample_summary"]["assay_group"] == "dna"
     assert payload["has_hidden_comments"]
@@ -294,7 +297,7 @@ def test_list_translocations_payload_returns_count(monkeypatch):
         service_module, "get_formatted_assay_config", lambda _sample, **kwargs: _release(repo)
     )
     payload = service.list_translocations_payload(
-        request=_request("/api/v1/translocations/S1"), sample=_sample()
+        query=analysis_query_from_request(_request("/api/v1/translocations/S1")), sample=_sample()
     )
     assert payload["meta"]["count"] == 0
     assert "snpeff_conseq_translations" in payload
@@ -315,10 +318,10 @@ def test_structural_display_does_not_require_vep_metadata(monkeypatch):
         service_module, "get_formatted_assay_config", lambda _, **kwargs: _release(repo)
     )
     assert "snpeff_conseq_translations" in service.list_translocations_payload(
-        request=_request("/api/v1/translocations/S1"), sample=sample
+        query=analysis_query_from_request(_request("/api/v1/translocations/S1")), sample=sample
     )
     assert "snpeff_conseq_translations" in service.show_translocation_payload(
-        sample=sample, transloc_id="t1", util_module=_UtilModule
+        sample=sample, transloc_id="t1"
     )
 
 
@@ -348,7 +351,7 @@ def test_list_translocations_uses_selected_translocation_list(monkeypatch):
     )
 
     payload = _service_from_repo(repo).list_translocations_payload(
-        request=_request("/api/v1/translocations/S1"),
+        query=analysis_query_from_request(_request("/api/v1/translocations/S1")),
         sample=sample,
     )
 
@@ -367,7 +370,7 @@ def test_list_translocations_falls_back_to_asp_covered_genes(monkeypatch):
     )
 
     payload = _service_from_repo(repo).list_translocations_payload(
-        request=_request("/api/v1/translocations/S1"),
+        query=analysis_query_from_request(_request("/api/v1/translocations/S1")),
         sample=_sample(),
     )
 
@@ -385,7 +388,7 @@ def test_list_translocations_returns_none_without_resolved_scope(monkeypatch):
     )
 
     payload = _service_from_repo(repo).list_translocations_payload(
-        request=_request("/api/v1/translocations/S1"),
+        query=analysis_query_from_request(_request("/api/v1/translocations/S1")),
         sample=_sample(),
     )
 
@@ -401,9 +404,7 @@ def test_show_translocation_payload_rejects_cross_sample(monkeypatch):
     )
 
     with pytest.raises(AppError) as exc:
-        service.show_translocation_payload(
-            sample=_sample(), transloc_id="t1", util_module=_UtilModule
-        )
+        service.show_translocation_payload(sample=_sample(), transloc_id="t1")
 
     assert exc.value.status_code == 404
 
@@ -415,9 +416,7 @@ def test_show_translocation_payload_returns_detail(monkeypatch):
         service_module, "get_formatted_assay_config", lambda _sample, **kwargs: _release(repo)
     )
 
-    payload = service.show_translocation_payload(
-        sample=_sample(), transloc_id="t1", util_module=_UtilModule
-    )
+    payload = service.show_translocation_payload(sample=_sample(), transloc_id="t1")
 
     assert payload["translocation"]["_id"] == "t1"
     DnaTranslocationContextPayload.model_validate(payload)
@@ -500,7 +499,7 @@ def test_translocation_table_value_helpers_cover_supported_columns():
 def test_service_factory_and_config_resolution_use_injected_repositories(monkeypatch):
     store = SimpleNamespace(
         annotation_repository=object(),
-        query_rule_repository=object(),
+        query_rule_repository=SimpleNamespace(describe_selection=compile_selection),
         assay_group_repository=object(),
         assay_diagnosis_repository=object(),
         copy_number_variant_repository=object(),
@@ -544,9 +543,8 @@ def test_cnv_list_search_sort_and_unpaginated_metadata(monkeypatch):
     )
 
     payload = service.list_cnvs_payload(
-        request=request,
+        query=analysis_query_from_request(request),
         sample=_sample(),
-        util_module=_UtilModule,
         paginate=False,
     )
 
@@ -572,7 +570,9 @@ def test_translocation_list_search_sort_and_pagination(monkeypatch):
         query_params={"q": "NTRK1", "sort": "gene1:asc", "page": "1", "per_page": "1"},
     )
 
-    payload = service.list_translocations_payload(request=request, sample=_sample())
+    payload = service.list_translocations_payload(
+        query=analysis_query_from_request(request), sample=_sample()
+    )
 
     assert [row["_id"] for row in payload["translocations"]] == ["b"]
     assert payload["meta"]["total"] == 1
@@ -584,16 +584,16 @@ def test_cnv_detail_rejects_missing_owner_even_when_listed_for_sample(monkeypatc
     service = _service_from_repo(repo)
     repo.copy_number_variant_repository.cnv_doc = None
     with pytest.raises(AppError, match="CNV not found"):
-        service.show_cnv_payload(sample=_sample(), cnv_id="missing", util_module=_UtilModule)
+        service.show_cnv_payload(sample=_sample(), cnv_id="missing")
 
     repo.copy_number_variant_repository.cnv_doc = {"_id": "legacy", "genes": []}
     repo.copy_number_variant_repository.sample_cnvs_payload = [{"_id": "other"}]
     with pytest.raises(AppError, match="CNV not found for sample"):
-        service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
+        service.show_cnv_payload(sample=_sample(), cnv_id="legacy")
 
     repo.copy_number_variant_repository.sample_cnvs_payload = [{"_id": "legacy"}]
     with pytest.raises(AppError, match="CNV not found for sample"):
-        service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
+        service.show_cnv_payload(sample=_sample(), cnv_id="legacy")
 
 
 @pytest.mark.parametrize("flag", ["interesting", "false_positive", "noteworthy"])
@@ -636,22 +636,16 @@ def test_translocation_detail_rejects_missing_owner_even_when_listed_for_sample(
     service = _service_from_repo(repo)
     repo.translocation_repository.doc = None
     with pytest.raises(AppError, match="Translocation not found"):
-        service.show_translocation_payload(
-            sample=_sample(), transloc_id="missing", util_module=_UtilModule
-        )
+        service.show_translocation_payload(sample=_sample(), transloc_id="missing")
 
     repo.translocation_repository.doc = {"_id": "legacy"}
     repo.translocation_repository.sample_translocations_payload = [{"_id": "other"}]
     with pytest.raises(AppError, match="Translocation not found for sample"):
-        service.show_translocation_payload(
-            sample=_sample(), transloc_id="legacy", util_module=_UtilModule
-        )
+        service.show_translocation_payload(sample=_sample(), transloc_id="legacy")
 
     repo.translocation_repository.sample_translocations_payload = [{"_id": "legacy"}]
     with pytest.raises(AppError, match="Translocation not found for sample"):
-        service.show_translocation_payload(
-            sample=_sample(), transloc_id="legacy", util_module=_UtilModule
-        )
+        service.show_translocation_payload(sample=_sample(), transloc_id="legacy")
 
 
 @pytest.mark.parametrize("flag", ["interesting", "false_positive"])

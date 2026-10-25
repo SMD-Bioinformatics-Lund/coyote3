@@ -11,7 +11,7 @@ reporting.
 > Runtime endpoints and secrets are environment configuration. Collection
 > names are API configuration in `api/config/collections.toml`.
 > Public organization, service-hour, and contact-card text is center content
-> in `api/config/center/contact.toml`. Repository links and the product description
+> in `config/examples/center/contact.toml`. Repository links and the product description
 > are application metadata in `api/config/application_metadata.py`.
 > Public assay-catalog narrative text is center content in the primary-database
 > `public_assay_catalog` collection. Manage it through the administrative
@@ -197,7 +197,7 @@ operational truth for active assay behavior and gene content. Administrators can
 export the full catalog or a modality as JSON, then import validated JSON into a
 different center deployment.
 
-The public contact page uses `api/config/center/contact.toml`. A center can
+The public contact page uses `config/examples/center/contact.toml`. A center can
 maintain a dedicated deployment revision of the `center/` directory for each
 laboratory section.
 

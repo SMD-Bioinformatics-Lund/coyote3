@@ -4,15 +4,15 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.resources.asp import AspService
-from api.application.resources.assay_groups import AssayGroupService
-from api.application.resources.diagnoses import DiagnosisService
-from api.application.resources.helpers import require_new_identifier
-from api.application.resources.isgl import IsglService
-from api.config.constants import normalize_clinical_identifier
-from api.contracts.schemas.assay_groups import AssayGroupCreate
-from api.contracts.schemas.diagnoses import SharedDiagnosisCreate
-from api.domain.core.exceptions import AppError
+from coyote3.application.resources.asp import AspService
+from coyote3.application.resources.assay_groups import AssayGroupService
+from coyote3.application.resources.diagnoses import DiagnosisService
+from coyote3.application.resources.helpers import require_new_identifier
+from coyote3.application.resources.isgl import IsglService
+from coyote3.config.constants import normalize_clinical_identifier
+from coyote3.contracts.schemas.assay_groups import AssayGroupCreate
+from coyote3.contracts.schemas.diagnoses import SharedDiagnosisCreate
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.mark.parametrize(

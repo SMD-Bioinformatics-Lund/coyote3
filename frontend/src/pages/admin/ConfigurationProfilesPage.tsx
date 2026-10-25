@@ -52,7 +52,12 @@ export function ConfigurationProfilesPage() {
     mutationFn: () => api.post(`${path}/${review!._id}/${section === "profiles" ? "publish" : "approve"}`, {
       content_hash: review!.content_hash, reason: reason.trim(),
     }),
-    onSuccess: () => { setReview(null); setReason(""); invalidate(); notifySuccess("Configuration approval recorded") },
+    onSuccess: () => {
+      if (review?.kind === "clinical_rules") {
+        void client.invalidateQueries({ queryKey: ["report-preview"] })
+      }
+      setReview(null); setReason(""); invalidate(); notifySuccess("Configuration approval recorded")
+    },
     onError: (error) => notifyActionError("Approve configuration", error),
   })
   const columns: ColumnDef<Entry>[] = [

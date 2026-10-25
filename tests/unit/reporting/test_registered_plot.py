@@ -2,7 +2,7 @@
 
 import base64
 
-from api.domain.common.reporting import get_plot
+from api.infra.report_images import get_plot
 
 
 def test_registered_plot_is_not_replaced_by_same_named_file(tmp_path, monkeypatch):

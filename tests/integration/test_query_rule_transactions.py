@@ -7,9 +7,9 @@ from uuid import uuid4
 import pytest
 from pymongo import MongoClient
 
-from api.application.query_rules.service import QueryRuleService
-from api.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleTransition
 from api.infra.mongo.repositories import query_rules as persistence
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleTransition
 
 
 @pytest.fixture

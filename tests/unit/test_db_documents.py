@@ -9,20 +9,20 @@ from pathlib import Path
 
 import pytest
 
-from api.config.database_versions import normalize_database_versions, require_sample_vep_version
-from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.app_controls import AppControlsDoc
-from api.contracts.schemas.assay import InsilicoGenelistsDoc
-from api.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
-from api.contracts.schemas.governance import RolesDoc, UsersDoc
-from api.contracts.schemas.registry import (
+from coyote3.config.database_versions import normalize_database_versions, require_sample_vep_version
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import managed_resource_spec
+from coyote3.contracts.schemas.app_controls import AppControlsDoc
+from coyote3.contracts.schemas.assay import InsilicoGenelistsDoc
+from coyote3.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
+from coyote3.contracts.schemas.governance import RolesDoc, UsersDoc
+from coyote3.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
     validate_collection_document,
 )
-from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
-from api.contracts.schemas.variant_annotations import (
+from coyote3.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
+from coyote3.contracts.schemas.variant_annotations import (
     VepAnnoTranscriptDoc,
 )
 
@@ -51,9 +51,9 @@ def _load_seed_list(path: Path) -> list[dict]:
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
     base = (
-        Path("api/config/bootstrap/rbac")
+        Path("api/bootstrap/catalogs/rbac")
         if filename.startswith(("permissions.", "roles."))
-        else Path("api/config/bootstrap/reference")
+        else Path("api/bootstrap/catalogs/reference")
     )
     path = base / filename
     if not path.exists() and filename.endswith(".gz"):
@@ -207,7 +207,7 @@ def test_collection_validator_rejects_vep_groups_with_unknown_terms():
 
 def test_collection_validator_accepts_oncokb_actionable_shape():
     """OncoKB actionable strict model should accept curated fixture docs."""
-    fixture = Path("demo_data/collections/all_collections_dummy/oncokb_actionable.json")
+    fixture = Path("tests/fixtures/collections/all_collections_dummy/oncokb_actionable.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("oncokb_actionable", payload)
 
@@ -255,7 +255,7 @@ def test_collection_validator_rejects_sample_identity_in_public_oncokb_cache():
 
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
-    fixture = Path("demo_data/collections/all_collections_dummy/samples.json")
+    fixture = Path("tests/fixtures/collections/all_collections_dummy/samples.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("samples", payload)
 
@@ -511,7 +511,7 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
 
 def test_collection_validator_accepts_nested_d4_coverage_shape():
     """d4_coverage strict model should accept curated fixture docs."""
-    fixture = Path("demo_data/collections/all_collections_dummy/d4_coverage.json")
+    fixture = Path("tests/fixtures/collections/all_collections_dummy/d4_coverage.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("d4_coverage", payload)
 
@@ -916,7 +916,7 @@ def test_collection_validator_rejects_user_without_role():
 
 def test_collection_validator_accepts_strict_ready_fixture_subset():
     """Strict-ready fixture collections should pass validation end-to-end."""
-    fixture_dir = Path("demo_data/collections/all_collections_dummy")
+    fixture_dir = Path("tests/fixtures/collections/all_collections_dummy")
     payload = {
         file.stem: json.loads(file.read_text(encoding="utf-8"))
         for file in sorted(fixture_dir.glob("*.json"))

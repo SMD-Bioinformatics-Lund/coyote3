@@ -6,21 +6,21 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.application.resources.configuration_profiles import (
+from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from api.infra.mongo.repositories.configuration_profiles import ConfigurationProfileRepository
+from coyote3.application.resources.configuration_profiles import (
     ConfigurationProfileService,
     compile_profile_rules,
     compile_profiles,
     prepare_profile_update,
     profile_hash,
 )
-from api.application.resources.configuration_promotions import ConfigurationPromotionService
-from api.contracts.configuration_profiles import (
+from coyote3.application.resources.configuration_promotions import ConfigurationPromotionService
+from coyote3.contracts.configuration_profiles import (
     ConfigurationProfileDraft,
     ConfigurationPromotionRequest,
 )
-from api.domain.core.exceptions import AppError
-from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
-from api.infra.mongo.repositories.configuration_profiles import ConfigurationProfileRepository
+from coyote3.domain.exceptions import AppError
 from scripts.quality.export_demo_workflows import replay
 
 
@@ -203,10 +203,8 @@ def test_promotion_retains_source_and_requires_independent_review(promotion):
     assert approved["status"] == "approved"
     target = db.configs.find_one({"environment": "validation"})
     assert target["promotion"]["source_id"] == str(source["_id"])
-    assert (
-        target["query_policy_release"]["policies"]["somatic.fusion"]["scope"]["environment"]
-        == "validation"
-    )
+    assert not target.get("query_policy_release")
+    assert not target.get("clinical_rule_release")
     assert db.configs.find_one({"_id": source["_id"]}) == source
     assert db.samples.count_documents({}) == 0
 
@@ -247,7 +245,9 @@ def test_changed_promotion_candidate_is_rejected_before_publication(promotion):
 def test_clinical_profile_replaces_only_the_selected_block_and_retains_base(promotion):
     _, _, _, source, _ = promotion
     config = deepcopy(source)
-    base = deepcopy(config["clinical_rule_release"])
+    database = replay()
+    base = database.clinical_rule_sets.find_one({"scope.asp_id": config["asp_id"], "active": True})
+    config["clinical_rule_release"] = deepcopy(base)
     block = deepcopy(base["blocks"][0])
     block["rules"][0]["output"][0]["value"] = "Synthetic reviewed reporting text."
     config["profile_sources"] = [{"kind": "clinical_rules", "content": {"replace_blocks": [block]}}]

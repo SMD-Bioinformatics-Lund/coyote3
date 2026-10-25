@@ -203,7 +203,7 @@ Release 103 remains protected from the metadata importer; its diagram can be
 updated independently. Image provenance is retained inside each diagram document.
 
 The seed stores original binary files under
-`api/config/bootstrap/reference/vep_diagrams/<sha256>`. Bootstrap validates hashes
+`api/bootstrap/catalogs/reference/vep_diagrams/<sha256>`. Bootstrap validates hashes
 and installs these into the configured image collection before metadata. Keep
 this directory with the reference seed when copying a seed pack to another center.
 The downloader's review output may contain base64 as JSON transport data; import

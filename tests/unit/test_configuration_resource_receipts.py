@@ -1,18 +1,36 @@
 """Pinned resource content remains stable and fails closed when invalid."""
 
 from copy import deepcopy
+from datetime import datetime, timezone
 
 import pytest
 from bson import ObjectId
 
-from api.application.common.release_resources import (
+from coyote3.application.common.release_resources import (
     assay_resource,
     capture_assay_resource,
     capture_gene_lists,
     gene_list_resources,
 )
-from api.application.reporting.resolution_receipt import report_resolution_receipt
-from api.domain.core.exceptions import AppError
+from coyote3.application.reporting.resolution_receipt import report_resolution_receipt
+from coyote3.domain.exceptions import AppError
+
+
+def test_persisted_release_digest_preserves_canonical_bson_encoding():
+    """Existing digests retain BSON IDs, integer types, timestamps, null and key ordering."""
+    content = {
+        "_id": ObjectId("000000000000000000000001"),
+        "version": 1,
+        "approved": True,
+        "time": datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
+        "genes": ["TP53"],
+        "value": None,
+    }
+    release = capture_assay_resource(content)
+    assert release["content_hash"] == (
+        "4aec49a35a160a08a041f9cdeef8a83d2f961228964a0cd20f9fcb381992ae31"
+    )
+    assert capture_assay_resource(dict(reversed(content.items()))) == release
 
 
 def test_assay_revision_is_independent_of_authoring_and_runtime_edits():

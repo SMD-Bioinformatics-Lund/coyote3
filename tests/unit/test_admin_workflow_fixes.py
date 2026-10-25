@@ -5,11 +5,11 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.accounts.users import UserManagementService
-from api.application.ingest.json_resources import read_ingest_json
-from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.domain.common.assay_filters import create_assay_group_map
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.application.ingest.json_resources import read_ingest_json
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import managed_resource_spec
+from coyote3.domain.common.assay_filters import create_assay_group_map
 
 
 @pytest.mark.parametrize(

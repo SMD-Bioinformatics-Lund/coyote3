@@ -11,8 +11,8 @@ active.
 
 | Check | Command |
 | --- | --- |
-| Python lint | `PYTHONPATH=. ruff check api tests scripts` |
-| Python formatting | `ruff format --check api tests scripts` |
+| Python lint | `PYTHONPATH=. ruff check src api tests scripts` |
+| Python formatting | `ruff format --check src api tests scripts` |
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
 | Frontend lint | `npm --prefix frontend run lint` |

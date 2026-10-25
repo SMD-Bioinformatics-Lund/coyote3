@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from api.application.ingest.file_policy import (
+from coyote3.application.ingest.file_policy import (
     assay_file_policy,
     readable_file_payload,
     validate_declared_file_resources,

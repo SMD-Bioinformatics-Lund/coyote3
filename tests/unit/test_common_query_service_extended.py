@@ -6,10 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.common import query_service
-from api.application.common.query_service import CommonQueryService
-from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
-from api.domain.core.exceptions import AppError
+from api.infra.mongo.selection import compile_selection
+from coyote3.application.common import query_service
+from coyote3.application.common.query_service import CommonQueryService
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.domain.exceptions import AppError
 
 
 class AnnotationRepository:
@@ -47,6 +48,7 @@ class ReportedRepository:
 
     @staticmethod
     def list_reported_variants(query):
+        query = compile_selection(query)
         if query.get("annotation_oid"):
             annotation_id = query["annotation_oid"]["$in"][0]
             if annotation_id == "annotation-1":
@@ -306,6 +308,7 @@ def test_tiered_context_uses_supported_identity_fallbacks(
     class Reported:
         @staticmethod
         def list_reported_variants(query):
+            query = compile_selection(query)
             captured.update(query)
             return [{"_id": "reported", "sample_oid": "sample-1", "sample": {}}]
 

@@ -108,22 +108,23 @@ A group diagnosis policy applies across associated assays. Adding a family or an
 assay narrows that binding. Family bindings use an explicit modality; they cannot
 enable an analysis unsupported by that modality.
 
-## Configuration release binding
+## Runtime scope resolution
 
-Creating or revising an ASPC compiles its enabled finding targets and intents into
-`query_policy_release`. The artifact contains effective conditions, evidence modes,
-ordered source versions and a SHA-256 content hash. Assay setup submission includes
-this hash in its review dependencies; changed query policies require another review
-before setup publication. Demo installation compiles its packaged policies through
-the same resolver.
+Each query resolves current published policies for the sample's registered assay
+group, assay, diagnosis, environment, modality, family, analysis and intent. ASPC
+owns enabled analyses, filter defaults and reporting settings; it does not select
+or capture query-rule versions. A sample using a Base ASPC still resolves rules
+for its requested diagnosis.
 
-Sample execution reads this artifact from `current_aspc_id`. It does not resolve
-current published query rules or current assay metadata. Publishing a query rule
-affects subsequent configuration compilation; existing samples retain their pinned
-policy until an authorized configuration application selects another ASPC revision.
-A missing revision, missing artifact, hash mismatch or environment mismatch blocks
-query execution. The authoring preview and sample comparison tools resolve current
-source policies explicitly without changing the sample's configuration.
+Publishing or retiring a policy changes subsequent matching queries without an
+ASPC edit, configuration application or service restart. Draft and approved but
+unpublished versions do not change execution. Refresh an open analysis to request
+the new results; publication does not rewrite saved sample filter values.
+
+Report generation resolves each query scope once and records its effective policy
+and exact source lineage in the saved report receipt. A changed publication between
+report preview and save requires a fresh preview. Existing saved reports remain
+unchanged. Historical ASPC policy captures are ignored by runtime execution.
 
 Intent scopes select query policies, not confirmed variant origin. Published
 germline exceptions are also evaluated within somatic SNV retrieval for the same

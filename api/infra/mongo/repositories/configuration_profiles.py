@@ -6,10 +6,10 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 
-from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.common.errors import api_error
 
 
 class ConfigurationProfileRepository(BaseRepository):

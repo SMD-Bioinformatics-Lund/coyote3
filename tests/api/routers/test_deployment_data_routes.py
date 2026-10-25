@@ -7,11 +7,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
-from api.app.deps.services import get_deployment_data_service
-from api.application.provisioning.deployment_data import DeploymentDataService
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.admin.deployment_data import router
+from api.app.deps.application import get_installation
+from api.interfaces.http.v1.admin.deployment_data import router
 from api.security import access
+from api.services.installation import Installation
+from api.services.provisioning.deployment_data import DeploymentDataService
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api.mock_collections import api_user
 
 
@@ -34,7 +36,9 @@ def boundary(monkeypatch):
     service = DeploymentDataService(repository, loader)
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[get_deployment_data_service] = lambda: service
+    app.dependency_overrides[get_installation] = lambda: sdk_fixtures.authorized_operations(
+        Installation, service, user
+    )
 
     @app.exception_handler(AppError)
     async def app_error(request, error):

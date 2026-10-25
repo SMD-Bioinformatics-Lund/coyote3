@@ -14,12 +14,12 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
-from api.config.constants import normalize_clinical_identifier
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit, update_audited
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 from api.infra.mongo.transactions import run_transaction
+from coyote3.config.constants import normalize_clinical_identifier
+from coyote3.contracts.operations import OperationResult
 
 
 # -------------------------------------------------------------------------

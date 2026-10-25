@@ -7,8 +7,8 @@ import time
 from collections import Counter
 from typing import Any
 
-from api.config.constants import GENOME_BUILD_TO_ASSEMBLY
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.config.constants import GENOME_BUILD_TO_ASSEMBLY
 
 _LOCUS_PATTERN = re.compile(r"(?:chr)?([0-9XYM]+)[:_]([0-9]+)", re.IGNORECASE)
 _RESULT_LIMIT = 50

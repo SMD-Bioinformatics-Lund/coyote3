@@ -15,7 +15,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from api.config import app_config  # noqa: E402
+from api.config import runtime_settings  # noqa: E402
 from api.infra.mongo.index_management import (  # noqa: E402
     build_index_plan,
     known_retired_indexes,
@@ -34,12 +34,12 @@ def _config() -> object:
     """
     env = os.getenv("ENV_NAME", "development").strip().lower()
     if env in {"test", "testing"}:
-        return app_config.TestConfig()
+        return runtime_settings.TestConfig()
     if env in {"stage", "staging"}:
-        return app_config.StageConfig()
+        return runtime_settings.StageConfig()
     if env in {"prod", "production"}:
-        return app_config.ProductionConfig()
-    return app_config.DevelopmentConfig()
+        return runtime_settings.ProductionConfig()
+    return runtime_settings.DevelopmentConfig()
 
 
 def _adapter(scope: str = "application") -> MongoAdapter:

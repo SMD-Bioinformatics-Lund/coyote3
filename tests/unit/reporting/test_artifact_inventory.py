@@ -1,6 +1,6 @@
 """Report reconciliation is read-only and distinguishes unreferenced from missing files."""
 
-from api.application.reporting.artifact_inventory import inspect_report_artifacts
+from coyote3.application.reporting.artifact_inventory import inspect_report_artifacts
 
 
 def test_inventory_preserves_every_artifact_and_reports_missing_references(tmp_path):

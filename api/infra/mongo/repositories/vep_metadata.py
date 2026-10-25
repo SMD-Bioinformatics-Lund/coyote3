@@ -13,8 +13,8 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
-from api.config.database_versions import vep_metadata_release
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.config.database_versions import vep_metadata_release
 
 
 # -------------------------------------------------------------------------

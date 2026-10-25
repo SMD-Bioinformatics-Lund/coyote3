@@ -1,0 +1,241 @@
+"""Structural and semantic validation for canonical clinical rule sets."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Any
+
+from coyote3.application.reporting.clinical_rules.registry import validate_fact_path
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from coyote3.contracts.schemas.clinical_rules import (
+    ClinicalCondition,
+    ClinicalFactOutput,
+    ClinicalListOutput,
+    ClinicalMessageOutput,
+    ClinicalNumberOutput,
+    ClinicalRuleAll,
+    ClinicalRuleAny,
+    ClinicalRuleCollectionMatch,
+    ClinicalRuleNot,
+    ClinicalRulePredicate,
+    ClinicalRuleSetDoc,
+    ClinicalRuleValidationResult,
+)
+
+REPORT_METADATA_SECTIONS = frozenset({"report_header_suffix", "clinical_question"})
+MAX_CONDITION_DEPTH = 6
+
+
+def canonical_content(document: ClinicalRuleSetDoc) -> dict[str, Any]:
+    """Return only immutable clinical content used for provenance hashing."""
+    return document.model_dump(
+        mode="json",
+        include={
+            "rule_set_id",
+            "schema_version",
+            "content_version",
+            "scope",
+            "name",
+            "analysis_declarations",
+            "terminology",
+            "blocks",
+            "test_cases",
+            "references",
+        },
+        exclude_none=True,
+    )
+
+
+def content_hash(document: ClinicalRuleSetDoc) -> str:
+    """Hash canonical clinical content with stable JSON key ordering.
+
+    Args:
+        document: Rule set whose canonical fields exclude lifecycle metadata.
+
+    Returns:
+        Hexadecimal SHA-256 digest of compact UTF-8 JSON.
+    """
+    payload = json.dumps(
+        canonical_content(document), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_condition(
+    condition: ClinicalCondition,
+    *,
+    scope: str,
+    depth: int,
+    errors: list[str],
+) -> None:
+    """Collect invalid fact, operator, scope, and nesting errors recursively.
+
+    Args:
+        condition: Condition subtree to inspect.
+        scope: Evaluation mode used for fact availability checks.
+        depth: Current nesting level; callers start root conditions at one.
+        errors: Mutable list to which validation messages are appended.
+    """
+    if depth > MAX_CONDITION_DEPTH:
+        errors.append(f"Condition nesting exceeds {MAX_CONDITION_DEPTH} levels")
+        return
+    if isinstance(condition, ClinicalRulePredicate):
+        try:
+            fact = validate_fact_path(condition.fact, scope=scope)
+            if condition.operator.value not in fact.operators:
+                errors.append(
+                    f"Operator '{condition.operator.value}' is invalid for fact '{condition.fact}'"
+                )
+        except ValueError as exc:
+            errors.append(str(exc))
+        return
+    if isinstance(condition, (ClinicalRuleAll, ClinicalRuleAny)):
+        for child in condition.children:
+            _validate_condition(child, scope=scope, depth=depth + 1, errors=errors)
+        return
+    if isinstance(condition, ClinicalRuleNot):
+        _validate_condition(condition.child, scope=scope, depth=depth + 1, errors=errors)
+        return
+    if isinstance(condition, ClinicalRuleCollectionMatch):
+        _validate_condition(condition.where, scope="each_item", depth=depth + 1, errors=errors)
+        return
+    errors.append(f"Unsupported clinical condition node: {type(condition).__name__}")
+
+
+def validate_rule_set(
+    document: ClinicalRuleSetDoc, *, require_tests: bool = False
+) -> ClinicalRuleValidationResult:
+    """Validate rule semantics and execute embedded cases when structure permits.
+
+    Args:
+        document: Parsed rule set with blocks, declarations, and optional test cases.
+        require_tests: Reject missing embedded cases at submission and publication.
+
+    Returns:
+        Validity, errors, and warnings. Embedded cases compare ordered matched
+        rule IDs and exact section text; evaluation failures become errors.
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+    supported = set(CLINICAL_VOCABULARY.analysis_file_keys_by_omics[document.scope.analyte])
+    declared = set(document.analysis_declarations) | {
+        block.analysis for block in document.blocks if block.analysis
+    }
+    for analysis in sorted(declared - supported):
+        errors.append(f"Analysis '{analysis}' is not supported for {document.scope.analyte}")
+    if {"BIOMARKER", "LOH"} & set(document.analysis_declarations) or any(
+        block.analysis in {"BIOMARKER", "LOH"} for block in document.blocks
+    ):
+        errors.append("Declare HRD, MSI, or TMB individually; BIOMARKER and LOH are not supported")
+    if not document.blocks:
+        errors.append("At least one rule block is required")
+    enabled_analyses = {
+        block.analysis
+        for block in document.blocks
+        if block.analysis and any(r.enabled for r in block.rules)
+    }
+    for analysis in sorted(enabled_analyses):
+        declaration = document.analysis_declarations.get(str(analysis))
+        if declaration is None or declaration.narrative != "enabled":
+            errors.append(f"Analysis '{analysis}' has rules but is not declared as enabled")
+    for analysis, declaration in document.analysis_declarations.items():
+        if declaration.narrative == "enabled" and analysis not in enabled_analyses:
+            warnings.append(f"Analysis '{analysis}' is enabled but has no enabled rule block")
+
+    section_headings: dict[str, bool] = {}
+    conflict_scopes: dict[str, tuple[str, str | None]] = {}
+    for block in document.blocks:
+        if block.conflict_group:
+            scope = (block.evaluation.mode, block.evaluation.collection)
+            previous_scope = conflict_scopes.setdefault(block.conflict_group, scope)
+            if scope != previous_scope:
+                errors.append(
+                    f"Conflict group '{block.conflict_group}' must use the same evaluation "
+                    "mode and collection in every block"
+                )
+            if block.match_strategy not in {"exactly_one", "at_most_one"}:
+                errors.append(
+                    f"Block '{block.block_id}' in a conflict group must use exactly_one "
+                    "or at_most_one"
+                )
+        enabled_rules = [rule for rule in block.rules if rule.enabled]
+        if block.match_strategy in {"first_match", "all_matches"} and len(enabled_rules) > 1:
+            warnings.append(
+                f"Block '{block.block_id}' allows overlapping conditions: "
+                f"{block.match_strategy}. Use a strict match strategy for alternative conclusions."
+            )
+        if block.match_strategy in {"exactly_one", "at_most_one"}:
+            for index, rule in enumerate(enabled_rules):
+                for other in enabled_rules[index + 1 :]:
+                    if (
+                        rule.condition is None
+                        or other.condition is None
+                        or rule.condition == other.condition
+                    ):
+                        warnings.append(
+                            f"Block '{block.block_id}' has potentially overlapping rules "
+                            f"'{rule.rule_id}' and '{other.rule_id}'; test their shared cases."
+                        )
+        if block.section in REPORT_METADATA_SECTIONS:
+            if block.evaluation.mode != "once" or block.analysis or block.show_heading:
+                errors.append(
+                    f"Section '{block.section}' must evaluate once for the whole report "
+                    "without a section heading"
+                )
+        previous = section_headings.setdefault(block.section, block.show_heading)
+        if previous != block.show_heading:
+            errors.append(f"Section '{block.section}' mixes heading visibility")
+        if not block.rules:
+            errors.append(f"Block '{block.block_id}' must contain at least one rule")
+        for rule in block.rules:
+            if rule.condition is not None:
+                _validate_condition(
+                    rule.condition,
+                    scope=block.evaluation.mode,
+                    depth=1,
+                    errors=errors,
+                )
+            for node in rule.output:
+                path = None
+                if isinstance(node, (ClinicalFactOutput, ClinicalListOutput, ClinicalNumberOutput)):
+                    path = node.path
+                elif isinstance(node, ClinicalMessageOutput):
+                    path = node.count_path
+                if path:
+                    try:
+                        validate_fact_path(path, scope=block.evaluation.mode)
+                    except ValueError as exc:
+                        errors.append(str(exc))
+    if not document.test_cases:
+        target = errors if require_tests else warnings
+        target.append("No embedded clinical rule test cases are configured")
+    elif not errors:
+        from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+        from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
+
+        candidate = document.model_copy(update={"content_hash": content_hash(document)})
+        analyses = {
+            analysis
+            for analysis, declaration in document.analysis_declarations.items()
+            if declaration.narrative == "enabled"
+        }
+        for test_case in document.test_cases:
+            try:
+                evaluation = ClinicalRuleEvaluator().evaluate(
+                    PreparedReportContext.model_validate(test_case.facts),
+                    candidate,
+                    reporting_analyses=analyses,
+                )
+            except (TypeError, ValueError) as exc:
+                errors.append(f"Test '{test_case.test_id}' could not be evaluated: {exc}")
+                continue
+            matched = [entry.rule_id for entry in evaluation.trace if entry.matched]
+            if matched != test_case.expected_rule_ids:
+                errors.append(
+                    f"Test '{test_case.test_id}' matched {matched!r}; "
+                    f"expected {test_case.expected_rule_ids!r}"
+                )
+            if evaluation.sections != test_case.expected_sections:
+                errors.append(f"Test '{test_case.test_id}' produced unexpected report text")
+    return ClinicalRuleValidationResult(valid=not errors, errors=errors, warnings=warnings)

@@ -9,13 +9,13 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
-from api.domain.core.annotation_identity import (
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+from coyote3.domain.annotation_identity import (
     NOMENCLATURE_FIELDS,
     NOMENCLATURE_IDENTITY_FIELD,
     NOMENCLATURE_REQUIRED_FIELDS,
 )
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 # External references and identity collections are deliberately absent.
 CLINICAL_COLLECTIONS = (
@@ -212,7 +212,10 @@ def convert_annotation(source: dict[str, Any]) -> dict[str, Any]:
     """
     document = deepcopy(source)
     nomenclature = document.get("nomenclature")
-    rename_field(document, "subpanel", "diagnosis")
+    rename_field(document, "subpanel", "diagnosis_id")
+    rename_field(document, "assay", "asp_group")
+    document["asp_id"] = None
+    document["namespace"] = "clinical"
     if nomenclature not in NOMENCLATURE_FIELDS:
         raise ValueError("Unsupported annotation nomenclature")
     if "time_created" not in document:

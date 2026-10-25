@@ -7,9 +7,9 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.provisioning.deployment_data import DeploymentDataService
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories import deployment_data
+from api.services.provisioning.deployment_data import DeploymentDataService
+from coyote3.domain.exceptions import AppError
 from scripts.bootstrap import bootstrap_database
 from scripts.bootstrap.bootstrap_database import (
     DEFAULT_RBAC_DIR,

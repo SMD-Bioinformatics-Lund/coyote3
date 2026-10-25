@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 from scripts.migration_common.offline import digest
 
 CATALOG_COLLECTIONS = (

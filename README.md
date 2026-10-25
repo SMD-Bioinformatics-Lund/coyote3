@@ -17,7 +17,7 @@ workflows. Developed by the Section for Molecular Diagnostics (SMD), Lund.
 [![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
 [![Bootstrap and Ingest](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml)
 ![Coyote3 4.0.0](https://img.shields.io/badge/Coyote3-4.0.0-4F46A5)
-![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-2E7D32)
+![License: COYOTE3 Free-Use](https://img.shields.io/badge/License-COYOTE3_Free--Use-2E7D32)
 
 ### Core Stack
 
@@ -135,7 +135,8 @@ Coyote3 separates clinical review, configuration and deployment responsibilities
 | Component | Responsibility |
 | --- | --- |
 | `frontend/` | React interface, route workflows, shared tables, and API query state. |
-| `api/` | FastAPI routes, application services, domain rules, contracts, authorization, and repositories. |
+| `src/coyote3/` | Core application library: operations, authorization, domain rules, contracts, configuration and reporting. |
+| `api/` | Standalone FastAPI application, authentication, runtime adapters and repositories. |
 | Celery worker and Beat | Sample ingestion and scheduled maintenance. |
 | MongoDB | Clinical findings, configuration, identity, audit, and operational records. |
 | Redis | Task delivery, task results, rate limits and caches; API sessions are stored in MongoDB. |
@@ -157,8 +158,11 @@ For the complete component and request flow, see
 ## Repository Layout
 
 ```text
-api/                         FastAPI application and backend contracts
-api/config/center/           Center-configurable TOML and YAML files
+src/coyote3/                 Core application library and packaged report templates
+clients/python/              Independent coyote3-client HTTP distribution
+config/examples/center/       Example center files; deploy an external reviewed copy
+api/                         FastAPI application and runtime adapters, bundled with core
+api/interfaces/http/v1/      Version-one HTTP handlers
 frontend/                    React application and frontend tests
 deploy/                      Compose, proxy, and container configuration
 scripts/                     Bootstrap, quality, validation, and operations tools
@@ -236,7 +240,7 @@ Coyote3 separates configuration by ownership:
 
 - environment files hold deployment identity, secrets, public routing, service
   endpoints, and host mount paths;
-- `api/config/center/` contains center-configurable clinical vocabulary,
+- `config/examples/center/` contains center-configurable clinical vocabulary,
   collection names, contact details, assay catalog text, filter metadata, and
   query policy;
 - ASP, ASPC, and ISGL are versioned clinical configuration resources, while
@@ -289,6 +293,10 @@ Start with [deployment](docs/deployment/README.md),
 [clinical use](docs/user-guide/README.md),
 [administration](docs/administration/README.md), or
 [development](docs/development/README.md).
+
+Python integrations and host development use the [SDK guides](docs/sdk/README.md).
+The [version policy](docs/sdk/compatibility.md) distinguishes application releases,
+SDK packages, HTTP compatibility and governed configuration revisions.
 
 | Reader or task | Documentation |
 | --- | --- |
@@ -357,5 +365,8 @@ Coyote3 is developed and maintained by the bioinformatics team at the
 **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with
 clinical users and platform maintainers.
 
-Licensed under the [Apache License 2.0](LICENSE.txt). Clinical-use and
-deployment responsibilities are described in [NOTICE.txt](NOTICE.txt).
+The application uses the [COYOTE3 Free-Use Source-Available License 1.0](LICENSE.txt).
+Free use includes institutional and commercial use; protected code modifications
+and redistribution require written authorization as specified in the license.
+The independent Python HTTP client retains Apache 2.0. See [LICENSING.md](LICENSING.md)
+for module boundaries and [NOTICE.txt](NOTICE.txt) for ownership and clinical-use notices.

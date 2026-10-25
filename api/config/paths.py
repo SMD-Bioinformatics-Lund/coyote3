@@ -7,9 +7,19 @@ import re
 from pathlib import Path
 
 API_CONFIG_DIR = Path(__file__).resolve().parent
-REPO_ROOT = API_CONFIG_DIR.parents[1]
-EMAIL_LOGO_PATH = REPO_ROOT / "api" / "app" / "templates" / "logo.png"
-BUNDLED_CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
+REPO_ROOT = Path(os.getenv("COYOTE3_RUNTIME_ROOT") or Path.cwd()).resolve()
+EMAIL_LOGO_PATH = API_CONFIG_DIR / "assets" / "logo.png"
+_SOURCE_CENTER_CONFIG_DIR = REPO_ROOT / "config" / "examples" / "center"
+BUNDLED_CENTER_CONFIG_DIR = (
+    _SOURCE_CENTER_CONFIG_DIR
+    if _SOURCE_CENTER_CONFIG_DIR.is_dir()
+    else API_CONFIG_DIR / "examples" / "center"
+)
+DEMO_WORKFLOW_BUNDLE_PATH = (
+    REPO_ROOT / "demo_data" / "clinical_workflows"
+    if (REPO_ROOT / "demo_data" / "clinical_workflows").is_dir()
+    else API_CONFIG_DIR.parent / "bootstrap" / "demo_data" / "clinical_workflows"
+)
 CENTER_CONFIG_DIR = (
     Path(os.getenv("COYOTE3_CENTER_CONFIG_DIR") or BUNDLED_CENTER_CONFIG_DIR)
     .expanduser()
@@ -68,6 +78,5 @@ def initialize_storage_directories() -> None:
 
 CONTACT_CONFIG_PATH = CENTER_CONFIG_DIR / "contact.toml"
 CLINICAL_VOCABULARY_PATH = CENTER_CONFIG_DIR / "clinical_vocabulary.toml"
-CLINICAL_QUERY_SEED_PATH = API_CONFIG_DIR / "clinical_query_seed.toml"
 COLLECTIONS_CONFIG_PATH = API_CONFIG_DIR / "collections.toml"
 FILTER_FLAG_METADATA_PATH = CENTER_CONFIG_DIR / "filter_flag_metadata.yaml"

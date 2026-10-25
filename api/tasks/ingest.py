@@ -14,6 +14,7 @@ from filelock import FileLock, Timeout
 from pydantic import ValidationError
 from pymongo.errors import ConnectionFailure, PyMongoError
 
+from api.app.application_factory import ingest_job_executor
 from api.app.container import util
 from api.app.deps.repositories import get_ingest_jobs_repository
 from api.app.deps.services import (
@@ -22,15 +23,16 @@ from api.app.deps.services import (
     get_notification_service,
 )
 from api.app.lifecycle import ensure_runtime_initialized
-from api.application.ingest.jobs import sample_entry_source
 from api.celery_app import celery_app
-from api.config import get_runtime_mode_flags
 from api.config.paths import INGEST_WATCH_DIR
 from api.config.runtime_settings import DefaultConfig
-from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
-from api.domain.core.exceptions import AppError
-from api.infra.observability.operations import timed_operation
+from api.config.security import get_runtime_mode_flags
+from api.infra.observability.prometheus_metrics import observe_operation
 from api.tasks.controls import disabled_result, task_family_enabled
+from coyote3.application.common.observability import timed_operation
+from coyote3.application.operations.runtime import AccessEvent
+from coyote3.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
+from coyote3.domain.exceptions import AppError
 
 logger = logging.getLogger(__name__)
 WATCH_INGEST_DIRECTORY = INGEST_WATCH_DIR
@@ -113,6 +115,17 @@ def _retryable_ingest_error(exc):
             exc.has_error_label("TransientTransactionError")
             or exc.has_error_label("UnknownTransactionCommitResult")
         )
+    )
+
+
+def _record_worker_access(event: AccessEvent) -> None:
+    """Record the fixed worker's execution grant without logging stored job payloads."""
+    _record_ingest_audit(
+        "ingest.worker.access",
+        "Ingest worker authorized" if event.allowed else "Ingest worker denied",
+        actor=event.actor,
+        outcome="success" if event.allowed else "denied",
+        metadata={"operation": event.operation, "correlation_id": event.correlation_id},
     )
 
 
@@ -228,7 +241,9 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
         before = None
         try:
             task_context = {"task_id": self.request.id, "manifest": str(manifest_path)}
-            with timed_operation("ingest.manifest_parse", **task_context):
+            with timed_operation(
+                "ingest.manifest_parse", observer=observe_operation, **task_context
+            ):
                 before = manifest_path.stat()
                 manifest_bytes = manifest_path.read_bytes()
                 after = manifest_path.stat()
@@ -241,7 +256,9 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
                     continue
                 payload = service.parse_yaml_payload(manifest_bytes.decode("utf-8"))
                 payload = _resolve_relative_sample_paths(payload, manifest_path)
-            with timed_operation("ingest.sample_bundle", **task_context):
+            with timed_operation(
+                "ingest.sample_bundle", observer=observe_operation, **task_context
+            ):
                 identity = sha256(
                     f"{manifest_path.resolve()}:{after.st_mtime_ns}:".encode() + manifest_bytes
                 ).hexdigest()
@@ -341,7 +358,9 @@ def ingest_watch_directory_once(self) -> dict[str, Any]:
     lock = FileLock(WATCH_INGEST_LOCK_PATH)
     try:
         with lock.acquire(timeout=0):
-            with timed_operation("ingest.watch_scan", task_id=self.request.id):
+            with timed_operation(
+                "ingest.watch_scan", observer=observe_operation, task_id=self.request.id
+            ):
                 return _run_watch_directory_once(self)
     except Timeout:
         logger.info("celery_ingest_watch_skipped reason=already_running")
@@ -385,7 +404,7 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
     if job is None:
         return {"status": "busy", "job_id": job_id}
     try:
-        with timed_operation("ingest.sample_bundle", task_id=job_id):
+        with timed_operation("ingest.sample_bundle", observer=observe_operation, task_id=job_id):
             service = get_internal_ingest_service()
 
             def completion(result, session):
@@ -408,23 +427,9 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                         actor=job.get("submitted_by"),
                         metadata={"task_id": job_id},
                     )
-                result = service.ingest_sample_bundle(
-                    source_payload,
-                    allow_update=job["update_existing"],
-                    increment=job["increment"],
-                    ingested_by=job["submitted_by"],
-                    ingest_source=sample_entry_source(job),
-                    record_completion=completion,
-                )
-            else:
-                operation = {
-                    "insert_document": service.insert_collection_document,
-                    "insert_documents": service.insert_collection_documents,
-                    "upsert_document": service.upsert_collection_document,
-                }[job["kind"]]
-                collection_payload = dict(job["source_payload"])
-                collection_payload["ingested_by"] = job["submitted_by"]
-                result = operation(**collection_payload, record_completion=completion)
+            result = ingest_job_executor(service, audit_access=_record_worker_access).execute(
+                job, record_completion=completion
+            )
     except Exception as exc:
         retryable = _retryable_ingest_error(exc)
         error = _ingest_failure_message(exc, retryable=retryable)

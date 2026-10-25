@@ -35,7 +35,7 @@ class AnnotationStatisticsMixin:
             {
                 "$group": {
                     "_id": "$variant",
-                    "assay": {"$first": "$assay"},
+                    "assay": {"$first": "$asp_group"},
                     "nomenclature": {"$first": "$nomenclature"},
                     "class": {"$first": "$class"},
                 }
@@ -153,7 +153,7 @@ class AnnotationStatisticsMixin:
 
         # by_assay: dedupe within assay (same variant can be re-tiered in same assay)
         per_assay_variant_key = {
-            "assay": "$assay",
+            "assay": "$asp_group",
             "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
@@ -203,7 +203,7 @@ class AnnotationStatisticsMixin:
         # -------------------------
         by_assay_pipeline = [
             {"$match": query},
-            {"$sort": {"assay": 1, "variant": 1, "gene": 1, "time_created": -1}},
+            {"$sort": {"asp_group": 1, "variant": 1, "gene": 1, "time_created": -1}},
             {"$group": {"_id": per_assay_variant_key, "class": {"$first": "$class"}}},
             {"$group": {"_id": {"assay": "$_id.assay", "class": "$class"}, "count": {"$sum": 1}}},
             # fold per assay into a single doc per assay
@@ -265,8 +265,9 @@ class AnnotationStatisticsMixin:
         """
         match = {"class": {"$in": [1, 2, 3, 4]}, "namespace": "clinical"}
         identity = {
-            "assay": "$resource_context.assay_id",
-            "diagnosis": "$diagnosis",
+            "group": "$asp_group",
+            "assay": "$asp_id",
+            "diagnosis": "$diagnosis_id",
             "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
@@ -299,7 +300,7 @@ class AnnotationStatisticsMixin:
         by_assay_pipeline = [
             {"$match": match},
             {"$sort": {"time_created": -1, "_id": -1}},
-            {"$group": {"_id": {"assay": "$assay", **identity}, "class": {"$first": "$class"}}},
+            {"$group": {"_id": {"assay": "$asp_group", **identity}, "class": {"$first": "$class"}}},
             {"$group": {"_id": "$_id.assay", **tier_fields()}},
             {
                 "$project": {
@@ -383,8 +384,9 @@ class AnnotationStatisticsMixin:
                 "$group": {
                     "_id": {
                         "type": "$biological_type",
-                        "assay": "$resource_context.assay_id",
-                        "diagnosis": "$diagnosis",
+                        "group": "$asp_group",
+                        "assay": "$asp_id",
+                        "diagnosis": "$diagnosis_id",
                         "identity": "$biological_identity",
                         "gene": "$gene",
                         "gene1": "$gene1",

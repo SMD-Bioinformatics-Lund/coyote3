@@ -14,11 +14,11 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.constants import analysis_file_keys  # noqa: E402
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.dna import BiomarkersDoc  # noqa: E402
-from api.domain.common.biomarkers import BIOMARKER_ANALYSES, biomarker_counts  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.config.constants import analysis_file_keys  # noqa: E402
+from coyote3.contracts.schemas.dna import BiomarkersDoc  # noqa: E402
+from coyote3.domain.common.biomarkers import BIOMARKER_ANALYSES, biomarker_counts  # noqa: E402
 
 
 def transform_configuration(document: dict[str, Any], analyses: list[str]) -> dict[str, Any]:

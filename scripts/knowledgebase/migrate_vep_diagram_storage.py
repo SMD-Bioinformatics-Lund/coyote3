@@ -13,7 +13,7 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from scripts.knowledgebase.update_vep_diagrams import install  # noqa: E402
 from scripts.knowledgebase.update_vep_metadata import SEED, diagram_document  # noqa: E402
 from scripts.knowledgebase.vep_diagram_storage import seed_diagram, split_diagram  # noqa: E402

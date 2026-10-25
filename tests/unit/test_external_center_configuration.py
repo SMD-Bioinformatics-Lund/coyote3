@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from api.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
-from api.config.loaders.filter_flags import load_filter_flag_metadata
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
+from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 from scripts.deployment.prepare_center_config import FILES, prepare
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,19 +19,20 @@ ROOT = Path(__file__).resolve().parents[2]
 @pytest.mark.parametrize("key", ["required_aspc_fields", "unrecognized_setting"])
 def test_unused_vocabulary_settings_are_rejected(tmp_path, key):
     """Inactive or misspelled settings cannot appear to configure runtime behavior."""
-    source = (ROOT / "api/config/center/clinical_vocabulary.toml").read_text()
+    source = (ROOT / "config/examples/center/clinical_vocabulary.toml").read_text()
     path = tmp_path / "vocabulary.toml"
     path.write_text(source.replace("[snv]", f'[snv]\n{key} = ["example"]'))
     with pytest.raises(RuntimeError, match="Unknown clinical vocabulary key"):
         load_clinical_vocabulary(path)
 
 
-def test_configuration_release_is_independent_and_never_overwritten(tmp_path):
+def test_configuration_release_is_independent_and_never_overwritten(tmp_path, monkeypatch):
     """A validated copy survives source edits and cannot be overwritten by an upgrade."""
+    monkeypatch.setenv("AUTHENTICATION_PROVIDERS", "local")
     source = tmp_path / "source"
     source.mkdir()
     for name in FILES:
-        shutil.copyfile(ROOT / "api/config/center" / name, source / name)
+        shutil.copyfile(ROOT / "config/examples/center" / name, source / name)
     destination = tmp_path / "release"
     prepare(str(source), destination, None, ".")
     assert {p.name for p in destination.iterdir()} == {*FILES, "manifest.json"}
@@ -48,7 +49,7 @@ def test_configuration_release_is_independent_and_never_overwritten(tmp_path):
 def test_external_directory_never_overrides_application_collection_mapping(tmp_path):
     """All center assets resolve externally while physical collections remain software-owned."""
     for name in FILES:
-        shutil.copyfile(ROOT / "api/config/center" / name, tmp_path / name)
+        shutil.copyfile(ROOT / "config/examples/center" / name, tmp_path / name)
     (tmp_path / "collections.toml").write_text("malformed = [")
     (tmp_path / "clinical_capabilities.toml").write_text("malformed = [")
     (tmp_path / "clinical_query_defaults.toml").write_text("malformed = [")
@@ -60,13 +61,13 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
             "-c",
             (
                 "from api.config.paths import CENTER_CONFIG_DIR,COLLECTIONS_CONFIG_PATH; "
-                "from api.config.loaders.collections import load_collection_mapping; "
-                "from api.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
-                "from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
-                "from api.config.clinical_query_policy import load_clinical_query_policy; "
-                "from api.config.paths import CLINICAL_QUERY_SEED_PATH; "
+                "from api.config.collections import load_collection_mapping; "
+                "from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
+                "from coyote3.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
+                "from coyote3.config.clinical_query_policy import load_clinical_query_policy; "
+                "from api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH; "
                 "assert CLINICAL_QUERY_SEED_PATH.parent != CENTER_CONFIG_DIR; "
-                "assert load_clinical_query_policy().snv.exceptions; "
+                "assert load_clinical_query_policy(CLINICAL_QUERY_SEED_PATH).snv.exceptions; "
                 "assert 'wes' in CLINICAL_VOCABULARY.assay_families; "
                 "assert CLINICAL_QUERY_POLICY.snv.default_somatic_policy == 'paired'; "
                 "assert load_collection_mapping()['primary']['samples_collection']=='samples'; "
@@ -119,7 +120,7 @@ def test_caller_flags_validate_registry_and_keep_analysis_scopes_separate(tmp_pa
 
 def test_dna_caller_registries_are_optional_and_do_not_enable_fusion_callers(tmp_path):
     """Merged DNA provenance needs no registry; fusion retains implemented caller choices."""
-    source = (ROOT / "api/config/center/clinical_vocabulary.toml").read_text()
+    source = (ROOT / "config/examples/center/clinical_vocabulary.toml").read_text()
     assert CLINICAL_VOCABULARY.snv_callers == ()
     assert CLINICAL_VOCABULARY.cnv_callers == ()
     assert CLINICAL_VOCABULARY.translocation_callers == ()
@@ -149,7 +150,7 @@ def test_git_source_extracts_only_configuration_at_the_requested_commit(tmp_path
         """Return synthetic repository files for exact commit-qualified paths."""
         calls.append(command)
         assert command[-1].startswith("a" * 40 + ":center/")
-        return (ROOT / "api/config/center" / command[-1].rsplit("/", 1)[1]).read_bytes()
+        return (ROOT / "config/examples/center" / command[-1].rsplit("/", 1)[1]).read_bytes()
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "check_output", fake_output)

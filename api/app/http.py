@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from api.app.container import store
-from api.application.common.assay_config import (
+from api.contracts.http import (
+    ApiListPayload,
+    ApiMutationPayload,
+    ApiPageMeta,
+    ApiSuccessPayload,
+)
+from coyote3.application.common.assay_config import (
     get_formatted_assay_config as resolve_formatted_assay_config,
 )
-from api.contracts.http import ApiListPayload, ApiMutationPayload, ApiPageMeta, ApiSuccessPayload
-from api.domain.common.errors import api_error
+from coyote3.domain.common.errors import api_error
 
 
 def api_success(payload, *, meta: dict | None = None) -> dict:

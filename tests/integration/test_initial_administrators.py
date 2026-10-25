@@ -32,7 +32,7 @@ def initialize(database, *, duplicate_email=False):
     seed = {
         name: [
             json.loads(line)
-            for line in Path(f"api/config/bootstrap/rbac/{name}.seed.ndjson")
+            for line in Path(f"api/bootstrap/catalogs/rbac/{name}.seed.ndjson")
             .read_text()
             .splitlines()
         ]

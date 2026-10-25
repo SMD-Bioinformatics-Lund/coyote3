@@ -105,10 +105,18 @@ def fake_installation(tmp_path):
     deployment = tmp_path / "scripts/deployment"
     deployment.mkdir(parents=True)
     shutil.copy(ROOT / "scripts/deployment/install_center.sh", deployment)
-    (tmp_path / "api").mkdir()
+    (tmp_path / "api").mkdir(parents=True)
     (tmp_path / "api/version.py").write_text('print("synthetic")\n')
     (deployment / "validate_env_secrets.sh").write_text("#!/bin/bash\nexit 0\n")
     shutil.copy(ROOT / "scripts/deployment/compose-with-version.sh", deployment)
+    release_scripts = tmp_path / "scripts/release"
+    release_scripts.mkdir()
+    (release_scripts / "verify_sdk_artifact.py").write_text(
+        "import os, sys\n"
+        "with open(os.environ['INSTALL_TEST_LOG'], 'a') as log:\n"
+        "    log.write('sdk-artifact-preflight\\n')\n"
+        "sys.exit(int(os.environ.get('INSTALL_TEST_ARTIFACT_FAILURE', '0')))\n"
+    )
     (deployment / "prepare_host_directories.py").write_text("import sys\nsys.stdin.read()\n")
     docker_stub = """#!/bin/bash
 if [[ "$*" == "compose version" ]]; then exit 0; fi
@@ -124,6 +132,7 @@ if [[ "${COYOTE3_IMAGE_TAG:-}" != "$INSTALL_TEST_EXPECTED_TAG" ]]; then
 fi
 printf '%s\\n' "$*" >> "$INSTALL_TEST_LOG"
 printf 'tag=%s\\n' "$COYOTE3_IMAGE_TAG" >> "$INSTALL_TEST_LOG"
+printf 'commit=%s\\n' "$GIT_COMMIT" >> "$INSTALL_TEST_LOG"
 if [[ "$*" == *"config --format json"* ]]; then cat "$INSTALL_TEST_CONFIG"; fi
 if [[ "$*" == *"installation_checks state"* ]]; then
   if [[ "$INSTALL_TEST_STATE" == partial ]]; then echo "Partial installation"; exit 1; fi
@@ -171,6 +180,7 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
         "INSTALL_TEST_CONFIG": str(config),
         "INSTALL_TEST_LOG": str(log),
         "INSTALL_TEST_EXPECTED_TAG": "synthetic",
+        "GIT_COMMIT": "a" * 40,
     }
     for key in (
         "ENV_NAME",
@@ -199,6 +209,53 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
         "emergency@example.test",
     ]
     return command, env, log
+
+
+def test_missing_sdk_artifact_stops_before_installation_stages(fake_installation):
+    """An invalid build input cannot trigger storage, network or database operations."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        command,
+        env={**env, "INSTALL_TEST_ARTIFACT_FAILURE": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    calls = log.read_text()
+    assert calls.endswith("sdk-artifact-preflight\n")
+    assert "network inspect" not in calls
+    assert " build" not in calls
+    assert " run " not in calls
+    assert " up " not in calls
+
+
+def test_skip_build_does_not_require_local_sdk_artifact(fake_installation):
+    """An installation using existing images does not need wheel build inputs."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        [*command, "--skip-build", "--steps", "network"],
+        env={**env, "INSTALL_TEST_ARTIFACT_FAILURE": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "sdk-artifact-preflight" not in log.read_text()
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_installer_defaults_commit_without_overwriting_explicit_value(fake_installation, explicit):
+    """Source provenance is available to Compose in a fresh operator shell."""
+    command, env, log = fake_installation
+    binary = Path(env["PATH"].split(os.pathsep)[0]) / "git"
+    binary.write_text('#!/bin/bash\nprintf "%s\\n" "' + "b" * 40 + '"\n')
+    binary.chmod(0o700)
+    if not explicit:
+        env.pop("GIT_COMMIT")
+    result = subprocess.run(
+        [*command, "--steps", "network"], env=env, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    assert f"commit={('a' if explicit else 'b') * 40}\n" in log.read_text()
 
 
 @pytest.mark.parametrize("stage", [None, "network", "validate", "bootstrap", "indexes", "start"])

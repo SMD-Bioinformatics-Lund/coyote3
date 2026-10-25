@@ -19,13 +19,15 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator  # noqa: E402
-from api.application.reporting.clinical_rules.facts import PreparedReportContext  # noqa: E402
-from api.application.reporting.clinical_rules.validation import validate_rule_set  # noqa: E402
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import build_revision_snapshot  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.application.reporting.clinical_rules.evaluator import (
+    ClinicalRuleEvaluator,  # noqa: E402
+)
+from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext  # noqa: E402
+from coyote3.application.reporting.clinical_rules.validation import validate_rule_set  # noqa: E402
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
 
 MIGRATION_REASON = "Move report eligibility and metadata to governed configuration"
 

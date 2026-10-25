@@ -1,0 +1,28 @@
+[
+  {
+    "classifier_results": [
+      {
+        "class": "SYNTHETIC_CLASS",
+        "score": 0.98,
+        "true": 98,
+        "total": 100
+      }
+    ],
+    "classifier_version": "1.0.0",
+    "SAMPLE_ID": "1fa75a28b581f1e6a53cce3d",
+    "_id": "e639003f8fbad94677979a76"
+  },
+  {
+    "classifier_results": [
+      {
+        "class": "SYNTHETIC_CLASS",
+        "score": 0.98,
+        "true": 98,
+        "total": 100
+      }
+    ],
+    "classifier_version": "1.0.0",
+    "SAMPLE_ID": "5208ff7c3d173fcd722aac03",
+    "_id": "1efe136ed4ccd4fc2bfeaf1e"
+  }
+]

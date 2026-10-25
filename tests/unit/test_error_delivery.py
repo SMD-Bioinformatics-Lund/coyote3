@@ -10,14 +10,15 @@ from fastapi import HTTPException
 from pymongo.errors import AutoReconnect
 from starlette.requests import Request
 
-from api.application.admin.app_controls import effective_audit_retention_days
-from api.application.audit.service import AuditService
+from api.infra.mongo.repositories.app_controls import MongoAppControlsRepository
 from api.infra.mongo.repositories.audit import AuditRepository
 from api.infra.mongo.repositories.audit_outbox import audit_route
 from api.infra.observability.audit_spool import AuditSpool
 from api.infra.observability.logging import JsonFormatter, request_context_from_request
 from api.interfaces.http.errors import ERROR_GUIDANCE, error_response
-from api.interfaces.http.operations.auth import http_exception_handler
+from api.interfaces.http.v1.operations.auth import http_exception_handler
+from coyote3.application.admin.app_controls import effective_audit_retention_days
+from coyote3.application.audit.service import AuditService
 
 
 def request(headers=()):
@@ -151,11 +152,16 @@ def test_dual_storage_failure_is_not_silently_ignored(tmp_path, monkeypatch):
 def test_audit_retention_lookup_does_not_block_outage_spooling():
     collection = Mock()
     collection.find_one.side_effect = AutoReconnect("synthetic outage")
-    from api.config.contracts.application import OPERATIONAL_COLLECTIONS
+    from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 
     assert (
         effective_audit_retention_days(
-            {OPERATIONAL_COLLECTIONS.app_controls: collection}, {"AUDIT_RETENTION_DAYS": 120}
+            MongoAppControlsRepository(
+                {OPERATIONAL_COLLECTIONS.app_controls: collection},
+                identity_db={"audit_events": collection},
+                config={},
+            ),
+            {"AUDIT_RETENTION_DAYS": 120},
         )
         == 120
     )

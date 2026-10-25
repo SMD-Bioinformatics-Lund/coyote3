@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from api.application.interpretation import report_summary
+from coyote3.application.interpretation import report_summary
 
 
 def test_global_structural_comment_shapes(monkeypatch) -> None:

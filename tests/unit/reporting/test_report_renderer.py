@@ -6,8 +6,8 @@ from datetime import date
 
 import pytest
 
-from api.application.reporting.report_renderer import render_report_html
-from api.domain.core.exceptions import AppError
+from coyote3.application.reporting.report_renderer import render_report_html
+from coyote3.domain.exceptions import AppError
 
 
 def test_renderer_rejects_a_changed_approved_template():

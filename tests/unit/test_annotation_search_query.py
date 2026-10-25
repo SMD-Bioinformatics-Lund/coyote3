@@ -79,7 +79,7 @@ def test_variant_search_uses_only_canonical_annotation_identity_fields():
     assert {"$or": [{"text": {"$exists": False}}, {"text": None}, {"text": ""}]} in _and_parts(
         query
     )
-    assert {"assay": {"$in": ["hema_gmsv1"]}} in _and_parts(query)
+    assert {"asp_group": {"$in": ["hema_gmsv1"]}} in _and_parts(query)
 
 
 def test_annotation_text_mode_does_not_exclude_text_documents():
@@ -107,7 +107,7 @@ def test_all_search_includes_identity_and_context_fields():
         "gene",
         "transcript",
         "author",
-        "diagnosis",
+        "diagnosis_id",
         "text",
         "variant",
         "hgvsp",
@@ -128,7 +128,7 @@ def test_variant_search_treats_identity_as_literal_exact_text_and_ignores_empty_
 
     assert query is not None
     assert _first_or_clause(query)[0]["variant"] == "p\\."
-    assert {"assay": {"$in": []}} not in _and_parts(query)
+    assert {"asp_group": {"$in": []}} not in _and_parts(query)
 
 
 def test_gene_search_uses_only_flat_annotation_gene_fields():
@@ -215,8 +215,8 @@ def test_classification_text_lookup_uses_same_variant_identity_and_context():
             "gene": "TP53",
             "variant": "p.Val157GlyfsTer24",
             "nomenclature": "p",
-            "assay": "hematology",
-            "diagnosis": "base",
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
             "class": 1,
             "text": None,
         }
@@ -226,7 +226,7 @@ def test_classification_text_lookup_uses_same_variant_identity_and_context():
         "gene": "TP53",
         "variant": "p.Val157GlyfsTer24",
         "nomenclature": "p",
-        "assay": "hematology",
-        "diagnosis": "base",
+        "asp_group": "hematology",
+        "diagnosis_id": "base",
         "text": {"$exists": True, "$type": "string", "$ne": ""},
     }

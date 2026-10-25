@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from api.domain.core.exceptions import AppError
-from api.domain.core.workflows.contracts import validate_report_inputs, validate_rna_filter_inputs
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.validation.contracts import (
+    validate_report_inputs,
+    validate_rna_filter_inputs,
+)
 
 
 class _LoggerStub:

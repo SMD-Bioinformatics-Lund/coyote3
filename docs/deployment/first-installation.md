@@ -27,6 +27,13 @@ Have the following available before proceeding:
 Install missing prerequisites before continuing. Use the instructions for the
 host's operating system; installing software is separate from configuring Coyote3.
 
+The normal installer builds and installs the application wheel inside Docker.
+No host virtual environment, prebuilt SDK wheel or `.release/sdk` directory is
+required. The installer defaults `GIT_COMMIT` to the checkout's current commit.
+Release CI can select the separate
+[verified-artifact build](../sdk/compatibility.md#build-and-record-an-application-release)
+using `deploy/compose/docker-compose.release.yml` as an additional overlay.
+
 | Software | Needed for | Installation instructions |
 | --- | --- | --- |
 | Git | Obtaining and updating the reviewed checkout | [Git installation](https://git-scm.com/install/linux). |
@@ -170,7 +177,7 @@ COYOTE_CENTER_DIR="/srv/coyote3/config/center"
 mkdir -p "$COYOTE_CENTER_DIR"
 for name in contact.toml clinical_vocabulary.toml filter_flag_metadata.yaml; do
   if [ ! -f "$COYOTE_CENTER_DIR/$name" ]; then
-    cp "api/config/center/$name" "$COYOTE_CENTER_DIR/$name"
+    cp "config/examples/center/$name" "$COYOTE_CENTER_DIR/$name"
   fi
 done
 ```
@@ -435,7 +442,7 @@ for the complete group inventory, exact query-rule conditions, optional demo ass
 diagnoses, gene lists, report rules and default role responsibilities.
 
 The image packages `clinical_capabilities.toml`, `clinical_query_defaults.toml`,
-`clinical_query_seed.toml` and `collections.toml` under `api/config/`. These are
+`clinical_query_seed.toml` and `collections.toml` under `src/coyote3/config/`. These are
 application-owned; do not copy them into the editable center directory.
 
 Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one

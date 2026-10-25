@@ -3,14 +3,12 @@
 from types import SimpleNamespace
 from typing import Any
 
-from api.application.ingest.service import InternalIngestService
-from api.application.provisioning.demo_installation import DemoInstallationService
-from api.application.query_rules.service import QueryRuleService
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
 from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
 from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from api.services.provisioning.demo_installation import DemoInstallationService
+from coyote3.application.ingest.service import InternalIngestService
 
 
 def build_demo_service(primary: Any, knowledgebase: Any) -> DemoInstallationService:
@@ -34,14 +32,8 @@ def build_demo_service(primary: Any, knowledgebase: Any) -> DemoInstallationServ
         ),
         invalidate_dashboard_metrics=lambda: None,
     )
-    rules = QueryRuleService(
-        QueryRuleRepository(
-            SimpleNamespace(
-                query_rule_sets_collection=primary[mapping["query_rule_sets_collection"]],
-                query_rule_revisions_collection=primary[mapping["query_rule_revisions_collection"]],
-            )
-        )
-    )
     return DemoInstallationService(
-        DemoInstallationRepository(primary), ingest, query_rule_service=rules
+        DemoInstallationRepository(primary),
+        ingest,
+        identifier_factory=DemoInstallationRepository.identifier,
     )

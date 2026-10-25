@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from bson import ObjectId
 from pymongo.errors import PyMongoError
 
 from api.infra.mongo.repositories.audit_integrity import append_event
@@ -40,7 +41,8 @@ class AuditRepository:
         """Store a sanitized event, retaining failed inserts on the configured retry volume.
 
         Args:
-            document: Redacted audit event with a stable ID and explicit retention class.
+            document: Redacted event with an explicit retention class. A stable ID
+                is allocated once here when the application has not supplied one.
 
         Returns:
             Stable event ID when accepted by MongoDB or disk; None when MongoDB fails
@@ -49,6 +51,8 @@ class AuditRepository:
         Raises:
             OSError: MongoDB and the configured retry volume are both unavailable.
         """
+        document = dict(document)
+        document.setdefault("_id", ObjectId())
         try:
             if document["retention_class"] == "traceability":
                 return str(append_event(self.collection, document))

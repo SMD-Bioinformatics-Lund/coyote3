@@ -1,0 +1,9 @@
+[
+  {
+    "record_key": "demo-cosmic-cgc",
+    "source_row": 1,
+    "gene_symbol": "TP53",
+    "tier": "1",
+    "role_in_cancer": "TSG"
+  }
+]

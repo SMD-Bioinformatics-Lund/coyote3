@@ -20,6 +20,7 @@ assay configuration, access management, integration, deployment, and operations.
 | Plan a clinical configuration change | [Planning configuration changes](administration/planning-configuration-changes.md) |
 | Submit samples from a pipeline or client | [Sample ingestion API](api/sample-ingestion.md) and [sample manifest](reference/sample-manifest.md) |
 | Change or extend the application | [Developer guide](development/developer-guide.md) |
+| Use Python operations, build a host or release the SDK | [SDK guides](sdk/README.md) |
 | Investigate an installed-system failure | [Operations troubleshooting](operations/troubleshooting.md) |
 | Investigate an accepted or failed ingest job | [Ingest job recovery](operations/ingest-job-recovery.md) |
 
@@ -31,6 +32,7 @@ assay configuration, access management, integration, deployment, and operations.
 | [user-guide/](user-guide/README.md) | Clinical review, samples, coverage, dashboards, pages, and controls. |
 | [administration/](administration/README.md) | Users, access, assay groups, diagnoses, clinical configuration, and catalog publication. |
 | [api/](api/README.md) | Authentication, HTTP routes, ingestion, collection imports, and compatibility. |
+| [sdk/](sdk/README.md) | Python installation, local operations, remote client, host development, reference and independent versions. |
 | [architecture/](architecture/README.md) | Components, resource relationships, clinical data flow, security, and design decisions. |
 | [deployment/](deployment/README.md) | Installation and infrastructure source guides, grouped under Getting started in the site. |
 | [configuration/](configuration/README.md) | File syntax, supported fields, defaults, examples and links to clinical resource contracts. |

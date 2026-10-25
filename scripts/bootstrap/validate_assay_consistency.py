@@ -17,12 +17,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from api.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
-from api.contracts.schemas.registry import (  # noqa: E402
+from api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
+from coyote3.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
+from coyote3.contracts.schemas.registry import (  # noqa: E402
     supported_collections,
     validate_collection_document,
 )
-from api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
 
 VALID_ENVIRONMENTS = set(ENVIRONMENT_OPTIONS)
 ENV_ALIASES = {

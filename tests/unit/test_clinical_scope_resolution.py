@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from api.application.common.release_resources import capture_assay_resource
-from api.application.ingest.helpers import assay_default_filters
-from api.config.constants import normalize_clinical_identifier
-from api.contracts.schemas.samples import SampleAspcResolutionDoc
+from coyote3.application.common.release_resources import capture_assay_resource
+from coyote3.application.ingest.helpers import assay_default_filters
+from coyote3.config.constants import normalize_clinical_identifier
+from coyote3.contracts.schemas.samples import SampleAspcResolutionDoc
 
 
 class _Collection:

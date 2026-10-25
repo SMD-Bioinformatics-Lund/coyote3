@@ -5,8 +5,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.public.catalog import PublicCatalogService
-from api.application.sample.catalog import SampleCatalogService
+from coyote3.application.public.catalog import PublicCatalogService
+from coyote3.application.sample.catalog import SampleCatalogService
 
 
 @pytest.mark.parametrize("group", ["hematology", "solid", "tumwgs", "center_custom"])

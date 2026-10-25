@@ -6,15 +6,19 @@ import mongomock
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from api.config.clinical_query_policy import resolved_query_policy
-from api.contracts.schemas.dna import CnvsDoc, TranslocationsDoc, VariantsDoc
-from api.contracts.schemas.query_rules import QueryConditionTest, QueryRuleDraft
-from api.contracts.schemas.rna import FusionsDoc
-from api.domain.core.dna.cnvqueries import build_cnv_query
-from api.domain.core.dna.translocqueries import build_transloc_query, filter_translocations_by_genes
-from api.domain.core.dna.varqueries import build_query
-from api.domain.core.rna.fusion_query_builder import build_fusion_query
-from api.domain.query_conditions import FIELD_CATALOG, compile_condition, matches_condition
+from api.infra.mongo.selection import compile_selection
+from coyote3.config.clinical_query_policy import resolved_query_policy
+from coyote3.contracts.schemas.dna import CnvsDoc, TranslocationsDoc, VariantsDoc
+from coyote3.contracts.schemas.query_rules import QueryConditionTest, QueryRuleDraft
+from coyote3.contracts.schemas.rna import FusionsDoc
+from coyote3.domain.dna.cnvqueries import build_cnv_query
+from coyote3.domain.dna.translocqueries import (
+    build_transloc_query,
+    filter_translocations_by_genes,
+)
+from coyote3.domain.dna.varqueries import build_query
+from coyote3.domain.query_conditions import FIELD_CATALOG, compile_condition, matches_condition
+from coyote3.domain.rna.fusion_query_builder import build_fusion_query
 
 
 def predicate(field, operator, value):
@@ -38,16 +42,16 @@ def test_query_builders_resolve_gene_references_and_keep_sample_scope(analysis):
     )
     settings = {"id": "one", "filter_genes": ["TP53"]}
     if analysis == "snv":
-        query = build_query("example", settings, policy=policy)
+        query = compile_selection(build_query("example", settings, policy=policy))
     elif analysis == "cnv":
         settings.update(
             cnv_loss_cutoff=0.8, cnv_gain_cutoff=1.2, min_cnv_size=0, max_cnv_size=1000000
         )
-        query = build_cnv_query("one", settings, policy=policy)
+        query = compile_selection(build_cnv_query("one", settings, policy=policy))
     elif analysis == "fusion":
-        query = build_fusion_query("example", settings, policy=policy)
+        query = compile_selection(build_fusion_query("example", settings, policy=policy))
     else:
-        query = build_transloc_query("one", settings, policy=policy)
+        query = compile_selection(build_transloc_query("one", settings, policy=policy))
     assert query["SAMPLE_ID"] == "one"
     assert "sample.filters" not in str(query)
     assert "TP53" in str(query)
@@ -90,23 +94,25 @@ def test_filter_references_resolve_per_sample_without_mutating_tree(
     analysis, field, key, settings_key
 ):
     node = predicate(field, "in", {"source": "sample.filters", "key": key})
-    compile_condition(node, analysis, allow_references=True)
-    assert compile_condition(node, analysis, filter_values={settings_key: ["A"]}) == {
-        field: {"$in": ["A"]}
-    }
-    assert compile_condition(node, analysis, filter_values={settings_key: ["B"]}) == {
-        field: {"$in": ["B"]}
-    }
+    compile_selection(compile_condition(node, analysis, allow_references=True))
+    assert compile_selection(
+        compile_condition(node, analysis, filter_values={settings_key: ["A"]})
+    ) == {field: {"$in": ["A"]}}
+    assert compile_selection(
+        compile_condition(node, analysis, filter_values={settings_key: ["B"]})
+    ) == {field: {"$in": ["B"]}}
     assert node["value"] == {"source": "sample.filters", "key": key}
     with pytest.raises(ValueError, match="context"):
-        compile_condition(node, analysis)
+        compile_selection(compile_condition(node, analysis))
 
 
 def test_referenced_genes_can_exceed_manual_entry_limit_and_preserve_empty_semantics():
     node = predicate("genes", "in", {"source": "sample.filters", "key": "snvlists"})
     genes = [f"GENE{i}" for i in range(500)]
     assert (
-        compile_condition(node, "snv", filter_values={"filter_genes": genes})["genes"]["$in"]
+        compile_selection(compile_condition(node, "snv", filter_values={"filter_genes": genes}))[
+            "genes"
+        ]["$in"]
         == genes
     )
     assert not matches_condition(
@@ -141,13 +147,17 @@ def test_nested_numeric_reference_uses_current_depth_threshold():
 )
 def test_invalid_or_copied_reference_payloads_are_rejected(field, operator, reference):
     with pytest.raises(ValueError):
-        compile_condition(predicate(field, operator, reference), "snv", allow_references=True)
+        compile_selection(
+            compile_condition(predicate(field, operator, reference), "snv", allow_references=True)
+        )
 
 
 def test_resolved_reference_does_not_accept_raw_mongo_values():
     node = predicate("genes", "in", {"source": "sample.filters", "key": "snvlists"})
     with pytest.raises(ValueError):
-        compile_condition(node, "snv", filter_values={"filter_genes": {"$ne": None}})
+        compile_selection(
+            compile_condition(node, "snv", filter_values={"filter_genes": {"$ne": None}})
+        )
 
 
 @pytest.mark.parametrize(
@@ -202,7 +212,7 @@ def test_catalog_paths_are_real_contract_fields(analysis, model):
 )
 def test_numeric_operators_compile_and_evaluate(operator, value):
     node = predicate("size", operator, value)
-    assert compile_condition(node, "cnv") == {"size": {f"${operator}": value}}
+    assert compile_selection(compile_condition(node, "cnv")) == {"size": {f"${operator}": value}}
     assert matches_condition(node, "cnv", {"size": 10})
 
 
@@ -248,7 +258,9 @@ def test_mod_preserves_integer_precision_and_handles_nonfinite_data(
 def test_evaluator_agrees_with_mongo_matching(node, documents):
     collection = mongomock.MongoClient().synthetic.findings
     collection.insert_many([{"_id": index, **doc} for index, doc in enumerate(documents)])
-    matched = {doc["_id"] for doc in collection.find(compile_condition(node, "cnv"))}
+    matched = {
+        doc["_id"] for doc in collection.find(compile_selection(compile_condition(node, "cnv")))
+    }
     assert [matches_condition(node, "cnv", doc) for doc in documents] == [
         index in matched for index in range(len(documents))
     ]
@@ -284,7 +296,7 @@ def test_element_match_does_not_combine_different_callers():
     ]
     collection = mongomock.MongoClient().synthetic.fusions
     collection.insert_many(documents)
-    assert len(list(collection.find(compile_condition(node, "fusion")))) == 1
+    assert len(list(collection.find(compile_selection(compile_condition(node, "fusion"))))) == 1
     assert [matches_condition(node, "fusion", doc) for doc in documents] == [True, False]
 
 
@@ -327,11 +339,11 @@ def test_invalid_conditions_fail_before_persistence(node):
 def test_complexity_is_bounded():
     node = predicate("size", "gte", 1)
     with pytest.raises(ValueError, match="nodes"):
-        compile_condition({"type": "all", "children": [node] * 100}, "cnv")
+        compile_selection(compile_condition({"type": "all", "children": [node] * 100}, "cnv"))
     for _ in range(8):
         node = {"type": "not", "child": node}
     with pytest.raises(ValueError, match="levels"):
-        compile_condition(node, "cnv")
+        compile_selection(compile_condition(node, "cnv"))
 
 
 @pytest.mark.parametrize(
@@ -339,7 +351,7 @@ def test_complexity_is_bounded():
 )
 def test_patterns_reject_engine_dependent_or_repeated_groups(pattern):
     with pytest.raises(ValueError):
-        compile_condition(predicate("type", "regex", pattern), "cnv")
+        compile_selection(compile_condition(predicate("type", "regex", pattern), "cnv"))
 
 
 @pytest.mark.parametrize(
@@ -358,13 +370,13 @@ def test_nested_exclusions_preserve_sample_boundary(analysis, field):
         ],
     )
     if analysis == "snv":
-        query = build_query("example", {"id": "one"}, policy=policy)
+        query = compile_selection(build_query("example", {"id": "one"}, policy=policy))
     elif analysis == "cnv":
-        query = build_cnv_query("one", {}, policy=policy)
+        query = compile_selection(build_cnv_query("one", {}, policy=policy))
     elif analysis == "fusion":
-        query = build_fusion_query("example", {"id": "one"}, policy=policy)
+        query = compile_selection(build_fusion_query("example", {"id": "one"}, policy=policy))
     else:
-        query = build_transloc_query("one", policy=policy)
+        query = compile_selection(build_transloc_query("one", policy=policy))
     assert query["SAMPLE_ID"] == "one"
     collection = mongomock.MongoClient().synthetic.findings
     allowed = "BRAF" if analysis == "fusion" else 20

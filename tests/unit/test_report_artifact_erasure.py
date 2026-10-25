@@ -10,10 +10,10 @@ from fastapi import HTTPException
 from pymongo.errors import AutoReconnect
 from starlette.requests import Request
 
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories import report_artifact_erasure as erasure
-from api.interfaces.http.admin.resources import samples
+from api.interfaces.http.v1.admin.resources import samples
 from api.security import access
+from coyote3.domain.exceptions import AppError
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -180,7 +180,9 @@ def test_sample_deletion_dependency_enforces_seeded_role_permissions(monkeypatch
     root = Path(__file__).resolve().parents[2]
     roles = [
         json.loads(line)
-        for line in (root / "api/config/bootstrap/rbac/roles.seed.ndjson").read_text().splitlines()
+        for line in (root / "api/bootstrap/catalogs/rbac/roles.seed.ndjson")
+        .read_text()
+        .splitlines()
         if line
     ]
     assert {row["role_id"] for row in roles if "sample:delete:global" in row["permissions"]} == {

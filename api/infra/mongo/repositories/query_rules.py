@@ -7,15 +7,17 @@ from bson.errors import InvalidId
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
-from api.contracts.schemas.query_rules import QueryRuleScope
-from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.query_rule_revisions import (
     QueryRuleRevisionRepository,
     build_query_revision,
 )
+from api.infra.mongo.selection import compile_selection
 from api.infra.mongo.transactions import run_transaction
+from coyote3.contracts.schemas.query_rules import QueryRuleScope
+from coyote3.domain.common.errors import api_error
+from coyote3.domain.selection import Selection
 
 
 class QueryRuleRepository(BaseRepository):
@@ -31,6 +33,11 @@ class QueryRuleRepository(BaseRepository):
         self.set_collection(adapter.query_rule_sets_collection)
         self.revisions = adapter.query_rule_revisions_collection
         self.history = QueryRuleRevisionRepository(adapter)
+
+    @staticmethod
+    def describe_selection(selection: Selection) -> dict[str, Any]:
+        """Render a selection for established query diagnostics and release receipts."""
+        return compile_selection(selection)
 
     def _snapshot(self, document: dict, action: str, session: Any) -> None:
         """Append a contiguous revision within the owning write transaction.

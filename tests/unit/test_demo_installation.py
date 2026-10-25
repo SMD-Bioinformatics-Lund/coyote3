@@ -6,13 +6,25 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.ingest.collection_writes import parse_yaml_payload
-from api.application.ingest.service import InternalIngestService
-from api.application.provisioning.demo_installation import BUNDLE, DemoInstallationService
-from api.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories import demo_installation
+from api.services.provisioning.demo_installation import BUNDLE, DemoInstallationService
+from coyote3.application.ingest.collection_writes import parse_yaml_payload
+from coyote3.application.ingest.service import InternalIngestService
+from coyote3.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
+from coyote3.domain.exceptions import AppError
 from scripts.quality.export_demo_workflows import MemoryGateway, MemoryVault
+
+
+def test_bootstrap_factory_builds_configurations_without_rule_publications():
+    """Fresh bootstrap can prepare ASPCs before any query or reporting sources exist."""
+    from scripts.bootstrap.demo_service import build_demo_service
+
+    client = mongomock.MongoClient()
+    service = build_demo_service(client.synthetic_application, client.synthetic_knowledgebase)
+    documents = service.configuration("synthetic-installer")
+    assert documents["asp_configs"]
+    assert all(not row.get("query_policy_release") for row in documents["asp_configs"])
+    assert all(not row.get("clinical_rule_release") for row in documents["asp_configs"])
 
 
 @pytest.fixture
@@ -24,7 +36,7 @@ def installer(monkeypatch):
     ingest.parse_yaml_payload.side_effect = parse_yaml_payload
     monkeypatch.setattr(demo_installation, "run_transaction", lambda client, fn: fn(None))
     monkeypatch.setattr(demo_installation, "enqueue_audit", lambda *args, **kwargs: None)
-    service = DemoInstallationService(repository, ingest)
+    service = DemoInstallationService(repository, ingest, identifier_factory=repository.identifier)
     groups = {row["asp_group"] for row in service.configuration("admin")["assay_specific_panels"]}
     database.assay_groups.insert_many([{"group_id": group, "is_active": True} for group in groups])
     database.query_rule_sets.insert_one({"scope_key": "synthetic_baseline"})
@@ -147,7 +159,7 @@ def test_shared_diagnosis_requires_every_assay_association(installer):
 
 def test_bundle_does_not_infer_diagnosis_links_from_gene_list_applicability(installer):
     """Matching ISGL scope cannot silently authorize a diagnosis for another assay."""
-    from api.application.resources.release_compilation import compile_bundle_configurations
+    from api.bootstrap.compilation import compile_bundle_configurations
 
     service, _, _ = installer
     documents = service.configuration("demo.admin")
@@ -252,8 +264,8 @@ def test_starter_first_sample_uses_real_ingest(installer):
     assert service.plan().starter_installed
     for name in ("variants", "cnvs", "translocations", "biomarkers"):
         assert db[name].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
-    from api.application.reporting.clinical_rules.validation import validate_rule_set
-    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
     for rule in db.clinical_rule_sets.find():
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(rule), require_tests=True)
@@ -289,7 +301,7 @@ def test_demo_samples_use_normal_ingest_and_never_update_existing(installer):
         "ingest_source": "api",
         "allow_update": False,
     }
-    assert call.args[0]["vcf_files"] == str(BUNDLE / "raw/dna.vcf")
+    assert call.args[0]["vcf_files"] == str((BUNDLE / "raw/dna.vcf").resolve())
     database.samples.insert_one({"name": "DEMO_GROUP_DNA", "asp_id": "demo-tumwgs-solid"})
     assert service.install_sample("demo_group_dna", "demo.admin")["status"] == "already_installed"
     assert ingest.ingest_sample_bundle.call_count == 1

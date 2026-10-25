@@ -1,0 +1,17 @@
+<div class="report_div">
+  <table class='report_general'>
+    <tr><td class="top_report_key">Patientnamn</td><td class="top_report_val">&lt;PATIENT_NAME&gt;</td></tr>
+    <tr><td class="top_report_key">Personnummer</td><td class="top_report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td></tr>
+    <tr><td class="top_report_key">Prov-ID</td><td class="top_report_val">{{ sample.name }}</td></tr>
+    <tr><td class="top_report_key">Registreringsdatum</td><td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td></tr>
+    <tr><td class="top_report_key">Provtyp</td><td class="top_report_val">&lt;SAMPLE_TYPE&gt; / RNA</td></tr>
+    {% if clinical_question %}
+    <tr><td class="top_report_key">Frågeställning</td><td class="top_report_val">{{ clinical_question }}</td></tr>
+    {% endif %}
+    <tr><td class="top_report_key">Rapportdatum</td><td class="top_report_val">{{ report_date }}</td></tr>
+    <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val">{{ assay_config.reporting.report_method }}</td></tr>
+    {% if organization_name %}<tr><td class="top_report_key">Analys genomförd av</td><td class="top_report_val">{{ organization_name }}</td></tr>{% endif %}
+    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ generated_by or "Unknown" }}</td></tr>
+    <tr><td class="top_report_key">Rapport-ID</td><td class="top_report_val">{{ sample.name }}.{{ sample.report_num + 1 if sample.report_num is defined else 1 }}</td></tr>
+  </table>
+</div>

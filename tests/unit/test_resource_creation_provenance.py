@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.resources import asp, isgl
+from coyote3.application.resources import asp, isgl
 
 
 @pytest.mark.parametrize("resource", ["asp", "isgl"])

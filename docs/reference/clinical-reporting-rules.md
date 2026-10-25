@@ -7,11 +7,10 @@ wording. They do not select transcripts, filter findings, assign tiers, or modif
 findings. Those decisions are complete before rule evaluation begins.
 
 The authoring source is the `clinical_rule_sets` collection in the primary application
-database. Configuration preparation selects the active published rules by assay,
-diagnosis, analyte and ASPC `reporting.language`, then captures that document in
-`clinical_rule_release`. Report generation verifies and evaluates the captured
-content from the sample's exact configuration revision. Publishing or retiring a
-source rule does not change previously compiled configurations.
+database. Each report preparation selects active published rules by the sample's
+assay, diagnosis, analyte and ASPC `reporting.language`. Query and reporting rules
+are independent of ASPC revisions. Publishing or retiring a source changes
+subsequent matching requests; saved reports retain their original rule content.
 
 ![Clinical report generation flow](../assets/diagrams/report-generation-flow.svg)
 
@@ -31,7 +30,7 @@ In **Administration → Clinical reporting rules**, open a DNA draft and set
 | Property | Requirement or behavior |
 | --- | --- |
 | Value | Optional trimmed text, 1–120 characters when supplied. Clear the field to omit it. |
-| Scope | DNA rule content captured in the sample's configuration. Configuration preparation selects the exact diagnosis or assay Base source for its reporting language. |
+| Scope | Current published DNA rules for the sample's assay and diagnosis, with assay Base fallback and the configured reporting language. |
 | Inheritance | Terminology comes from the selected release as a whole. An exact diagnosis release with no term does not borrow a term from Base. |
 | Language | Automatic sentence generation currently supports `sv` only. |
 | Governance | Included in the content hash, draft revision, independent review and publication lifecycle, using existing clinical-rule permissions. |
@@ -66,6 +65,9 @@ Metadata text is HTML-escaped; it is not an HTML template. Rule traces retain th
 selected rule and text. Saved report artifacts retain their original wording.
 Metadata destinations are part of the current rule schema, as are conflict groups.
 There is no separate reporting-engine version counter.
+The SDK release identifies the installed rendering implementation; clinical rule
+content retains its governed versions and revisions. See
+[software and configuration compatibility](../sdk/compatibility.md).
 
 Finding eligibility is configured in the ASPC, not in these output rules. See
 [annotation scope and report eligibility](report-snapshots.md#annotation-scope-and-report-eligibility).
@@ -80,25 +82,25 @@ The stable identity is:
 
 For example, `hema_gmsv1__base__sv` identifies Swedish reporting rules for the base
 diagnosis of `hema_gmsv1`. Environment and ASPC version are not part of the identity.
-Environment-specific ASPCs can capture the same reviewed source revision. Runtime
-evaluation uses the captured document and checks the sample environment against its
-configuration. There is no cross-database or cross-assay lookup.
+Environment-specific samples can resolve the same reviewed reporting source.
+Runtime evaluation checks the sample environment against its configuration.
+There is no cross-database or cross-assay lookup.
 
-An active ASPC with reporting enabled is valid only when all of the following are true:
+A report can be prepared only when all of the following are true:
 
-- Preparation captures an active published rule set for `reporting.language` (default `sv`).
+- Preparation resolves an active published rule set for `reporting.language` (default `sv`).
 - The rule-set analyte matches the ASPC category.
 - Every entry in `reporting.report_sections` has an explicit analysis declaration.
 - A declaration is either `enabled`, meaning rule blocks may produce wording, or
   `none`, meaning no narrative is intentionally produced for that analysis.
 
-Configuration preparation selects a source for the same assay, analyte and language:
+Report preparation selects a source for the same assay, analyte and language:
 
 | Priority | Scope | Result |
 | --- | --- | --- |
-| 1 | Exact configuration diagnosis | Capture its sole active published release |
+| 1 | Exact sample diagnosis | Resolve its sole active published release |
 | 2 | Assay `base` | Use Base only when no exact active published release exists |
-| 3 | Neither | Reject the reporting configuration |
+| 3 | Neither | Reject report preparation |
 
 Missing diagnosis means `base`. Other named diagnoses, languages, analytes and assays
 are never substituted. Ambiguous matches fail; an invalid exact release does not
@@ -107,16 +109,16 @@ are checked before rendering. A partial unique index enforces one active publish
 release per exact scope. Draft, review and approved-but-unpublished versions are
 not eligible.
 
-ASPC readiness and assay setup review use the same content-hash and schema validation
-checks as report generation. An unusable release blocks readiness rather than
-being accepted for configuration and rejected only when a report is opened.
+Assay setup readiness checks current reporting publications. Individual ASPC
+creation and editing do not attach or require rule publications. Report generation
+validates the selected publication's schema, hash and analysis declarations on use.
 
 In **Admin > Assay Configurations**, select **Reporting Language**, not a ruleset.
-Publishing a diagnosis release makes it available to subsequent ASPC preparation.
-An existing ASPC retains its captured rule document. Retiring a source prevents new
-configurations from selecting it; it does not replace previously captured content.
-To change a sample's report policy, prepare and review a new configuration revision
-and explicitly apply it to that sample.
+Publishing a diagnosis release makes it available to subsequent report preparation,
+including samples using an older or Base ASPC. No configuration update is needed.
+Retiring a source removes it from runtime selection; the documented Base fallback
+applies only when no exact active publication exists. Historical ASPC rule captures
+are ignored, and saved reports are unchanged.
 
 The preview identifies the resolved rule identity, content version, language and
 Base selection. Saved reports retain the selected identity, hash, version, requested
@@ -737,7 +739,7 @@ and retry behavior with focused correctness tests, separately from HTTP timing.
 Report preparation creates facts only from the exact filtered findings, biomarkers,
 applied gene lists, ASP, and ASPC used for that report. The service then:
 
-1. loads the captured clinical rule document from the sample's pinned ASPC;
+1. resolves the current published clinical rule document for the sample scope;
 2. checks configuration identity, environment, source scope and analyte;
 3. verifies the release content hash and document schema;
 4. checks all selected report sections are declared;
@@ -799,7 +801,7 @@ PYTHONPATH=. .venv/bin/pytest -q \
   tests/unit/reporting \
   tests/unit/test_report_summary.py \
   tests/unit/test_report_summary_extended.py \
-  --cov=api.application.reporting.clinical_rules \
+  --cov=coyote3.application.reporting.clinical_rules \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-fail-under=100

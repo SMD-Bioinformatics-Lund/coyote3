@@ -22,6 +22,7 @@ from api.infra.mongo.repositories.samples import SampleRepository
 from api.infra.mongo.repositories.translocations import TranslocsRepository
 from api.infra.mongo.repositories.users import UsersRepository
 from api.infra.mongo.repositories.variants import VariantsRepository
+from coyote3.domain.selection import RecordField, select
 
 
 class _Cache:
@@ -491,7 +492,7 @@ def test_structural_repositories_normalize_query_and_mutate_records() -> None:
     ).inserted_id
 
     assert cnvs.get_cnv(str(cnv_id))["genes"] == ["MYC"]
-    assert cnvs.get_sample_cnvs({"SAMPLE_ID": str(sample_id)})[0]["genes"] == ["MYC"]
+    assert cnvs.get_sample_cnvs(select({RecordField.SAMPLE: str(sample_id)}))[0]["genes"] == ["MYC"]
     assert len(list(cnvs.get_interesting_sample_cnvs(str(sample_id)))) == 1
     assert cnvs.get_total_cnv_count() == 1 and cnvs.get_unique_cnv_count() == 1
     cnvs.mark_interesting_cnv(str(cnv_id), False)
@@ -1121,7 +1122,7 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
         }
     )
 
-    assert len(list(repository.get_case_variants({"SAMPLE_ID": str(sample_a)}))) == 2
+    assert len(list(repository.get_case_variants(select({RecordField.SAMPLE: str(sample_a)})))) == 2
     assert repository.get_variant(str(variant_a))["genes"] == ["BRAF"]
     selected = repository.update_selected_transcript(
         var_id=str(variant_a),
@@ -1227,8 +1228,8 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
         "variant": "p.Val600Glu",
         "gene": "BRAF",
         "transcript": "NM_004333.6",
-        "assay": "solid",
-        "resource_context": {"assay_id": "demo-solid_gmsv3", "environment": "production"},
+        "asp_group": "solid",
+        "asp_id": "demo-solid_gmsv3",
     }
     repository.get_collection().insert_many(
         [
@@ -1240,8 +1241,8 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
                 "variant": "p.Val617Phe",
                 "gene": "JAK2",
                 "transcript": "NM_004972.4",
-                "assay": "hematology",
-                "resource_context": {"assay_id": "hema_gmsv1", "environment": "production"},
+                "asp_group": "hematology",
+                "asp_id": "hema_gmsv1",
                 "class": 1,
                 "time_created": created,
             },
@@ -1251,8 +1252,8 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
                 "variant": "p.Arg175His",
                 "gene": "TP53",
                 "transcript": "NM_000546.6",
-                "assay": "solid",
-                "resource_context": {"assay_id": "demo-solid_gmsv3", "environment": "production"},
+                "asp_group": "solid",
+                "asp_id": "demo-solid_gmsv3",
                 "class": 4,
                 "time_created": created,
             },
@@ -1351,7 +1352,7 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
         [
             {
                 "namespace": "clinical",
-                "resource_context": {"assay_id": "demo-solid_gmsv3", "environment": "production"},
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1359,14 +1360,14 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_000546.5",
-                "assay": "solid",
-                "diagnosis": "colon",
+                "asp_group": "solid",
+                "diagnosis_id": "colon",
                 "class": 3,
                 "time_created": created - timedelta(days=1),
             },
             {
                 "namespace": "clinical",
-                "resource_context": {"assay_id": "demo-solid_gmsv3", "environment": "production"},
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1374,14 +1375,14 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_000546.5",
-                "assay": "solid",
-                "diagnosis": "colon",
+                "asp_group": "solid",
+                "diagnosis_id": "colon",
                 "class": 2,
                 "time_created": created,
             },
             {
                 "namespace": "clinical",
-                "resource_context": {"assay_id": "demo-solid_gmsv3", "environment": "production"},
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1389,14 +1390,14 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_001126112.3",
-                "assay": "solid",
-                "diagnosis": "colon",
+                "asp_group": "solid",
+                "diagnosis_id": "colon",
                 "class": 4,
                 "time_created": created,
             },
             {
                 "namespace": "clinical",
-                "resource_context": {"assay_id": "demo-solid_gmsv3", "environment": "production"},
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1404,8 +1405,8 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_000546.5",
-                "assay": "solid",
-                "diagnosis": "breast",
+                "asp_group": "solid",
+                "diagnosis_id": "breast",
                 "class": 1,
                 "time_created": created + timedelta(days=1),
             },

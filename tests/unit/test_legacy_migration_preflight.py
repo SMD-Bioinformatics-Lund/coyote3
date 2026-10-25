@@ -22,7 +22,7 @@ from tests.unit.test_offline_legacy_migrations import make_index, sample
 
 def catalog():
     """Use current synthetic contract fixtures as preinstalled target configuration."""
-    root = Path("demo_data/collections/all_collections_dummy")
+    root = Path("tests/fixtures/collections/all_collections_dummy")
     records = {name: read_json(root / f"{name}.json")[:1] for name in CATALOG_COLLECTIONS}
     for rows in records.values():
         for row in rows:

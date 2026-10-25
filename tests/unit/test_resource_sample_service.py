@@ -6,10 +6,9 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-from bson import ObjectId
 
-from api.application.resources.sample import ResourceSampleService
-from api.domain.core.exceptions import AppError
+from coyote3.application.resources.sample import ResourceSampleService
+from coyote3.domain.exceptions import AppError
 
 
 class SampleRepository:
@@ -83,21 +82,8 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
     ]
     service = ResourceSampleService(
         sample_repository=sample_repository,
-        variant_repository=dependencies[0],
-        copy_number_variant_repository=dependencies[1],
-        d4_coverage_repository=dependencies[2],
-        translocation_repository=dependencies[3],
-        fusion_repository=dependencies[4],
-        biomarker_repository=dependencies[5],
-        pgx_repository=dependencies[6],
-        rna_expression_repository=dependencies[7],
-        rna_classification_repository=dependencies[8],
-        rna_quality_repository=dependencies[9],
-        sample_comment_repository=dependencies[10],
-        finding_comment_repository=dependencies[11],
-        report_repository=dependencies[12],
-        reported_variant_repository=dependencies[13],
         assay_panel_repository=AssayPanelRepository(),
+        sample_deleter=Mock(),
     )
     return service, sample_repository, dependencies
 
@@ -146,10 +132,12 @@ def test_from_store_wires_all_repositories() -> None:
             "assay_panel_repository",
         )
     }
-    service = ResourceSampleService.from_store(SimpleNamespace(**repositories))
+    service = ResourceSampleService.from_store(
+        SimpleNamespace(**repositories), sample_deleter=Mock()
+    )
 
-    for name, repository in repositories.items():
-        assert getattr(service, name) is repository
+    for name in ("sample_repository", "assay_panel_repository"):
+        assert getattr(service, name) is repositories[name]
 
 
 def test_list_payload_filters_non_documents_and_preserves_query_parameters() -> None:
@@ -226,9 +214,9 @@ def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.Mon
     repository.samples["sample-oid"]["_id"] = "sample-oid"
     repository.samples["sample-oid"].update(ingested_by="initial.user", ingest_source="upload")
     timestamp = datetime(2026, 7, 31, 10, 0, tzinfo=UTC)
-    monkeypatch.setattr("api.application.resources.sample.utc_now", lambda: timestamp)
+    monkeypatch.setattr("coyote3.application.resources.sample.utc_now", lambda: timestamp)
     monkeypatch.setattr(
-        "api.application.resources.sample.current_actor", lambda actor: f"actor:{actor}"
+        "coyote3.application.resources.sample.current_actor", lambda actor: f"actor:{actor}"
     )
     nested_id = "507f1f77bcf86cd799439011"
     request = {"sample": valid_sample_document(name="renamed", nested={"_id": nested_id})}
@@ -243,7 +231,7 @@ def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.Mon
     assert sample_id == "sample-oid"
     assert updated["_id"] == "sample-oid"
     assert updated["name"] == "renamed"
-    assert updated["nested"] == {"_id": ObjectId(nested_id)}
+    assert updated["nested"] == {"_id": nested_id}
     assert updated["updated_on"] == timestamp
     assert updated["updated_by"] == "actor:admin"
     assert updated["ingested_by"] == "initial.user"
@@ -284,29 +272,11 @@ def test_delete_delegates_all_repositories_and_returns_summary(
             "results": [{"collection": "samples", "deleted": 1}],
         }
     )
-    monkeypatch.setattr("api.application.resources.sample.delete_all_sample_traces", delete)
+    monkeypatch.setattr(service, "sample_deleter", delete)
 
     result = service.delete(sample_id="sample-oid")
 
-    delete.assert_called_once_with(
-        "sample-oid",
-        sample_repository=sample_repository,
-        variant_repository=dependencies[0],
-        copy_number_variant_repository=dependencies[1],
-        d4_coverage_repository=dependencies[2],
-        translocation_repository=dependencies[3],
-        fusion_repository=dependencies[4],
-        biomarker_repository=dependencies[5],
-        pgx_repository=dependencies[6],
-        rna_expression_repository=dependencies[7],
-        rna_classification_repository=dependencies[8],
-        rna_quality_repository=dependencies[9],
-        sample_comment_repository=dependencies[10],
-        finding_comment_repository=dependencies[11],
-        report_repository=dependencies[12],
-        reported_variant_repository=dependencies[13],
-        reports_root="/synthetic/reports",
-    )
+    delete.assert_called_once_with("sample-oid")
     assert result["meta"]["sample_name"] == "synthetic-sample"
     assert result["meta"]["sample_oid"] == "sample-oid"
     assert result["meta"]["results"] == [{"collection": "samples", "deleted": 1}]

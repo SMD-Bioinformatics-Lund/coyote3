@@ -12,16 +12,6 @@ from copy import deepcopy
 from typing import Any
 from urllib.parse import unquote
 
-from api.config.constants import DIAGNOSIS_BASE_ID
-from api.contracts.operations import OperationResult
-from api.contracts.schemas.registry import normalize_collection_document
-from api.domain.core.annotation_identity import (
-    ANNOTATION_IDENTITY_FIELDS,
-    annotation_context_fields,
-    enrich_annotation_identity,
-)
-from api.domain.core.annotation_scope import annotation_scope_match
-from api.domain.core.dna.variant_identity import build_simple_id
 from api.infra.mongo.repositories.annotation_queries import (
     _annotation_class_value,
     _annotation_object_id,
@@ -34,7 +24,17 @@ from api.infra.mongo.repositories.annotation_queries import (
 from api.infra.mongo.repositories.annotation_statistics import AnnotationStatisticsMixin
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
-from api.infra.request_context import current_username
+from coyote3.application.common.execution_context import current_username
+from coyote3.config.constants import DIAGNOSIS_BASE_ID
+from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.registry import normalize_collection_document
+from coyote3.domain.annotation_identity import (
+    ANNOTATION_IDENTITY_FIELDS,
+    annotation_context_fields,
+    enrich_annotation_identity,
+)
+from coyote3.domain.annotation_scope import annotation_scope_match
+from coyote3.domain.dna.variant_identity import build_simple_id
 
 
 # -------------------------------------------------------------------------
@@ -76,13 +76,13 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         col.create_index([("variant", 1)], name="variant_1", background=True)
         col.create_index(
             [
-                ("resource_context.assay_id", 1),
-                ("resource_context.environment", 1),
-                ("diagnosis", 1),
+                ("asp_id", 1),
+                ("namespace", 1),
+                ("diagnosis_id", 1),
                 ("variant", 1),
                 ("time_created", -1),
             ],
-            name="annotation_resource_scope",
+            name="annotation_scope_namespace",
             background=True,
         )
         for identity_field in ANNOTATION_IDENTITY_FIELDS:
@@ -108,8 +108,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             background=True,
         )
         col.create_index(
-            [("transcript", 1), ("assay", 1), ("diagnosis", 1), ("time_created", -1)],
-            name="transcript_assay_diagnosis_time_created",
+            [("transcript", 1), ("asp_group", 1), ("diagnosis_id", 1), ("time_created", -1)],
+            name="transcript_group_diagnosis_time_created",
             background=True,
             sparse=True,
         )
@@ -157,10 +157,32 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         query = _classification_text_lookup_query(annotation)
         if query is None:
             return None
-        text_doc = self.get_collection().find_one(query, {"text": 1}, sort=[("time_created", -1)])
-        if not text_doc:
-            return None
-        return text_doc.get("text")
+        group_path = [annotation["asp_group"]]
+        group = self.adapter.assay_groups_collection.find_one({"group_id": group_path[0]})
+        while group and group.get("parent_group_id") not in (None, *group_path):
+            parent = group["parent_group_id"]
+            group = self.adapter.assay_groups_collection.find_one({"group_id": parent})
+            if not group or not group.get("is_active", True):
+                break
+            group_path.append(parent)
+        for field in ("asp_group", "asp_id", "diagnosis_id", "namespace"):
+            query.pop(field, None)
+        query["asp_group"] = {"$in": group_path}
+        query["diagnosis_id"] = {"$in": [annotation["diagnosis_id"], "base"]}
+        environment = "production" if annotation["namespace"] == "clinical" else "testing"
+        query.update(annotation_visibility_query(environment))
+        candidates = []
+        for row in self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)]):
+            match = annotation_scope_match(
+                row,
+                group_path=group_path,
+                diagnosis=annotation["diagnosis_id"],
+                context={"assay_id": annotation.get("asp_id"), "environment": environment},
+            )
+            if match["effective"] or match["fallback_eligible"]:
+                candidates.append((row, match))
+        candidates.sort(key=lambda item: (item[1]["scope_priority"], item[1]["diagnosis_priority"]))
+        return candidates[0][0]["text"] if candidates else None
 
     def get_annotations_by_oids(self, oids: list[object]) -> list[dict]:
         """Return annotation documents for the requested object ids."""
@@ -212,7 +234,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         Retrieve global annotations for a given variant, assay, and diagnosis.
 
         Match identity and visibility first. Exact assay, group, diagnosis and
-        environment classifications are effective. Broader interpretations are
+        visible-namespace classifications are effective. Broader interpretations are
         ordered by specificity, including nearest biological ancestors, and
         require re-tiering before they can qualify for reporting.
 
@@ -303,44 +325,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         else:
             annotations = []
 
-        latest_classification = {"class": 999}
-        latest_classification_other = {}
-        annotations_arr = []
-        annotations_interesting = {}
-
-        for anno in annotations:
-            context = anno.get("resource_context") or {}
-            if anno.get("namespace") == "sandbox" and (
-                not sample_context
-                or context.get("environment") != sample_context.get("environment")
-            ):
-                continue
-            effective = bool(
-                sample_context
-                and context.get("assay_id") == sample_context.get("assay_id")
-                and context.get("environment") == sample_context.get("environment")
-            )
-            anno_class = _annotation_class_value(anno.get("class"))
-            if anno_class is not None:
-                anno["class"] = anno_class
-                assay = anno["assay"]
-                sub = anno.get("diagnosis")
-                ass_sub = f"{assay}:{sub}"
-                if assay == assay_group and sub == diagnosis and effective:
-                    latest_classification = anno
-                else:
-                    scope = (assay, sub, context.get("assay_id"), context.get("environment"))
-                    latest_classification_other.pop(scope, None)
-                    latest_classification_other[scope] = anno
-            if anno.get("text") is not None:
-                assay = anno["assay"]
-                sub = anno.get("diagnosis")
-                ass_sub = f"{assay}:{sub}"
-                if assay == assay_group and sub == diagnosis and effective:
-                    annotations_interesting[ass_sub] = anno
-                annotations_arr.append(anno)
-
-        latest_other_arr = []
         group_path = [assay_group]
         group = self.adapter.assay_groups_collection.find_one({"group_id": assay_group})
         while isinstance(group, dict) and group.get("parent_group_id"):
@@ -351,30 +335,34 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             if not isinstance(group, dict) or not group.get("is_active", True):
                 break
             group_path.append(parent)
-        for scope, annotation in latest_classification_other.items():
-            latest_other_arr.append(
-                {
-                    "_id": annotation.get("_id"),
-                    "assay": scope[0],
-                    "class": annotation["class"],
-                    "diagnosis": scope[1],
-                    "asp_id": scope[2],
-                    "environment": scope[3],
-                    "namespace": annotation.get("namespace"),
-                    "requires_retiering": True,
-                    "effective": False,
-                    **annotation_scope_match(
-                        annotation,
-                        group_path=group_path,
-                        diagnosis=diagnosis,
-                        context=sample_context or {},
-                    ),
-                }
-            )
 
-        # Inputs are oldest first; stable sorting keeps the latest equal-scope
-        # candidate first without allowing recency to override specificity.
-        latest_other_arr.reverse()
+        latest_classification = {"class": 999}
+        latest_classification_other = {}
+        annotations_arr = []
+        text_candidates = []
+        for anno in annotations:
+            match = annotation_scope_match(
+                anno, group_path=group_path, diagnosis=diagnosis, context=sample_context or {}
+            )
+            anno_class = _annotation_class_value(anno.get("class"))
+            if anno_class is not None:
+                if match["effective"]:
+                    latest_classification = anno
+                else:
+                    scope = (anno["asp_group"], anno["diagnosis_id"], anno.get("asp_id"))
+                    latest_classification_other.pop(scope, None)
+                    latest_classification_other[scope] = {
+                        **anno,
+                        **match,
+                    }
+            if anno.get("text") is not None:
+                annotations_arr.append(anno)
+                if match["effective"] or match["fallback_eligible"]:
+                    text_candidates.append((anno, match))
+
+        # Oldest-first query order makes reverse order newest-first. Stable
+        # scope sorting then preserves recency only within equal specificity.
+        latest_other_arr = list(reversed(latest_classification_other.values()))
         latest_other_arr.sort(
             key=lambda row: (
                 not row["fallback_eligible"],
@@ -382,6 +370,13 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 row["diagnosis_priority"],
             )
         )
+        text_candidates.reverse()
+        text_candidates.sort(
+            key=lambda item: (item[1]["scope_priority"], item[1]["diagnosis_priority"])
+        )
+        annotations_interesting = {}
+        if text_candidates:
+            annotations_interesting[f"{assay_group}:{diagnosis}"] = text_candidates[0][0]
 
         return (
             annotations_arr,
@@ -429,15 +424,15 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             return {}
 
         query: dict[str, Any] = {
-            "assay": assay_group,
+            "asp_group": assay_group,
             "class": {"$in": [1, 2, 3, 4]},
             "$or": transcript_clauses,
         }
-        query["diagnosis"] = diagnosis or DIAGNOSIS_BASE_ID
+        query["diagnosis_id"] = diagnosis or DIAGNOSIS_BASE_ID
         if not sample_context:
             return {}
-        query["resource_context.assay_id"] = sample_context["assay_id"]
-        query["resource_context.environment"] = sample_context["environment"]
+        query["asp_id"] = sample_context["assay_id"]
+        query.update(annotation_visibility_query(sample_context["environment"]))
 
         latest_by_transcript: dict[str, dict[str, Any]] = {}
         annotations = self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)])
@@ -480,22 +475,22 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             query = {
                 "gene": {"$in": genes},
                 "$or": identity_clauses,
-                "assay": assay_group,
+                "asp_group": assay_group,
                 "class": {"$in": [1, 2, 3, 4]},
             }
         else:
             query = {
                 "nomenclature": "f",
                 "variant": f"{breakpoint1}^{breakpoint2}",
-                "assay": assay_group,
+                "asp_group": assay_group,
                 "class": {"$in": [1, 2, 3, 4]},
             }
             query.update(annotation_context_fields(nomenclature="f", source=variant))
-        query["diagnosis"] = diagnosis or DIAGNOSIS_BASE_ID
+        query["diagnosis_id"] = diagnosis or DIAGNOSIS_BASE_ID
         if not sample_context:
             return []
-        query["resource_context.assay_id"] = sample_context["assay_id"]
-        query["resource_context.environment"] = sample_context["environment"]
+        query["asp_id"] = sample_context["assay_id"]
+        query.update(annotation_visibility_query(sample_context["environment"]))
 
         return list(
             self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)]).limit(1)
@@ -521,8 +516,10 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             nomenclature (str): The nomenclature type ('p', 'c', 'g', or 'f').
             class_num (int): The classification number assigned to the variant.
             variant_data (dict): A dictionary containing additional variant details, such as:
-                - assay (str): The assay type (e.g., 'solid').
-                - diagnosis (str): The diagnosis identifier.
+                - asp_group (str): Biological group identifier.
+                - asp_id (str | None): Assay identifier, or null for group scope.
+                - namespace (str): Clinical or sandboxed interpretation scope.
+                - diagnosis_id (str): Diagnosis identifier.
                 - gene (str): The gene symbol (if applicable).
                 - transcript (str): The transcript identifier (if applicable).
                 - gene1 (str): The first gene symbol (if nomenclature is 'f').
@@ -538,9 +535,10 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "time_created": utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
-            "assay": variant_data.get("assay_group", None),
-            "diagnosis": variant_data.get("diagnosis", None),
-            "resource_context": deepcopy(variant_data.get("resource_context")),
+            "asp_group": variant_data.get("asp_group"),
+            "asp_id": variant_data.get("asp_id"),
+            "diagnosis_id": variant_data.get("diagnosis_id"),
+            "namespace": variant_data.get("namespace"),
         }
 
         if "text" in kwargs:
@@ -577,8 +575,10 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             variant (str): The variant identifier (e.g., genomic location or variant ID).
             nomenclature (str): The nomenclature type ('p', 'c', 'g', or 'f').
             variant_data (dict): A dictionary containing additional variant details, such as:
-                - assay (str): The assay type (e.g., 'solid').
-                - diagnosis (str): The diagnosis identifier.
+                - asp_group (str): Biological group identifier.
+                - asp_id (str | None): Assay identifier, or null for group scope.
+                - namespace (str): Clinical or sandboxed interpretation scope.
+                - diagnosis_id (str): Diagnosis identifier.
                 - gene (str): The gene symbol (if applicable).
 
         Returns:
@@ -586,9 +586,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         """
         query = {
             "variant": variant,
-            "assay": variant_data.get("assay_group", None),
+            "asp_group": variant_data.get("asp_group"),
             "nomenclature": nomenclature,
-            "diagnosis": variant_data.get("diagnosis", None),
+            "diagnosis_id": variant_data.get("diagnosis_id"),
             **annotation_context_fields(nomenclature=nomenclature, source=variant_data),
         }
 
@@ -601,9 +601,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             delete_clause.append({"text": annotation_text})
 
         scoped_query = {**query, "$or": delete_clause}
-        context = variant_data.get("resource_context") or {}
-        scoped_query["resource_context.assay_id"] = context.get("assay_id")
-        scoped_query["resource_context.environment"] = context.get("environment")
+        scoped_query["asp_id"] = variant_data["asp_id"]
+        scoped_query["namespace"] = variant_data["namespace"]
         result = OperationResult.from_delete(self.delete_many_atomic(scoped_query))
         if result.deleted_count:
             self.invalidate_dashboard_metrics()

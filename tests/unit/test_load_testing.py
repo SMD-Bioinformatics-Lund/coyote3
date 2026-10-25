@@ -421,7 +421,7 @@ def test_example_ingest_matches_api_contract(inputs):
 
 def test_synthetic_biomarker_matches_api_contract():
     """Check shipped biomarker rows with the sample identity supplied by ingestion."""
-    from api.contracts.schemas.dna import BiomarkersDoc
+    from coyote3.contracts.schemas.dna import BiomarkersDoc
 
     path = Path(__file__).parents[1] / "load" / "synthetic" / "msi.json"
     rows = [json.loads(path.read_text())]

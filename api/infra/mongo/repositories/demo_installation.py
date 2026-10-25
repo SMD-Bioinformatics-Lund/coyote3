@@ -4,12 +4,14 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
-from api.config.loaders.collections import load_collection_section
-from api.domain.common.errors import api_error
+from bson import ObjectId
+
+from api.config.collections import load_collection_section
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.clinical_rule_sets import build_revision_snapshot
 from api.infra.mongo.repositories.query_rule_revisions import build_query_revision
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.common.errors import api_error
 
 IDENTITIES = {
     "assay_specific_panels": ("asp_collection", "asp_id"),
@@ -25,6 +27,18 @@ IDENTITIES = {
 
 class DemoInstallationRepository:
     """Keep demo writes on the configured application client and database."""
+
+    @staticmethod
+    def identifier(value: str | None) -> Any:
+        """Allocate a provider ID or restore the bundle's fixed public catalogue ID.
+
+        Args:
+            value: Fixed serialized ID, or None to allocate a fresh ID.
+
+        Returns:
+            MongoDB identifier owned by the repository boundary.
+        """
+        return ObjectId(value) if value is not None else ObjectId()
 
     def __init__(self, database: Any) -> None:
         """Bind the explicitly selected application database."""

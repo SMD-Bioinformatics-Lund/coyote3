@@ -45,6 +45,12 @@ into shared logs: both can contain secrets.
 
 ## Supported keys, requirements and defaults
 
+For compiled image builds, `COYOTE3_SDK_ARTIFACT_DIR` optionally selects an absolute
+directory containing the CI-tested SDK wheel and `release-record.json`. Base
+Compose defaults to the repository's ignored `.release/sdk` directory. This is a
+build input, not an SDK runtime setting. Export `GIT_COMMIT` from the reviewed
+checkout; production artifact verification requires it to match the release record.
+
 The [environment-variable table](../deployment/configuration-reference.md#environment-variable-reference)
 is the authoritative key-by-key reference. It lists requirement, accepted value,
 default when omitted and purpose. Defaults refer to the selected Compose/runtime

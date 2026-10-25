@@ -7,19 +7,20 @@ from unittest.mock import Mock
 import pytest
 from bson import ObjectId
 from bson.errors import InvalidId
-from fastapi import HTTPException
 
-from api.application.classification.tiering import ResourceClassificationService
-from api.application.classification.variant_annotation import ResourceAnnotationService
-from api.application.common.finding_access import require_sample_finding
-from api.application.dna.variant_analysis import DnaService
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.application.rna.expression_analysis import RnaService
-from api.domain.common.errors import AppError
 from api.infra.mongo.repositories.base import BaseRepository
-from api.interfaces.http.clinical.common.change_helpers import resource_change
-from api.interfaces.http.clinical.dna import small_variants as annotation_routes
+from api.interfaces.http.v1.clinical.dna import small_variants as annotation_routes
 from api.security import access
+from coyote3.application.classification.tiering import ResourceClassificationService
+from coyote3.application.classification.variant_annotation import ResourceAnnotationService
+from coyote3.application.common.finding_access import require_sample_finding
+from coyote3.application.dna.variant_analysis import DnaService
+from coyote3.application.operations import FlagChange
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.application.rna.expression_analysis import RnaService
+from coyote3.domain.common.errors import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
+from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -43,17 +44,21 @@ def test_annotation_route_requires_the_extra_global_permission(monkeypatch, scop
         asp_groups=["*"],
         envs=["testing"],
     )
-    sample = {"_id": "sample"}
-    monkeypatch.setattr(annotation_routes, "_get_sample_for_api", lambda *_args: sample)
+    sample = {"_id": "sample", "asp_id": "synthetic", "environment": "testing"}
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *_args: sample)
     service = Mock()
     service.create_annotation.return_value = "variant_comment"
+    operations = sdk_fixtures.sample_operations(service, principal, "sample")
+    operations._runtime.policy_factory = lambda actor: access.build_access_policy(
+        user=actor, roles_repository=roles, permissions_repository=PermissionCatalog()
+    )
     arguments = {
         "payload": {"id": "finding", "form_data": {"global": scope, "text": "note"}},
         "user": principal,
-        "service": service,
+        "service": operations,
     }
     if scope == "global" and not global_allowed:
-        with pytest.raises(HTTPException) as failure:
+        with pytest.raises(AppError) as failure:
             annotation_routes.add_variant_comment_change("sample", **arguments)
         assert failure.value.status_code == 403
         service.create_annotation.assert_not_called()
@@ -104,25 +109,22 @@ def test_bulk_rejects_foreign_last_item_before_any_write(kind):
     write.assert_not_called()
 
 
-def test_custom_validator_cannot_skip_sample_authorization(monkeypatch):
-    """Custom finding validation never replaces the sample scope check."""
-    access = Mock(side_effect=PermissionError("denied"))
-    monkeypatch.setattr("api.security.access._get_sample_for_api", access)
-    mutate = Mock()
-    validate = Mock()
-    with pytest.raises(PermissionError):
-        resource_change(
-            "sample",
-            "finding",
-            SimpleNamespace(),
-            SimpleNamespace(),
-            resource="cnv",
-            action="mark",
-            mutate=mutate,
-            validate=validate,
-        )
-    validate.assert_not_called()
-    mutate.assert_not_called()
+def test_sample_authorization_precedes_finding_validation(monkeypatch):
+    """Denied sample scope prevents both finding validation and mutation in the SDK."""
+    service = Mock()
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *_: {"_id": "sample"})
+    user = fx.api_user()
+    user.roles = ["curator"]
+    operations = sdk_fixtures.finding_operations(service, "cnv", user, "sample")
+    operations._runtime.policy_factory = lambda actor: SimpleNamespace(
+        permission_allowed=lambda *args, **kwargs: True,
+        scope_allowed=lambda *args, **kwargs: False,
+    )
+    with pytest.raises(AppError) as failure:
+        operations.set_flags(FlagChange(resource_ids=["finding"], flag="interesting", value=True))
+    assert failure.value.status_code == 403
+    service.require_resource_for_sample.assert_not_called()
+    service.set_cnv_flag.assert_not_called()
 
 
 def test_scoped_flag_write_cannot_match_another_sample():
@@ -156,7 +158,7 @@ def test_malformed_bulk_identifier_prevents_every_write():
 def test_malformed_finding_id_is_not_found():
     """A malformed identifier is rejected without exposing database parsing errors."""
     with pytest.raises(AppError) as error:
-        require_sample_finding({"_id": "sample"}, "invalid", Mock(side_effect=InvalidId()))
+        require_sample_finding({"_id": "sample"}, "invalid", Mock(side_effect=ValueError()))
     assert error.value.status_code == 404
 
 

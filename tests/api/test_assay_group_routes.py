@@ -7,10 +7,14 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.app.deps.services import get_admin_assay_group_service
-from api.application.resources.assay_groups import AssayGroupService
-from api.interfaces.http.admin.resources.asp import router
+from api.app.deps.application import get_assay_groups
+from api.interfaces.http.v1.admin.resources.asp import router
 from api.security.access import ApiUser
+from coyote3.application.operations import administration as sdk_administration
+from coyote3.application.operations.administration import AssayGroups
+from coyote3.application.resources.assay_groups import AssayGroupService
+from tests.fixtures.api import application_sdk as sdk_fixtures
+from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -63,7 +67,9 @@ def client(monkeypatch):
     )
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[get_admin_assay_group_service] = lambda: service
+    app.dependency_overrides[get_assay_groups] = lambda: sdk_fixtures.authorized_operations(
+        AssayGroups, service, user
+    )
     with TestClient(app) as http:
         yield http, user
 
@@ -151,21 +157,28 @@ def test_impact_and_status_response_contracts(client):
 def test_creation_attaches_audit_identity():
     from starlette.requests import Request
 
-    from api.contracts.schemas.assay_groups import AssayGroupCreate
-    from api.interfaces.http.admin.resources.asp import create_assay_group
+    from api.interfaces.http.v1.admin.resources.asp import create_assay_group
+    from coyote3.contracts.schemas.assay_groups import AssayGroupCreate
 
     request = Request({"type": "http"})
     actors = []
+    author = fx.api_user()
+    author.username = "author"
 
     def create(payload, *, actor):
         actors.append(actor)
         return {"resource_id": payload.group_id, "meta": {}}
 
-    create_assay_group(
+    sdk_fixtures.invoke_route(
+        create_assay_group,
         request=request,
         payload=AssayGroupCreate(group_id="custom", display_name="Custom"),
-        user=SimpleNamespace(username="author"),
-        service=SimpleNamespace(create=create),
+        user=author,
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.AssayGroups,
+            SimpleNamespace(create=create),
+            author,
+        ),
     )
     assert actors == ["author"]
     assert request.state.audit_resource["id"] == "custom"

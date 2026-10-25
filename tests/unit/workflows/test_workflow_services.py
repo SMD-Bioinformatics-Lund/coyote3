@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.common.release_resources import capture_assay_resource, capture_gene_lists
-from api.application.reporting import dna_report_payload as dna_payload
-from api.application.reporting import dna_workflow, rna_workflow
+from api.infra.report_images import get_plot
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.application.reporting import dna_workflow, rna_workflow
 
 
 def _release(assay: str, group: str, *, rna: bool = False) -> dict:
@@ -52,6 +52,7 @@ def _release(assay: str, group: str, *, rna: bool = False) -> dict:
 def _dna_workflow() -> dna_workflow.DNAWorkflowService:
     stub = SimpleNamespace()
     return dna_workflow.DNAWorkflowService(
+        plot_reader=get_plot,
         assay_panel_repository=stub,
         gene_list_repository=stub,
         variant_repository=stub,
@@ -160,6 +161,7 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
 def test_dna_report_payload_requires_sample_database_vep_version():
     try:
         dna_workflow.build_dna_report_payload(
+            plot_reader=get_plot,
             sample={
                 "_id": "s1",
                 "name": "S1",
@@ -230,6 +232,7 @@ def test_dna_report_payload_requires_sample_database_vep_version():
 
 def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cnv_list():
     template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+        plot_reader=get_plot,
         sample={
             "_id": "s1",
             "name": "S1",
@@ -331,8 +334,8 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
     def unexpected(*_args, **_kwargs):
         raise AssertionError("display-only report work must not run during rule testing")
 
-    monkeypatch.setattr(dna_payload, "get_plot", unexpected)
     template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+        plot_reader=unexpected,
         sample={
             "_id": "s1",
             "name": "S1",

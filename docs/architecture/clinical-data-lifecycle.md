@@ -29,7 +29,7 @@ A completed YAML manifest is the ingest declaration. Pipeline keys such as assay
 
 ## Configured file ownership
 
-The center-configurable mapping is in api/config/center/clinical_vocabulary.toml. It defines accepted external manifest keys and their analysis ownership. An ASP may further restrict those keys with expected_files and required_files. ASPC analysis_types control configured analysis availability, not the ASP required-file policy.
+The center-configurable mapping is in config/examples/center/clinical_vocabulary.toml. It defines accepted external manifest keys and their analysis ownership. An ASP may further restrict those keys with expected_files and required_files. ASPC analysis_types control configured analysis availability, not the ASP required-file policy.
 
 | Omics layer | Analysis type | Default manifest key | Internal preload | Persistent destination |
 | --- | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ Manifest names are center-configurable. Internal preload names are application c
 
 ## Storage contract by artifact
 
-Before dependent records are written, ingest attaches canonical sample linkage and sample name. Each record is validated through api/contracts/schemas/registry.py.
+Before dependent records are written, ingest attaches canonical sample linkage and sample name. Each record is validated through src/coyote3/contracts/schemas/registry.py.
 
 | Collection | One document per | Stored content | How it is fetched |
 | --- | --- | --- | --- |

@@ -1,7 +1,7 @@
 # Center Vocabulary Configuration
 
 `clinical_vocabulary.toml` in the external center directory is the vocabulary contract.
-The bundled `api/config/center/clinical_vocabulary.toml` provides complete examples.
+The bundled `config/examples/center/clinical_vocabulary.toml` provides complete examples.
 See [persistent configuration](../deployment/center-configuration.md#persistent-local-files-or-a-git-configuration-release)
 for local files, pinned Git sources, deployment, and upgrade handling.
 It is loaded and validated when the API or a worker starts. A malformed
@@ -11,7 +11,7 @@ run with an ambiguous contract.
 ## Format, required values and defaults
 
 The center file contains clinical policy and presentation metadata. Application
-capabilities are loaded separately from `api/config/clinical_capabilities.toml`.
+capabilities are loaded separately from `src/coyote3/config/clinical_capabilities.toml`.
 That release-owned file defines categories, families, scopes, the base diagnosis,
 environments, authentication providers, gene-list types, supported fusion callers,
 manifest keys, required-file baselines, transcript selection order and analysis mappings. Center configuration
@@ -36,14 +36,14 @@ capability. Retain the software-supported semantics when changing identifiers.
 
 | Vocabulary | Application consumer | Effect and limits |
 | --- | --- | --- |
-| `assay.categories`, `families`, `family_categories`, `family_scopes` | `api/config/constants.py`, assay/sample contracts, and ingest helpers | ASP choices, category validation, family-to-omics mapping, and sample sequencing scope. |
+| `assay.categories`, `families`, `family_categories`, `family_scopes` | `src/coyote3/config/constants.py`, assay/sample contracts, and ingest helpers | ASP choices, category validation, family-to-omics mapping, and sample sequencing scope. |
 | `assay.base_diagnosis_id` | `DIAGNOSIS_BASE_ID`, ASPC resolution, catalog and reporting services | Identifies the application-owned base configuration scope. |
 | `environment.options`, `default` | Environment normalization, sample catalog defaults, ingest, user scopes, and public catalog | Defines application-owned clinical profiles and their default. This does not replace the deployment's `ENV_NAME`. |
 | `authentication.providers` | Authentication constants and login configuration | Defines implemented local/LDAP providers; `AUTHENTICATION_PROVIDERS` can override it for a deployment. |
 | `genelist.standard_types`, `adhoc_types` | Gene-list contracts, managed forms, and filter normalization | Curated and ad-hoc gene-list choices. |
 | `files.*.keys`, `files.required_by_family` | Sample contracts, ASP required-file defaults, manifest normalization and ingest | Defines pipeline file keys and baseline required inputs. ASP records can specify their required files. |
 | `analysis.*.types`, `file_keys`, `allowed_by_family` | Analysis constants, ingest preload bindings, ASPC validation and managed forms | Binds implemented analyses to files and assay families. Adding a name does not create ingest or review support. |
-| Application `reporting.transcript_selection_order` | `api/application/ingest/parsers.py` | Fixed order for persisted transcript evidence during ingest. Not editable by centers; existing findings retain their selected transcript. |
+| Application `reporting.transcript_selection_order` | `src/coyote3/application/ingest/parsers.py` | Fixed order for persisted transcript evidence during ingest. Not editable by centers; existing findings retain their selected transcript. |
 | `fusion.callers` | Fusion contracts, query builder, managed filters, RNA view contexts and caller-specific flag validation | Normalizes caller IDs and validates supported fusion caller selections. |
 | `fusion.description_terms` | RNA view contexts and fusion annotation badges | Categorizes caller evidence text for display; it is not a reporting-rule predicate. |
 | `snv.callers`, `cnv.callers`, `translocation.callers` | Filter metadata validation and SNV/CNV/translocation flag display | Registers caller-specific explanations. Historical caller names are retained; these lists do not filter findings or reject stored provenance. |
@@ -235,7 +235,7 @@ that option automatically.
 ### Transcript Selection Selectors
 
 `reporting.transcript_selection_order` belongs to the application release in
-`api/config/clinical_capabilities.toml`. Centers cannot change its order. It puts
+`src/coyote3/config/clinical_capabilities.toml`. Centers cannot change its order. It puts
 RefSeq/NCBI sources before their Ensembl equivalents. Within a selector, VEP impact
 is ordered HIGH, MODERATE, LOW, then MODIFIER.
 
@@ -361,7 +361,7 @@ group-specific query policy is configured and reviewed.
 
 The application exposes `analysis_file_keys(omics, analysis)` and
 `primary_analysis_file_key(omics, analysis)` from
-`api/config/constants.py`. Ingest parsers, sample file status cards, CNV plot
+`src/coyote3/config/constants.py`. Ingest parsers, sample file status cards, CNV plot
 delivery, report rendering, and sample-omics inference use these accessors;
 they do not depend on a hardcoded center file-field name.
 

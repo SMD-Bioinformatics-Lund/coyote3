@@ -9,12 +9,12 @@ from types import SimpleNamespace
 import pytest
 from bson import ObjectId
 
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
-from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.service import ClinicalRuleService
-from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
-from api.contracts.schemas.clinical_rules import (
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
+from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -24,26 +24,32 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleTestCase,
     ClinicalRuleTransition,
 )
-from api.domain.core.exceptions import AppError
+from coyote3.domain.exceptions import AppError
 
 
 def test_annotation_terminology_is_scoped_published_and_integrity_checked():
-    """Automatic wording resolves the same immutable DNA release as report generation."""
+    """Automatic wording resolves the published DNA scope without reading ASPC snapshots."""
     doc = _document(status="published", active=True)
     doc.terminology = {"automatic_annotation_tumor_type": "hematologiska"}
     doc.content_hash = content_hash(doc)
     configuration = _configuration(doc)
-    service = ClinicalRuleService(None)
-    assert service.annotation_tumor_type(aspc=configuration) == "hematologiska"
-    configuration["clinical_rule_release"]["terminology"]["automatic_annotation_tumor_type"] = (
-        "solida"
+    sample = {"asp_id": "assay_1", "asp_category": "dna", "diagnosis_id": "base"}
+    service = ClinicalRuleService(
+        SimpleNamespace(
+            list_active_for_assay=lambda *args, **kwargs: [
+                doc.model_dump(mode="python", by_alias=True)
+            ]
+        )
     )
+    assert service.annotation_tumor_type(aspc=configuration, sample=sample) == "hematologiska"
+    doc.terminology["automatic_annotation_tumor_type"] = "solida"
     with pytest.raises(ValueError, match="integrity"):
-        service.annotation_tumor_type(aspc=configuration)
+        service.annotation_tumor_type(aspc=configuration, sample=sample)
+    doc.content_hash = content_hash(doc)
     configuration = _configuration(doc)
     configuration["reporting"]["language"] = "en"
-    with pytest.raises(ValueError, match="scope"):
-        service.annotation_tumor_type(aspc=configuration)
+    with pytest.raises(ValueError, match="No active published"):
+        service.annotation_tumor_type(aspc=configuration, sample=sample)
 
 
 def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
@@ -60,7 +66,9 @@ def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
     with pytest.raises(ValueError, match="requires Swedish"):
         configuration = _configuration(document)
         configuration["reporting"]["language"] = "en"
-        service.annotation_tumor_type(aspc=configuration)
+        service.annotation_tumor_type(
+            aspc=configuration, sample={"asp_id": "assay_1", "asp_category": "dna"}
+        )
 
 
 @pytest.mark.parametrize("value", ["", " padded ", 7, "x" * 121])
@@ -406,6 +414,101 @@ def test_runtime_resolves_published_scope_and_verifies_hash():
     )
     assert result.source.rule_set_id == "assay_1__base__sv"
     assert result.source.content_version == 1
+
+
+def test_publication_changes_report_resolution_without_aspc_update_and_invalidates_preview():
+    """A new publication changes report provenance even when rendered wording is identical."""
+    from coyote3.application.operations.reporting import Reports
+    from coyote3.application.reporting.preview_consistency import (
+        preview_fingerprint,
+        require_current_preview,
+    )
+
+    document = _document(status="published", active=True)
+    configuration = _configuration(document)
+    sample = _context().sample.model_dump()
+    repository = SimpleNamespace(
+        list_active_for_assay=lambda *args, **kwargs: [
+            document.model_dump(mode="python", by_alias=True)
+        ]
+    )
+    service = ClinicalRuleService(repository)
+
+    def build(**kwargs):
+        """Evaluate current rules using unchanged sample and configuration facts."""
+        evaluation = service.evaluate(aspc=configuration, context=_context())
+        return (
+            "dna_report.html",
+            {
+                "sample": sample,
+                "assay_config": configuration,
+                "clinical_rule_evaluation": evaluation.model_dump(mode="json"),
+            },
+            [],
+        )
+
+    workflow = SimpleNamespace(
+        validate_report_inputs=lambda *args: None, build_report_payload=build
+    )
+    reports = Reports(
+        None,
+        SimpleNamespace(
+            configuration=lambda sample: configuration,
+            workflow=lambda analyte: workflow,
+            logger=None,
+        ),
+    )
+    template, reviewed, _, _ = reports._build(sample, "dna", save=False, include_snapshot=False)
+    fingerprint = preview_fingerprint(template, reviewed)
+    receipt = deepcopy(reviewed["clinical_rule_resolution"])
+    document.content_version = 2
+    document.content_hash = content_hash(document)
+    _, current, _, _ = reports._build(sample, "dna", save=True, include_snapshot=True)
+    assert configuration["clinical_rule_release"]["content_version"] == 1
+    assert current["clinical_rule_resolution"]["content_version"] == 2
+    assert receipt["content_version"] == 1
+    with pytest.raises(AppError, match="Refresh and review"):
+        require_current_preview(fingerprint, template, current)
+
+
+def test_clinical_profiles_resolve_live_and_are_recorded_in_report_sources():
+    """Published profile sources refresh without becoming part of an ASPC revision."""
+    from coyote3.application.reporting.clinical_rules.resolution import capture_clinical_rules
+    from coyote3.application.resources.configuration_profiles import profile_hash
+
+    document = _document(status="published", active=True)
+    configuration = _configuration(document)
+    profile = {
+        "_id": "synthetic-profile",
+        "profile_id": "scoped_rules",
+        "kind": "clinical_rules",
+        "version": 1,
+        "bindings": [{"asp_group": "solid"}],
+        "content": {"disable_blocks": []},
+    }
+    profile["content_hash"] = profile_hash(profile)
+    service = ClinicalRuleService(
+        SimpleNamespace(
+            list_active_for_assay=lambda *args, **kwargs: [document.model_dump(by_alias=True)]
+        ),
+        profiles=SimpleNamespace(published=lambda: [deepcopy(profile)]),
+        assays=SimpleNamespace(
+            get_asp=lambda key: {
+                "asp_id": key,
+                "asp_group": "solid",
+                "asp_category": "dna",
+                "asp_family": "panel-dna",
+            }
+        ),
+    )
+    with capture_clinical_rules() as first:
+        service.evaluate(aspc=configuration, context=_context())
+    profile["version"] = 2
+    with capture_clinical_rules() as second:
+        service.evaluate(aspc=configuration, context=_context())
+    assert first[document.rule_set_id]["profiles"][0]["version"] == 1
+    assert second[document.rule_set_id]["profiles"][0]["version"] == 2
+    assert "profile_sources" not in configuration
 
 
 class _MemoryRepository:

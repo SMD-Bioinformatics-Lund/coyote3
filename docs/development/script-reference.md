@@ -6,6 +6,19 @@ from the repository root with the target environment explicitly configured.
 
 ## Synthetic clinical workflow tools
 
+`scripts/quality/run_transaction_tests.py` starts two temporary loopback MongoDB
+replica sets, runs pytest with isolated database endpoints, and stops only its own
+processes. It requires local `mongod` and the backend development environment:
+
+```bash
+.venv/bin/python scripts/quality/run_transaction_tests.py -- -q tests/integration
+```
+
+`scripts/release/verify_sdk_artifact.py` validates the retained wheel and release
+record during Docker builds. It checks the checksum, package metadata, selected
+versions and production source provenance. See
+[release artifacts](../sdk/compatibility.md#build-and-record-an-application-release).
+
 The [workflow guide](../testing/clinical-workflow-demo.md) documents the raw fixture
 bundle and deployment exercises.
 
@@ -100,7 +113,10 @@ the default creates a review artifact without database access.
 | `quality/check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
 | `docs/export_collection_contracts_doc.py` | Automated | contract integrity | Regenerates the collection-contract reference from Pydantic schemas |
 | `docs/export_permissions_reference.py` | Automated | contract integrity | Regenerates permission and system-role catalogs from application-owned RBAC definitions |
-| `release/sync-package-version.js` | Automated | frontend package lifecycle | Synchronizes the frontend package version with `api/version.py` |
+| `release/sync-package-version.js` | Automated | frontend package lifecycle | Synchronizes the frontend package version with `release.toml` |
+| `release/check_release.py` | Manual and quality gate | application/SDK release preparation | Validates independent release versions and records wheel identity, digest and source provenance. |
+| `release/build_sdk.py` | Manual and CI | SDK release preparation | Builds a wheel from isolated distribution inputs, excluding stale local build outputs. |
+| `docs/export_sdk_reference.py` | Manual | SDK interface documentation | Generates public signatures and docstrings in `docs/sdk/reference.md`. |
 
 ## Deployment and database operations
 

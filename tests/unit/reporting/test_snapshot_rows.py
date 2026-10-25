@@ -4,14 +4,14 @@ from datetime import datetime, timezone
 
 import pytest
 
-from api.application.reporting.snapshot_rows import (
+from coyote3.application.reporting.snapshot_rows import (
     build_biomarker_snapshot_rows,
     build_cnv_snapshot_rows,
     build_pgx_snapshot_rows,
     build_translocation_snapshot_rows,
     flatten_pgx_records,
 )
-from api.contracts.schemas.dna import ReportedVariantsDoc
+from coyote3.contracts.schemas.dna import ReportedVariantsDoc
 
 
 def test_builds_typed_cnv_biomarker_and_pgx_rows() -> None:

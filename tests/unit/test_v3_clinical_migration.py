@@ -120,8 +120,11 @@ def test_annotations_preserve_scope_author_and_class(nomenclature, variant, iden
     }
     result = convert_annotation(source)
     assert result[identity] == variant
-    assert result["diagnosis"] == source["subpanel"]
-    for key in ("_id", "variant", "class", "author", "time_created", "assay"):
+    assert result["diagnosis_id"] == source["subpanel"]
+    assert result["asp_group"] == source["assay"]
+    assert result["asp_id"] is None
+    assert result["namespace"] == "clinical"
+    for key in ("_id", "variant", "class", "author", "time_created"):
         assert result[key] == source[key]
 
 
