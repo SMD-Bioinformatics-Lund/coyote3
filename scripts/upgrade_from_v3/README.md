@@ -3,6 +3,14 @@
 This package converts offline BSON exports of the v3 `coyote3` database.
 It does not connect to the production source.
 
+MongoDB is the destination. Local `.sqlite` files are temporary lookup caches over
+BSON exports; they do not migrate the application to SQL. Conversion commands only
+write private files. Only the separately invoked target apply command writes to MongoDB.
+
+Use the [numbered migration commands](../migration_common/README.md#migration-commands-in-order)
+for both versions: inventory, source preparation, shared `anno_vep`, annotations,
+blacklist, all sample data, target preflight, and explicit application.
+
 Follow the [v3 migration runbook](../../docs/migration_from_v3/migration-guide.md)
 for the source inventory, mapping format, missing-data requirements, migration
 order, target application, and recovery procedure.
@@ -14,11 +22,13 @@ order, target application, and recovery procedure.
 | `audit_source_schema.py` | Inventory every field and shape in all migrated source records before conversion |
 | `prepare_source.py` | Index the documented v3 BSON snapshot with sample-reference checks |
 | `inspect_record.py` | Write one original record and reconciliation digests to a private file |
+| `../migration_common/build_anno_vep.py` | Build shared VEP transcript evidence from v2 and v3 variants before annotation conversion |
 | `migrate_annotations.py` | Preserve shared annotation identities, scope, authors, and content |
 | `migrate_blacklist.py` | Preserve blacklist entries and map assay-group scope |
 | `migrate_d4_coverage_blacklist.py` | Convert actual exclusion-shaped records; measurements remain sample-scoped |
 | `backfill_sample_metadata.py` | Read reviewed TSV metadata or prepare later run/read patches |
 | `migrate_sample.py` | Build one bundle of related findings, histories, snapshots, and VEP evidence |
+| `migrate_samples.py` | Convert all selected samples and related clinical records, including D4 measurements, into per-sample bundles |
 
 Apply bundles with `scripts/migration_common/apply_bundle.py` against an isolated
 local target. It defaults to read-only preflight and requires `--apply` for writes.

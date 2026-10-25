@@ -5,6 +5,14 @@ The authoritative small-variant collection is **`variants_idref`** and the
 authoritative CNV collection is **`cnvs_wgs`**. The older `variants` and `cnvs`
 collections are excluded.
 
+MongoDB is the destination. Local `.sqlite` files are temporary lookup caches over
+BSON exports; they do not migrate the application to SQL. Conversion commands only
+write private files. Only the separately invoked target apply command writes to MongoDB.
+
+Use the [numbered migration commands](../migration_common/README.md#migration-commands-in-order)
+for both versions: inventory, source preparation, shared `anno_vep`, annotations,
+blacklist, all sample data, target preflight, and explicit application.
+
 Follow the [v2 migration runbook](../../docs/migration_from_v2/migration-guide.md)
 for collection mappings, source relationships, reconciliation, commands, and recovery.
 
@@ -15,10 +23,12 @@ for collection mappings, source relationships, reconciliation, commands, and rec
 | `audit_source_schema.py` | Inventory every field and shape in all migrated source records before conversion |
 | `prepare_source.py` | Index the documented v2 BSON snapshot without connecting to MongoDB |
 | `inspect_record.py` | Write original record evidence and source hashes to a private file |
+| `../migration_common/build_anno_vep.py` | Build shared VEP transcript evidence from v2 and v3 variants before annotation conversion |
 | `migrate_annotations.py` | Preserve shared annotation scope, identity, and clinical content |
 | `migrate_blacklist.py` | Convert blacklist assay-group scope |
 | `backfill_sample_metadata.py` | Add missing TSV metadata or prepare later run/read patches |
 | `migrate_sample.py` | Convert one sample and its related findings, histories, and VEP evidence |
+| `migrate_samples.py` | Convert all selected samples, findings, embedded RNA results, comments and reports into per-sample bundles |
 
 ## Required reconciliation
 

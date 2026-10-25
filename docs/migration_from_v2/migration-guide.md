@@ -48,7 +48,7 @@ configuration change requires a new snapshot and newly reviewed bundles.
 
 | Source | Current destination |
 | --- | --- |
-| `samples` | `samples`, extracted `sample_comments` and `reports` |
+| `samples` | `samples`, extracted comments/reports, and embedded RNA expression, QC and classification |
 | `annotation` | `annotation`, with explicitly resolved scope and nomenclature identity |
 | `blacklist` | `blacklist`; bundle scope is `assay_group`, persisted as the runtime's `assay` key |
 | `biomarkers` | `biomarkers`; measurements require typed payloads and known units |
@@ -161,17 +161,24 @@ validate their contents or availability.
 
 1. Complete target configuration, reference installation, and target preflight.
 2. Complete the offline source inventory, index, and operator review.
-3. Convert and apply shared annotations and finding blacklist entries.
-
-4. Convert one sample at a time, including its findings, comments, saved reports,
+3. Build the shared `anno_vep` reference from the complete v2/v3 variant indexes,
+   using reviewed release provenance. Convert shared annotations against that
+   reference, then convert finding blacklist entries.
+4. Use `migrate_samples.py` for all selected samples, or `migrate_sample.py` for one,
+   including findings, embedded RNA results, comments, saved reports,
    reported-finding references where present, and original transcript evidence.
 5. Reconcile collection counts, identities, report links, exclusions, missing values,
    and all source records before clinical acceptance and cutover.
+
+The [shared migration README](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/migration_common/README.md#migration-commands-in-order)
+contains the complete numbered command sequence. SQLite is a temporary local lookup
+cache; MongoDB is the destination.
 
 ```bash
 .venv/bin/python scripts/migrate_from_v2/migrate_annotations.py \
   --index /secure/migration/source.sqlite --schema-audit /secure/migration/schema-audit \
   --target-catalog /secure/migration/target-catalog.json \
+  --vep-index /secure/migration/vep103 \
   --review /secure/migration/review.json --output /secure/migration/annotations-bundle
 .venv/bin/python scripts/migrate_from_v2/migrate_blacklist.py \
   --index /secure/migration/source.sqlite --schema-audit /secure/migration/schema-audit \

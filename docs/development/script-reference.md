@@ -34,6 +34,13 @@ use `variants_idref` and `cnvs_wgs`. Both packages operate on offline BSON expor
 the [v2 procedure](../migration_from_v2/migration-guide.md) and
 [v3 procedure](../migration_from_v3/migration-guide.md) specify their order.
 
+`scripts/migration_common/build_anno_vep.py` builds the shared historical transcript
+reference and bounded MongoDB bundles from reviewed variant exports. Both version
+packages provide `migrate_samples.py` to convert all selected samples and related
+clinical collections. These are offline conversion tools; applying bundles is a
+separate explicit operation against an isolated MongoDB target. SQLite files are
+local lookup indexes, not the migration destination.
+
 > **Info:** A script can be operationally supported without being called automatically.
 > Backup, restore, reference synchronization, and one-time seed imports are intentionally
 > explicit operator actions.

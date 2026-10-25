@@ -2,6 +2,11 @@
 
 ## v4.0.0
 
+- Build shared historical `anno_vep` migration bundles from v2/v3 variant evidence,
+  resolve annotations against exact transcripts, and add all-sample batch conversion
+  with embedded RNA results and per-sample reports. Document MongoDB apply commands
+  separately from offline preparation and local lookup indexes.
+
 - Correct offline v2/v3 migration persistence for blacklist assay scopes and reviewed
   annotation diagnoses. Verify migrated blacklist entries through the runtime repository.
 
