@@ -119,10 +119,12 @@ def test_repository_preserves_records_captures_policy_revisions_and_audits(monke
     }
     assert len(receipts) == 4
     assert {event["actor"] for event in receipts} == {"authenticated.admin"}
+    publications_before = list(knowledgebase.versions.find())
     assert set(repository.install(documents, scope="all", actor="second.admin").values()) == {
         "skipped"
     }
     assert len(receipts) == 4
+    assert list(knowledgebase.versions.find()) == publications_before
     assert len(transactions) == 4
     for database in (application, knowledgebase):
         for name in database.list_collection_names():

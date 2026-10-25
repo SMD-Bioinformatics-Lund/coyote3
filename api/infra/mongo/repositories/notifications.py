@@ -138,7 +138,7 @@ class NotificationsRepository(BaseRepository):
         return {
             "$and": [
                 {"$or": [{"audience": "all"}, {"recipients": normalized}]},
-                {"$or": [{"is_broadcast": True}, {"dismissed_by": {"$ne": normalized}}]},
+                {"dismissed_by": {"$ne": normalized}},
                 {"withdrawn_on": None},
                 {
                     "$or": [
@@ -325,7 +325,7 @@ class NotificationsRepository(BaseRepository):
             return False
         normalized = str(username or "").strip().lower()
         result = self.get_collection().update_one(
-            {"_id": object_id, "is_broadcast": {"$ne": True}, **self._visible_query(normalized)},
+            {"_id": object_id, **self._visible_query(normalized)},
             {
                 "$addToSet": {"dismissed_by": normalized},
                 "$set": {"updated_on": datetime.now(timezone.utc)},
@@ -344,7 +344,7 @@ class NotificationsRepository(BaseRepository):
         """
         normalized = str(username or "").strip().lower()
         result = self.update_many_atomic(
-            {**self._visible_query(normalized), "is_broadcast": {"$ne": True}},
+            self._visible_query(normalized),
             {
                 "$addToSet": {"dismissed_by": normalized},
                 "$set": {"updated_on": datetime.now(timezone.utc)},

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { apiPath, appPath } from "@/lib/runtime-paths"
-import { api } from "@/lib/api"
+import { api, ApiClientError } from "@/lib/api"
 import { NotificationSeverityBadge } from "./NotificationSeverityBadge"
 import { NOTIFICATION_STORAGE_PREFIX, SESSION_CHANGED_EVENT } from "@/lib/session-state"
 import { NotificationContext, type NotificationContextValue } from "./notification-context"
@@ -154,8 +154,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       if (method === "PATCH") await api.patch(path)
       else await api.delete(path)
-    } catch {
-      // The next inbox refresh reconciles state after a transient network error.
+      return true
+    } catch (error) {
+      if (!(error instanceof ApiClientError)) notify({ tone: "error", title: "Notification update failed", message: "Your change was not saved. Please try again." })
+      return false
     }
   }, [])
 
@@ -185,16 +187,28 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [notifications, updateServerState])
 
   const remove = useCallback((id: string) => {
-    hiddenIds.current.add(id)
-    setNotifications((current) => current.filter((notification) => notification.id !== id))
-    setVisibleToasts((current) => current.filter((notification) => notification.id !== id))
-  }, [])
+    const persisted = notifications.some((item) => item.id === id && item.persisted)
+    const generation = sessionGeneration.current
+    void (async () => {
+      if (persisted && !await updateServerState(`/notifications/${encodeURIComponent(id)}/dismiss`, "PATCH")) return
+      if (generation !== sessionGeneration.current) return
+      hiddenIds.current.add(id)
+      setNotifications((current) => current.filter((notification) => notification.id !== id))
+      setVisibleToasts((current) => current.filter((notification) => notification.id !== id))
+    })()
+  }, [notifications, updateServerState])
 
   const clear = useCallback(() => {
-    for (const item of notifications) hiddenIds.current.add(item.id)
-    setNotifications([])
-    setVisibleToasts([])
-  }, [notifications])
+    const generation = sessionGeneration.current
+    const ids = new Set(notifications.map((item) => item.id))
+    void (async () => {
+      if (notifications.some((item) => item.persisted) && !await updateServerState("/notifications", "DELETE")) return
+      if (generation !== sessionGeneration.current) return
+      for (const id of ids) hiddenIds.current.add(id)
+      setNotifications((current) => current.filter((item) => !ids.has(item.id)))
+      setVisibleToasts((current) => current.filter((item) => !ids.has(item.id)))
+    })()
+  }, [notifications, updateServerState])
 
   const value = useMemo<NotificationContextValue>(
     () => ({

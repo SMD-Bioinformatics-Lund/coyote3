@@ -67,14 +67,14 @@ describe("Notification history", () => {
     expect(notificationState.clear).toHaveBeenCalledOnce()
   })
 
-  it("renders broadcast Markdown and allows session-only recipient clearing", async () => {
+  it("renders broadcast Markdown and allows recipient-only clearing", async () => {
     notificationState.notifications = [{ id: "broadcast", title: "Important update", tone: "info",
       severity: "important", message: "**Review** the notice. <script>alert(1)</script>",
       createdAt: "2026-08-01T10:00:00Z", read: false, isBroadcast: true, canClear: false }]
     const user = userEvent.setup()
     renderWithRouter(<NotificationHistoryPage />)
     expect(screen.getByRole("button", { name: "Clear" })).toBeEnabled()
-    await user.click(screen.getByRole("button", { name: "Close notification for this session" }))
+    await user.click(screen.getByRole("button", { name: "Remove notification from your inbox" }))
     expect(notificationState.remove).toHaveBeenCalledWith("broadcast")
     await user.click(screen.getByText("Important update"))
     expect(screen.getByText("Review").tagName).toBe("STRONG")

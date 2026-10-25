@@ -117,6 +117,25 @@ class Notifications:
 
         return self._runtime.execute("notifications.dismiss_all", None, run)
 
+    def hide(self, *, notification_id: str) -> dict[str, Any]:
+        """Remove a notification from this recipient's inbox across sessions.
+
+        Args:
+            notification_id: Saved notification identifier visible to the current user.
+
+        Returns:
+            Acknowledgement of recipient-only dismissal.
+
+        Raises:
+            AppError: Authentication fails or the notification is not visible.
+        """
+
+        def run(actor: Any, sample: dict[str, Any] | None) -> dict[str, Any]:
+            """Persist dismissal under the verified recipient identity."""
+            return self._service().hide(notification_id=notification_id, username=actor.username)
+
+        return self._runtime.execute("notifications.hide", None, run)
+
     def dismiss(self, *, notification_id: str) -> dict[str, Any]:
         """Clear a personal notification, or withdraw a sender-owned broadcast for everyone.
 

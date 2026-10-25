@@ -89,6 +89,20 @@ def notification_dismiss_all(
     return util.common.convert_to_serializable(service.dismiss_all())
 
 
+@router.patch(
+    "/api/v1/notifications/{notification_id}/dismiss",
+    response_model=NotificationChangePayload,
+    include_in_schema=False,
+)
+def notification_hide(
+    notification_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: Notifications = Depends(get_notifications),
+):
+    """Permanently dismiss a message for the current recipient without withdrawing it."""
+    return util.common.convert_to_serializable(service.hide(notification_id=notification_id))
+
+
 @router.delete(
     "/api/v1/notifications/{notification_id}",
     response_model=NotificationChangePayload,

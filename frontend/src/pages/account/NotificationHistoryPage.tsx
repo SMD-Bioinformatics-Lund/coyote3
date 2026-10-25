@@ -11,7 +11,7 @@ export function NotificationHistoryPage() {
   const { notifications, unreadCount, markRead, markUnread, markAllRead, remove, clear } = useNotifications()
   return <PageShell eyebrow="Account" title="Notifications" actions={<>
     <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}><CheckCheck className="h-4 w-4" />Mark read</Button>
-    <Button variant="outline" onClick={clear} disabled={!notifications.length} title="Clear your tray for this browser session"><Trash2 className="h-4 w-4" />Clear</Button>
+    <Button variant="outline" onClick={clear} disabled={!notifications.length} title="Remove notifications from your inbox"><Trash2 className="h-4 w-4" />Clear</Button>
   </>}>
     <section className="surface-panel divide-y divide-border px-3">
       {!notifications.length && <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><Bell className="h-6 w-6" /><p>No notifications yet</p></div>}
@@ -29,7 +29,7 @@ export function NotificationHistoryPage() {
         <div className="flex shrink-0 gap-1">
           {!notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markRead(notification.id)} title="Mark notification as read" aria-label="Mark notification as read"><CheckCheck className="h-4 w-4" /></Button>}
           {notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markUnread(notification.id)} title="Mark notification as unread" aria-label="Mark notification as unread"><Mail className="h-4 w-4" /></Button>}
-          <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification" aria-label="Close notification for this session"><X className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification" aria-label="Remove notification from your inbox"><X className="h-4 w-4" /></Button>
         </div>
       </article>)}
     </section>

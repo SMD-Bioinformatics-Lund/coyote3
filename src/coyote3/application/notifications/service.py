@@ -202,6 +202,24 @@ class NotificationService:
             raise api_error(404, "Notification not found")
         return {"status": "ok", "changed": 1}
 
+    def hide(self, *, notification_id: str, username: str) -> dict[str, Any]:
+        """Persist recipient-only dismissal without withdrawing a broadcast.
+
+        Args:
+            notification_id: Stored notification identifier.
+            username: Authenticated recipient whose inbox is being changed.
+
+        Returns:
+            Acknowledgement of the recipient's dismissal.
+
+        Raises:
+            AppError: The notification is absent or not visible to this recipient.
+        """
+        changed = self.notification_repository.dismiss(notification_id, self._username(username))
+        if not changed:
+            raise api_error(404, "Notification not found")
+        return {"status": "ok", "changed": 1}
+
     def dismiss_all(self, *, username: str) -> dict[str, Any]:
         """Dismiss the recipient's notifications in bulk.
 

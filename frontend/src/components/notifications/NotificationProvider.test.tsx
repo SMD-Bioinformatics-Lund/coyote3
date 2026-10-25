@@ -78,7 +78,11 @@ describe("NotificationProvider", () => {
       expect.objectContaining({ method: "PATCH" }),
     ))
     await user.click(screen.getByRole("button", { name: "Remove one" }))
-    expect(screen.queryByText("Server notice")).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText("Server notice")).not.toBeInTheDocument())
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/notifications/server-1/dismiss"),
+      expect.objectContaining({ method: "PATCH" }),
+    )
     await user.click(screen.getByRole("button", { name: "Clear" }))
     expect(screen.getByLabelText("Unread count")).toHaveTextContent("0")
     window.dispatchEvent(new Event("focus"))
@@ -92,6 +96,55 @@ describe("NotificationProvider", () => {
     render(<NotificationProvider><Probe /></NotificationProvider>)
     await waitFor(() => expect(screen.getByLabelText("Unread count")).toHaveTextContent("0"))
     expect(screen.queryByText("Server notice")).not.toBeInTheDocument()
+  })
+
+  it("keeps a notification visible when its dismissal cannot be saved", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.includes("whoami")) return response({ username: "reader" })
+      if (path.endsWith("/dismiss")) return response({ detail: "Unavailable" }, false)
+      return response({ notifications: [{
+        id: "server-1", title: "Unsaved notice", message: "Synthetic",
+        created_at: "2026-10-25T12:00:00Z", read: false,
+      }] })
+    }))
+    const user = userEvent.setup()
+    render(<NotificationProvider><Probe /></NotificationProvider>)
+    expect(await screen.findByText("Unsaved notice")).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Remove one" }))
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/notifications/server-1/dismiss"),
+      expect.objectContaining({ method: "PATCH" }),
+    ))
+    expect(screen.getByText("Unsaved notice")).toBeVisible()
+  })
+
+  it.each(["Remove one", "Clear"])("persists %s across a new browser session", async (action) => {
+    let dismissed = false
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input)
+      if (path.includes("whoami")) return response({ username: "reader" })
+      if (path.endsWith("/dismiss") || init?.method === "DELETE") {
+        dismissed = true
+        return response({ status: "ok", changed: 1 })
+      }
+      return response({ notifications: dismissed ? [] : [{
+        id: "server-1", title: "Persisted notice", message: "Synthetic",
+        created_at: "2026-10-25T12:00:00Z", read: true, is_broadcast: true,
+      }] })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const user = userEvent.setup()
+    const first = render(<NotificationProvider><Probe /></NotificationProvider>)
+    expect(await screen.findByText("Persisted notice")).toBeVisible()
+    await user.click(screen.getByRole("button", { name: action }))
+    await waitFor(() => expect(screen.queryByText("Persisted notice")).not.toBeInTheDocument())
+    expect(dismissed).toBe(true)
+    first.unmount()
+    window.sessionStorage.clear()
+    render(<NotificationProvider><Probe /></NotificationProvider>)
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("whoami"))).toHaveLength(2))
+    expect(screen.queryByText("Persisted notice")).not.toBeInTheDocument()
   })
 
   it("retains a toast as a read inbox item when closed", async () => {

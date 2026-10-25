@@ -82,9 +82,10 @@ message text remains Markdown, not pre-rendered HTML.
 
 The tray shows a title and severity badge. Expanding a message reveals its body and
 marks it read. **Mark as unread** reverses the recipient's read state. Reading never
-withdraws a broadcast. Recipients can close or clear it from their current browser
-session; the message remains stored and visible to other recipients. The bulk-clear
-API retains its personal-message behavior and is not called by session clearing.
+withdraws a broadcast. Removing one message or clearing the inbox saves a
+recipient-specific dismissal in MongoDB. It survives login, browser changes and
+redeployment; the message remains stored and visible to other recipients.
+The UI removes server messages only after the dismissal request succeeds.
 Only its sender can withdraw a broadcast for everyone.
 The sender can review and withdraw messages under **Sent broadcasts**, even when
 the sender was not a recipient. Withdrawal records the sender and timestamp and
@@ -92,7 +93,8 @@ emits `notification.broadcast.withdrawn` in the audit log.
 
 An optional expiry is entered in the sender's local time and submitted as a
 timezone-aware timestamp. Past or timezone-less values are rejected. Without an
-expiry, a broadcast remains visible until withdrawn. Withdrawal and expiry hide
+expiry, a broadcast remains visible until the recipient dismisses it or its sender
+withdraws it. Withdrawal and expiry hide
 the message on inbox refresh, normally within 30 seconds, and stop new email claims.
 Already accepted or in-flight SMTP delivery cannot be recalled.
 
@@ -102,7 +104,8 @@ Already accepted or in-flight SMTP delivery cannot be recalled.
 | Mark one message read | `PATCH /api/v1/notifications/{id}/read` |
 | Mark one message unread | `PATCH /api/v1/notifications/{id}/unread` |
 | Mark all visible server messages read | `PATCH /api/v1/notifications/read-all` |
-| Close one or clear the browser tray for this session | Browser session state only; no server deletion request |
+| Remove one message from your inbox | `PATCH /api/v1/notifications/{id}/dismiss` |
+| Clear your inbox, including broadcasts | `DELETE /api/v1/notifications` |
 
 All recipient endpoints use the authenticated account. Requests cannot select
 another account's read state. Shared activity audiences are described in
@@ -110,13 +113,13 @@ another account's read state. Shared activity audiences are described in
 
 | Stored field | Purpose |
 | --- | --- |
-| `is_broadcast` | Enforces sender-only withdrawal and excludes recipient clearing |
+| `is_broadcast` | Enforces sender-only withdrawal for all recipients; personal dismissal remains available |
 | `severity` | Semantic importance, independent of message category |
 | `message` | Original Markdown body |
 | `created_by`, `recipients` | Sender identity and recipient snapshot |
 | `expires_on` | Optional visibility deadline; not a deletion timestamp |
 | `withdrawn_on`, `withdrawn_by` | Sender-controlled withdrawal history |
-| `read_by`, `dismissed_by` | Recipient read state and personal-message clearing |
+| `read_by`, `dismissed_by` | Durable per-recipient read and dismissal state |
 | `email_deliveries` | Per-recipient SMTP delivery state |
 
 Notification records are retained in MongoDB after expiry or withdrawal. They are
@@ -124,6 +127,12 @@ not removed by TTL or application cleanup. Plan storage retention and backups
 accordingly. `NOTIFICATION_RETENTION_DAYS` supplies the visibility duration for
 non-broadcast workflow messages; it does not expire new broadcasts. Personal
 messages can still be cleared by their recipient without affecting anyone else.
+
+Redeployment skips existing installation data unless an operator requests forced
+maintenance. Notification delivery uses stable event identities and insert-only
+writes, so replaying an old event does not reset read or dismissal state. Actual
+new publications, including forced reference replacements, can generate new messages.
+Browser-only notices are not server records and remain scoped to the current session.
 
 ### Existing installations
 

@@ -144,6 +144,61 @@ def test_inbox_pagination_keeps_read_messages_and_has_no_duplicate_pages():
     assert len({row["_id"] for row in first + second}) == 205
 
 
+def test_dismissed_activity_stays_hidden_after_worker_restart_and_cursor_replay(monkeypatch):
+    client, delivery, inbox, repo = fixture()
+    monkeypatch.setattr(repo, "update_many_atomic", client.app.notifications.update_many)
+    source = event(resource="diagnosis", metadata={"action": "created"})
+    client.identity.audit.insert_one(source)
+    client.kb.versions.insert_one(
+        {
+            "source": "vep_metadata",
+            "release": "bundled",
+            "status": "active",
+            "published_at": datetime.now(timezone.utc),
+        }
+    )
+    assert delivery.deliver() == 2
+    assert inbox.dismiss_all(username="group.reader")["changed"] == 2
+    delivery.activity = NotificationActivityRepository(
+        audit_collection=client.identity.audit,
+        operational_collection=client.identity.operational_audit_events,
+        versions_collection=client.kb.versions,
+        notifications=client.app.notifications,
+    )
+    delivery.activity.progress.delete_many({})
+    assert delivery.deliver() == 0
+    assert inbox.inbox(user=principal("group.reader"))["notifications"] == []
+    assert len(inbox.inbox(user=principal("other.group"))["notifications"]) == 2
+
+
+@pytest.mark.parametrize("bulk", [False, True])
+def test_recipient_can_hide_broadcast_without_withdrawing_it_for_other_users(monkeypatch, bulk):
+    client, _, inbox, repo = fixture()
+    monkeypatch.setattr(repo, "update_many_atomic", client.app.notifications.update_many)
+    identity = inbox.create_notification(
+        audience="all",
+        recipients=[],
+        tone="info",
+        category="application",
+        title="Notice",
+        message="Synthetic notice",
+        source="Operations",
+        created_by="sender",
+        is_broadcast=True,
+    )
+    result = (
+        inbox.dismiss_all(username="group.reader")
+        if bulk
+        else inbox.hide(notification_id=identity, username="group.reader")
+    )
+    assert result["changed"] == 1
+    assert inbox.inbox(user=principal("group.reader"))["notifications"] == []
+    assert len(inbox.inbox(user=principal("other.group"))["notifications"]) == 1
+    assert client.app.notifications.find_one().get("withdrawn_on") is None
+    with pytest.raises(AppError):
+        inbox.dismiss(notification_id=identity, username="other.group")
+
+
 def test_report_audience_is_restricted_to_sample_group_and_scope():
     client, delivery, inbox, _ = fixture()
     client.identity.audit.insert_one(
@@ -156,6 +211,24 @@ def test_report_audience_is_restricted_to_sample_group_and_scope():
     )
     for username in ("other.group", "wrong.assay", "wrong.environment"):
         assert inbox.inbox(user=principal(username))["notifications"] == []
+
+
+def test_recipient_dismissal_rejects_notifications_addressed_to_someone_else():
+    client, _, inbox, _ = fixture()
+    identity = inbox.create_notification(
+        audience="selected",
+        recipients=["group.reader"],
+        tone="info",
+        category="application",
+        title="Private notice",
+        message="Synthetic",
+        source="Operations",
+        created_by="sender",
+    )
+    with pytest.raises(AppError) as failure:
+        inbox.hide(notification_id=identity, username="other.group")
+    assert failure.value.status_code == 404
+    assert client.app.notifications.find_one()["dismissed_by"] == []
 
 
 def test_matching_scope_without_clinical_read_permission_receives_no_report_notice():

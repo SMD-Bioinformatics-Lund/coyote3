@@ -608,7 +608,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/notifications",
     page: "NotificationHistoryPage",
     area: "account",
-    api: ["GET /notifications", "PATCH /notifications/:id/read", "PATCH /notifications/:id/unread", "PATCH /notifications/read-all"],
+    api: ["GET /notifications", "PATCH /notifications/:id/read", "PATCH /notifications/:id/unread", "PATCH /notifications/read-all", "PATCH /notifications/:id/dismiss", "DELETE /notifications"],
     dataUsed: ["current-user notification inbox", "per-user read and dismissal state", "local workflow feedback"],
   },
   {

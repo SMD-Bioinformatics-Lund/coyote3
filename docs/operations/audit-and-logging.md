@@ -298,8 +298,9 @@ Visibility is evaluated as:
 2. the message is neither withdrawn nor expired;
 3. for personal messages, the authenticated username is not in `dismissed_by`.
 
-Read/unread state is scoped to one username. The tray's close and clear actions
-hide messages only in that user's current browser-tab session, including broadcasts.
+Read/unread state is scoped to one username. The tray's remove and clear actions
+persist dismissal for that user in MongoDB, including broadcasts. This state
+survives browser sessions and redeployment.
 They do not delete database records or withdraw messages. Only a broadcast's sender
 can withdraw it for everyone through **Sent broadcasts**. Administrative publication emits `notification.broadcast.created` in
 the audit collection. A valid local password-reset request emits a security
@@ -307,7 +308,7 @@ notification to active admin/superuser accounts and a corresponding
 `authentication.password_reset.requested` audit event.
 
 Marking a notification read does not clear it. Read messages remain in the tray
-until session clearing, their visibility deadline, or sender withdrawal.
+until recipient dismissal, their visibility deadline, or sender withdrawal.
 Closing a toast marks it read without clearing the inbox item. New administrative
 broadcasts snapshot the selected active recipients, including the all-users option;
 accounts created later do not inherit earlier broadcasts. Optional email delivery

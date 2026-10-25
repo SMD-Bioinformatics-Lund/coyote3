@@ -3122,6 +3122,25 @@ Raises:
     AppError: Authentication, access, selection validation or lookup fails.
 ```
 
+#### `Notifications.hide`
+
+```python
+Notifications.hide(self, *, notification_id: 'str') -> 'dict[str, Any]'
+```
+
+```text
+Remove a notification from this recipient's inbox across sessions.
+
+Args:
+    notification_id: Saved notification identifier visible to the current user.
+
+Returns:
+    Acknowledgement of recipient-only dismissal.
+
+Raises:
+    AppError: Authentication fails or the notification is not visible.
+```
+
 #### `Notifications.inbox`
 
 ```python
