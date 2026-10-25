@@ -2,6 +2,11 @@
   "name": "coyote3",
   "private": true,
   "version": "4.0.0",
+  "author": "Ram Nanduri",
+  "contributors": [
+    { "name": "Sailendra Pradhananga" },
+    { "name": "Viktor Henmyr" }
+  ],
   "engines": {
     "node": ">=22"
   },

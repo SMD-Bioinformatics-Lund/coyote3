@@ -10,7 +10,11 @@ requires-python = ">=3.12"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE.txt", "NOTICE.txt"]
-authors = [{name = "Ram Nanduri"}]
+authors = [
+    {name = "Ram Nanduri"},
+    {name = "Sailendra Pradhananga"},
+    {name = "Viktor Henmyr"},
+]
 dependencies = ["httpx==0.28.1", "pydantic==2.13.5"]
 
 [project.optional-dependencies]

@@ -2,6 +2,11 @@
   "name": "frontend",
   "private": true,
   "version": "4.0.0",
+  "author": "Ram Nanduri",
+  "contributors": [
+    { "name": "Sailendra Pradhananga" },
+    { "name": "Viktor Henmyr" }
+  ],
   "type": "module",
   "engines": {
     "node": ">=22"
