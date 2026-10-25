@@ -19,7 +19,10 @@ create an assay, enable an analysis, or grant users access to samples.
 Installed versioned catalogs start at version 1 and are attributed to `system`.
 Maintenance updates identify the authenticated administrator. Query sets start at version 1, revision 1 and carry
 `system_installed`; protected baseline catalogs use `system_managed`. Starter demo
-records carry `system_installed` independently of edit/delete protection. Report-rule
+configuration records carry `system_installed` and are read-only in the UI and API.
+Demo samples remain usable for review and reporting. See
+[record attribution](record-attribution.md) for creator/updater fields and historical data.
+Report-rule
 content versions and revisions also start at 1. Reference release identifiers are
 preserved. Installation provenance does not establish independent clinical approval.
 
@@ -49,6 +52,10 @@ See [Assay groups](assay-groups.md) for registration and access management.
 ## Finding query sets
 
 ### Application defaults and group scope
+
+For the complete selection conditions for SNVs, CNVs, RNA fusions and DNA
+translocations, see [application base queries by analysis](query-rules.md#application-base-queries-by-analysis).
+The group publications listed below are applied on top of those application defaults.
 
 The software supplies a base query even without a database rule document. The base
 SNV evidence modes are `paired` for somatic intent and `exception_only` for germline

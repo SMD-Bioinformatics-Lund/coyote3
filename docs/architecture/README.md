@@ -4,6 +4,20 @@ Coyote3 combines a React interface, a FastAPI service, background workers, and M
 persistence. Its architecture separates clinical workflows, application services,
 and infrastructure, with explicit contracts for data ingestion, access, and reporting.
 
+## Read the architecture in order
+
+Start with [application architecture](application-architecture.md) for the core,
+API, frontend and worker boundaries. Follow [resource relationships](resource-relationships.md)
+for assays, samples and findings, then the
+[clinical data lifecycle](clinical-data-lifecycle.md) and
+[reporting flow](clinical-data-and-reporting.md).
+
+Use [security](security-model.md), [database topology](mongodb-topology.md) and
+[transactions and recovery](transactions-and-ingest-recovery.md) for those specific
+design concerns. [Diagrams](diagram-guide.md) provide visual entry points.
+To implement a change, continue to [development](../development/README.md);
+to deploy these services, use [deployment](../deployment/README.md).
+
 ## Guides
 
 | Guide | Use it to |

@@ -4,6 +4,20 @@ Verification includes automated quality gates, synthetic fixtures, disposable-st
 checks, browser acceptance, and load testing. Synthetic load tests require an
 explicitly approved target and do not establish clinical validation.
 
+## Choose the checks for your task
+
+- **Code change:** [test strategy and quality gates](test-strategy-and-quality-gates.md),
+  using [synthetic fixtures](test-data-and-fixtures.md).
+- **Installation or end-to-end workflow:** [disposable stack](disposable-stack-validation.md),
+  then [clinical workflow exercises](clinical-workflow-demo.md).
+- **Release verification:** [browser and release validation](browser-and-release-validation.md)
+  and the operator's [deployment acceptance checklist](../deployment/acceptance-checklist.md).
+- **Capacity measurement:** [load testing](load-and-capacity-testing.md) against an
+  explicitly approved synthetic target.
+
+For assay configuration prerequisites, return to [assay setup](../administration/assay-setup.md).
+For development commands and failure diagnosis, use [development](../development/README.md).
+
 ## Guides
 
 | Guide | Use it to |

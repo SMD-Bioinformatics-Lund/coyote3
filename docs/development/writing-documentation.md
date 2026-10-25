@@ -83,11 +83,24 @@ product reference, not a response to a request or a summary of completed work.
 ## Maintain navigation and links
 
 Add each page to its section's README with a short purpose, and to `mkdocs.yml`.
-Every navigation group, including nested groups, starts with its own README labelled
-**Section guide**. Put introductions and prerequisites before procedures, and detailed
-reference pages after the workflows they support. Keep the section README tables in
-the same reading order as the sidebar; add new pages at their logical position rather
-than prepending them above the section guide.
+
+Keep navigation task-based. Put the section's **Start here** entry first, followed
+by procedures and their supporting references. Group long menus by operation;
+do not make readers choose between several generic manuals without explaining
+their differences. Keep each page in one primary sidebar location and use links
+from other task guides when it is relevant there too.
+
+Section landing pages should identify the first procedure, prerequisites and the
+next related task. Long references should link directly to common operations and
+distinguish similarly named concepts, such as query rules, review filters,
+reporting rules and report templates. Preserve existing page URLs and heading
+fragments when reorganizing navigation. Validate rendered navigation, including
+the clinical shortcuts, as well as Markdown links.
+Use an existing README for each documentation section. Small task groups within
+the sidebar can point directly to their procedures; they do not require another
+landing page. Put prerequisites before procedures and detailed references after
+the workflows they support. Keep the landing page's reading path consistent with
+the sidebar, and place new pages alongside related tasks.
 Use relative Markdown links ending in `.md`; avoid site-only paths for links to
 other source pages. Use ordinary Markdown tables, lists, and blockquotes so
 important information renders on GitHub as well as in the built site.

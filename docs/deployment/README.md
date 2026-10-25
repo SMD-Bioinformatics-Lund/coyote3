@@ -6,6 +6,19 @@ account setup and resource validation. Legacy databases use separate
 [v3](../migration_from_v3/migration-guide.md) or
 [v2](../migration_from_v2/migration-guide.md) migration procedures.
 
+## Choose one deployment procedure
+
+- **New installation:** [production requirements](production-requirements.md) →
+  [first installation](first-installation.md) → [acceptance checks](acceptance-checklist.md).
+- **New release on an existing installation:** [upgrade procedure](application-upgrades.md).
+- **Same release, restart or container replacement:** [restart or redeploy](application-redeployment.md).
+- **Local evaluation:** [try Coyote3 locally](../getting-started/local-quickstart.md).
+
+After installation, [set up and validate the center's assays](../administration/assay-setup.md).
+For daily service work, continue to [operations](../operations/README.md).
+Use [configuration references](../configuration/README.md) to look up file syntax
+and fields while following a procedure.
+
 ## Guides
 
 | Guide | Use it to |

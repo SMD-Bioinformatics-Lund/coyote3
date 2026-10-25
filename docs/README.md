@@ -6,6 +6,11 @@ assay configuration, access management, integration, deployment, and operations.
 
 ## Start with a task
 
+New to Coyote3? [Choose a reading path](getting-started/README.md#choose-a-reading-path)
+for clinical review, assay administration, deployment, integration or development.
+For query policies, filters and reporting settings, use
+[find the right kind of rule or setting](getting-started/README.md#find-the-right-kind-of-rule-or-setting).
+
 | Task | Start here |
 | --- | --- |
 | Evaluate Coyote3 locally | [Local quickstart](getting-started/local-quickstart.md) |
@@ -16,7 +21,9 @@ assay configuration, access management, integration, deployment, and operations.
 | Migrate an existing Coyote v3 database | [Migration from v3](migration_from_v3/README.md) |
 | Review a DNA or RNA sample | [Clinical review workflow](user-guide/clinical-review-workflow.md) |
 | Explain a missing sample, tab, or result | [Sample readiness and missing results](user-guide/sample-readiness-and-missing-results.md) |
-| Manage accounts or clinical configuration | [Application administration](administration/administration-guide.md) |
+| Set up an assay for the first time | [Administration starting path](administration/README.md#first-time-configuring-an-assay), then [prerequisites and setup steps](administration/assay-setup.md#step-by-step-add-a-new-assay) |
+| Understand application query defaults or change finding selection | [Base queries by analysis](administration/query-rules.md#application-base-queries-by-analysis), then [UI rule inheritance](administration/query-rules.md#scope-and-inheritance) |
+| Manage accounts and access | [Permissions and access control](administration/permissions-and-access.md) |
 | Plan a clinical configuration change | [Planning configuration changes](administration/planning-configuration-changes.md) |
 | Submit samples from a pipeline or client | [Sample ingestion API](api/sample-ingestion.md) and [sample manifest](reference/sample-manifest.md) |
 | Change or extend the application | [Developer guide](development/developer-guide.md) |

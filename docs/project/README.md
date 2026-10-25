@@ -3,6 +3,15 @@
 Project policies define contribution requirements, maintainer responsibilities,
 community conduct, licensing, and clinical-use notices.
 
+## Start with your responsibility
+
+Read [license and clinical-use terms](license.md) before use or contribution.
+Contributors follow [contributing](contributing.md), then the
+[development workflow](../development/README.md). Reviewers and maintainers use
+the [maintainer guide](maintainer-guide.md) and
+[release validation](../testing/browser-and-release-validation.md).
+[Future work](future-work.md) describes proposals, not available functionality.
+
 ## Guides
 
 | Guide | Use it to |

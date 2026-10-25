@@ -5,6 +5,21 @@ and interface components. The [local environment setup](../getting-started/devel
 defines the development toolchain; [testing and validation](../testing/README.md)
 defines the checks required for changes.
 
+## Make your first change
+
+1. Set up the [local development environment](../getting-started/developer-environment.md).
+2. Read the [developer guide](developer-guide.md) and
+   [application architecture](../architecture/application-architecture.md) for the
+   boundaries affected by the change.
+3. Use the relevant guide below for contracts, UI components or report templates.
+   Local application operations and remote clients have separate [SDK guides](../sdk/README.md).
+4. Run the applicable [quality gates](../testing/test-strategy-and-quality-gates.md)
+   and update [documentation](writing-documentation.md).
+5. Follow the [contribution requirements](../project/contributing.md) when preparing a change for review.
+
+For a failed development command, start with [development troubleshooting](troubleshooting.md).
+For an incident in an installed service, use [operations troubleshooting](../operations/troubleshooting.md).
+
 ## Guides
 
 | Guide | Use it to |

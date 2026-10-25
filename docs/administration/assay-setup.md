@@ -24,6 +24,12 @@ Query policies and clinical reporting rules resolve from their current published
 scopes. Their publication takes effect on subsequent matching requests without
 creating or applying an ASPC revision. Saved reports retain their original rules.
 
+You do not need to register a base query profile before creating an assay. The
+software supplies [application base queries for each analysis](query-rules.md#application-base-queries-by-analysis).
+That reference lists their evidence checks and explains how published UI rules
+extend or override supported parts of the base behavior. Review these defaults
+and any installed group policies when validating the assay's finding selection.
+
 Configuration scope is fixed at creation: assay, diagnosis and environment cannot
 be edited. Use **Copy as new** to create another scope. Resolution selects the named
 diagnosis configuration first, then Base for the same assay and environment when

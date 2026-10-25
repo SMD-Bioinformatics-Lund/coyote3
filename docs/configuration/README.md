@@ -11,6 +11,11 @@ reference imports, migration inputs, backups and generated artifacts.
 
 ## Deployment and center files
 
+For clinical selection, start with the [application base queries](../administration/query-rules.md#application-base-queries-by-analysis)
+and [UI-managed query policies](../administration/query-rules.md#scope-and-inheritance).
+The seed-file reference below is for installation criteria; editing it is not the
+workflow for changing a running installation's rules.
+
 | File or resource | Who edits it | Contents and detailed reference |
 | --- | --- | --- |
 | Private environment file, for example `production.env` | Deployment operator | [File syntax, precedence and validation](environment-file.md); [all supported environment keys and defaults](../deployment/configuration-reference.md#environment-variable-reference). |
@@ -21,7 +26,7 @@ reference imports, migration inputs, backups and generated artifacts.
 | External `filter_flag_metadata.yaml` | Clinical configuration owner | [Flag labels, severity, descriptions and optional caller overrides](filter-flag-metadata-file.md). |
 | Application `collections.toml` | Software maintainers | [Logical collection mappings](collection-mapping-file.md). Centers do not edit it. |
 | Application `clinical_capabilities.toml` | Software maintainers | [Supported identifiers and configuration ownership](../deployment/center-configuration.md#application-owned-definitions). Packaged with the API; not a center file or database seed. |
-| Application `clinical_query_defaults.toml` | Software maintainers | [Base query settings](clinical-query-policy-file.md#baseline-keys). Center exceptions cannot replace these definitions. |
+| Application `clinical_query_defaults.toml` | Software maintainers | [Application base queries](../administration/query-rules.md#application-base-queries-by-analysis). Published policies modify supported settings through the UI; centers do not edit the packaged definitions. |
 | Bootstrap catalogs | Software release | [Baseline accounts, permissions and reference data](../deployment/bootstrap-data-flow.md). Do not edit release catalogs as a substitute for center administration. |
 
 The [center configuration guide](../deployment/center-configuration.md) describes
@@ -43,6 +48,7 @@ they are not extra TOML files to create on the host.
 | Assay group and named diagnoses | [Groups](../administration/assay-groups.md), [definitions and associations](../administration/assay-diagnoses.md) | [Setup order](../administration/assay-setup.md#when-order-matters) |
 | Gene lists / ISGL | [List types and clinical scope](../user-guide/gene-lists-and-assay-context.md) | [Configure selected lists](../administration/assay-setup.md#4-prepare-the-gene-lists-that-filters-will-select) |
 | Reporting rule set | [Rule syntax, validation and publication](../reference/clinical-reporting-rules.md) | [Assay rule preparation](../administration/assay-setup.md#5-publish-compatible-reporting-rules) |
+| Finding query policy | [Base queries and inheritance](../administration/query-rules.md) | [Create and activate a policy](../administration/query-rules.md#create-and-activate-a-policy) |
 | Reusable profiles and environment promotion | [Scope, precedence and reviewed publication](../administration/configuration-publication.md) | Assay configurations → Profiles and promotions |
 | Users, roles and permissions | [Access model](../administration/permissions-and-access.md), [permission identifiers](../administration/permission-catalog.md) | [Administration](../administration/administration-guide.md) |
 | Public assay catalog | [Fields, ownership and approval](../administration/public-assay-catalog.md) | Separate publication after clinical activation |

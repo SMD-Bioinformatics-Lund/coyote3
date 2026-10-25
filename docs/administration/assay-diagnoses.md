@@ -39,6 +39,12 @@ Two administration pages separate shared definitions from assay availability.
 Both require `assay.panel:list` and `assay.panel:view`; mutations also require
 `assay.panel:edit`.
 
+Both tables show **Created by** and **Updated by**. Creation attribution stays
+with the original creator when a new revision is saved; update attribution identifies
+the authenticated editor. Each association has its own attribution, separate from
+the shared definition. System-installed definitions and associations display the
+system icon and cannot be edited. See [record attribution](record-attribution.md).
+
 ### Diagnosis Definitions
 
 Open **Admin > Diagnosis definitions** (`/admin/diagnoses`). Each shared definition
@@ -88,7 +94,7 @@ links. Global status and assay-link status are displayed separately.
 | Activate/deactivate association | `assay.panel:edit` | Change availability for one assay without changing the shared definition |
 
 The UI also requires `assay.panel:list` to select assays. Status actions appear
-in the **Actions** column. The **Created by / Installed by** column uses recorded
+in the **Actions** column. The **Created by** column uses recorded
 creation metadata, not `updated_by`. Records without creation attribution show
 **Unknown**; revision history and audit events retain the operators who edited them.
 

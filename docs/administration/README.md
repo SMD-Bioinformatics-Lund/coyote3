@@ -1,11 +1,40 @@
 # Application administration
 
+For creator/updater fields and read-only bundled records, see
+[record attribution](record-attribution.md).
+
 Application administration covers user accounts, roles, assay definitions, gene lists,
 and clinical configuration. Administrative actions are governed by permissions and
 recorded through the application's audit workflows. Service maintenance and incident
 response are covered in [Operations](../operations/README.md).
 
-## Guides
+## First time configuring an assay?
+
+Start with [prerequisites and setup steps](assay-setup.md#step-by-step-add-a-new-assay).
+That is the ordered procedure from preparing an active group to validating an
+activated assay. The sidebar groups its supporting pages under **Set up an assay**.
+You do not need to read every reference before starting.
+
+| At this stage | Read this |
+| --- | --- |
+| Understand the names | [Resources and dependencies](clinical-configuration-resources.md): an assay (ASP) defines the offering; an assay configuration (ASPC) configures a diagnosis and environment; an in-silico gene list (ISGL) selects genes. |
+| Prepare prerequisites | [Setup step 1](assay-setup.md#1-confirm-authors-reviewers-and-the-active-group), then [assay groups](assay-groups.md). |
+| Choose diagnoses or subpanel scopes | [Setup step 3](assay-setup.md#3-select-scopes-and-environments). Named diagnoses are optional; Base needs no diagnosis registration. |
+| Understand which findings will be retrieved | [Application base queries](query-rules.md#application-base-queries-by-analysis), then [installed group policies](installed-defaults.md#published-set-identifiers). |
+| Change finding selection in the UI | [Query-rule scope and inheritance](query-rules.md#scope-and-inheritance), then [create and activate a policy](query-rules.md#create-and-activate-a-policy). |
+| Prepare reporting | [Setup step 5](assay-setup.md#5-publish-compatible-reporting-rules) and the [reporting-rule reference](../reference/clinical-reporting-rules.md). Query rules select findings; reporting rules generate clinical report content. |
+| Complete configurations and activate | Continue from [setup step 6](assay-setup.md#6-complete-one-aspc-for-each-selected-combination), including independent review and validation. |
+| Resolve a blocked step | [Missing prerequisites and their effects](clinical-configuration-resources.md#missing-prerequisites-and-their-effects). |
+
+## Other administration tasks
+
+- **Manage users or access:** start with [permissions and access control](permissions-and-access.md).
+- **Change an existing clinical configuration:** start with [planning configuration changes](planning-configuration-changes.md).
+- **Change an application setting:** use [application controls](application-controls.md).
+- **Install, upgrade or recover services:** use [deployment](../deployment/README.md)
+  or [operations](../operations/README.md); these are separate from registering an assay.
+
+## All administration guides
 
 | Guide | Use it to |
 | --- | --- |
@@ -21,6 +50,8 @@ response are covered in [Operations](../operations/README.md).
 | [Assay Diagnoses](assay-diagnoses.md) | Manage shared diagnosis definitions and assay associations. |
 | [Assay Setup](assay-setup.md) | Prepare and review an assay's configuration resources. |
 | [Finding query rules](query-rules.md) | Manage inherited finding-selection policies for groups, assays and diagnoses. |
+| [Clinical reporting rules](../reference/clinical-reporting-rules.md) | Author, test, review and publish the rules that produce clinical report content. |
+| [Report presentation settings](../configuration/report-presentation-file.md) | Configure supported empty-section wording without changing clinical rules. |
 | [Assay analysis and reporting availability](assay-analysis-availability.md) | Understand how assay files and configuration enable analyses and reporting. |
 | [Clinical resource fields](clinical-resource-fields.md) | Look up ASP, ASPC and ISGL field requirements and defaults. |
 | [Center Vocabulary Configuration](clinical-vocabulary.md) | Configure center-owned terms and annotation choices. |

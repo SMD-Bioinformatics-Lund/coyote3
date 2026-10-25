@@ -1,5 +1,12 @@
 # Clinical Reporting Rules
 
+For assay setup, start with [prepare and publish reporting rules](../administration/assay-setup.md#5-publish-compatible-reporting-rules).
+Within this reference, use [the authoring workspace](#authoring-workspace),
+[sample-backed testing](#sample-backed-testing) and
+[lifecycle and permissions](#lifecycle-and-permissions) for the UI workflow.
+Finding selection is covered separately by [query rules](../administration/query-rules.md).
+For HTML/CSS layout changes, use [report templates](../development/report-templates.md).
+
 ## Purpose
 
 Clinical reporting rules convert a prepared clinical result into governed report

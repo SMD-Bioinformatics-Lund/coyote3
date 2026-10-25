@@ -5,6 +5,21 @@ filtering behavior, reporting rules, and database contracts. Workflow procedures
 covered in the [clinical user guide](../user-guide/README.md),
 [administration](../administration/README.md), and [API integration](../api/README.md).
 
+## Find the reference you need
+
+| Question | Read |
+| --- | --- |
+| What do ASP, ASPC, ISGL, case and finding mean? | [Clinical concepts and resource identities](clinical-concepts.md). |
+| Which inputs does a pipeline need to provide? | [Sample manifest](sample-manifest.md), then [raw file contracts](ingest-files/README.md); submit through the [ingestion API](../api/sample-ingestion.md). |
+| Why does a finding pass or fail selection? | [Application base queries](../administration/query-rules.md#application-base-queries-by-analysis), [published rule inheritance](../administration/query-rules.md#scope-and-inheritance) and [filter fields](filter-profile-fields.md). |
+| Which fields can a query condition use? | [Query condition catalog](query-condition-fields.md). |
+| How are clinical report statements produced? | [Reporting rules](clinical-reporting-rules.md); [saved snapshots](report-snapshots.md) explain retained report context. |
+| Where do annotations and reference evidence come from? | [Knowledgebase sources](knowledgebases/README.md). |
+| What does a stored document contain? | [MongoDB collection contracts](mongodb-collections.md); use [API workflows](../api/routes-and-workflows.md) for supported access. |
+
+For a step-by-step clinical task, return to the [user guide](../user-guide/README.md).
+For creating or changing an assay, use [administration](../administration/README.md).
+
 ## Guides
 
 | Guide | Use it to |

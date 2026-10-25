@@ -5,6 +5,22 @@ ingestion workflows. Integration requirements include client authentication, rou
 permissions, and request validation. Input formats and MongoDB schemas are defined
 in the [data reference](../reference/README.md).
 
+## Connect an integration
+
+1. Read [authentication](authentication.md) and arrange the permissions required
+   for the intended operations.
+2. Choose [direct HTTP workflows](routes-and-workflows.md) or the independent
+   [Python HTTP client](../sdk/python-client.md). Remote clients do not need to import
+   the application's internal core SDK.
+3. For ingestion, prepare a [sample manifest](../reference/sample-manifest.md) and
+   [input files](../reference/ingest-files/README.md), then follow the
+   [ingestion API](sample-ingestion.md).
+4. Follow [ingest job recovery](../operations/ingest-job-recovery.md) when a submitted
+   job fails or its outcome is uncertain.
+
+For a frontend integration, use [frontend API contracts](../development/frontend-api-contracts.md).
+For installation rather than API use, follow [deployment](../deployment/README.md).
+
 ## Guides
 
 | Guide | Use it to |

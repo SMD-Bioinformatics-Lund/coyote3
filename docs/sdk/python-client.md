@@ -1,4 +1,8 @@
-# Python SDK
+# Python HTTP client SDK {#python-sdk}
+
+This guide covers remote access to a running API. For local application use cases,
+use the [application SDK](application-sdk.md); for help choosing, see
+[the Python interface guide](README.md#choose-the-python-interface).
 
 `CoyoteClient` and `AsyncCoyoteClient` provide typed HTTP access from Python.
 Install the independent distribution with `pip install coyote3-client`, or use

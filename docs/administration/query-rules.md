@@ -1,5 +1,13 @@
 # Finding query rules
 
+Start with [application base queries](#application-base-queries-by-analysis) to see
+the built-in selection behavior, then [scope and inheritance](#scope-and-inheritance)
+to understand how UI rules modify it. To make a change, follow
+[prerequisites](#prerequisites), [create and activate a policy](#create-and-activate-a-policy)
+and [test with stored samples](#test-with-stored-samples).
+For clinical report text instead of finding selection, use
+[reporting rules](../reference/clinical-reporting-rules.md).
+
 ## Application defaults and group policies
 
 Application defaults construct a sample-scoped query from the analysis type,
@@ -18,6 +26,121 @@ The `wgs` sample scope or assay family includes normal/control CNVs; an assay-gr
 name alone does not enable that behavior. Fusion and translocation defaults use
 their respective evidence fields and saved filters. Group-specific inclusion or
 exclusion conditions belong in database rule sets.
+
+### Application base queries by analysis
+
+These are the application defaults **before any published database policy is
+applied**. They are implemented query behavior, not profiles that an administrator
+must create or select. The application baseline contains no clinical exceptions.
+Installation can also publish group rule sets; those are a separate policy layer,
+listed under [installed query sets](installed-defaults.md#published-set-identifiers).
+
+Threshold names below refer to resolved sample filter values. The base query does
+not supply a universal clinical VAF, depth, size or read-count threshold: assay
+configuration provides filter defaults, and retrieval uses the sample's resolved
+filters. An empty gene scope with `restrict_to_genes` enabled matches no findings
+in the ordinary branch.
+
+#### SNVs
+
+The default somatic evidence mode is **`paired`**. Its ordinary branch requires:
+
+- A `case` genotype with `min_freq <= AF <= max_freq`, `DP >= min_depth` and
+  `VD >= min_alt_reads`, all satisfied by the same genotype.
+- If control genotypes exist, at least one with `AF <= max_control_freq` and
+  `DP >= min_depth`. No control genotype is also accepted.
+- Each of `gnomad_frequency`, `gnomad_max`, `exac_frequency` and
+  `thousandG_frequency` to be at most `max_popfreq` when numeric. Missing, null
+  and string values pass this population-frequency predicate.
+- At least one selected consequence in the stored `consequence_terms`, which
+  aggregate VEP consequences across transcripts. An empty consequence selection
+  matches no ordinary findings.
+
+The default germline evidence mode is **`exception_only`**: there is no ordinary
+threshold/consequence admission branch. Without published admission exceptions,
+it selects no findings. This is a query intent, not a determination of origin.
+
+Both modes restrict results to the sample. Explicit selected positions take
+precedence over the gene-list predicate; otherwise selected genes or the empty
+restricted-scope check apply. Selected false-positive and irrelevant flags also
+restrict this scope. Selected excluded `FILTER` flags apply after admission.
+
+A published policy can choose `case_only` instead: it accepts a genotype meeting
+the case AF/DP/VD thresholds without requiring a case role label, omits the control
+check, and retains population-frequency and consequence checks.
+
+#### CNVs
+
+The ordinary query restricts results to the sample and applies these branches:
+
+- Ratio-based calls require `ratio < cnv_loss_cutoff` or
+  `ratio > cnv_gain_cutoff`, together with either
+  `min_cnv_size < size < max_cnv_size` or **`ratio > 3`**. The latter is an
+  application-defined size-check exception; the configured ratio cutoff still applies.
+- Calls with missing or null ratio instead require a present `SR` or `PR` value
+  that is not null, an empty string or an empty array. This branch does not apply
+  ratio or size thresholds and does not impose a numeric read-count minimum.
+- Selected genes match `genes.gene` or `panel_gene`.
+- Records marked `NORMAL = 1` are excluded unless the sample or assay family is
+  `wgs`. The assay group name does not control this behavior.
+
+CNV effect selection is a separate post-retrieval filter, not part of this base
+MongoDB predicate. The query-testing preview identifies post-filters separately.
+
+#### RNA fusions
+
+The ordinary query restricts results to the sample and matches selected genes
+against either fusion partner. When call filters are selected, one entry in
+`calls` must satisfy the combined caller, effect, description and read conditions:
+
+- A positive `min_spanning_reads` requires `spanreads >= min_spanning_reads`.
+- A positive `min_spanning_pairs` requires `spanpairs >= min_spanning_pairs`.
+  With explicit caller selection, the Arriba branch omits the pair-count check.
+- An exclusively `in-frame` selection matches that value case-insensitively.
+  An exclusively `out-of-frame` selection matches any nonempty effect other than
+  `in-frame`. Selecting both or neither adds no effect restriction.
+- Selected descriptions match comma-delimited description tokens,
+  case-insensitively. Selected callers are alternatives within the same call filter.
+
+Missing read thresholds default to zero and add no read-count restriction. With
+no call filters, no call-entry predicate is added. Panel and WTS use the same
+fusion filter contract.
+
+#### DNA translocations
+
+The base database query selects the sample's translocations; it does not add
+SNV-like AF/depth or CNV-like ratio/size thresholds. Gene selection is evaluated
+after retrieval using the record's gene fields and structural annotations. With
+restricted genes, at least one must match; an empty restricted set matches none.
+Without gene restriction, the ordinary branch retains all retrieved records.
+
+#### How published UI rules modify these queries
+
+Published policies resolve through the [scope hierarchy](#scope-and-inheritance).
+Null fields inherit; exception lists can extend or replace inherited lists.
+Replacing an exception list does not remove the application query implementation.
+
+| Action | Effect |
+| --- | --- |
+| SNV `extend_consequence` | Adds an alternative to the consequence predicate while retaining ordinary evidence checks. |
+| SNV `admit` | Adds an alternative to ordinary evidence/population/consequence checks. Sample identity, gene/position scope and selected excluded flags remain enforced. |
+| CNV or fusion `admit` | Adds an alternative to the ordinary query branch, including its gene predicate; CNV admissions can also bypass the ordinary normal-record exclusion. Sample identity remains enforced. |
+| Translocation `admit` | Adds an alternative to the post-retrieval gene-selection branch. Sample identity remains enforced. |
+| `exclude` | Removes matching findings even when an ordinary branch or admission exception selected them. |
+
+Query rules do not grant sample access or enable an unsupported analysis. Somatic
+SNV retrieval also includes effective germline exceptions, as described under
+[runtime scope resolution](#runtime-scope-resolution).
+
+For implementation review, the authoritative modules are:
+
+- `src/coyote3/config/clinical_query_defaults.toml`: SNV evidence modes and population fields.
+- `src/coyote3/config/clinical_query_policy.py`: typed defaults and resolved policy binding.
+- `src/coyote3/application/query_rules/service.py`: published scope resolution and inheritance.
+- `src/coyote3/domain/dna/varqueries.py`: SNV selection construction.
+- `src/coyote3/domain/dna/cnvqueries.py`: CNV selection construction.
+- `src/coyote3/domain/dna/translocqueries.py`: translocation selection and gene filtering.
+- `src/coyote3/domain/rna/fusion_query_builder.py`: fusion selection construction.
 
 ## Browse rule versions
 
@@ -163,7 +286,8 @@ affects descendants that inherit the changed field.
 The application base defines supported predicates and default evidence modes. The
 [application-owned query seed](../configuration/clinical-query-policy-file.md) is
 loaded by Python bootstrap tools into database rules. It is not part of the editable
-center bundle. Use the editor to publish changes to installed policies.
+center bundle. Installed definitions are read-only. Use the editor to create and
+publish a new version when adapting a policy.
 
 ## Prerequisites
 
@@ -599,7 +723,7 @@ The first-installation index-management step creates indexes for `query_rule_set
 Application startup verifies the index contract; it does not create missing indexes.
 Fresh bootstrap adds published version-one policies attributed to `system`. Later
 bundled maintenance requires administrator API login and preserves immutable history.
-Their `system_installed` flag records origin; successors use the normal draft, review
+Their `system_installed` flag protects the installed record; successors use the normal draft, review
 and publication workflow. Installation is not evidence of clinical validation.
 
 | Scope | Intent | Installed criteria |
