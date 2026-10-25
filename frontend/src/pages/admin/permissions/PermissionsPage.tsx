@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { Plus } from "lucide-react"
 import { Link } from "react-router-dom"
 import { PermissionCategoryOverview } from "../permission-category-overview"
-import { adminCell, adminExportValue, adminFields, titleize } from "../resource-list"
+import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../resource-list"
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
 
 export function PermissionsPage() {
@@ -16,7 +16,7 @@ export function PermissionsPage() {
   const tableColumns: ColumnDef<Record<string, unknown>>[] = [
     ...fields.map((field): ColumnDef<Record<string, unknown>> => ({
       id: field,
-      header: titleize(field),
+      header: adminColumnTitle(field),
       accessorFn: (row) => adminExportValue(field, row),
       cell: ({ row }) => adminCell(field, row.original, {
         roleColors: data?.roles || {},

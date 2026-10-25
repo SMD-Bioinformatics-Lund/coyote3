@@ -271,10 +271,24 @@ export function parseCellValue(value: string) {
   return trimmed
 }
 
+const identityDisplayFields: Record<string, string[]> = {
+  permission_id: ["label"], role_id: ["label"], username: ["fullname"],
+  asp_id: ["display_name"], aspc_id: ["display_name"], isgl_id: ["displayname", "name"],
+}
+
+export function adminColumnTitle(field: string) {
+  const labels: Record<string, string> = { permission_id: "Permission", role_id: "Role", username: "User", asp_id: "Assay", aspc_id: "Configuration", isgl_id: "Gene list", updated_by: "Updated by" }
+  return labels[field] || titleize(field)
+}
+
 export function adminFields(preferred: string[], rows: any[]) {
   const seen = new Set<string>()
   const hidden = new Set(["_id", "id", "version_history", "created_by", "updated_by", "installed_by", "system_managed", "system_installed", "record_provenance"])
   const rowHas = (key: string) => rows.some((row) => row?.[key] !== undefined)
+  for (const key of ["created_on", "created_at", "updated_on", "updated_at"]) hidden.add(key)
+  if (rowHas(preferred[0])) {
+    for (const key of identityDisplayFields[preferred[0]] || []) hidden.add(key)
+  }
   const selected = preferred.filter((key) => !hidden.has(key) && rowHas(key) && !seen.has(key) && seen.add(key))
   if (selected.length >= 5) return [...selected, "record_provenance", "updated_by"]
   for (const key of rows.flatMap((row) => Object.keys(row || {}))) {
@@ -296,6 +310,14 @@ export function adminCell(
   const value = row?.[field]
   if (field === "record_provenance") return <RecordProvenance record={row} />
   if (field === "updated_by") return <RecordProvenance record={row} kind="updated" />
+  if (context?.primaryIdentifier && identityDisplayFields[field]) {
+    const display = identityDisplayFields[field].map((key) => row[key]).find((entry) => typeof entry === "string" && entry.trim())
+    return <div className="min-w-32 max-w-80 whitespace-normal break-words [overflow-wrap:anywhere]">
+      <span className="block font-semibold text-foreground">{display || valueLabel(value) || "-"}</span>
+      {display && display !== value && <span className="block type-meta text-muted-foreground">{valueLabel(value)}</span>}
+    </div>
+  }
+  if (field === "description") return <span className="block min-w-48 max-w-lg whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{valueLabel(value) || "-"}</span>
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) {
     return <TimeDisplay value={value} className="text-sm font-normal" />
   }

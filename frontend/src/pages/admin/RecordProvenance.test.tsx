@@ -1,10 +1,33 @@
 import { render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { RecordProvenance } from "./RecordProvenance"
-import { adminExportValue, adminFields } from "./resource-list"
+import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "./resource-list"
 
 describe("Administrative record provenance", () => {
   afterEach(() => vi.useRealTimers())
+  it("combines permission display name and identity and removes duplicate name/date columns", () => {
+    const row = { permission_id: "cnv:manage", label: "Manage CNVs", description: "Full description", created_on: "2026-10-25T10:00:00Z", updated_on: "2026-10-25T11:00:00Z", created_by: "system", updated_by: "system" }
+    render(adminCell("permission_id", row, { primaryIdentifier: true }))
+    expect(screen.getByText("Manage CNVs")).toHaveClass("font-semibold")
+    expect(screen.getByText("cnv:manage")).toHaveClass("type-meta", "text-muted-foreground")
+    expect(adminColumnTitle("permission_id")).toBe("Permission")
+    const fields = adminFields(["permission_id", "label", "description", "updated_on"], [row])
+    expect(fields).toEqual(["permission_id", "description", "record_provenance", "updated_by"])
+  })
+  it("wraps descriptive text without truncation", () => {
+    const description = "Review findings and apply the supported curation actions.\nPreserve clinical review history."
+    const { container } = render(adminCell("description", { description }))
+    expect(container.textContent).toBe(description)
+    expect(container.firstElementChild).toHaveClass("whitespace-pre-wrap", "break-words")
+    expect(container.firstElementChild).not.toHaveClass("truncate")
+  })
+  it("retains last-login time separately from record attribution", () => {
+    const row = { username: "reviewer", fullname: "Example Reviewer", last_login: "2026-10-25T10:00:00Z", updated_on: "2026-10-25T11:00:00Z" }
+    const fields = adminFields(["username", "fullname", "last_login", "updated_on"], [row])
+    expect(fields).toContain("last_login")
+    expect(fields).not.toContain("fullname")
+    expect(fields).not.toContain("updated_on")
+  })
   it("shows creation time beneath the creator with the exact time on hover", () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-10-25T12:00:00Z"))
