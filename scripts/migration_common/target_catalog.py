@@ -156,6 +156,7 @@ def bind_sample_review(catalog: dict, original: dict, review: dict) -> dict:
     fields = {
         "current_aspc_id": aspc["_id"],
         "asp_id": aspc["asp_id"],
+        "asp_group": asp["asp_group"],
         "environment": aspc["environment"],
         "asp_category": aspc["asp_category"],
         "asp_family": asp["asp_family"],

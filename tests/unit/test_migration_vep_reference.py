@@ -326,6 +326,10 @@ def test_vep_cli_verifies_complete_source_audit_without_database_access(tmp_path
         )
         target_path = tmp_path / "target.json"
         private_json(target_path, catalog())
+        from tests.unit.test_migration_stages import references
+
+        reference_path = tmp_path / "references.json"
+        private_json(reference_path, references())
         output = tmp_path / "vep"
         monkeypatch.setattr(
             sys,
@@ -341,6 +345,8 @@ def test_vep_cli_verifies_complete_source_audit_without_database_access(tmp_path
                 "103",
                 "--target-catalog",
                 str(target_path),
+                "--reference-catalog",
+                str(reference_path),
                 "--output",
                 str(output),
             ],

@@ -26,6 +26,7 @@ from scripts.migration_common.offline import (
     write_bundle,
 )
 from scripts.migration_common.run_report import write_report
+from scripts.migration_common.sample_scope import matches_assay, validate_assay
 from scripts.migration_common.schema_inventory import verify_review
 from scripts.migration_common.target_catalog import (
     bind_sample_review,
@@ -193,6 +194,9 @@ def sample_bundles(
     provenance: dict,
     vep: VepReference,
     sample_ids: list[str] | None = None,
+    assay_id: str | None = None,
+    assay_field: str | None = None,
+    stage: str = "complete",
 ) -> dict:
     """Build all sample-related collections in bounded per-sample bundles.
 
@@ -205,6 +209,9 @@ def sample_bundles(
         vep: Shared historical transcript reference built before sample conversion.
         sample_ids: Optional explicit subset for resolving overlap between sources.
             None converts all samples; empty or repeated selections are rejected.
+        assay_id: Optional single supported assay, checked against its source version.
+        assay_field: Exact historical field containing the assay identifier.
+        stage: Complete, findings, or samples-only conversion for the selected assay.
 
     Returns:
         Completion manifest including aggregate collection counts and per-sample results.
@@ -225,6 +232,11 @@ def sample_bundles(
         if sample_ids is None
         else (source.get("samples", identity) for identity in sorted(sample_ids))
     )
+    if assay_id is not None:
+        assay_id = validate_assay(assay_id, source.version)
+        if assay_field not in {"group", "assay", "asp_id"}:
+            raise ValueError("Select the explicit source assay field")
+        originals = (row for row in originals if matches_assay(row, assay_field, assay_id))
     output.mkdir(mode=0o700, parents=False, exist_ok=False)
     totals = Counter()
     samples = []
@@ -232,7 +244,15 @@ def sample_bundles(
         identity = str(original["_id"])
         try:
             item = bind_sample_review(catalog, original, _review_for_sample(review, identity))
-            plan = sample_plan(source, identity, item, vep=vep)
+            plan = sample_plan(
+                source,
+                identity,
+                item,
+                vep=vep,
+                stage=stage,
+                assay_id=assay_id,
+                assay_field=assay_field,
+            )
             validate_plan_scope(catalog, plan)
             folder = output / f"{number:06d}"
             details = {
@@ -253,6 +273,8 @@ def sample_bundles(
         "counts": dict(totals),
         "samples": samples,
     }
+    if assay_id is not None and not samples:
+        raise ValueError("No samples match the selected assay in this source")
     private_json(output / "manifest.json", manifest)
     return manifest
 
@@ -292,7 +314,17 @@ def run(version: int, operation: str) -> int:
         parser.add_argument("--review", type=Path, required=conversion)
     if operation == "sample":
         parser.add_argument("--sample-id", required=True)
+    if operation == "annotation":
+        parser.add_argument("--assay-id", help="Retain only annotations mapped to this ASP")
     if operation == "samples":
+        parser.add_argument("--assay-id", help="One supported ASP identifier from this source")
+        parser.add_argument("--assay-field", choices=("group", "assay", "asp_id"))
+        parser.add_argument(
+            "--stage",
+            choices=("findings", "samples", "complete"),
+            default="complete",
+            help="Prepare findings first, samples/history second, complete snapshots last",
+        )
         parser.add_argument(
             "--sample-ids-file",
             type=Path,
@@ -387,6 +419,17 @@ def run(version: int, operation: str) -> int:
             "unprofiled_files", {}
         )
         if operation == "samples":
+            if bool(args.assay_id) != bool(args.assay_field):
+                raise ValueError("Supply --assay-id and --assay-field together")
+            if args.stage != "complete" and not args.assay_id:
+                raise ValueError("Staged migration requires one explicit --assay-id")
+            if args.stage != "complete" and not vep.references:
+                raise ValueError("Build anno_vep with a verified HGNC/VEP reference catalog first")
+            provenance.update(
+                stage=args.stage,
+                assay_id=args.assay_id.lower() if args.assay_id else None,
+                assay_field=args.assay_field,
+            )
             manifest = sample_bundles(
                 source,
                 review,
@@ -395,6 +438,9 @@ def run(version: int, operation: str) -> int:
                 provenance=provenance,
                 vep=vep,
                 sample_ids=read_json(args.sample_ids_file) if args.sample_ids_file else None,
+                assay_id=args.assay_id,
+                assay_field=args.assay_field,
+                stage=args.stage,
             )
             provenance["batch_counts"] = manifest["counts"]
             print(json.dumps(manifest["counts"]))
@@ -407,7 +453,13 @@ def run(version: int, operation: str) -> int:
             )
             plan = sample_plan(source, args.sample_id, sample_review, vep=vep)
         else:
-            plan = independent_plan(source, operation, review.get(operation, {}), vep=vep)
+            assay_id = None
+            if operation == "annotation" and args.assay_id:
+                assay_id = validate_assay(args.assay_id, version)
+                provenance["assay_id"] = assay_id
+            plan = independent_plan(
+                source, operation, review.get(operation, {}), vep=vep, assay_id=assay_id
+            )
         validate_plan_scope(catalog, plan)
         provenance.update(
             {

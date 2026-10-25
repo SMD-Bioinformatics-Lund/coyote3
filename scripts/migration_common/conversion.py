@@ -18,9 +18,11 @@ from scripts.migration_common.offline import (
     SourceIndex,
     digest,
 )
+from scripts.migration_common.sample_scope import prepare_scope
 from scripts.migration_common.vep import VepReference, normalize_csq
 from scripts.upgrade_from_v3.clinical_documents import (
     convert_annotation,
+    normalize_annotation_scope,
     rename_field,
     validate_document,
 )
@@ -455,7 +457,14 @@ def _embedded_rna(sample: dict) -> dict[str, list[dict]]:
 
 
 def sample_plan(
-    source: SourceIndex, sample_id: str, review: dict, *, vep: VepReference | None = None
+    source: SourceIndex,
+    sample_id: str,
+    review: dict,
+    *,
+    vep: VepReference | None = None,
+    stage: str = "complete",
+    assay_id: str | None = None,
+    assay_field: str | None = None,
 ) -> dict[str, list[dict]]:
     """Build one complete sample bundle, preserving related histories and snapshot links.
 
@@ -465,6 +474,9 @@ def sample_plan(
         review: Mapping with sample, records, and optional coverage reconciliation.
         vep: Optional shared historical reference used for linked annotations and
             consistent vault records. None retains original sample-only VEP evidence.
+        stage: Complete bundle, findings before sample insertion, or samples/history only.
+        assay_id: Optional operator-selected lowercase ASP identifier.
+        assay_field: Explicit source field used to select the assay.
 
     Returns:
         Validated destination collections, including referenced clinical annotations.
@@ -472,14 +484,25 @@ def sample_plan(
     Raises:
         ValueError: A clinical dependency is missing, ambiguous, or not reconciled.
     """
+    if stage not in {"complete", "findings", "samples"}:
+        raise ValueError("Unsupported sample migration stage")
     original = source.get("samples", sample_id)
     sample, metadata = prepare_sample(original, review.get("sample", {}))
+    if assay_id is not None:
+        if assay_field is None:
+            raise ValueError("Assay selection requires the explicit source field")
+        sample = prepare_scope(sample, metadata, assay_id=assay_id, field=assay_field)
     documents = {"samples": [sample]}
     documents.update(_embedded_rna(sample))
+    if stage == "samples":
+        plan = build_plan({"samples": [sample]}, {sample_id: metadata})
+        return plan
     coverage = d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
     if coverage:
         documents["d4_coverage"] = coverage
     for physical, canonical in SAMPLE_COLLECTIONS[source.version].items():
+        if stage == "findings" and canonical == "reported_variants":
+            continue
         documents[canonical] = []
         for row in source.rows(physical, sample_id):
             try:
@@ -529,11 +552,19 @@ def sample_plan(
             and str(snapshot["sample_comment_oid"]) not in comments
         ):
             raise ValueError("Saved finding references an absent sample comment")
+    if stage == "findings":
+        for name in ("samples", "sample_comments", "reports"):
+            plan.pop(name, None)
     return plan
 
 
 def independent_plan(
-    source: SourceIndex, kind: str, review: dict, *, vep: VepReference | None = None
+    source: SourceIndex,
+    kind: str,
+    review: dict,
+    *,
+    vep: VepReference | None = None,
+    assay_id: str | None = None,
 ) -> dict[str, list[dict]]:
     """Convert shared annotations or blacklist entries independently of sample batches.
 
@@ -543,6 +574,7 @@ def independent_plan(
         review: Record-specific, digest-bound scope and missing-field reconciliation.
         vep: Shared VEP reference for exact annotation identity enrichment. None keeps
             the primary recorded identity without resolving complementary identities.
+        assay_id: Optional lowercase annotation ASP to retain after scope mapping.
 
     Returns:
         Contract-validated destination records, preserving source identifiers.
@@ -564,6 +596,10 @@ def independent_plan(
             if kind == "annotation":
                 if not annotation_selected(record, source.version):
                     continue
+                if assay_id is not None:
+                    normalize_annotation_scope(record)
+                    if record.get("asp_id") != assay_id:
+                        continue
                 if vep is not None:
                     record = vep.enrich(record)
                 record = convert_annotation(record)

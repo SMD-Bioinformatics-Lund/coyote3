@@ -197,7 +197,7 @@ def convert_sample(
     return validate_document("samples", document), comments, reports
 
 
-def _annotation_scope(document: dict[str, Any]) -> None:
+def normalize_annotation_scope(document: dict[str, Any]) -> None:
     """Apply the operator-supplied, one-time legacy annotation scope mapping.
 
     Args:
@@ -248,7 +248,7 @@ def convert_annotation(source: dict[str, Any]) -> dict[str, Any]:
     """
     document = deepcopy(source)
     nomenclature = document.get("nomenclature")
-    _annotation_scope(document)
+    normalize_annotation_scope(document)
     document["namespace"] = "clinical"
     if nomenclature not in NOMENCLATURE_FIELDS:
         raise ValueError("Unsupported annotation nomenclature")

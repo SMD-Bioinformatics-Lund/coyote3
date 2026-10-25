@@ -17,6 +17,7 @@ from scripts.migration_common.offline import (  # noqa: E402
     private_json,
     read_json,
 )
+from scripts.migration_common.prepare_references import verify_reference_snapshot  # noqa: E402
 from scripts.migration_common.schema_inventory import verify_review  # noqa: E402
 from scripts.migration_common.target_catalog import validate_snapshot  # noqa: E402
 from scripts.migration_common.vep import build_vep_reference  # noqa: E402
@@ -35,6 +36,7 @@ def main() -> int:
     )
     parser.add_argument("--vep-version", required=True)
     parser.add_argument("--target-catalog", type=Path, required=True)
+    parser.add_argument("--reference-catalog", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=1000)
     parser.add_argument("--issues", type=Path)
@@ -42,6 +44,7 @@ def main() -> int:
     try:
         catalog = read_json(args.target_catalog)
         validate_snapshot(catalog)
+        references = verify_reference_snapshot(args.reference_catalog, args.vep_version)
         with ExitStack() as stack:
             sources = []
             for version, index, review_path, audit in args.source:
@@ -58,6 +61,7 @@ def main() -> int:
                 version=args.vep_version,
                 target_sha256=catalog["sha256"],
                 batch_size=args.batch_size,
+                references=references,
             )
         print(json.dumps(manifest["counts"]))
         return 0

@@ -151,6 +151,7 @@ def build_vep_reference(
     version: str,
     target_sha256: str,
     batch_size: int = 1000,
+    references: dict | None = None,
 ) -> dict:
     """Stream complete source indexes into a shared disk-backed VEP reference.
 
@@ -162,6 +163,7 @@ def build_vep_reference(
         version: Release to retain, for example ``103``. Known other releases are counted.
         target_sha256: Validated destination catalog fingerprint used by apply bundles.
         batch_size: Maximum records per destination bundle, from 1 through 10000.
+        references: Optional verified HGNC/VEP preflight to retain in bundle provenance.
 
     Returns:
         Completion manifest with source fingerprints, counts and evidence checksum.
@@ -286,6 +288,7 @@ def build_vep_reference(
             else "combined",
             "source_versions": sorted({item["version"] for item in source_stamps}),
             "sources": source_stamps,
+            "references": references,
             "vep_version": version,
             "genome_build": next(iter(assemblies), None),
             "target_sha256": target_sha256,
@@ -359,6 +362,7 @@ class VepReference:
             self.version = metadata["version"]
             self.fingerprint = metadata["fingerprint"]
             self.sources = manifest["sources"]
+            self.references = manifest.get("references")
         except BaseException:
             self.close()
             raise
