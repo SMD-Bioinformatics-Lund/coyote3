@@ -1,10 +1,50 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import { useState } from "react"
+import userEvent from "@testing-library/user-event"
 import { AdminManagedForm } from "./AdminManagedForm"
 import { FormControl } from "./FormControl"
 import type { AdminResourceSpec, FormField, FormSpec } from "./resource-specs"
 
 describe("Resource Form UI", () => {
+  it.each([
+    { type: "int", value: 5, step: undefined, next: 6 },
+    { type: "int", value: 100, step: undefined, next: 101 },
+    { type: "float", value: 0.02, step: 0.001, next: 0.021 },
+    { type: "float", value: -0.4, step: 0.01, next: -0.39 },
+  ])("uses the configured increment for $type filters starting at $value", ({ type, value, step, next }) => {
+    render(<FormControl name="filters" field={{ display_type: "filters-structured", groups: [{
+      title: "Thresholds", fields: [{ key: "somatic.snv.threshold", label: "Threshold", type, step }],
+    }] }} value={{ somatic: { snv: { threshold: value } } }} mode="edit" onChange={vi.fn()} />)
+    const input = screen.getByRole("spinbutton", { name: /Threshold$/ }) as HTMLInputElement
+    expect(input).toHaveAttribute("step", String(step ?? 1))
+    input.stepUp()
+    expect(input.valueAsNumber).toBe(next)
+  })
+
+  it.each(["textarea", "jsoneditor-or-upload"])("preserves typed commas and newlines in %s list fields", async (display_type) => {
+    const changed = vi.fn()
+    function ListForm() {
+      const [values, setValues] = useState<string[]>(["FL"])
+      return <><FormControl name="aliases" field={{ label: "Alternative names", data_type: "list", display_type }}
+        value={values} mode="edit" onChange={(next) => { setValues(next); changed(next) }} />
+        <button onClick={() => setValues(["Reset name"])}>Reset</button></>
+    }
+    const user = userEvent.setup()
+    render(<ListForm />)
+    const input = screen.getByRole("textbox", { name: "Alternative names" })
+    await user.type(input, ", ")
+    expect(input).toHaveValue("FL, ")
+    await user.type(input, "Follicular lymphoma{Enter}")
+    expect(input).toHaveValue("FL, Follicular lymphoma\n")
+    await user.type(input, "Follicular lymphoma panel")
+    expect(changed).toHaveBeenLastCalledWith(["FL", "Follicular lymphoma", "Follicular lymphoma panel"])
+    await user.click(screen.getByRole("button", { name: "Reset" }))
+    expect(input).toHaveValue("Reset name")
+    await user.clear(input)
+    expect(changed).toHaveBeenLastCalledWith([])
+  })
+
   it("validates new identifiers without restricting existing reference choices", () => {
     const props = { name: "asp_id", field: { label: "Assay ID" }, value: "old--assay", mode: "create" as const, onChange: vi.fn() }
     const { rerender } = render(<FormControl {...props} />)

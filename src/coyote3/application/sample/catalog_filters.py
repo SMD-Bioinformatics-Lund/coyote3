@@ -160,7 +160,7 @@ class SampleCatalogFiltersMixin:
     def _genelist_option(cls, gl: dict[str, Any]) -> dict[str, Any]:
         """Return a compact, stable UI option for an ISGL document."""
         isgl_id = str(gl.get("isgl_id") or "")
-        label = str(gl.get("displayname") or gl.get("name") or isgl_id)
+        label = str(gl.get("name") or gl.get("displayname") or isgl_id)
         raw_list_type = gl.get("list_type") or []
         if isinstance(raw_list_type, str):
             list_type = [raw_list_type]
@@ -170,7 +170,7 @@ class SampleCatalogFiltersMixin:
             "id": isgl_id,
             "isgl_id": isgl_id,
             "name": label,
-            "display_name": label,
+            "display_name": str(gl.get("displayname") or label),
             "version": gl.get("version"),
             "adhoc": gl.get("adhoc", False),
             "gene_count": int(gl.get("gene_count") or len(gl.get("genes") or []) or 0),
@@ -213,7 +213,7 @@ class SampleCatalogFiltersMixin:
                 lists.append(
                     {
                         "id": str(list_id),
-                        "name": str(raw.get("displayname") or raw.get("name") or list_id),
+                        "name": str(raw.get("name") or raw.get("displayname") or list_id),
                         "adhoc": bool(raw.get("adhoc")),
                         "is_active": bool(raw.get("is_active", True)),
                         "gene_count": len(genes),

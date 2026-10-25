@@ -80,6 +80,7 @@ const fusionEffects = [
 ] as const
 
 function optionLabel(option: any) {
+  if (option?.isgl_id) return option.name || option.display_name || option.displayname || option.isgl_id
   return option?.display_name || option?.displayname || option?.name || option?.label || option?.isgl_id || option?.id || option?._id || String(option)
 }
 
@@ -197,7 +198,7 @@ function CheckboxList({
               onChange={(event) => onChange(event.target.checked ? [...values, id] : values.filter((value) => value !== id))}
               className="mt-0.5 rounded border-border text-primary focus:ring-primary"
             />
-            <span className="min-w-0 truncate" title={optionLabel(option)}>{optionLabel(option)}</span>
+            <span className="min-w-0 truncate" title={option?.display_name || option?.displayname || optionLabel(option)}>{optionLabel(option)}</span>
           </label>
         )
       })}

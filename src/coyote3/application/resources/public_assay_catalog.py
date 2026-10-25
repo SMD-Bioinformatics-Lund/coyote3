@@ -179,7 +179,7 @@ class PublicAssayCatalogManagementService:
                 [
                     {
                         "isgl_id": item.get("isgl_id"),
-                        "label": item.get("displayname") or item.get("name") or item.get("isgl_id"),
+                        "label": item.get("name") or item.get("displayname") or item.get("isgl_id"),
                         "asp_ids": item.get("asp_ids") or [],
                         "asp_groups": item.get("asp_groups") or [],
                         "diagnosis": item.get("diagnosis") or [],

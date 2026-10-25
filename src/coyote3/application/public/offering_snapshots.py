@@ -120,7 +120,9 @@ def build_offering_snapshot(
                     scopes.append(
                         {
                             "list_id": list_id,
-                            "label": binding.get("label") or gene_list["displayname"],
+                            "label": binding.get("label")
+                            or gene_list.get("name")
+                            or gene_list["displayname"],
                             "revision": gene_list["version"],
                             "analysis": analysis,
                             "genes": sorted(genes & coverage),

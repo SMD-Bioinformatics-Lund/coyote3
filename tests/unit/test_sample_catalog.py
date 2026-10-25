@@ -9,6 +9,16 @@ from coyote3.application.public.catalog import PublicCatalogService
 from coyote3.application.sample.catalog import SampleCatalogService
 
 
+def test_gene_list_option_uses_short_name_and_retains_full_name():
+    """Filter labels are compact while tooltips retain the full clinical name."""
+    option = SampleCatalogService._genelist_option(
+        {"isgl_id": "follicular", "name": "FL", "displayname": "Follicular lymphoma"}
+    )
+    assert option["name"] == "FL"
+    assert option["display_name"] == "Follicular lymphoma"
+    assert option["isgl_id"] == "follicular"
+
+
 @pytest.mark.parametrize("group", ["hematology", "solid", "tumwgs", "center_custom"])
 def test_analysis_counts_apply_assay_eligibility_even_when_all_panel_genes_are_selected(group):
     """Off-assay findings stay excluded regardless of a center's biological group name."""

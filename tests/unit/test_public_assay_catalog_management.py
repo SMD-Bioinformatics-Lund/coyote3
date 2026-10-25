@@ -28,6 +28,7 @@ def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(ser
     }
     lists = service.gene_list_repository.get_all_isgl()
     lists[0]["genes"] = ["GENE1", "OUTSIDE"]
+    lists[0]["name"] = "DG"
     service.gene_list_repository.get_all_isgl = lambda **kw: lists
     doc = service.create(actor="author", imported=source)
     doc = service.submit(str(doc["_id"]), doc["revision"], "reviewer", actor="author")
@@ -39,6 +40,7 @@ def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(ser
     matrix = publication_matrix(publication)
     assert matrix["genes"] == ["GENE1"]
     assert matrix["columns"][0]["analysis"] == "SNV"
+    assert matrix["columns"][0]["isgl_label"] == "DG"
     assert publication_matrix(publication, gene="OUTSIDE")["total"] == 0
     context = publication_context(publication, "dna", item["offering_id"])
     assert [row["symbol"] for row in context["genes"]] == ["GENE1"]

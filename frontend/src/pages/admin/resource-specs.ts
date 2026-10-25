@@ -30,6 +30,7 @@ export type AdminResourceSpec = {
 export type FormField = {
   label?: string
   data_type?: string
+  step?: number | "any"
   display_type?: string
   required?: boolean
   readonly?: boolean

@@ -15,6 +15,23 @@ import type { AdminFormMode, FormField } from "@/pages/admin/resource-specs"
 import { CheckboxGroup } from "./CheckboxGroup"
 import { ObjectFieldEditor } from "./ObjectFieldEditor"
 import { readFormPath, writeFormPath } from "./form-paths"
+import { useState, type ComponentProps } from "react"
+
+/** Keep typed separators visible while passing parsed lists to the form state. */
+function ListTextarea({ value, onChange, ...props }: Omit<ComponentProps<"textarea">, "value" | "onChange"> & {
+  value: unknown
+  onChange: (values: string[]) => void
+}) {
+  const canonical = normalizeList(value).join("\n")
+  const [draft, setDraft] = useState({ canonical, text: canonical })
+  if (draft.canonical !== canonical) setDraft({ canonical, text: canonical })
+  return <textarea {...props} value={draft.text} onChange={(event) => {
+    const text = event.target.value
+    const values = normalizeList(text)
+    setDraft({ canonical: values.join("\n"), text })
+    onChange(values)
+  }} />
+}
 
 export function StructuredObjectField({
   field,
@@ -188,9 +205,9 @@ export function FormControl({
     control = <StructuredObjectField field={field} value={value} onChange={onChange} disabled={readOnly} formValues={formValues} />
   } else if (field.display_type === "jsoneditor" || field.display_type === "jsoneditor-or-upload" || field.data_type === "json") {
     control = Array.isArray(value) ? (
-      <textarea
-        value={normalizeList(value).join("\n")}
-        onChange={(event) => onChange(normalizeList(event.target.value))}
+      <ListTextarea
+        value={value}
+        onChange={onChange}
         disabled={readOnly}
         placeholder="One value per line"
         className="min-h-24 w-full rounded-lg border border-input bg-background p-2 text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
@@ -199,10 +216,13 @@ export function FormControl({
       <ObjectFieldEditor value={value} onChange={onChange} disabled={readOnly} />
     )
   } else if (field.display_type === "textarea" || field.data_type === "list") {
-    control = (
+    control = field.data_type === "list" ? (
+      <ListTextarea value={value} onChange={onChange} disabled={readOnly}
+        placeholder={field.placeholder} className={cn(commonClass, "min-h-24")} />
+    ) : (
       <textarea
         value={Array.isArray(value) ? value.join("\n") : String(value ?? "")}
-        onChange={(event) => onChange(field.data_type === "list" ? normalizeList(event.target.value) : event.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         disabled={readOnly}
         placeholder={field.placeholder}
         className={cn(commonClass, "min-h-24")}
@@ -246,7 +266,7 @@ export function FormControl({
     ) : (
       <input
         type={field.display_type === "password" ? "password" : field.data_type === "int" || field.data_type === "float" ? "number" : "text"}
-        step={field.data_type === "float" ? "any" : undefined}
+        step={field.step ?? (field.data_type === "int" ? 1 : field.data_type === "float" ? "any" : undefined)}
         value={String(value ?? "")}
         onChange={(event) => onChange(event.target.value)}
         disabled={readOnly}

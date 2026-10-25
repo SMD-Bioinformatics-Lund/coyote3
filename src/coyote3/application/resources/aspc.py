@@ -148,7 +148,7 @@ class AspcService:
                 continue
             option = {
                 "value": isgl_id,
-                "label": str(gene_list.get("displayname") or gene_list.get("name") or isgl_id),
+                "label": str(gene_list.get("name") or gene_list.get("displayname") or isgl_id),
             }
             for list_type in gene_list.get("list_type") or []:
                 normalized_type = str(list_type).strip().lower()

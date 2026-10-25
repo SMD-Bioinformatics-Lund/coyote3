@@ -86,6 +86,14 @@ async function expand(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("FiltersSidebar", () => {
+  it("shows a gene-list short name with the full name as its tooltip", async () => {
+    const user = userEvent.setup()
+    renderSidebar({ context: { ...context, snv_genelist_options: [
+      { isgl_id: "heme", name: "HEM", display_name: "Hematology" },
+    ] } })
+    await expand(user)
+    expect(screen.getByText("HEM")).toHaveAttribute("title", "Hematology")
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.put.mockResolvedValue({ data: { ok: true } })
