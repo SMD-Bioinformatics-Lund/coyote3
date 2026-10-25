@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -80,8 +80,13 @@ describe("PublicCatalogMatrix", () => {
     expect(await screen.findByText("Assay Catalog - Gene Coverage Matrix")).toBeVisible()
     expect(screen.getByRole("columnheader", { name: "DNA" })).toBeVisible()
     expect(screen.getByRole("columnheader", { name: "hematology" })).toBeVisible()
+    const analysis = screen.getByRole("combobox", { name: "Analysis" })
+    expect(analysis).toHaveValue("SNV")
+    expect(within(analysis).queryByRole("option", { name: "All" })).not.toBeInTheDocument()
+    expect(screen.getByRole("columnheader", { name: "SNV Myeloid genes" })).toHaveTextContent(/^Myeloid genes$/)
+    expect(screen.queryByRole("columnheader", { name: "CNV Colon genes" })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/public/gene/TP53/info")
-    expect(screen.getByText("Showing 2 of 125 gene(s) across 2 visible catalog column(s)")).toBeVisible()
+    expect(screen.getByText("Showing 2 of 125 gene(s) across 1 visible catalog column(s)")).toBeVisible()
   })
 
   it("keeps annotation visibility separate and remembers the matrix preference", async () => {
@@ -104,6 +109,7 @@ describe("PublicCatalogMatrix", () => {
       ...matrixPayload,
       columns: matrixPayload.columns.map((column, index) => ({
         ...column,
+        analysis: "SNV",
         mod: index === 0 ? "wgs" : "wts",
         modality_label: index === 0
           ? "Whole Genome Sequencing (WGS)"
@@ -126,6 +132,10 @@ describe("PublicCatalogMatrix", () => {
   })
 
   it("filters visible columns without another server request", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: {
+      ...matrixPayload,
+      columns: matrixPayload.columns.map((column) => ({ ...column, analysis: "SNV" })),
+    } } as never)
     renderPage(<PublicCatalogMatrix />)
     await screen.findByText("2 visible catalog column(s)")
     const callsBefore = vi.mocked(api.get).mock.calls.length
@@ -137,7 +147,7 @@ describe("PublicCatalogMatrix", () => {
 
   it("filters matrix analyses locally without additional requests", async () => {
     renderPage(<PublicCatalogMatrix />)
-    await screen.findByText("2 visible catalog column(s)")
+    await screen.findByText("1 visible catalog column(s)")
     const calls = vi.mocked(api.get).mock.calls.length
     fireEvent.change(screen.getByLabelText("Analysis"), { target: { value: "CNV" } })
     expect(screen.getByText("1 visible catalog column(s)")).toBeVisible()
@@ -148,7 +158,8 @@ describe("PublicCatalogMatrix", () => {
 
   it("searches a gene on the server and resets pagination", async () => {
     renderPage(<PublicCatalogMatrix />)
-    await screen.findByText("2 visible catalog column(s)")
+    await screen.findByText("1 visible catalog column(s)")
+    fireEvent.change(screen.getByLabelText("Analysis"), { target: { value: "CNV" } })
 
     fireEvent.change(screen.getByLabelText("Gene search"), { target: { value: " TP53 " } })
     fireEvent.submit(screen.getByRole("button", { name: "Search" }).closest("form")!)
@@ -158,7 +169,8 @@ describe("PublicCatalogMatrix", () => {
         "/public/assay-catalog-matrix/context?page=1&per_page=50&gene=TP53",
       )
     })
-    expect((await screen.findAllByText(/2 visible catalog column\(s\) for "TP53"/))[0]).toBeVisible()
+    expect((await screen.findAllByText(/1 visible catalog column\(s\) for "TP53"/))[0]).toBeVisible()
+    expect(screen.getByLabelText("Analysis")).toHaveValue("CNV")
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }))
     await waitFor(() => {
@@ -185,5 +197,15 @@ describe("PublicCatalogMatrix", () => {
     vi.mocked(api.get).mockRejectedValue(new Error("Matrix unavailable"))
     renderPage(<PublicCatalogMatrix />)
     expect(await screen.findByText("Matrix unavailable")).toBeVisible()
+  })
+
+  it("selects the available analysis when a catalog has no SNV columns", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: {
+      ...matrixPayload,
+      columns: [{ ...matrixPayload.columns[0], mod: "rna", analysis: "FUSION" }],
+    } } as never)
+    renderPage(<PublicCatalogMatrix />)
+    expect(await screen.findByLabelText("Analysis")).toHaveValue("FUSION")
+    expect(screen.getByText("1 visible catalog column(s)")).toBeVisible()
   })
 })

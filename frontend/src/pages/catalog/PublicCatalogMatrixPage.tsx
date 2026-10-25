@@ -52,17 +52,25 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
       })
   }, [data])
 
+  const analysisOptions = useMemo(
+    () => uniqueOptions(allMatrixColumns.map((col) => col.analysis)),
+    [allMatrixColumns],
+  )
+  const selectedAnalysis = analysisOptions.includes(filters.analysis)
+    ? filters.analysis
+    : analysisOptions.find((analysis) => analysis.toUpperCase() === "SNV") || analysisOptions[0] || ""
+
   const matrixColumns = useMemo(() => {
     return allMatrixColumns.filter((col) => {
+      if (col.analysis !== selectedAnalysis) return false
       if (filters.mod && col.mod !== filters.mod) return false
       if (filters.assayGroup && col.assayGroup !== filters.assayGroup) return false
       if (filters.list && String(col.isgl_label || col.isgl_key) !== filters.list) return false
-      if (filters.analysis && col.analysis !== filters.analysis) return false
       if (filters.assay && col.assay !== filters.assay) return false
       if (filters.diagnosis && col.diagnosis !== filters.diagnosis) return false
       return true
     })
-  }, [allMatrixColumns, filters])
+  }, [allMatrixColumns, filters, selectedAnalysis])
 
   const filterOptions = useMemo(() => ({
     mod: uniqueOptions(allMatrixColumns.map((col) => col.mod)),
@@ -86,7 +94,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
   }
   const submitGeneSearch = (event: FormEvent) => {
     event.preventDefault()
-    setFilters({})
+    setFilters({ analysis: selectedAnalysis })
     setPage(1)
     setAppliedGeneSearch(geneSearch.trim())
   }
@@ -116,7 +124,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
       ) : (
         <AssayMatrixTable
           columns={matrixColumns}
-          filters={filters}
+          filters={{ ...filters, analysis: selectedAnalysis }}
           filterOptions={filterOptions}
           onFilterChange={setMatrixFilter}
           genes={genes}

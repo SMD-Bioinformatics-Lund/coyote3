@@ -102,6 +102,20 @@ export function AssayMatrixTable({
       </div>
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <label className="grid min-w-40 gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
+          Analysis
+          <select
+            value={filters.analysis || ""}
+            onChange={(event) => updateFilter("analysis", event.target.value)}
+            disabled={!filterOptions.analysis?.length}
+            className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-normal normal-case tracking-normal text-foreground"
+          >
+            {!filterOptions.analysis?.length && <option value="">No analyses available</option>}
+            {(filterOptions.analysis || []).map((analysis) => (
+              <option key={analysis} value={analysis}>{analysis.toUpperCase()}</option>
+            ))}
+          </select>
+        </label>
         <form onSubmit={onGeneSearchSubmit} className="flex min-w-[18rem] max-w-[34rem] flex-1 flex-wrap items-end gap-2">
           <label className="grid min-w-[14rem] flex-1 gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Gene search
@@ -129,7 +143,6 @@ export function AssayMatrixTable({
           ["assayGroup", "Section"],
           ["assay", "Assay"],
           ["diagnosis", "Diagnosis"],
-          ["analysis", "Analysis"],
           ["list", "Gene list"],
         ].map(([key, label]) => (
           <label key={key} className="grid gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
@@ -215,7 +228,6 @@ export function AssayMatrixTable({
                     style={matrixBoundaryStyle(boundary)}
                   >
                     <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
-                      <span className="matrix-analysis-label mb-1 inline-flex type-label">{col.analysis}</span>
                       <span className="block">{col.isgl_label || col.isgl_key}</span>
                     </span>
                   </th>

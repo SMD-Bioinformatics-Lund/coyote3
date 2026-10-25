@@ -737,7 +737,13 @@ The matrix shows gene coverage across catalog columns.
 | Row 3 | Assay, diagnosis, or gene-list column label. |
 | Body rows | One row per gene. A tick means the gene is present in that catalog column; `-` means absent. |
 
-Matrix filters include gene search, modality, section, and gene list. Gene search returns focused rows; otherwise the matrix is paged to keep loading fast.
+Select one **Analysis** (SNV, CNV, fusion, or another available type) to display its
+matrix. SNV is selected initially when available; otherwise the first available
+analysis is selected. Column headers show gene-list names without repeating analysis
+badges. Gene searches preserve the selected analysis.
+
+Other filters include modality, section, assay, diagnosis, and gene list. Gene search
+returns focused rows; otherwise the matrix is paged to keep loading fast.
 
 ## Gene Pages
 

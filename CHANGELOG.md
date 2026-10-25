@@ -2,6 +2,12 @@
 
 ## v4.0.0
 
+- Show one analysis at a time in the assay catalog matrix, with an analysis selector
+  and gene-list headers without repeated SNV/CNV/fusion badges.
+
+- Persist notification dismissal per recipient across login and redeployment,
+  including broadcasts, without withdrawing messages for other users.
+
 - Added collection-level creator/updater attribution, preserved original creators
   across edits, and made system-installed configuration read-only in administration
   workflows. Added an explicit, dry-run-first historical attribution backfill.
